@@ -1525,6 +1525,9 @@ extern a_type_ptr make_unqualified_type(
                               a_type_ptr old_type,
                               a_boolean  unqualify_array_elements = !C_mode());
 
+extern a_type_ptr remove_qualifiers(a_type_ptr           type,
+                                    a_type_qualifier_set qualifiers_to_remove);
+
 extern a_type_ptr prvalue_type(a_type_ptr type);
 
 extern a_type_ptr return_type_of(a_type_ptr routine_type);

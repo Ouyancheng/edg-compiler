@@ -29038,7 +29038,7 @@ appropriate, produce the "aggregate deduction candidate" (see N4885
       ctsp = defining_type->variant.class_struct_union.extra_info;
       dealiased_sym = symbol_for(ctsp->assoc_template);
     } else if (type_is(defining_type, tk_typeref) &&
-               defining_type->variant.typeref.is_template_alias) {
+               is_typeref_kind(defining_type, trk_is_template_alias)) {
       /* The defining-type-id names another alias template. */
       a_typeref_type_supplement_ptr  ttsp;
       ttsp = defining_type->variant.typeref.extra_info;
@@ -29253,7 +29253,7 @@ set to TRUE and FALSE is returned.
            the class template name appeared originally. */
         a_type_ptr  trp = alloc_type((a_type_kind)tk_typeref);
         trp->variant.typeref.type = *deduced_placeholder;
-        trp->variant.typeref.is_deduced_class = TRUE;
+        trp->variant.typeref.kind = trk_is_deduced_class;
         *deduced_placeholder = trp;
       }  /* if */
       if (tqs != TQ_NONE) {
@@ -29490,7 +29490,7 @@ TRUE and FALSE is returned.
                                            ->constraint.type_constraint;
         a_type_ptr  tp = alloc_type((a_type_kind)tk_typeref);
         tp->variant.typeref.type = *deduced_auto_type;
-        tp->variant.typeref.is_deduced_auto = TRUE;
+        tp->variant.typeref.kind = trk_is_deduced_auto;
         if (constraints != NULL) {
           a_memory_region_number region_to_switch_back_to;
           switch_to_file_scope_region(&region_to_switch_back_to);

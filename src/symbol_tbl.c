@@ -18228,6 +18228,112 @@ static a_const_char* intrinsic_names[] = {
 #define N_INTRINSIC_NAMES \
    ((int)(sizeof(intrinsic_names)/sizeof(intrinsic_names[0])))
 
+/*
+Like intrinsic_names, these are names of interest to the front end, but they
+should also be associated with token kinds (for context-sensitive promotion to
+keywords).
+*/
+static struct {
+  a_token_kind	token_kind;
+			/* Token representation of the name. */ 
+  a_const_char	*str;
+			/* String representation of the name. */
+} type_transform_names[] = {
+  { tok_add_lvalue_reference , "__add_lvalue_reference" }, 
+  { tok_add_pointer , "__add_pointer" },
+  { tok_add_rvalue_reference , "__add_rvalue_reference" },
+  { tok_decay , "__decay" },
+  { tok_make_signed , "__make_signed" },
+  { tok_make_unsigned , "__make_unsigned" },
+  { tok_remove_all_extents , "__remove_all_extents" },
+  { tok_remove_const , "__remove_const" },
+  { tok_remove_cv , "__remove_cv" },
+  { tok_remove_cvref , "__remove_cvref" },
+  { tok_remove_extent , "__remove_extent" },
+  { tok_remove_pointer , "__remove_pointer" },
+  { tok_remove_reference_t , "__remove_reference_t" },
+  { tok_remove_restrict , "__remove_restrict" },
+  { tok_remove_volatile , "__remove_volatile" }
+};
+
+#define N_TYPE_TRANSFORM_NAMES \
+   ((int)(sizeof(type_transform_names)/sizeof(type_transform_names[0])))
+
+using a_type_transform_name_table = Ptr_map<a_symbol_header*, a_token_kind>;
+			/* The type of a table that maps intrinsic identifiers
+			   to corresponding token kinds. */
+
+a_type_transform_name_table 
+		*type_transform_name_table;
+			/* A map from symbol headers for type transform
+			   operators to the keyword the associated identifier
+			   promotes to in some contexts. */
+			   
+
+static void init_type_transform_names(void)
+/*
+Pre-enter symbol headers for type transform names so they can efficiently be
+recognized during parsing.  Also, record the associated keyword kinds.
+*/
+{
+  int  n;
+
+  type_transform_name_table = alloc_fe_of_type(a_type_transform_name_table);
+  construct(type_transform_name_table, /*mask_width=*/6);
+  for (n = 0; n<N_TYPE_TRANSFORM_NAMES; ++n) {
+    a_symbol_locator  loc;
+    a_const_char      *name = type_transform_names[n].str;
+    a_token_kind      kind = type_transform_names[n].token_kind;
+    (void)find_symbol(name, strlen(name), &loc);
+    loc.symbol_header->has_intrinsic_name = TRUE;
+    type_transform_name_table->map(loc.symbol_header, kind);
+  }  /* for */
+}  /* init_type_transform_names */
+
+
+a_boolean is_intrinsic_type_transform_name(void)
+/*
+Return TRUE if the current token is an identifier matching a type transform
+name.
+*/
+{
+  a_boolean  result;
+
+  if (curr_token == tok_identifier) {
+    a_symbol_header  *hdr = locator_for_curr_id.symbol_header;
+    result = type_transform_name_table->get(hdr) != tok_error;
+  } else {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* is_intrinsic_type_transform_name */
+
+
+a_token_kind check_type_transform_name(void)
+/*
+If the current token is an identifier matching a type transform name, promote
+the identifier to a keyword and return the associated token kind.  Otherwise,
+return tok_error.
+*/
+{
+  a_token_kind  result;
+
+  if (curr_token == tok_identifier) {
+    a_symbol_header  *hdr = locator_for_curr_id.symbol_header;
+    result = type_transform_name_table->get(hdr);
+    if (result != tok_error) {
+      if (!check_context_sensitive_keyword(result, hdr->identifier)) {
+        /* By construction, the check should have succeeded. */
+        unexpected_condition();
+      }  /* if */
+    }  /* if */
+  } else {
+    result = tok_error;
+  }  /* if */
+  return result;
+}  /* check_type_transform_name */
+
+
 static void init_intrinsic_symbol_headers(void)
 /*
 Pre-enter symbol headers for intrinsic names so they can efficiently be
@@ -18242,6 +18348,7 @@ recognized during parsing.
     (void)find_symbol(name, strlen(name), &loc);
     loc.symbol_header->has_intrinsic_name = TRUE;
   }  /* for */
+  init_type_transform_names();
 }  /* init_intrinsic_symbol_headers */
 
 

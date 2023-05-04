@@ -8966,6 +8966,20 @@ and, if pos is not NULL, an error will be reported.
         case bok_is_volatile:
           result = is_volatile_qualified_type(orig_type);
           break;
+        case bok_is_bounded_array:
+          if (is_array_type(orig_type) &&
+              !is_incomplete_array_type(orig_type)) {
+            result = TRUE;
+          }  /* if */
+          break;
+        case bok_is_unbounded_array:
+          if (is_array_type(orig_type) && is_incomplete_array_type(orig_type)){
+            result = TRUE;
+          }  /* if */
+          break;
+        case bok_is_referenceable:
+          result = is_referenceable_type(orig_type);
+          break;
         default:
           unexpected_condition();
       }  /* switch */
@@ -9220,18 +9234,31 @@ and, if pos is not NULL, an error will be reported.
         result = class_symbol_supp(symbol_for(type))->is_class_aggregate;
         break;
       case bok_is_complete_type:
-          result = is_complete_object_type(type);
-          break;
+        result = is_complete_object_type(type);
+        break;
       case bok_is_compound:
       case bok_is_object:
-          result = TRUE;
-          break;
+        result = TRUE;
+        break;
       case bok_is_const:
-          result = is_const;
-          break;
+        result = is_const;
+        break;
       case bok_is_volatile:
-          result = is_volatile_qualified_type(orig_type);
-          break;
+        result = is_volatile_qualified_type(orig_type);
+        break;
+      case bok_is_bounded_array:
+        if (is_array_type(orig_type) && !is_incomplete_array_type(orig_type)) {
+          result = TRUE;
+        }  /* if */
+        break;
+      case bok_is_unbounded_array:
+        if (is_array_type(orig_type) && is_incomplete_array_type(orig_type)) {
+          result = TRUE;
+        }  /* if */
+        break;
+      case bok_is_referenceable:
+        result = is_referenceable_type(orig_type);
+        break;
       case bok_is_arithmetic:
       case bok_is_floating_point:
       case bok_is_fundamental:
@@ -10022,6 +10049,9 @@ constant is set as well.
       case bok_is_unsigned:
       case bok_is_void:
       case bok_is_volatile:
+      case bok_is_bounded_array:
+      case bok_is_unbounded_array:
+      case bok_is_referenceable:
         /* Various type trait helpers that take a single argument. */
         fold_unary_type_trait_helper(expr, constant, maintain_expression, pos,
                                      /*complete_class_property=*/FALSE);

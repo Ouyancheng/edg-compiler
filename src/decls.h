@@ -277,6 +277,13 @@ extension keywords that construct a type specifier.
       (tok) == tok_edg_wchar_type || (tok) == tok_edg_internal_type)
 
 /*
+Macro to be used in conjunction with is_type_keyword to check for Clang-
+specific "type-returning type traits".
+*/
+#define or_is_clang_type_returning_type_trait(tok)                        \
+  || (clang_mode && is_type_returning_type_trait(tok))
+
+/*
 Macro that can be redefined by users to include checking for user-defined
 type keyword extensions.  If you change this, see also type_keyword.
 */
@@ -303,6 +310,7 @@ If you change this, see also type_keyword.
    or_is_int128_keyword(tok)                                          \
    or_is_fixed_point_type_keyword(tok)                                \
    or_is_edg_type_keyword(tok)                                        \
+   or_is_clang_type_returning_type_trait(tok)                         \
    or_is_extension_type_keyword(tok)) 
 
 /*

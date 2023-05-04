@@ -1260,7 +1260,7 @@ C++-generating back end.
   } else if (old_sym_ptr->is_nonreal_member &&
              !(gpp_mode && sym_ptr->kind == (a_symbol_kind)sk_type &&
                sym_ptr->variant.type.ptr->kind == (a_type_kind)tk_typeref &&
-               sym_ptr->variant.type.ptr->variant.typeref.is_alias)) {
+               typeref_is_alias(sym_ptr->variant.type.ptr))) {
     /* Ignore members of proxy and nonreal classes: they don't correspond to
        actual declarations and therefore cannot be hidden.  The exception
        handles a case like:

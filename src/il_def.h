@@ -1459,6 +1459,24 @@ enum a_token_kind : unsigned short {
   tok_float32,
   tok_float64,
   tok_float128,
+  tok_is_bounded_array,
+  tok_is_unbounded_array,
+  tok_is_referenceable,
+  tok_add_lvalue_reference,
+  tok_add_pointer,
+  tok_add_rvalue_reference,
+  tok_decay,
+  tok_make_signed,
+  tok_make_unsigned,
+  tok_remove_all_extents,
+  tok_remove_const,
+  tok_remove_cv,
+  tok_remove_cvref,
+  tok_remove_extent,
+  tok_remove_pointer,
+  tok_remove_reference_t,
+  tok_remove_restrict,
+  tok_remove_volatile,
   /* Placeholder for last position in enumeration. */
   tok_last
 };
@@ -1686,6 +1704,24 @@ EXTERN a_const_char
    "_Float32",
    "_Float64",
    "_Float128",
+   "__is_bounded_array",
+   "__is_unbounded_array",
+   "__is_referenceable",
+   "__add_lvalue_reference",
+   "__add_pointer",
+   "__add_rvalue_reference",
+   "__decay",
+   "__make_signed",
+   "__make_unsigned",
+   "__remove_all_extents",
+   "__remove_const",
+   "__remove_cv",
+   "__remove_cvref",
+   "__remove_extent",
+   "__remove_pointer",
+   "__remove_reference_t",
+   "__remove_restrict",
+   "__remove_volatile",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -8841,8 +8877,8 @@ typedef struct a_typeref_type_supplement {
 			   NULL and the expression must be retrieved using
 			   find_local_expr_node.  For typeof, this field is
 			   also NULL for the typeof(type) variant, which is
-			   indicated by the is_typeof_with_type_operand
-			   field.  This field is always NULL for an
+			   indicated by the trk_is_typeof_with_type_operand
+			   kind.  This field is always NULL for an
 			   __underlying_type construct (is_underlying_type),
 			   as expression arguments are not allowed.  The
 			   function decltype_arg can be used to fetch the
@@ -9050,6 +9086,82 @@ Definitions of the bits in bit sets of type a_pointer_modifier_set.
 			/* This bit is set to represent __uptr. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+/*
+Some typerefs are added during compilation to indicate that a type has been
+modified in some way.  This enumeration lists the various kinds of uses of
+typerefs.  Note that this information was previously contained in bit fields
+but has been moved to an enumeration to save space.  As a result, these
+values are now mutually exclusive (whereas before both the is_typeof and
+is_typeof_with_type_operand bits could be TRUE).  Some of the names have been
+modified to help illustrate that.
+*/
+enum a_typeref_kind : a_byte {
+  trk_none,             /* The typeref has no special meaning (e.g., used for
+                           an ordinary typedef). */
+  trk_is_decltype,      /* The type was created by a decltype(<expr>)
+                           operator. */
+  trk_is_deduced_decltype_auto,
+                        /* The type resulted from deducing a "decltype(auto)"
+                           specifier. */
+  trk_is_deduced_auto,  /* The type resulted from deducing an "auto" type
+                           specifier. */
+  trk_is_deduced_class, /* The type resulted from deducing class template
+                           arguments (a C++17 feature). */
+  trk_is_underlying_type,
+                        /* The type was created by an __underlying_type
+                           operator (a Microsoft extension). */
+  trk_is_typeof_with_expression,
+                        /* The type was created by a typeof operator applied
+                           to an expression, i.e., typeof(expr). */
+  trk_is_typeof_with_type_operand,
+                        /* The type was created by a typeof operator applied to
+                           a type, i.e., typeof(type-name). */
+  trk_for_type_attributes,
+                        /* The underlying type has type-transforming attributes
+                           applied to it and this entry's attributes field (in
+                           source_corresp) describes those attributes. */
+  trk_is_alias,
+			/* A type entry representing an alias but not an
+			   instance of an alias template. */
+  trk_is_template_alias,
+                        /* A type created for instantiations of alias
+                           templates, including the prototype instantiation. */
+  trk_bases,            /* TRUE for a typeref entry for a g++ __bases
+                           operator. */
+  trk_direct_bases,     /* TRUE for a typeref entry for a g++ __direct_bases
+                           operator. */
+  trk_add_lvalue_reference,
+  trk_add_pointer,
+  trk_add_rvalue_reference,
+  trk_decay,
+  trk_make_signed,
+  trk_make_unsigned,
+  trk_remove_all_extents,
+  trk_remove_const,
+  trk_remove_cv,
+  trk_remove_cvref,
+  trk_remove_extent,
+  trk_remove_pointer,
+  trk_remove_reference_t,
+  trk_remove_restrict,
+  trk_remove_volatile,
+                        /* These are Clang "type-returning type traits" that
+                           take a single type "argument" and "return" a
+                           suitably-modified type. */
+};
+
+/*
+Utility to interrogate the value of type->variant.typeref.kind for a
+particular a_typeref_kind.
+*/
+#if EXPENSIVE_CHECKING
+#define is_typeref_kind(type, typeref_kind) \
+  (check_assertion((type)->kind == tk_typeref), \
+   (type)->variant.typeref.kind == (typeref_kind))
+#else /* !EXPENSIVE_CHECKING */
+#define is_typeref_kind(type, typeref_kind) \
+  ((type)->variant.typeref.kind == (typeref_kind))
+#endif /* EXPENSIVE_CHECKING */
 
 typedef struct a_type {
   /* Description of a type. */
@@ -9981,6 +10093,8 @@ typedef struct a_type {
 			   otherwise.  For internal use in IL lowering
 			   only. */
 #endif /* DO_IL_LOWERING */
+      a_typeref_kind
+		kind;   /* The kind of typeref. */
       a_bit_field
 		qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
 			/* Bit set with bits set to indicate the presence
@@ -10014,22 +10128,6 @@ typedef struct a_type {
 			   appeared. */
 #endif /* BACK_END_IS_CP_GEN_BE */
       a_bit_field
-		is_decltype:1;
-			/* The type was created by a decltype(<expr>)
-			   operator. */
-      a_bit_field
-		is_deduced_decltype_auto:1;
-			/* The type resulted from deducing a "decltype(auto)"
-			   specifier. */
-      a_bit_field
-		is_deduced_auto:1;
-			/* The type resulted from deducing an "auto" type
-			   specifier. */
-      a_bit_field
-		is_deduced_class:1;
-			/* The type resulted from deducing class template
-			   arguments (a C++17 feature). */
-      a_bit_field
 		decltype_expr_not_parenthesized:1;
 			/* This is a decltype entry and its argument
 			   expression is not parenthesized.  TRUE only if
@@ -10041,42 +10139,12 @@ typedef struct a_type {
 			   So, for example, TRUE for "decltype(x.y)" and
 			   FALSE for "decltype((x.y))". */
       a_bit_field
-		is_underlying_type:1;
-			/* The type was created by an __underlying_type
-			   operator (a Microsoft extension). */
-      a_bit_field
-		is_typeof:1;
-			/* The type was created by a typeof operator. */
-      a_bit_field
-		is_typeof_with_type_operand:1;
-			/* The type was created by a typeof operator applied to
-			   a type rather than an expression, i.e.,
-			   typeof(type-name) rather than typeof(expr). */
-      a_bit_field
 		is_dependent_type_operator:1;
 			/* TRUE if the type was created by decltype,
 			   __underlying_type, or typeof, and it's dependent
 			   (including cases where there are dependent
 			   subexpressions but the final result has a
 			   non-dependent type). */
-      a_bit_field
-		for_type_attributes:1;
-			/* When TRUE, the underlying type has type-transforming
-			   attributes applied to it and this entry's attributes
-			   field (in source_corresp) describes those
-			   attributes. */
-      a_bit_field
-		is_alias:1;
-			/* TRUE for typedefs declared using the alias syntax;
-			   e.g., "using T = int;".  (This reflects the primary
-			   declaration of a typedef.  For subsequent
-			   declarations, see the corresponding
-			   a_src_seq_secondary_decl entry.) */
-      a_bit_field
-		is_template_alias:1;
-			/* TRUE for types created for instantiations of
-			   alias templates, including the prototype
-			   instantiation. */
       a_bit_field
 		is_nonreal:1;
 			/* TRUE if the result of an alias instantiation is
@@ -10096,14 +10164,6 @@ typedef struct a_type {
 		is_prototype_instantiation:1;
 			/* TRUE when this type is a nonreal type that
 		 	   is a prototype instantiation. */
-      a_bit_field
-		is_bases:1;
-			/* TRUE for a typeref entry for a g++ __bases or
-			   __direct_bases operator. */
-      a_bit_field
-		direct_bases:1;
-			/* If is_bases is TRUE, this is FALSE for __bases
-			   and TRUE for __direct_bases. */
 #if C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX
       a_bit_field
 		is_lowered_complex_type:1;
@@ -13589,6 +13649,10 @@ enum a_builtin_operation_kind : a_byte {
   bok_is_unsigned,      /* __is_unsigned (Clang).  One type operand. */
   bok_is_void,          /* __is_void (Clang).  One type operand. */
   bok_is_volatile,      /* __is_volatile (Clang).  One type operand. */
+  bok_is_bounded_array, /* __is_bounded_array (Clang).  One type operand. */
+  bok_is_unbounded_array,
+                        /* __is_unbounded_array (Clang).  One type operand. */
+  bok_is_referenceable, /* __is_referenceable (Clang).  One type operand. */
   bok_last              /* Marks the end of the list. */
 };
 
@@ -18161,6 +18225,9 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__is_unsigned",
   "__is_void",
   "__is_volatile",
+  "__is_bounded_array",
+  "__is_unbounded_array",
+  "__is_referenceable",
   "last"
 }
 #endif /* VAR_INITIALIZERS */

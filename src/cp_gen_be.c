@@ -1656,7 +1656,7 @@ infinite recursion.
   traversal_size = 0;
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   type_to_match = skip_typerefs(type->variant.typeref.type);
-  if (type->variant.typeref.is_template_alias) {
+  if (is_typeref_kind(type, trk_is_template_alias)) {
     /* Check that the target type does not appear in the template arguments
        of the alias template instance. */
     ttt_flags = TTT_TEMPLATE_ARGS
@@ -1789,7 +1789,7 @@ otherwise, return NULL.
          standalone_identical_types(entry->type->variant.typeref.type, type) &&
                                 (entry->fcn_scope == NULL ||
                                  entry->fcn_scope == innermost_function_scope);
-    if (!matches && entry->type->variant.typeref.is_template_alias) {
+    if (!matches && is_typeref_kind(entry->type, trk_is_template_alias)) {
       /* Instances of template aliases can also match base classes. */
       a_base_class_ptr bcp = find_base_class_of(
                                              entry->type->variant.typeref.type,
@@ -1802,7 +1802,7 @@ otherwise, return NULL.
     if (matches) {
       /* The typedef matches.  Check whether it can be used. */
       a_type_ptr parent_class = parent_class_or_null(entry->type);
-      if (entry->type->variant.typeref.is_template_alias &&
+      if (is_typeref_kind(entry->type, trk_is_template_alias) &&
           skip_typerefs(type)->kind != (a_type_kind)tk_template_param) {
         /* An alias template is instantiated separately from its containing
            template, so if the underlying type of the alias template
@@ -1900,7 +1900,7 @@ templ, add the corresponding instance typedef to the table as well.
     if (mbr_typedef_name == NULL) {
       /* We are looking for instances of the alias template templ. */
       if (tp->kind == (a_type_kind)tk_typeref &&
-          tp->variant.typeref.is_template_alias &&
+          is_typeref_kind(tp, trk_is_template_alias) &&
           !tp->variant.typeref.is_prototype_instantiation &&
           tp->variant.typeref.extra_info->assoc_template == templ &&
           !target_type_has_circularity(tp)) {
@@ -2024,7 +2024,7 @@ template, add its instances as well in case they may be needed.
         typedef_added = TRUE;
       }  /* if */
     }  /* while */
-    if (typedef_added && type->variant.typeref.is_template_alias &&
+    if (typedef_added && is_typeref_kind(type, trk_is_template_alias) &&
         type->variant.typeref.is_prototype_instantiation) {
       /* This is the prototype instantiation of an alias template.  Add all
          the instances of that alias template to the hash table as well. */
@@ -5015,7 +5015,7 @@ been defined.
      because template aliases cannot be explicitly specialized and an
      implicit instantiation is no problem. */
   typedef_will_be_implicitly_instantiated_if_referenced =
-                                     type->variant.typeref.is_template_alias &&
+                                is_typeref_kind(type, trk_is_template_alias) &&
        !(type->source_corresp.is_class_member &&
          parent_class_of(type)->variant.class_struct_union.is_template_class &&
          !parent_class_of(type)->has_been_declared);
@@ -5031,7 +5031,7 @@ been defined.
          parent_class_of(type)->variant.class_struct_union.is_template_class &&
          !parent_class_of(type)->variant.class_struct_union.is_specialized);
   if (!typedef_will_be_implicitly_instantiated_if_referenced &&
-      type->variant.typeref.is_template_alias) {
+      is_typeref_kind(type, trk_is_template_alias)) {
     typedef_will_be_implicitly_instantiated_if_referenced =
        !type->source_corresp.is_class_member ||
        parent_class_of(type)->has_been_declared ||
@@ -5205,11 +5205,14 @@ are done in the il_to_str routines before this routine is called.
       a_type_ptr orig_underlying_type = underlying_type;
       while (resolved_type != NULL &&
              underlying_type->kind == (a_type_kind)tk_typeref) {
-        if (underlying_type->variant.typeref.is_decltype
+        if (is_typeref_kind(underlying_type, trk_is_decltype)
 #if GNU_EXTENSIONS_ALLOWED
-            || underlying_type->variant.typeref.is_typeof
+            || (is_typeref_kind(underlying_type,
+                                trk_is_typeof_with_expression) ||
+                is_typeref_kind(underlying_type,
+                                trk_is_typeof_with_type_operand))
 #endif /* GNU_EXTENSIONS_ALLOWED */
-                                                         ) {
+                                                                 ) {
           an_expr_node_ptr expr = decltype_arg(underlying_type);
           if (expr != NULL && !expr_is_unusable(expr)) {
             /* This type operator is usable to refer to the type. */
@@ -5339,7 +5342,7 @@ return NULL.
        decltype construct; if so, return it. */
     a_type_ptr proxy_type = class_type_supp(class_type)->proxy_of_type;
     if (proxy_type->kind == (a_type_kind)tk_typeref &&
-        proxy_type->variant.typeref.is_decltype) {
+        is_typeref_kind(proxy_type, trk_is_decltype)) {
       decltype_type = proxy_type;
     }  /* if */
   }  /* if */
@@ -8269,12 +8272,13 @@ such cases.
 */
 {
   a_source_sequence_scan_state  saved_state = null_source_sequence_scan_state;
-  a_boolean                     is_decltype = tp->variant.typeref.is_decltype;
-  a_boolean                     is_bases = tp->variant.typeref.is_bases;
+  a_boolean                     is_decltype =
+                                          is_typeref_kind(tp, trk_is_decltype);
+  a_boolean                     is_bases = is_typeref_kind(tp, trk_bases);
   a_boolean                     direct_bases =
-                                              tp->variant.typeref.direct_bases;
+                                         is_typeref_kind(tp, trk_direct_bases);
   a_boolean                     is_underlying_type =
-                                       tp->variant.typeref.is_underlying_type;
+                                   is_typeref_kind(tp, trk_is_underlying_type);
   char                          *kwd;
   a_boolean                     operator_suppressed = FALSE;
 
@@ -8290,7 +8294,9 @@ such cases.
   } else if (is_underlying_type) {
     kwd = (char *)"__underlying_type(";
   } else if (is_bases) {
-    kwd = direct_bases ? (char *)"__direct_bases(" : (char *)"__bases(";
+    kwd = (char *)"__bases(";
+  } else if (direct_bases) {
+    kwd = (char *)"__direct_bases(";
   } else {
     kwd = (char *)"__typeof__(";
   }  /* if */
@@ -8302,9 +8308,9 @@ such cases.
     activate_delayed_type_definition_sse(tp);
     adv_curr_source_sequence_entry();
   }  /* if */
-  if (is_underlying_type || is_bases
+  if (is_underlying_type || is_bases || direct_bases
 #if GNU_EXTENSIONS_ALLOWED
-      || tp->variant.typeref.is_typeof_with_type_operand
+      || is_typeref_kind(tp, trk_is_typeof_with_type_operand)
 #endif /* GNU_EXTENSIONS_ALLOWED */
                                                         ) {
     /* __underlying_type(<type>) or __typeof__(<type>). */
@@ -10875,7 +10881,7 @@ declaration following this one is such a continuation.
   } else {
     under_type = type->variant.typeref.type;
     attributes = type->source_corresp.attributes;
-    is_alias = type->variant.typeref.is_alias;
+    is_alias = typeref_is_alias(type);
     embedded_constructs =
                         type->variant.typeref.embedded_source_sequence_entries;
   }  /* if */
@@ -12294,7 +12300,7 @@ this one is such a continuation.
       }  /* if */
       if (sec_decl != NULL && sec_decl->declared_type != NULL &&
           sec_decl->declared_type->kind == (a_type_kind)tk_typeref &&
-          sec_decl->declared_type->variant.typeref.for_type_attributes) {
+          is_typeref_kind(sec_decl->declared_type, trk_for_type_attributes)) {
         /* Some attributes on this declaration were recorded as type attributes
            (e.g., "friend class X __attribute((XX));"). */
         gen_attributes(sec_decl->declared_type->source_corresp.attributes,
@@ -18622,8 +18628,8 @@ is the one associated with the template.
       if (tp->kind == (a_template_kind)templk_class &&
           tp->prototype_instantiation.type != NULL &&
           tp->prototype_instantiation.type->kind == (a_type_kind)tk_typeref &&
-          tp->prototype_instantiation.type->
-                                           variant.typeref.is_template_alias) {
+          is_typeref_kind(tp->prototype_instantiation.type,
+                          trk_is_template_alias)) {
         /* We have a prototype instantiation of an alias template, even
            though we didn't use that to generate the definition of the
            template.  Add it and its instances to the accessible typedefs
@@ -22533,7 +22539,7 @@ member access expression.
   a_boolean result = FALSE;
 
   if (type->kind == (a_type_kind)tk_typeref &&
-      type->variant.typeref.is_decltype) {
+      is_typeref_kind(type, trk_is_decltype)) {
     an_expr_or_stmt_traversal_block tblock;
     clear_expr_or_stmt_traversal_block(&tblock);
     tblock.process_expr = check_for_member_access_expr;

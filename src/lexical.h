@@ -726,6 +726,24 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_float32 */
    (an_opname_kind)onk_none,          /* tok_float64 */
    (an_opname_kind)onk_none,          /* tok_float128 */
+   (an_opname_kind)onk_none,          /* tok_is_bounded_array */
+   (an_opname_kind)onk_none,          /* tok_is_unbounded_array */
+   (an_opname_kind)onk_none,          /* tok_is_referenceable */
+   (an_opname_kind)onk_none,          /* tok_add_lvalue_reference */
+   (an_opname_kind)onk_none,          /* tok_add_pointer */
+   (an_opname_kind)onk_none,          /* tok_add_rvalue_reference */
+   (an_opname_kind)onk_none,          /* tok_decay */
+   (an_opname_kind)onk_none,          /* tok_make_signed */
+   (an_opname_kind)onk_none,          /* tok_make_unsigned */
+   (an_opname_kind)onk_none,          /* tok_remove_all_extents */
+   (an_opname_kind)onk_none,          /* tok_remove_const */
+   (an_opname_kind)onk_none,          /* tok_remove_cv */
+   (an_opname_kind)onk_none,          /* tok_remove_cvref */
+   (an_opname_kind)onk_none,          /* tok_remove_extent */
+   (an_opname_kind)onk_none,          /* tok_remove_pointer */
+   (an_opname_kind)onk_none,          /* tok_remove_reference_t */
+   (an_opname_kind)onk_none,          /* tok_remove_restrict */
+   (an_opname_kind)onk_none,          /* tok_remove_volatile */
    (an_opname_kind)onk_last           /* tok_last */
   }
 #endif /* VAR_INITIALIZERS */
@@ -9812,6 +9830,40 @@ EXTERN a_boolean id_representations_match(a_void_ptr entry_ptr,
                                           a_void_ptr key_ptr);
 
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
+
+inline a_boolean is_type_returning_type_trait(a_token_kind token)
+/*
+Returns TRUE if the specified token is a "type-returning type trait", e.g.,
+tok_underlying_type.
+*/
+{
+  a_boolean result;
+
+  switch (token) {
+    case tok_underlying_type:
+    case tok_add_lvalue_reference:
+    case tok_add_pointer:
+    case tok_add_rvalue_reference:
+    case tok_decay:
+    case tok_make_signed:
+    case tok_make_unsigned:
+    case tok_remove_all_extents:
+    case tok_remove_const:
+    case tok_remove_cv:
+    case tok_remove_cvref:
+    case tok_remove_extent:
+    case tok_remove_pointer:
+    case tok_remove_reference_t:
+    case tok_remove_restrict:
+    case tok_remove_volatile:
+      result = TRUE;
+      break;
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
+  return result;
+}  /* is_type_returning_type_trait */
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

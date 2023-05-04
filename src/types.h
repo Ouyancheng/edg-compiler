@@ -330,6 +330,7 @@ a_type_ptr normalized_class_template_placeholder_type(a_type_ptr         tp,
                                                       a_source_position  *pos);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 extern a_boolean is_or_has_volatile_qualified_type(a_type_ptr tp);
+extern a_boolean is_referenceable_type(a_type_ptr tp);
 
 extern a_type_ptr array_element_type(a_type_ptr array_type);
 extern a_type_ptr underlying_array_element_type(a_type_ptr array_type);
@@ -496,21 +497,36 @@ nor qualifier.
   return tp->source_corresp.name != NULL;
 }  /* typeref_is_typedef */
 
+
+inline a_boolean typeref_is_alias(a_type_ptr  tp)
+/*
+Return TRUE if a tk_typeref type represents an alias (including an instance of
+an alias template.
+*/
+{
+  return tp->variant.typeref.kind == trk_is_alias ||
+         tp->variant.typeref.kind == trk_is_template_alias;
+}  /* typeref_is_alias */
+
+
 /*
 Return TRUE if a tk_typeref type represents a C++11 decltype,
 __underlying_type, or GNU typeof construct.
 */
 #if GNU_EXTENSIONS_ALLOWED
-#define typeref_is_type_operator(tp)                                   \
-  ((tp)->variant.typeref.is_decltype ||                                     \
-   (tp)->variant.typeref.is_underlying_type ||                              \
-   (tp)->variant.typeref.is_bases ||                                        \
-   (tp)->variant.typeref.is_typeof)
+#define typeref_is_type_operator(tp)                                        \
+  (is_typeref_kind((tp), trk_is_decltype) ||                                \
+   is_typeref_kind((tp), trk_is_underlying_type) ||                         \
+   is_typeref_kind((tp), trk_bases) ||                                      \
+   is_typeref_kind((tp), trk_direct_bases) ||                               \
+   is_typeref_kind((tp), trk_is_typeof_with_expression) ||                  \
+   is_typeref_kind((tp), trk_is_typeof_with_type_operand))
 #else /* !GNU_EXTENSIONS_ALLOWED */
-#define typeref_is_type_operator(tp)                                   \
-  ((tp)->variant.typeref.is_decltype ||                                     \
-   (tp)->variant.typeref.is_bases ||                                        \
-   (tp)->variant.typeref.is_underlying_type)
+#define typeref_is_type_operator(tp)                                        \
+  (is_typeref_kind((tp), trk_is_decltype) ||                                \
+   is_typeref_kind((tp), trk_bases) ||                                      \
+   is_typeref_kind((tp), trk_direct_bases) ||                               \
+   is_typeref_kind((tp), trk_is_underlying_type)
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 inline a_boolean type_is_typedef(a_type_ptr  tp)

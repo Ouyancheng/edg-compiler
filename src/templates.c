@@ -9882,8 +9882,7 @@ specified by template_sym.  Return the symbol for the new instance.
   instance_sym = make_template_class_symbol(template_sym);
   /* Create the type entry for the alias. */
   type = alloc_type((a_type_kind)tk_typeref);
-  type->variant.typeref.is_alias = TRUE;
-  type->variant.typeref.is_template_alias = TRUE;
+  type->variant.typeref.kind = trk_is_template_alias;
   instance_sym->variant.type.ptr = type;
   set_source_corresp(&(type->source_corresp), instance_sym);
   set_membership_in_source_corresp(&(type->source_corresp), instance_sym);
@@ -13102,7 +13101,8 @@ points to the template parameter list.
        being an alias.  Consider this a match for now. */
     match = TRUE;
   } else if (templ_type->kind == (a_type_kind)tk_typeref &&
-             templ_type->variant.typeref.is_bases) {
+             (is_typeref_kind(templ_type, trk_bases) ||
+              is_typeref_kind(templ_type, trk_direct_bases))) {
     /* Deduction and substitution of __bases and __direct_bases is not
        supported. */
   } else if (is_template_param_type(templ_type)) {
@@ -16113,7 +16113,7 @@ a pointer over a reference type or creating an array of references.
                                             templ_param_list,
                                             (options | CTWS_NON_CONSTANT_EXPR),
                                             copy_error, ctws_state);
-        } else if (type->variant.typeref.is_underlying_type &&
+        } else if (is_typeref_kind(type, trk_is_underlying_type) &&
                    type->variant.typeref.is_dependent_type_operator) {
           /* The __underlying_type operator. */
           /* Substitute the type and extract the underlying type if it's
@@ -16129,11 +16129,12 @@ a pointer over a reference type or creating an array of references.
             /* __underlying_type doesn't apply to non-enum types. */
             subst_fail(*copy_error);
           }  /* if */
-        } else if (type->variant.typeref.is_bases) {
+        } else if (is_typeref_kind(type, trk_bases) ||
+                   is_typeref_kind(type, trk_direct_bases)) {
           /* Substitution of __bases and __direct_bases is not supported. */
           subst_fail(*copy_error);
         } else {
-          if (type->variant.typeref.is_template_alias) {
+          if (is_typeref_kind(type, trk_is_template_alias)) {
             if (type->variant.typeref.is_dependent) {
               /* If the typeref is an alias template instance, substitute the
                  new template arguments.  This is needed because the result
@@ -16184,8 +16185,8 @@ a pointer over a reference type or creating an array of references.
               type_without_typerefs =
                                    type_without_typerefs->variant.typeref.type;
             } while (type_without_typerefs->kind == (a_type_kind)tk_typeref &&
-                     !type_without_typerefs->variant.typeref.
-                                                           is_template_alias &&
+                     !is_typeref_kind(type_without_typerefs,
+                                      trk_is_template_alias) &&
                      !typeref_is_type_operator(type_without_typerefs));
             tp = copy_type_with_substitution(type_without_typerefs,
                                              templ_arg_list,
@@ -22407,8 +22408,7 @@ initially used when processing the declaration of a partial specialization.
       prototype_type->variant.typeref.extra_info->assoc_template =
                                                  decl_state->il_template_entry;
       prototype_sym->variant.type.ptr = prototype_type;
-      prototype_type->variant.typeref.is_alias = TRUE;
-      prototype_type->variant.typeref.is_template_alias = TRUE;
+      prototype_type->variant.typeref.kind = trk_is_template_alias;
       prototype_type->variant.typeref.is_nonreal = TRUE;
       prototype_type->variant.typeref.is_dependent = TRUE;
       prototype_type->variant.typeref.is_prototype_instantiation = TRUE;
@@ -24775,6 +24775,14 @@ declaration of a partial specialization declared outside of its class.
     /* Look up the identifier.  If it's a qualified name there will be an
        error down the line.  The options used when coalescing the 
        identifier are specified above. */
+    if (locator_for_curr_id.symbol_header->has_intrinsic_name &&
+        is_intrinsic_type_transform_name()) {
+      /* If it uses an intrinsic name, make the name non-intrinsic.  This
+         allows, e.g., __make_unsigned to be defined as a struct template. */
+      locator_for_curr_id.symbol_header->has_intrinsic_name = FALSE;
+      pos_st_remark(ec_intrinsic_name_released, &pos_curr_token,
+                    locator_for_curr_id.symbol_header->identifier);
+    }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     decl_state->decl_pos_block.identifier_range.start = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -30827,6 +30835,14 @@ alias
   } else {
     /* A valid identifier was scanned. */
     locator = locator_for_curr_id;
+    if (locator.symbol_header->has_intrinsic_name &&
+        is_intrinsic_type_transform_name()) {
+      /* If it uses an intrinsic name, make the name non-intrinsic.  This
+         allows, e.g., __make_unsigned to be defined as an alias template. */
+      locator.symbol_header->has_intrinsic_name = FALSE;
+      pos_st_remark(ec_intrinsic_name_released, &pos_curr_token,
+                    locator.symbol_header->identifier);
+    }  /* if */
     if (decl_state->decl_scope_err) {
       /* An error will have already been issued on a template declaration in an
          invalid scope. */
@@ -42853,7 +42869,7 @@ transformed for the alias template.
     a_symbol_ptr  ct_sym = symbol_for(def_type);
     def_sym = class_symbol_supp(ct_sym)->class_template;
   } else if (type_is(def_type, tk_typeref) &&
-             def_type->variant.typeref.is_template_alias) {
+             is_typeref_kind(def_type, trk_is_template_alias)) {
     /* The defining-type-id names another alias template. */
     a_typeref_type_supplement_ptr  ttsp = def_type->variant.typeref.extra_info;
     def_sym = symbol_for(ttsp->assoc_template);

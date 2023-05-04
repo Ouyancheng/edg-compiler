@@ -3806,7 +3806,7 @@ the given attributes to it).
   a_type_ptr  result;
 
   if (tp->kind == (a_type_kind)tk_typeref &&
-      tp->variant.typeref.for_type_attributes) {
+      is_typeref_kind(tp, trk_for_type_attributes)) {
     /* Reuse the existing "for attributes" typeref entry. */
     result = tp;
     *last_attribute_link(&tp->source_corresp.attributes) = attributes;
@@ -3814,7 +3814,7 @@ the given attributes to it).
     /* Create a new "for attributes" typeref entry. */
     result = alloc_type((a_type_kind)tk_typeref);
     result->variant.typeref.type = tp;
-    result->variant.typeref.for_type_attributes = TRUE;
+    result->variant.typeref.kind = trk_for_type_attributes;
     result->source_corresp.attributes = attributes;
   }  /* if */
   return result;
@@ -3849,7 +3849,7 @@ produces *p_type.
     }  /* for */
     if (new_type->kind != (a_type_kind)tk_routine &&
         !(new_type->kind == (a_type_kind)tk_typeref &&
-          new_type->variant.typeref.for_type_attributes)) {
+          is_typeref_kind(new_type, trk_for_type_attributes))) {
       /* Attributes should not be recorded directly in type entries that might
          be shared.  Use a typeref to carry the attributes instead. */
       *p_type =  make_typeref_with_attributes(new_type, attributes);
@@ -3859,7 +3859,7 @@ produces *p_type.
          a tk_typeref entry, it also avoid surprises with existing code that
          has been assuming that tk_typerefs on top of routine types must be
          typedef/decltype/typeof entries).  Similarly, if new_type is a
-         tk_typeref entry whose for_type_attributes is TRUE, attributes can be
+         tk_typeref entry with kind trk_for_type_attributes, attributes can be
          attached to it directly. */
       *last_attribute_link(&new_type->source_corresp.attributes) = attributes;
       *p_type = new_type;
@@ -4461,8 +4461,8 @@ and C11 _Alignas specifiers.
       /* DR444 says that an _Alignas attribute is allowed in a compound
          literal, e.g., "(_Alignas(32) int){1}".  In such cases, there is no IL
          entity to attach the attribute to, so this is treated as a
-         type-transforming attribute (which will have a typeref with
-         for_type_attributes set to TRUE). */
+         type-transforming attribute (which will have a typeref with kind
+         trk_for_type_attributes). */
       if (c11_mode) {
         constr = "T";
       } else {
@@ -8628,7 +8628,7 @@ attribute turns it into an interior pointer to T.
     a_type_ptr  tp;
     check_assertion(entity_kind == iek_type);
     tp = (a_type_ptr)entity;
-    if (!type_is_typedef(tp) || !tp->variant.typeref.is_alias) {
+    if (!type_is_typedef(tp) || !typeref_is_alias(tp)) {
       report_bad_attribute_target(es_error, ap);
     } else {
       tp->variant.typeref.type =
@@ -8656,7 +8656,7 @@ turns it into an pin pointer to T.
     a_type_ptr  tp;
     check_assertion(entity_kind == iek_type);
     tp = (a_type_ptr)entity;
-    if (!type_is_typedef(tp) || !tp->variant.typeref.is_alias) {
+    if (!type_is_typedef(tp) || !typeref_is_alias(tp)) {
       report_bad_attribute_target(es_error, ap);
     } else {
       tp->variant.typeref.type = make_pin_ptr_type(tp->variant.typeref.type);

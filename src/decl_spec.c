@@ -9837,7 +9837,7 @@ dps->specifier_attributes list.
            to which the attributes will be attached. */
         a_type_ptr  trtp = alloc_type((a_type_kind)tk_typeref);
         trtp->variant.typeref.type = dps->specifiers_type;
-        trtp->variant.typeref.for_type_attributes = TRUE;
+        trtp->variant.typeref.kind = trk_for_type_attributes;
         dps->specifiers_type = trtp;
       }  /* if */
       attach_type_attributes(&dps->specifiers_type, dps->specifier_attributes,
@@ -11686,13 +11686,30 @@ process_enum_specifier:
         decl_specifiers_seen |= DS_OVERLOAD;
         break;
       case tok_underlying_type:
+      case tok_add_lvalue_reference:
+      case tok_add_pointer:
+      case tok_add_rvalue_reference:
+      case tok_decay:
+      case tok_make_signed:
+      case tok_make_unsigned:
+      case tok_remove_all_extents:
+      case tok_remove_const:
+      case tok_remove_cv:
+      case tok_remove_cvref:
+      case tok_remove_extent:
+      case tok_remove_pointer:
+      case tok_remove_reference_t:
+      case tok_remove_restrict:
+      case tok_remove_volatile:
+type_transform_case:
+        /* A "type-returning type trait" (e.g., __underlying_type). */
         { a_source_position  decltype_pos = pos_curr_token;
-          *type_ptr = scan_underlying_type_operator();
+          *type_ptr = scan_type_returning_type_trait_operator();
           if (!is_error_type(*type_ptr) &&
               (basic_type != bt_none || sign != sign_none ||
                size != size_none)) {
             /* We've already seen specifiers that cannot be combined with
-               __underlying_type: Ignore them and issue an error. */
+               this type trait: Ignore them and issue an error. */
             pos_error(ec_bad_combination_of_type_specifiers, &decltype_pos);
             *type_ptr = error_type();
             sign = sign_none;
@@ -11768,14 +11785,21 @@ process_enum_specifier:
           (void)get_token();
           goto no_get_token;
         }  /* if */
-        FALLTHROUGH
+        goto general_identifier_case;
       case tok_identifier:  /* Identifier or "::". */
+        if (locator_for_curr_id.symbol_header != NULL &&
+            locator_for_curr_id.symbol_header->has_intrinsic_name &&
+            check_type_transform_name() != tok_error) {
+          goto type_transform_case;
+        }  /* if */
+        FALLTHROUGH
       case tok_colon_colon:
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_super:
       case tok_ifc_entity_ref:
       case tok_ifc_decl_ref:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+general_identifier_case:
         /* Identifier. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         id_start_pos = pos_curr_token;

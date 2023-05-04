@@ -594,7 +594,7 @@ TRUE and FALSE is returned.
       if (keep_placeholder) {
         a_type_ptr  type = alloc_type((a_type_kind)tk_typeref);
         type->variant.typeref.type = *deduced_auto_type;
-        type->variant.typeref.is_deduced_decltype_auto = TRUE;
+        type->variant.typeref.kind = trk_is_deduced_decltype_auto;
         *type_after_deduction = type;
       } else {
         *type_after_deduction = *deduced_auto_type;
@@ -931,7 +931,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
     }  /* if */
     set_type_kind(auto_type, (a_type_kind)tk_typeref);
     auto_type->variant.typeref.type = deduced_type;
-    auto_type->variant.typeref.is_deduced_auto = TRUE;
+    auto_type->variant.typeref.kind = trk_is_deduced_auto;
     dps->deduced_auto_type = deduced_type;
   } else {
     /* Normal (i.e., C++-mode) deduction. */
@@ -14744,6 +14744,9 @@ indication in *rcblock).
       case tok_is_unsigned:             bok = bok_is_unsigned; break;
       case tok_is_void:                 bok = bok_is_void; break;
       case tok_is_volatile:             bok = bok_is_volatile; break;
+      case tok_is_bounded_array:        bok = bok_is_bounded_array; break;
+      case tok_is_unbounded_array:      bok = bok_is_unbounded_array; break;
+      case tok_is_referenceable:        bok = bok_is_referenceable; break;
       default:
         unexpected_condition();
     }  /* switch */
@@ -16232,7 +16235,7 @@ name.  We do not advance to the token after the decltype in this case.
                 prev_region;
     tp->variant.typeref.type = decltype_from_operand(&operand,
                                                      &no_parens_matters);
-    tp->variant.typeref.is_decltype = TRUE;
+    tp->variant.typeref.kind = trk_is_decltype;
     tp->variant.typeref.decltype_expr_not_parenthesized = no_parens_matters;
     tp->variant.typeref.is_dependent_type_operator = dependent_arg;
     if (dependent_arg) {
@@ -16449,9 +16452,12 @@ expression-processing routines.
 
   check_assertion(type->kind == (a_type_kind)tk_typeref);
   /* __underlying_type constructs don't allow expression arguments. */
-  check_assertion(!type->variant.typeref.is_underlying_type);
+  check_assertion(!is_typeref_kind(type, trk_is_underlying_type));
 #if GNU_EXTENSIONS_ALLOWED
-  if (type->variant.typeref.is_typeof) is_typeof = TRUE;
+  if (is_typeref_kind(type, trk_is_typeof_with_expression) ||
+      is_typeref_kind(type, trk_is_typeof_with_type_operand)) {
+    is_typeof = TRUE;
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   clear_rescan_control_block(&rcblock);
   rcblock.template_arg_list = template_arg_list;
@@ -16477,30 +16483,60 @@ expression-processing routines.
 }  /* decltype_of_expr_with_substitution */
 
 
-a_type_ptr scan_underlying_type_operator(void)
+static a_typeref_kind typeref_kind_for_token(a_token_kind token)
 /*
-Scan the __underlying_type operator.  This is a C++11 construct that is
-similar to decltype.  It is used in type contexts, not expression contexts.
-
-Syntax:
-        __underlying_type( type-name )
-
-The parentheses are required.  If the operand is an enumeration type, the
-result is the underlying type of the enumeration.  Issue an error if the
-operand is not an enumeration type.  This routine is intended to be called
-from outside of the expression-processing routines.
+Convert the given token into the appropriate a_typeref_kind.
 */
 {
-  a_type_ptr result, type_arg;
-  a_source_position type_position;
+  a_typeref_kind result = trk_none;
 
+  switch (token) {
+    case tok_underlying_type:       result = trk_is_underlying_type;   break;
+    case tok_add_lvalue_reference:  result = trk_add_lvalue_reference; break;
+    case tok_add_pointer:           result = trk_add_pointer;          break;
+    case tok_add_rvalue_reference:  result = trk_add_rvalue_reference; break;
+    case tok_decay:                 result = trk_decay;                break;
+    case tok_make_signed:           result = trk_make_signed;          break;
+    case tok_make_unsigned:         result = trk_make_unsigned;        break;
+    case tok_remove_all_extents:    result = trk_remove_all_extents;   break;
+    case tok_remove_const:          result = trk_remove_const;         break;
+    case tok_remove_cv:             result = trk_remove_cv;            break;
+    case tok_remove_cvref:          result = trk_remove_cvref;         break;
+    case tok_remove_extent:         result = trk_remove_extent;        break;
+    case tok_remove_pointer:        result = trk_remove_pointer;       break;
+    case tok_remove_reference_t:    result = trk_remove_reference_t;   break;
+    case tok_remove_restrict:       result = trk_remove_restrict;      break;
+    case tok_remove_volatile:       result = trk_remove_volatile;      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return result;
+}  /* typeref_kind_for_token */
+
+
+a_type_ptr scan_type_returning_type_trait_operator(void)
+/*
+Scan a "type-returning type trait" operator, e.g., __underlying_type.  These
+are similar to type traits but appear in type contexts, not expression
+contexts.  All currently supported operators use functional notation and must
+have a single type as the only "argument".  This routine is intended to be
+called from outside of the expression-processing routines.
+
+If the operand is an enumeration type, the result is the underlying type of the
+enumeration.  Issue an error if the operand is not an enumeration type.  
+*/
+{
+  a_type_ptr        result = error_type(), type_arg;
+  a_source_position type_position;
+  a_token_kind      kind = curr_token;
+
+  check_assertion(is_type_returning_type_trait(kind));
   if (!type_traits_helpers_enabled) {
-    /* __underlying_type is not accepted in some modes. */
+    /* __underlying_type (et al.) are not accepted in some modes. */
     pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
-                 token_names[(int)tok_underlying_type]);
+                 token_names[(int)kind]);
   }  /* if */
   /* Skip the __underlying_type token. */
-  check_assertion(curr_token == tok_underlying_type);
   (void)get_token();
   /* Check for and pass over the left parenthesis. */
   (void)required_token(tok_lparen, ec_exp_lparen);
@@ -16511,49 +16547,188 @@ from outside of the expression-processing routines.
   remove_stop_token(tok_rparen);
   (void)required_token(tok_rparen, ec_exp_rparen);
   if (!type_traits_helpers_enabled) {
-    /* Turn the result into an error type to avoid any surprises later on. */
-    result = error_type();
+    /* Leave result set to an error type to avoid any surprises later on. */
   } else {
-    if (is_enum_type(type_arg)) {
-      /* Extract the underlying integral type. */
-      an_integer_type_supplement_ptr  itsp;
-      result = skip_typerefs(type_arg);
-      itsp = integer_type_supp(result);
-      if (result->variant.integer.has_explicit_enum_base) {
-        result = itsp->base_type;
-#if GNU_EXTENSIONS_ALLOWED
-      } else if (itsp->underlying_type_should_use_unsigned) {
-        /* Usually, the underlying type of an enum type corresponds to the
-           integer type the enum type promotes to.  In GCC that is not the
-           case, and "int_kind" represents the integer kind promoted to.
-           If appropriate, produce the unsigned counterpart here. */
-        result = integer_type(
-                      unsigned_int_kind_of[result->variant.integer.int_kind]);
-#endif /* GNU_EXTENSIONS_ALLOWED */
-      } else {
-        result = integer_type(result->variant.integer.int_kind);
-      }  /* if */
-    } else if (is_template_param_type(type_arg)) {
+    if (is_template_param_type(type_arg)) {
       /* A template parameter type is fine since it may turn out to be an enum
          type.  Use it also as a placeholder type. */
       result = type_arg;
     } else {
-      pos_error(ec_bad_argument_for_underlying_type, &type_position);
-      result = error_type();
+      switch (kind) {
+        case tok_underlying_type:
+          if (is_enum_type(type_arg)) {
+            /* Extract the underlying integral type. */
+            an_integer_type_supplement_ptr  itsp;
+            result = skip_typerefs(type_arg);
+            itsp = integer_type_supp(result);
+            if (result->variant.integer.has_explicit_enum_base) {
+              result = itsp->base_type;
+#if GNU_EXTENSIONS_ALLOWED
+            } else if (itsp->underlying_type_should_use_unsigned) {
+              /* Usually, the underlying type of an enum type corresponds to
+                 the integer type the enum type promotes to.  In GCC that is
+                 not the case, and "int_kind" represents the integer kind
+                 promoted to.  If appropriate, produce the unsigned counterpart
+                 here. */
+              result = integer_type(
+                       unsigned_int_kind_of[result->variant.integer.int_kind]);
+#endif /* GNU_EXTENSIONS_ALLOWED */
+            } else {
+              result = integer_type(result->variant.integer.int_kind);
+            }  /* if */
+          } else {
+            pos_error(ec_bad_argument_for_underlying_type, &type_position);
+            result = error_type();
+          }  /* if */
+          break;
+        case tok_remove_const:
+          result = remove_qualifiers(type_arg, TQ_CONST);
+          break;
+        case tok_remove_cv:
+          result = remove_qualifiers(type_arg, TQ_CONST | TQ_VOLATILE);
+          break;
+        case tok_remove_restrict:
+          result = remove_qualifiers(type_arg, TQ_RESTRICT);
+          break;
+        case tok_remove_volatile:
+          result = remove_qualifiers(type_arg, TQ_VOLATILE);
+          break;
+        case tok_add_pointer:
+          if (is_reference_type(type_arg)) {
+            type_arg = type_pointed_to(type_arg);
+          }  /* if */
+          result = make_pointer_type(type_arg);
+          break;
+        case tok_remove_pointer:
+          if (is_pointer_type(type_arg)) {
+            result = type_pointed_to(type_arg);
+          } else {
+            result = type_arg;
+          }  /* if */
+          break;
+        case tok_add_lvalue_reference:
+          if (is_referenceable_type(type_arg)) {
+            if (is_reference_type(type_arg)) {
+              /* Perform reference collapsing. */
+              type_arg = type_pointed_to(type_arg);
+              type_arg = remove_qualifiers(type_arg, TQ_CONST | TQ_VOLATILE);
+            }  /* if */
+            result = make_reference_type(type_arg);
+          } else {
+            result = type_arg;
+          }  /* if */
+          break;
+        case tok_add_rvalue_reference:
+          if (is_referenceable_type(type_arg)) {
+            if (is_reference_type(type_arg)) {
+              /* Perform reference collapsing. */
+              result = type_arg;
+            } else {
+              result = make_rvalue_reference_type(type_arg);
+            }  /* if */
+          } else {
+            result = type_arg;
+          }  /* if */
+          break;
+        case tok_remove_reference_t:
+          if (is_reference_type(type_arg)) {
+            result = type_pointed_to(type_arg);
+          } else {
+            result = type_arg;
+          }  /* if */
+          break;
+        case tok_remove_cvref:
+          if (is_reference_type(type_arg)) {
+            result = type_pointed_to(type_arg);
+          } else {
+            result = type_arg;
+          }  /* if */
+          result = remove_qualifiers(result, TQ_CONST | TQ_VOLATILE);
+          break;
+        case tok_make_signed:
+          if ((is_integral_type(type_arg) || is_enum_type(type_arg)) &&
+              !is_bool_type(type_arg)) {
+            a_type_qualifier_set  tqs = get_type_qualifiers(type_arg);
+            type_arg = skip_typerefs(type_arg);
+            an_integer_kind int_kind = type_arg->variant.integer.int_kind;
+            result = integer_type(int_kind);
+            if (int_kind == ik_char) {
+              result = integer_type(ik_signed_char);
+            } else if (!int_type_is_signed(type_arg)) {
+              result = other_signedness_integer_type(int_kind);
+            }  /* if */
+            if (tqs != TQ_NONE) {
+              result = make_qualified_type(result, tqs);
+            }  /* if */
+          } else {
+            expr_pos_error(ec_bad_argument_to_make_signed, &type_position);
+            result = error_type();
+          }  /* if */
+          break;
+        case tok_make_unsigned:
+          if ((is_integral_type(type_arg) || is_enum_type(type_arg)) &&
+              !is_bool_type(type_arg)) {
+            a_type_qualifier_set  tqs = get_type_qualifiers(type_arg);
+            type_arg = skip_typerefs(type_arg);
+            an_integer_kind int_kind = type_arg->variant.integer.int_kind;
+            result = integer_type(int_kind);
+            if (int_kind == ik_char) {
+              result = integer_type(ik_unsigned_char);
+            } else if (int_type_is_signed(type_arg)) {
+              result = other_signedness_integer_type(int_kind);
+            }  /* if */
+            if (tqs != TQ_NONE) {
+              result = make_qualified_type(result, tqs);
+            }  /* if */
+          } else {
+            expr_pos_error(ec_bad_argument_to_make_unsigned, &type_position);
+            result = error_type();
+          }  /* if */
+          break;
+        case tok_remove_extent:
+          if (is_array_type(type_arg)) {
+            result = array_element_type(type_arg);
+          } else {
+            result = type_arg;
+          }  /* if */
+          break;
+        case tok_remove_all_extents:
+          if (is_array_type(type_arg)) {
+            result = underlying_array_element_type(type_arg);
+          } else {
+            result = type_arg;
+          }  /* if */
+          break;
+        case tok_decay:
+          if (is_reference_type(type_arg)) {
+            type_arg = type_pointed_to(type_arg);
+          }  /* if */
+          if (is_array_type(type_arg)) {
+            result = make_pointer_type(array_element_type(type_arg));
+          } else if (is_function_type(type_arg)) {
+            result = make_pointer_type(type_arg);
+          } else {
+            result = remove_qualifiers(type_arg,
+                                       TQ_CONST | TQ_VOLATILE | TQ_RESTRICT);
+          }  /* if */
+          break;
+        default:
+          unexpected_condition();
+      }  /* switch */
     }  /* if */
     if (!is_error_type(result)) {
       a_boolean   dependent_arg = is_template_dependent_context() &&
                                   is_template_dependent_type(result);
       a_type_ptr  ut_type = alloc_type((a_type_kind)tk_typeref);
+      ut_type->variant.typeref.kind = typeref_kind_for_token(kind);
       ut_type->variant.typeref.type = result;
-      ut_type->variant.typeref.is_underlying_type = TRUE;
       ut_type->variant.typeref.is_dependent_type_operator = dependent_arg;
       ut_type->variant.typeref.extra_info->operator_type_arg = type_arg;
       result = ut_type;
     }  /* if */
   }  /* if */
   return result;
-}  /* scan_underlying_type_operator */
+}  /* scan_type_returning_type_trait_operator */
 
 
 a_type_ptr scan_typeof_operator(a_rescan_control_block      *rcblock,
@@ -16781,8 +16956,9 @@ the expression-processing routines.
                                      /*unqualify_array_elements=*/TRUE);
     }  /* if */
     typeof_type->variant.typeref.type = result;
-    typeof_type->variant.typeref.is_typeof = TRUE;
-    typeof_type->variant.typeref.is_typeof_with_type_operand = is_type;
+    typeof_type->variant.typeref.kind = is_type ?
+                                              trk_is_typeof_with_type_operand :
+                                              trk_is_typeof_with_expression;
     typeof_type->variant.typeref.is_dependent_type_operator = dependent_arg;
     typeof_type->variant.typeref.extra_info->operator_type_arg = type_arg;
     if (!is_type) {
@@ -16943,10 +17119,10 @@ expression-processing routines.
        instantiation a special pack is created.  During a real instantiation,
        the current base class of the generated pack is returned. */
     a_type_ptr  type = alloc_type((a_type_kind)tk_typeref);
-    type->variant.typeref.is_bases = TRUE;
     type->variant.typeref.is_dependent_type_operator =
                                                is_template_dependent_context();
-    type->variant.typeref.direct_bases = direct_bases;
+    type->variant.typeref.kind = direct_bases ? trk_direct_bases
+                                              : trk_bases;
     result = get_type_for_bases_operator(type_arg, &type_position,
                                          direct_bases);
     type->variant.typeref.type = result;
@@ -31657,6 +31833,9 @@ Return TRUE if the given token kind represents a "trait" name (like
     case tok_is_unsigned:
     case tok_is_void:
     case tok_is_volatile:
+    case tok_is_bounded_array:
+    case tok_is_unbounded_array:
+    case tok_is_referenceable:
       result = TRUE;
       break;
     default:
@@ -34462,6 +34641,9 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_is_unsigned:
     case tok_is_void:
     case tok_is_volatile:
+    case tok_is_bounded_array:
+    case tok_is_unbounded_array:
+    case tok_is_referenceable:
     case tok_coroutine_yield:
     case tok_coroutine_await:
       is_expr_start = TRUE;
@@ -40505,6 +40687,9 @@ handle_identifier:
     case tok_is_unsigned:
     case tok_is_void:
     case tok_is_volatile:
+    case tok_is_bounded_array:
+    case tok_is_unbounded_array:
+    case tok_is_referenceable:
       /* Various single-type unary traits helpers. */
       scan_unary_type_trait_helper((a_rescan_control_block *)NULL,
                                     &local_result);
@@ -40856,6 +41041,21 @@ handle_trapped_left_paren:
     case tok_decltype:
     case tok_decltype_construct:
     case tok_underlying_type:
+    case tok_add_lvalue_reference:
+    case tok_add_pointer:
+    case tok_add_rvalue_reference:
+    case tok_decay:
+    case tok_make_signed:
+    case tok_make_unsigned:
+    case tok_remove_all_extents:
+    case tok_remove_const:
+    case tok_remove_cv:
+    case tok_remove_cvref:
+    case tok_remove_extent:
+    case tok_remove_pointer:
+    case tok_remove_reference_t:
+    case tok_remove_restrict:
+    case tok_remove_volatile:
 type_start:
       /* In C++, these type keywords begin a functional-notation type
          conversion (ARM 5.2.3).  In C, they're a syntax error. */
@@ -40884,8 +41084,9 @@ type_start:
           cast_type = make_auto_type(&pos_curr_token, 
                                      /*is_decltype_auto=*/FALSE);
           (void)get_token();
-        } else if (curr_token == tok_underlying_type) {
-          cast_type = scan_underlying_type_operator();
+        } else if (is_type_returning_type_trait(curr_token)) {
+          /* A "type-returning type trait" (e.g., __underlying_type). */
+          cast_type = scan_type_returning_type_trait_operator();
         } else if (curr_token == tok_typeof) {
           cast_type = scan_typeof_operator((a_rescan_control_block *)NULL,
                                            (a_decl_pos_block*)NULL);

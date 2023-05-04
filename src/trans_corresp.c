@@ -1824,7 +1824,7 @@ unit to another.
 */
 #define is_generated_alias(tp)                                         \
   ((tp)->kind == (a_type_kind)tk_typeref &&                            \
-   (tp)->variant.typeref.is_template_alias &&                          \
+   is_typeref_kind((tp), trk_is_template_alias) &&                     \
    !(tp)->variant.typeref.is_prototype_instantiation)
 /*
 Return TRUE for "generated" types: These can differ from one translation
@@ -7071,7 +7071,7 @@ way, determine to which other IL entry this might correspond.
                  type->variant.class_struct_union.is_template_class &&
                  class_type_supp(type)->template_arg_list != NULL) ||
                 (type->kind == (a_type_kind)tk_typeref &&
-                 type->variant.typeref.is_template_alias)) {
+                 is_typeref_kind(type, trk_is_template_alias))) {
               a_symbol_ptr  inst = symbol_for(type);
               /* Flush the pending instantiations list, in case the type we're
                  interested in is on that list. */
@@ -7119,7 +7119,7 @@ way, determine to which other IL entry this might correspond.
           /* A member class template instantiation. */
           record_class_template_instantiation(symbol_for(type));
         } else if (type->kind == (a_type_kind)tk_typeref &&
-                   type->variant.typeref.is_template_alias) {
+                   is_typeref_kind(type, trk_is_template_alias)) {
           /* A member alias template instantiation. */
           record_alias_template_instantiation(symbol_for(type));
         } else {

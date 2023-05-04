@@ -960,7 +960,7 @@ entry.
   } else if (type->kind == (a_type_kind)tk_typeref) {
 #if ABI_COMPATIBILITY_VERSION >= 402
     if (emulate_gnu_abi_bugs &&
-        type->variant.typeref.is_decltype &&
+        is_typeref_kind(type, trk_is_decltype) &&
         type->variant.typeref.is_dependent_type_operator &&
         !gnu_requires_decltype_mangling(type)) {
       /* This is a dependent decltype and typically gets its own
@@ -1646,7 +1646,8 @@ called in C mode, if tp is an array, check for a qualifier on the element type.
   check_assertion(!C_mode());
   for (;;) {
     if (tp->kind == (a_type_kind)tk_typeref) {
-      if (tp->variant.typeref.is_typeof &&
+      if ((is_typeref_kind(tp, trk_is_typeof_with_expression) ||
+           is_typeref_kind(tp, trk_is_typeof_with_type_operand)) &&
           tp->variant.typeref.is_dependent_type_operator) {
         /* Found a dependent typeof; return it. */
         break;
@@ -3585,7 +3586,7 @@ appropriate. The type must not have had its typerefs skipped by the caller.
 
   type = skip_typerefs_not_dependent_decltypes(type);
   if (type->kind == (a_type_kind)tk_typeref &&
-      type->variant.typeref.is_decltype) {
+      is_typeref_kind(type, trk_is_decltype)) {
     result = TRUE;
   } else {
     if (is_proxy_class(type)) {
@@ -5187,7 +5188,7 @@ mangling was needed and that logic is reflected in this routine.
   a_boolean         result;
   an_expr_node_ptr  expr = decltype_arg(type);
 
-  check_assertion(type->variant.typeref.is_decltype);
+  check_assertion(is_typeref_kind(type, trk_is_decltype));
   if (expr == NULL) {
     result = FALSE;
   } else {
@@ -9539,7 +9540,7 @@ type is mangled in its place.
 #endif /* !IA64_ABI */
 
   check_assertion(type->kind == (a_type_kind)tk_typeref &&
-                  type->variant.typeref.is_template_alias &&
+                  is_typeref_kind(type, trk_is_template_alias) &&
                   type->variant.typeref.extra_info->template_arg_list != NULL);
 #if !IA64_ABI
   reserve_space_for_length(&length_reservation, mctl);
@@ -9728,7 +9729,7 @@ potential performance improvement, allowing re-use of a mangled name).
                            /*show_specialization=*/FALSE,
                            mctl);
   } else if (type->kind == (a_type_kind)tk_typeref &&
-             type->variant.typeref.is_template_alias) {
+             is_typeref_kind(type, trk_is_template_alias)) {
     /* Template alias. */
     mangled_template_alias_encoding(type, mctl);
   } else {
@@ -9886,8 +9887,8 @@ specified type.  Substitutions are not allocated for <builtin-type>s
       check_assertion(is_qualified_type(type) ||
                       (typeref_is_type_operator(type) ||
                        type->variant.typeref.is_dependent ||
-                       type->variant.typeref.is_deduced_auto ||
-                       type->variant.typeref.is_deduced_decltype_auto));
+                       is_typeref_kind(type, trk_is_deduced_auto) ||
+                       is_typeref_kind(type, trk_is_deduced_decltype_auto)));
       result = TRUE;
       break;
     case tk_pointer:
@@ -10030,7 +10031,7 @@ top_of_loop:
     /* Preserve decltypes that require mangling (i.e., those that the front end
        has determined are instantiation-dependent).  GNU has a slightly
        different interpretation of when decltype mangling is needed. */
-    if (type->variant.typeref.is_decltype) {
+    if (is_typeref_kind(type, trk_is_decltype)) {
 #if IA64_ABI && ABI_COMPATIBILITY_VERSION >= 402
       if (emulate_gnu_abi_bugs) {
         if (gnu_requires_decltype_mangling(type)) {
@@ -10078,24 +10079,25 @@ top_of_loop:
           break;
         }  /* if */
       }  /* if */
-    } else if (type->variant.typeref.is_underlying_type &&
+    } else if (is_typeref_kind(type, trk_is_underlying_type) &&
                type->variant.typeref.is_dependent_type_operator) {
       /* This __underlying_type needs to appear in the mangled name. */
       break;
 #if ABI_COMPATIBILITY_VERSION >= 411
-    } else if (type->variant.typeref.is_deduced_auto &&
+    } else if (is_typeref_kind(type, trk_is_deduced_auto) &&
                mctl->mangle_auto_placeholder) {
       /* Mangling for a deduced auto type (e.g., "operator auto()") needs
          to appear in the mangled name. */
       break;
-    } else if (type->variant.typeref.is_deduced_decltype_auto &&
+    } else if (is_typeref_kind(type, trk_is_deduced_decltype_auto) &&
                mctl->mangle_auto_placeholder) {
       /* Mangling for a decltype(auto) needs to appear in the mangled name. */
       break;
 #endif /* ABI_COMPATIBILITY_VERSION >= 411 */
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-    if (type->variant.typeref.is_typeof &&
+    if ((is_typeref_kind(type, trk_is_typeof_with_expression) ||
+         is_typeref_kind(type, trk_is_typeof_with_type_operand)) &&
         type->variant.typeref.is_dependent_type_operator) {
       /* This typeof needs to appear in the mangled name. */
       break;
@@ -10494,9 +10496,9 @@ top_of_loop:
            __underlying_types/typeofs should have been stripped, leaving only
            dependent decltype/__underlying_type/typeof typerefs. */
         check_assertion(typeref_is_type_operator(type) ||
-                        type->variant.typeref.is_deduced_auto ||
-                        type->variant.typeref.is_deduced_decltype_auto);
-        if (type->variant.typeref.is_decltype) {
+                        is_typeref_kind(type, trk_is_deduced_auto) ||
+                        is_typeref_kind(type, trk_is_deduced_decltype_auto));
+        if (is_typeref_kind(type, trk_is_decltype)) {
           /* Provide mangling for decltype. */
           an_expr_node_ptr decltype_expr = decltype_arg(type);
           if (type->variant.typeref.decltype_expr_not_parenthesized) {
@@ -10516,7 +10518,7 @@ top_of_loop:
           add_to_mangled_name('E', mctl);
 #endif /* IA64_ABI */
           goto have_whole_mangled_name;
-        } else if (type->variant.typeref.is_underlying_type) {
+        } else if (is_typeref_kind(type, trk_is_underlying_type)) {
           /* Provide mangling for __underlying_type.  Note that in the IA-64
              case, the encoding used will vary depending on the value of
              ABI_COMPATIBILITY_VERSION (see the definition of
@@ -10536,19 +10538,20 @@ top_of_loop:
 #endif /* IA64_ABI */
           goto have_whole_mangled_name;
 #if ABI_COMPATIBILITY_VERSION >= 411
-        } else if (type->variant.typeref.is_deduced_auto) {
+        } else if (is_typeref_kind(type, trk_is_deduced_auto)) {
           /* Provide mangling for a deduced auto type (e.g.,
              "operator auto()"). */
           add_str_to_mangled_name(MANGLING_STRING_FOR_AUTO, mctl);
           goto have_whole_mangled_name;
-        } else if (type->variant.typeref.is_deduced_decltype_auto) {
+        } else if (is_typeref_kind(type, trk_is_deduced_decltype_auto)) {
           /* Provide mangling for a decltype(auto). */
           add_str_to_mangled_name(MANGLING_STRING_FOR_DECLTYPE_AUTO, mctl);
           goto have_whole_mangled_name;
 #endif /* ABI_COMPATIBILITY_VERSION >= 411 */
         }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-        if (type->variant.typeref.is_typeof) {
+        if (is_typeref_kind(type, trk_is_typeof_with_expression) ||
+            is_typeref_kind(type, trk_is_typeof_with_type_operand)) {
           /* Provide mangling for typeof. */
 #if ABI_COMPATIBILITY_VERSION >= 402
           /* There is no IA-64 ABI encoding for typeof (a GNU extension) and
@@ -10558,7 +10561,7 @@ top_of_loop:
              <type> ::= Dy <type> E       # typeof(type)
                     ::= DY <expression> E # typeof(expression)
              */
-          if (type->variant.typeref.is_typeof_with_type_operand) {
+          if (is_typeref_kind(type, trk_is_typeof_with_type_operand)) {
             add_str_to_mangled_name(MANGLING_STRING_FOR_TYPEOF_TYPE, mctl);
             mangled_encoding_for_type(type->variant.typeref.type, mctl);
           } else if (decltype_arg(type) != NULL) {
@@ -13416,7 +13419,7 @@ is what mangled_type_name generates, plus a prefix.
        !has_name(type) ||
        /* Mangle template aliases. */
        (type->kind == (a_type_kind)tk_typeref &&
-        type->variant.typeref.is_template_alias) ||
+        is_typeref_kind(type, trk_is_template_alias)) ||
        /* Mangle class types with template arguments. */
        (is_immediate_class_type(type) &&
         type->variant.class_struct_union.extra_info->

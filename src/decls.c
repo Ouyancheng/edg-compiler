@@ -12259,7 +12259,7 @@ symbol entry, and return a pointer to it in state->sym.
                to apply attributes to later on, but that entry isn't needed for
                a redeclaration. */
             if (declared_type->kind == (a_type_kind)tk_typeref &&
-                declared_type->variant.typeref.for_type_attributes &&
+                is_typeref_kind(declared_type, trk_for_type_attributes) &&
                 declared_type->source_corresp.attributes == NULL) {
               declared_type = declared_type->variant.typeref.type;
             }  /* if */
@@ -12319,7 +12319,9 @@ symbol entry, and return a pointer to it in state->sym.
            typedef typeof(x) S2;  // "S2" isn't the name for linkage purposes,
                                   // since one is established already. */
       while (type_to_check->kind == (a_type_kind)tk_typeref &&
-             type_to_check->variant.typeref.is_typeof) {
+             (is_typeref_kind(type_to_check, trk_is_typeof_with_expression) ||
+              is_typeref_kind(type_to_check, trk_is_typeof_with_type_operand)))
+                                                                              {
         via_typeof = TRUE;
         type_to_check = type_to_check->variant.typeref.type;
       }  /* while */
@@ -12475,9 +12477,9 @@ symbol entry, and return a pointer to it in state->sym.
        reuse that entry (this ensures that e.g. the may_alias flag is set on
        the same entry that records the associated ak_may_alias attribute). */
     if (type_ptr->kind == (a_type_kind)tk_typeref &&
-        type_ptr->variant.typeref.for_type_attributes &&
+        is_typeref_kind(type_ptr, trk_for_type_attributes) &&
         type_ptr->source_corresp.attributes == NULL) {
-      type_ptr->variant.typeref.for_type_attributes = FALSE;
+      type_ptr->variant.typeref.kind = trk_none;
       tp = type_ptr;
       type_ptr = tp->variant.typeref.type;
     } else {
@@ -16912,7 +16914,7 @@ semicolon.
            for secondary declarations, the flag is in the associated
            a_src_seq_secondary_decl entry. */
         if (dps->first_decl) {
-          tp->variant.typeref.is_alias = TRUE;
+          tp->variant.typeref.kind = trk_is_alias;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         } else if (dps->source_sequence_entry != NULL &&
                    ss_entry_kind(dps->source_sequence_entry) ==

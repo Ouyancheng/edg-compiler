@@ -1778,7 +1778,7 @@ Dump the contents of the indicated type entry, for debug purposes.
             db_name_full(&tp->source_corresp, iek_type);
             fputs("\" ", f_debug);
           }  /* if */
-          if (tp->variant.typeref.is_decltype) {
+          if (is_typeref_kind(tp, trk_is_decltype)) {
             fputs("decltype(", f_debug);
             an_il_to_str_output_control_block octl;
             clear_il_to_str_output_control_block(&octl);
@@ -1787,11 +1787,12 @@ Dump the contents of the indicated type entry, for debug purposes.
             db_abbr_expr(decltype_arg(tp), &octl);
             fputs(") ", f_debug);
           }  /* if */
-          if (tp->variant.typeref.is_underlying_type) {
+          if (is_typeref_kind(tp, trk_is_underlying_type)) {
             fputs("__underlying_type ", f_debug);
           }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-          if (tp->variant.typeref.is_typeof) {
+          if (is_typeref_kind(tp, trk_is_typeof_with_expression) ||
+              is_typeref_kind(tp, trk_is_typeof_with_type_operand)) {
             fputs("__typeof__ ", f_debug);
           }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -10255,9 +10256,9 @@ represents a deduced "auto" type (if is_decltype_auto is FALSE) or a deduced
 
   type->variant.typeref.type = tp;
   if (is_decltype_auto) {
-    type->variant.typeref.is_deduced_decltype_auto = TRUE;
+    type->variant.typeref.kind = trk_is_deduced_decltype_auto;
   } else {
-    type->variant.typeref.is_deduced_auto = TRUE;
+    type->variant.typeref.kind = trk_is_deduced_auto;
   }  /* if */
   return type;
 }  /* add_placeholder_typeref */
@@ -13600,6 +13601,24 @@ C-mode-only code; see prvalue_type instead.
 }  /* make_unqualified_type */
 
 
+a_type_ptr remove_qualifiers(a_type_ptr           type,
+                             a_type_qualifier_set qualifiers_to_remove)
+/*
+Remove the specified qualifiers from the type (if they are present) and return
+the resulting type.
+*/
+{
+  a_type_ptr           result = type;
+  a_type_qualifier_set qualifiers = get_type_qualifiers(type);
+
+  if (qualifiers & qualifiers_to_remove) {
+    result = make_qualified_type(make_unqualified_type(type),
+                                 qualifiers & ~qualifiers_to_remove);
+  }  /* if */
+  return result;
+}  /* remove_qualifiers */
+
+
 a_type_ptr prvalue_type(a_type_ptr type)
 /*
 type is the type of a glvalue.  Return the type that the associated prvalue
@@ -14608,8 +14627,8 @@ placeholder.  Otherwise, return the given type.
   a_type_ptr  result;
 
   if (type_is(type, tk_typeref) &&
-      (type->variant.typeref.is_deduced_auto ||
-       type->variant.typeref.is_deduced_decltype_auto)) {
+      (is_typeref_kind(type, trk_is_deduced_auto) ||
+       is_typeref_kind(type, trk_is_deduced_decltype_auto))) {
     result = type->variant.typeref.type;
   } else {
     /* Look for an embedded "auto" placeholder ("decltype(auto)" can only
@@ -14625,7 +14644,7 @@ placeholder.  Otherwise, return the given type.
           tp = tp->variant.array.element_type;
           break;
         case tk_typeref:
-          if (tp->variant.typeref.is_deduced_auto) {
+          if (is_typeref_kind(tp, trk_is_deduced_auto)) {
             has_auto = TRUE;
             done = TRUE;
             break;
@@ -14647,7 +14666,7 @@ placeholder.  Otherwise, return the given type.
       tp = type;
       done = FALSE;
       while (!(type_is(tp, tk_typeref) && 
-               tp->variant.typeref.is_deduced_auto)) {
+               is_typeref_kind(tp, trk_is_deduced_auto))) {
         *p_new_tp = alloc_type(tp->kind);
         copy_type_full(tp, *p_new_tp, /*copy_default_args=*/FALSE);
         switch (tp->kind) {
@@ -14869,7 +14888,7 @@ function type is replaced).
      such cases, the chain must therefore be copied before the underlying
      function type is modified.)  */
   if (tp->kind == (a_type_kind)tk_typeref &&
-      tp->variant.typeref.for_type_attributes) {
+      is_typeref_kind(tp, trk_for_type_attributes)) {
     /* The first type entry of the chain is to hold attributes.  These are not
        shared via the based_types list (so it is safe to modify them) and the
        caller may expect that entry to be preserved even if the underlying

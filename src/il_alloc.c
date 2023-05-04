@@ -2194,6 +2194,7 @@ to default values.
 #if DO_IL_LOWERING
       pte->variant.typeref.orig_type   = NULL;
 #endif /* DO_IL_LOWERING */
+      pte->variant.typeref.kind        = trk_none;
       pte->variant.typeref.qualifiers  = TQ_NONE;
       pte->variant.typeref.predeclared = FALSE;
 #if NEAR_AND_FAR_ALLOWED
@@ -2207,25 +2208,11 @@ to default values.
       pte->variant.typeref.surrounding_name_linkage_state
                                        = (a_name_linkage_kind)nlk_none;
 #endif /* BACK_END_IS_CP_GEN_BE */
-      pte->variant.typeref.is_decltype = FALSE;
-      pte->variant.typeref.is_deduced_decltype_auto = FALSE;
-      pte->variant.typeref.is_deduced_auto = FALSE;
-      pte->variant.typeref.is_deduced_class = FALSE;
       pte->variant.typeref.decltype_expr_not_parenthesized = FALSE;
-      pte->variant.typeref.is_underlying_type = FALSE;
-#if GNU_EXTENSIONS_ALLOWED
-      pte->variant.typeref.is_typeof = FALSE;
-      pte->variant.typeref.is_typeof_with_type_operand = FALSE;
-#endif /* GNU_EXTENSIONS_ALLOWED */
       pte->variant.typeref.is_dependent_type_operator = FALSE;
-      pte->variant.typeref.for_type_attributes = FALSE;
-      pte->variant.typeref.is_alias = FALSE;
-      pte->variant.typeref.is_template_alias = FALSE;
       pte->variant.typeref.is_nonreal = FALSE;
       pte->variant.typeref.is_dependent = FALSE;
       pte->variant.typeref.is_prototype_instantiation = FALSE;
-      pte->variant.typeref.is_bases = FALSE;
-      pte->variant.typeref.direct_bases = FALSE;
 #if C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX
       pte->variant.typeref.is_lowered_complex_type = FALSE;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX */

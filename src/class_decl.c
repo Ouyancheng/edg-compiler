@@ -19592,7 +19592,7 @@ nonstandard anonymous unions is_nonstd is TRUE.
                untp->variant.class_struct_union.is_prototype_instantiation &&
                class_type_supp(untp)->template_arg_list != NULL) ||
               (nested_type->kind == (a_type_kind)tk_typeref &&
-               nested_type->variant.typeref.is_template_alias &&
+               is_typeref_kind(nested_type, trk_is_template_alias) &&
                nested_type->variant.typeref.is_prototype_instantiation)) {
             /* A prototype instantiation of a member class template in an
                anonymous union.  Such member templates are invalid; an error

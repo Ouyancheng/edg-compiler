@@ -2030,6 +2030,49 @@ Display an ELF_visibility field.
 
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 
+static void disp_typeref_kind(a_typeref_kind kind)
+/*
+Display a typeref kind.
+*/
+{
+  a_const_char  *str;
+
+  disp_name("kind");
+  switch (kind) {
+    case trk_none:                     str = "none";                     break;
+    case trk_is_decltype:              str = "is_decltype";              break;
+    case trk_is_deduced_decltype_auto: str = "is_deduced_decltype_auto"; break;
+    case trk_is_deduced_auto:          str = "is_deduced_auto";          break;
+    case trk_is_deduced_class:         str = "is_deduced_class";         break;
+    case trk_is_underlying_type:       str = "is_underlying_type";       break;
+    case trk_is_typeof_with_expression:str = "is_typeof_with_expression";break;
+    case trk_is_typeof_with_type_operand:
+                                    str = "is_typeof_with_type_operand"; break;
+    case trk_for_type_attributes:      str = "for_type_attributes";      break;
+    case trk_is_template_alias:        str = "is_template_alias";        break;
+    case trk_bases:                    str = "bases";                    break;
+    case trk_direct_bases:             str = "direct_bases";             break;
+    case trk_add_lvalue_reference:     str = "add_lvalue_reference";     break;
+    case trk_add_pointer:              str = "add_pointer";              break;
+    case trk_add_rvalue_reference:     str = "add_rvalue_reference";     break;
+    case trk_decay:                    str = "decay";                    break;
+    case trk_make_signed:              str = "make_signed";              break;
+    case trk_make_unsigned:            str = "make_unsigned";            break;
+    case trk_remove_all_extents:       str = "remove_all_extents";       break;
+    case trk_remove_const:             str = "remove_const";             break;
+    case trk_remove_cv:                str = "remove_cv";                break;
+    case trk_remove_cvref:             str = "remove_cvref";             break;
+    case trk_remove_extent:            str = "remove_extent";            break;
+    case trk_remove_pointer:           str = "remove_pointer";           break;
+    case trk_remove_reference_t:       str = "remove_reference_t";       break;
+    case trk_remove_restrict:          str = "remove_restrict";          break;
+    case trk_remove_volatile:          str = "remove_volatile";          break;
+    default:                           str = "**BAD TYPEREF KIND**";     break;
+  }  /* switch */
+  (void)printf("%s\n", str);
+}  /* disp_typeref_kind */
+
+
 static void disp_type(a_type_ptr ptr)
 /*
 Display the indicated type entry.
@@ -2473,6 +2516,7 @@ Display the indicated type entry.
         disp_type_qualifiers(ptr->variant.typeref.qualifiers);
         (void)printf("\n");
       }  /* if */
+      disp_typeref_kind(ptr->variant.typeref.kind);
       if (ptr->variant.typeref.predeclared) disp_boolean("predeclared", TRUE);
 #if NEAR_AND_FAR_ALLOWED
       if (ptr->variant.typeref.explicit_memory_attribute_made_implicit) {
@@ -2490,55 +2534,17 @@ Display the indicated type entry.
                                               surrounding_name_linkage_state);
       }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
-      if (ptr->variant.typeref.is_decltype) {
-        disp_boolean("is_decltype", TRUE);
-      }  /* if */
-      if (ptr->variant.typeref.is_deduced_decltype_auto) {
-        disp_boolean("is_deduced_decltype_auto", TRUE);
-      }  /* if */
-      if (ptr->variant.typeref.is_deduced_auto) {
-        disp_boolean("is_deduced_auto", TRUE);
-      }  /* if */
-      if (ptr->variant.typeref.is_deduced_class) {
-        disp_boolean("is_deduced_class", TRUE);
-      }  /* if */
       if (ptr->variant.typeref.decltype_expr_not_parenthesized) {
         disp_boolean("decltype_expr_not_parenthesized", TRUE);
       }  /* if */
-      if (ptr->variant.typeref.is_underlying_type) {
-        disp_boolean("is_underlying_type", TRUE);
-      }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-      if (ptr->variant.typeref.is_typeof) {
-        disp_boolean("is_typeof", TRUE);
-      }  /* if */
-      if (ptr->variant.typeref.is_typeof_with_type_operand) {
-        disp_boolean("is_typeof_with_type_operand", TRUE);
-      }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
       if (ptr->variant.typeref.is_dependent_type_operator) {
         disp_boolean("is_dependent_type_operator", TRUE);
-      }  /* if */
-      if (ptr->variant.typeref.for_type_attributes) {
-        disp_boolean("for_type_attributes", TRUE);
-      }  /* if */
-      if (ptr->variant.typeref.is_alias) {
-        disp_boolean("is_alias", TRUE);
-      }  /* if */
-      if (ptr->variant.typeref.is_template_alias) {
-        disp_boolean("is_template_alias", TRUE);
       }  /* if */
       if (ptr->variant.typeref.is_nonreal) {
         disp_boolean("is_nonreal", TRUE);
       }  /* if */
       if (ptr->variant.typeref.is_prototype_instantiation) {
         disp_boolean("is_prototype_instantiation", TRUE);
-      }  /* if */
-      if (ptr->variant.typeref.is_bases) {
-        disp_boolean("is_bases", TRUE);
-      }  /* if */
-      if (ptr->variant.typeref.direct_bases) {
-        disp_boolean("direct_bases", TRUE);
       }  /* if */
 #if C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX
       if (ptr->variant.typeref.is_lowered_complex_type) {

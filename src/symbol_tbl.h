@@ -6428,7 +6428,7 @@ class definition.
   (symbol_is((sym), sk_type) &&						\
    (sym)->variant.type.ptr != NULL &&					\
    (sym)->variant.type.ptr->kind == (a_type_kind)tk_typeref &&		\
-   (sym)->variant.type.ptr->variant.typeref.is_template_alias)
+   is_typeref_kind((sym)->variant.type.ptr, trk_is_template_alias))
 
 /* Return TRUE if the symbol is a template class symbol for a real or
    nonreal class template instance or a class nested within a class
@@ -7327,6 +7327,10 @@ and evaluates the associated constraint.
   }  /* if */
   return result;
 }  /* is_ineligible */
+
+extern a_boolean is_intrinsic_type_transform_name(void);
+
+extern a_token_kind check_type_transform_name(void);
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

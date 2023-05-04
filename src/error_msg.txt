@@ -3393,6 +3393,9 @@ ec_ifc_too_few_template_args_info;;"detected while processing the template argum
 ec_nonstandard_conversion_from_scoped_enum;;"conversion from scoped enumeration type %t is nonstandard"
 ec_constexpr_allocation_mismatch;;"deallocation does not match allocation kind (one is for an array and the other not)"
 ec_constexpr_address_unknown;;"comparison involves unknown address (e.g., the address of a weak variable)"
+ec_bad_argument_to_make_signed;;"__make_signed is only compatible with non-bool integer and enum types"
+ec_bad_argument_to_make_unsigned;;"__make_unsigned is only compatible with non-bool integer and enum types"
+ec_intrinsic_name_released;;"the intrinsic name %sq will be treated as an ordinary identifier from here"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

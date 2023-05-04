@@ -3214,6 +3214,17 @@ element type satisfies one of those criteria.
 }  /* is_or_has_volatile_qualified_type */
 
 
+a_boolean is_referenceable_type(a_type_ptr tp)
+/*
+Returns TRUE if the given type is a referenceable type [defns.referenceable].
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_object_type(tp) || is_reference_ptr(tp) ||
+         (is_function(tp) && !is_qualified_type(tp));
+}  /* is_referenceable_type */
+
+
 a_type_ptr array_element_type(a_type_ptr array_type)
 /*
 Return the element type of the given array type.
@@ -6589,13 +6600,13 @@ is encountered.  If the type returned is one of those typerefs,
     if (type->variant.typeref.is_dependent_type_operator &&
         /* Don't stop on __underlying_types, since they are not based on
            expressions. */
-        !type->variant.typeref.is_underlying_type
+        !is_typeref_kind(type, trk_is_underlying_type)
 #if GNU_EXTENSIONS_ALLOWED
         /* Don't stop on typeofs without expressions, since you can't compare
            expressions on those. */
-        && !type->variant.typeref.is_typeof_with_type_operand
+        && !is_typeref_kind(type, trk_is_typeof_with_type_operand)
 #endif /* GNU_EXTENSIONS_ALLOWED */
-                                                             ) {
+                                                                  ) {
       *check_expr = TRUE;
       break;
     }  /* if */
@@ -6645,11 +6656,13 @@ top_of_loop:
         /* We don't need to compare the types and expressions because they
            are identical. */
         result = FALSE;
-      } else if (type_1->variant.typeref.is_decltype !=
-                                      type_2->variant.typeref.is_decltype ||
+      } else if (is_typeref_kind(type_1, trk_is_decltype) !=
+                                    is_typeref_kind(type_2, trk_is_decltype) ||
 #if GNU_EXTENSIONS_ALLOWED
-                 type_1->variant.typeref.is_typeof !=
-                                        type_2->variant.typeref.is_typeof ||
+                 is_typeref_kind(type_1, trk_is_typeof_with_expression) !=
+                      is_typeref_kind(type_2, trk_is_typeof_with_expression) ||
+                 is_typeref_kind(type_1, trk_is_typeof_with_type_operand) !=
+                    is_typeref_kind(type_2, trk_is_typeof_with_type_operand) ||
 #endif /* GNU_EXTENSIONS_ALLOWED */
                  type_1->variant.typeref.decltype_expr_not_parenthesized !=
                      type_2->variant.typeref.decltype_expr_not_parenthesized) {
@@ -6754,9 +6767,9 @@ corresponding placeholder.
                                                     AUTO_TYPE_NESTING_DEPTH) {
     if (type_2->variant.template_param.extra_info->coordinates.position
                                               == PLAIN_AUTO_TYPE_POS_NUMBER) {
-      result = type_1->variant.typeref.is_deduced_auto;
+      result = is_typeref_kind(type_1, trk_is_deduced_auto);
     } else {
-      result = type_1->variant.typeref.is_deduced_decltype_auto;
+      result = is_typeref_kind(type_1, trk_is_deduced_decltype_auto);
     }  /* if */
   }  /* if */
   return result;
@@ -6926,8 +6939,8 @@ check_typerefs:
       } else if ((flags & ITF_EXACT_EQUIVALENCE) == 0 &&
                  type_1->variant.typeref.is_dependent &&
                  type_2->variant.typeref.is_dependent &&
-                 type_1->variant.typeref.is_template_alias &&
-                 type_2->variant.typeref.is_template_alias) {
+                 is_typeref_kind(type_1, trk_is_template_alias) &&
+                 is_typeref_kind(type_2, trk_is_template_alias)) {
         /* Types such as void_t<T::X> and void<T::Y> should be treated as
            distinct in most cases.  Although one might expect this to also
            be the case when ITF_EXACT_EQUIVALENCE is specified, that flag
@@ -6952,8 +6965,8 @@ check_typerefs:
           goto done;
         } else if (type_1->variant.typeref.is_dependent &&
                    type_2->variant.typeref.is_dependent &&
-                   type_1->variant.typeref.is_template_alias &&
-                   type_2->variant.typeref.is_template_alias &&
+                   is_typeref_kind(type_1, trk_is_template_alias) &&
+                   is_typeref_kind(type_2, trk_is_template_alias) &&
                    tp1 != tp2 && is_or_contains_error_type(tp1)) {
           /* We also need to consider them to be different if the types are
              dependent template aliases and the underlying types contain an
@@ -16981,7 +16994,7 @@ to the caller.  If no modification is done return the original type.
       if ((type->variant.typeref.extra_info->expr == NULL ||
            type_operator_stripped) &&
 #if GNU_EXTENSIONS_ALLOWED
-           !type->variant.typeref.is_typeof_with_type_operand &&
+           !is_typeref_kind(type, trk_is_typeof_with_type_operand) &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
            !is_or_contains_local_type(type->variant.typeref.type)) {
         /* This is a decltype or typeof applied to a local expression (which is

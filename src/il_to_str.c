@@ -326,7 +326,7 @@ is a tk_routine entry, attributes on that routine type entry are rendered.
 {
   while (type != stop_type) {
     check_assertion(type->kind == (a_type_kind)tk_typeref);
-    if (type->variant.typeref.for_type_attributes) {
+    if (is_typeref_kind(type, trk_for_type_attributes)) {
       if (octl->output_attributes != NULL) {
         octl->output_attributes(type->source_corresp.attributes,
                                 al_explicit, /*primary_only=*/FALSE);
@@ -2008,13 +2008,14 @@ Return its argument expression if available, or NULL otherwise.
 {
   an_expr_node_ptr  expr = type->variant.typeref.extra_info->expr;
 
-  if (type->variant.typeref.is_underlying_type ||
-      type->variant.typeref.is_bases) {
+  if (is_typeref_kind(type, trk_is_underlying_type) ||
+      is_typeref_kind(type, trk_bases) ||
+      is_typeref_kind(type, trk_direct_bases)) {
     /* __underlying_type and __based constructs don't allow expression
         arguments. */
   } else if (expr == NULL) {
     /* See if the expression can be found in a local function scope. */
-    a_local_expr_node_ref_kind  lerk = type->variant.typeref.is_decltype ?
+    a_local_expr_node_ref_kind  lerk = is_typeref_kind(type, trk_is_decltype) ?
                                    (a_local_expr_node_ref_kind)lerk_decltype :
                                    (a_local_expr_node_ref_kind)lerk_typeof;
     a_scope_ptr scope;
@@ -2229,7 +2230,7 @@ by octl.
     case tk_typeref:
       /* A typeref here should be a typedef, a decltype operator, an
          __underlying_type operator, or a typeof operator. */
-      if (type->variant.typeref.is_decltype) {
+      if (is_typeref_kind(type, trk_is_decltype)) {
         if (octl->gen_compilable_code && octl->output_name != NULL) {
           /* It may seem strange to use "output_name" to render a type that
              doesn't really have a name.  However, this uses the same
@@ -2272,8 +2273,9 @@ by octl.
           }  /* if */
           octl->output_str(")", octl);
         }  /* if */
-      } else if (type->variant.typeref.is_underlying_type ||
-                 type->variant.typeref.is_bases) {
+      } else if (is_typeref_kind(type, trk_is_underlying_type) ||
+                 is_typeref_kind(type, trk_bases) ||
+                 is_typeref_kind(type, trk_direct_bases)) {
         if (octl->gen_compilable_code && octl->output_name != NULL) {
           /* It may seem strange to use "output_name" to render a type that
              doesn't really have a name.  However, this uses the same
@@ -2282,11 +2284,10 @@ by octl.
              types. */
           octl->output_name((char*)type, iek_type);
         } else {
-          if (type->variant.typeref.is_underlying_type) {
+          if (is_typeref_kind(type, trk_is_underlying_type)) {
             octl->output_str("__underlying_type(", octl);
           } else {
-            check_assertion(type->variant.typeref.is_bases);
-            octl->output_str(type->variant.typeref.direct_bases
+            octl->output_str(type->variant.typeref.kind == trk_direct_bases
                                                    ? (char *)"__direct_bases("
                                                    : (char *)"__bases(",
                              octl);
@@ -2295,7 +2296,8 @@ by octl.
           octl->output_str(")", octl);
         } /* if */
 #if GNU_EXTENSIONS_ALLOWED
-      } else if (type->variant.typeref.is_typeof) {
+      } else if (is_typeref_kind(type, trk_is_typeof_with_expression) ||
+                 is_typeref_kind(type, trk_is_typeof_with_type_operand)) {
         if (octl->gen_compilable_code && octl->output_name != NULL) {
           /* It may seem strange to use "output_name" to render a type that
              doesn't really have a name.  However, this uses the same
@@ -2305,7 +2307,7 @@ by octl.
           octl->output_name((char*)type, iek_type);
         } else {
           octl->output_str("__typeof__(", octl);
-          if (!type->variant.typeref.is_typeof_with_type_operand) {
+          if (!is_typeref_kind(type, trk_is_typeof_with_type_operand)) {
             /* typeof(expression). */
             an_expr_node_ptr expr = decltype_arg(type);
             if (expr != NULL) {
@@ -2331,21 +2333,21 @@ by octl.
           octl->output_str(")", octl);
         } /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-      } else if (type->variant.typeref.is_deduced_decltype_auto) {
+      } else if (is_typeref_kind(type, trk_is_deduced_decltype_auto)) {
         an_expr_node_ptr  constraint = type->variant.typeref.extra_info->expr;
         if (constraint != NULL) {
           form_expression(constraint, octl);
           octl->output_str(" ", octl);
         }  /* if */
         octl->output_str("decltype(auto)", octl);
-      } else if (type->variant.typeref.is_deduced_auto) {
+      } else if (is_typeref_kind(type, trk_is_deduced_auto)) {
         an_expr_node_ptr  constraint = type->variant.typeref.extra_info->expr;
         if (constraint != NULL) {
           form_expression(constraint, octl);
           octl->output_str(" ", octl);
         }  /* if */
         octl->output_str("auto", octl);
-      } else if (type->variant.typeref.is_deduced_class) {
+      } else if (is_typeref_kind(type, trk_is_deduced_class)) {
         a_type_ptr      instance = type->variant.typeref.type;
         a_template_ptr  templ;
         check_assertion(instance != NULL && is_immediate_class_type(instance));
@@ -2567,7 +2569,7 @@ members of template classes.
   a_boolean	result = FALSE;
 
   if (!octl->keep_template_typedefs) {
-    if (type->variant.typeref.is_template_alias &&
+    if (is_typeref_kind(type, trk_is_template_alias) &&
         !type->variant.typeref.is_dependent) {
       /* Drop the alias, unless the alias is dependent. */
       result = TRUE;
@@ -2602,9 +2604,10 @@ available or not portable).
     if (octl->c_generating_back_end) {
       /* Never render a type operator in the C-generating back end. */
       render = FALSE;
-    } else if (type->variant.typeref.is_underlying_type ||
-               type->variant.typeref.is_bases ||
-               (!type->variant.typeref.is_decltype && expr == NULL)) {
+    } else if (is_typeref_kind(type, trk_is_underlying_type) ||
+               is_typeref_kind(type, trk_bases) ||
+               is_typeref_kind(type, trk_direct_bases) ||
+               (!is_typeref_kind(type, trk_is_decltype) && expr == NULL)) {
       /* A non-expression case: __underlying_type, typeof, etc. applied to
          a type name.  Render the operator in the C++-generating back end
          (to match the source form) or when the argument is template-dependent.
@@ -2631,9 +2634,9 @@ available or not portable).
     }  /* if */
   } else if (!octl->c_generating_back_end &&
              octl->render_auto_deduction_typerefs &&
-             (type->variant.typeref.is_deduced_decltype_auto ||
-              type->variant.typeref.is_deduced_auto ||
-              type->variant.typeref.is_deduced_class)) {
+             (is_typeref_kind(type, trk_is_deduced_decltype_auto) ||
+              is_typeref_kind(type, trk_is_deduced_auto) ||
+              is_typeref_kind(type, trk_is_deduced_class))) {
     /* "auto" and "decltype(auto)" should only appear in declarative contexts,
        and should be rendered there.  Similarly for deduced class templates. */
     render = TRUE;
@@ -2800,7 +2803,7 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
         upc_block_size = type->variant.typeref.extra_info->upc_block_size;
       }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
-      if (type->variant.typeref.for_type_attributes) {
+      if (is_typeref_kind(type, trk_for_type_attributes)) {
         /* The underlying type was modified with an attribute.  Record
            the target of the typeref as the end of the typeref chain for
            output_type_attributes. */
@@ -3431,7 +3434,7 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
         qualifiers &= ~TQ_CONST;
         suppress_const = FALSE;
       }  /* if */
-      if (type->variant.typeref.for_type_attributes) {
+      if (is_typeref_kind(type, trk_for_type_attributes)) {
         /* The underlying type was modified with an attribute.  Record
            the target of the typeref as the end of the typeref chain for
            output_type_attributes. */

@@ -752,6 +752,11 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
          probably the start of the declarator, so we stop scanning
          decl-specifiers. */
       case tok_identifier:
+        if (locator_for_curr_id.symbol_header != NULL &&
+            locator_for_curr_id.symbol_header->has_intrinsic_name &&
+            check_type_transform_name() != tok_error) {
+          goto type_operator_case;
+        }  /* if */
         sym = locator_for_curr_id.specific_symbol;
         /* If we are scanning a template declaration, see if this is a
            constructor or destructor declaration.  This is not done in other
@@ -915,6 +920,22 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_typeof_unqual:
       case tok_edg_vector_type:
       case tok_edg_internal_type:
+      case tok_add_lvalue_reference:
+      case tok_add_pointer:
+      case tok_add_rvalue_reference:
+      case tok_decay:
+      case tok_make_signed:
+      case tok_make_unsigned:
+      case tok_remove_all_extents:
+      case tok_remove_const:
+      case tok_remove_cv:
+      case tok_remove_cvref:
+      case tok_remove_extent:
+      case tok_remove_pointer:
+      case tok_remove_reference_t:
+      case tok_remove_restrict:
+      case tok_remove_volatile:
+type_operator_case:
         is_decl_specifier_token = TRUE;
         type_specifier_seen = TRUE;
         prescan_type_operator(state, flags);
