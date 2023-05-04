@@ -12643,6 +12643,43 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
      then calling scan_expr_or_braced_init_list, as is done for
      ifc_ExprSort_Tokens below? */
   switch (expr_idx.sort) {
+    case ifc_es_expr_array_value:
+      { Opt<an_ifc_expr_array_value> opt_ieav;
+
+        construct_node(&opt_ieav, expr_idx);
+        if (!opt_ieav.has_value()) {
+          goto invalid;
+        }  /* if */
+        /* FIXME: Currently unsupported. */
+        issue_unsupported_construct_error(this, "ExprSort::ArrayValue",
+                                          &error_position);
+        goto invalid;
+      }
+    case ifc_es_expr_dyad:
+      { Opt<an_ifc_expr_dyad> opt_ied;
+
+        construct_node(&opt_ied, expr_idx);
+        if (!opt_ied.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_expr_dyad     ied = *opt_ied;
+        an_ifc_type_index    type = get_ifc_type(ied);
+        a_module_token_cache cache;
+        a_type_ptr           tp = type_for_type_index(type);
+        complete_type_is_needed(tp);
+        cache_expr(&cache, expr_idx, /*cinfo=*/{});
+        if (!cache.is_valid()) {
+          goto invalid;
+        }  /* if */
+
+        a_decl_parse_state     dps;
+        a_module_entity_rescan rescan(&cache);
+        result = alloc_constant(ck_error);
+        init_decl_parse_state(&dps);
+        scan_constant_initializer_expression(tp, &dps, result);
+      }
+      break;
     case ifc_es_expr_literal:
       { Opt<an_ifc_expr_literal> opt_iel;
 
@@ -12657,18 +12694,16 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
         result = constant_for_literal(type, value, default_type);
       }
       break;
-    case ifc_es_expr_array_value:
-      { Opt<an_ifc_expr_array_value> opt_ieav;
+    case ifc_es_expr_named_decl:
+      { Opt<an_ifc_expr_named_decl> opt_iend;
 
-        construct_node(&opt_ieav, expr_idx);
-        if (!opt_ieav.has_value()) {
+        construct_node(&opt_iend, expr_idx);
+        if (!opt_iend.has_value()) {
           goto invalid;
         }  /* if */
-        /* FIXME: Currently unsupported. */
-        issue_unsupported_construct_error(this, "ExprSort::ArrayValue",
-                                          &error_position);
-        goto invalid;
+        result = constant_for_named_decl(*opt_iend);
       }
+      break;
     case ifc_es_expr_product_type_value:
       { Opt<an_ifc_expr_product_type_value> opt_ieptv;
 
@@ -12724,24 +12759,67 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
         }  /* if */
       }
       break;
-    case ifc_es_expr_subobject_value:
-      { Opt<an_ifc_expr_subobject_value> opt_iesv;
+    case ifc_es_expr_read:
+      { Opt<an_ifc_expr_read> opt_read_expr;
 
-        construct_node(&opt_iesv, expr_idx);
-        if (!opt_iesv.has_value()) {
+        construct_node(&opt_read_expr, expr_idx);
+        if (!opt_read_expr.has_value()) {
           goto invalid;
         }  /* if */
-        result = constant_for_expr_index(get_ifc_value(*opt_iesv), default_type);
+
+        an_ifc_expr_read  read_expr = *opt_read_expr;
+        an_ifc_expr_index address = get_ifc_address(read_expr);
+        result = constant_for_expr_index(address, /*default_type=*/NULL);
+        /* FIXME: Update the constant with the appropriate read sort
+           transformation applied (i.e., perform things like LvalueToRvalue
+           conversion on the non-type constant). */
       }
       break;
-    case ifc_es_expr_named_decl:
-      { Opt<an_ifc_expr_named_decl> opt_iend;
+    case ifc_es_expr_string:
+      { Opt<an_ifc_expr_string> opt_ies;
 
-        construct_node(&opt_iend, expr_idx);
-        if (!opt_iend.has_value()) {
+        construct_node(&opt_ies, expr_idx);
+        if (!opt_ies.has_value()) {
           goto invalid;
         }  /* if */
-        result = constant_for_named_decl(*opt_iend);
+
+        an_ifc_expr_string          ies = *opt_ies;
+        Opt<an_ifc_const_str>       opt_ics;
+        an_ifc_string_index         raw_str_index = get_ifc_string_index(ies);
+        an_ifc_partition_kind_index str_idx{raw_str_index.mod,
+                                            ifc_pk_const_str,
+                                            raw_str_index.value};
+        construct_node(&opt_ics, str_idx);
+        if (!opt_ics.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_const_str ics = *opt_ics;
+        sizeof_t         length = (sizeof_t)get_ifc_length(ics);
+        char             *str_val = alloc_text_of_string_literal(length);
+        memcpy(str_val, get_string_at_offset(get_ifc_start(ics)), length);
+        check_assertion(str_val != NULL);
+        result = alloc_constant(ck_string);
+        result->type = type_for_type_index(get_ifc_type(ies));
+        result->variant.string.length = length;
+        result->variant.string.value  = str_val;
+        result->variant.string.literal_kind = SCLK_ORDINARY_STRING_LITERAL;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        source_position_from_locus(&result->end_position, get_ifc_locus(ies));
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      }
+      break;
+    case ifc_es_expr_subobject_value:
+      { Opt<an_ifc_expr_subobject_value> opt_subobj_val_expr;
+
+        construct_node(&opt_subobj_val_expr, expr_idx);
+        if (!opt_subobj_val_expr.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_expr_subobject_value subobj_val_expr = *opt_subobj_val_expr;
+        an_ifc_expr_index           value = get_ifc_value(subobj_val_expr);
+        result = constant_for_expr_index(value, default_type);
       }
       break;
     case ifc_es_expr_tuple:
@@ -12768,30 +12846,6 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
           }  /* if */
           curr_const_ptr = &((*curr_const_ptr)->next);
         }  /* for */
-      }
-      break;
-    case ifc_es_expr_dyad:
-      { Opt<an_ifc_expr_dyad> opt_ied;
-
-        construct_node(&opt_ied, expr_idx);
-        if (!opt_ied.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_expr_dyad     ied = *opt_ied;
-        a_module_token_cache cache;
-        a_decl_parse_state   dps;
-        a_type_ptr           tp;
-        init_decl_parse_state(&dps);
-        tp = type_for_type_index(get_ifc_type(ied));
-        complete_type_is_needed(tp);
-        cache_expr(&cache, expr_idx, /*cinfo=*/{});
-        if (cache.is_valid()) {
-          a_module_entity_rescan rescan(&cache);
-
-          result = alloc_constant(ck_error);
-          scan_constant_initializer_expression(tp, &dps, result);
-        }  /* if */
       }
       break;
     case ifc_es_expr_tokens:
@@ -12877,54 +12931,6 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
                                          /*is_full_expr=*/TRUE, &dps,
                                          (an_init_state *)NULL);
         }
-      }
-      break;
-    case ifc_es_expr_string:
-      { Opt<an_ifc_expr_string> opt_ies;
-
-        construct_node(&opt_ies, expr_idx);
-        if (!opt_ies.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_expr_string          ies = *opt_ies;
-        Opt<an_ifc_const_str>       opt_ics;
-        an_ifc_string_index         raw_str_index = get_ifc_string_index(ies);
-        an_ifc_partition_kind_index str_idx{raw_str_index.mod,
-                                            ifc_pk_const_str,
-                                            raw_str_index.value};
-        construct_node(&opt_ics, str_idx);
-        if (!opt_ics.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_const_str ics = *opt_ics;
-        sizeof_t         length = (sizeof_t)get_ifc_length(ics);
-        char             *str_val = alloc_text_of_string_literal(length);
-
-        memcpy(str_val, get_string_at_offset(get_ifc_start(ics)), length);
-        check_assertion(str_val != NULL);
-        result = alloc_constant(ck_string);
-        result->type = type_for_type_index(get_ifc_type(ies));
-        result->variant.string.length = length;
-        result->variant.string.value  = str_val;
-        result->variant.string.literal_kind = SCLK_ORDINARY_STRING_LITERAL;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-        source_position_from_locus(&result->end_position, get_ifc_locus(ies));
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      }
-      break;
-    case ifc_es_expr_read:
-      { Opt<an_ifc_expr_read> opt_read_expr;
-
-        construct_node(&opt_read_expr, expr_idx);
-        if (!opt_read_expr.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_expr_read  read_expr = *opt_read_expr;
-        an_ifc_expr_index address = get_ifc_address(read_expr);
-        result = constant_for_expr_index(address, /*default_type=*/NULL);
       }
       break;
     default:
