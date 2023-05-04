@@ -526,7 +526,7 @@ __underlying_type, or GNU typeof construct.
   (is_typeref_kind((tp), trk_is_decltype) ||                                \
    is_typeref_kind((tp), trk_bases) ||                                      \
    is_typeref_kind((tp), trk_direct_bases) ||                               \
-   is_typeref_kind((tp), trk_is_underlying_type)
+   is_typeref_kind((tp), trk_is_underlying_type))
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 inline a_boolean type_is_typedef(a_type_ptr  tp)
