@@ -1,5 +1,21 @@
 Version 6.5
 
+5/4/23   [EDGcpfe/24890]
+Incorrect lookup in lambda expression in static data member initializer
+
+Previously, when a generic lambda expression was used in the initializer of a
+static data member template, lookup skipped the template parameter scope of
+that static data member template.  For example, with --c++17:
+
+  struct C {
+    template<int I>
+    static inline auto l = [] (auto j) {
+      return I + j;  // Previously a spurious 'identifier "I" is undefined'
+    };               // error.  Now okay.
+  };
+  auto v = C::l<1>(1);
+
+
 5/3/23   [EDGcpfe/21894,EDGcpfe/24057,EDGcpfe/24481,EDGcpfe/25350,
           EDGcpfe/26292]
 Microsoft compatibility: Exception specifications and defaulted members

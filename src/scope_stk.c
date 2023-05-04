@@ -5260,7 +5260,7 @@ class to be defined.
   a_scope_depth			saved_innermost_scope_that_affects_access;
   a_namespace_ptr		reference_nsp;
   a_boolean			is_template = FALSE;
-  a_template_decl_info_ptr	enclosing_tdip;
+  a_template_decl_info_ptr	enclosing_tdip, enclosing_variable_tdip;
   a_symbol_ptr			enclosing_instance_sym;
   a_type_ptr			enclosing_assoc_type;
   a_routine_ptr			enclosing_assoc_routine, inh_ctor_orig = NULL;
@@ -5314,6 +5314,13 @@ class to be defined.
     enclosing_instance_sym = instance_sym;
     enclosing_assoc_type = assoc_type;
     enclosing_assoc_routine = assoc_routine;
+  }  /* if */
+  if (decl_info->variable_instance_sym != NULL) {
+    /* If the context includes a variable template instantiation, the enclosing
+       template declaration information is that of the variable template
+       instantiation. */
+    enclosing_variable_tdip = enclosing_tdip;
+    enclosing_tdip = NULL;
   }  /* if */
   if (template_sym != NULL && symbol_is(template_sym, sk_function_template)) {
     /* Determine if this is a generic lambda instantiation. */
@@ -5401,7 +5408,7 @@ class to be defined.
     if (decl_info->variable_instance_sym != NULL) {
       /* The context includes a variable template instantiation.  Reactivate
          the instantiation scope for the variable template. */
-      reactivate_variable_context(enclosing_tdip,
+      reactivate_variable_context(enclosing_variable_tdip,
                                   decl_info->variable_instance_sym, options);
     }  /* if */
   }  /* if */

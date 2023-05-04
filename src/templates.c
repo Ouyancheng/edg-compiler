@@ -34753,8 +34753,7 @@ with the lambda declarator.
                              &scope_stack[depth_innermost_instantiation_scope];
     a_symbol_ptr		instance_sym = ssep->instance_sym;
     template_decl_info->enclosing_template_decl = ssep->template_decl_info;
-    if (instance_sym != NULL && !instance_sym->is_class_member &&
-        is_template_variable_symbol(instance_sym)) {
+    if (instance_sym != NULL && is_template_variable_symbol(instance_sym)) {
       /* If the innermost instantiation scope is associated with a variable
          template, save the instance that is being instantiated. */
       template_decl_info->variable_instance_sym = instance_sym;

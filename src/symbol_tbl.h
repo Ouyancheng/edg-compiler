@@ -1970,9 +1970,9 @@ typedef struct a_template_decl_info {
 			   the function was done. */
   a_symbol_ptr	variable_instance_sym;
 			/* For the template declaration entry for a generic
-			   lambda instantiation inside a non-member variable
-			   template initializer, this is the variable template
-			   instance on which the instantiation is based. */
+			   lambda instantiation inside a variable template
+			   initializer, this is the variable template instance
+			   on which the instantiation is based. */
 } a_template_decl_info;
 
 
