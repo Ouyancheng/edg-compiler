@@ -13014,24 +13014,21 @@ FIXME: shared or unshared?
 FIXME: what other types of named declarations can we get here?
 */
 {
+  a_constant_ptr    result = NULL;
   an_ifc_decl_index decl_idx = get_ifc_resolution(iendp);
-  a_type_ptr        type = type_for_type_index(get_ifc_type(iendp));
-  a_constant_ptr    cp = NULL;
 
   switch (decl_idx.sort) {
     case ifc_ds_decl_enumerator:
-      { Opt<an_ifc_decl_enumerator> opt_ide;
+      { a_module_entity_ptr mep = process_decl_at_index(decl_idx);
 
-        construct_node(&opt_ide, decl_idx);
-        if (!opt_ide.has_value()) {
+        if (mep->invalid) {
           goto invalid;
         }  /* if */
 
-        /* Skip straight to the enumerator value. */
-        an_ifc_decl_enumerator ide = *opt_ide;
-        an_ifc_expr_index      initializer = get_ifc_initializer(ide);
-        check_assertion(!is_null_index(initializer));
-        cp = constant_for_expr_index(initializer, type);
+        /* The IL entity corresponding to an enumerator should be either
+           invalid, or an iek_constant. */
+        check_assertion(mep->entity.kind == iek_constant);
+        result = (a_constant_ptr)mep->entity.ptr;
       }
       break;
     case ifc_ds_decl_function:
@@ -13049,10 +13046,10 @@ FIXME: what other types of named declarations can we get here?
   }  /* switch */
   goto done;
 invalid:
-  cp = alloc_error_constant();
+  result = alloc_error_constant();
   expect_error_str("expected errors for bad constant");
 done:
-  return cp;
+  return result;
 }  /* constant_for_named_decl */
 
 
