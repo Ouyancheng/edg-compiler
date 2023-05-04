@@ -11023,64 +11023,6 @@ given expression.
 
   check_assertion(param->kind == tpk_nontype);
   switch (expr_idx.sort) {
-    case ifc_es_expr_read:
-      { Opt<an_ifc_expr_read> opt_ier;
-
-        construct_node(&opt_ier, expr_idx);
-        if (!opt_ier.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_expr_read  ier = *opt_ier;
-        an_ifc_expr_index address_idx = get_ifc_address(ier);
-        result = create_constant_for_nttp(param, address_idx);
-        /* FIXME: Update the constant with the appropriate read sort
-           transformation applied (i.e., perform things like LvalueToRvalue
-           conversion on the non-type constant). */
-      }
-      break;
-    case ifc_es_expr_named_decl:
-      { Opt<an_ifc_expr_named_decl> opt_named_decl;
-
-        construct_node(&opt_named_decl, expr_idx);
-        if (!opt_named_decl.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_expr_named_decl named_decl = *opt_named_decl;
-        an_ifc_decl_index      decl_idx = get_ifc_resolution(named_decl);
-        switch (decl_idx.sort) {
-          case ifc_ds_decl_parameter:
-            { Opt<an_ifc_decl_parameter> opt_decl_param;
-
-              construct_node(&opt_decl_param, decl_idx);
-              if (!opt_decl_param.has_value()) {
-                goto invalid;
-              }  /* if */
-
-              an_ifc_decl_parameter decl_param = *opt_decl_param;
-              /* FIXME: Refactor this to not duplicate code from
-                 make_nontype_template_param_symbol */
-              result = fs_constant(ck_template_param);
-              result->type = param->variant.nontype.constant->type;;
-              result->variant.template_param.variant.coordinates.depth =
-                                                     get_ifc_level(decl_param);
-              result->variant.template_param.variant.coordinates.position =
-                                                  get_ifc_position(decl_param);
-            }
-            break;
-          default:
-            /* Fallback. */
-            /* FIXME: Do we need this? */
-            { a_type_ptr    type = param->variant.nontype.constant->type;
-              an_ifc_module *mod = expr_idx.mod;
-
-              result = mod->constant_for_expr_index(expr_idx, type);
-            }
-            break;
-        }  /* switch */
-      }
-      break;
     case ifc_es_expr_monad:
       { Opt<an_ifc_expr_monad> opt_iem;
 
@@ -11109,20 +11051,13 @@ given expression.
         }  /* if */
       }
       break;
-    case ifc_es_expr_literal:
+    default:
       { a_type_ptr    type = param->variant.nontype.constant->type;
         an_ifc_module *mod = expr_idx.mod;
 
         result = mod->constant_for_expr_index(expr_idx, type);
       }
       break;
-    default:
-      { a_string err_msg(str_for(expr_idx.sort),
-                         " is not expected for non-type template argument"
-                         " formation");
-        ifc_unexpected(expr_idx.mod, err_msg);
-      }
-      goto invalid;
   }  /* switch */
   goto done;
 invalid:
@@ -12709,7 +12644,7 @@ the expression's type is null, use default_type as the expression's type.
 FIXME: shared or unshared?  FIXME: what other expressions can we get here?
 */
 {
-  a_constant_ptr cp = NULL;
+  a_constant_ptr result = NULL;
   an_ifc_module  *mod = expr_idx.mod;
 
   /* FIXME: Can this entire thing be replaced via caching the expression and
@@ -12727,7 +12662,7 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
         an_ifc_expr_literal iel = *opt_iel;
         an_ifc_type_index   type = get_ifc_type(iel);
         an_ifc_lit_index    value = get_ifc_value(iel);
-        cp = constant_for_literal(type, value, default_type);
+        result = constant_for_literal(type, value, default_type);
       }
       break;
     case ifc_es_expr_array_value:
@@ -12757,13 +12692,13 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
           goto invalid;
         }  /* if */
         complete_type_is_needed(tp);
-        cp = alloc_constant(ck_aggregate);
+        result = alloc_constant(ck_aggregate);
 #if DO_IL_LOWERING
         /* This will be changed later if there are any actual fields that get
            initialized. */
-        cp->initializes_empty_object = TRUE;
+        result->initializes_empty_object = TRUE;
 #endif /* DO_IL_LOWERING */
-        cp->type = tp;
+        result->type = tp;
 
         an_ifc_expr_index base_subobjects = get_ifc_base_subobjects(ieptv);
         if (!is_null_index(base_subobjects)) {
@@ -12771,10 +12706,10 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
                                                         base_subobjects,
                                                         /*default_type=*/NULL);
 
-          add_constant_to_aggregate(sub_con, cp, NULL, NULL);
+          add_constant_to_aggregate(sub_con, result, NULL, NULL);
 #if DO_IL_LOWERING
           if (!sub_con->initializes_empty_object) {
-            cp->initializes_empty_object = FALSE;
+            result->initializes_empty_object = FALSE;
           }  /* if */
 #endif /* DO_IL_LOWERING */
         }  /* if */
@@ -12788,10 +12723,10 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
           if (mem_con == NULL) {
             goto invalid;
           }  /* if */
-          add_constant_to_aggregate(mem_con, cp, NULL, NULL);
+          add_constant_to_aggregate(mem_con, result, NULL, NULL);
 #if DO_IL_LOWERING
           if (!mem_con->initializes_empty_object) {
-            cp->initializes_empty_object = FALSE;
+            result->initializes_empty_object = FALSE;
           }  /* if */
 #endif /* DO_IL_LOWERING */
         }  /* if */
@@ -12804,7 +12739,7 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
         if (!opt_iesv.has_value()) {
           goto invalid;
         }  /* if */
-        cp = constant_for_expr_index(get_ifc_value(*opt_iesv), default_type);
+        result = constant_for_expr_index(get_ifc_value(*opt_iesv), default_type);
       }
       break;
     case ifc_es_expr_named_decl:
@@ -12814,7 +12749,7 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
         if (!opt_iend.has_value()) {
           goto invalid;
         }  /* if */
-        cp = constant_for_named_decl(*opt_iend);
+        result = constant_for_named_decl(*opt_iend);
       }
       break;
     case ifc_es_expr_tuple:
@@ -12827,7 +12762,7 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
 
         an_ifc_expr_tuple      iet = *opt_iet;
         an_expr_heap_traverser traverser(iet);
-        a_constant_ptr         *curr_const_ptr = &cp;
+        a_constant_ptr         *curr_const_ptr = &result;
         for (an_Indexed<an_ifc_heap_expr> traversed_ihe : traverser) {
           if (!traversed_ihe.has_value()) {
             goto invalid;
@@ -12862,8 +12797,8 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
         if (cache.is_valid()) {
           a_module_entity_rescan rescan(&cache);
 
-          cp = alloc_constant(ck_error);
-          scan_constant_initializer_expression(tp, &dps, cp);
+          result = alloc_constant(ck_error);
+          scan_constant_initializer_expression(tp, &dps, result);
         }  /* if */
       }
       break;
@@ -12897,7 +12832,7 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
         {
           a_module_entity_rescan rescan(&cache);
 
-          cp = alloc_constant(ck_error);
+          result = alloc_constant(ck_error);
           if (curr_token == tok_assign) {
             dps.init_state.direct_init = FALSE;
             (void)get_token();
@@ -12920,7 +12855,7 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
              directly, however, surgery is required to make that work. */
           if (operand != NULL && operand->kind == ok_constant &&
               identical_types(tp, operand->type)) {
-            copy_constant(&operand->variant.constant, cp);
+            copy_constant(&operand->variant.constant, result);
           } else {
             /* is_var_init is set to FALSE here, as otherwise it expects
                dps.sym to be non-NULL and point to a variable symbol, which we
@@ -12928,7 +12863,7 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
             convert_initializer(icp, dps.type, /*is_var_init=*/FALSE,
                                 /*fill_in_dtor=*/FALSE, &dps.init_state);
             if (dps.init_state.init_error) {
-              set_error_constant(cp);
+              set_error_constant(result);
             } else if (dps.init_state.init_dip != NULL) {
               a_diag_list diag_list;
 
@@ -12936,13 +12871,13 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
               if (!interpret_dynamic_init(dps.init_state.init_dip,
                                           init_component_pos(icp), dps.type,
                                           /*is_constant_evaluated=*/TRUE,
-                                          cp, &diag_list)) {
-                set_error_constant(cp);
+                                          result, &diag_list)) {
+                set_error_constant(result);
               }  /* if */
               discard_more_info_list(&diag_list);
             } else {
               check_assertion(dps.init_state.init_con != NULL);
-              copy_constant(dps.init_state.init_con, cp);
+              copy_constant(dps.init_state.init_con, result);
             }  /* if */
           }  /* if */
           free_init_component_list(icp);
@@ -12977,14 +12912,27 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
 
         memcpy(str_val, get_string_at_offset(get_ifc_start(ics)), length);
         check_assertion(str_val != NULL);
-        cp = alloc_constant(ck_string);
-        cp->type = type_for_type_index(get_ifc_type(ies));
-        cp->variant.string.length = length;
-        cp->variant.string.value  = str_val;
-        cp->variant.string.literal_kind = SCLK_ORDINARY_STRING_LITERAL;
+        result = alloc_constant(ck_string);
+        result->type = type_for_type_index(get_ifc_type(ies));
+        result->variant.string.length = length;
+        result->variant.string.value  = str_val;
+        result->variant.string.literal_kind = SCLK_ORDINARY_STRING_LITERAL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-        source_position_from_locus(&cp->end_position, get_ifc_locus(ies));
+        source_position_from_locus(&result->end_position, get_ifc_locus(ies));
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      }
+      break;
+    case ifc_es_expr_read:
+      { Opt<an_ifc_expr_read> opt_read_expr;
+
+        construct_node(&opt_read_expr, expr_idx);
+        if (!opt_read_expr.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_expr_read  read_expr = *opt_read_expr;
+        an_ifc_expr_index address = get_ifc_address(read_expr);
+        result = constant_for_expr_index(address, /*default_type=*/NULL);
       }
       break;
     default:
@@ -12997,10 +12945,10 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
   }  /* switch */
   goto done;
 invalid:
-  cp = alloc_error_constant();
+  result = alloc_error_constant();
   expect_error_str("expected errors for bad constant");
 done:
-  return cp;
+  return result;
 }  /* constant_for_expr_index */
 
 
@@ -13031,11 +12979,37 @@ FIXME: what other types of named declarations can we get here?
         result = (a_constant_ptr)mep->entity.ptr;
       }
       break;
-    case ifc_ds_decl_function:
-      issue_unsupported_construct_error(this, "DeclSort::Function"
-                                        " for ExprSort::NamedDecl",
-                                        &error_position);
-      goto invalid;
+    case ifc_ds_decl_parameter:
+      { Opt<an_ifc_decl_parameter> opt_decl_param;
+
+        construct_node(&opt_decl_param, decl_idx);
+        if (!opt_decl_param.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_decl_parameter decl_param = *opt_decl_param;
+        an_ifc_parameter_sort sort = get_ifc_sort(decl_param);
+        if (sort == ifc_ps_non_type) {
+          an_ifc_type_index     type = get_ifc_type(decl_param);
+          a_type_ptr            param_type = type_for_type_index(type);
+
+          /* FIXME: Refactor this to not duplicate code from
+             make_nontype_template_param_symbol */
+          result = fs_constant(ck_template_param);
+          result->type = param_type;
+          result->variant.template_param.variant.coordinates.depth =
+                                                     get_ifc_level(decl_param);
+          result->variant.template_param.variant.coordinates.position =
+                                                  get_ifc_position(decl_param);
+        } else {
+          a_string err_msg("Cannot form constant from unexpected parameter "
+                           "sort ", str_for(sort), " from ",
+                           index_to_str(decl_idx));
+
+          ifc_unexpected(decl_param.get_module(), err_msg);
+        }  /* if */
+      }
+      break;
     default:
       { a_string err_msg("Unexpected ", str_for(decl_idx.sort),
                          " for ExprSort::NamedDecl");
