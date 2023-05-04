@@ -6048,6 +6048,14 @@ FALSE.
   an_ifc_module     *mod = get_assoc_ifc_module(mep);
   an_ifc_decl_index decl_idx = decl_index_of(mep);
 
+  /* Push a module isolation scope to ensure any template parameters that may
+     need consulted (e.g., because they're part of the function parameter's
+     type) are formed as detached template arguments during parsing.  This
+     prevents template parameter resolution from outright failing, or binding
+     to an incorrect template parameter further up the scope stack with the
+     same coordinates. */
+  (void)push_scope(sck_module_isolated, NO_SCOPE_NUMBER,
+                   /*assoc_type=*/NULL, /*assoc_routine=*/NULL);
   /* The module entity pointer should always refer to a template. */
   check_assertion(decl_idx.sort == ifc_ds_decl_template);
 
@@ -6114,6 +6122,7 @@ FALSE.
 no_match:
   result = FALSE;
 done:
+  pop_scope();
   return result;
 }  /* is_function_template_redecl */
 
@@ -10931,13 +10940,10 @@ corresponding type, return an error type.
             a_decl_pos_block       decl_pos_block;
             a_module_entity_rescan rescan(&cache);
 
-            (void)push_scope(sck_module_isolated, NO_SCOPE_NUMBER,
-                             /*assoc_type=*/NULL, /*assoc_routine=*/NULL);
             init_decl_parse_state(&dps);
             typename_specifier(&result, &type_sym, /*within_using_decl=*/FALSE,
                                /*is_decl_specifier=*/FALSE, &dps,
                                &decl_pos_block);
-            pop_scope();
           }
         }
         break;
@@ -11024,31 +11030,17 @@ given expression.
   check_assertion(param->kind == tpk_nontype);
   switch (expr_idx.sort) {
     case ifc_es_expr_monad:
-      { Opt<an_ifc_expr_monad> opt_iem;
+      { a_module_token_cache cache;
 
-        construct_node(&opt_iem, expr_idx);
-        if (!opt_iem.has_value()) {
+        expr_idx.mod->cache_expr(&cache, expr_idx, /*cinfo=*/{});
+        if (!cache.is_valid()) {
           goto invalid;
         }  /* if */
 
-        an_ifc_expr_monad           iem = *opt_iem;
-        an_ifc_source_location      locus = get_ifc_locus(iem);
-        a_module_token_cache        cache;
-        an_ifc_source_position_hint pos_hint(&cache, locus);
-        a_type_ptr                  type =
-                                        type_for_type_index(get_ifc_type(iem));
-        an_ifc_module               *mod = expr_idx.mod;
-
-        mod->cache_operator(&cache, get_ifc_assoc(iem));
-        cache_token(&cache, tok_lparen);
-        mod->cache_expr(&cache, get_ifc_argument(iem), /*cinfo=*/{});
-        cache_token(&cache, tok_rparen);
-        if (cache.is_valid()) {
-          a_module_entity_rescan rescan(&cache);
-
-          result = fs_constant((a_constant_repr_kind)ck_error);
-          scan_template_argument_constant_expression(type, result);
-        }  /* if */
+        a_type_ptr             type = param->variant.nontype.constant->type;
+        a_module_entity_rescan rescan(&cache);
+        result = fs_constant((a_constant_repr_kind)ck_error);
+        scan_template_argument_constant_expression(type, result);
       }
       break;
     default:
