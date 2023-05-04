@@ -12988,17 +12988,7 @@ FIXME: what other types of named declarations can we get here?
         an_ifc_decl_parameter decl_param = *opt_decl_param;
         an_ifc_parameter_sort sort = get_ifc_sort(decl_param);
         if (sort == ifc_ps_non_type) {
-          an_ifc_type_index     type = get_ifc_type(decl_param);
-          a_type_ptr            param_type = type_for_type_index(type);
-
-          /* FIXME: Refactor this to not duplicate code from
-             make_nontype_template_param_symbol */
-          result = fs_constant(ck_template_param);
-          result->type = param_type;
-          result->variant.template_param.variant.coordinates.depth =
-                                                     get_ifc_level(decl_param);
-          result->variant.template_param.variant.coordinates.position =
-                                                  get_ifc_position(decl_param);
+          result = alloc_detached_nontype_templ_param(decl_param);
         } else {
           a_string err_msg("Cannot form constant from unexpected parameter "
                            "sort ", str_for(sort), " from ",
