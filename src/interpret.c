@@ -20142,13 +20142,6 @@ diagnostic in *ips.
           a_constant_ptr  cp;
           if (!bcp->direct || bcp->is_virtual) continue;
           get_mapped_byte_count(&persistent_map, bcp, offset);
-          if (!subobject_is_initialized(object+offset, complete_object) &&
-              !bcp->type->variant.class_struct_union.is_empty_class) {
-            info_with_pos_type(ec_base_subobject_not_initialized,
-                               &ips->position, bcp->type, ips);
-            do_constexpr_fail(result);
-            break;
-          }  /* if */
           cp = alloc_constant((a_constant_repr_kind)ck_error);
           if (!copy_interpreter_object_to_constant(
                         ips, object+offset, complete_object, bcp->type, cp)) {
@@ -20177,9 +20170,10 @@ diagnostic in *ips.
           get_mapped_byte_count(&persistent_map, fp, offset);
           ftp = skip_typerefs(fp->type);
           if (!subobject_is_initialized(object+offset, complete_object) &&
-              !(is_immediate_class_type(ftp) &&
-                ftp->variant.class_struct_union.is_empty_class) &&
-              !(type_is(ftp, tk_array) && has_any_zero_bound(ftp))) {
+              !is_class_or_struct(ftp) && !type_is(ftp, tk_array)) {
+            /* Scalar subobjects have to be initialized.  For composite
+               objects, we only care about their own subobjects being
+               initialized. */
             info_with_pos_sym(ec_field_subobject_not_initialized,
                               &ips->position, symbol_for(fp), ips);
             do_constexpr_fail(result);
@@ -20258,6 +20252,16 @@ diagnostic in *ips.
         set_constant_kind(con, (a_constant_repr_kind)ck_aggregate);
         for (k = 0; k<n_elems; k += 1, sub_obj += elem_size) {
           a_constant_ptr  elem_con;
+          if (!subobject_is_initialized(sub_obj, complete_object) &&
+              !is_class_or_struct(etp) && !type_is(etp, tk_array)) {
+            /* Scalar subobjects have to be initialized.  For composite
+               objects, we only care about their own subobjects being
+               initialized. */
+            info_with_pos_num(ec_array_subobject_not_initialized,
+                              &ips->position, (uint32_t)k, ips);
+            do_constexpr_fail(result);
+            break;
+          }  /* if */
           elem_con = alloc_constant((a_constant_repr_kind)ck_error);
           if (!copy_interpreter_object_to_constant(
                               ips, sub_obj, complete_object, etp, elem_con)) {
