@@ -1,5 +1,31 @@
 Version 6.5
 
+5/5/23   [EDGcpfe/26302]
+Inconsistent handling of subobject initialization status in constant evaluation
+
+Consider:
+
+  struct S {
+    int i[2];
+    constexpr S() { i[0] = '1'; }
+  };
+  constexpr S s;  // Previously erroneously accepted.
+
+  struct P { int x; int y; };
+  struct X {
+    P c[2];
+    constexpr T() { c[0].x = c[0].y = c[1].x = c[1].y = 0; }
+  };
+  constexpr X x;  // Previously a spurious error.
+
+During constant evaluation, the front end sometimes did not correctly
+determined whether the result of the evaluation was fully initialized.
+For variable s above, s.i[1] is not initialized and should thus elicit an
+error.  Previously, however, it was accepted.  Conversely, variable x is
+fully initialized but the front end previously claimed otherwise.  Those
+issued are now fixed.
+
+
 5/5/23   [EDGcpfe/26306]
 Abort on invalid local linkage-specification
 
