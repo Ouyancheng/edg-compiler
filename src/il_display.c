@@ -2049,6 +2049,7 @@ Display a typeref kind.
     case trk_is_typeof_with_type_operand:
                                     str = "is_typeof_with_type_operand"; break;
     case trk_for_type_attributes:      str = "for_type_attributes";      break;
+    case trk_is_alias:                 str = "is_alias";                 break;
     case trk_is_template_alias:        str = "is_template_alias";        break;
     case trk_bases:                    str = "bases";                    break;
     case trk_direct_bases:             str = "direct_bases";             break;
