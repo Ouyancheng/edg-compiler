@@ -24776,7 +24776,7 @@ declaration of a partial specialization declared outside of its class.
        error down the line.  The options used when coalescing the 
        identifier are specified above. */
     if (locator_for_curr_id.symbol_header->has_intrinsic_name &&
-        is_intrinsic_type_transform_name()) {
+        is_intrinsic_type_transform_token()) {
       /* If it uses an intrinsic name, make the name non-intrinsic.  This
          allows, e.g., __make_unsigned to be defined as a struct template. */
       locator_for_curr_id.symbol_header->has_intrinsic_name = FALSE;
@@ -30836,7 +30836,7 @@ alias
     /* A valid identifier was scanned. */
     locator = locator_for_curr_id;
     if (locator.symbol_header->has_intrinsic_name &&
-        is_intrinsic_type_transform_name()) {
+        is_intrinsic_type_transform_token()) {
       /* If it uses an intrinsic name, make the name non-intrinsic.  This
          allows, e.g., __make_unsigned to be defined as an alias template. */
       locator.symbol_header->has_intrinsic_name = FALSE;

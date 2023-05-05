@@ -18291,21 +18291,13 @@ recognized during parsing.  Also, record the associated keyword kinds.
 }  /* init_type_transform_names */
 
 
-a_boolean is_intrinsic_type_transform_name(void)
+a_boolean is_intrinsic_type_transform_name(a_symbol_header  *hdr)
 /*
-Return TRUE if the current token is an identifier matching a type transform
-name.
+Return TRUE if the given symbol header corresponds to the name of a type
+transform intrinsic (like __add_pointer).
 */
 {
-  a_boolean  result;
-
-  if (curr_token == tok_identifier) {
-    a_symbol_header  *hdr = locator_for_curr_id.symbol_header;
-    result = type_transform_name_table->get(hdr) != tok_error;
-  } else {
-    result = FALSE;
-  }  /* if */
-  return result;
+  return type_transform_name_table->get(hdr) != tok_error;
 }  /* is_intrinsic_type_transform_name */
 
 

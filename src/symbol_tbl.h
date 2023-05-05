@@ -7328,7 +7328,27 @@ and evaluates the associated constraint.
   return result;
 }  /* is_ineligible */
 
-extern a_boolean is_intrinsic_type_transform_name(void);
+
+extern a_boolean is_intrinsic_type_transform_name(a_symbol_header  *hdr);
+
+inline a_boolean is_intrinsic_type_transform_token(void)
+/*
+Return TRUE if the current token is an identifier matching a type transform
+name.
+*/
+{
+  a_boolean  result;
+
+  if (curr_token == tok_identifier &&
+      locator_for_curr_id.symbol_header->has_intrinsic_name) {
+    result = is_intrinsic_type_transform_name(
+                                           locator_for_curr_id.symbol_header);
+  } else {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* is_intrinsic_type_transform_token */
+
 
 extern a_token_kind check_type_transform_name(void);
 

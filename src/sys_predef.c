@@ -748,7 +748,9 @@ as keywords and __has_builtin returns TRUE for these.
   if (loc.symbol_header != NULL &&
       (loc.symbol_header->is_builtin_function ||
        (loc.symbol_header->symbol != NULL &&
-        loc.symbol_header->symbol->kind == (a_symbol_kind)sk_keyword))) {
+        symbol_is(loc.symbol_header->symbol, sk_keyword)) ||
+       (loc.symbol_header->has_intrinsic_name &&
+        is_intrinsic_type_transform_name(loc.symbol_header)))) {
     result = TRUE;
   }  /* if */
   return result;
