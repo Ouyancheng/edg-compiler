@@ -5315,13 +5315,6 @@ class to be defined.
     enclosing_assoc_type = assoc_type;
     enclosing_assoc_routine = assoc_routine;
   }  /* if */
-  if (decl_info->variable_instance_sym != NULL) {
-    /* If the context includes a variable template instantiation, the enclosing
-       template declaration information is that of the variable template
-       instantiation. */
-    enclosing_variable_tdip = enclosing_tdip;
-    enclosing_tdip = NULL;
-  }  /* if */
   if (template_sym != NULL && symbol_is(template_sym, sk_function_template)) {
     /* Determine if this is a generic lambda instantiation. */
     a_template_symbol_supplement_ptr	tssp;
@@ -5350,6 +5343,16 @@ class to be defined.
                                                                enclosing_scope;
   } else {
     context_scope = decl_info->enclosing_scope;
+  }  /* if */
+  if (decl_info->variable_instance_sym != NULL) {
+    /* If the context includes a variable template instantiation, the enclosing
+       template declaration information is that of the variable template
+       instantiation. */
+    check_assertion(context_scope->kind != sck_block &&
+                    context_scope->kind != sck_condition &&
+                    context_scope->kind != sck_function);
+    enclosing_variable_tdip = enclosing_tdip;
+    enclosing_tdip = NULL;
   }  /* if */
   /* Determine whether this instantiation is a prototype instantiation of
      something within another prototype instantiation.  This affects the
