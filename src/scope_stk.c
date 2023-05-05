@@ -5260,7 +5260,7 @@ class to be defined.
   a_scope_depth			saved_innermost_scope_that_affects_access;
   a_namespace_ptr		reference_nsp;
   a_boolean			is_template = FALSE;
-  a_template_decl_info_ptr	enclosing_tdip, enclosing_variable_tdip;
+  a_template_decl_info_ptr	enclosing_tdip, enclosing_variable_tdip = NULL;
   a_symbol_ptr			enclosing_instance_sym;
   a_type_ptr			enclosing_assoc_type;
   a_routine_ptr			enclosing_assoc_routine, inh_ctor_orig = NULL;
