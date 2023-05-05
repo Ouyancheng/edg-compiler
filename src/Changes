@@ -1,5 +1,25 @@
 Version 6.5
 
+5/5/23   [EDGcpfe/26306]
+Abort on invalid local linkage-specification
+
+Consider:
+
+  typedef struct { int i; } Int;
+  void g(Int);
+  void f(int i) {
+    extern "C" {  // Invalid local linkage-specification.
+      Int I = { .i  = i };
+      g(I);
+    }
+  }
+
+The linkage-specification is invalid in a local scope and that is correctly
+diagnosed by the front end.  However, in configurations with the macro
+EXTRA_SOURCE_POSITIONS_IN_IL set to TRUE, this example resulted in an internal
+error.  That is now fixed.
+
+
 5/4/23   [EDGcpfe/26193]
 Clang compatibility: Type-transforming intrinsics (IL CHANGE)
 

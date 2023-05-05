@@ -21518,8 +21518,13 @@ parameters are scanned by scan_a_template_parameter_declaration.
     /* Keep a pointer to the statement so that its end position can be updated
        below. */
     decl_stmt = struct_stmt_stack_top().last_dep_statement;
-    check_assertion(decl_stmt != NULL &&
-                    decl_stmt->kind == (a_statement_kind)stmk_decl);
+    check_assertion(decl_stmt != NULL);
+    if (decl_stmt->kind != stmk_decl) {
+      /* This can happen, e.g., when attempting to declare a local extern "C"
+         block. */
+      expect_error();
+      decl_stmt = NULL;
+    }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
