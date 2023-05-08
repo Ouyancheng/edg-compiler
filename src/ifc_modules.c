@@ -7420,6 +7420,20 @@ otherwise, return FALSE.
 
   if (entity_decl.sort == ifc_ds_decl_variable) {
     result = FALSE;
+  } else if (entity_decl.sort == ifc_ds_decl_function) {
+    Opt<an_ifc_decl_function> opt_func_decl;
+
+    construct_node(&opt_func_decl, entity_decl);
+    if (opt_func_decl.has_value()) {
+      an_ifc_decl_function            func_decl = *opt_func_decl;
+      an_ifc_function_traits_bitfield traits = get_ifc_traits(func_decl);
+
+      if (test_bitmask<ifc_ftb_deleted>(traits)) {
+        /* Deleted functions must be deleted in their first declaration,
+           consider them non-redeclarable. */
+        result = FALSE;
+      }  /* if */
+    }  /* if */
   }  /* if */
   return result;
 }  /* is_template_redeclarable */
