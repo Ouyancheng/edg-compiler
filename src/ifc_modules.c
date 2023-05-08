@@ -2919,6 +2919,10 @@ and update *kind with the associated entity kind.
 
   if (dps->sym != NULL) {
     result = il_entry_for_symbol_null_okay(dps->sym, kind);
+
+    a_tagged_pointer tagged_ptr = canonicalize_tagged_ptr(*kind, result);
+    *kind = tagged_ptr.kind;
+    result = tagged_ptr.ptr;
   } else {
     *kind = iek_none;
   }  /* if */
@@ -2936,8 +2940,11 @@ entity and update *kind with the associated entity kind.
   char *result = NULL;
 
   if (decl_state->il_template_entry != NULL) {
-    result = (char*)decl_state->il_template_entry;
-    *kind = iek_template;
+    a_tagged_pointer tagged_ptr =
+                                make_tagged_ptr(decl_state->il_template_entry);
+
+    result = tagged_ptr.ptr;
+    *kind = tagged_ptr.kind;
   } else {
     *kind = iek_none;
   }  /* if */
@@ -3301,6 +3308,7 @@ required).
 */
 {
   check_assertion(!mep->invalid && mep->entity.ptr != NULL);
+  check_assertion(mep->entity == canonicalize_tagged_ptr(mep->entity));
   an_ifc_decl_index decl_idx = decl_index_of(mep);
 
   if (mep->entity.kind == iek_routine) {
@@ -3471,8 +3479,7 @@ index information to the given symbol.
                                                                 &kind);
       /* Convert the symbol to an IL entity list entry. */
       if (il_entity != NULL) {
-        ielep->entity.kind = kind;
-        ielep->entity.ptr = il_entity;
+        ielep->entity = canonicalize_tagged_ptr(kind, il_entity);
       } else {
         /* If any list element fails, the entire list is considered invalid. */
         mep->invalid = TRUE;
@@ -3488,8 +3495,7 @@ index information to the given symbol.
     char             *il_entity = il_entry_for_symbol_null_okay(sym, &kind);
 
     if (il_entity != NULL) {
-      mep->entity.ptr = il_entity;
-      mep->entity.kind = kind;
+      mep->entity = canonicalize_tagged_ptr(kind, il_entity);
     } else {
       mep->invalid = TRUE;
     }  /* if */
@@ -7124,8 +7130,7 @@ module, but its definition hasn't been loaded yet.  Load the definition now.
     }  /* if */
     /* Update the module entity pointer to refer to the defining IL
        template. */
-    mep->entity.kind = kind;
-    mep->entity.ptr = (char*)il_entity;
+    mep->entity = canonicalize_tagged_ptr(kind, (char*)il_entity);
     /* Restore the module declaration context stack; all other cleanup is RAII
        based. */
     pop_module_declaration_context(scope_push_status);
@@ -7182,7 +7187,7 @@ Ensure the template corresponding to the given module entity pointer has
 its definition (if any) loaded.
 */
 {
-  a_template_ptr templ = ((a_template_ptr)mep->entity.ptr)->canonical_template;
+  a_template_ptr templ = (a_template_ptr)mep->entity.ptr;
   if (has_template_definition_from_ifc_module(templ)) {
     (void)load_template_definition_from_ifc_module(templ);
   }  /* if */
@@ -11022,8 +11027,7 @@ corresponding type, return an error type.
     if (result != NULL) {
       mep->scope = result->source_corresp.parent_scope;
     }  /* if */
-    mep->entity.ptr = (char *)result;
-    mep->entity.kind = iek_type;
+    mep->entity = make_tagged_ptr(result);
   }  /* if */
   goto done;
 invalid:

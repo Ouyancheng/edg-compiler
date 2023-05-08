@@ -67,6 +67,41 @@ Ptr_map.
 }  /* hash_ptr */
 
 
+inline a_tagged_pointer canonicalize_tagged_ptr(an_il_entry_kind kind,
+                                                char             *ptr)
+/*
+Given the kind and pointer value to form a tagged pointer, return a tagged
+pointer that points to the canonical IL entity.
+*/
+{
+  a_tagged_pointer result;
+
+  result.kind = kind;
+  switch (kind) {
+    case iek_template:
+      { a_template_ptr templ = (a_template_ptr)ptr;
+
+        result.ptr = (char*)templ->canonical_template;
+      }
+      break;
+    default:
+      result.ptr = ptr;
+      break;
+  }  /* switch */
+  return result;
+}  /* canonicalize_tagged_ptr */
+
+
+inline a_tagged_pointer canonicalize_tagged_ptr(a_tagged_pointer tag)
+/*
+Given a tagged pointer, return an equivalent tagged pointer that points to the
+canonical IL entity.
+*/
+{
+  return canonicalize_tagged_ptr(tag.kind, tag.ptr);
+}  /* canonicalize_tagged_ptr */
+
+
 template<typename an_IL_type>
 inline a_tagged_pointer make_tagged_ptr(an_IL_type val) DELETED_FN_DEF
 
@@ -77,11 +112,7 @@ inline a_tagged_pointer make_tagged_ptr(a_routine_ptr val)
 Convert the given IL routine pointer into a tagged pointer.
 */
 {
-  a_tagged_pointer result;
-
-  result.kind = iek_routine;
-  result.ptr = (char*)val;
-  return result;
+  return canonicalize_tagged_ptr(iek_routine, (char*)val);
 }  /* make_tagged_ptr */
 
 
@@ -91,11 +122,17 @@ inline a_tagged_pointer make_tagged_ptr(a_template_ptr val)
 Convert the given IL template pointer into a tagged pointer.
 */
 {
-  a_tagged_pointer result;
+  return canonicalize_tagged_ptr(iek_template, (char*)val);
+}  /* make_tagged_ptr */
 
-  result.kind = iek_template;
-  result.ptr = (char*)val;
-  return result;
+
+template<>
+inline a_tagged_pointer make_tagged_ptr(a_type_ptr val)
+/*
+Convert the given IL type pointer into a tagged pointer.
+*/
+{
+  return canonicalize_tagged_ptr(iek_type, (char*)val);
 }  /* make_tagged_ptr */
 
 
