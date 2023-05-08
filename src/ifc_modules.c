@@ -10313,6 +10313,9 @@ be deferred until they are referenced.
 
               if (has_pending_template_definition_from_module(templ)) {
                 (void)load_template_definition_from_module(templ);
+              } else if (
+                     has_pending_template_specializations_from_module(templ)) {
+                (void)load_template_specializations_from_module(templ);
               }  /* if */
             }
             break;
