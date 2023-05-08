@@ -4980,14 +4980,25 @@ be completed here.
   tssp = template_sym == NULL ? NULL
                               : template_supplement_for_symbol(template_sym);
   if (template_sym != NULL) {
-    if (tssp->il_template_entry != NULL &&
-        has_pending_template_definition_from_module(tssp->il_template_entry)) {
+    a_template_ptr templ = tssp->il_template_entry;
+
+    if (templ != NULL && has_pending_template_definition_from_module(templ)) {
       /* A declaration but not a definition was loaded from a module file.
          Attempt to load the definition (and any specializations). */
-      load_template_definition_from_module(tssp->il_template_entry);
+      (void)load_template_definition_from_module(templ);
       /* It is possible that loading the template definition also triggered
          the instantiation of this class.  If that is the case, we are all
          done. */
+      if (!class_type->incomplete) goto done;
+    } else if (templ != NULL &&
+               has_pending_template_specializations_from_module(templ)) {
+      /* A declaration and definition are already present, however, a module
+         file has provided additional specializations.  Attempt to load the
+         specializations. */
+      (void)load_template_specializations_from_module(templ);
+      /* It is possible that loading the template specializations also
+         triggered the instantiation of this class.  If that is the case, we
+         are all done. */
       if (!class_type->incomplete) goto done;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (cli_or_cx_enabled &&
@@ -7078,11 +7089,19 @@ cases).
   db_enter(3, "instantiate_template_function_full");
   template_sym = tip->template_sym;
   tssp = template_supplement_for_symbol(template_sym);
-  if (tssp->il_template_entry != NULL &&
-      has_pending_template_definition_from_module(tssp->il_template_entry)) {
-    /* A declaration but not a definition was loaded from a module file.
-       Attempt to load the definition (and any specializations). */
-    load_template_definition_from_module(tssp->il_template_entry);
+
+  a_template_ptr templ = tssp->il_template_entry;
+  if (templ != NULL) {
+    if (has_pending_template_definition_from_module(templ)) {
+      /* A declaration but not a definition was loaded from a module file.
+         Attempt to load the definition (and any specializations). */
+      (void)load_template_definition_from_module(templ);
+    } else if (has_pending_template_specializations_from_module(templ)) {
+      /* A declaration and definition are already present, however, a module
+         file has provided additional specializations.  Attempt to load the
+         specializations. */
+      (void)load_template_specializations_from_module(templ);
+    }  /* if */
   }  /* if */
   func_info_ptr = func_info_for_template(tssp);
   /* The already instantiated flag is set even if certain error conditions
@@ -11462,13 +11481,23 @@ If template constraints are not satisfied, return NULL.
   }  /* if */
   /* The template symbol must be for the primary template. */
   check_assertion(tssp->primary_template_sym == NULL);
-  if (tssp->il_template_entry != NULL &&
-      has_pending_template_definition_from_module(tssp->il_template_entry)) {
-    /* A declaration but not a definition was loaded from a module file.
-       Attempt to load the definition (and any specializations).  Note this
-       must be performed before the find_instantiation call, as otherwise
-       specializations might be declared after implicit instantiations. */
-    load_template_definition_from_module(tssp->il_template_entry);
+
+  /* Load the module provided definition or specialization if not already
+     loaded, and this is non-dependent context.  Notably, this should not be
+     performed when we're in a template declaration context as this results in
+     unnecessary loads (these are both inefficient and problematic as the extra
+     loads when a prototype is allowed can result in a cyclic dependencies as
+     the specialization might refer back to the entity being parsed).  Finally,
+     note this must be performed before the find_instantiation call, as
+     otherwise specializations might be declared after implicit
+     instantiations.*/
+  a_template_ptr templ = tssp->il_template_entry;
+  if (templ != NULL && !is_template_declaration_context()) {
+    if (has_pending_template_definition_from_module(templ)) {
+      (void)load_template_definition_from_module(templ);
+    } else if (has_pending_template_specializations_from_module(templ)) {
+      (void)load_template_specializations_from_module(templ);
+    }  /* if */
   }  /* if */
   if (is_nonreal && prototype_allowed) {
     /* See if the list matches a partial specialization. */

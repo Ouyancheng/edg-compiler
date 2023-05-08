@@ -586,6 +586,12 @@ extern a_boolean has_template_definition_from_ifc_module(a_template_ptr templ);
 extern
 a_boolean load_template_definition_from_ifc_module(a_template_ptr  templ);
 
+extern a_boolean has_template_specializations_from_ifc_module(
+                                                        a_template_ptr  templ);
+
+extern
+a_boolean load_template_specializations_from_ifc_module(a_template_ptr  templ);
+
 extern a_boolean has_type_definition_from_ifc_module(a_type_ptr  ty);
 
 extern a_boolean load_type_definition_from_ifc_module(a_type_ptr  ty);

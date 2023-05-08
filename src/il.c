@@ -10210,11 +10210,16 @@ entry.  pos is used to establish the type entry's position information.
     type->source_corresp.is_class_member =
                        tssp->il_template_entry->source_corresp.is_class_member;
   }  /* if */
-  /* If the template originates from a module, ensure its definition is loaded
-     if available. */
-  if (tssp->il_template_entry != NULL &&
-      has_pending_template_definition_from_module(tssp->il_template_entry)) {
-    load_template_definition_from_module(tssp->il_template_entry);
+  /* If the template originates from a module, ensure its definition and
+     specializations are loaded if available. */
+  if (tssp->il_template_entry != NULL) {
+    a_template_ptr templ = tssp->il_template_entry;
+
+    if (has_pending_template_definition_from_module(templ)) {
+      (void)load_template_definition_from_module(templ);
+    } else if (has_pending_template_specializations_from_module(templ)) {
+      (void)load_template_specializations_from_module(templ);
+    }  /* if */
   }  /* if */
   return type;
 }  /* make_class_template_placeholder */
@@ -25269,8 +25274,12 @@ routine as actually referenced.
      template's specializations are not processed after the template is
      referenced (resulting in a spurious diagnostic). */
   a_template_ptr templ = routine->assoc_template;
-  if (templ != NULL && has_pending_template_definition_from_module(templ)) {
-    load_template_definition_from_module(templ);
+  if (templ != NULL) {
+    if (has_pending_template_definition_from_module(templ)) {
+      (void)load_template_definition_from_module(templ);
+    } else if (has_pending_template_specializations_from_module(templ)) {
+      (void)load_template_specializations_from_module(templ);
+    }  /* if */
   }  /* if */
   if (!elided_reference) {
     /* Set the referenced flag.  This is only necessary for virtual

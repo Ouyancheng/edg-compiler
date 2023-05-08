@@ -3106,6 +3106,17 @@ an_ifc_template_def_map
                            retrieve the definition of the template when
                            needed. */
 
+using an_ifc_template_spec_map = Ptr_map<a_template_ptr, an_ifc_decl_index>;
+                        /* The type of a map that associates IFC template
+                           specializations with IL template entries. */
+
+an_ifc_template_spec_map
+                *ifc_template_specializations;
+                        /* A map from canonical template IL pointers to entries
+                           of type an_ifc_decl_index that can be used to
+                           retrieve the specializations of the template when
+                           needed. */
+
 using an_ifc_tag_def_map = Ptr_map<a_type_ptr, an_ifc_decl_index>;
                         /* The type of a map that associates IFC tag
                            definitions with IL tag entries. */
@@ -3295,6 +3306,21 @@ out to be needed later on.
 }  /* record_pending_ifc_template_definition */
 
 
+static void record_pending_ifc_template_specializations(
+                                                    a_template_ptr    templ,
+                                                    an_ifc_decl_index decl_idx)
+/*
+Record the information needed to retrieve a definition for templ if it turns
+out to be needed later on.
+*/
+{
+  /* Ensure the canonical template IL entity is what's being mapped onto. */
+  check_assertion(templ != NULL && templ->canonical_template != NULL);
+  templ = templ->canonical_template;
+  (void)ifc_template_specializations->map_or_replace(templ, decl_idx);
+}  /* record_pending_ifc_template_specializations */
+
+
 static a_boolean is_entity_imminent(a_module_entity_ptr mep)
 /*
 Given a module entity pointer, return TRUE if the entity is an unresolved
@@ -3306,104 +3332,7 @@ invalid); otherwise, return FALSE.
 }  /* is_entity_imminent */
 
 
-static void catch_up_template_specs(an_ifc_decl_index decl_idx);
-
-using an_ifc_small_decl_array = Small_dyn_array<an_ifc_decl_index, 25>;
-using an_ifc_deferred_spec_map = Ptr_map<a_module_entity_ptr,
-                                         an_ifc_small_decl_array*>;
-                        /* The type of a table that maps IFC module entity
-                           pointers to an associated list of deferred
-                           specializations. */
-
-static an_ifc_deferred_spec_map
-                *ifc_deferred_specs;
-                        /* A hash table to map IFC module entity pointers to a
-                           corresponding list of deferred specializations that
-                           need to be processed once the module entity (key
-                           value) is completed. */
-
-
-static void finish_mep_processing(a_module_entity_ptr mep)
-/*
-Given a module entity pointer for a valid module entity with an existing IL
-declaration, complete any processing that needs to be performed on the module
-entity pointer now that it's been successfully loaded into the IL (e.g., map
-any pending definition information for later use should a definition be
-required).
-*/
-{
-  check_assertion(!mep->invalid && mep->entity.ptr != NULL);
-  check_assertion(mep->entity == canonicalize_tagged_ptr(mep->entity));
-  an_ifc_decl_index decl_idx = decl_index_of(mep);
-
-  if (mep->entity.kind == iek_routine) {
-    map_pending_routine_definitions(decl_idx, (a_routine_ptr)mep->entity.ptr);
-  } else if (decl_idx.sort == ifc_ds_decl_template) {
-    an_ifc_decl_template templ_decl;
-
-    construct_node_prechecked(&templ_decl, decl_idx);
-    if (!is_defined(mep->entity.ptr, mep->entity.kind)) {
-      a_template_ptr templ = (a_template_ptr)mep->entity.ptr;
-
-      /* The kind should be a template, otherwise this mep should've been
-         marked invalid. */
-      check_assertion(mep->entity.kind == iek_template);
-      record_pending_ifc_template_definition(templ, decl_idx);
-    } else {
-      /* The IL entity is already defined so we can't rely on the lazy loading
-         mechanism to load any pending IFC-specified specializations. */
-      an_ifc_decl_index   parent_decl_idx = get_ifc_home_scope(templ_decl);
-      a_module_entity_ptr deferring_entity = NULL;
-
-      /* Find the top level imminent entity, then add to its deferral list this
-         template's specializations.  If there is not an imminent entity that
-         needs to be waited on, process this template's specialization
-         immediately; otherwise, defer until said entity is completed. */
-      while (!is_null_index(parent_decl_idx)) {
-        a_module_entity_ptr parent_mep =
-                                    get_ifc_module_entity_ptr(parent_decl_idx);
-
-        if (!is_entity_imminent(parent_mep)) {
-          break;
-        }  /* if */
-        deferring_entity = parent_mep;
-        if (!has_ifc_home_scope(parent_decl_idx)) {
-          break;
-        }  /* if */
-        parent_decl_idx = get_ifc_home_scope(parent_decl_idx);
-      }  /* if */
-      if (deferring_entity != NULL) {
-        an_ifc_small_decl_array *deferred_spec_list =
-                                     ifc_deferred_specs->get(deferring_entity);
-
-        if (deferred_spec_list == NULL) {
-          deferred_spec_list = alloc_fe_of_type(an_ifc_small_decl_array);
-          construct(deferred_spec_list);
-          ifc_deferred_specs->map(deferring_entity, deferred_spec_list);
-        }  /* if */
-        deferred_spec_list->push_back(decl_idx);
-      } else {
-        catch_up_template_specs(decl_idx);
-      }  /* if */
-    }  /* if */
-  }  /* if */
-
-  /* Process any specializations that were waiting for this declaration to be
-     complete. */
-  an_ifc_small_decl_array *deferred_spec_list_ptr =
-                                                  ifc_deferred_specs->get(mep);
-  if (deferred_spec_list_ptr != NULL) {
-    an_ifc_small_decl_array &deferred_spec_list = *deferred_spec_list_ptr;
-
-    for (an_ifc_decl_index deferred_template : deferred_spec_list) {
-      catch_up_template_specs(deferred_template);
-    }  /* if */
-    /* Free the memory. */
-    destroy(deferred_spec_list_ptr);
-    free_fe(deferred_spec_list_ptr);
-    ifc_deferred_specs->unmap(mep);
-  }  /* if */
-}  /* finish_mep_processing */
+static void finish_mep_processing(a_module_entity_ptr mep);
 
 
 static a_boolean is_local_variable_symbol(a_symbol_ptr sym)
@@ -6851,6 +6780,7 @@ using the normal IFC modules function loading logic.
 
 namespace {
 
+using an_ifc_small_decl_array = Small_dyn_array<an_ifc_decl_index, 25>;
 using an_ifc_template_lookup_table = Ptr_map<an_ifc_decl_index,
                                              an_ifc_small_decl_array*>;
                         /* The type of a table that maps IFC template
@@ -7124,26 +7054,6 @@ should be called after all specializations are setup.
 }  /* process_instantiations */
 
 
-static void catch_up_template_specs(an_ifc_decl_index decl_idx)
-/*
-This function is called to process the template specializations for an IL
-entity that was defined outside of the IFC.
-
-As the entity is already defined, definition processing will never be called,
-so any specializations and instantiations that the IFC might provide to
-specialize the current IL template must be processed explicitly, as they will
-otherwise never be loaded.
-*/
-{
-  an_ifc_template_spec_info spec_info(decl_idx);
-
-  if (spec_info.has_specs()) {
-    spec_info.process_specializations();
-    spec_info.process_instantiations();
-  }  /* if */
-}  /* catch_up_template_specs */
-
-
 static inline
 void update_cache_info_for_template(an_ifc_cache_info *cache_info,
                                     a_template_ptr    templ)
@@ -7308,35 +7218,10 @@ done:
 }  /* process_template_definition */
 
 
-static a_boolean
-process_delayed_template_definition(const an_ifc_decl_template &decl_templ,
-                                    a_module_entity_ptr        mep,
-                                    char                       **il_entity,
-                                    an_il_entry_kind           *kind)
-/*
-Given a module entity's IFC node information and module entity pointer, attempt
-to complete the entity's definition and specializations.  If processing
-succeeds without error, return TRUE and set *il_entity and *kind to the
-redeclared entity and its associated kind; otherwise, return FALSE.
-
-Notably, if there's a previous declaration *il_entity and *kind must be set to
-the existing template declaration; otherwise, *il_entity should be NULL with
-kind set to iek_template.
-*/
-{
-  an_ifc_template_spec_info spec_info(decl_index_of(mep));
-
-  /* Delayed template definitions always follow a forward declaration,
-     so specializations have already been handled. */
-  return process_template_definition(decl_templ, mep, spec_info,
-                                     il_entity, kind);
-}  /* process_delayed_template_definition */
-
-
 a_boolean has_template_definition_from_ifc_module(a_template_ptr  templ)
 /*
-If the given template has a definition in a currently-imported IFC module
-return TRUE.  Note that templ must refer to the canonical template.
+If the given template has a definition in an imported IFC module return TRUE.
+Note that templ must refer to the canonical template.
 */
 {
   check_assertion(templ != NULL && templ->canonical_template == templ);
@@ -7348,8 +7233,9 @@ return TRUE.  Note that templ must refer to the canonical template.
 
 a_boolean load_template_definition_from_ifc_module(a_template_ptr  templ)
 /*
-The given template entry represents a template that was loaded from an IFC
-module, but its definition hasn't been loaded yet.  Load the definition now.
+If the given template has a definition available in an imported module, load
+and process those definitions now, and return TRUE.  Otherwise, return FALSE.
+Note that templ must refer to the canonical template.
 */
 {
   check_assertion(has_template_definition_from_ifc_module(templ));
@@ -7382,10 +7268,11 @@ module, but its definition hasn't been loaded yet.  Load the definition now.
     push_module_declaration_context(mep->scope, &scope_push_status);
 
     /* Process the definition. */
-    char              *il_entity = (char*)templ;
-    an_il_entry_kind  kind = iek_template;
-    if (process_delayed_template_definition(template_decl, mep,
-                                            &il_entity, &kind)) {
+    char                      *il_entity = (char*)templ;
+    an_il_entry_kind          kind = iek_template;
+    an_ifc_template_spec_info spec_info(def_decl_idx);
+    if (process_template_definition(template_decl, mep, spec_info,
+                                    &il_entity, &kind)) {
       /* FIXME: We need to be able to better determine that the template has
          been defined before removing from the map. */
       /* The definition was successfully loaded, unmap the pending
@@ -7408,6 +7295,56 @@ module, but its definition hasn't been loaded yet.  Load the definition now.
     }  /* if */
 #endif /* DEBUG */
   }  /* if */
+  return result;
+}  /* load_template_definition_from_ifc_module */
+
+
+a_boolean has_template_specializations_from_ifc_module(a_template_ptr  templ)
+/*
+If the given template has specializations in an imported IFC module return
+TRUE.  Note that templ must refer to the canonical template.
+*/
+{
+  check_assertion(templ != NULL && templ->canonical_template == templ);
+  an_ifc_decl_index decl_idx = ifc_template_specializations->get(templ);
+
+  return decl_idx.mod != NULL;
+}  /* has_template_specializations_from_ifc_module */
+
+
+a_boolean load_template_specializations_from_ifc_module(a_template_ptr  templ)
+/*
+If the given template has a specialization available in an imported module,
+load and process those definitions now, and return TRUE.  Otherwise, return
+FALSE.  Note that templ must refer to the canonical template.
+*/
+{
+  check_assertion(has_template_specializations_from_ifc_module(templ));
+  a_boolean         result = FALSE;
+  an_ifc_decl_index decl_idx = ifc_template_specializations->get(templ);
+
+  ifc_template_specializations->unmap(templ);
+#if DEBUG
+  if (db_flag_is_set("ifc_idx")) {
+    a_string err_msg("Template spec loading started for ",
+                     index_to_str(decl_idx));
+
+    print(err_msg, f_debug);
+  }  /* if */
+#endif /* DEBUG */
+
+  an_ifc_template_spec_info spec_info(decl_idx);
+  check_assertion(spec_info.has_specs());
+  spec_info.process_specializations();
+  spec_info.process_instantiations();
+#if DEBUG
+  if (db_flag_is_set("ifc_idx")) {
+    a_string err_msg("Template spec loading done for ",
+                     index_to_str(decl_idx));
+
+    print(err_msg, f_debug);
+  }  /* if */
+#endif /* DEBUG */
   return result;
 }  /* load_template_definition_from_ifc_module */
 
@@ -8698,36 +8635,23 @@ class_struct_union_case:
               update_cache_info_for_template(&cache_info, templ);
             }  /* if */
           }  /* if */
+          /* Disable definition caching if at all possible, this will result in
+             the definition being deferred (in finish_mep_processing) until
+             it's absolutely needed. */
+          if (is_template_redeclarable(idt)) {
+            cache_info.ignore_definition = TRUE;
+          }  /* if */
 
           /* Compute the DeclIndex of the current template and retrieve the
              sequence of explicit specializations and instantiations. */
-          an_ifc_template_spec_info spec_info(decl_idx);
-          a_boolean                 forward_declare =
-                                              (!cache_info.ignore_definition &&
-                                               is_template_redeclarable(idt));
-          if (forward_declare) {
-            a_module_token_cache cache;
-            an_ifc_cache_info    local_cache_info = cache_info;
-
-            /* Disable definition caching, this is a forward declaration for
-               the partial specializations that follow. */
-            local_cache_info.ignore_definition = TRUE;
-
-            mod->cache_decl_template(&cache, decl_idx, idt, local_cache_info);
-            if (!cache.is_valid()) {
-              goto invalid;
-            }  /* if */
-            il_entity = parse_cached_template(&cache, mep->scope, &kind);
-            if (kind != iek_template) {
-              goto invalid;
-            }  /* if */
-          } else {
-            /* If the template couldn't be forward declared, process the
-               complete declaration and definition now. */
-            if (!process_template_definition(idt, mep, spec_info, &il_entity,
-                                             &kind)) {
-              goto invalid;
-            }  /* if */
+          a_module_token_cache cache;
+          mod->cache_decl_template(&cache, decl_idx, idt, cache_info);
+          if (!cache.is_valid()) {
+            goto invalid;
+          }  /* if */
+          il_entity = parse_cached_template(&cache, mep->scope, &kind);
+          if (kind != iek_template) {
+            goto invalid;
           }  /* if */
         }  /* if */
       }
@@ -10245,7 +10169,7 @@ return FALSE.
   if (in_get_home_scope) {
     /* A get_home_scope call is being processed; avoid infinite recursion. */
     result = FALSE;
-  } /* if */
+  }  /* if */
   return result;
 }  /* can_be_eager_loaded */
 
@@ -23094,6 +23018,42 @@ Display the contents of the specified declaration.
 
 #endif /* DEBUG */
 
+static void finish_mep_processing(a_module_entity_ptr mep)
+/*
+Given a module entity pointer for a valid module entity with an existing IL
+declaration, complete any processing that needs to be performed on the module
+entity pointer now that it's been successfully loaded into the IL (e.g., map
+any pending definition information for later use should a definition be
+required).
+*/
+{
+  check_assertion(!mep->invalid && mep->entity.ptr != NULL);
+  check_assertion(mep->entity == canonicalize_tagged_ptr(mep->entity));
+  an_ifc_decl_index decl_idx = decl_index_of(mep);
+
+  if (mep->entity.kind == iek_routine) {
+    map_pending_routine_definitions(decl_idx, (a_routine_ptr)mep->entity.ptr);
+  } else if (decl_idx.sort == ifc_ds_decl_template) {
+    /* The kind should be a template, otherwise this mep should've been
+       marked invalid. */
+    check_assertion(mep->entity.kind == iek_template);
+    a_template_ptr       templ = (a_template_ptr)mep->entity.ptr;
+    an_ifc_decl_template templ_decl;
+
+    construct_node_prechecked(&templ_decl, decl_idx);
+    if (is_defined(mep->entity.ptr, mep->entity.kind)) {
+      an_ifc_template_spec_info spec_info(decl_idx);
+
+      if (spec_info.has_specs()) {
+        record_pending_ifc_template_specializations(templ, decl_idx);
+      }  /* if */
+    } else {
+      record_pending_ifc_template_definition(templ, decl_idx);
+    }  /* if */
+  }  /* if */
+}  /* finish_mep_processing */
+
+
 void ifc_modules_one_time_init(void)
 /*
 Do one-time initialization of static variables defined in this file.
@@ -23131,12 +23091,12 @@ for each compilation.
   ifc_parameterized_entities =
                              alloc_fe_of_type(an_ifc_parameterized_entity_map);
   construct(ifc_parameterized_entities, /*mask_width=*/10);
-  ifc_deferred_specs = alloc_fe_of_type(an_ifc_deferred_spec_map);
-  construct(ifc_deferred_specs, /*mask_width=*/10);
   ifc_function_bodies = alloc_fe_of_type(an_ifc_function_body_map);
   construct(ifc_function_bodies, /*mask_width=*/10);
   ifc_template_definitions = alloc_fe_of_type(an_ifc_template_def_map);
   construct(ifc_template_definitions, /*mask_width=*/10);
+  ifc_template_specializations = alloc_fe_of_type(an_ifc_template_spec_map);
+  construct(ifc_template_specializations, /*mask_width=*/10);
   ifc_tag_definitions = alloc_fe_of_type(an_ifc_tag_def_map);
   construct(ifc_tag_definitions, /*mask_width=*/10);
   ifc_bad_function_bodies = alloc_fe_of_type(an_ifc_function_failure_set);

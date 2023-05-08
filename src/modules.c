@@ -1234,7 +1234,8 @@ a_boolean has_pending_template_definition_from_module(
                                               ARG_UNUSED a_template_ptr  templ)
 /*
 If the given template is not already defined and has a definition available in
-an imported module, return TRUE.  Otherwise, return FALSE.
+an imported module, return TRUE.  Otherwise, return FALSE.  Note that templ
+must refer to the canonical template.
 */
 {
   a_boolean  result = FALSE;
@@ -1255,12 +1256,50 @@ a_boolean load_template_definition_from_module(
 /*
 If the given template has a definition available in an imported module, load
 and process that definition now, and return TRUE.  Otherwise, return FALSE.
+Note that templ must refer to the canonical template.
 */
 {
   a_boolean  result = FALSE;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   result = load_template_definition_from_ifc_module(templ);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  return result;
+}  /* load_template_definition_from_module */
+
+
+a_boolean has_pending_template_specializations_from_module(
+                                              ARG_UNUSED a_template_ptr  templ)
+/*
+If the given template has specializations available in an imported module,
+return TRUE.  Otherwise, return FALSE.  Note that templ must refer to the
+canonical template.
+*/
+{
+  a_boolean  result = FALSE;
+
+  check_assertion(templ != NULL);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (has_template_specializations_from_ifc_module(templ)) {
+    result = TRUE;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  return result;
+}  /* has_pending_template_definition_from_module */
+
+
+a_boolean load_template_specializations_from_module(
+                                             ARG_UNUSED a_template_ptr  templ)
+/*
+If the given template has specializations available in an imported module, load
+and process those definitions now, and return TRUE.  Otherwise, return FALSE.
+Note that templ must refer to the canonical template.
+*/
+{
+  a_boolean  result = FALSE;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  result = load_template_specializations_from_ifc_module(templ);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return result;
 }  /* load_template_definition_from_module */
