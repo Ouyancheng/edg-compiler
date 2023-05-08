@@ -166,7 +166,9 @@ ptr_type is the type of ptr, and entry_kind is the kind of entry pointed to.
 /*
 Like walk_ptr, but used for "next" pointers in entries where a full subtree
 walk needs to be performed.  It can only be used on a single pointer per entry
-with the same entry_kind.
+with the same entry_kind.  Note that the entire purpose of this routine is
+to use iteration rather than recursion to perform a walk of "next" pointers
+(to use less stack space).
 */
 #undef walk_next_ptr
 #if DO_SUBTREE_WALK
@@ -4089,7 +4091,8 @@ handle_class_type_supplement_for_class:
   /* Call the routine to process the entry if there is such a routine. */
   if (entry_process_func != NULL) entry_process_func(entry_ptr, entry_kind);
   if (next_entry_ptr != NULL) {
-    /* A "next" pointer has been set; continue the walk with that entry. */
+    /* A "next" pointer has been set; continue the walk with that entry.
+       This uses iteration rather than recursion (to minimize stack usage). */
     entry_ptr = next_entry_ptr;
     next_entry_ptr = NULL;
     goto handle_next_entry;
