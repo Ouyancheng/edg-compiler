@@ -156,7 +156,7 @@ Consider (in C++20 mode):
 
 Previously this produced an error about there being too many initializers
 because the front end could not match the (dependent) braced initializer with
-the (nondependent) type D.  In some cases, there spurious error was a
+the (nondependent) type D.  In some cases, the spurious error was a
 regression introduced by the changes for EDGcpfe/22003,EDGcpfe/23814 in
 version 6.3 of the front end.  This is now fixed.
 
