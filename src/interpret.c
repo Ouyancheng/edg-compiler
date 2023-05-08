@@ -20170,7 +20170,9 @@ diagnostic in *ips.
           get_mapped_byte_count(&persistent_map, fp, offset);
           ftp = skip_typerefs(fp->type);
           if (!subobject_is_initialized(object+offset, complete_object) &&
-              !is_class_or_struct(ftp) && !type_is(ftp, tk_array)) {
+              !is_class_or_struct(ftp) && !type_is(ftp, tk_array) &&
+              !(type_is(ftp, tk_union) &&
+                ftp->variant.class_struct_union.is_empty_class)) {
             /* Scalar subobjects have to be initialized.  For composite
                objects, we only care about their own subobjects being
                initialized. */
