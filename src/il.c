@@ -5684,7 +5684,7 @@ the entity is defined; otherwise, return FALSE.
     case iek_template:
       { a_template_ptr tmpl = (a_template_ptr)entity_ptr;
 
-        result = tmpl->definition_template != NULL;
+        result = tmpl->canonical_template->definition_template != NULL;
       }
       break;
     case iek_type:
