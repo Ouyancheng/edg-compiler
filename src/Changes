@@ -125,7 +125,7 @@ This previously aborted in extract_node_from_operand (in exprutil.c, with
 message "converting unexpected operand kind").  That is now fixed.
 
 
-5/2/23   [EDGcpfe/25550]
+5/2/23   [EDGcpfe/26301]
 new/delete mismatch in constant expressions
 
 Consider, in C++20 mode:
