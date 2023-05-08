@@ -21770,7 +21770,8 @@ it might produce an error).
           break;
         case eok_parens:
           /* For parentheses, turn the underlying expression into a prvalue,
-             and re-mark the parenthesis node as a prvalue. */
+             and re-mark the parenthesis node as a prvalue.  We don't record
+             a separate "orig_lvalue_type" for the eok_parens node. */
           op1 = conv_glvalue_expr_to_prvalue(op1, allow_folding,
                                              (a_constant_ptr *)NULL, err_pos);
           node->variant.operation.operands = op1;
@@ -21781,8 +21782,6 @@ it might produce an error).
             con_expr_value = node_constant(op1);
           }  /* if */
           node->is_lvalue = node->is_xvalue = FALSE;
-          node->orig_lvalue_type = op1->orig_lvalue_type;
-          node->type = op1->type;
           processed = TRUE;
           break;
         case eok_lvalue_cast:
