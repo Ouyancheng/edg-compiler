@@ -25438,9 +25438,13 @@ copy_attributes is TRUE).
          fundamental symbol. */
       fund_base_class = base_classes_of(class_type);
       for (;;) {
-        if (same_entities(fund_base_class->type,
-                          sym_parent_class(fund_sym)) &&
-            is_on_any_derivation_of(fund_base_class, bcp)) break;
+        a_type_ptr type_of_base = fund_base_class->type;
+        a_type_ptr type_of_parent = sym_parent_class(fund_sym);
+
+        if (same_entities(type_of_base, type_of_parent) &&
+            is_on_any_derivation_of(fund_base_class, bcp)) {
+          break;
+        }  /* if */
         fund_base_class = fund_base_class->next;
         check_assertion(fund_base_class != NULL);
       }  /* for */
