@@ -7890,7 +7890,8 @@ expr_statement:
   }  /* switch */
   if (current_rp != NULL && current_rp->is_constexpr &&
       !can_appear_in_constexpr_body) {
-    if (current_rp->is_declared_constexpr || current_rp->is_consteval) {
+    if ((current_rp->is_declared_constexpr || current_rp->is_consteval) &&
+        !(gpp_version_is(>=120000) && current_rp->is_template_function)) {
       /* Report an error if the statement is not one that is allowed in a
          constexpr function or constexpr constructor. */
       pos_diagnostic(in_constexpr_body_sev,
