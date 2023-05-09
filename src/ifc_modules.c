@@ -10085,6 +10085,23 @@ be deferred until they are referenced.
          EXPENSIVE_CHECKING as an optimization. */
       if (eager_load_modules && can_be_eager_loaded(decl_idx)) {
         process_ifc_declaration(dmep);
+        if (dmep->invalid) {
+          continue;
+        }  /* if */
+        /* Eagerly load the definition and specializations "as-if" they'd been
+           requested for an instantiation via the lazy loading system. */
+        switch (dmep->entity.kind) {
+          case iek_template:
+            { a_template_ptr templ = (a_template_ptr)dmep->entity.ptr;
+
+              if (has_pending_template_definition_from_module(templ)) {
+                (void)load_template_definition_from_module(templ);
+              }  /* if */
+            }
+            break;
+          default:
+            break;
+        }  /* switch */
       } else
 #endif /* EXPENSIVE_CHECKING */
       /* Do not add code here. */
