@@ -10653,20 +10653,27 @@ corresponding type, return an error type.
           result = alloc_type((a_type_kind)tk_array);
           result->variant.array.element_type = type_for_type_index(element);
 
-          a_constant_ptr    elem_count = mod->constant_for_expr_index(
+          if (is_null_index(extent)) {
+            /* The array length isn't specified (i.e., this is the []
+               incomplete-type case). */
+            result->variant.array.variant.number_of_elements = 0;
+          } else {
+            a_constant_ptr elem_count = mod->constant_for_expr_index(
                                                         extent,
                                                         /*default_type=*/NULL);
-          if (elem_count == NULL || elem_count->kind != ck_integer) {
-            ifc_unexpected(mod, "bad element count for type array");
-            goto invalid;
-          }  /* if */
 
-          a_boolean         err = FALSE;
-          result->variant.array.variant.number_of_elements =
+            if (elem_count == NULL || elem_count->kind != ck_integer) {
+              ifc_unexpected(mod, "bad element count for type array");
+              goto invalid;
+            }  /* if */
+
+            a_boolean err = FALSE;
+            result->variant.array.variant.number_of_elements =
                           unsigned_value_of_integer_constant(elem_count, &err);
-          if (err) {
-            ifc_unexpected(mod, "integer overflow on type array");
-            goto invalid;
+            if (err) {
+              ifc_unexpected(mod, "integer overflow on type array");
+              goto invalid;
+            }  /* if */
           }  /* if */
           set_array_type_size(result, /*suppress_error=*/FALSE);
         }
