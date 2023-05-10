@@ -10175,24 +10175,6 @@ Return the number of entries in a given partition.
 }  /* get_num_entries */
 
 
-static a_boolean is_home_scope_readable(an_ifc_decl_index decl_index)
-/*
-Return TRUE if the home scope of the declaration (indexed by decl_index) is
-loaded and may contain all or part of its associated inner declarations.
-*/
-{
-  a_module_entity_ptr mep = get_ifc_module_entity_ptr(decl_index);
-  a_scope_ptr home_scope = mep->scope;
-  /* FIXME: There's currently some more work required to retroactively retrieve
-     a home scope for enumerators in the context where this is called.  Avoid a
-     crash. */
-  if (home_scope == NULL && decl_index.sort != ifc_ds_decl_enumerator) {
-    home_scope = get_home_scope(decl_index);
-  }  /* if */
-  return home_scope != NULL && !home_scope->is_placeholder_scope;
-}  /* is_home_scope_readable */
-
-
 static a_calling_convention conv_calling_convention(
                                      an_ifc_calling_convention_sort convention)
 /*
@@ -12181,41 +12163,6 @@ anonymous), or an empty optional if the name was present but invalid.
       goto invalid;
     default_is_unexpected_str("Unexpected DeclSort");
   }  /* switch */
-  if (result.has_value() && result->length() > 0) {
-    /* FIXME: We're dodging an issue where the declaration (decl) is part of
-       some enclosing class that we're currently trying to cache by checking to
-       see if the home scope is "readable".  This likely means the answer to
-       the below FIXME is that, no we do not want this check here.  However,
-       for the moment the "check" remains useful and prevents some
-       regressions. */
-    a_boolean gmf_decl = gmf_decl_scope.has_value() ||
-                         gmf_decl_type.has_value();
-    if (gmf_decl && is_home_scope_readable(decl_idx)) {
-      a_symbol_locator loc;
-      a_symbol_ptr     result_sym = find_symbol(result->as_temp_characters(),
-                                                result->length(),
-                                                &loc);
-      /* FIXME: Do we want to have this check here, or should we always load
-         the module's version of the declaration and rely on visibility rules
-         to sort it out later?  Currently visibility is not well implemented
-         and so the interplay here is not well understood. */
-      if (result_sym == NULL) {
-        /* Declarations that come from the global module fragment aren't added
-           to the module scope, so we need to ensure that we've added these
-           names to the lazily loaded symbols list. */
-        a_module_entity_ptr mep = get_ifc_module_entity_ptr(decl_idx);
-
-        if (gmf_decl_scope.has_value()) {
-          mep->scope = get_scope(*gmf_decl_scope);
-        } else {
-          a_type_ptr tp = EDG_PREFIX::type_for_type_index(*gmf_decl_type);
-          ensure_type_has_scope(tp);
-          mep->scope = get_assoc_scope_of_il_entry((char*)tp, iek_type);
-        }  /* if */
-        defer_symbol_creation(mep, &loc);
-      }  /* if */
-    }  /* if */
-  }
 invalid:
   return result;
 }  /* name_from_decl */
