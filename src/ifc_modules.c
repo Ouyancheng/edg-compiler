@@ -7597,7 +7597,7 @@ strongly preferred over calling this function directly.
 
 #if DEBUG
   ++num_module_decls_attempted;
-  if (db_flag_is_set("ifc_idx")) {
+  if (db_flag_is_set("ifc_idx") && !defer) {
     a_string msg("IL processing started for ", index_to_str(decl_idx));
 
     print(msg, f_debug);
@@ -8918,7 +8918,7 @@ done:
     pop_module_declaration_context(scope_push_status);
   }  /* if */
 #if DEBUG
-  if (db_flag_is_set("ifc_idx")) {
+  if (db_flag_is_set("ifc_idx") && !defer) {
     a_string msg("IL processing done for ", index_to_str(decl_idx));
 
     print(msg, f_debug);
@@ -10104,6 +10104,11 @@ to this function.
     (void)fprintf(f_debug, "[>%lu] (deferred) ", ++decl_nesting_level);
     db_mep(mep);
   }  /* if */
+  if (db_flag_is_set("ifc_idx")) {
+    a_string msg("IL deferral started for ", index_to_str(decl_idx));
+
+    print(msg, f_debug);
+  }  /* if */
 #endif /* DEBUG */
   switch (decl_idx.sort) {
     case ifc_ds_decl_partial_specialization:
@@ -10162,6 +10167,11 @@ done:;
   if (db_flag_is_set("ifc_decl")) {
     (void)fprintf(f_debug, "[<%lu] ", --decl_nesting_level);
     db_mep(mep);
+  }  /* if */
+  if (db_flag_is_set("ifc_idx")) {
+    a_string msg("IL deferral done for ", index_to_str(decl_idx));
+
+    print(msg, f_debug);
   }  /* if */
 #endif /* DEBUG */
 }  /* defer_ifc_declaration */
