@@ -10662,16 +10662,22 @@ corresponding type, return an error type.
                                                         extent,
                                                         /*default_type=*/NULL);
 
-            if (elem_count == NULL || elem_count->kind != ck_integer) {
-              ifc_unexpected(mod, "bad element count for type array");
-              goto invalid;
-            }  /* if */
+            if (elem_count != NULL && elem_count->kind == ck_integer) {
+              a_boolean err = FALSE;
 
-            a_boolean err = FALSE;
-            result->variant.array.variant.number_of_elements =
+              result->variant.array.variant.number_of_elements =
                           unsigned_value_of_integer_constant(elem_count, &err);
-            if (err) {
-              ifc_unexpected(mod, "integer overflow on type array");
+              if (err) {
+                ifc_unexpected(mod, "integer overflow on type array");
+                goto invalid;
+              }  /* if */
+            } else if (elem_count != NULL &&
+                       elem_count->kind == ck_template_param) {
+              result->variant.array.is_template_dependent_size_array = TRUE;
+              result->variant.array.variant.element_count_constant =
+                                                                    elem_count;
+            } else {
+              ifc_unexpected(mod, "bad element count for type array");
               goto invalid;
             }  /* if */
           }  /* if */
