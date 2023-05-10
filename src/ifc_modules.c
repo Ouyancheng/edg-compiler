@@ -3048,6 +3048,36 @@ associated entity kind.
   return get_parsed_entity(&dps, kind);
 }  /* parse_cached_partial_specialization */
 
+#if DEBUG
+
+template<typename an_ifc_Index_type>
+static void append_index_context(a_string          &str,
+                                 an_ifc_Index_type idx)
+/*
+Append useful identifying information about the index.
+*/
+{
+  /* By default do nothing, specializations are required. */
+}  /* append_index_context */
+
+
+template<>
+void append_index_context(a_string          &str,
+                          an_ifc_decl_index decl_idx)
+/*
+Append any useful identifying information about the index.
+*/
+{
+  Opt<a_string> opt_decl_name = name_from_decl(decl_idx);
+
+  if (opt_decl_name.has_value()) {
+    a_string name = *opt_decl_name;
+
+    str.append(" \"", name, "\"");
+  }  /* if */
+}  /* append_index_context */
+
+#endif /* DEBUG */
 
 template<typename an_ifc_Index_type>
 a_string index_to_str(an_ifc_Index_type idx)
@@ -3055,7 +3085,14 @@ a_string index_to_str(an_ifc_Index_type idx)
 Convert the given index value into a string representation.
 */
 {
-  return a_string(str_for(idx.sort), " (", idx.value, ")");
+  a_string msg(str_for(idx.sort), " (", idx.value, ")");
+
+#if DEBUG
+  if (db_flag_is_set("ifc_idx")) {
+    append_index_context(msg, idx);
+  }  /* if */
+#endif /* DEBUG */
+  return msg;
 }  /* index_to_str */
 
 namespace {
@@ -7561,9 +7598,9 @@ strongly preferred over calling this function directly.
 #if DEBUG
   ++num_module_decls_attempted;
   if (db_flag_is_set("ifc_idx")) {
-    a_string err_msg("IL processing started for ", index_to_str(decl_idx));
+    a_string msg("IL processing started for ", index_to_str(decl_idx));
 
-    print(err_msg, f_debug);
+    print(msg, f_debug);
   }  /* if */
 #endif /* DEBUG */
   if (!defer) {
@@ -8882,9 +8919,9 @@ done:
   }  /* if */
 #if DEBUG
   if (db_flag_is_set("ifc_idx")) {
-    a_string err_msg("IL processing done for ", index_to_str(decl_idx));
+    a_string msg("IL processing done for ", index_to_str(decl_idx));
 
-    print(err_msg, f_debug);
+    print(msg, f_debug);
   }  /* if */
 #endif /* DEBUG */
   error_position = saved_error_position;
