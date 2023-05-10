@@ -5888,6 +5888,61 @@ type template parameter.
   return result;
 }  /* type_represents_templ_param_ref */
 
+namespace {
+
+/*
+A stack used to traverse symbol lists that may contain symbols with their own
+"nested" lists that additionally need traversed (e.g., sk_overload_function).
+*/
+struct a_symbol_traversal_stack {
+  a_symbol_traversal_stack(a_symbol_ptr sym_list)
+    { this->push_symbol_if_non_null(sym_list); }
+  inline a_boolean has_next() const
+    { return !this->traversal_stack.is_empty(); }
+  inline a_symbol_ptr next();
+private:
+  inline void push_symbol_if_non_null(a_symbol_ptr sym);
+  Small_dyn_array<a_symbol_ptr, 2>
+                traversal_stack;
+                        /* The traversal stack used to keep track of the
+                           current symbol. */
+};  /* a_symbol_traversal_stack */
+
+
+a_symbol_ptr a_symbol_traversal_stack::next()
+/*
+Return the next element in the symbol traversal, popping it from the stack.
+*/
+{
+  check_assertion(this->has_next());
+  a_symbol_ptr elem = this->traversal_stack.back_elem();
+
+  this->traversal_stack.pop_back();
+  /* Push the next element in this list. */
+  this->push_symbol_if_non_null(elem->next);
+  /* Expand any sub lists, replacing the element with the first element of that
+     list. */
+  if (elem->kind == sk_overloaded_function) {
+    elem = elem->variant.overloaded_function.symbols;
+    /* Push the next element in expanded list, resulting in its traversal,
+       before returning to the parent traversal. */
+    this->push_symbol_if_non_null(elem->next);
+  }  /* if */
+  return elem;
+}  /* a_symbol_traversal_stack::next */
+
+
+void a_symbol_traversal_stack::push_symbol_if_non_null(a_symbol_ptr sym)
+/*
+Push the given symbol to the stack if it isn't null.
+*/
+{
+  if (sym != NULL) {
+    this->traversal_stack.push_back(sym);
+  }  /* if */
+}  /* a_symbol_traversal_stack::push_symbol_if_non_null */
+
+}  /* namespace */
 
 static a_boolean
 is_redeclared_basic_entity(a_symbol            *sym,
@@ -5941,15 +5996,18 @@ This function should not be used directly in modules code, instead see
 check_and_set_redeclaration.
 */
 {
-  a_boolean result = FALSE;
+  a_boolean                result = FALSE;
+  a_symbol_traversal_stack traverser(sym_list);
 
-  for (a_symbol_ptr sym = sym_list; sym != NULL; sym = sym->next) {
+  while (traverser.has_next()) {
+    a_symbol_ptr sym = traverser.next();
+
     if (is_redeclared_basic_entity(sym, mep, expected_kind, redecl_entity,
                                    redecl_kind)) {
       result = TRUE;
       break;
     }  /* if */
-  }  /* if */
+  }  /* while */
   return result;
 }  /* find_redeclared_basic_symbol_in_list */
 
@@ -6209,14 +6267,17 @@ This function should not be used directly in modules code, instead see
 check_and_set_template_redeclaration.
 */
 {
-  a_boolean result = FALSE;
+  a_boolean                result = FALSE;
+  a_symbol_traversal_stack traverser(sym_list);
 
-  for (a_symbol_ptr sym = sym_list; sym != NULL; sym = sym->next) {
+  while (traverser.has_next()) {
+    a_symbol_ptr sym = traverser.next();
+
     if (is_redeclared_template_entity(sym, mep, redecl_entity, redecl_kind)) {
       result = TRUE;
       break;
     }  /* if */
-  }  /* if */
+  }  /* while */
   return result;
 }  /* find_redeclared_template_entity_in_list */
 
@@ -6372,9 +6433,12 @@ This function should not be used directly in modules code, instead see
 check_and_set_specialization_redeclaration.
 */
 {
-  a_boolean result = FALSE;
+  a_boolean                result = FALSE;
+  a_symbol_traversal_stack traverser(sym_list);
 
-  for (a_symbol_ptr sym = sym_list; sym != NULL; sym = sym->next) {
+  while (traverser.has_next()) {
+    a_symbol_ptr sym = traverser.next();
+
     if (!is_template_symbol(sym)) {
       continue;
     }  /* if */
@@ -6383,7 +6447,7 @@ check_and_set_specialization_redeclaration.
       result = TRUE;
       break;
     }  /* if */
-  }  /* if */
+  }  /* while */
   return result;
 }  /* find_redeclared_specialized_entity_in_list */
 
