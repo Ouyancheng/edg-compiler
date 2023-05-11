@@ -2905,9 +2905,12 @@ and update *kind with the associated entity kind.
   if (dps->sym != NULL) {
     result = il_entry_for_symbol_null_okay(dps->sym, kind);
 
-    a_tagged_pointer tagged_ptr = canonicalize_tagged_ptr(*kind, result);
-    *kind = tagged_ptr.kind;
-    result = tagged_ptr.ptr;
+    if (result != NULL) {
+      a_tagged_pointer tagged_ptr = canonicalize_tagged_ptr(*kind, result);
+
+      *kind = tagged_ptr.kind;
+      result = tagged_ptr.ptr;
+    }  /* if */
   } else {
     *kind = iek_none;
   }  /* if */
