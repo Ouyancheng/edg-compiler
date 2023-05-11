@@ -296,7 +296,7 @@ accessible.  For example, with --c++11:
   int i = g(D<B>());  // Previously a spurious error.  Now okay.
 
 
-4/27/23  [EDGcpfe/26184]
+4/27/23  [EDGcpfe/24033,EDGcpfe/24311,EDGcpfe/26184]
 Excessive stack usage during IL walks
 
 In some cases the IL walk needs to do a full walk for the "next" pointer, but a
