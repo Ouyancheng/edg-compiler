@@ -4038,6 +4038,7 @@ can be found, return NULL.
           if (result == NULL) {
             goto invalid;
           }  /* if */
+          break;
         } else {
           a_template_decl_info *tdip = ssep->template_decl_info;
           a_symbol_ptr         tsym = ssep->template_sym;
