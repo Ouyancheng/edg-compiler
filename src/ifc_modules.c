@@ -6262,10 +6262,6 @@ no_match:
   result = FALSE;
 done:
   return result;
-//  an_ifc_type_index ifc_type_idx = get_ifc_type(mod_templ_param);
-//  a_type_ptr        mod_param_type = type_for_type_index(ifc_type_idx);
-
-//  return il_identical_types(il_param_type->declared_type, mod_param_type);
 }  /* has_matching_template_param */
 
 
