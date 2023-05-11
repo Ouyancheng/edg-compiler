@@ -6222,6 +6222,7 @@ default arguments) to the given IL template param; otherwise, return FALSE.
       break;
     case ifc_ps_template:
       if (param_sym->kind != sk_class_template) {
+        /* The parameter is not a template template parameter. */
         goto no_match;
       } else {
         Opt<an_ifc_chart_unilevel> opt_param_chart =
@@ -6244,6 +6245,7 @@ default arguments) to the given IL template param; otherwise, return FALSE.
       break;
     case ifc_ps_type:
       if (param_sym->kind != sk_type) {
+        /* The parameter is not a type template parameter. */
         goto no_match;
       }  /* if */
       break;
