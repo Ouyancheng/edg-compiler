@@ -6252,6 +6252,7 @@ default arguments) to the given IL template param; otherwise, return FALSE.
                      "Unexpected function parameter where a template "
                      "parameter was expected");
       goto no_match;
+    default_is_unexpected();
   }  /* switch */
   goto done;
 invalid:
