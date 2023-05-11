@@ -547,6 +547,7 @@ extern an_expr_node_ptr scan_type_constraint(
                                         a_symbol_ptr  concept_templ,
                                         a_boolean     for_requirement = FALSE);
 
+
 inline a_template_param_ptr templ_params_of(a_symbol_ptr  template_sym)
 /*
 Return the list of template parameters for the given template.
@@ -564,6 +565,15 @@ Return the list of template parameters for the given template.
     params = tssp->cache.decl_info->parameters;
   }  /* if */
   return params;
+}  /* templ_params_of */
+
+
+inline a_template_param_ptr templ_params_of(a_template_ptr template_ptr)
+/*
+Return the list of template parameters for the given template.
+*/
+{
+  return templ_params_of(symbol_for(template_ptr));
 }  /* templ_params_of */
 
 

@@ -3778,18 +3778,15 @@ static a_symbol_ptr alloc_detached_templ_param_sym(
                                      const an_ifc_decl_parameter &param_decl);
 
 
-static a_template_decl_info_ptr alloc_detached_templ_templ_param_decl_info(
+static Opt<an_ifc_chart_unilevel> get_template_template_param_chart(
                                        const an_ifc_decl_parameter &param_decl)
 /*
-Given an IFC parameter declaration representing a template template parameter,
-return the associated template decl info for use in a detached template
-template parameter.  If the template decl info cannot be successfully formed,
-instead return NULL.  See alloc_detached_templ_param_sym for more information
-about detached template parameters.
+Given an IFC parameter declaration, if it can be retrieved, return the
+corresponding parameter chart; otherwise, return an empty optional.
 */
 {
-  a_template_decl_info_ptr result = NULL;
-  an_ifc_type_index        type = get_ifc_type(param_decl);
+  Opt<an_ifc_chart_unilevel> result = {};
+  an_ifc_type_index          type = get_ifc_type(param_decl);
 
   if (type.sort == ifc_ts_type_expansion) {
     /* The IFC as of IFC 0.41 wraps the forall type in an expansion type if the
@@ -3814,20 +3811,47 @@ about detached template parameters.
     }  /* if */
 
     /* Extract and load the chart corresponding to the forall type. */
-    an_ifc_type_forall         forall_type = *opt_forall_type;
-    an_ifc_chart_index         chart = get_ifc_chart(forall_type);
-    Opt<an_ifc_chart_unilevel> opt_unilevel_chart;
-    construct_node(&opt_unilevel_chart, chart);
-    if (!opt_unilevel_chart.has_value()) {
-      goto invalid;
-    }  /* if */
+    an_ifc_type_forall forall_type = *opt_forall_type;
+    an_ifc_chart_index chart = get_ifc_chart(forall_type);
+    construct_node(&result, chart);
+  } else {
+    a_string err_msg("it is not known how to convert ", index_to_str(type),
+                     " into a template parameter chart for a"
+                     " template template parameter");
 
-    /* Construct a_template_param_ptrs from the corresponding chart parameters
-       to form the template template parameter's template param list. */
-    an_ifc_chart_unilevel      unilevel_chart = *opt_unilevel_chart;
-    a_decl_parameter_traverser traverser(unilevel_chart);
+    ifc_unexpected(type.mod, err_msg.as_temp_characters());
+  }  /* if */
+  goto done;
+invalid:
+  result.clear();
+done:
+  return result;
+}  /* get_template_template_param_char */
+
+
+static a_template_decl_info_ptr alloc_detached_templ_templ_param_decl_info(
+                                       const an_ifc_decl_parameter &param_decl)
+/*
+Given an IFC parameter declaration representing a template template parameter,
+return the associated template decl info for use in a detached template
+template parameter.  If the template decl info cannot be successfully formed,
+instead return NULL.  See alloc_detached_templ_param_sym for more information
+about detached template parameters.
+*/
+{
+  a_template_decl_info_ptr   result = NULL;
+  Opt<an_ifc_chart_unilevel> opt_param_chart =
+                                 get_template_template_param_chart(param_decl);
+
+  if (!opt_param_chart.has_value()) {
+    goto invalid;
+  }  /* if */
+  {
+    an_ifc_chart_unilevel      param_chart = *opt_param_chart;
+    a_decl_parameter_traverser traverser(param_chart);
     a_template_param_ptr       start;
     a_template_param_ptr       *next = &start;
+
     for (an_Indexed<an_ifc_decl_parameter> indexed_idp : traverser) {
       if (!indexed_idp.has_value()) {
         goto invalid;
@@ -3848,13 +3872,7 @@ about detached template parameters.
        gathered. */
     result = alloc_template_decl_info();
     result->parameters = start;
-  } else {
-    a_string err_msg("it is not known how to convert ", index_to_str(type),
-                     " into a template parameter chart for a"
-                     " template template parameter");
-
-    ifc_unexpected(type.mod, err_msg.as_temp_characters());
-  }  /* if */
+  }
   goto done;
 invalid:
   result = NULL;
@@ -6110,18 +6128,141 @@ redeclaration is.
 
 
 static a_boolean
-has_matching_func_param(const an_ifc_decl_parameter &mod_templ_param,
+has_matching_func_param(const an_ifc_decl_parameter &mod_func_param,
                         a_param_type_ptr            il_param_type)
 /*
-Return TRUE if the given IFC node information for a parameter declaration
-represents the same type as the given IL param type.
+Return TRUE if the given IFC node information for a function parameter
+declaration represents the same type as the given IL param type.
 */
 {
-  an_ifc_type_index ifc_type_idx = get_ifc_type(mod_templ_param);
+  an_ifc_type_index ifc_type_idx = get_ifc_type(mod_func_param);
   a_type_ptr        mod_param_type = type_for_type_index(ifc_type_idx);
 
   return il_identical_types(il_param_type->declared_type, mod_param_type);
 }  /* has_matching_func_param */
+
+
+static a_boolean
+has_matching_template_param(const an_ifc_decl_parameter &mod_templ_param,
+                            a_template_param_ptr        il_templ_param);
+
+
+static a_boolean
+has_matching_template_params(const an_ifc_chart_unilevel &param_chart,
+                             a_template_param_ptr        il_param_list)
+/*
+Return TRUE if the given IFC template parameter character represents an
+equivalent template parameter list (excluding names and default arguments) to
+the given IL parameter list; otherwise, return FALSE.
+*/
+{
+  a_boolean                  result = TRUE;
+  a_template_param_ptr       curr = il_param_list;
+  a_decl_parameter_traverser traverser(param_chart);
+
+  for (an_Indexed<an_ifc_decl_parameter> idxd_param : traverser) {
+    if (curr == NULL) {
+      /* If there are no more IL template parameters, fail. */
+      goto no_match;
+    }  /* if */
+    if (!idxd_param.has_value()) {
+      goto no_match;
+    }  /* if */
+
+    an_ifc_decl_parameter param = *idxd_param;
+    if (!has_matching_template_param(param, curr)) {
+      /* If the template parameter doesn't match, fail. */
+      goto no_match;
+    }  /* if */
+    curr = curr->next;
+  }  /* for */
+  if (curr != NULL) {
+    /* If there are more IL template parameters than module template
+       parameters, fail. */
+    goto no_match;
+  }  /* if */
+  goto done;
+no_match:
+  result = FALSE;
+done:
+  return result;
+}  /* has_matching_template_params */
+
+
+static a_boolean
+has_matching_template_param(const an_ifc_decl_parameter &mod_templ_param,
+                            a_template_param_ptr        il_templ_param)
+/*
+Return TRUE if the given IFC node information for a template parameter
+declaration represents an equivalent template parameter (excluding names and
+default arguments) to the given IL template param; otherwise, return FALSE.
+*/
+{
+  a_boolean             result = TRUE;
+  an_ifc_parameter_sort sort = get_ifc_sort(mod_templ_param);
+  a_symbol_ptr          param_sym = il_templ_param->param_symbol;
+
+  switch (sort) {
+    case ifc_ps_non_type:
+      if (param_sym->kind != sk_constant) {
+        /* The parameter is not a non-type template parameter. */
+        goto no_match;
+      } else {
+        a_constant_ptr    constant = il_templ_param->variant.constant.ptr;
+        an_ifc_type_index ifc_type_idx = get_ifc_type(mod_templ_param);
+        a_type_ptr        mod_param_type = type_for_type_index(ifc_type_idx);
+
+        if (!il_identical_types(constant->type, mod_param_type)) {
+          /* The non-type template parameter declared by the IFC and the
+             non-type template parameter in the IL have different types. */
+          goto no_match;
+        }  /* if */
+      } /* if */
+      break;
+    case ifc_ps_template:
+      if (param_sym->kind != sk_class_template) {
+        goto no_match;
+      } else {
+        Opt<an_ifc_chart_unilevel> opt_param_chart =
+                            get_template_template_param_chart(mod_templ_param);
+
+        if (!opt_param_chart.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_chart_unilevel param_chart = *opt_param_chart;
+        a_template_symbol_supplement_ptr
+                              tssp = il_templ_param->variant.templ;
+        a_template_param_ptr  il_sub_parms = tssp->cache.decl_info->parameters;
+        if (!has_matching_template_params(param_chart, il_sub_parms)) {
+          /* The parameter chart doesn't match the IL template template
+             parameter's template parameter list. */
+          goto no_match;
+        }  /* if */
+      }  /* if */
+      break;
+    case ifc_ps_type:
+      if (param_sym->kind != sk_type) {
+        goto no_match;
+      }  /* if */
+      break;
+    case ifc_ps_object:
+      ifc_unexpected(mod_templ_param.get_module(),
+                     "Unexpected function parameter where a template "
+                     "parameter was expected");
+      goto no_match;
+  }  /* switch */
+  goto done;
+invalid:
+no_match:
+  result = FALSE;
+done:
+  return result;
+//  an_ifc_type_index ifc_type_idx = get_ifc_type(mod_templ_param);
+//  a_type_ptr        mod_param_type = type_for_type_index(ifc_type_idx);
+
+//  return il_identical_types(il_param_type->declared_type, mod_param_type);
+}  /* has_matching_template_param */
 
 
 static a_boolean is_function_template_redecl(a_module_entity_ptr mep,
@@ -6152,7 +6293,10 @@ FALSE.
   construct_node_prechecked(&decl_templ, decl_idx);
 
   an_ifc_decl_index entity_decl_idx = get_ifc_decl(get_ifc_entity(decl_templ));
-  if (entity_decl_idx.sort == ifc_ds_decl_function) {
+  if (entity_decl_idx.sort != ifc_ds_decl_function) {
+    goto no_match;
+  }  /* if */
+  { /* First check the parameter types. */
     Opt<an_ifc_decl_function> opt_decl_func;
 
     construct_node(&opt_decl_func, entity_decl_idx);
@@ -6170,44 +6314,75 @@ FALSE.
           { Opt<an_ifc_chart_unilevel> opt_params;
 
             construct_node(&opt_params, param_idx);
-            if (opt_params.has_value()) {
-              an_ifc_chart_unilevel      params = *opt_params;
-              a_decl_parameter_traverser traverser(params);
-
-              for (an_Indexed<an_ifc_decl_parameter> idxd_param : traverser) {
-                if (curr == NULL) {
-                  /* If there are no more IL template parameters, fail. */
-                  goto no_match;
-                }  /* if */
-                if (!idxd_param.has_value()) {
-                  goto no_match;
-                }  /* if */
-
-                an_ifc_decl_parameter param = *idxd_param;
-                if (!has_matching_func_param(param, curr)) {
-                  /* If the template parameter doesn't match, fail. */
-                  goto no_match;
-                }  /* if */
-                curr = curr->next;
-              }  /* for */
+            if (!opt_params.has_value()) {
+              goto invalid;
             }  /* if */
+
+            an_ifc_chart_unilevel      params = *opt_params;
+            a_decl_parameter_traverser traverser(params);
+            for (an_Indexed<an_ifc_decl_parameter> idxd_param : traverser) {
+              if (curr == NULL) {
+                /* If there are no more IL function parameters, fail. */
+                goto no_match;
+              }  /* if */
+              if (!idxd_param.has_value()) {
+                goto no_match;
+              }  /* if */
+
+              an_ifc_decl_parameter param = *idxd_param;
+              if (!has_matching_func_param(param, curr)) {
+                /* If the function parameter doesn't match, fail. */
+                goto no_match;
+              }  /* if */
+              curr = curr->next;
+            }  /* for */
           }
           break;
         case ifc_cs_chart_multilevel:
         case ifc_cs_chart_none:
-          ifc_unexpected(mod, "only unilevel or absent function templates "
-                         "are supported for template declarations");
+          ifc_unexpected(mod, "only unilevel or absent function parameters "
+                         "are supported for function template declarations");
           goto no_match;
         default_is_unexpected();
       }  /* switch */
     }  /* if */
     if (curr != NULL) {
-      /* If there are more IL template parameters than module template
+      /* If there are more IL function parameters than module function
          parameters, fail. */
       goto no_match;
     }  /* if */
-  }  /* if */
+  }
+  { /* Then, if this is still a viable match, check the template parameters. */
+    an_ifc_chart_index param_idx = get_ifc_chart(decl_templ);
+
+    if (!is_null_index(param_idx)) {
+      switch (param_idx.sort) {
+        case ifc_cs_chart_unilevel:
+          { Opt<an_ifc_chart_unilevel> opt_params;
+
+            construct_node(&opt_params, param_idx);
+            if (!opt_params.has_value()) {
+              goto no_match;
+            }  /* if */
+
+            an_ifc_chart_unilevel params = *opt_params;
+            a_template_param_ptr  il_params = templ_params_of(templ);
+            if (!has_matching_template_params(params, il_params)) {
+              goto no_match;
+            }  /* if */
+          }
+          break;
+        case ifc_cs_chart_multilevel:
+        case ifc_cs_chart_none:
+          ifc_unexpected(mod, "only unilevel or absent templates parameters "
+                         "are supported for function template declarations");
+          goto no_match;
+        default_is_unexpected();
+      }  /* switch */
+    }  /* if */
+  }
   goto done;
+invalid:
 no_match:
   result = FALSE;
 done:
@@ -10908,25 +11083,66 @@ corresponding type, return an error type.
               }
               break;
             case ifc_ds_decl_parameter:
-              { Opt<an_ifc_decl_parameter> opt_decl_param;
+              { Opt<an_ifc_decl_parameter> opt_param_decl;
 
-                construct_node(&opt_decl_param, decl);
-                if (!opt_decl_param.has_value()) {
+                construct_node(&opt_param_decl, decl);
+                if (!opt_param_decl.has_value()) {
                   goto invalid;
                 }  /* if */
 
-                an_ifc_decl_parameter decl_param = *opt_decl_param;
-                an_ifc_type_index     type = get_ifc_type(decl_param);
+                an_ifc_decl_parameter param_decl = *opt_param_decl;
+                an_ifc_type_index     type = get_ifc_type(param_decl);
                 if (type_represents_templ_param_ref(type)) {
-                  result = alloc_detached_type_templ_param(decl_param);
+                  result = alloc_detached_type_templ_param(param_decl);
                 } else {
-                  result = type_for_type_index(get_ifc_type(decl_param));
+                  result = type_for_type_index(get_ifc_type(param_decl));
                 }  /* if */
+              }
+              break;
+            case ifc_ds_decl_template:
+              { a_module_entity_ptr dmep = process_decl_at_index(decl);
+
+                if (dmep->invalid) {
+                  goto invalid;
+                }  /* if */
+
+                /* If this assertion fails, the module entity should've been
+                   marked invalid. */
+                check_assertion(dmep->entity.kind == iek_template);
+                a_template_ptr  templ = (a_template_ptr)dmep->entity.ptr;
+                a_template_kind templ_kind = templ->kind;
+                switch (templ_kind) {
+                  case templk_class:
+                  case templk_member_class:
+                  case templk_member_enum:
+                    { a_symbol_ptr templ_sym = symbol_for(templ);
+
+                      result = make_class_template_placeholder(
+                                                        templ_sym,
+                                                        &null_source_position);
+                    }
+                    break;
+                  case templk_none:
+                  case templk_function:
+                  case templk_variable:
+                  case templk_member_function:
+                  case templk_static_data_member:
+                  case templk_template_template_param:
+                  case templk_concept:
+                    { a_string err_msg("Unexpected IL entity template kind "
+                                       "encountered for ",
+                                       index_to_str(type_idx));
+
+                      ifc_unexpected(mod, err_msg);
+                    }
+                    goto invalid;
+                  default_is_unexpected();
+                } /* switch */
               }
               break;
             default:
               { a_string err_msg("Unexpected ", str_for(decl.sort),
-                                 " for ", str_for(type_idx.sort));
+                                 " for ", index_to_str(type_idx));
 
                 ifc_unexpected(mod, err_msg);
               }
@@ -11284,6 +11500,37 @@ FALSE.
 }  /* terminate_pack */
 
 
+static a_boolean is_template_template_argument(an_ifc_type_index type_idx)
+/*
+Given an IFC type index, return TRUE if the type index in the context of
+template argument resolution represents a template template argument;
+otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (type_idx.sort == ifc_ts_type_designated) {
+    Opt<an_ifc_type_designated> opt_designated_type;
+
+    construct_node(&opt_designated_type, type_idx);
+    if (!opt_designated_type.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    an_ifc_type_designated designated_type = *opt_designated_type;
+    an_ifc_decl_index      decl = get_ifc_decl(designated_type);
+    if (decl.sort == ifc_ds_decl_template) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
+}  /* is_template_template_argument */
+
+
 static a_boolean
 append_single_template_arg(a_template_argument_append_state *state,
                            an_ifc_expr_index                expr_idx)
@@ -11305,7 +11552,8 @@ represented by the expression.
      additional cases in append_template_args instead. */
   switch (expr_idx.sort) {
     case ifc_es_expr_type:
-      { /* The type template argument case. */
+      { /* Normally, the type template argument case, sometimes the template
+           template argument case. */
         Opt<an_ifc_expr_type> opt_expr_type;
 
         construct_node(&opt_expr_type, expr_idx);
@@ -11315,15 +11563,38 @@ represented by the expression.
 
         an_ifc_expr_type  expr_type = *opt_expr_type;
         an_ifc_type_index denotation = get_ifc_denotation(expr_type);
-        a_type_ptr        type = type_for_type_index(denotation);
-        if (is_error_type(type)) {
-          goto invalid;
-        }  /* if */
+        if (is_template_template_argument(denotation)) {
+          /* The template template argument case. */
+          an_ifc_type_designated designated_type;
 
-        a_template_arg *new_arg = alloc_template_arg(tak_type);
-        new_arg->variant.type = type;
-        if (!state->append_argument(new_arg, expr_idx)) {
-          goto invalid;
+          /* This is prechecked via the is_template_template_argument call. */
+          construct_node_prechecked(&designated_type, denotation);
+          an_ifc_decl_index   decl = get_ifc_decl(designated_type);
+          a_module_entity_ptr mep = process_decl_at_index(decl);
+          if (mep->invalid) {
+            goto invalid;
+          }  /* if */
+
+          /* If this assertion fails, either the module entity should've been
+             marked invalid, or is_template_template_argument has a bug. */
+          check_assertion(mep->entity.kind == iek_template);
+          a_template_arg *new_arg = alloc_template_arg(tak_template);
+          new_arg->variant.templ.ptr = (a_template_ptr)mep->entity.ptr;
+          if (!state->append_argument(new_arg, expr_idx)) {
+            goto invalid;
+          }  /* if */
+        } else {
+          /* The type template argument case. */
+          a_type_ptr        type = type_for_type_index(denotation);
+          if (is_error_type(type)) {
+            goto invalid;
+          }  /* if */
+
+          a_template_arg *new_arg = alloc_template_arg(tak_type);
+          new_arg->variant.type = type;
+          if (!state->append_argument(new_arg, expr_idx)) {
+            goto invalid;
+          }  /* if */
         }  /* if */
       }
       break;

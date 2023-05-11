@@ -1983,13 +1983,8 @@ Given an IL template, return TRUE if the template has default template
 arguments; otherwise, return FALSE.
 */
 {
-  a_boolean                        result = FALSE;
-  a_symbol_ptr                     templ_sym =
-                                (a_symbol_ptr)templ->source_corresp.assoc_info;
-  a_template_symbol_supplement_ptr tssp =
-                                     template_supplement_for_symbol(templ_sym);
-  a_template_param_ptr             param_list =
-                                             tssp->cache.decl_info->parameters;
+  a_boolean            result = FALSE;
+  a_template_param_ptr param_list = templ_params_of(templ);
 
   for (a_template_param_ptr param = param_list; param != NULL;
        param = param->next) {
