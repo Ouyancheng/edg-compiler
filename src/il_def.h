@@ -4231,13 +4231,11 @@ enum a_template_param_constant_kind : a_byte {
   tpck_noexcept,	/* The template param constant represents the noexcept
 			   operator applied to an expression that
 			   contains a template parameter type. */
-  tpck_template_ref,	/* The template param constant provides the address
-			   of an unknown function template, and a set of
-			   explicit template arguments for that template.
-			   Very similar to tpck_unknown_function, and likewise
-			   represents an rvalue for the function, which has
-			   unknown type and might therefore be a pointer or a
-			   pointer to member. */
+  tpck_template_ref,	/* The template param constant provides the address of
+			   an unknown function template or a representation of
+			   a static data member template, and a set of explicit
+			   template arguments for that template.  Very similar
+			   to either tpck_unknown_function or tpck_member. */
   tpck_integer_pack,	/* The template param constant represents a dependent
 			   "__integer_pack(N)..." construct. */
   tpck_destructor	/* The template param constant represents a destructor

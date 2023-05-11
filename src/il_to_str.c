@@ -5262,14 +5262,15 @@ out as the original enum constant.
 }  /* is_enum_constant_equivalent */
 
 
-void form_unknown_function_constant(
+void form_unknown_lvalue_constant(
                              a_constant_ptr                        constant,
                              an_il_to_str_output_control_block_ptr octl)
 /*
-Output the name indicated by a ck_template_param/tpck_unknown_function or
-.../tpck_template_ref constant.  Note that while the constant may represent
-the address of the templated entity, whether to put out the "&" operator is
-decided by the caller.  Do the output in the way described by octl.
+Output the name indicated by a ck_template_param/tpck_unknown_function,
+.../tpck_member, or .../tpck_template_ref constant.  Note that while the
+constant may represent the address of the templated entity, whether to put out
+the "&" operator is decided by the caller.  Do the output in the way described
+by octl.
 */
 {
   a_boolean      is_template = FALSE;
@@ -5280,9 +5281,11 @@ decided by the caller.  Do the output in the way described by octl.
     is_template = TRUE;
     con = constant->variant.template_param.variant.template_ref.con;
   }  /* if */
-  check_assertion(tpck_is(con, tpck_unknown_function));
-  if (con->variant.template_param.variant.unknown_function.
-                                                     conversion_type != NULL) {
+  check_assertion(tpck_is(con, tpck_unknown_function) ||
+                  tpck_is(con, tpck_member));
+  if (tpck_is(con, tpck_unknown_function) &&
+      con->variant.template_param.variant.unknown_function.conversion_type !=
+                                                                        NULL) {
     /* The associated function is a conversion function.  Generate
        its name from the type. */
     check_assertion(con->source_corresp.is_class_member);
@@ -5349,7 +5352,7 @@ decided by the caller.  Do the output in the way described by octl.
                          /*tpp=*/NULL, octl);
     }  /* if */
   }  /* if */
-}  /* form_unknown_function_constant */
+}  /* form_unknown_lvalue_constant */
 
 #if FIXED_POINT_ALLOWED
 
@@ -5615,8 +5618,8 @@ operator.
   if (tpck_is(cp, tpck_template_ref)) {
     cp = cp->variant.template_param.variant.template_ref.con;
   }  /* if */
-  check_assertion(tpck_is(cp, tpck_unknown_function));
-  return cp->variant.template_param.has_address_of;
+  return tpck_is(cp, tpck_unknown_function) &&
+         cp->variant.template_param.has_address_of;
 }  /* template_con_is_ampersand_operand */
 
 
@@ -5758,9 +5761,10 @@ on every expression.
                      (con = node_constant(operand->variant.operation.operands))
                            ->kind == (a_constant_repr_kind)ck_template_param &&
                      (tpck_is(con, tpck_unknown_function) ||
+                      tpck_is(con, tpck_member) ||
                       tpck_is(con, tpck_template_ref))) {
             octl->output_str("&", octl);
-            form_unknown_function_constant(con, octl);
+            form_unknown_lvalue_constant(con, octl);
           } else {
             octl->output_str("<expression>", octl);
           }  /* if */
@@ -6556,7 +6560,7 @@ precedence confusion.  Do the output in the way described by octl.
           if (template_con_is_ampersand_operand(constant)) {
             octl->output_str("&", octl);
           }  /* if */
-          form_unknown_function_constant(constant, octl);
+          form_unknown_lvalue_constant(constant, octl);
           if (need_parens) octl->output_str(")", octl);
           break;
         case tpck_param:
@@ -6576,18 +6580,7 @@ precedence confusion.  Do the output in the way described by octl.
           }
           break;
         case tpck_member:
-          {
-            a_source_correspondence_ptr scp = &constant->source_corresp;
-            if (scp->member_of_unknown_base &&
-                !scp->qualified_unknown_base_member) {
-              /* We're pretending that we found the member in a dependent
-                 base class and the original form of reference was
-                 unqualified. */
-              form_unqualified_name(scp, (an_il_entry_kind)iek_constant, octl);
-            } else {
-              form_name(scp, (an_il_entry_kind)iek_constant, octl);
-            }  /* if */
-          }
+          form_unknown_lvalue_constant(constant, octl);
           break;
         case tpck_expression:
           if (constant->type->kind == tk_integer &&

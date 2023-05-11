@@ -6980,12 +6980,13 @@ forms.
     allowed = TRUE;
   } else if (is_constant_operand(operand)) {
     a_constant_ptr con = &operand->variant.constant;
-    if (con->kind == (a_constant_repr_kind)ck_template_param &&
-        (con->variant.template_param.kind ==
-                       (a_template_param_constant_kind)tpck_unknown_function ||
-         con->variant.template_param.kind ==
-                       (a_template_param_constant_kind)tpck_template_ref)) {
-      allowed = TRUE;
+    if (con->kind == ck_template_param) {
+      if (tpck_is(con, tpck_template_ref)) {
+        con = con->variant.template_param.variant.template_ref.con;
+      }  /* if */
+      if (tpck_is(con, tpck_unknown_function)) {
+        allowed = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return allowed;
@@ -13098,17 +13099,15 @@ if it is for a nonreal member function, return *is_function TRUE.
 
   *is_function = FALSE;
   if (con->kind == (a_constant_repr_kind)ck_template_param) {
-    if (con->variant.template_param.kind ==
-                                 (a_template_param_constant_kind)tpck_member &&
+    if (tpck_is(con, tpck_template_ref)) {
+      con = con->variant.template_param.variant.template_ref.con;
+    }  /* if */
+    if (con->variant.template_param.kind == tpck_member &&
         /* Avoid problems with template-dependent enum constant values. */
         same_entities(con->type, type_of_unknown_templ_param_nontype)) {
       is_nonreal = TRUE;
-    } else if (con->variant.template_param.kind ==
-                       (a_template_param_constant_kind)tpck_unknown_function ||
-               con->variant.template_param.kind ==
-                       (a_template_param_constant_kind)tpck_destructor ||
-               con->variant.template_param.kind ==
-                       (a_template_param_constant_kind)tpck_template_ref) {
+    } else if (con->variant.template_param.kind == tpck_unknown_function ||
+               con->variant.template_param.kind == tpck_destructor) {
       is_nonreal = TRUE;
       *is_function = TRUE;
     }  /* if */

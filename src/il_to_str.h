@@ -517,7 +517,7 @@ extern void form_uuidof_reference(a_constant_ptr                        con,
 extern void form_typeid_reference(a_constant_ptr                        con,
                                   an_il_to_str_output_control_block_ptr octl);
 
-extern void form_unknown_function_constant(
+extern void form_unknown_lvalue_constant(
                              a_constant_ptr                        constant,
                              an_il_to_str_output_control_block_ptr octl);
 

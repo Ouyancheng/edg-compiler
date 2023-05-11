@@ -13953,19 +13953,18 @@ will not be for a variable, but for a ck_template_param constant.)
       var_templ = var->template_info->assoc_template;
       templ_sym = symbol_for(var_templ);
     } else if (is_nontype_template_param_symbol(sym)) {
-      /* A dependent construct.  Represent it generically with a
-         tpck_template_ref constant. */
-      a_constant_ptr con = fs_constant(
-                                     (a_constant_repr_kind)ck_template_param);
-      set_template_param_constant_kind(con,
-                            (a_template_param_constant_kind)tpck_template_ref);
-      con->variant.template_param.variant.template_ref.con =
-                                                        sym->variant.constant;
-      con->variant.template_param.variant.template_ref.arg_list = t_args;
-      con->type = type_of_unknown_templ_param_nontype;
-      sym = alloc_symbol((a_symbol_kind)sk_constant, sym->header,
-                         &sym->decl_position);
-      sym->variant.constant = con;
+      /* A dependent construct.  If it has template arguments, represent it
+         generically with a tpck_template_ref constant. */
+      if (t_args != NULL) {
+        a_constant_ptr con = fs_constant(ck_template_param);
+        set_template_param_constant_kind(con, tpck_template_ref);
+        con->variant.template_param.variant.template_ref.con =
+                                                         sym->variant.constant;
+        con->variant.template_param.variant.template_ref.arg_list = t_args;
+        con->type = type_of_unknown_templ_param_nontype;
+        sym = alloc_symbol(sk_constant, sym->header, &sym->decl_position);
+        sym->variant.constant = con;
+      }  /* if */
       var = NULL;
     } else {
       /* Something unexpected: Fail substitution. */

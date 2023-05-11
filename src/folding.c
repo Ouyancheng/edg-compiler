@@ -6910,8 +6910,11 @@ handle_pm_field_selection:
             if (is_constant_node(op1)) {
               a_constant_ptr acon = node_constant(op1);
               if (acon->kind == (a_constant_repr_kind)ck_template_param) {
-                if (acon->variant.template_param.kind ==
-                                 (a_template_param_constant_kind)tpck_member) {
+                a_constant_ptr rcon = acon;
+                if (tpck_is(rcon, tpck_template_ref)) {
+                  rcon = rcon->variant.template_param.variant.template_ref.con;
+                }  /* if */
+                if (tpck_is(rcon, tpck_member)) {
                   /* The address of an lvalue for a tpck_member constant can
                      be represented by a tpck_address constant. */
                   clear_constant(con, (a_constant_repr_kind)ck_template_param);
@@ -6924,12 +6927,7 @@ handle_pm_field_selection:
                   con->type = type_of_unknown_templ_param_nontype;
                   is_constant_addr = TRUE;
                   *template_constant = TRUE;
-                } else if (acon->variant.template_param.kind ==
-                                       (a_template_param_constant_kind)
-                                                       tpck_unknown_function ||
-                           acon->variant.template_param.kind ==
-                                       (a_template_param_constant_kind)
-                                                       tpck_template_ref) {
+                } else if (tpck_is(rcon, tpck_unknown_function)) {
                   /* The address of an lvalue based on an unknown function
                      constant is the constant itself (which represents a
                      prvalue for the "address" of the function). */

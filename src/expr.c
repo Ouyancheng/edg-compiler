@@ -8418,8 +8418,9 @@ list.
     con = con->variant.template_param.variant.constant;
   } else if (con->variant.template_param.kind ==
                            (a_template_param_constant_kind)tpck_template_ref) {
-    /* For a tpck_template_ref, process the underlying tpck_unknown_function,
-       and also return the template argument list to the caller. */
+    /* For a tpck_template_ref, process the underlying tpck_unknown_function or
+       tpck_member, and also return the template argument list to the
+       caller. */
     *is_template_id = TRUE;
     *expl_templ_arg_list =
                      con->variant.template_param.variant.template_ref.arg_list;
@@ -8719,8 +8720,8 @@ a left parenthesis in the source.
             member_con = con;
           } else if (tpck_is(con, tpck_template_ref)) {
             /* For a tpck_template_ref, check the underlying
-               tpck_unknown_function to see if we're dealing with a class
-               member. */
+               tpck_unknown_function or tpck_member to see if we're dealing
+               with a class member. */
             member_con = con->variant.template_param.variant.template_ref.con;
             if (!member_con->source_corresp.is_class_member) {
               member_con = NULL;

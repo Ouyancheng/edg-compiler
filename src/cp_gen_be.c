@@ -13102,7 +13102,7 @@ indicated by opstr.
           context now for that purpose. */
       context_for_unknown_function = push_temp_context_for_field_selection();
     }  /* if */
-    form_unknown_function_constant(con, &octl);
+    form_unknown_lvalue_constant(con, &octl);
     if (curr_name_context == context_for_unknown_function) {
       pop_name_context();
     }  /* if */
@@ -15540,7 +15540,7 @@ call.
         /* A tpck_unknown_function or tpck_template_ref constant
            represents the address of the unknown function.  Drop the "&"
            (it's implied) to make neater output. */
-        form_unknown_function_constant(node_constant(func_expr), &octl);
+        form_unknown_lvalue_constant(node_constant(func_expr), &octl);
       } else {
         /* Specific routine is not known (e.g., call through a pointer). */
         a_boolean need_parens = TRUE;
@@ -16221,7 +16221,7 @@ used as an rvalue).
       /* A tpck_unknown_function or tpck_template_ref constant represents
          the address of the unknown function.  Drop the "&" to make an
          lvalue. */
-      form_unknown_function_constant(constant, &octl);
+      form_unknown_lvalue_constant(constant, &octl);
       processed = TRUE;
     } else if (tpkind == (a_template_param_constant_kind)tpck_uuidof) {
       /* A tpck_uuidof constant represents the address of the Microsoft
