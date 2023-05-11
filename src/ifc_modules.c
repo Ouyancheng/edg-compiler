@@ -1643,21 +1643,6 @@ Return the associated scope for the given declaration.
 }  /* get_home_scope */
 
 
-static a_scope_ptr get_home_scope(an_ifc_decl_index decl_ref)
-/*
-Return the associated scope for the given declaration index.
-*/
-{
-#if EXPENSIVE_CHECKING
-  /* Do not eagerly load home-scope members just because we query the home
-     scope, because that leads to aborts due to recursive loading. */
-  Value_saver<a_boolean>  suppression(&in_get_home_scope, /*new_value=*/TRUE);
-#endif /* EXPENSIVE_CHECKING */
-
-  return get_scope(get_ifc_home_scope(decl_ref));
-}  /* get_home_scope */
-
-
 static void cache_name(a_module_token_cache_ptr     cache,
                        an_ifc_name_index            name_ref)
 /*
