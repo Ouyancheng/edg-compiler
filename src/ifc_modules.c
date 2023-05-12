@@ -11458,6 +11458,37 @@ done:
 }  /* is_template_template_argument */
 
 
+static a_boolean is_empty_type_pack_argument(an_ifc_type_index type_idx)
+/*
+Given an IFC type index, return TRUE if the type index in the context of
+template argument resolution represents an empty template type argument pack;
+otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (type_idx.sort == ifc_ts_type_fundamental) {
+    Opt<an_ifc_type_fundamental> opt_fundamental_type;
+
+    construct_node(&opt_fundamental_type, type_idx);
+    if (!opt_fundamental_type.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    an_ifc_type_fundamental fundamental_type = *opt_fundamental_type;
+    an_ifc_type_basis_sort  basis = get_ifc_basis(fundamental_type);
+    if (basis == ifc_tbs_empty) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
+}  /* is_empty_type_pack_argument */
+
+
 static a_boolean
 append_single_template_arg(a_template_argument_append_state *state,
                            an_ifc_expr_index                expr_idx)
@@ -11510,6 +11541,9 @@ represented by the expression.
           if (!state->append_argument(new_arg, expr_idx)) {
             goto invalid;
           }  /* if */
+        } else if (is_empty_type_pack_argument(denotation)) {
+          /* This represents an empty pack, just continue evaluation, and
+             terminate the pack. */
         } else {
           /* The type template argument case. */
           a_type_ptr        type = type_for_type_index(denotation);
