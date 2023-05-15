@@ -84,7 +84,8 @@ replaced by a new "kind" field in the a_type::variant.typeref sub-structure.
 
 
 5/4/23   [EDGcpfe/24890]
-Incorrect lookup in lambda expression in static data member initializer
+Incorrect lookup in lambda expression in static data member template
+initializer
 
 Previously, when a generic lambda expression was used in the initializer of a
 static data member template, lookup skipped the template parameter scope of
