@@ -10011,7 +10011,19 @@ diagnostics if issue_diag is TRUE.
         check_assertion(file.sort == ifc_ns_name_source_file &&
                         file_index < num_files);
         if (line_number > sequence_numbers[file_index].max_line_number) {
-          sequence_numbers[file_index].max_line_number = line_number;
+          an_ifc_line_number_storage used_line_number = line_number;
+
+          if (line_number > MODULE_MAX_LINE_NUMBER) {
+            static_assert(MODULE_MAX_LINE_NUMBER < MAX_LINE_NUMBER,
+                          "the module maximum line number is limited by "
+                          "the general front end maximum line number");
+            st_unum2_warning(ec_ifc_line_number_overflow,
+                             mod->module_interface->assoc_module_info->name,
+                             line_number,
+                             MODULE_MAX_LINE_NUMBER);
+            used_line_number = MODULE_MAX_LINE_NUMBER;
+          }  /* if */
+          sequence_numbers[file_index].max_line_number = used_line_number;
         }  /* if */
       }  /* for */
     }  /* if */

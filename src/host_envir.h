@@ -2189,6 +2189,14 @@ to one that's big-endian.
 #endif /* ifndef ASSUME_LITTLE_ENDIAN_IFC_MODULES */
 
 /*
+The maximum number of lines a module is allowed to claim it contains in a
+single source file.
+*/
+#ifndef MODULE_MAX_LINE_NUMBER
+#define MODULE_MAX_LINE_NUMBER 250000
+#endif /* MODULE_MAX_LINE_NUMBER */
+
+/*
 When using precompiled headers, it must be possible to duplicate the memory
 allocation done by the process that created the precompiled header.  This
 may be accomplished either by allocating the IL memory blocks in separate

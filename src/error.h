@@ -881,6 +881,10 @@ extern a_diagnostic_ptr pos_stsy_start_error(an_error_code     error_code,
                                              a_source_position *error_pos,
                                              a_const_char      *error_string,
                                              struct a_symbol   *symbol);
+extern void st_unum2_warning(an_error_code error_code,
+                             a_const_char  *error_string,
+                             uint32_t      num1,
+                             uint32_t      num2);
 extern void pos_sy2_warning(an_error_code     error_code,
                             a_source_position *error_pos,
                             struct a_symbol   *symbol1,

@@ -7515,6 +7515,25 @@ will be passed in for the subsequent messages.
 }  /* pos_stsy_start_error */
 
 
+void st_unum2_warning(an_error_code error_code,
+                      a_const_char  *error_string,
+                      uint32_t      num1,
+                      uint32_t      num2)
+/*
+Report the indicated warning (with the indicated string and unsigned numbers).
+*/
+{
+  a_diagnostic_ptr dp;
+
+  dp = create_primary_diagnostic(error_code, &null_source_position,
+                                 es_warning);
+  add_string_fill_in(dp, error_string);
+  add_unsigned_number_fill_in(dp, num1);
+  add_unsigned_number_fill_in(dp, num2);
+  wrap_up_diagnostic(dp);
+}  /* st_num2_warning */
+
+
 void pos_sy2_warning(an_error_code     error_code,
                      a_source_position *error_pos,
                      struct a_symbol   *symbol1,

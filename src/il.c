@@ -4029,7 +4029,14 @@ initial source position for the file is returned in *starting_seq_num.
                               /*is_assembly_file=*/FALSE);
   new_file->assoc_module = mod;
   set_position_to(*starting_seq_num, seq_number_last_read + 1, SP_COL_UNKNOWN);
-  seq_number_last_read += max_line_number + 1;
+
+  a_seq_number new_seq_number_last_read =
+                                    seq_number_last_read + max_line_number + 1;
+  /* Check for overflow in the sequence number calculation, such overflow will
+     break the source inclusion system resulting in sequence numbers that can't
+     be resolved to a file. */
+  check_assertion(seq_number_last_read < new_seq_number_last_read);
+  seq_number_last_read = new_seq_number_last_read;
   record_end_of_source_file(new_file, seq_number_last_read);
   if (is_implicit_include) {
     /* Emulate the end of source logic that would normally be handled by
