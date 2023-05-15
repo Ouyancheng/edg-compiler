@@ -3540,6 +3540,12 @@ enum an_error_severity : a_byte {
   es_internal_error
 };
 
+/*
+The type of a (signed and unsigned) number used in a diagnostic.
+*/
+typedef int64_t a_signed_diag_number;
+typedef uint64_t an_unsigned_diag_number;
+
 /* Terminate the compilation. */
 /*lint -sem(term_compilation, r_no)*/
 NORETURN extern void term_compilation(an_error_severity severity);

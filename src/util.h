@@ -3008,6 +3008,17 @@ allocating fe_alloc-backed allocator).
 */
 typedef Allocated_string<FE_allocator> a_string;
 
+/*
+A template alias used to form "small" Allocated_strings that have an initial
+pre-allocated storage capacity before then falling back to a secondary
+allocator (typically for dynamically allocated storage).
+*/
+template<unsigned a_Capacity,
+         template<typename> class a_Fallback_allocator = FE_allocator>
+using Small_string = Allocated_string<Delegate_buffered_allocator<
+                                         a_Capacity,
+                                         a_Fallback_allocator>::template Meta>;
+
 
 template<template<typename> class Allocator>
 void print(Allocated_string<Allocator> string,

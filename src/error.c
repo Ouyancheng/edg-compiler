@@ -94,6 +94,8 @@ Kinds of diagnostic fill-ins that can be represented by a_diag_fill_in.
 enum a_diag_fill_in_kind {
   dfk_number,
 			/* An integer value. */
+  dfk_unsigned_number,
+			/* An unsigned integer value. */
   dfk_position,
 			/* A source position. */
   dfk_string,
@@ -132,8 +134,12 @@ typedef struct a_diag_fill_in {
 			   message, or NULL if there are no more fill-ins. */
   union {
     /* When kind == dfk_number. */
-    int32_t
+    a_signed_diag_number
 		number;
+			/* The numeric value to be inserted. */
+    /* When kind == dfk_unsigned_number. */
+    an_unsigned_diag_number
+		unsigned_number;
 			/* The numeric value to be inserted. */
     /* When kind == dfk_position. */
     a_source_position
@@ -991,6 +997,9 @@ is specified by "kind".
   switch (kind) {
     case dfk_number:
       dfip->variant.number = 0;
+      break;
+    case dfk_unsigned_number:
+      dfip->variant.unsigned_number = 0;
       break;
     case dfk_position:
       dfip->variant.position = null_source_position;
@@ -3939,12 +3948,13 @@ null-terminated.
 
   /* Determine the fill-in kind associated with this fill-in character. */
   switch (fill_in_char) {
-    case 'd': kind = dfk_number; break;
-    case 'n': kind = dfk_symbol; break;
-    case 'p': kind = dfk_position; break;
-    case 's': kind = dfk_string; break;
-    case 't': kind = dfk_type; break;
-    case 'T': kind = dfk_template_args; break;
+    case 'd': kind = dfk_number;          break;
+    case 'u': kind = dfk_unsigned_number; break;
+    case 'n': kind = dfk_symbol;          break;
+    case 'p': kind = dfk_position;        break;
+    case 's': kind = dfk_string;          break;
+    case 't': kind = dfk_type;            break;
+    case 'T': kind = dfk_template_args;   break;
     default:
       unexpected_condition_str2("process_fill_in:", "bad fill-in kind");
   }  /* switch */
@@ -4024,9 +4034,16 @@ null-terminated.
   switch (kind) {
     case dfk_number:
       /* A numeric fill-in.  Add it to the message buffer. */
-      { static char	buffer[50];
-        (void)sprintf(buffer, "%d", dfip->variant.number);
-        add_string_to_text_buffer(msg_buffer, buffer);
+      { Small_string<50> number(dfip->variant.number);
+
+        add_string_to_text_buffer(msg_buffer, number.as_temp_characters());
+      }
+      break;
+    case dfk_unsigned_number:
+      /* An unsigned numeric fill-in.  Add it to the message buffer. */
+      { Small_string<50> number(dfip->variant.unsigned_number);
+
+        add_string_to_text_buffer(msg_buffer, number.as_temp_characters());
       }
       break;
 #if !STANDALONE_UTILITY_PROGRAM
@@ -4941,17 +4958,30 @@ by diag_ptr.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-static void add_number_fill_in(a_diagnostic_ptr	diag_ptr,
-			       int32_t		number)
+static void add_number_fill_in(a_diagnostic_ptr     diag_ptr,
+                               a_signed_diag_number number)
 /*
 Add a number fill-in entry for number to the diagnostic specified
 by diag_ptr.
 */
 {
-  a_diag_fill_in_ptr	dfip;
+  a_diag_fill_in_ptr dfip = alloc_diag_fill_in(dfk_number);
 
-  dfip = alloc_diag_fill_in(dfk_number);
   dfip->variant.number = number;
+  add_fill_in_to_diagnostic(diag_ptr, dfip);
+}  /* add_number_fill_in */
+
+
+static void add_unsigned_number_fill_in(a_diagnostic_ptr        diag_ptr,
+                                        an_unsigned_diag_number number)
+/*
+Add an unsigned number fill-in entry for number to the diagnostic specified by
+diag_ptr.
+*/
+{
+  a_diag_fill_in_ptr dfip = alloc_diag_fill_in(dfk_unsigned_number);
+
+  dfip->variant.unsigned_number = number;
   add_fill_in_to_diagnostic(diag_ptr, dfip);
 }  /* add_number_fill_in */
 
