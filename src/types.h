@@ -501,7 +501,7 @@ nor qualifier.
 inline a_boolean typeref_is_alias(a_type_ptr  tp)
 /*
 Return TRUE if a tk_typeref type represents an alias (including an instance of
-an alias template.
+an alias template).
 */
 {
   return tp->variant.typeref.kind == trk_is_alias ||
