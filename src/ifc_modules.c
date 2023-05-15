@@ -4259,9 +4259,10 @@ position.
   size_t                      abs_offset = get_partition_offset(part_kind_idx);
   size_t                      rel_offset = abs_offset - part_start;
 
-  /* FIXME: Migrate to allowing diagnostics with size_t. */
-  st_num3_add_diag_info(diag, error_code, get_partition_name_from_kind(kind),
-                        idx_value, (int32_t)abs_offset, (int32_t)rel_offset);
+  st_unum3_add_diag_info(diag, error_code, get_partition_name_from_kind(kind),
+                         idx_value,
+                         abs_offset,
+                         rel_offset);
 }  /* add_partition_element_diag_info */
 
 
@@ -22840,10 +22841,11 @@ partition.
   a_diagnostic_ptr diag_ptr;
 
   /* FIXME: Use a better source position. */
-  diag_ptr = pos_st2_num2_start_error(error_code, &null_source_position,
-                                      mod->assoc_module_info->name,
-                                      part_name, (int32_t)file_offset,
-                                      (int32_t)relative_offset);
+  diag_ptr = pos_st2_unum2_start_error(error_code, &null_source_position,
+                                       mod->assoc_module_info->name,
+                                       part_name,
+                                       file_offset,
+                                       relative_offset);
   add_backtrace(diag_ptr, trace);
   end_diagnostic(diag_ptr);
 }  /* diag_overflowing_partition */
