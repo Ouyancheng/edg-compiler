@@ -6195,6 +6195,11 @@ file.
 #else /* !defined(ASSUME_LITTLE_ENDIAN_IFC_MODULES) */
   comment_undefined_macro_name(ASSUME_LITTLE_ENDIAN_IFC_MODULES);
 #endif /* defined(ASSUME_LITTLE_ENDIAN_IFC_MODULES) */
+#if defined(MODULE_MAX_LINE_NUMBER)
+  define_numeric_valued_macro(MODULE_MAX_LINE_NUMBER);
+#else /* !defined(MODULE_MAX_LINE_NUMBER) */
+  comment_undefined_macro_name(MODULE_MAX_LINE_NUMBER);
+#endif /* defined(MODULE_MAX_LINE_NUMBER) */
 #if defined(ASSUME_REFERENCES_CANNOT_BE_NULL)
   define_numeric_valued_macro(ASSUME_REFERENCES_CANNOT_BE_NULL);
 #else /* !defined(ASSUME_REFERENCES_CANNOT_BE_NULL) */
