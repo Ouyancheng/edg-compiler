@@ -15036,7 +15036,7 @@ static a_boolean traverse_types_for_expr(
 /*
 Invoke the traverse_type_tree predicate function func on the types used in
 expr.  Pass the post-order function pofunc and the flag set flags to
-traverse_type_tree_sull.  Return TRUE if traverse_type_tree_full returns TRUE.
+traverse_type_tree_full.  Return TRUE if traverse_type_tree_full returns TRUE.
 */
 {
   a_boolean				result;
