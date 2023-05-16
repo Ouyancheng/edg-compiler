@@ -3836,7 +3836,7 @@ scope.  A pointers block to be used for the scope may be specified (or NULL).
 namespace {
 
 /*
-A structure containing any state which is saved when reusing a scope for a
+A structure containing any state that is saved when reusing a scope for a
 module (via reenter_scope_for_module) that should be restored when done reusing
 the scope (via exit_scope_for_module).
 */
@@ -3892,7 +3892,7 @@ then resets them to the desired state for use by modules.
 
 static void exit_scope_for_module(a_scope_stack_entry_ptr ssep)
 /*
-Exit the current scope which has been reused for use by a module.  This
+Exit the current scope that has been reused for use by a module.  This
 function restores the previously saved scope stack entry values relevant to
 modules.
 */

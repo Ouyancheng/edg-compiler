@@ -3474,7 +3474,7 @@ index information to the given symbol.
         an_il_entry_kind kind;
         char             *il_entity = il_entry_for_symbol(sym, &kind);
 
-        /* This assertion should hold as we've already checked that we're
+        /* This assertion should hold: as we've already checked that we're
            working with a type symbol, the corresponding IL entity should
            always be a type. */
         check_assertion(kind == iek_type);
