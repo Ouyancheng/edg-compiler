@@ -13117,7 +13117,6 @@ variables declared in cmd_line.h.
   module_partition_implicitly_imports_self = FALSE;
   import_includes_from_header_map = FALSE;
   ignore_absolute_paths_for_header_units = FALSE;
-  lazy_symbols_may_be_visible = FALSE;
   skip_module_imports = FALSE;
   skip_module_version_check = FALSE;
   gnu_imaginary_literals_allowed = FALSE;

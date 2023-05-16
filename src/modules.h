@@ -186,6 +186,11 @@ EXTERN a_module_entity_stack_state
                            being processed.  This stack can be printed with
                            db_mep_stack(). */
 
+EXTERN a_boolean
+                lazy_symbols_may_be_visible;
+                        /* TRUE if symbols may be "lazily loaded" (i.e.,
+                           because modules are being imported). */
+
 /*
 A class used to represent an element on the module entity state stack.  This is
 an RAII object that automatically manages the value of curr_mep_state for the
@@ -570,19 +575,21 @@ extern void db_module_entity(a_module_entity_ptr mep);
 
 #endif /* DEBUG */
 
-extern void modules_pch_reset(void);
+extern void modules_pch_reset();
 
-extern void modules_check_for_suppressed_errors(void);
+extern void modules_check_for_suppressed_errors();
 
 #if MAKE_FRONT_END_CALLABLE
-extern void modules_cleanup(void);
+extern void modules_cleanup();
 #endif /* MAKE_FRONT_END_CALLABLE */
 
-extern void modules_wrapup(void);
+extern void modules_wrapup();
 
-extern void modules_one_time_init(void);
+extern void modules_one_time_init();
 
-extern void modules_init(void);
+extern void modules_init();
+
+extern void modules_trans_unit_wrapup();
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

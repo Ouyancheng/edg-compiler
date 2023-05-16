@@ -1589,11 +1589,6 @@ EXTERN a_boolean
 			   as if only the base name is specified. */
 
 EXTERN a_boolean
-		lazy_symbols_may_be_visible;
-			/* TRUE if symbols may be "lazily loaded" (i.e.,
-			   because modules are being imported). */
-
-EXTERN a_boolean
 		local_types_as_template_args_enabled;
 			/* TRUE if local and unnamed types are allowed as
 			   template arguments. */

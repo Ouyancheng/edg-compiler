@@ -741,11 +741,19 @@ void define_names_from_scope(a_scope_ptr     scope,
 Called during name lookup when the name associated with sym_hdr has been
 referred to in the indicated scope.  Scan through the list of deferred name
 entries for this symbol header and process declarations for any that match the
-scope.
+scope.  The caller is responsible for ensuring there are deferred module
+entities associated with the given symbol header.  Similarly, the caller is
+responsible for making sure this function is not called after lexical
+processing has ended.
 */
 {
   a_module_entity_ptr mep, *mepp = &(sym_hdr->deferred_module_entities);
 
+  /* This function should only be called if lexical processing is still
+     enabled. */
+  check_assertion(curr_lexical_state_stack_entry != NULL);
+  /* This function should only be called if there are deferred module entities
+     available. */
   check_assertion(sym_hdr->deferred_module_entities != NULL);
   while (*mepp != NULL) {
     if ((*mepp)->scope == scope) {
@@ -1441,7 +1449,7 @@ Display information about a module entity.
 
 #endif /* DEBUG */
 
-void modules_pch_reset(void)
+void modules_pch_reset()
 /*
 Called when a PCH file has just been read to re-open any module files that
 had been opened at the time the PCH file was created.
@@ -1459,7 +1467,7 @@ had been opened at the time the PCH file was created.
 }  /* modules_pch_reset */
 
 
-void modules_check_for_suppressed_errors(void)
+void modules_check_for_suppressed_errors()
 /*
 Called after the translation unit has otherwise been processed to check
 for suppressed errors while processing the module.
@@ -1488,7 +1496,7 @@ Called to ensure files are closed after a (possibly aborted) compilation.
 
 #endif /* MAKE_FRONT_END_CALLABLE */
 
-void modules_wrapup(void)
+void modules_wrapup()
 /*
 Close any open module files.  Invoked at the end of primary and secondary
 translation units.
@@ -1506,7 +1514,7 @@ translation units.
 }  /* modules_wrapup */
 
 
-void modules_one_time_init(void)
+void modules_one_time_init()
 /*
 Do one-time initialization of static variables defined in this file.
 */
@@ -1522,7 +1530,7 @@ Do one-time initialization of static variables defined in this file.
 
 
 /* FIXME: PCH interactions? */
-void modules_init(void)
+void modules_init()
 /*
 Initialize static variables related to this file that must be initialized
 for each compilation.
@@ -1534,11 +1542,23 @@ for each compilation.
 #endif /* DEBUG */
   curr_module_sym = NULL;
   curr_mep_state = NULL;
+  lazy_symbols_may_be_visible = FALSE;
   module_entity_hash_table = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ifc_modules_init();
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* modules_init */
+
+
+void modules_trans_unit_wrapup()
+/*
+Perform any wrapup operations needed for the translation unit.  This is
+called after all processing for the translation unit (including template
+instantiations, etc.) has been done.
+*/
+{
+  lazy_symbols_may_be_visible = FALSE;
+}  /* modules_trans_unit_wrapup */
 
 
 /* Conditionally close the "edg" namespace. */
