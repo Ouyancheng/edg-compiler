@@ -7432,6 +7432,9 @@ Display the indicated class type supplement entry.
   if (ptr->removed_from_il) {
     disp_boolean("removed_from_il", TRUE);
   }  /* if */
+  if (ptr->contains_error_cached) {
+    disp_boolean("contains_error", (a_boolean)ptr->contains_error);
+  }  /* if */
   if (ptr->befriending_classes != NULL) {
     disp_class_list("befriending_classes", ptr->befriending_classes);
   }  /* if */
