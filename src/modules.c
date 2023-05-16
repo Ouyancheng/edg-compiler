@@ -1262,9 +1262,9 @@ must refer to the canonical template.
 a_boolean load_template_definition_from_module(
                                              ARG_UNUSED a_template_ptr  templ)
 /*
-If the given template has a definition available in an imported module, load
-and process that definition now, and return TRUE.  Otherwise, return FALSE.
-Note that templ must refer to the canonical template.
+If the given template has a definition available in an imported module, process
+its definition now, and return TRUE.  Otherwise, return FALSE.  Note that templ
+must refer to the canonical template.
 */
 {
   a_boolean  result = FALSE;
@@ -1299,8 +1299,8 @@ canonical template.
 a_boolean load_template_specializations_from_module(
                                              ARG_UNUSED a_template_ptr  templ)
 /*
-If the given template has specializations available in an imported module, load
-and process those definitions now, and return TRUE.  Otherwise, return FALSE.
+If the given template has specializations available in an imported module,
+process those specializations now, and return TRUE.  Otherwise, return FALSE.
 Note that templ must refer to the canonical template.
 */
 {

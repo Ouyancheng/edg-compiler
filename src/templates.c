@@ -11482,15 +11482,15 @@ If template constraints are not satisfied, return NULL.
   /* The template symbol must be for the primary template. */
   check_assertion(tssp->primary_template_sym == NULL);
 
-  /* Load the module provided definition or specialization if not already
-     loaded, and this is non-dependent context.  Notably, this should not be
+  /* Load the module-provided definition or specialization if not already
+     loaded and this is non-dependent context.  Notably, this should not be
      performed when we're in a template declaration context as this results in
      unnecessary loads (these are both inefficient and problematic as the extra
-     loads when a prototype is allowed can result in a cyclic dependencies as
-     the specialization might refer back to the entity being parsed).  Finally,
+     loads when a prototype is allowed can result in cyclic dependencies as the
+     specialization might refer back to the entity being parsed).  Finally,
      note this must be performed before the find_instantiation call, as
      otherwise specializations might be declared after implicit
-     instantiations.*/
+     instantiations. */
   a_template_ptr templ = tssp->il_template_entry;
   if (templ != NULL && !is_template_declaration_context()) {
     if (has_pending_template_definition_from_module(templ)) {

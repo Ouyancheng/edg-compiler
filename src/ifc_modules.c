@@ -7234,9 +7234,9 @@ Note that templ must refer to the canonical template.
 
 a_boolean load_template_definition_from_ifc_module(a_template_ptr  templ)
 /*
-If the given template has a definition available in an imported module, load
-and process those definitions now, and return TRUE.  Otherwise, return FALSE.
-Note that templ must refer to the canonical template.
+If the given template has a definition available in an imported module, process
+its definition now, and return TRUE.  Otherwise, return FALSE.  Note that templ
+must refer to the canonical template.
 */
 {
   check_assertion(has_template_definition_from_ifc_module(templ));
@@ -7316,8 +7316,8 @@ TRUE.  Note that templ must refer to the canonical template.
 a_boolean load_template_specializations_from_ifc_module(a_template_ptr  templ)
 /*
 If the given template has a specialization available in an imported module,
-load and process those definitions now, and return TRUE.  Otherwise, return
-FALSE.  Note that templ must refer to the canonical template.
+process those specializations now, and return TRUE.  Otherwise, return FALSE.
+Note that templ must refer to the canonical template.
 */
 {
   check_assertion(has_template_specializations_from_ifc_module(templ));
@@ -8636,7 +8636,7 @@ class_struct_union_case:
               update_cache_info_for_template(&cache_info, templ);
             }  /* if */
           }  /* if */
-          /* Disable definition caching if at all possible, this will result in
+          /* Disable definition caching if at all possible; this will result in
              the definition being deferred (in finish_mep_processing) until
              it's absolutely needed. */
           if (is_template_redeclarable(idt)) {
