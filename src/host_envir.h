@@ -3551,7 +3551,7 @@ enum an_error_severity : a_byte {
 /*
 The type of a (signed and unsigned) number used in a diagnostic.
 */
-typedef int64_t a_signed_diag_number;
+typedef int64_t  a_signed_diag_number;
 typedef uint64_t an_unsigned_diag_number;
 
 /* Terminate the compilation. */
