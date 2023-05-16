@@ -16760,7 +16760,7 @@ context to help inform decisions about what to cache.
           }  /* if */
         }  /* for */
         /* The name matched, now attempt to see if there's an lparen (or rparen
-           followed by a lparen) which should introduce the
+           followed by a lparen), which should introduce the
            parameter-declaration-clause. */
         if (lookahead_ctp == NULL) {
           /* Check to see if we've run out of tokens, if so the next token
