@@ -6082,9 +6082,9 @@ static a_boolean
 has_matching_template_params(const an_ifc_chart_unilevel &param_chart,
                              a_template_param_ptr        il_param_list)
 /*
-Return TRUE if the given IFC template parameter character represents an
-equivalent template parameter list (excluding names and default arguments) to
-the given IL parameter list; otherwise, return FALSE.
+Return TRUE if the given IFC template parameter chart represents an equivalent
+template parameter list (excluding names and default arguments) to the given IL
+parameter list; otherwise, return FALSE.
 */
 {
   a_boolean                  result = TRUE;
