@@ -6208,12 +6208,12 @@ FALSE.
   an_ifc_module     *mod = get_assoc_ifc_module(mep);
   an_ifc_decl_index decl_idx = decl_index_of(mep);
 
-  /* Push a module isolation scope to ensure any template parameters that may
-     need consulted (e.g., because they're part of the function parameter's
-     type) are formed as detached template arguments during parsing.  This
-     prevents template parameter resolution from outright failing, or binding
-     to an incorrect template parameter further up the scope stack with the
-     same coordinates. */
+  /* Push a module isolation scope to ensure that any template parameters that
+     may need to be consulted (e.g., because they're part of the function
+     parameter's type) are formed as detached template arguments during
+     parsing.  This prevents template parameter resolution from outright
+     failing or binding to an incorrect template parameter further up the
+     scope stack with the same coordinates. */
   (void)push_scope(sck_module_isolated, NO_SCOPE_NUMBER,
                    /*assoc_type=*/NULL, /*assoc_routine=*/NULL);
   /* The module entity pointer should always refer to a template. */
