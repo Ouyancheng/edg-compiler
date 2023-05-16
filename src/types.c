@@ -14179,14 +14179,38 @@ static a_boolean ttt_is_error_type(a_type_ptr  type_ptr,
                                    a_boolean   *force_end_of_traversal)
 /*
 This is a service function designed to be called from traverse_type_tree
-(whence the ttt_ prefix).  It returns TRUE if type_ptr is an error type
+(whence the ttt_ prefix).  It returns TRUE if type_ptr is either an error type
+or a class type that is known to contain an error type.
 */
 {
   a_boolean  result = FALSE;
 
-  *force_end_of_traversal = result = is_error(type_ptr);
+  if (is_immediate_class_type(type_ptr) &&
+      class_type_supp(type_ptr)->contains_error_cached) {
+    /* Use the cached result. */
+    result = class_type_supp(type_ptr)->contains_error;
+    *force_end_of_traversal = TRUE;
+  } else {
+    *force_end_of_traversal = result = is_error(type_ptr);
+  }  /* if */
   return result;
 }  /* ttt_is_error_type */
+
+
+static void ttt_post_is_error_type(a_type_ptr  type_ptr,
+                                   a_boolean   result)
+/*
+This is a service function designed to be called from traverse_type_tree_full
+as a post-order traversal function (whence the ttt_post_ prefix).  If type_ptr
+is a class type it caches the result in its class type supplement.
+*/
+{
+  if (is_immediate_class_type(type_ptr)) {
+    a_class_type_supplement_ptr  ctsp = class_type_supp(type_ptr);
+    ctsp->contains_error = result;
+    ctsp->contains_error_cached = TRUE;
+  }  /* if */
+}  /* ttt_post_is_error_type */
 
 
 /* Static variables used to pass information back to the routine
@@ -14995,8 +15019,9 @@ Called from traverse_expr to invoke a type predicate function on the
 specified type.
 */
 {
-  if (traverse_type_tree(type, tblock->type_predicate_function,
-                         tblock->type_tree_traversal_flags)) {
+  if (traverse_type_tree_full(type, tblock->type_predicate_function,
+                              tblock->type_post_order_function,
+                              tblock->type_tree_traversal_flags)) {
     tblock->result = TRUE;
     tblock->terminate = TRUE;
   }  /* if */
@@ -15006,11 +15031,12 @@ specified type.
 static a_boolean traverse_types_for_expr(
 				an_expr_node_ptr		expr,
 				a_type_predicate_function_ptr	func,
+				a_type_post_order_function_ptr	pofunc,
 				a_type_tree_traversal_flag_set	flags)
 /*
 Invoke the traverse_type_tree predicate function func on the types used in
-expr.  Pass the flag set flags to traverse_type_tree.  Return TRUE if
-traverse_type_tree returns TRUE.
+expr.  Pass the post-order function pofunc and the flag set flags to
+traverse_type_tree_sull.  Return TRUE if traverse_type_tree_full returns TRUE.
 */
 {
   a_boolean				result;
@@ -15022,6 +15048,7 @@ traverse_type_tree returns TRUE.
   tblock.process_expressions_for_constants = TRUE;
   tblock.process_template_parameter_constants_and_expressions = TRUE;
   tblock.type_predicate_function = func;
+  tblock.type_post_order_function = pofunc;
   tblock.type_tree_traversal_flags = flags;
   traverse_expr(expr, &tblock);
   result = tblock.result;
@@ -15032,16 +15059,17 @@ traverse_type_tree returns TRUE.
 static a_boolean traverse_types_for_constant(
 				a_constant_ptr			constant,
 				a_type_predicate_function_ptr	func,
+				a_type_post_order_function_ptr	pofunc,
 				a_type_tree_traversal_flag_set	flags)
 /*
 Invoke the traverse_type_tree predicate function func on the types used in
-constant.  Pass the flag set flags to traverse_type_tree.  Return TRUE if
-traverse_type_tree returns TRUE.
+constant.  Pass the post-order function pofunc and the flag set flags to
+traverse_type_tree_full.  Return TRUE if traverse_type_tree_full returns TRUE.
 */
 {
   a_boolean	status = FALSE;
 
-  if (traverse_type_tree(constant->type, func, flags)) {
+  if (traverse_type_tree_full(constant->type, func, pofunc, flags)) {
     status = TRUE;
   } else if (constant->kind == (a_constant_repr_kind)ck_template_param &&
              constant->variant.template_param.kind ==
@@ -15049,7 +15077,7 @@ traverse_type_tree returns TRUE.
     /* Only the expression under a tpck_expression is processed. */
     an_expr_node_ptr expr = constant->variant.template_param.variant.expr;
     if (expr != NULL) {
-      status = traverse_types_for_expr(expr, func, flags);
+      status = traverse_types_for_expr(expr, func, pofunc, flags);
     }  /* if */
   }  /* if */
   return status;
@@ -15059,6 +15087,7 @@ traverse_type_tree returns TRUE.
 static a_boolean traverse_template_args(
                              a_template_arg_ptr             template_args,
                              a_type_predicate_function_ptr  func,
+                             a_type_post_order_function_ptr pofunc,
                              a_type_tree_traversal_flag_set flags)
 /*
 This routine is called by traverse_type_tree to traverse the template argument
@@ -15074,7 +15103,7 @@ and the meaning of the return value.
   for (; tap != NULL; advance_to_next_template_arg_simple(&tap)) {
     if (is_type_templ_arg(tap)) {
       tp = tap->variant.type;
-      if (traverse_type_tree(tp, func, flags)) {
+      if (traverse_type_tree_full(tp, func, pofunc, flags)) {
         status = TRUE;
         break;
       }  /* if */
@@ -15088,8 +15117,8 @@ and the meaning of the return value.
            nondeduced contexts, or when this is a deduced context when
            nonstandard deduction is enabled. */
         tp = parent_class_of(templ_ptr);
-        status = traverse_type_tree(tp, func, flags);
-      }  /* if */      
+        status = traverse_type_tree_full(tp, func, pofunc, flags);
+      }  /* if */
     } else if (!tap->is_array_bound_of_unknown_type &&
                tap->variant.constant != NULL) {
       /* Nontype template argument.  Check the type of the constant.  The
@@ -15098,26 +15127,27 @@ and the meaning of the return value.
       if (!(flags & TTT_DEDUCED_CONTEXTS_ONLY) ||
           (flags & TTT_TYPE_OF_NONTYPE_ARG)) {
         status = traverse_types_for_constant(tap->variant.constant,
-                                             func, flags);
+                                             func, pofunc, flags);
       }  /* if */
     }  /* if */
   }  /* for */
   return status;
 }  /* traverse_template_args */
 
-
-a_boolean traverse_type_tree(a_type_ptr                     type_ptr,
-                             a_type_predicate_function_ptr  func,
-                             a_type_tree_traversal_flag_set flags)
+a_boolean traverse_type_tree_full(a_type_ptr                      type_ptr,
+                                  a_type_predicate_function_ptr   func,
+                                  a_type_post_order_function_ptr  pofunc,
+                                  a_type_tree_traversal_flag_set  flags)
 /*
 Traverse the type tree indicated by type_ptr and for each type in the
 tree call func, which returns a boolean value.  Terminate the traversal as
 soon as TRUE is returned by func, or as soon as func returns a flag forcing
 the end of the traversal.  This function returns TRUE if func has returned
-TRUE for any type in the tree.  The input parameter "flags" is a bit vector
-containing directives about how thoroughly to traverse the tree (e.g., is a
-routine type a leaf node, or should the return type be examined? what about
-its parameters?).
+TRUE for any type in the tree.  The post-order function pofunc, if not NULL,
+is called with the result of the traversal for each type.  The input
+parameter "flags" is a bit vector containing directives about how thoroughly
+to traverse the tree (e.g., is a routine type a leaf node, or should the
+return type be examined? what about its parameters?).
 */
 {
   a_boolean                      force_end_of_traversal = FALSE;
@@ -15195,7 +15225,7 @@ its parameters?).
                deducible under a pointer. */
             local_flags &= ~TTT_TYPE_OF_NONTYPE_ARG;
           }  /* if */
-          status = traverse_type_tree(tp, func, local_flags);
+          status = traverse_type_tree_full(tp, func, pofunc, local_flags);
         }
         break;
       case tk_routine:
@@ -15203,7 +15233,7 @@ its parameters?).
         rtsp = type_ptr->variant.routine.extra_info;
         if (flags & TTT_RETURN_TYPE) {
           tp = type_ptr->variant.routine.return_type;
-          if (traverse_type_tree(tp, func, flags)) {
+          if (traverse_type_tree_full(tp, func, pofunc, flags)) {
             status = TRUE;
             break;
           }  /* if */
@@ -15212,7 +15242,7 @@ its parameters?).
           a_param_type_ptr  ptp;
           for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
             tp = ptp->type;
-            if (traverse_type_tree(tp, func, flags)) {
+            if (traverse_type_tree_full(tp, func, pofunc, flags)) {
               status = TRUE;
               break;
             }  /* if */
@@ -15221,7 +15251,8 @@ its parameters?).
         if (!C_mode()) {
           if (flags & TTT_THIS_PARAM_TYPE) {
             tp = rtsp->this_class;
-            if (tp != NULL && traverse_type_tree(tp, func, flags)) {
+            if (tp != NULL &&
+                traverse_type_tree_full(tp, func, pofunc, flags)) {
               status = TRUE;
               break;
             }  /* if */
@@ -15235,7 +15266,7 @@ its parameters?).
                  estp != NULL;
                  estp = estp->next) {
               tp = estp->type;
-              if (traverse_type_tree(tp, func, flags)) {
+              if (traverse_type_tree_full(tp, func, pofunc, flags)) {
                 status = TRUE;
                 break;
               }  /* if */
@@ -15246,7 +15277,7 @@ its parameters?).
       case tk_array:
         tp = type_ptr->variant.array.element_type;
         if (tp != NULL) {
-          if (traverse_type_tree(tp, func, flags)) {
+          if (traverse_type_tree_full(tp, func, pofunc, flags)) {
             status = TRUE;
             break;
           } else if ((flags & TTT_TYPE_OF_NONTYPE_ARG) &&
@@ -15254,7 +15285,7 @@ its parameters?).
                               variant.array.is_template_dependent_size_array) {
             if (traverse_types_for_constant(
                         type_ptr->variant.array.variant.element_count_constant,
-                        func, flags)) {
+                        func, pofunc, flags)) {
               status = TRUE;
               break;
             }  /* if */
@@ -15265,11 +15296,11 @@ its parameters?).
         tp = type_ptr->variant.typeref.type;
         ttsp = type_ptr->variant.typeref.extra_info;
         if (!force_end_of_traversal) {
-          status = traverse_type_tree(tp, func, flags);
+          status = traverse_type_tree_full(tp, func, pofunc, flags);
           if (!status && flags & TTT_DECLTYPE_AND_TYPEOF_EXPRS &&
               ttsp->expr != NULL) {
             /* Traverse the expression under the decltype or typeof. */
-            status = traverse_types_for_expr(ttsp->expr, func, flags);
+            status = traverse_types_for_expr(ttsp->expr, func, pofunc, flags);
           }  /* if */
         }  /* if */
         if (!status &&
@@ -15281,7 +15312,7 @@ its parameters?).
           a_template_arg_ptr	tap;
           tap = ttsp->template_arg_list;
           if (tap != NULL) {
-            status = traverse_template_args(tap, func, flags);
+            status = traverse_template_args(tap, func, pofunc, flags);
           }  /* if */
         }  /* if */
         if (scan_alias_template_args) {
@@ -15305,7 +15336,8 @@ its parameters?).
           tp = parent_class_of(type_ptr);
           ctsp = class_type_supp(tp);
           if (ctsp != NULL && ctsp->proxy_of_type != NULL) {
-            if (traverse_type_tree(ctsp->proxy_of_type, func, flags)) {
+            if (traverse_type_tree_full(ctsp->proxy_of_type, func, pofunc,
+                                        flags)) {
               status = TRUE;
               break;
             }  /* if */
@@ -15319,7 +15351,9 @@ its parameters?).
 #if GNU_VECTOR_TYPES_ALLOWED
       case tk_vector:
         tp = type_ptr->variant.vector.element_type;
-        if (tp != NULL) status = traverse_type_tree(tp, func, flags);
+        if (tp != NULL) {
+          status = traverse_type_tree_full(tp, func, pofunc, flags);
+        }  /* if */
         break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       case tk_class:
@@ -15342,7 +15376,7 @@ its parameters?).
               (flags & TTT_CLI_GENERIC_PARAMETERS) != 0) {
             tp = class_type_supp(type_ptr)->proxy_of_type;
             if (tp != NULL) {
-              if (traverse_type_tree(tp, func, flags)) {
+              if (traverse_type_tree_full(tp, func, pofunc, flags)) {
                 status = TRUE;
                 break;
               }  /* if */
@@ -15357,7 +15391,7 @@ its parameters?).
             a_template_arg_ptr	tap;
             tap = class_type_supp(type_ptr)->template_arg_list;
             if (tap != NULL) {
-              status = traverse_template_args(tap, func, flags);
+              status = traverse_template_args(tap, func, pofunc, flags);
             }  /* if */
           }  /* if */
           if (!status && type_ptr->source_corresp.is_class_member) {
@@ -15368,7 +15402,8 @@ its parameters?).
             tp = parent_class_of(type_ptr);
             ctsp = class_type_supp(tp);
             if (ctsp != NULL && ctsp->proxy_of_type != NULL) {
-              if (traverse_type_tree(ctsp->proxy_of_type, func, flags)) {
+              if (traverse_type_tree_full(ctsp->proxy_of_type, func, pofunc,
+                                          flags)) {
                 status = TRUE;
               }  /* if */
               break;
@@ -15379,24 +15414,41 @@ check_enclosing_classes:
               (flags & TTT_PARENT_CLASSES) != 0) {
             /* Check the parent class. */
             tp = parent_class_of(type_ptr);
-            status = traverse_type_tree(tp, func, flags);
-          }  /* if */      
+            status = traverse_type_tree_full(tp, func, pofunc, flags);
+          }  /* if */
         }  /* if */
         break;
       case tk_ptr_to_member:
         tp = type_ptr->variant.ptr_to_member.class_of_which_a_member;
-        status = traverse_type_tree(tp, func, flags);
+        status = traverse_type_tree_full(tp, func, pofunc, flags);
         if (!status) {
           tp = type_ptr->variant.ptr_to_member.type;
-          status = traverse_type_tree(tp, func, flags);
+          status = traverse_type_tree_full(tp, func, pofunc, flags);
         }  /* if */
         break;
       default:
         unexpected_condition_str("traverse_type_tree: bad type kind");
     }  /* switch */
   }  /* if */
+  if (pofunc != NULL) {
+    pofunc(type_ptr, status);
+  }  /* if */
 done:
   return status;
+}  /* traverse_type_tree_full */
+
+
+a_boolean traverse_type_tree(a_type_ptr                     type_ptr,
+                             a_type_predicate_function_ptr  func,
+                             a_type_tree_traversal_flag_set flags)
+/*
+Interface to traverse_type_tree_full to supply a NULL post-order traversal
+function.
+*/
+{
+  return traverse_type_tree_full(type_ptr, func,
+                                 (a_type_post_order_function_ptr)NULL,
+                                 flags);
 }  /* traverse_type_tree */
 
 #if !STANDALONE_UTILITY_PROGRAM
@@ -15694,7 +15746,8 @@ or is a type tree containing such a type.
                                                TTT_PARENT_CLASSES |
                                                TTT_DECLTYPE_AND_TYPEOF_EXPRS);
   add_implicit_ttt_flags(&ttt_flags);
-  result = traverse_type_tree(type_ptr, ttt_is_error_type, ttt_flags);
+  result = traverse_type_tree_full(type_ptr, ttt_is_error_type,
+                                   ttt_post_is_error_type, ttt_flags);
   return result;
 }  /* is_or_contains_error_type */
 

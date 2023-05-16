@@ -1719,6 +1719,15 @@ typedef int a_type_tree_traversal_flag_set;
 typedef a_boolean a_type_predicate_function(a_type_ptr tp, a_boolean *flag);
 typedef a_type_predicate_function *a_type_predicate_function_ptr;
 
+/* Type of post-order service function called by traverse_type_tree_full for a
+   type with its traversal result. */
+typedef void a_type_post_order_function(a_type_ptr tp, a_boolean result);
+typedef a_type_post_order_function *a_type_post_order_function_ptr;
+
+a_boolean traverse_type_tree_full(a_type_ptr                      type_ptr,
+                                  a_type_predicate_function_ptr   func,
+                                  a_type_post_order_function_ptr  pofunc,
+                                  a_type_tree_traversal_flag_set  flags);
 a_boolean traverse_type_tree(a_type_ptr                     type_ptr,
                              a_type_predicate_function_ptr  func,
                              a_type_tree_traversal_flag_set flags);

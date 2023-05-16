@@ -1,5 +1,29 @@
 Version 6.5
 
+5/16/23  [EDGcpfe/26324]
+Performance issue with recursively defined class templates
+
+Consider:
+
+  template<typename, typename> struct A;
+  template<typename T, int N>
+  struct C {
+    typedef typename C<A<T, T>, N - 1>::type type;
+  };
+  template<typename T>
+  struct C<T, 0> {
+    typedef int type;
+  };
+  C<int, 100>::type t;
+
+This creates a binary tree of class template specializations with a depth of
+100.  Previously, however, when checking for error types, the whole tree was
+traversed (with exponential complexity).  Now the traversal result for each
+class type is cached in its class type supplement in contains_error and
+contains_error_cached (a small IL CHANGE), resulting in linear complexity for
+the traversal.
+
+
 5/8/23   [EDGcpfe/26319]
 GNU C++11 compatibility: Statements in constexpr function templates
 

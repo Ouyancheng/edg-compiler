@@ -349,12 +349,16 @@ typedef struct an_expr_or_stmt_traversal_block {
   a_type_predicate_function_ptr
 		type_predicate_function;
 			/* The type predicate function to be passed to
-			   traverse_type_tree to process the types of
+			   traverse_type_tree_full to process the types of
 			   expressions. */
+  a_type_post_order_function_ptr
+		type_post_order_function;
+			/* The type post-order traversal function to be passed
+			   to traverse_type_tree_full. */
   a_type_tree_traversal_flag_set
 		type_tree_traversal_flags;
 			/* The type traversal flags to be passed to
-			   traverse_type_tree when processing the types of
+			   traverse_type_tree_full when processing the types of
 			   expressions. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Fields used by examine_expr_for_initonly_field_selection: */

@@ -8483,6 +8483,13 @@ typedef struct a_class_type_supplement {
   a_bit_field	removed_from_il:1;
 			/* TRUE if the associated class type entry has been
 			   removed from the IL because it was unneeded. */
+  a_bit_field	contains_error:1;
+			/* TRUE if the class contains an error type.  If FALSE
+			   and contains_error_cached is TRUE, then the class is
+			   known not to contain an error type. */
+  a_bit_field	contains_error_cached:1;
+			/* TRUE if the value of contains_error is fully
+			   determined. */
   an_anonymous_union_kind
 		anonymous_union_kind;
 			/* Indication of whether this class is an anonymous

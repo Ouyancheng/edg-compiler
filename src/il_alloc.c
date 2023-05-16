@@ -1810,6 +1810,8 @@ class is available.
   ctsp->has_nodiscard_attribute           = FALSE;
   ctsp->has_field_initializer             = FALSE;
   ctsp->removed_from_il                   = FALSE;
+  ctsp->contains_error                    = FALSE;
+  ctsp->contains_error_cached             = FALSE;
   ctsp->anonymous_union_kind              = (an_anonymous_union_kind)auk_none;
   ctsp->anonymous_union_field             = NULL;
   ctsp->friend_routines                   = NULL;
