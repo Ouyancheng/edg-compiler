@@ -35,10 +35,12 @@ Consider:
   }
   int r = f(42);
 
-Ordinarily, this is an error in C++11 modes because only a return statements
-are permitted in C++11 constexpr functions.  However, GCC 12.x and later
-accept such templates and silently treat them as non-constexpr.  The front end
-now emulates that behavior in GNU C++11 modes with gnu_version >= 120000.
+Ordinarily, this is an error in C++11 modes because only return statements
+are permitted in C++11 constexpr functions; technically, the standard does not
+require a diagnostic in such cases, but most implementations do emit one.
+GCC 12.x and later accept such templates and silently treat them as
+non-constexpr.  The front end now emulates that behavior in GNU C++11 modes
+with gnu_version >= 120000.
 
 
 5/5/23   [EDGcpfe/26302]
