@@ -9125,9 +9125,8 @@ enum a_typeref_kind : a_byte {
                         /* The underlying type has type-transforming attributes
                            applied to it and this entry's attributes field (in
                            source_corresp) describes those attributes. */
-  trk_is_alias,
-			/* A type entry representing an alias but not an
-			   instance of an alias template. */
+  trk_is_alias,         /* A type entry representing an alias but not an
+                           instance of an alias template. */
   trk_is_template_alias,
                         /* A type created for instantiations of alias
                            templates, including the prototype instantiation. */

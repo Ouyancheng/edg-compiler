@@ -9833,7 +9833,7 @@ EXTERN a_boolean id_representations_match(a_void_ptr entry_ptr,
 
 inline a_boolean is_type_returning_type_trait(a_token_kind token)
 /*
-Returns TRUE if the specified token is a "type-returning type trait", e.g.,
+Return TRUE if the specified token is a "type-returning type trait", e.g.,
 tok_underlying_type.
 */
 {

@@ -16522,9 +16522,6 @@ are similar to type traits but appear in type contexts, not expression
 contexts.  All currently supported operators use functional notation and must
 have a single type as the only "argument".  This routine is intended to be
 called from outside of the expression-processing routines.
-
-If the operand is an enumeration type, the result is the underlying type of the
-enumeration.  Issue an error if the operand is not an enumeration type.  
 */
 {
   a_type_ptr        result = error_type(), type_arg;
@@ -16551,8 +16548,8 @@ enumeration.  Issue an error if the operand is not an enumeration type.
     /* Leave result set to an error type to avoid any surprises later on. */
   } else {
     if (is_template_param_type(type_arg)) {
-      /* A template parameter type is fine since it may turn out to be an enum
-         type.  Use it also as a placeholder type. */
+      /* A template parameter type is always okay since it may end up being
+         substituted by a meaningful type for the operator. */
       result = type_arg;
     } else {
       switch (kind) {

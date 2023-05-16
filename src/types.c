@@ -3216,7 +3216,7 @@ element type satisfies one of those criteria.
 
 a_boolean is_referenceable_type(a_type_ptr tp)
 /*
-Returns TRUE if the given type is a referenceable type [defns.referenceable].
+Return TRUE if the given type is a referenceable type [defns.referenceable].
 */
 {
   tp = skip_typerefs(tp);
