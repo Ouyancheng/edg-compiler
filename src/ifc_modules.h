@@ -408,31 +408,6 @@ public:
                                  an_ifc_decl_index                decl_idx,
                                  const an_ifc_decl_specialization &decl,
                                  const an_ifc_cache_info          &cinfo);
-  template<typename a_Name_Cache_Fn, typename an_Init_Cache_Fn>
-  inline void cache_variable_decl(
-                            a_module_token_cache_ptr         cache,
-                            an_ifc_decl_index                decl_idx,
-                            a_boolean                        is_class_member,
-                            an_ifc_basic_specifiers_bitfield specifiers,
-                            an_ifc_object_traits_bitfield    traits,
-                            an_ifc_expr_index                alignment,
-                            an_ifc_type_index                type,
-                            a_Name_Cache_Fn                  cache_name_fn,
-                            an_ifc_expr_index                width,
-                            const an_ifc_cache_info          &cinfo,
-                            an_Init_Cache_Fn                 cache_init_fn);
-  void cache_variable_decl(a_module_token_cache_ptr         cache,
-                           an_ifc_decl_index                decl_idx,
-                           a_boolean                        is_class_member,
-                           an_ifc_basic_specifiers_bitfield specifiers,
-                           an_ifc_object_traits_bitfield    traits,
-                           an_ifc_expr_index                alignment,
-                           an_ifc_type_index                type,
-                           an_ifc_name_index                name,
-                           an_ifc_text_offset               raw_name,
-                           an_ifc_expr_index                width,
-                           an_ifc_expr_index                initializer,
-                           const an_ifc_cache_info          &cinfo);
   void cache_name(a_module_token_cache_ptr     cache,
                   an_ifc_name_index            name);
   void cache_name_from_decl(a_module_token_cache_ptr cache,

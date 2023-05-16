@@ -1652,17 +1652,30 @@ Return the associated scope for the given declaration.
 }  /* get_home_scope */
 
 
-static void cache_name(a_module_token_cache_ptr     cache,
-                       an_ifc_name_index            name_ref)
+static void cache_name(a_module_token_cache_ptr cache,
+                       an_ifc_name_index        name_idx)
 /*
 Add the tokens corresponding to the given name to cache.
 */
 {
-  /* Disable spurious GCC warning about uninitialized usage of opt_name_ref
+  /* Disable spurious GCC warning about uninitialized usage of opt_name_idx
      (when this function is called by cache_simple_template_id). */
 BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
-  name_ref.mod->cache_name(cache, name_ref);
+  name_idx.mod->cache_name(cache, name_idx);
 END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
+}  /* cache_name */
+
+
+static void cache_name(a_module_token_cache_ptr cache,
+                       an_ifc_text_offset       name_offset)
+/*
+Add the token corresponding to the given name to cache.
+*/
+{
+  an_ifc_name_index name_idx{name_offset.mod, ifc_ns_text_offset,
+                             name_offset.value};
+
+  cache_name(cache, name_idx);
 }  /* cache_name */
 
 
@@ -4443,36 +4456,16 @@ into the given cache.  Return TRUE if caching succeeded; otherwise, return
 FALSE.
 */
 {
-  a_boolean                 result = FALSE;
-  Opt<an_ifc_decl_variable> opt_idv;
-  an_ifc_decl_index         var_decl_idx = get_ifc_decl(node);
+  auto              cache_content = [](a_module_token_cache *content_cache,
+                                       an_ifc_decl_index    decl_idx) {
+    decl_idx.mod->cache_decl(content_cache, decl_idx, /*cinfo=*/{});
+  };
+  an_ifc_decl_index var_decl_idx = get_ifc_decl(node);
 
-  construct_node(&opt_idv, var_decl_idx);
-  if (opt_idv.has_value()) {
-    an_ifc_decl_variable idv = *opt_idv;
-    auto cache_content = [&idv](a_module_token_cache *content_cache,
-                                an_ifc_decl_index    decl_idx) {
-      an_ifc_module               *mod = decl_idx.mod;
-      an_ifc_source_location      locus = get_ifc_locus(idv);
-      an_ifc_source_position_hint pos_hint(content_cache, locus);
-
-      mod->cache_variable_decl(content_cache, decl_idx,
-                               /*is_class_member=*/FALSE,
-                               get_ifc_specifiers(idv), get_ifc_traits(idv),
-                               get_ifc_alignment(idv), get_ifc_type(idv),
-                               get_ifc_name(idv), an_ifc_text_offset{},
-                               an_ifc_expr_index{},
-                               /*get_ifc_initializer(node)*/
-                                                          an_ifc_expr_index{},
-                               /*cinfo=*/{});
-    };
-
-    /* FIXME: There should be logic to validate that this module entity is
-       bound or invalidated. */
-    cache_bound_entity(cache, var_decl_idx, cache_content);
-    result = TRUE;
-  }  /* if */
-  return result;
+  /* FIXME: There should be logic to validate that this module entity is bound
+     or invalidated. */
+  cache_bound_entity(cache, var_decl_idx, cache_content);
+  return cache->is_valid();
 }  /* cache_decl_stmt */
 
 
@@ -4777,6 +4770,10 @@ static void cache_template_param_chart(a_module_token_cache_ptr cache,
                                        const an_ifc_cache_info  &cinfo);
 
 template<typename an_ifc_Node_type>
+static void cache_linkage_specification(a_module_token_cache_ptr cache,
+                                        const an_ifc_Node_type   &decl);
+
+template<typename an_ifc_Node_type>
 static
 a_boolean cache_direct_decl(a_module_token_cache_ptr cache,
                             const an_ifc_Node_type   &node,
@@ -4962,11 +4959,6 @@ TRUE if caching succeeds, FALSE otherwise.
 }  /* cache_direct_decl */
 
 
-static void cache_basic_specifiers(
-                                  a_module_token_cache_ptr         cache,
-                                  an_ifc_basic_specifiers_bitfield specifiers);
-
-
 template<>
 a_boolean cache_direct_decl(a_module_token_cache_ptr            cache,
                             const an_ifc_decl_using_declaration &using_decl,
@@ -4979,7 +4971,7 @@ Return TRUE if caching succeeds, FALSE otherwise.
 {
   a_boolean result = TRUE;
 
-  cache_basic_specifiers(cache, get_ifc_specifiers(using_decl));
+  cache_linkage_specification(cache, using_decl);
 
   Opt<a_string> opt_decl_name = name_from_index(get_ifc_name(using_decl));
 
@@ -15427,12 +15419,82 @@ done:
 }  /* sentence_is_deleted */
 
 
-static void cache_object_traits(a_module_token_cache_ptr      cache,
-                                an_ifc_object_traits_bitfield traits)
+template<typename an_ifc_Node_type>
+static void cache_declarator_qualifier(a_module_token_cache_ptr cache,
+                                       const an_ifc_Node_type   &decl,
+                                       const an_ifc_cache_info  &cinfo)
 /*
-Add the tokens corresponding to the given object traits to cache.
+Cache the qualified-id portion of declarator-id's id-expression (if any).
 */
 {
+  an_ifc_decl_index home_scope = get_ifc_home_scope(decl);
+
+  if (is_class_scope(home_scope) && home_scope != cinfo.lexical_scope) {
+    cache_token_with_index(cache, tok_ifc_decl_ref, home_scope);
+    cache_token(cache, tok_colon_colon);
+  }  /* if */
+}  /* cache_declarator_qualifier */
+
+
+template<typename an_ifc_Node_type>
+static void cache_linkage_specification(a_module_token_cache_ptr cache,
+                                        const an_ifc_Node_type   &decl)
+/*
+Cache the linkage-specification for the given named-declaration (decl).
+*/
+{
+  an_ifc_basic_specifiers_bitfield specifiers = get_ifc_specifiers(decl);
+
+  if (test_bitmask<ifc_bsb_c>(specifiers)) {
+    cache_token(cache, tok_extern);
+    cache_string_literal(cache, "C");
+  }  /* if */
+}  /* cache_func_decl_specifier_seq */
+
+
+template<typename an_ifc_Node_type>
+static void cache_var_storage_class_specifier(a_module_token_cache_ptr cache,
+                                              const an_ifc_Node_type   &decl)
+/*
+Cache the storage-class-specifier for the given variable-like declaration.
+*/
+{
+  an_ifc_basic_specifiers_bitfield specifiers = get_ifc_specifiers(decl);
+
+  if (test_bitmask<ifc_bsb_external>(specifiers)) {
+    cache_token(cache, tok_extern);
+  }  /* if */
+}  /* cache_func_decl_specifier */
+
+
+template<typename an_ifc_Node_type>
+static void cache_var_alignment(a_module_token_cache_ptr cache,
+                                const an_ifc_Node_type   &decl)
+/*
+Cache the alignment-specifier for the given variable-like declaration.
+*/
+{
+  an_ifc_expr_index alignment = get_ifc_alignment(decl);
+
+  if (!is_null_index(alignment)) {
+    cache_token(cache, tok_alignas);
+    cache_token(cache, tok_lparen);
+    alignment.mod->cache_expr(cache, alignment, /*cinfo=*/{});
+    cache_token(cache, tok_rparen);
+  }  /* if */
+}  /* cache_var_alignment */
+
+
+template<typename an_ifc_Node_type>
+static void cache_var_decl_specifier_seq(a_module_token_cache_ptr cache,
+                                         const an_ifc_Node_type   &decl)
+/*
+Cache the non-vendor specific part of the decl-specifier-seq for the given
+variable-like declaration.
+*/
+{
+  an_ifc_object_traits_bitfield traits = get_ifc_traits(decl);
+
   if (test_bitmask<ifc_otb_mutable>(traits)) {
     cache_token(cache, tok_mutable);
   }  /* if */
@@ -15445,8 +15507,88 @@ Add the tokens corresponding to the given object traits to cache.
   if (test_bitmask<ifc_otb_thread_local>(traits)) {
     cache_token(cache, tok_thread_local);
   }  /* if */
-}  /* cache_object_traits */
+}  /* cache_var_decl_specifier_seq */
 
+
+template<typename an_ifc_Node_type>
+static void cache_var_type_declarator_lhs(a_module_token_cache_ptr cache,
+                                          const an_ifc_Node_type   &decl)
+/*
+Cache the portion of the declarator for the given variable-like declaration
+that declares the type of the variable but precedes the declarator-id declaring
+the variable name.
+*/
+{
+  an_ifc_type_index type = get_ifc_type(decl);
+
+  type.mod->cache_type_first_part(cache, type, /*cinfo=*/{});
+}  /* cache_var_type_declarator_lhs */
+
+
+template<typename an_ifc_Node_type>
+static void cache_var_declarator_id(a_module_token_cache_ptr cache,
+                                    const an_ifc_Node_type   &decl,
+                                    const an_ifc_cache_info  &cinfo)
+/*
+Cache the declarator-id for the given variable-like declaration.
+*/
+{
+  cache_declarator_qualifier(cache, decl, cinfo);
+
+  auto name_idx = get_ifc_name(decl);
+  cache_name(cache, name_idx);
+}  /* cache_var_declarator_id */
+
+
+template<typename an_ifc_Node_type>
+static void cache_var_type_declarator_rhs(a_module_token_cache_ptr cache,
+                                          const an_ifc_Node_type   &decl)
+/*
+Cache the portion of the declarator for the given variable-like declaration
+that declares the type of the variable but follows the declarator-id declaring
+the variable name.
+*/
+{
+  an_ifc_type_index type = get_ifc_type(decl);
+
+  type.mod->cache_type_second_part(cache, type, /*cinfo=*/{});
+}  /* cache_var_type_declarator_rhs */
+
+
+template<typename an_ifc_Node_type>
+static void cache_var_initializer(a_module_token_cache_ptr cache,
+                                  const an_ifc_Node_type   &decl)
+/*
+Cache initializer for the given variable-like declaration.
+*/
+{
+  an_ifc_expr_index initializer = get_ifc_initializer(decl);
+
+  if (!is_null_index(initializer)) {
+    /* FIXME: Migrate the non-class scope case to use tok_pending_ifc_var_init,
+       and make tok_pending_ifc_var_init usable more generally. */
+    if (is_class_scope(get_ifc_home_scope(decl))) {
+      /* This is an initializer for a member variable of a class.  This is
+         already stored in the object file associated with the module TU, and
+         is only needed for member variables that are eligible to be used in a
+         constant expression.  These initializers may include recursive
+         self-references.  Cache a special pseudo-token to indicate that such
+         an initializer exists, along with its constant value. */
+      cache_token_with_index(cache, tok_pending_ifc_var_init, initializer);
+    } else {
+      /* An initializer where the type is ExprSort::Tokens will have the
+         braces included as part of the token stream. */
+      a_boolean cache_braces = initializer.sort != ifc_es_expr_tokens;
+      if (cache_braces) {
+        cache_token(cache, tok_lbrace);
+      }  /* if */
+      initializer.mod->cache_expr(cache, initializer, /*cinfo=*/{});
+      if (cache_braces) {
+        cache_token(cache, tok_rbrace);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* cache_var_initializer */
 
 template<typename an_ifc_Node_type>
 static void cache_func_type_cv_qualifiers(a_module_token_cache_ptr     cache,
@@ -15887,23 +16029,6 @@ function-like declaration.
     cache_token(cache, tok_constexpr);
   }  /* if */
 }  /* cache_func_decl_specifier_seq */
-
-
-template<typename an_ifc_Node_type>
-static void cache_declarator_qualifier(a_module_token_cache_ptr cache,
-                                       const an_ifc_Node_type   &decl,
-                                       const an_ifc_cache_info  &cinfo)
-/*
-Cache the qualified-id portion of declarator-id's id-expression (if any).
-*/
-{
-  an_ifc_decl_index home_scope = get_ifc_home_scope(decl);
-
-  if (is_class_scope(home_scope) && home_scope != cinfo.lexical_scope) {
-    cache_token_with_index(cache, tok_ifc_decl_ref, home_scope);
-    cache_token(cache, tok_colon_colon);
-  }  /* if */
-}  /* cache_declarator_qualifier */
 
 
 template<typename an_ifc_Node_type>
@@ -16891,44 +17016,6 @@ invalid:
   cache->invalidate();
 done:;
 }  /* cache_func_parameter_declaration_clause */
-
-
-static void cache_basic_specifiers(a_module_token_cache_ptr         cache,
-                                   an_ifc_basic_specifiers_bitfield specifiers)
-/*
-Add tokens corresponding to specifiers to cache.
-*/
-{
-  if (test_bitmask<ifc_bsb_c>(specifiers)) {
-    cache_token(cache, tok_extern);
-    cache_string_literal(cache, "C");
-  }  /* if */
-  if (test_bitmask<ifc_bsb_deprecated>(specifiers)) {
-    cache_token(cache, tok_lbracket);
-    cache_token(cache, tok_lbracket);
-    cache_identifier(cache, "deprecated");
-    cache_token(cache, tok_rbracket);
-    cache_token(cache, tok_rbracket);
-  }  /* if */
-}  /* cache_basic_specifiers */
-
-
-static void cache_qualifiers(a_module_token_cache_ptr  cache,
-                             an_ifc_qualifier_bitfield qualifiers)
-/*
-Add tokens corresponding to qualifiers to cache.
-*/
-{
-  if (test_bitmask<ifc_qb_const>(qualifiers)) {
-    cache_token(cache, tok_const);
-  }  /* if */
-  if (test_bitmask<ifc_qb_volatile>(qualifiers)) {
-    cache_token(cache, tok_volatile);
-  }  /* if */
-  if (test_bitmask<ifc_qb_restrict>(qualifiers)) {
-    cache_token(cache, tok_restrict);
-  }  /* if */
-}  /* cache_qualifiers */
 
 
 template<typename a_Name_Cache_Fn, typename a_Scope_Cache_Fn>
@@ -18456,159 +18543,6 @@ done:;
 }  /* cache_operator */
 
 
-template<typename a_Name_Cache_Fn, typename an_Init_Cache_Fn>
-inline void an_ifc_module::cache_variable_decl(
-                            a_module_token_cache_ptr         cache,
-                            an_ifc_decl_index                decl_idx,
-                            a_boolean                        is_data_member,
-                            an_ifc_basic_specifiers_bitfield specifiers,
-                            an_ifc_object_traits_bitfield    traits,
-                            an_ifc_expr_index                alignment,
-                            an_ifc_type_index                type,
-                            a_Name_Cache_Fn                  cache_name_fn,
-                            an_ifc_expr_index                width,
-                            const an_ifc_cache_info          &cinfo,
-                            an_Init_Cache_Fn                 cache_init_fn)
-/*
-Add the tokens corresponding to the given variable declaration (indexed in the
-IFC by decl_idx) to cache.  is_data_member is TRUE if this is a non-static data
-member of a class.  specifiers, traits, alignment, and type are values from the
-IFC file that describe the variable declaration.  cache_name_fn is a lambda
-that's called to cache the name of the variable.  If width is not zero, this is
-a bitfield and width is its size.  cache_init_fn is a lambda that's called to
-cache the variable initializer (if any).  cinfo contains information about the
-current cache context to help inform decisions about what to cache.
-
-FIXME: Remove this version of cache_variable_decl once names can be cached
-properly for specializations using a NameIndex, and similarly the variable's
-initializer can be consistently cached via a ScopeIndex.
-*/
-{
-  a_boolean decl_in_class = is_class_scope(get_ifc_home_scope(decl_idx));
-
-  /* Cache tokens for MSVC "basic specifiers" (at the time of writing this
-     includes extern "C" and [[deprecated]]). */
-  /* Cache any associated attributes. */
-  cache_attrs(cache, decl_idx);
-  /* FIXME: Because we cache attributes properly now, this can result in two
-     deprecated attributes. */
-  cache_basic_specifiers(cache, specifiers);
-  if (!is_data_member && decl_in_class) {
-    /* This is a static data member. */
-    cache_token(cache, tok_static);
-  }  /* if */
-  /* Cache the alignment if specified. */
-  if (!is_null_index(alignment)) {
-    cache_token(cache, tok_alignas);
-    cache_token(cache, tok_lparen);
-    cache_expr(cache, alignment, /*cinfo=*/{});
-    cache_token(cache, tok_rparen);
-  }  /* if */
-  /* Cache the "object traits", roughly an MSVC subset of the
-     decl-specifier-seq. */
-  cache_object_traits(cache, traits);
-  /* Cache the name surrounded by the respective type qualifiers. */
-  cache_type_first_part(cache, type, cinfo);
-  cache_name_fn();
-  cache_type_second_part(cache, type, cinfo);
-  /* Cache the variable with if any. */
-  if (!is_null_index(width)) {
-    cache_token(cache, tok_colon);
-    cache_expr(cache, width, /*cinfo=*/{});
-  }  /* if */
-  /* Cache the initializer (if any). */
-  cache_init_fn();
-}  /* cache_variable_decl */
-
-
-void an_ifc_module::cache_variable_decl(
-                              a_module_token_cache_ptr         cache,
-                              an_ifc_decl_index                decl_idx,
-                              a_boolean                        is_data_member,
-                              an_ifc_basic_specifiers_bitfield specifiers,
-                              an_ifc_object_traits_bitfield    traits,
-                              an_ifc_expr_index                alignment,
-                              an_ifc_type_index                type,
-                              an_ifc_name_index                name,
-                              an_ifc_text_offset               raw_name,
-                              an_ifc_expr_index                width,
-                              an_ifc_expr_index                initializer,
-            /* Defaulted: */  const an_ifc_cache_info          &cinfo)
-/*
-Add the tokens corresponding to the given variable declaration (indexed in the
-IFC by decl_idx) to cache.  is_data_member is TRUE if this is a non-static data
-member of a class.  specifiers, traits, alignment, and type are values from the
-IFC file that describe the variable declaration.  Both name and raw_name
-provide the name of the variable - if name is zero, raw_name must be non-zero.
-If width is not zero, this is a bitfield and width is its size.  If the
-variable has an initializer then initializer is non-zero and refers to the
-initializer expression.  cinfo contains information about the current cache
-context to help inform decisions about what to cache.
-*/
-{
-  auto cache_name_fn = [this, cache, name, raw_name]() {
-    if (is_null_index(name)) {
-      check_assertion(raw_name != 0);
-      Opt<a_string> opt_name_str = name_from_index(raw_name);
-
-      if (opt_name_str.has_value()) {
-        const a_string &name_str = *opt_name_str;
-
-        cache_identifier(cache, name_str.as_temp_characters());
-      } else {
-        expect_error();
-      }  /* if */
-    } else {
-      cache_name(cache, name);
-    }  /* if */
-  };
-
-  if (is_class_scope(get_ifc_home_scope(decl_idx))) {
-    auto cache_class_mem_init_fn = [cache, initializer]() {
-      if (!is_null_index(initializer)) {
-        /* This is an initializer for a member variable of a class.  This is
-           already stored in the object file associated with the module TU, and
-           is only needed for member variables that are eligible to be used in
-           a constant expression.  These initializers may include recursive
-           self-references.  Cache a special pseudo-token to indicate that such
-           an initializer exists, along with its constant value. */
-        cache_token_with_index(cache, tok_pending_ifc_var_init, initializer);
-      }  /* if */
-      cache_token(cache, tok_semicolon);
-    };
-
-    cache_variable_decl(cache, decl_idx, is_data_member, specifiers, traits,
-                        alignment, type, cache_name_fn, width, cinfo,
-                        cache_class_mem_init_fn);
-  } else {
-    auto cache_init_fn = [this, cache, initializer]() {
-      if (!is_null_index(initializer)) {
-        /* An initializer where the type is ExprSort::Tokens will have the
-           braces included as part of the token stream. */
-        a_boolean cache_braces = initializer.sort != ifc_es_expr_tokens;
-        if (cache_braces) {
-          cache_token(cache, tok_lbrace);
-        }  /* if */
-        cache_expr(cache, initializer, /*cinfo=*/{});
-        if (cache_braces) {
-          cache_token(cache, tok_rbrace);
-        }  /* if */
-      }  /* if */
-      if (cache->get_last_token()->token != tok_semicolon) {
-        /* Add a terminating semicolon, unless one was already added (which can
-           happen when the initializer cached by cache_expr above is of kind
-           ifc_ExprSort_Tokens). */
-        cache_token(cache, tok_semicolon);
-      }  /* if */
-    };
-
-    cache_variable_decl(cache, decl_idx, is_data_member, specifiers, traits,
-                        alignment, type, cache_name_fn, width, cinfo,
-                        cache_init_fn);
-  }  /* if */
-}  /* cache_variable_decl */
-
-
 uint32_t an_ifc_module::try_cache_class_attributes_from_body(
                                         a_module_token_cache_ptr cache,
                                         an_ifc_sentence_index    body_sentence)
@@ -18848,33 +18782,33 @@ about the current cache context to help inform decisions about what to cache.
       break;
     case ifc_ds_decl_variable:
       { /* We're reconstructing a variable. */
-        Opt<an_ifc_decl_variable> opt_idv;
+        Opt<an_ifc_decl_variable> opt_variable_decl;
 
-        construct_node(&opt_idv, templated_decl_idx);
-        if (!opt_idv.has_value()) {
+        construct_node(&opt_variable_decl, templated_decl_idx);
+        if (!opt_variable_decl.has_value()) {
           goto invalid;
         }  /* if */
 
         /* Reconstruct the templated declaration. */
-        an_ifc_decl_variable idv = *opt_idv;
-        auto cache_name_fn = [cache, &decl, cinfo]() {
-          cache_declarator_qualifier(cache, decl, cinfo);
-          cache_simple_template_id(cache, decl);
-        };
-        auto cache_init_fn = [this, cache, &decl]() {
-          an_ifc_sentence_index body = get_ifc_body(get_ifc_entity(decl));
+        an_ifc_decl_variable variable_decl = *opt_variable_decl;
+        this->cache_attrs(cache, templated_decl_idx);
+        cache_var_alignment(cache, variable_decl);
+        if (is_class_scope(get_ifc_home_scope(decl))) {
+          cache_token(cache, tok_static);
+        }  /* if */
+        cache_var_storage_class_specifier(cache, variable_decl);
+        cache_var_decl_specifier_seq(cache, variable_decl);
+        cache_var_type_declarator_lhs(cache, variable_decl);
+        cache_declarator_qualifier(cache, decl, cinfo);
+        cache_simple_template_id(cache, decl);
+        cache_var_type_declarator_rhs(cache, variable_decl);
 
-          if (body != 0) {
-            /* We have a body for this declaration, cache it. */
-            cache_sentence(cache, body);
-          }  /* if */
-        };
-
-        cache_variable_decl(cache, decl_idx, /*is_data_member=*/FALSE,
-                            get_ifc_specifiers(idv), get_ifc_traits(idv),
-                            get_ifc_alignment(idv), get_ifc_type(idv),
-                            cache_name_fn, an_ifc_expr_index{}, cinfo,
-                            cache_init_fn);
+        an_ifc_sentence_index body = get_ifc_body(get_ifc_entity(decl));
+        if (body != 0) {
+          /* We have a body for this declaration, cache it. */
+          cache_sentence(cache, body);
+        }  /* if */
+        cache_token(cache, tok_semicolon);
       }
       break;
     default:
@@ -19019,53 +18953,31 @@ current cache context to help inform decisions about what to cache.
       break;
     case ifc_ds_decl_variable:
       { /* We're reconstructing a variable. */
-        Opt<an_ifc_decl_variable> opt_idv;
+        Opt<an_ifc_decl_variable> opt_variable_decl;
 
-        construct_node(&opt_idv, templated_decl_idx);
-        if (!opt_idv.has_value()) {
+        construct_node(&opt_variable_decl, templated_decl_idx);
+        if (!opt_variable_decl.has_value()) {
           goto invalid;
         }  /* if */
 
-        an_ifc_decl_variable idv = *opt_idv;
+        an_ifc_decl_variable variable_decl = *opt_variable_decl;
         /* Reconstruct the templated declaration. */
-        auto cache_name_fn = [cache, &decl, cinfo]() {
-          cache_declarator_qualifier(cache, decl, cinfo);
-          cache_simple_template_id(cache, decl);
-        };
-        auto cache_spec_init_fn = [this, cache, &cinfo, &idv]() {
-          if (!cinfo.ignore_definition) {
-            an_ifc_expr_index initializer = get_ifc_initializer(idv);
+        cache_var_alignment(cache, variable_decl);
+        cache_var_decl_specifier_seq(cache, variable_decl);
+        cache_var_type_declarator_lhs(cache, variable_decl);
+        cache_declarator_qualifier(cache, decl, cinfo);
+        cache_simple_template_id(cache, decl);
+        cache_var_type_declarator_rhs(cache, variable_decl);
+        if (!is_instantiation && !cinfo.ignore_definition) {
+          an_ifc_expr_index initializer = get_ifc_initializer(variable_decl);
 
-            if (!is_null_index(initializer)) {
-              cache_token(cache, tok_lbrace);
-              cache_expr(cache, initializer, cinfo);
-              cache_token(cache, tok_rbrace);
-            }  /* if */
+          if (!is_null_index(initializer)) {
+            cache_token(cache, tok_lbrace);
+            cache_expr(cache, initializer, cinfo);
+            cache_token(cache, tok_rbrace);
           }  /* if */
-          cache_token(cache, tok_semicolon);
-        };
-        auto cache_inst_init_fn = [cache]() {
-          cache_token(cache, tok_semicolon);
-        };
-
-        an_ifc_decl_index scope_ref = get_ifc_home_scope(idv);
-        /* Disable spurious GCC warning about uninitialized usage of
-           opt_scope_ref). */
-BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
-        if (is_instantiation) {
-          cache_variable_decl(cache, decl_idx, is_class_scope(scope_ref),
-                              get_ifc_specifiers(idv), get_ifc_traits(idv),
-                              get_ifc_alignment(idv), get_ifc_type(idv),
-                              cache_name_fn, an_ifc_expr_index{},
-                              cinfo, cache_inst_init_fn);
-        } else {
-          cache_variable_decl(cache, decl_idx, is_class_scope(scope_ref),
-                              get_ifc_specifiers(idv), get_ifc_traits(idv),
-                              get_ifc_alignment(idv), get_ifc_type(idv),
-                              cache_name_fn, an_ifc_expr_index{},
-                              cinfo, cache_spec_init_fn);
         }  /* if */
-END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
+        cache_token(cache, tok_semicolon);
       }
       break;
     case ifc_ds_decl_function:
@@ -19489,15 +19401,21 @@ about what to cache.
       }
       break;
     case ifc_ds_decl_variable:
-      { an_ifc_decl_variable idv;
+      { an_ifc_decl_variable variable_decl;
 
-        construct_node_prechecked(&idv, decl);
-        cache_variable_decl(cache, decl, /*is_data_member=*/FALSE,
-                            get_ifc_specifiers(idv), get_ifc_traits(idv),
-                            get_ifc_alignment(idv), get_ifc_type(idv),
-                            get_ifc_name(idv), an_ifc_text_offset{},
-                            an_ifc_expr_index{}, get_ifc_initializer(idv),
-                            cinfo);
+        construct_node_prechecked(&variable_decl, decl);
+        this->cache_attrs(cache, decl);
+        cache_var_alignment(cache, variable_decl);
+        if (is_class_scope(get_ifc_home_scope(decl))) {
+          cache_token(cache, tok_static);
+        }  /* if */
+        cache_var_storage_class_specifier(cache, variable_decl);
+        cache_var_decl_specifier_seq(cache, variable_decl);
+        cache_var_type_declarator_lhs(cache, variable_decl);
+        cache_var_declarator_id(cache, variable_decl, cinfo);
+        cache_var_type_declarator_rhs(cache, variable_decl);
+        cache_var_initializer(cache, variable_decl);
+        cache_token(cache, tok_semicolon);
       }
       break;
     case ifc_ds_decl_parameter:
@@ -19510,33 +19428,36 @@ about what to cache.
       }
       break;
     case ifc_ds_decl_field:
-      { an_ifc_decl_field idf;
+      { an_ifc_decl_field field_decl;
 
-        construct_node_prechecked(&idf, decl);
-
-        an_ifc_basic_specifiers_bitfield specifiers = get_ifc_specifiers(idf);
-        check_assertion(!test_bitmask<ifc_bsb_c>(specifiers));
-        cache_variable_decl(cache, decl, /*is_data_member=*/TRUE, specifiers,
-                            get_ifc_traits(idf), get_ifc_alignment(idf),
-                            get_ifc_type(idf), an_ifc_name_index{},
-                            get_ifc_name(idf), an_ifc_expr_index{},
-                            get_ifc_initializer(idf), cinfo);
+        construct_node_prechecked(&field_decl, decl);
+        this->cache_attrs(cache, decl);
+        cache_var_alignment(cache, field_decl);
+        cache_var_storage_class_specifier(cache, field_decl);
+        cache_var_decl_specifier_seq(cache, field_decl);
+        cache_var_type_declarator_lhs(cache, field_decl);
+        cache_var_declarator_id(cache, field_decl, cinfo);
+        cache_var_type_declarator_rhs(cache, field_decl);
+        cache_var_initializer(cache, field_decl);
+        cache_token(cache, tok_semicolon);
       }
       break;
     case ifc_ds_decl_bitfield:
-      { an_ifc_decl_bitfield idbf;
+      { an_ifc_decl_bitfield bitfield_decl;
 
-        construct_node_prechecked(&idbf, decl);
+        construct_node_prechecked(&bitfield_decl, decl);
+        this->cache_attrs(cache, decl);
+        cache_var_storage_class_specifier(cache, bitfield_decl);
+        cache_var_decl_specifier_seq(cache, bitfield_decl);
+        cache_var_type_declarator_lhs(cache, bitfield_decl);
+        cache_var_declarator_id(cache, bitfield_decl, cinfo);
+        cache_var_type_declarator_rhs(cache, bitfield_decl);
+        cache_token(cache, tok_colon);
 
-        an_ifc_basic_specifiers_bitfield specifiers = get_ifc_specifiers(idbf);
-        an_ifc_expr_index                width = get_ifc_width(idbf);
-        check_assertion(!test_bitmask<ifc_bsb_c>(specifiers));
-        check_assertion(!is_null_index(width));
-        cache_variable_decl(cache, decl, /*is_data_member=*/TRUE, specifiers,
-                            get_ifc_traits(idbf), an_ifc_expr_index{},
-                            get_ifc_type(idbf), an_ifc_name_index{},
-                            get_ifc_name(idbf), width,
-                            get_ifc_initializer(idbf), cinfo);
+        an_ifc_expr_index width = get_ifc_width(bitfield_decl);
+        cache_expr(cache, width, /*cinfo=*/{});
+        cache_var_initializer(cache, bitfield_decl);
+        cache_token(cache, tok_semicolon);
       }
       break;
     case ifc_ds_decl_scope:
@@ -19581,7 +19502,7 @@ about what to cache.
         an_ifc_type_fundamental itf = *opt_itf;
         an_ifc_expr_index       alignment = get_ifc_alignment(ide);
         an_ifc_type_index       base = get_ifc_base(ide);
-        cache_basic_specifiers(cache, get_ifc_specifiers(ide));
+        cache_linkage_specification(cache, ide);
 
         an_ifc_type_basis_sort basis = get_ifc_basis(itf);
         switch (basis) {
@@ -21040,6 +20961,25 @@ done:;
 }  /* cache_expr */
 
 
+static void cache_syntactic_type_qualifiers(
+                                          a_module_token_cache_ptr  cache,
+                                          an_ifc_qualifier_bitfield qualifiers)
+/*
+Cache the qualifiers for a syntactic represented IFC type.
+*/
+{
+  if (test_bitmask<ifc_qb_const>(qualifiers)) {
+    cache_token(cache, tok_const);
+  }  /* if */
+  if (test_bitmask<ifc_qb_volatile>(qualifiers)) {
+    cache_token(cache, tok_volatile);
+  }  /* if */
+  if (test_bitmask<ifc_qb_restrict>(qualifiers)) {
+    cache_token(cache, tok_restrict);
+  }  /* if */
+}  /* cache_syntactic_type_qualifiers */
+
+
 void an_ifc_module::cache_syntax(a_module_token_cache_ptr cache,
                                  an_ifc_syntax_index      syntax,
                                  const an_ifc_cache_info  &cinfo)
@@ -21124,9 +21064,12 @@ Otherwise, parameter references should only include the parameter name.
         }  /* if */
 
         an_ifc_syntax_type_specifier_seq istss = *opt_istss;
-        an_ifc_type_index                type = get_ifc_type(istss);
-        an_ifc_syntax_index              type_name = get_ifc_type_name(istss);
-        cache_qualifiers(cache, get_ifc_qualifiers(istss));
+        an_ifc_qualifier_bitfield        qualifiers =
+                                                     get_ifc_qualifiers(istss);
+        cache_syntactic_type_qualifiers(cache, qualifiers);
+
+        an_ifc_type_index   type = get_ifc_type(istss);
+        an_ifc_syntax_index type_name = get_ifc_type_name(istss);
         if (is_null_index(type)) {
           check_assertion(!is_null_index(type_name));
           cache_syntax(cache, type_name, cinfo);
@@ -21146,18 +21089,21 @@ Otherwise, parameter references should only include the parameter name.
 
         an_ifc_syntax_decl_specifier_seq isdss = *opt_isdss;
         an_ifc_sentence_index            declspec = get_ifc_declspec(isdss);
-        an_ifc_syntax_index              explicit_kw =
-                                                    get_ifc_explicit_kw(isdss);
-        an_ifc_type_index                type = get_ifc_type(isdss);
-        an_ifc_syntax_index              type_name = get_ifc_type_name(isdss);
         /* FIXME: Handle storage_class field. */
         if (declspec != 0) {
           cache_sentence(cache, declspec);
         }  /* if */
+
+        an_ifc_syntax_index explicit_kw = get_ifc_explicit_kw(isdss);
         if (!is_null_index(explicit_kw)) {
           cache_syntax(cache, explicit_kw, cinfo);
         }  /* if */
-        cache_qualifiers(cache, get_ifc_qualifiers(isdss));
+
+        an_ifc_qualifier_bitfield qualifiers = get_ifc_qualifiers(isdss);
+        cache_syntactic_type_qualifiers(cache, qualifiers);
+
+        an_ifc_type_index   type = get_ifc_type(isdss);
+        an_ifc_syntax_index type_name = get_ifc_type_name(isdss);
         if (is_null_index(type)) {
           check_assertion(!is_null_index(type_name));
           cache_syntax(cache, type_name, cinfo);
@@ -21302,19 +21248,13 @@ Otherwise, parameter references should only include the parameter name.
 
         an_ifc_syntax_declarator       isd = *opt_isd;
         an_ifc_calling_convention_sort convention = get_ifc_convention(isd);
-        an_ifc_syntax_index            pointer = get_ifc_pointer(isd);
-        an_ifc_syntax_index            parenthesized =
-                                                    get_ifc_parenthesized(isd);
-        an_ifc_syntax_index            array_or_function =
-                                                get_ifc_array_or_function(isd);
-        an_ifc_syntax_index            virtual_specifiers =
-                                               get_ifc_virtual_specifiers(isd);
-        an_ifc_expr_index              name = get_ifc_name(isd);
-        an_ifc_syntax_index            trailing_target =
-                                                  get_ifc_trailing_target(isd);
         if (convention != ifc_ccs_cdecl) {
           cache_calling_convention(cache, convention);
         }  /* if */
+
+        an_ifc_syntax_index pointer = get_ifc_pointer(isd);
+        an_ifc_syntax_index parenthesized = get_ifc_parenthesized(isd);
+        an_ifc_syntax_index array_or_function = get_ifc_array_or_function(isd);
         if (!is_null_index(pointer)) {
           cache_syntax(cache, pointer, cinfo);
         } else if (!is_null_index(parenthesized)) {
@@ -21324,15 +21264,24 @@ Otherwise, parameter references should only include the parameter name.
         } else if (!is_null_index(array_or_function)) {
           cache_syntax(cache, array_or_function, cinfo);
         }  /* if */
-        cache_qualifiers(cache, get_ifc_qualifiers(isd));
+
+        an_ifc_qualifier_bitfield qualifiers = get_ifc_qualifiers(isd);
+        cache_syntactic_type_qualifiers(cache, qualifiers);
+
+        an_ifc_syntax_index virtual_specifiers =
+                                               get_ifc_virtual_specifiers(isd);
         if (!is_null_index(virtual_specifiers)) {
           cache_syntax(cache, virtual_specifiers, cinfo);
         }  /* if */
+
+        an_ifc_expr_index name = get_ifc_name(isd);
         if (!is_null_index(name)) {
           /* FIXME: Confirm and ensure that the name is cached at the right
              location in the sequence of tokens. */
           cache_expr(cache, name, cinfo);
         }  /* if */
+
+        an_ifc_syntax_index trailing_target = get_ifc_trailing_target(isd);
         if (!is_null_index(trailing_target)) {
           cache_syntax(cache, trailing_target, cinfo);
         }  /* if */
@@ -21347,9 +21296,10 @@ Otherwise, parameter references should only include the parameter name.
         }  /* if */
 
         an_ifc_syntax_pointer_declarator ispd = *opt_ispd;
-        an_ifc_calling_convention_sort   convention = get_ifc_convention(ispd);
-        an_ifc_syntax_index              next = get_ifc_next(ispd);
-        cache_qualifiers(cache, get_ifc_qualifiers(ispd));
+        an_ifc_qualifier_bitfield        qualifiers = get_ifc_qualifiers(ispd);
+        cache_syntactic_type_qualifiers(cache, qualifiers);
+
+        an_ifc_calling_convention_sort convention = get_ifc_convention(ispd);
         if (convention != ifc_ccs_cdecl) {
           cache_calling_convention(cache, convention);
         }  /* if */
@@ -21382,6 +21332,8 @@ Otherwise, parameter references should only include the parameter name.
             break;
           default_is_unexpected_str("Unexpected PointerDeclaratorSort");
         }  /* switch */
+
+        an_ifc_syntax_index next = get_ifc_next(ispd);
         if (!is_null_index(next)) {
           cache_syntax(cache, next, cinfo);
         }  /* if */
