@@ -3780,11 +3780,11 @@ elements in the list.
 
 
 template<typename an_integer_type>
-inline an_integer_type max_uint_value_of() DELETED_FN_DEF
+inline constexpr an_integer_type max_uint_value_of() DELETED_FN_DEF
 
 
 template<>
-inline uint32_t max_uint_value_of()
+inline constexpr uint32_t max_uint_value_of()
 /*
 Return the maximum value of a 32-bit unsigned integer.
 */
@@ -3794,7 +3794,7 @@ Return the maximum value of a 32-bit unsigned integer.
 
 
 template<>
-inline uint64_t max_uint_value_of()
+inline constexpr uint64_t max_uint_value_of()
 /*
 Return the maximum value of a 64-bit unsigned integer.
 */
@@ -3812,8 +3812,9 @@ Perform a checked addition, *output = a + b.  Return TRUE if the *output has
 been set and overflow did not occur; otherwise, return FALSE.
 */
 {
-  a_boolean result;
-  uint64_t  diff = max_uint_value_of<an_integer_type>() - a;
+  a_boolean      result;
+  constexpr auto max_value = max_uint_value_of<an_integer_type>();
+  uint64_t       diff = max_value - a;
 
   /* This exploits that "a + b > c" if and only if "b > c - a".  Thus, by using
      c = UINTX_MAX, overflow of a + b can be detected. */
@@ -3836,12 +3837,13 @@ Perform a checked multiplication, *output = a * b.  Return TRUE if the *output
 has been set and overflow did not occur; otherwise, return FALSE.
 */
 {
-  a_boolean result;
+  a_boolean      result;
+  constexpr auto max_value = max_uint_value_of<an_integer_type>();
 
   /* This exploits that "a * b > c" if and only if "a > c / b".  Thus, by using
      c = UINTX_MAX, overflow of a * b can be detected.  b != 0 is additionally
      checked to ensure division by zero does not occur. */
-  if (b != 0 && a > max_uint_value_of<an_integer_type>() / b) {
+  if (b != 0 && a > max_value / b) {
     result = FALSE;
   } else {
     result = TRUE;
