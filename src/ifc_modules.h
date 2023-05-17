@@ -543,7 +543,7 @@ extern an_ifc_partition_metadata *get_partition_metadata(
                                                         an_ifc_Index_type idx);
 
 template<typename an_ifc_Index_type>
-extern size_t get_partition_offset(an_ifc_Index_type idx);
+extern Opt<size_t> get_partition_offset(an_ifc_Index_type idx);
 
 extern a_const_char *get_partition_name_from_kind(
                                               an_ifc_partition_kind part_kind);

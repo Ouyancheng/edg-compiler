@@ -3398,6 +3398,7 @@ ec_bad_argument_to_make_unsigned;;"__make_unsigned is only compatible with non-b
 ec_intrinsic_name_released;;"the intrinsic name %sq will be treated as an ordinary identifier from here"
 ec_array_subobject_not_initialized;;"access to uninitialized subobject at index %d"
 ec_ifc_line_number_overflow;;"IFC line number (%u1) overflows maximum allowed value (%u2) module %sq"
+ec_invalid_unrepresentable_ifc_position;;"module %sq1 requested element %u of partition %sq2, this file position exceeds the maximum representable value"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -805,19 +805,28 @@ been created, the partition is set according to the partition supplied by the
 caller.
 */
 {
+  a_module_entity_ptr         result;
   an_ifc_partition_kind_index element_idx =
                                collapse_partition_index(mod, partition, index);
-  a_module_entity_ptr         mep = get_module_entity_ptr(
-                                            element_idx.mod->assoc_module_info,
-                                            get_partition_offset(element_idx));
+  Opt<size_t>                 opt_offset = get_partition_offset(element_idx);
 
-  /* FIXME: Handle error case, formatting. */
-  if (mep->variant.ifc_partition == ifc_pk_none) {
-    mep->variant.ifc_partition = element_idx.partition_kind;
+  /* If this assertion is violated, get_ifc_module_entity_ptr was called with
+     an index that hasn't passed through validation.  This should be resolved
+     with additional validation. */
+  check_assertion(opt_offset.has_value());
+
+  size_t offset = *opt_offset;
+  result = get_module_entity_ptr(element_idx.mod->assoc_module_info, offset);
+  if (result->variant.ifc_partition == ifc_pk_none) {
+    result->variant.ifc_partition = element_idx.partition_kind;
   } else {
-    check_assertion(mep->variant.ifc_partition == element_idx.partition_kind);
+    /* This should always hold unless there's a logic bug that's resulted in
+       the value partition being corrupted or the file offset is being
+       incorrectly calculated. */
+      check_assertion(result->variant.ifc_partition ==
+                      element_idx.partition_kind);
   }  /* if */
-  return mep;
+  return result;
 }  /* get_ifc_module_entity_ptr */
 
 
@@ -4256,8 +4265,16 @@ position.
   an_ifc_partition_metadata   *part_meta =
                                          get_partition_metadata(part_kind_idx);
   size_t                      part_start = part_meta->offset;
-  size_t                      abs_offset = get_partition_offset(part_kind_idx);
-  size_t                      rel_offset = abs_offset - part_start;
+  Opt<size_t>                 opt_abs_offset =
+                                           get_partition_offset(part_kind_idx);
+
+  /* If this assertion is violated, add_partition_element_diag_info was called
+     with an index that hasn't passed through validation.  This should be
+     resolved with additional validation. */
+  check_assertion(opt_abs_offset.has_value());
+
+  size_t abs_offset = *opt_abs_offset;
+  size_t rel_offset = abs_offset - part_start;
 
   st_unum3_add_diag_info(diag, error_code, get_partition_name_from_kind(kind),
                          idx_value,
@@ -22835,6 +22852,30 @@ partition.
 }  /* undefined_partition */
 
 
+static void diag_unrepresentable_partition(
+                                       an_ifc_module                 *mod,
+                                       an_ifc_partition_kind         part_kind,
+                                       an_ifc_index_type             idx,
+                                       const an_ifc_validation_trace *trace)
+/*
+Given the associated module, partition kind, index, and validation trace,
+handle failure and diagnostics for an encountered undefined partition.
+*/
+{
+  a_const_char     *part_name = get_partition_name_from_kind(part_kind);
+  a_diagnostic_ptr diag_ptr;
+
+  /* FIXME: Use a better source position. */
+  diag_ptr = pos_st2_unum_start_error(ec_invalid_unrepresentable_ifc_position,
+                                      &null_source_position,
+                                      mod->assoc_module_info->name,
+                                      part_name,
+                                      idx);
+  add_backtrace(diag_ptr, trace);
+  end_diagnostic(diag_ptr);
+}  /* undefined_partition */
+
+
 static void diag_partition_position(
                                  an_error_code                 error_code,
                                  an_ifc_module                 *mod,
@@ -22887,21 +22928,30 @@ diagnostic using the validation trace.
     result = FALSE;
     diag_undefined_partition(mod, partition_kind, trace);
   } else {
-    size_t file_offset = get_partition_offset(part_index);
-    size_t relative_offset = file_offset - partition_offset;
+    Opt<size_t> opt_file_offset = get_partition_offset(part_index);
 
-    if ((relative_offset + partition_entry_size) > partition_size) {
-      /* Check that the relative offset is within the partition. */
+    if (!opt_file_offset.has_value()) {
+      /* Check that the file offset can be represented by this build of the
+         front end. */
       result = FALSE;
-      diag_partition_position(ec_invalid_overflowing_ifc_position, mod,
-                              partition_kind, file_offset, relative_offset,
-                              trace);
-    } else if ((relative_offset % partition_entry_size) != 0) {
-      /* Check that the relative offset is at a given position. */
-      result = FALSE;
-      diag_partition_position(ec_invalid_misaligned_ifc_position, mod,
-                              partition_kind, file_offset, relative_offset,
-                              trace);
+      diag_unrepresentable_partition(mod, partition_kind, index, trace);
+    } else {
+      size_t file_offset = *opt_file_offset;
+      size_t relative_offset = file_offset - partition_offset;
+
+      if ((relative_offset + partition_entry_size) > partition_size) {
+        /* Check that the relative offset is within the partition. */
+        result = FALSE;
+        diag_partition_position(ec_invalid_overflowing_ifc_position, mod,
+                                partition_kind, file_offset, relative_offset,
+                                trace);
+      } else if ((relative_offset % partition_entry_size) != 0) {
+        /* Check that the relative offset is at a given position. */
+        result = FALSE;
+        diag_partition_position(ec_invalid_misaligned_ifc_position, mod,
+                                partition_kind, file_offset, relative_offset,
+                                trace);
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;

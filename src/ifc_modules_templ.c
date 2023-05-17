@@ -142,23 +142,43 @@ INST_PARTITION_METADATA(an_ifc_partition_kind_index)
 
 
 template<typename an_ifc_Index_type>
-size_t get_partition_offset(an_ifc_Index_type idx)
+Opt<size_t> get_partition_offset(an_ifc_Index_type idx)
 /*
-Convert a given IFC index type into a file offset into the partition.
+Convert and return a given IFC index type into a file offset into the
+partition; if the conversion is fails, return an empty optional.
 */
 {
+  Opt<size_t>               result;
   an_ifc_partition_metadata *partition_metadata = get_partition_metadata(idx);
-  size_t                    offset = partition_metadata->offset;
-  size_t                    entry_size = partition_metadata->entry_size;
 
-  return offset + (get_partition_index(idx) * entry_size);
+  {
+    uint64_t          entry_offset;
+    an_ifc_index_type part_idx = get_partition_index(idx);
+    size_t            entry_size = partition_metadata->entry_size;
+
+    if (!checked_multiplication(&entry_offset, part_idx, entry_size)) {
+      goto invalid;
+    }  /* if */
+
+    size_t result_offset;
+    size_t part_offset = partition_metadata->offset;
+    if (!checked_addition(&result_offset, part_offset, entry_offset)) {
+      goto invalid;
+    }  /* if */
+    result = result_offset;
+  }
+  goto done;
+invalid:
+  result.clear();
+done:
+  return result;
 }  /* get_partition_offset */
 
 
 /* Macro used to explicitly instantiate get_partition_offset. */
 #define INST_PARTITION_OFFSET(idx_type) \
   template \
-  size_t get_partition_offset<idx_type>(idx_type idx);
+  Opt<size_t> get_partition_offset<idx_type>(idx_type idx);
 
 
 /* Manually defined explicit instantiations of get_partition_offset. */
@@ -195,8 +215,13 @@ the given index.
 #if DEBUG && EXPENSIVE_CHECKING
   debug_partition = partition_metadata;
 #endif /* DEBUG && EXPENSIVE_CHECKING */
-  init_byte_buffer(idx.mod, get_partition_offset(idx),
-                   partition_metadata->size);
+
+  Opt<size_t> opt_part_offset = get_partition_offset(idx);
+  /* If this assertion is violated, read_partition_element was called with an
+     index that hasn't passed through validation.  This should be resolved with
+     additional validation. */
+  check_assertion(opt_part_offset.has_value());
+  init_byte_buffer(idx.mod, *opt_part_offset, partition_metadata->size);
 }  /* read_partition_element */
 
 
