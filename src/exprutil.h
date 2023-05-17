@@ -1108,6 +1108,10 @@ typedef struct an_expr_stack_entry {
 			   not evaluated.  In particular, this is TRUE when
 			   scanning X in "0 && X" or "1 || X" even when an
 			   overloaded operator && or || exists. */
+  a_bit_field	trace_unevaluated_lambdas:1;
+			/* TRUE if an unevaluated lambda should be accepted 
+			   but its presence recorded for a potential later
+			   diagnostic. */
   a_const_eval_reattempt_state
 		const_eval_reattempt_state;
 			/* The current constant evaluation reattempt state

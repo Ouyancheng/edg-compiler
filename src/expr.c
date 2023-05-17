@@ -18253,7 +18253,7 @@ indication in *rcblock).
   a_boolean         is_type;
   a_type_ptr        typeid_type;
   a_boolean         is_cli_typeid = FALSE;
-  a_boolean         err = FALSE;
+  a_boolean         err = FALSE, unevaluated_scan_done = FALSE;
   a_boolean         microsoft_template_arg_case = FALSE;
   a_boolean         runtime_case = FALSE;
   an_expr_stack_entry
@@ -18268,6 +18268,8 @@ indication in *rcblock).
   a_source_position potentially_unevaluated_lambda_pos;
   a_boolean         saved_cpp11_constant_expr_ruled_out;
   a_boolean         make_constant = FALSE;
+  a_token_cache     opnd_tokens;
+  unsigned long     saved_error_count;
 
   db_enter(4, "scan_typeid_operator");
   if (rcblock != NULL) {
@@ -18349,16 +18351,28 @@ indication in *rcblock).
             is_incomplete_type(type_of_type_info))) {
     expr_pos_error(ec_typeid_needs_typeinfo, &start_position);
   }  /* if */
+reparse:
   /* Push an entry on the expression stack so the operand will be handled
      properly.  For simplicity, this is done even for the cases where the
-     operand will turn out to be a type. */
-  if (microsoft_template_arg_case) {
-    /* Something like X<... typeid(<expr>) ...>.  Scan the <expr> argument
-       like a sizeof expression so that function calls etc. are accepted in
-       what is otherwise a constant-expression context. */
-    switch_to_scope_region_and_lifetime(depth_scope_stack,
-                                        &region_to_switch_back_to,
-                                        &saved_object_lifetime);
+     operand will turn out to be a type.  When not substituting a previously-
+     scanned construct, we potentially scan the construct twice: Once
+     assuming an unevaluated operand, and, if the type of the operand is
+     polymorphic in a way that causes the typeid construct to require run-time
+     evaluation, an additional scan assuming an evaluated operand. */
+  saved_error_count = diagnostic_counters.total.errors;
+  if (microsoft_template_arg_case ||
+      (rcblock == NULL && !unevaluated_scan_done)) {
+    /* If the operand is an expression, we want to scan it as an unevaluated
+       operand.  We might re-parse it later as an evaluated operand if that
+       turns out to be required. */
+    if (microsoft_template_arg_case) {
+      /* Something like X<... typeid(<expr>) ...>.  We are in a file-scope
+         memory context: Switch to the memory context associated with the
+         current scope while scanning <expr>. */
+      switch_to_scope_region_and_lifetime(depth_scope_stack,
+                                          &region_to_switch_back_to,
+                                          &saved_object_lifetime);
+    }  /* if */
     push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
                                  &expr_stack_entry,
                                  /*force_object_lifetime=*/FALSE,
@@ -18391,8 +18405,21 @@ indication in *rcblock).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
     {
-      /* Advance past typeid. */
-      (void)get_token();
+      clear_token_cache(&opnd_tokens, /*reusable=*/TRUE);
+      if (!unevaluated_scan_done) {
+        /* Advance past typeid. */
+        (void)get_token();
+        /* Cache the parenthesized operand.  This is done to enable us to
+           potentially parse the operand twice: Once as an unevaluated operand
+           and, if needed, a second time as an evaluated operand. */
+        if (!cache_token_stream_until_matching_token(
+                                              &opnd_tokens, CTS_NO_OPTIONS)) {
+          /* We found the matching right parenthesis: Cache it. */
+          cache_curr_token(&opnd_tokens);
+          (void)get_token();
+        }  /* if */
+        rescan_reusable_cache(&opnd_tokens);
+      }  /* if */
       /* Check for and pass over the left parenthesis. */
       (void)required_token(tok_lparen, ec_exp_lparen);
       add_matching_stop_token(tok_rparen);
@@ -18427,6 +18454,7 @@ indication in *rcblock).
                         /*force_object_lifetime=*/TRUE,
                         /*suppress_object_lifetime=*/FALSE);
         expr_stack->potentially_unevaluated = TRUE;
+        expr_stack->trace_unevaluated_lambdas = TRUE;
         transfer_expr_context_if_applicable(saved_expr_stack);
         alep = scan_expr_as_init_component(/*bundle=*/TRUE, EOPT_NO_OPTIONS);
         objectless_nonstatic_data_ref_seen =
@@ -18505,17 +18533,38 @@ indication in *rcblock).
           runtime_case = FALSE;
         }  /* if */
       }  /* if */
+      if (microsoft_template_arg_case && runtime_case) {
+        /* The Microsoft extension doesn't allow cases that require runtime
+           evaluation. */
+        if (!could_be_dependent_class_type(typeid_type)) {
+          expr_pos_error(ec_bad_constant_operator, &start_position);
+        }  /* if */
+        runtime_case = FALSE;
+      }  /* if */
+      if (runtime_case && rcblock == NULL && !unevaluated_scan_done &&
+          diagnostic_counters.total.errors == saved_error_count) {
+        /* We have only performed an unevaluated expression parse at this
+           point, but the type of the expression is such that the expression
+           must be evaluated at run time.  That requires potential additional
+           bookkeeping (e.g., object lifetime management and instantiation of
+           used entities).  Re-parse the expression with that in mind.  Do not
+           do that if errors were emitted during the first parse to avoid
+           double diagnostics. */
+        unevaluated_scan_done = TRUE;
+        free_init_component_list(alep);
+        pop_expr_stack();
+        if (curr_token == tok_rparen) {
+          (void)get_token();
+        } else {
+          expect_error();
+        }  /* if */
+        remove_matching_stop_token(tok_rparen);
+        rescan_cached_tokens(&opnd_tokens);
+        goto reparse;
+      }  /* if */
     } else if (constexpr_enabled) {
       /* C++11 made the non-polymorphic case a core constant expression. */
       make_constant = TRUE;
-    }  /* if */
-    if (microsoft_template_arg_case && runtime_case) {
-      /* The Microsoft extension doesn't allow cases that require runtime
-         evaluation. */
-      if (!could_be_dependent_class_type(typeid_type)) {
-        expr_pos_error(ec_bad_constant_operator, &start_position);
-      }  /* if */
-      runtime_case = FALSE;
     }  /* if */
     if (alep != NULL) {
       if (!runtime_case) {
@@ -39089,9 +39138,16 @@ Scan a C++ lambda expression, e.g., something like
     err = TRUE;
   } else if (!lambda_allowed_in_uneval_context &&
              !curr_expr_is_potentially_evaluated()) {
-    /* A lambda is not allowed in an unevaluated expression. */
-    expr_pos_error(ec_bad_unevaluated_lambda, &start_pos);
-    err = TRUE;
+    if (expr_stack->trace_unevaluated_lambdas) {
+      /* A lambda in a context where we won't know until later if the
+         context is evaluated (e.g., the operand of a typeid). */
+      expr_stack->potentially_unevaluated_lambda_seen = TRUE;
+      expr_stack->potentially_unevaluated_lambda_pos = start_pos;
+    } else {
+      /* A lambda is not allowed in an unevaluated expression. */
+      expr_pos_error(ec_bad_unevaluated_lambda, &start_pos);
+      err = TRUE;
+    }  /* if */
   } else if (!lambda_allowed_in_uneval_context &&
              scope_stack_top().exception_specification) {
     /* A lambda is not allowed in a noexcept specifier. */
@@ -39116,11 +39172,6 @@ Scan a C++ lambda expression, e.g., something like
             instantiated). */
     expr_pos_error(ec_lambda_not_allowed_here, &start_pos);
     err = TRUE;
-  } else if (curr_expr_is_potentially_unevaluated()) {
-    /* A lambda in a context where we won't know until later if the
-       context is evaluated (e.g., the operand of a typeid). */
-    expr_stack->potentially_unevaluated_lambda_seen = TRUE;
-    expr_stack->potentially_unevaluated_lambda_pos = start_pos;
   } else if (!constexpr_lambdas_enabled && !gpp_version_is(<80000) &&
              construct_not_allowed_in_cpp11_constant_expr(
                                                         ec_bad_constant_lambda,
