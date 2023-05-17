@@ -6192,9 +6192,13 @@ This is done before command line processing.
                        "host_envir_early_init",
                        "predef_macro_mode_names not initialized properly");
   /* If the host environment and the front end configuration did not provide a
-     definition for UINT32_MAX, we defaulted that macro to UINT_MAX.  Check
-     that this does not exceed the capacity of the uint32_t type. */
-  check_assertion(sizeof(UINT32_MAX) <= sizeof(uint32_t)); /*lint !e866*/
+     definition for UINT32_MAX or UINT64_MAX, we defaulted that macro to
+     UINT_MAX.  Check that this does not exceed the capacity of the uint32_t or
+     uint64_t type respectively. */
+  static_assert(sizeof(UINT32_MAX) <= sizeof(uint32_t),
+                "UINT32_MAX is too large");
+  static_assert(sizeof(UINT64_MAX) <= sizeof(uint64_t),
+                "UINT64_MAX is too large");
 }  /* host_envir_early_init */
 
 

@@ -399,6 +399,14 @@ typedef EDG_UINTPTR_T uintptr_t;
 #define INT32_MAX INT_MAX
 #endif /* !defined(INT32_MAX) */
 
+#if !defined(UINT64_MAX)
+#define UINT64_MAX UINT_MAX
+#endif /* !defined(UINT64_MAX) */
+
+#if !defined(INT64_MAX)
+#define INT64_MAX INT_MAX
+#endif /* !defined(INT64_MAX) */
+
 /* Define typedefs to be used for "void *" and "const void *".  When
    using an ANSI C compiler these are just typedefs to the appropriate
    types.  When compiling with an old-style C compiler, "char *" is used. */

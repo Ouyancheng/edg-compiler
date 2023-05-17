@@ -3778,6 +3778,79 @@ elements in the list.
   return count_list_elements(list_head, always_true);
 }  /* count_list_elements */
 
+
+template<typename an_integer_type>
+inline an_integer_type max_uint_value_of() DELETED_FN_DEF
+
+
+template<>
+inline uint32_t max_uint_value_of()
+/*
+Return the maximum value of a 32-bit unsigned integer.
+*/
+{
+  return UINT32_MAX;
+}  /* max_uint_value_of */
+
+
+template<>
+inline uint64_t max_uint_value_of()
+/*
+Return the maximum value of a 64-bit unsigned integer.
+*/
+{
+  return UINT64_MAX;
+}  /* max_uint_value_of */
+
+
+template<typename an_integer_type>
+inline a_boolean checked_addition(an_integer_type *output,
+                                  uint64_t        a,
+                                  uint64_t        b)
+/*
+Perform a checked addition, *output = a + b.  Return TRUE if the *output has
+been set and overflow did not occur; otherwise, return FALSE.
+*/
+{
+  a_boolean result;
+  uint64_t  diff = max_uint_value_of<an_integer_type>() - a;
+
+  /* This exploits that "a + b > c" if and only if "b > c - a".  Thus, by using
+     c = UINTX_MAX, overflow of a + b can be detected. */
+  if (b > diff) {
+    result = FALSE;
+  } else {
+    result = TRUE;
+    *output = a + b;
+  }  /* if */
+  return result;
+}  /* precheck_add */
+
+
+template<typename an_integer_type>
+inline a_boolean checked_multiplication(an_integer_type *output,
+                                        uint64_t        a,
+                                        uint64_t        b)
+/*
+Perform a checked multiplication, *output = a * b.  Return TRUE if the *output
+has been set and overflow did not occur; otherwise, return FALSE.
+*/
+{
+  a_boolean result;
+
+  /* This exploits that "a * b > c" if and only if "a > c / b".  Thus, by using
+     c = UINTX_MAX, overflow of a * b can be detected.  b != 0 is additionally
+     checked to ensure division by zero does not occur. */
+  if (b != 0 && a > max_uint_value_of<an_integer_type>() / b) {
+    result = FALSE;
+  } else {
+    result = TRUE;
+    *output = a * b;
+  }  /* if */
+  return result;
+}  /* checked_multiplication */
+
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 
