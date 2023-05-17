@@ -3824,7 +3824,7 @@ been set and overflow did not occur; otherwise, return FALSE.
     *output = a + b;
   }  /* if */
   return result;
-}  /* precheck_add */
+}  /* checked_addition */
 
 
 template<typename an_integer_type>
