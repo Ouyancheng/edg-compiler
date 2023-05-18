@@ -18412,7 +18412,8 @@ reparse:
         /* Cache the parenthesized operand.  This is done to enable us to
            potentially parse the operand twice: Once as an unevaluated operand
            and, if needed, a second time as an evaluated operand. */
-        if (!cache_token_stream_until_matching_token(
+        if (curr_token == tok_lparen &&
+            !cache_token_stream_until_matching_token(
                                               &opnd_tokens, CTS_NO_OPTIONS)) {
           /* We found the matching right parenthesis: Cache it. */
           cache_curr_token(&opnd_tokens);
