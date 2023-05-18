@@ -3780,7 +3780,12 @@ elements in the list.
 
 
 template<typename an_integer_type>
-inline constexpr an_integer_type max_uint_value_of() DELETED_FN_DEF
+inline constexpr an_integer_type max_uint_value_of() /* = delete; */
+#if HOST_SUPPORTS_DELETED_FUNCTION_TEMPLATES
+  = delete;
+#else  /* !HOST_SUPPORTS_DELETED_FUNCTION_TEMPLATES */
+  { return 0; }
+#endif /* HOST_SUPPORTS_DELETED_FUNCTION_TEMPLATES */
 
 
 template<>
