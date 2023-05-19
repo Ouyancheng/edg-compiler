@@ -1812,6 +1812,15 @@ class is available.
   ctsp->removed_from_il                   = FALSE;
   ctsp->contains_error                    = FALSE;
   ctsp->contains_error_cached             = FALSE;
+  ctsp->contains_local_type               = FALSE;
+  ctsp->contains_local_type_cached        = FALSE;
+  ctsp->contains_unnamed_namespace_type   = FALSE;
+  ctsp->contains_unnamed_namespace_type_cached
+                                          = FALSE;
+  ctsp->does_not_contain_parentless_lambda_in_default_argument
+                                          = FALSE;
+  ctsp->does_not_contain_deprecated_or_unavailable_type
+                                          = FALSE;
   ctsp->anonymous_union_kind              = (an_anonymous_union_kind)auk_none;
   ctsp->anonymous_union_field             = NULL;
   ctsp->friend_routines                   = NULL;

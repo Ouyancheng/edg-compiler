@@ -8490,6 +8490,29 @@ typedef struct a_class_type_supplement {
   a_bit_field	contains_error_cached:1;
 			/* TRUE if the value of contains_error is fully
 			   determined. */
+  a_bit_field	contains_local_type:1;
+			/* TRUE if the class contains a local type.  If FALSE
+			   and contains_local_type_cached is TRUE, then the
+			   class is known not to contain a local type. */
+  a_bit_field	contains_local_type_cached:1;
+			/* TRUE if the value of contains_local_type is fully
+			   determined. */
+  a_bit_field	contains_unnamed_namespace_type:1;
+			/* TRUE if the class contains an unnamed namespace
+			   type.  If FALSE and
+			   contains_unnamed_namespace_type_cached is TRUE, then
+			   the class is known not to contain an unnamed
+			   namespace type. */
+  a_bit_field	contains_unnamed_namespace_type_cached:1;
+			/* TRUE if the value of contains_unnamed_namespace_type
+			   is fully determined. */
+  a_bit_field	does_not_contain_parentless_lambda_in_default_argument:1;
+			/* TRUE if the class is known not to contain a lambda
+			   type that is defined in a default argument and does
+			   not have its parent pointer set. */
+  a_bit_field	does_not_contain_deprecated_or_unavailable_type:1;
+			/* TRUE if the class is known not to contain a
+			   deprecated or unavailable type. */
   an_anonymous_union_kind
 		anonymous_union_kind;
 			/* Indication of whether this class is an anonymous

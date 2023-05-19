@@ -8531,7 +8531,12 @@ has not yet been set.
 {
   a_boolean result = FALSE;
 
-  if (type_is_lambda_closure(type) &&
+  if (is_immediate_class_type(type) &&
+      class_type_supp(type)
+                    ->does_not_contain_parentless_lambda_in_default_argument) {
+    /* Stop traversal as the class type has already been checked. */
+    *end_traversal = TRUE;
+  } else if (type_is_lambda_closure(type) &&
       symbol_supplement_for_class(type)->
                             lambda_immediately_inside_default_arg_expression &&
       class_type_supp(type)->lambda_parent.routine == NULL) {
@@ -8542,6 +8547,22 @@ has not yet been set.
 }  /* ttt_has_parentless_lambda_in_default_argument */
 
 
+static void ttt_post_has_parentless_lambda_in_default_argument(
+                                                             a_type_ptr type,
+                                                             a_boolean  result)
+/*
+This is a service function designed to be called from traverse_type_tree_full
+as a post-order traversal function (whence the ttt_post_ prefix).  If type_ptr
+is a class type it caches a negative result in its class type supplement.
+*/
+{
+  if (is_immediate_class_type(type) && !result) {
+    a_class_type_supplement_ptr  ctsp = class_type_supp(type);
+    ctsp->does_not_contain_parentless_lambda_in_default_argument = TRUE;
+  }  /* if */
+}  /* ttt_post_has_parentless_lambda_in_default_argument */
+
+
 static inline a_boolean has_parentless_lambda_in_default_argument(
                                                                a_type_ptr type)
 /*
@@ -8549,8 +8570,10 @@ Traverse the type to see if any template arguments contain lambdas in
 default arguments where the parent of the lambda has not yet been identified.
 */
 {
-  return traverse_type_tree(type,
+  return traverse_type_tree_full(
+                            type,
                             ttt_has_parentless_lambda_in_default_argument,
+                            ttt_post_has_parentless_lambda_in_default_argument,
                             TTT_TEMPLATE_ARGS | TTT_SKIP_TYPEREFS);
 }  /* has_parentless_lambda_in_default_argument */
 

@@ -7435,6 +7435,20 @@ Display the indicated class type supplement entry.
   if (ptr->contains_error_cached) {
     disp_boolean("contains_error", (a_boolean)ptr->contains_error);
   }  /* if */
+  if (ptr->contains_local_type_cached) {
+    disp_boolean("contains_local_type", (a_boolean)ptr->contains_local_type);
+  }  /* if */
+  if (ptr->contains_unnamed_namespace_type_cached) {
+    disp_boolean("contains_unnamed_namespace_type",
+                 (a_boolean)ptr->contains_unnamed_namespace_type);
+  }  /* if */
+  if (ptr->does_not_contain_parentless_lambda_in_default_argument) {
+    disp_boolean("does_not_contain_parentless_lambda_in_default_argument",
+                 TRUE);
+  }  /* if */
+  if (ptr->does_not_contain_deprecated_or_unavailable_type) {
+    disp_boolean("does_not_contain_deprecated_or_unavailable_type", TRUE);
+  }  /* if */
   if (ptr->befriending_classes != NULL) {
     disp_class_list("befriending_classes", ptr->befriending_classes);
   }  /* if */

@@ -14135,15 +14135,20 @@ static a_boolean ttt_is_local_type(a_type_ptr  type_ptr,
 This is a service function designed to be called from traverse_type_tree
 (whence the ttt_ prefix).  It returns TRUE if type_ptr is a local type
 (i.e., a class or enumeration defined within a function or block scope,
-including any class or enum defined within a local class).  Note that
-typedefs are skipped, as they are in name mangling; it is the underlying
-type, not the typedef name (which can be declared anywhere) that we really
-care about.
+including any class or enum defined within a local class) or a class type
+known to contain a local type.  Note that typedefs are skipped, as they
+are in name mangling; it is the underlying type, not the typedef name
+(which can be declared anywhere) that we really care about.
 */
 {
   a_boolean  is_local = FALSE;
 
-  if (type_ptr->source_corresp.is_local_to_function) {
+  if (is_immediate_class_type(type_ptr) &&
+      class_type_supp(type_ptr)->contains_local_type_cached) {
+    /* Use the cached result. */
+    is_local = class_type_supp(type_ptr)->contains_local_type;
+    *force_end_of_traversal = TRUE;
+  } else if (type_ptr->source_corresp.is_local_to_function) {
     check_assertion(type_ptr->kind != (a_type_kind)tk_typeref);
     *force_end_of_traversal = is_local = TRUE;
   } else if (vla_enabled && is_array(type_ptr) && array_is_vla(type_ptr)) {
@@ -14154,25 +14159,63 @@ care about.
 }  /* ttt_is_local_type */
 
 
+static void ttt_post_is_local_type(a_type_ptr  type_ptr,
+                                   a_boolean   result)
+/*
+This is a service function designed to be called from traverse_type_tree_full
+as a post-order traversal function (whence the ttt_post_ prefix).  If type_ptr
+is a class type it caches the result in its class type supplement.
+*/
+{
+  if (is_immediate_class_type(type_ptr)) {
+    a_class_type_supplement_ptr  ctsp = class_type_supp(type_ptr);
+    ctsp->contains_local_type = result;
+    ctsp->contains_local_type_cached = TRUE;
+  }  /* if */
+}  /* ttt_post_is_local_type */
+
+
 static a_boolean ttt_is_unnamed_namespace_type(a_type_ptr  type_ptr,
                                    a_boolean   *force_end_of_traversal)
 /*
 This is a service function designed to be called from traverse_type_tree
-(whence the ttt_ prefix).  It returns TRUE if type_ptr is a type declared
-in an unnamed namespace.
+(whence the ttt_ prefix).  It returns TRUE if type_ptr is either a type
+declared in an unnamed namespace or a class type known to contain a type
+declared in an unnamed namespace.
 */
 {
   a_boolean  result = FALSE;
 
-  /* Only check types that are namespace members.  When checking something
-     like a nested class, traverse_type_tree will check its parents. */
-  if (is_namespace_member(type_ptr)) {
+  if (is_immediate_class_type(type_ptr) &&
+      class_type_supp(type_ptr)->contains_unnamed_namespace_type_cached) {
+    /* Use the cached result. */
+    result = class_type_supp(type_ptr)->contains_unnamed_namespace_type;
+    *force_end_of_traversal = TRUE;
+  } else if (is_namespace_member(type_ptr)) {
+    /* Only check types that are namespace members.  When checking something
+       like a nested class, traverse_type_tree will check its parents. */
     if (is_member_of_unnamed_namespace(&type_ptr->source_corresp)) {
       *force_end_of_traversal = result = TRUE;
     }  /* if */
   }  /* if */
   return result;
 }  /* ttt_is_unnamed_namespace_type */
+
+
+static void ttt_post_is_unnamed_namespace_type(a_type_ptr  type_ptr,
+                                               a_boolean   result)
+/*
+This is a service function designed to be called from traverse_type_tree_full
+as a post-order traversal function (whence the ttt_post_ prefix).  If type_ptr
+is a class type it caches the result in its class type supplement.
+*/
+{
+  if (is_immediate_class_type(type_ptr)) {
+    a_class_type_supplement_ptr  ctsp = class_type_supp(type_ptr);
+    ctsp->contains_unnamed_namespace_type = result;
+    ctsp->contains_unnamed_namespace_type_cached = TRUE;
+  }  /* if */
+}  /* ttt_post_is_error_type */
 
 
 static a_boolean ttt_is_error_type(a_type_ptr  type_ptr,
@@ -14965,7 +15008,13 @@ using a GNU attribute or using a Microsoft declspec specifier).  Also set
 {
   a_boolean  found = FALSE;
 
-  if (type_ptr->source_corresp.is_deprecated_or_unavailable) {
+  if (is_immediate_class_type(type_ptr) &&
+      class_type_supp(type_ptr)
+                           ->does_not_contain_deprecated_or_unavailable_type) {
+    /* Stop traversal as the class is known not to contain a deprecated or
+       unavailable type. */
+    *force_end_of_traversal = TRUE;
+  } else if (type_ptr->source_corresp.is_deprecated_or_unavailable) {
     *force_end_of_traversal = found = TRUE;
     check_use_of_deprecated_or_unavailable_entity(&type_ptr->source_corresp,
                                                   &error_position);
@@ -14982,6 +15031,21 @@ using a GNU attribute or using a Microsoft declspec specifier).  Also set
   return found;
 }  /* ttt_diagnose_use_of_deprecated_or_unavailable_type */
 
+
+static void ttt_post_diagnose_use_of_deprecated_or_unavailable_type(
+                                                          a_type_ptr  type_ptr,
+                                                          a_boolean   result)
+/*
+This is a service function designed to be called from traverse_type_tree_full
+as a post-order traversal function (whence the ttt_post_ prefix).  If type_ptr
+is a class type it caches a negative result in its class type supplement.
+*/
+{
+  if (is_immediate_class_type(type_ptr) && !result) {
+    class_type_supp(type_ptr)
+                      ->does_not_contain_deprecated_or_unavailable_type = TRUE;
+  }  /* if */
+}
 
 void diagnose_use_of_deprecated_or_unavailable_type(a_type_ptr         type,
                                                     a_source_position  *pos)
@@ -15002,9 +15066,10 @@ issued for the given position.
   saved_pos = error_position;
   error_position = *pos;
   add_implicit_ttt_flags(&ttt_flags);
-  (void)traverse_type_tree(type,
-                          ttt_diagnose_use_of_deprecated_or_unavailable_type,
-                          ttt_flags);
+  (void)traverse_type_tree_full(type,
+                       ttt_diagnose_use_of_deprecated_or_unavailable_type,
+                       ttt_post_diagnose_use_of_deprecated_or_unavailable_type,
+                       ttt_flags);
   error_position = saved_pos;
 }  /* diagnose_use_of_deprecated_or_unavailable_type */
 
@@ -15468,7 +15533,8 @@ union or enum type or is a type tree containing such a type.
                                                TTT_PARENT_CLASSES);
 
   add_implicit_ttt_flags(&ttt_flags);
-  return (traverse_type_tree(type_ptr, ttt_is_local_type, ttt_flags));
+  return traverse_type_tree_full(type_ptr, ttt_is_local_type,
+                                 ttt_post_is_local_type, ttt_flags);
 }  /* is_or_contains_local_type */
 
 
@@ -15488,8 +15554,9 @@ an unnamed namespace, or is a type tree containing such a type.
                                                TTT_PARENT_CLASSES);
 
   add_implicit_ttt_flags(&ttt_flags);
-  result = (traverse_type_tree(type_ptr, ttt_is_unnamed_namespace_type,
-                                ttt_flags));
+  result = traverse_type_tree_full(type_ptr, ttt_is_unnamed_namespace_type,
+                                   ttt_post_is_unnamed_namespace_type,
+                                   ttt_flags);
   return result;
 }  /* is_or_contains_unnamed_namespace_type */
 
