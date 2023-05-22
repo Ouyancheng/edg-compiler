@@ -30,7 +30,7 @@ unevaluated operand.
 5/16/23  [EDGcpfe/23765,EDGcpfe/26324]
 Performance issue with recursively defined class templates
 
-Consider:
+Consider, with --c++ --pending_instantiations 100:
 
   template<typename, typename> struct A { };
   template<typename T, int N>
