@@ -2085,6 +2085,10 @@ values needed for the previous call.
         }  /* if */
       }  /* if */
     }  /* if */
+    if (tpp == NULL) {
+      expect_error();
+      break;
+    }  /* if */
     if (tap_to_update != NULL) {
       /* A template argument exists for this parameter. */
       update_template_param_symbol(tpp->param_symbol, tap_to_update);
@@ -5352,7 +5356,8 @@ class to be defined.
   if (template_sym != NULL &&
       ((options & PS_PROTOTYPE_INSTANTIATION) != 0 ||
        (options & PS_GENERIC_DEFINITION) != 0 ||
-       (options & PS_NONREAL_INSTANTIATION) != 0)) {
+       ((options & PS_NONREAL_INSTANTIATION) != 0 &&
+        (options & PS_IS_RESCAN) == 0))) {
     if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
       use_existing_context =
                             is_nested_in_prototype_instantiation(template_sym);
