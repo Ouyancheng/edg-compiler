@@ -15045,7 +15045,8 @@ is a class type it caches a negative result in its class type supplement.
     class_type_supp(type_ptr)
                       ->does_not_contain_deprecated_or_unavailable_type = TRUE;
   }  /* if */
-}
+}  /* ttt_post_diagnose_use_of_deprecated_or_unavailable_type */
+
 
 void diagnose_use_of_deprecated_or_unavailable_type(a_type_ptr         type,
                                                     a_source_position  *pos)

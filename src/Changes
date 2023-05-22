@@ -32,23 +32,26 @@ Performance issue with recursively defined class templates
 
 Consider:
 
-  template<typename, typename> struct A;
+  template<typename, typename> struct A { };
   template<typename T, int N>
   struct C {
     typedef typename C<A<T, T>, N - 1>::type type;
   };
   template<typename T>
   struct C<T, 0> {
-    typedef int type;
+    typedef A<T, T> type;
   };
   C<int, 100>::type t;
 
 This creates a binary tree of class template specializations with a depth of
-100.  Previously, however, when checking for error types, the whole tree was
-traversed (with exponential complexity).  Now the traversal result for each
-class type is cached in its class type supplement in contains_error and
-contains_error_cached (a small IL CHANGE), resulting in linear complexity for
-the traversal.
+100.  Previously, however, for several type traversals (like checking for error
+types), the whole tree was traversed (with exponential complexity).  Now these
+traversal results are cached for each class type in its class type supplement
+in contains_error, contains_error_cached, contains_unnamed_namespace_type,
+contains_unnamed_namespace_type_cached,
+does_not_contain_parentless_lambda_in_default_argument, and
+does_not_contain_deprecated_or_unavailable_type (a small IL CHANGE), resulting
+in linear complexity for these traversals.
 
 
 5/8/23   [EDGcpfe/26319]
