@@ -1090,14 +1090,14 @@ done:
 namespace {
 
 template<typename an_ifc_Node_type>
-struct a_Sequence_traverser;
+struct Sequence_traverser;
 
 /*
 A struct representing a traversed node's value and index.
 */
 template<typename an_ifc_Node_type>
-struct an_Indexed {
-  inline an_Indexed(an_ifc_module *mod, an_ifc_index_type idx);
+struct Indexed {
+  inline Indexed(an_ifc_module *mod, an_ifc_index_type idx);
   a_boolean has_value() const
     { return node_value.has_value(); }
   const an_ifc_Node_type &operator*() const
@@ -1108,12 +1108,12 @@ struct an_Indexed {
   an_ifc_partition_kind_index
                   node_idx;
                           /* The traversed node's index information. */
-};  /* an_Indexed */
+};  /* Indexed */
 
 
 template<typename an_ifc_Node_type>
-an_Indexed<an_ifc_Node_type>::an_Indexed(an_ifc_module     *mod,
-                                         an_ifc_index_type idx)
+Indexed<an_ifc_Node_type>::Indexed(an_ifc_module     *mod,
+                                   an_ifc_index_type idx)
   : node_value(),
     node_idx{mod, get_ifc_partition_kind<an_ifc_Node_type>(), idx}
 /*
@@ -1122,33 +1122,33 @@ the given index.
 */
 {
   construct_node(&this->node_value, this->node_idx);
-}  /* an_Indexed */
+}  /* Indexed */
 
 
 /*
-An internal iterator type for a_Sequence_traverser.  This type should only be
-constructed after its index has been validated to point to a (possibly
-invalid, but still present) node.
+An internal iterator type for Sequence_traverser.  This type should only be
+constructed after its index has been validated to point to a (possibly invalid,
+but still present) node.
 */
 template<typename an_ifc_Node_type>
-struct a_Sequence_traversal_iterator {
-  a_Sequence_traversal_iterator()
+struct Sequence_traversal_iterator {
+  Sequence_traversal_iterator()
     : mod(NULL), index(0)
     {}
 
-  inline a_Sequence_traversal_iterator<an_ifc_Node_type> operator++();
-  inline an_Indexed<an_ifc_Node_type> operator*() const;
+  inline Sequence_traversal_iterator<an_ifc_Node_type> operator++();
+  inline Indexed<an_ifc_Node_type> operator*() const;
 
   a_boolean
-  operator==(const a_Sequence_traversal_iterator<an_ifc_Node_type>& other)
+  operator==(const Sequence_traversal_iterator<an_ifc_Node_type>& other)
                                                                           const
     { return this->mod == other.mod && this->index == other.index; }
   a_boolean
-  operator!=(const a_Sequence_traversal_iterator<an_ifc_Node_type>& other)
+  operator!=(const Sequence_traversal_iterator<an_ifc_Node_type>& other)
                                                                           const
     { return !(*this == other); }
 private:
-  a_Sequence_traversal_iterator(an_ifc_module     *mod_val,
+  Sequence_traversal_iterator(an_ifc_module     *mod_val,
                                 an_ifc_index_type index_val)
     : mod(mod_val), index(index_val)
     {}
@@ -1156,13 +1156,13 @@ private:
   an_ifc_module *mod;   /* The module owning the sequence. */
   an_ifc_index_type
                 index;  /* The current position in the sequence. */
-  friend a_Sequence_traverser<an_ifc_Node_type>;
-};  /* a_sequence_traversal_iterator */
+  friend Sequence_traverser<an_ifc_Node_type>;
+};  /* Sequence_traversal_iterator */
 
 
 template<typename an_ifc_Node_type>
-inline a_Sequence_traversal_iterator<an_ifc_Node_type>
-a_Sequence_traversal_iterator<an_ifc_Node_type>::operator++()
+inline Sequence_traversal_iterator<an_ifc_Node_type>
+Sequence_traversal_iterator<an_ifc_Node_type>::operator++()
 /*
 Increment the current iterator and return the iterator state.
 */
@@ -1173,13 +1173,13 @@ Increment the current iterator and return the iterator state.
 
 
 template<typename an_ifc_Node_type>
-inline an_Indexed<an_ifc_Node_type>
-a_Sequence_traversal_iterator<an_ifc_Node_type>::operator*() const
+inline Indexed<an_ifc_Node_type>
+Sequence_traversal_iterator<an_ifc_Node_type>::operator*() const
 /*
 Return the current iterator value.
 */
 {
-  return an_Indexed<an_ifc_Node_type>(this->mod, this->index);
+  return Indexed<an_ifc_Node_type>(this->mod, this->index);
 }  /* operator* */
 
 
@@ -1187,20 +1187,20 @@ Return the current iterator value.
 A structure for quickly implementing validated IFC sequence traversals.
 */
 template<typename an_ifc_Node_type>
-struct a_Sequence_traverser {
-  a_Sequence_traverser(an_ifc_module              *mod_val,
-                       an_ifc_index_type          start_val,
-                       an_ifc_cardinality_storage cardinality_val);
-  a_Sequence_traverser(an_ifc_module              *mod_val,
-                       an_ifc_index_type          start_val);
+struct Sequence_traverser {
+  Sequence_traverser(an_ifc_module              *mod_val,
+                     an_ifc_index_type          start_val,
+                     an_ifc_cardinality_storage cardinality_val);
+  Sequence_traverser(an_ifc_module              *mod_val,
+                     an_ifc_index_type          start_val);
   template<typename an_ifc_Traversal_node_type>
-  a_Sequence_traverser(const an_ifc_Traversal_node_type &node,
-                       an_ifc_index_type                offset = 0)
-    : a_Sequence_traverser(node.get_module(), get_ifc_start(node) + offset,
-                           get_ifc_cardinality(node) - offset)
+  Sequence_traverser(const an_ifc_Traversal_node_type &node,
+                     an_ifc_index_type                offset = 0)
+    : Sequence_traverser(node.get_module(), get_ifc_start(node) + offset,
+                         get_ifc_cardinality(node) - offset)
     { check_assertion(get_ifc_cardinality(node) >= offset); }
-  inline a_Sequence_traversal_iterator<an_ifc_Node_type> begin() const;
-  inline a_Sequence_traversal_iterator<an_ifc_Node_type> end() const;
+  inline Sequence_traversal_iterator<an_ifc_Node_type> begin() const;
+  inline Sequence_traversal_iterator<an_ifc_Node_type> end() const;
 
   an_ifc_index_type get_start_index() const
     { return start; }
@@ -1213,11 +1213,11 @@ private:
   an_ifc_cardinality_storage
                 cardinality;
                         /* The number of elements in the sequence. */
-};  /* a_Sequence_traverser */
+};  /* Sequence_traverser */
 
 
 template<typename an_ifc_Node_type>
-a_Sequence_traverser<an_ifc_Node_type>::a_Sequence_traverser(
+Sequence_traverser<an_ifc_Node_type>::Sequence_traverser(
                                     an_ifc_module              *mod_val,
                                     an_ifc_index_type          start_val,
                                     an_ifc_cardinality_storage cardinality_val)
@@ -1240,11 +1240,11 @@ start_val + cardinality_val (exclusive).
       this->cardinality = 0;
     }  /* if */
   }  /* if */
-}  /* a_Sequence_traverser */
+}  /* Sequence_traverser */
 
 
 template<typename an_ifc_Node_type>
-a_Sequence_traverser<an_ifc_Node_type>::a_Sequence_traverser(
+Sequence_traverser<an_ifc_Node_type>::Sequence_traverser(
                                     an_ifc_module              *mod_val,
                                     an_ifc_index_type          start_val)
     : mod(mod_val), start(start_val),
@@ -1257,18 +1257,18 @@ associated with an_ifc_Node_type in the given module from start_val through
 the end of the partition.
 */
 {
-}  /* a_Sequence_traverser */
+}  /* Sequence_traverser */
 
 
 template<typename an_ifc_Node_type>
-inline a_Sequence_traversal_iterator<an_ifc_Node_type>
-a_Sequence_traverser<an_ifc_Node_type>::begin() const
+inline Sequence_traversal_iterator<an_ifc_Node_type>
+Sequence_traverser<an_ifc_Node_type>::begin() const
 /*
 Return an iterator to the start of the sequence, or an invalid iterator if the
 sequence is not valid.
 */
 {
-  a_Sequence_traversal_iterator<an_ifc_Node_type> result;
+  Sequence_traversal_iterator<an_ifc_Node_type> result;
 
   if (this->cardinality != 0) {
     result = {mod, start};
@@ -1278,14 +1278,14 @@ sequence is not valid.
 
 
 template<typename an_ifc_Node_type>
-inline a_Sequence_traversal_iterator<an_ifc_Node_type>
-a_Sequence_traverser<an_ifc_Node_type>::end() const
+inline Sequence_traversal_iterator<an_ifc_Node_type>
+Sequence_traverser<an_ifc_Node_type>::end() const
 /*
 Return an iterator to the end of the sequence, or an invalid iterator if the
 sequence is not valid.
 */
 {
-  a_Sequence_traversal_iterator<an_ifc_Node_type> result;
+  Sequence_traversal_iterator<an_ifc_Node_type> result;
 
   if (this->cardinality != 0) {
     result = {mod, start + cardinality};
@@ -1296,8 +1296,8 @@ sequence is not valid.
 
 template<typename an_ifc_Node_type>
 inline an_ifc_index_type
-get_relative_index(const a_Sequence_traverser<an_ifc_Node_type> &traverser,
-                   const an_Indexed<an_ifc_Node_type>           &indexed_value)
+get_relative_index(const Sequence_traverser<an_ifc_Node_type> &traverser,
+                   const Indexed<an_ifc_Node_type>         &indexed_value)
 /*
 Given a traverser and a derived indexed value, return the relative index of the
 indexed value from the start of the traverser.
@@ -1315,8 +1315,8 @@ indexed value from the start of the traverser.
 
 template<typename an_ifc_Node_type>
 inline a_boolean
-is_first(const a_Sequence_traverser<an_ifc_Node_type> &traverser,
-         const an_Indexed<an_ifc_Node_type>           &indexed_value)
+is_first(const Sequence_traverser<an_ifc_Node_type> &traverser,
+         const Indexed<an_ifc_Node_type>         &indexed_value)
 /*
 Given a traverser and a derived indexed value, return TRUE if the indexed value
 is the first value; otherwise, return FALSE.
@@ -1329,24 +1329,23 @@ is the first value; otherwise, return FALSE.
 
 }  /* namespace */
 
-/* Convenience aliases for a_Sequence_traverser. */
-using a_attr_heap_traverser = a_Sequence_traverser<an_ifc_heap_attr>;
-using a_decl_enumerator_traverser =
-                                  a_Sequence_traverser<an_ifc_decl_enumerator>;
-using a_decl_heap_traverser = a_Sequence_traverser<an_ifc_heap_decl>;
-using a_decl_parameter_traverser = a_Sequence_traverser<an_ifc_decl_parameter>;
+/* Convenience aliases for Sequence_traverser. */
+using a_attr_heap_traverser = Sequence_traverser<an_ifc_heap_attr>;
+using a_decl_enumerator_traverser = Sequence_traverser<an_ifc_decl_enumerator>;
+using a_decl_heap_traverser = Sequence_traverser<an_ifc_heap_decl>;
+using a_decl_parameter_traverser = Sequence_traverser<an_ifc_decl_parameter>;
 using a_decl_partial_specialization_traverser =
-                      a_Sequence_traverser<an_ifc_decl_partial_specialization>;
+                        Sequence_traverser<an_ifc_decl_partial_specialization>;
 using a_decl_specialization_traverser =
-                              a_Sequence_traverser<an_ifc_decl_specialization>;
-using a_decl_temploid_traverser = a_Sequence_traverser<an_ifc_decl_temploid>;
-using an_expr_heap_traverser = a_Sequence_traverser<an_ifc_heap_expr>;
-using a_pp_heap_traverser = a_Sequence_traverser<an_ifc_heap_pp_form>;
-using a_scope_member_traverser = a_Sequence_traverser<an_ifc_scope_member>;
-using a_source_word_traverser = a_Sequence_traverser<an_ifc_source_word>;
-using a_stmt_heap_traverser = a_Sequence_traverser<an_ifc_heap_stmt>;
-using a_syntax_heap_traverser = a_Sequence_traverser<an_ifc_heap_syntax>;
-using a_type_heap_traverser = a_Sequence_traverser<an_ifc_heap_type>;
+                                Sequence_traverser<an_ifc_decl_specialization>;
+using a_decl_temploid_traverser = Sequence_traverser<an_ifc_decl_temploid>;
+using an_expr_heap_traverser = Sequence_traverser<an_ifc_heap_expr>;
+using a_pp_heap_traverser = Sequence_traverser<an_ifc_heap_pp_form>;
+using a_scope_member_traverser = Sequence_traverser<an_ifc_scope_member>;
+using a_source_word_traverser = Sequence_traverser<an_ifc_source_word>;
+using a_stmt_heap_traverser = Sequence_traverser<an_ifc_heap_stmt>;
+using a_syntax_heap_traverser = Sequence_traverser<an_ifc_heap_syntax>;
+using a_type_heap_traverser = Sequence_traverser<an_ifc_heap_type>;
 
 using an_ifc_decl_lookup_table = Ptr_map<an_ifc_decl_index, a_symbol_ptr>;
 			/* The type of a table that maps IFC declaration
@@ -3803,7 +3802,7 @@ about detached template parameters.
     a_template_param_ptr       start;
     a_template_param_ptr       *next = &start;
 
-    for (an_Indexed<an_ifc_decl_parameter> indexed_idp : traverser) {
+    for (Indexed<an_ifc_decl_parameter> indexed_idp : traverser) {
       if (!indexed_idp.has_value()) {
         goto invalid;
       }  /* if */
@@ -4069,7 +4068,7 @@ the concrete "sub-entities" is imminent, return TRUE; otherwise, return FALSE.
       an_ifc_decl_tuple     tuple_decl = *opt_tuple_decl;
       a_decl_heap_traverser traverser(tuple_decl);
 
-      for (an_Indexed<an_ifc_heap_decl> indexed_ihd : traverser) {
+      for (Indexed<an_ifc_heap_decl> indexed_ihd : traverser) {
         if (!indexed_ihd.has_value()) {
           continue;
         }  /* if */
@@ -4605,7 +4604,7 @@ braces for a compound statement).
         }  /* if */
         { an_ifc_cache_info cache_info = cinfo;
           cache_info.func_body = FALSE;
-          for (an_Indexed<an_ifc_heap_stmt> indexed_ihs : traverser) {
+          for (Indexed<an_ifc_heap_stmt> indexed_ihs : traverser) {
             if (!indexed_ihs.has_value()) {
               goto invalid;
             }  /* if */
@@ -5107,7 +5106,7 @@ about what to cache.
 
         a_decl_parameter_traverser traverser(*opt_icu);
         a_boolean                  first = TRUE;
-        for (an_Indexed<an_ifc_decl_parameter> indexed_idp : traverser) {
+        for (Indexed<an_ifc_decl_parameter> indexed_idp : traverser) {
           if (!indexed_idp.has_value()) {
             goto invalid;
           }  /* if */
@@ -5133,7 +5132,7 @@ about what to cache.
 
         a_decl_temploid_traverser traverser(*opt_icm);
         a_boolean                 first = TRUE;
-        for (an_Indexed<an_ifc_decl_temploid> indexed_idt : traverser) {
+        for (Indexed<an_ifc_decl_temploid> indexed_idt : traverser) {
           if (!first) {
             cache_token(cache, tok_comma);
           }  /* if */
@@ -5267,7 +5266,7 @@ otherwise, return FALSE.
   an_ifc_cardinality_storage used_param_count = 0;
   a_decl_parameter_traverser traverser(icul);
 
-  for (an_Indexed<an_ifc_decl_parameter> indexed_idp : traverser) {
+  for (Indexed<an_ifc_decl_parameter> indexed_idp : traverser) {
     if (!indexed_idp.has_value()) {
       valid_data = FALSE;
       break;
@@ -5315,7 +5314,7 @@ equivalent; otherwise, return FALSE.
                                    decl_param_count);
 
       a_decl_parameter_traverser traverser(icul);
-      for (an_Indexed<an_ifc_decl_parameter> indexed_idp : traverser) {
+      for (Indexed<an_ifc_decl_parameter> indexed_idp : traverser) {
         /* Already constructed by check_for_param_count_correction, which
            fails if there was a problem. */
         check_assertion(indexed_idp.has_value());
@@ -5431,7 +5430,7 @@ added successfully, return FALSE otherwise.
 
     a_param_id_ptr             last_param_id = nullptr;
     a_decl_parameter_traverser traverser(icul);
-    for (an_Indexed<an_ifc_decl_parameter> indexed_idp : traverser) {
+    for (Indexed<an_ifc_decl_parameter> indexed_idp : traverser) {
       if (!indexed_idp.has_value()) {
         result = FALSE;
         goto done;
@@ -6098,7 +6097,7 @@ parameter list; otherwise, return FALSE.
   a_template_param_ptr       curr = il_param_list;
   a_decl_parameter_traverser traverser(param_chart);
 
-  for (an_Indexed<an_ifc_decl_parameter> idxd_param : traverser) {
+  for (Indexed<an_ifc_decl_parameter> idxd_param : traverser) {
     if (curr == NULL) {
       /* If there are no more IL template parameters, fail. */
       goto no_match;
@@ -6257,7 +6256,7 @@ FALSE.
 
             an_ifc_chart_unilevel      params = *opt_params;
             a_decl_parameter_traverser traverser(params);
-            for (an_Indexed<an_ifc_decl_parameter> idxd_param : traverser) {
+            for (Indexed<an_ifc_decl_parameter> idxd_param : traverser) {
               if (curr == NULL) {
                 /* If there are no more IL function parameters, fail. */
                 goto no_match;
@@ -7006,7 +7005,7 @@ explicit instantiations and specializations.
     an_ifc_sequence          seq = *spec_sequence;
     a_scope_member_traverser traverser(seq);
 
-    for (an_Indexed<an_ifc_scope_member> indexed_scope_mem : traverser) {
+    for (Indexed<an_ifc_scope_member> indexed_scope_mem : traverser) {
       if (!indexed_scope_mem.has_value()) {
         continue;
       }  /* if */
@@ -8470,7 +8469,7 @@ class_struct_union_case:
           /* Process the enumerators. */
           an_ifc_sequence             initializer = get_ifc_initializer(ide);
           a_decl_enumerator_traverser traverser(initializer);
-          for (an_Indexed<an_ifc_decl_enumerator> idxed_enmtr : traverser) {
+          for (Indexed<an_ifc_decl_enumerator> idxed_enmtr : traverser) {
             if (!idxed_enmtr.has_value()) {
               goto invalid;
             }  /* if */
@@ -8913,7 +8912,7 @@ class_struct_union_case:
            (an_il_entity_list_entry_ptr). */
         a_decl_heap_traverser  traverser(*opt_idt);
         a_scope_ptr            scope = mep->scope;
-        for (an_Indexed<an_ifc_heap_decl> indexed_ihd : traverser) {
+        for (Indexed<an_ifc_heap_decl> indexed_ihd : traverser) {
           if (!indexed_ihd.has_value()) {
             goto invalid;
           }  /* if */
@@ -9139,7 +9138,7 @@ about what to cache.
 */
 {
   a_scope_member_traverser traverser(seq);
-  for (an_Indexed<an_ifc_scope_member> indexed_scope_mem : traverser) {
+  for (Indexed<an_ifc_scope_member> indexed_scope_mem : traverser) {
     if (!indexed_scope_mem.has_value()) {
       goto invalid;
     }  /* if */
@@ -9203,7 +9202,7 @@ of the class type.
     an_ifc_sequence          friends = get_ifc_trait(*opt_friends);
     a_scope_member_traverser traverser(friends);
 
-    for (an_Indexed<an_ifc_scope_member> indexed_scope_mem : traverser) {
+    for (Indexed<an_ifc_scope_member> indexed_scope_mem : traverser) {
       if (!indexed_scope_mem.has_value()) {
         continue;
       }  /* if */
@@ -9295,7 +9294,7 @@ member scope descriptor into the given cache.
 
   /* Traverse the scope members, clean up the data, and create a "plan" from it
      describing what needs to be cached (i.e., populate class_members). */
-  for (an_Indexed<an_ifc_scope_member> indexed_scope_mem : traverser) {
+  for (Indexed<an_ifc_scope_member> indexed_scope_mem : traverser) {
     if (!indexed_scope_mem.has_value()) {
       goto invalid;
     }  /* if */
@@ -9375,7 +9374,7 @@ parsing; this is used to diagnose unprocessed tok_ifc_decl tokens.
 {
   a_scope_member_traverser traverser(class_members);
 
-  for (an_Indexed<an_ifc_scope_member> indexed_scope_mem : traverser) {
+  for (Indexed<an_ifc_scope_member> indexed_scope_mem : traverser) {
     if (!indexed_scope_mem.has_value()) {
       continue;
     }  /* if */
@@ -10043,7 +10042,7 @@ diagnostics if issue_diag is TRUE.
     if (num_specializations > 0) {
       a_decl_specialization_traverser traverser(this, 0);
 
-      for (an_Indexed<an_ifc_decl_specialization> indexed_spec : traverser) {
+      for (Indexed<an_ifc_decl_specialization> indexed_spec : traverser) {
         if (!indexed_spec.has_value()) {
           continue;
         }  /* if */
@@ -10061,9 +10060,9 @@ diagnostics if issue_diag is TRUE.
   this->references_any_modules = get_num_entries(ifc_pk_decl_reference) > 0;
 #if EXPENSIVE_CHECKING
   if (eager_load_modules && this->references_any_modules) {
-    using an_indexed_spec = an_Indexed<an_ifc_decl_specialization>;
+    using an_indexed_spec = Indexed<an_ifc_decl_specialization>;
     using an_indexed_partial_spec =
-                                an_Indexed<an_ifc_decl_partial_specialization>;
+                                   Indexed<an_ifc_decl_partial_specialization>;
     /* When eager loading mode is enabled, deferred specialization processing
        never occurs so if external modules are referenced, those
        specializations need to be processed now.  Note this code is only
@@ -10302,7 +10301,7 @@ be deferred until they are referenced.
 
     an_ifc_scope_descriptor  scope_desc = *opt_scope_desc;
     a_scope_member_traverser traverser(scope_desc);
-    for (an_Indexed<an_ifc_scope_member> indexed_scope_mem : traverser) {
+    for (Indexed<an_ifc_scope_member> indexed_scope_mem : traverser) {
       if (!indexed_scope_mem.has_value()) {
         continue;
       }  /* if */
@@ -10558,7 +10557,7 @@ otherwise, return FALSE.
       an_ifc_type_tuple     itt = *opt_itt;
       a_type_heap_traverser traverser(itt);
       a_param_type_ptr      *prev = &rtsp->param_type_list;
-      for (an_Indexed<an_ifc_heap_type> indexed_iht : traverser) {
+      for (Indexed<an_ifc_heap_type> indexed_iht : traverser) {
         if (!indexed_iht.has_value()) {
           goto invalid;
         }  /* if */
@@ -11636,7 +11635,7 @@ are appended successfully; otherwise, return FALSE.
     an_ifc_expr_tuple      iet = *opt_iet;
     an_expr_heap_traverser traverser(iet);
 
-    for (an_Indexed<an_ifc_heap_expr> indexed_ihe : traverser) {
+    for (Indexed<an_ifc_heap_expr> indexed_ihe : traverser) {
       if (!indexed_ihe.has_value()) {
         goto invalid;
       }  /* if */
@@ -13179,7 +13178,7 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
         an_ifc_expr_tuple      iet = *opt_iet;
         an_expr_heap_traverser traverser(iet);
         a_constant_ptr         *curr_const_ptr = &result;
-        for (an_Indexed<an_ifc_heap_expr> traversed_ihe : traverser) {
+        for (Indexed<an_ifc_heap_expr> traversed_ihe : traverser) {
           if (!traversed_ihe.has_value()) {
             goto invalid;
           }  /* if */
@@ -13387,7 +13386,7 @@ successful, FALSE if any errors were encountered.
     an_ifc_chart_unilevel      icu = *opt_icu;
     a_decl_parameter_traverser traverser(icu);
 
-    for (an_Indexed<an_ifc_decl_parameter> indexed_param : traverser) {
+    for (Indexed<an_ifc_decl_parameter> indexed_param : traverser) {
       if (ptp == NULL) {
         /* This should only be possible to encounter when the function has
            an ellipsis parameter. */
@@ -15301,7 +15300,7 @@ return the index of that token.  Otherwise the return value is meaningless.
 
     an_ifc_source_sentence  iss = *opt_iss;
     a_source_word_traverser traverser(iss, idx);
-    for (an_Indexed<an_ifc_source_word> indexed_isw : traverser) {
+    for (Indexed<an_ifc_source_word> indexed_isw : traverser) {
       if (!indexed_isw.has_value()) {
         goto invalid;
       }  /* if */
@@ -15386,7 +15385,7 @@ Otherwise, return FALSE.
 
     an_ifc_source_sentence  iss = *opt_iss;
     a_source_word_traverser traverser(iss);
-    for (an_Indexed<an_ifc_source_word> indexed_isw : traverser) {
+    for (Indexed<an_ifc_source_word> indexed_isw : traverser) {
       if (!indexed_isw.has_value()) {
         goto done;
       }  /* if */
@@ -16459,7 +16458,7 @@ IFC decl parameter (if possible); otherwise, return an empty optional.
     an_ifc_index_type          element_idx = start_idx + param_idx;
     a_decl_parameter_traverser traverser(start_idx.mod, element_idx, 1);
     /* coverity[unreachable] */ /* See FIXME above. */
-    for (an_Indexed<an_ifc_decl_parameter> indexed_idp : traverser) {
+    for (Indexed<an_ifc_decl_parameter> indexed_idp : traverser) {
       if (!indexed_idp.has_value()) {
         goto invalid;
       }  /* if */
@@ -16652,7 +16651,7 @@ valid type can be found, return a null type index.
         an_ifc_index_type     element_idx = start_idx + param_idx;
         a_type_heap_traverser traverser(start_idx.mod, element_idx, 1);
         /* coverity[unreachable] */ /* See FIXME above. */
-        for (an_Indexed<an_ifc_heap_type> indexed_iht : traverser) {
+        for (Indexed<an_ifc_heap_type> indexed_iht : traverser) {
           if (!indexed_iht.has_value()) {
             goto invalid;
           }  /* if */
@@ -17617,7 +17616,7 @@ this is needed.
 
         a_type_heap_traverser traverser(*opt_itt);
         a_boolean             first = TRUE;
-        for (an_Indexed<an_ifc_heap_type> indexed_iht : traverser) {
+        for (Indexed<an_ifc_heap_type> indexed_iht : traverser) {
           if (!indexed_iht.has_value()) {
             goto invalid;
           }  /* if */
@@ -19303,7 +19302,7 @@ is responsible for ensuring that the brackets are cached appropriately.
         a_attr_heap_traverser traverser(*opt_iat);
         /* Retrieve the attribute indexes from the attribute heap, then recurse
            to process the attributes at the retrieved indexes. */
-        for (an_Indexed<an_ifc_heap_attr> indexed_iha : traverser) {
+        for (Indexed<an_ifc_heap_attr> indexed_iha : traverser) {
           if (!indexed_iha.has_value()) {
             goto invalid;
           }  /* if */
@@ -19545,7 +19544,7 @@ about what to cache.
           a_decl_enumerator_traverser traverser(initializer);
 
           cache_token(cache, tok_lbrace);
-          for (an_Indexed<an_ifc_decl_enumerator> indexed_iden : traverser) {
+          for (Indexed<an_ifc_decl_enumerator> indexed_iden : traverser) {
             if (!indexed_iden.has_value()) {
               goto invalid;
             }  /* if */
@@ -20836,7 +20835,7 @@ common_cast:
 
         an_ifc_expr_tuple      iet = *opt_iet;
         an_expr_heap_traverser traverser(iet);
-        for (an_Indexed<an_ifc_heap_expr> indexed_ihe : traverser) {
+        for (Indexed<an_ifc_heap_expr> indexed_ihe : traverser) {
           if (!indexed_ihe.has_value()) {
             goto invalid;
           }  /* if */
@@ -22164,7 +22163,7 @@ Otherwise, parameter references should only include the parameter name.
 
         an_ifc_syntax_tuple     ist = *opt_ist;
         a_syntax_heap_traverser traverser(ist);
-        for (an_Indexed<an_ifc_heap_syntax> indexed_ihs : traverser) {
+        for (Indexed<an_ifc_heap_syntax> indexed_ihs : traverser) {
           if (!indexed_ihs.has_value()) {
             goto invalid;
           }  /* if */
@@ -22680,7 +22679,7 @@ raw-text spelling.
         }  /* if */
 
         a_pp_heap_traverser traverser(*opt_ift);
-        for (an_Indexed<an_ifc_heap_pp_form> indexed_ihpf : traverser) {
+        for (Indexed<an_ifc_heap_pp_form> indexed_ihpf : traverser) {
           if (!indexed_ihpf.has_value()) {
             goto invalid;
           }  /* if */
@@ -23042,7 +23041,7 @@ Display the contents of the specified scope.
     an_ifc_scope_descriptor  scope_members = *opt_scope_members;
     a_scope_member_traverser traverser(scope_members);
 
-    for (an_Indexed<an_ifc_scope_member> indexed_scope_mem : traverser) {
+    for (Indexed<an_ifc_scope_member> indexed_scope_mem : traverser) {
       if (!indexed_scope_mem.has_value()) {
         continue;
       }  /* if */
