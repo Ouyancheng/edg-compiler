@@ -32,57 +32,57 @@ associated IL entry is also stored.
 */
 struct a_module_entity {
   a_module_entity_ptr
-		next;	/* A pointer to the next entry on the list.  Used
-			   to queue entries on the symbol header (when
-			   module entities have the same name). */
-  a_module_ptr	module_info;
-			/* The module in which this entity is defined. */
-  a_scope_ptr	scope;	/* The scope in which this entity is defined. */
+                next;   /* A pointer to the next entry on the list.  Used
+                           to queue entries on the symbol header (when
+                           module entities have the same name). */
+  a_module_ptr  module_info;
+                        /* The module in which this entity is defined. */
+  a_scope_ptr   scope;  /* The scope in which this entity is defined. */
   a_tagged_pointer
-		entity;	/* The IL entity that corresponds to the module
-			   entity. */
-  size_t	file_offset;
-			/* An offset from the beginning of the module file to
-			   the associated module entity.  Used as a key to
-			   uniquely identify this entity.  Note that an offset
-			   is used rather than a pointer to avoid PCH
-			   issues (should the underlying module file be mapped
-			   to a different address). */
-  a_bit_field	imminent:1;
-			/* This flag is typically set to TRUE when deferred
-			   processing starts; i.e., when the creation of an
-			   actual associated IL entity is imminent.  This is
-			   used to avoid unbounded recursion.  The flag is
-			   also set to TRUE for IFC partial specializations
-			   that are deferred,  That causes the main entity
-			   loading mechanism to skip partial specializations;
-			   instead, those entries are processed explicitly
-			   immediately after the associated primary template
-			   has been processed. */
-  a_bit_field	def_imminent:1;
-			/* This flag is set when the definition of the
-			   associated entity has started being loaded. */
-  a_bit_field	uses_bound_token:1;
-			/* This flag is set when the IL entity is being
-			   declared or defined via a reparse of a broader
-			   cache.  This indicates less strict requirements may
-			   be placed on recursive definition processing, as the
-			   entity could have a severely "broken" token
-			   representation or the entity may be invalid but not
-			   yet marked as such (as the parse is still
-			   ongoing). */
-  a_bit_field	invalid:1;
-			/* TRUE if the associated entity cannot be constructed
-			   from the module for any reason. */
-  a_bit_field	global_module:1;
-			/* TRUE if this is an entity owned by the "global
-			   module". */
+                entity; /* The IL entity that corresponds to the module
+                           entity. */
+  size_t        file_offset;
+                        /* An offset from the beginning of the module file to
+                           the associated module entity.  Used as a key to
+                           uniquely identify this entity.  Note that an offset
+                           is used rather than a pointer to avoid PCH
+                           issues (should the underlying module file be mapped
+                           to a different address). */
+  a_bit_field   imminent:1;
+                        /* This flag is typically set to TRUE when deferred
+                           processing starts; i.e., when the creation of an
+                           actual associated IL entity is imminent.  This is
+                           used to avoid unbounded recursion.  The flag is
+                           also set to TRUE for IFC partial specializations
+                           that are deferred,  That causes the main entity
+                           loading mechanism to skip partial specializations;
+                           instead, those entries are processed explicitly
+                           immediately after the associated primary template
+                           has been processed. */
+  a_bit_field   def_imminent:1;
+                        /* This flag is set when the definition of the
+                           associated entity has started being loaded. */
+  a_bit_field   uses_bound_token:1;
+                        /* This flag is set when the IL entity is being
+                           declared or defined via a reparse of a broader
+                           cache.  This indicates less strict requirements may
+                           be placed on recursive definition processing, as the
+                           entity could have a severely "broken" token
+                           representation or the entity may be invalid but not
+                           yet marked as such (as the parse is still
+                           ongoing). */
+  a_bit_field   invalid:1;
+                        /* TRUE if the associated entity cannot be constructed
+                           from the module for any reason. */
+  a_bit_field   global_module:1;
+                        /* TRUE if this is an entity owned by the "global
+                           module". */
   union {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     an_ifc_partition_kind
-		ifc_partition;
-			/* Specifies which IFC partition the module entity
-			   belongs to. */
+                ifc_partition;
+                        /* Specifies which IFC partition the module entity
+                           belongs to. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } variant;
 };  /* a_module_entity */
@@ -95,45 +95,45 @@ FIXME: For PCH, f_module needs to be re-opened and mmap_addr recomputed.
 */
 struct a_module_interface {
 #if !USE_VIRTUAL_FUNCTIONS
-  a_module_kind	mod_kind = (a_module_kind)mk_none;
-			/* What kind of module this interface is for.  This
-			   indicates which class has inherited this module and
-			   is used to emulate virtual function dispatch. */
+  a_module_kind mod_kind = (a_module_kind)mk_none;
+                        /* What kind of module this interface is for.  This
+                           indicates which class has inherited this module and
+                           is used to emulate virtual function dispatch. */
 #endif /* !USE_VIRTUAL_FUNCTIONS */
-  a_const_char	*primary_name = NULL;
-			/* The primary name of the module. */
-  a_const_char	*partition_name = NULL;
-			/* The partition name of the module.  May be NULL if
-			   this is not a module partition. */
-  a_module_ptr	assoc_module_info = NULL;
-			/* The associated IL module pointer that references
-			   this module interface. */
-  FILE		*f_module = NULL;
-			/* The file descriptor for the file. */
-  size_t	f_size = 0;
-			/* The size of the module file. */
+  a_const_char  *primary_name = NULL;
+                        /* The primary name of the module. */
+  a_const_char  *partition_name = NULL;
+                        /* The partition name of the module.  May be NULL if
+                           this is not a module partition. */
+  a_module_ptr  assoc_module_info = NULL;
+                        /* The associated IL module pointer that references
+                           this module interface. */
+  FILE          *f_module = NULL;
+                        /* The file descriptor for the file. */
+  size_t        f_size = 0;
+                        /* The size of the module file. */
 #if USE_MMAP_FOR_MEMORY_REGIONS
-  void		*mmap_addr = NULL;
-			/* A pointer to the memory-mapped beginning of the
-			   module file. */
-  size_t	mmap_size = 0;
-			/* The size of the memory-mapped partition. */
+  void          *mmap_addr = NULL;
+                        /* A pointer to the memory-mapped beginning of the
+                           module file. */
+  size_t        mmap_size = 0;
+                        /* The size of the memory-mapped partition. */
 #if EDG_WIN32
   a_windows_handle
-		mapped_input = NULL;
-			/* A HANDLE returned by CreateFile_interface during
-			   the mapping process on Windows. */
+                mapped_input = NULL;
+                        /* A HANDLE returned by CreateFile_interface during
+                           the mapping process on Windows. */
   a_windows_handle
-		map_object = NULL;
-			/* A HANDLE returned by CreateFileMapping during the
-			   mapping process on Windows. */
+                map_object = NULL;
+                        /* A HANDLE returned by CreateFileMapping during the
+                           mapping process on Windows. */
 #endif /* EDG_WIN32 */
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   a_diagnostic_counter
-		suppressed_diagnostics = {};
-			/* A diagnostic counter storing the counts of any
-			   diagnostics that were suppressed while processing
-			   this module. */
+                suppressed_diagnostics = {};
+                        /* A diagnostic counter storing the counts of any
+                           diagnostics that were suppressed while processing
+                           this module. */
 
   a_module_interface() = delete;
   a_module_interface(a_module_kind iface_kind)

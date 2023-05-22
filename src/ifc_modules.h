@@ -161,70 +161,70 @@ struct an_ifc_module : public a_module_interface {
      information about mapping of sequence numbers for the file. */
   struct a_module_sequence_number_mapping {
     a_seq_number
-		starting_sequence_number;
-			/* Zero until the first time the file is referenced,
-			   then set to the initial sequence number for the
-			   file. */
-    uint32_t	max_line_number;
-			/* The maximum line number that will be seen in the
-			   file.  Used to allocate a block of sequence numbers
-			   that map to this file. */
+                starting_sequence_number;
+                        /* Zero until the first time the file is referenced,
+                           then set to the initial sequence number for the
+                           file. */
+    uint32_t    max_line_number;
+                        /* The maximum line number that will be seen in the
+                           file.  Used to allocate a block of sequence numbers
+                           that map to this file. */
   };
   an_ifc_file_header
-		header = {};
-			/* The values of an IFC File_Header (byte-swapped if
-			   necessary). */
+                header = {};
+                        /* The values of an IFC File_Header (byte-swapped if
+                           necessary). */
   an_ifc_partition_metadata
-		partitions[IFC_PARTITION_COUNT] = {};
-			/* Information about each of the IFC partitions that
-			   could exist in a module file. */
+                partitions[IFC_PARTITION_COUNT] = {};
+                        /* Information about each of the IFC partitions that
+                           could exist in a module file. */
   a_module_sequence_number_mapping
-		*sequence_numbers = NULL;
-			/* A mapping of sequence numbers for the module,
-			   indexed by a NameSort::SourceFile index.
-			   Dynamically allocated (in front end memory) once
-			   the number of source files is known. */
+                *sequence_numbers = NULL;
+                        /* A mapping of sequence numbers for the module,
+                           indexed by a NameSort::SourceFile index.
+                           Dynamically allocated (in front end memory) once
+                           the number of source files is known. */
   an_ifc_version_storage
-		version_major = 0;
-			/* The module's major version.  Defaulted to the
-			   lowest supported version until initialization is
-			   complete. */
+                version_major = 0;
+                        /* The module's major version.  Defaulted to the
+                           lowest supported version until initialization is
+                           complete. */
   an_ifc_version_storage
-		version_minor = 33;
-			/* The module's minor version.  Defaulted to the
-			   lowest supported version until initialization is
-			   complete. */
+                version_minor = 33;
+                        /* The module's minor version.  Defaulted to the
+                           lowest supported version until initialization is
+                           complete. */
 
 #if USE_MMAP_FOR_MEMORY_REGIONS
   unsigned char
-		*byte_buffer = NULL;
-			/* Pointer to the current position in the buffer
-			   used by get_byte, etc. */
+                *byte_buffer = NULL;
+                        /* Pointer to the current position in the buffer
+                           used by get_byte, etc. */
   unsigned char
-		*buffer_end = NULL;
-			/* Pointer to the last byte of the buffer used by
-			   get_byte, etc. */
+                *buffer_end = NULL;
+                        /* Pointer to the last byte of the buffer used by
+                           get_byte, etc. */
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
-  char		*string_table = NULL;
-			/* The string table of the IFC file. */
+  char          *string_table = NULL;
+                        /* The string table of the IFC file. */
   a_tmpl_decl_state_ptr
-		curr_templ_decl_state = NULL;
-			/* The current template declaration state, NULL if
-			   there is no template declaration being processed. */
+                curr_templ_decl_state = NULL;
+                        /* The current template declaration state, NULL if
+                           there is no template declaration being processed. */
   a_boolean     references_any_modules = FALSE;
-			/* A flag set to TRUE when this module makes reference
-			   to one or more external modules.  This is set when a
-			   module is loaded. */
+                        /* A flag set to TRUE when this module makes reference
+                           to one or more external modules.  This is set when a
+                           module is loaded. */
   Ptr_map<a_module_ref_key, a_module_import_decl_ptr>
-		referenced_modules;
-			/* A map from a module reference to the corresponding
-			   import decl.  Since modules are lazily added to this
-			   list, it should not be assumed to be a complete
-			   set. */
-  a_boolean	suppress_friend_token = FALSE;
-			/* Flag to indicate that a "friend" keyword should be
-			   suppressed (typically because the friendship is
-			   handled at a higher level). */
+                referenced_modules;
+                        /* A map from a module reference to the corresponding
+                           import decl.  Since modules are lazily added to this
+                           list, it should not be assumed to be a complete
+                           set. */
+  a_boolean     suppress_friend_token = FALSE;
+                        /* Flag to indicate that a "friend" keyword should be
+                           suppressed (typically because the friendship is
+                           handled at a higher level). */
 public:
   an_ifc_module() : a_module_interface((a_module_kind)mk_ifc),
                     referenced_modules(/*mask_width=*/4)

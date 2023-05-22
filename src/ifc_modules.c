@@ -1348,14 +1348,14 @@ using a_syntax_heap_traverser = Sequence_traverser<an_ifc_heap_syntax>;
 using a_type_heap_traverser = Sequence_traverser<an_ifc_heap_type>;
 
 using an_ifc_decl_lookup_table = Ptr_map<an_ifc_decl_index, a_symbol_ptr>;
-			/* The type of a table that maps IFC declaration
-			   indices to corresponding front end symbols. */
+                        /* The type of a table that maps IFC declaration
+                           indices to corresponding front end symbols. */
 
 
 static an_ifc_decl_lookup_table
-		*ifc_decl_lookup_table;
-			/* A hash table to map IFC declaration indices to
-			   corresponding front end symbols. */
+                *ifc_decl_lookup_table;
+                        /* A hash table to map IFC declaration indices to
+                           corresponding front end symbols. */
 
 
 template<typename an_ifc_Node_type>
@@ -1627,13 +1627,13 @@ done:
 #if EXPENSIVE_CHECKING
 
 static a_boolean
-		in_get_home_scope = FALSE;
-			/* Flag set while evaluating a call to get_home_scope.
-			   This is used for eager loading mode to avoid
-			   unbounded recursive loading. */
+                in_get_home_scope = FALSE;
+                        /* Flag set while evaluating a call to get_home_scope.
+                           This is used for eager loading mode to avoid
+                           unbounded recursive loading. */
 
 #endif /* EXPENSIVE_CHECKING */
- 
+
 
 template<typename an_ifc_Node_type>
 static a_scope_ptr get_home_scope(const an_ifc_Node_type &node)
@@ -1646,7 +1646,7 @@ Return the associated scope for the given declaration.
      scope, because that leads to aborts due to recursive loading. */
   Value_saver<a_boolean>  suppression(&in_get_home_scope, /*new_value=*/TRUE);
 #endif /* EXPENSIVE_CHECKING */
- 
+
   return get_scope(get_ifc_home_scope(node));
 }  /* get_home_scope */
 
@@ -2502,17 +2502,17 @@ state needs to be modified.
 */
 struct a_partial_scope_stack_state {
   a_byte_boolean
-		saved;
-			/* TRUE if the state has been saved. */
+                saved;
+                        /* TRUE if the state has been saved. */
   a_byte_boolean
-		name_linkage_is_explicit;
-			/* Previous name_linkage_is_explicit setting. */
+                name_linkage_is_explicit;
+                        /* Previous name_linkage_is_explicit setting. */
   ENUM_TYPE_FOR_BIT_FIELD(a_name_linkage_kind)
-		default_name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
-			/* Previous default_name_linkage setting. */
+                default_name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
+                        /* Previous default_name_linkage setting. */
   ENUM_TYPE_FOR_BIT_FIELD(an_access_specifier)
-		current_access:2;
-			/* Previous current_access setting. */
+                current_access:2;
+                        /* Previous current_access setting. */
 };  /* a_partial_scope_stack_state */
 
 

@@ -30,10 +30,10 @@ BEGIN_EDG_NAMESPACE
 namespace {
 
 struct a_module_file_suffix {
-  a_const_char	*suffix;
-			/* The suffix associated with the module file. */
-  a_module_kind	kind;
-			/* The kind of module this suffix implies. */
+  a_const_char  *suffix;
+                        /* The suffix associated with the module file. */
+  a_module_kind kind;
+                        /* The kind of module this suffix implies. */
 };  /* a_module_file_suffix */
 
 constexpr a_module_file_suffix module_file_suffixes[] = {
