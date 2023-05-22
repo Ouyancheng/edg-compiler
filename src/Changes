@@ -92,7 +92,7 @@ Consider:
   constexpr X x;  // Previously a spurious error.
 
 During constant evaluation, the front end sometimes did not correctly
-determined whether the result of the evaluation was fully initialized.
+determine whether the result of the evaluation was fully initialized.
 For variable s above, s.i[1] is not initialized and should thus elicit an
 error.  Previously, however, it was accepted.  Conversely, variable x is
 fully initialized but the front end previously claimed otherwise.  Those
