@@ -3,9 +3,9 @@ Version 6.5
 5/17/23  [EDGcpfe/25657,EDGcpfe/26023,EDGcpfe/26101]
 Expression operands of typeid
 
-Previously, the expression operand of a typeid operand was parsed by default as
-an evaluated operand, even when it was not of a polymorphic type.  The front
-end did perform some compensations if it turned out that not evaluation is
+Previously, the expression operand of a typeid operator was parsed by default
+as an evaluated operand, even when it was not of a polymorphic type.  The front
+end did perform some compensations if it turned out that no evaluation is
 needed, but some side effects of the processing -- like the instantiation of
 used entities -- remained.  That could result in spurious errors.  For example:
 
