@@ -4525,10 +4525,10 @@ thrown with noexcept(true), std::terminate will be called).
       exception_spec_is_less_restrictive(defaulted, declared)) {
     /* There exists an exception specification mismatch. */
     a_boolean delete_routine = FALSE;
-    if ((/*microsoft_mode || */gpp_version_is(<100000)) &&
+    if (gpp_version_is(<100000) &&
         rp->is_template_function && !rp->is_specialized) {
-      /* Some versions of MSVC and GCC define the routine as deleted if it's a
-         template instance having the mismatch. */
+      /* Some versions of GCC define the routine as deleted if it's a template
+         instance having the mismatch. */
       delete_routine = TRUE;
     } else if (ms_version_is(<1928) || gpp_version_is(<100000) ||
                clang_version_is(<80100)) {
