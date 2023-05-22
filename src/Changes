@@ -27,7 +27,7 @@ accepted because the front end processes the operand of typeid as a true
 unevaluated operand.
 
 
-5/16/23  [EDGcpfe/26324]
+5/16/23  [EDGcpfe/23765,EDGcpfe/26324]
 Performance issue with recursively defined class templates
 
 Consider:
