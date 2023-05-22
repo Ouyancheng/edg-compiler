@@ -4290,9 +4290,7 @@ position.
   size_t rel_offset = abs_offset - part_start;
 
   st_unum3_add_diag_info(diag, error_code, get_partition_name_from_kind(kind),
-                         idx_value,
-                         abs_offset,
-                         rel_offset);
+                         idx_value, abs_offset, rel_offset);
 }  /* add_partition_element_diag_info */
 
 
@@ -22848,8 +22846,7 @@ partition.
   /* FIXME: Use a better source position. */
   diag_ptr = pos_st2_unum2_start_error(error_code, &null_source_position,
                                        mod->assoc_module_info->name,
-                                       part_name,
-                                       file_offset,
+                                       part_name, file_offset,
                                        relative_offset);
   add_backtrace(diag_ptr, trace);
   end_diagnostic(diag_ptr);
