@@ -22823,7 +22823,7 @@ handle failure and diagnostics for an encountered undefined partition.
                                       idx);
   add_backtrace(diag_ptr, trace);
   end_diagnostic(diag_ptr);
-}  /* undefined_partition */
+}  /* diag_unrepresentable_partition */
 
 
 static void diag_partition_position(
