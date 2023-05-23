@@ -18302,7 +18302,7 @@ type that is created.  */
       if (substituted_type == NULL) {
         /* Substitution has failed for some reason.  The instantiation should
            have run into a similar error. */
-        check_assertion(is_at_least_one_error());
+        expect_error();
       } else if (!f_types_are_compatible(
                                     substituted_type, type,
                                     TCF_CHECKING_DEDUCTION_RESULT |
@@ -19575,18 +19575,18 @@ mode in-class specialization.
     perform_deferred_access_checks_for_function(rp);
     end_deferral_of_access_checks();
   }
-  /* Check that the routine type created by this instance matches the
-     template.  This is used to make sure the binding of names used in
-     the declarations hasn't changed. */
-  verify_routine_type_matches_template(templ_sym, rp, templ_rout,
-                                       parent_class, templ_arg_list, tip,
-                                       ctws_options);
   /* Make the function instantiation entry and its associated symbol
      point at each other. */
   tip->instance_sym = sym;
   sym->variant.routine.instance_ptr = tip;
   tip->next = tssp->variant.function.instantiations;
   tssp->variant.function.instantiations = tip;
+  /* Check that the routine type created by this instance matches the
+     template.  This is used to make sure the binding of names used in
+     the declarations hasn't changed. */
+  verify_routine_type_matches_template(templ_sym, rp, templ_rout,
+                                       parent_class, templ_arg_list, tip,
+                                       ctws_options);
   add_instantiation(templ_sym, tssp, sym, templ_arg_list);
   /* Process any pragmas that are to be bound to this instance. */
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
