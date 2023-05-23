@@ -15556,7 +15556,7 @@ template<typename an_ifc_Node_type>
 static void cache_var_initializer(a_module_token_cache_ptr cache,
                                   const an_ifc_Node_type   &decl)
 /*
-Cache initializer for the given variable-like declaration.
+Cache the initializer for the given variable-like declaration.
 */
 {
   an_ifc_expr_index initializer = get_ifc_initializer(decl);
@@ -15586,6 +15586,7 @@ Cache initializer for the given variable-like declaration.
     }  /* if */
   }  /* if */
 }  /* cache_var_initializer */
+
 
 template<typename an_ifc_Node_type>
 static void cache_func_type_cv_qualifiers(a_module_token_cache_ptr     cache,
@@ -20962,7 +20963,7 @@ static void cache_syntactic_type_qualifiers(
                                           a_module_token_cache_ptr  cache,
                                           an_ifc_qualifier_bitfield qualifiers)
 /*
-Cache the qualifiers for a syntactic represented IFC type.
+Cache the qualifiers for a syntactically-represented IFC type.
 */
 {
   if (test_bitmask<ifc_qb_const>(qualifiers)) {
