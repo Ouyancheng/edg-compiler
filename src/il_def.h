@@ -1329,6 +1329,7 @@ enum a_token_kind : unsigned short {
   tok_is_base_of,
   tok_is_class,
   tok_is_convertible_to,
+  tok_is_nothrow_convertible,
   tok_is_empty,
   tok_is_enum,
   tok_is_pod,
@@ -1419,6 +1420,8 @@ enum a_token_kind : unsigned short {
   tok_is_aggregate,
   tok_integer_pack,
   tok_reference_binds_to_temporary,
+  tok_reference_constructs_from_temporary,
+  tok_reference_converts_from_temporary,
   tok_is_same,
   tok_is_same_as,
   tok_is_function,
@@ -1474,6 +1477,7 @@ enum a_token_kind : unsigned short {
   tok_remove_cvref,
   tok_remove_extent,
   tok_remove_pointer,
+  tok_remove_reference,
   tok_remove_reference_t,
   tok_remove_restrict,
   tok_remove_volatile,
@@ -1581,6 +1585,7 @@ EXTERN a_const_char
    "__is_base_of",
    "__is_class",
    "__is_convertible_to",
+   "__is_nothrow_convertible",
    "__is_empty",
    "__is_enum",
    "__is_pod",
@@ -1666,6 +1671,8 @@ EXTERN a_const_char
    "__is_aggregate",
    "__integer_pack",
    "__reference_binds_to_temporary",
+   "__reference_constructs_from_temporary",
+   "__reference_converts_from_temporary",
    "__is_same", "__is_same_as",
    "__is_function",
    "requires", "concept",
@@ -1719,6 +1726,7 @@ EXTERN a_const_char
    "__remove_cvref",
    "__remove_extent",
    "__remove_pointer",
+   "__remove_reference",
    "__remove_reference_t",
    "__remove_restrict",
    "__remove_volatile",
@@ -9175,6 +9183,7 @@ enum a_typeref_kind : a_byte {
                         /* These are Clang "type-returning type traits" that
                            take a single type "argument" and "return" a
                            suitably-modified type. */
+  trk_remove_reference, /* GCC 13.1.0 "type-returning type trait". */
 };
 
 /*
@@ -13537,6 +13546,8 @@ enum a_builtin_operation_kind : a_byte {
   bok_is_class,		/* __is_class.  One operand: A type. */
   bok_is_convertible_to,
 			/* __is_convertible_to.  Two operands, both types. */
+  bok_is_nothrow_convertible,
+			/* __nothrow_convertible.  Two operands, both types. */
   bok_is_empty,		/* __is_empty.  One operand: A type. */
   bok_is_enum,		/* __is_enum.  One operand: A type. */
   bok_is_pod,		/* __is_pod.  One operand: A type. */
@@ -13619,6 +13630,12 @@ enum a_builtin_operation_kind : a_byte {
   bok_is_aggregate,	/* __is_aggregate.  One type operand. */
   bok_reference_binds_to_temporary,
 			/* Clang's __reference_binds_to_temporary.  Two type
+			   operands. */
+  bok_reference_constructs_from_temporary,
+			/* GCC's __reference_constructs_from_temporary.  Two
+			   type operands. */
+  bok_reference_converts_from_temporary,
+			/* GCC's __reference_converts_from_temporary.  Two type
 			   operands. */
   bok_is_same,          /* __is_same (Clang).  Two type operands. */
   bok_is_same_as,       /* __is_same_as (GCC).  Two type operands. */
@@ -18172,6 +18189,7 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__is_base_of",
   "__is_class",
   "__is_convertible_to",
+  "__is_nothrow_convertible",
   "__is_empty",
   "__is_enum",
   "__is_pod",
@@ -18217,6 +18235,8 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__has_unique_object_representations",
   "__is_aggregate",
   "__reference_binds_to_temporary",
+  "__reference_constructs_from_temporary",
+  "__reference_converts_from_temporary",
   "__is_same",
   "__is_same_as",
   "__is_function",

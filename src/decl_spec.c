@@ -11698,6 +11698,7 @@ process_enum_specifier:
       case tok_remove_cvref:
       case tok_remove_extent:
       case tok_remove_pointer:
+      case tok_remove_reference:
       case tok_remove_reference_t:
       case tok_remove_restrict:
       case tok_remove_volatile:

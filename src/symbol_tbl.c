@@ -18251,6 +18251,7 @@ static struct {
   { tok_remove_cvref , "__remove_cvref" },
   { tok_remove_extent , "__remove_extent" },
   { tok_remove_pointer , "__remove_pointer" },
+  { tok_remove_reference , "__remove_reference" },
   { tok_remove_reference_t , "__remove_reference_t" },
   { tok_remove_restrict , "__remove_restrict" },
   { tok_remove_volatile , "__remove_volatile" }

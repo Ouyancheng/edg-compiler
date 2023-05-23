@@ -1,5 +1,14 @@
 Version 6.5
 
+5/23/23  [EDGcpfe/26276,EDGcpfe/26291]
+GNU compatibility: additional type traits for GCC 13.0.0
+
+The __is_convertible, __is_nothrow_convertible,
+__reference_constructs_from_temporary, __reference_converts_from_temporary and
+__remove_reference type traits have been implemented in GNU emulation mode
+when gnu_version >= 130000.
+
+
 5/22/23  [EDGcpfe/24940,EDGcpfe/25601,EDGcpfe/26354]
 Abort in push_template_instantiation_scope
 

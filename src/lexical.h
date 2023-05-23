@@ -596,6 +596,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_is_base_of */
    (an_opname_kind)onk_none,          /* tok_is_class */
    (an_opname_kind)onk_none,          /* tok_is_convertible_to */
+   (an_opname_kind)onk_none,          /* tok_is_nothrow_convertible */
    (an_opname_kind)onk_none,          /* tok_is_empty */
    (an_opname_kind)onk_none,          /* tok_is_enum */
    (an_opname_kind)onk_none,          /* tok_is_pod */
@@ -685,6 +686,8 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_is_aggregate */
    (an_opname_kind)onk_none,          /* tok_integer_pack */
    (an_opname_kind)onk_none,          /* tok_reference_binds_to_temporary */
+   (an_opname_kind)onk_none,        /* tok_reference_constructs_to_temporary */
+   (an_opname_kind)onk_none,          /* tok_reference_converts_to_temporary */
    (an_opname_kind)onk_none,          /* tok_is_same */
    (an_opname_kind)onk_none,          /* tok_is_same_as */
    (an_opname_kind)onk_none,          /* tok_is_function */
@@ -741,6 +744,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_remove_cvref */
    (an_opname_kind)onk_none,          /* tok_remove_extent */
    (an_opname_kind)onk_none,          /* tok_remove_pointer */
+   (an_opname_kind)onk_none,          /* tok_remove_reference */
    (an_opname_kind)onk_none,          /* tok_remove_reference_t */
    (an_opname_kind)onk_none,          /* tok_remove_restrict */
    (an_opname_kind)onk_none,          /* tok_remove_volatile */
@@ -9853,6 +9857,7 @@ tok_underlying_type.
     case tok_remove_cvref:
     case tok_remove_extent:
     case tok_remove_pointer:
+    case tok_remove_reference:
     case tok_remove_reference_t:
     case tok_remove_restrict:
     case tok_remove_volatile:

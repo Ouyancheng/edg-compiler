@@ -818,6 +818,15 @@ modes.
     enter_keyword((a_token_kind)tok_is_literal_type, "__is_literal");
     enter_keyword((a_token_kind)tok_is_convertible_to, "__is_convertible");
   }  /* if */
+  if (gnu_version_is(>=130000)) {
+    enter_keyword((a_token_kind)tok_is_convertible_to, "__is_convertible");
+    enter_keyword((a_token_kind)tok_is_nothrow_convertible,
+                  "__is_nothrow_convertible");
+    enter_keyword((a_token_kind)tok_reference_constructs_from_temporary,
+                  "__reference_constructs_from_temporary");
+    enter_keyword((a_token_kind)tok_reference_converts_from_temporary,
+                  "__reference_converts_from_temporary");
+  }  /* if */
   enter_keyword((a_token_kind)tok_has_trivial_move_constructor,
                 "__has_trivial_move_constructor");
   enter_keyword((a_token_kind)tok_has_trivial_move_assign,

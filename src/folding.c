@@ -7669,15 +7669,15 @@ static void fold_is_convertible_to(an_expr_node_ptr   expr,
                                    a_constant_ptr     constant,
                                    a_boolean          maintain_expression)
 /*
-expr is an enk_builtin_operation node for an __is_convertible_to operation,
-which implements the C++ TR1 is_convertible type relationship predicate
-(see [lib.meta.rel]).  Store a boolean constant in *constant whose value
-is "true" if the first operand type is "implicitly convertible to" the
-second operand type.  If either of the operand types is dependent, store
-a ck_template_param constant in *constant.  The constant will be of the
-tpck_expression variant and will point to the given expression.
-If maintain_expression is TRUE, the backing expression for the returned
-constant will be set as well.
+expr is an enk_builtin_operation node for an __is_convertible_to or
+__is_nothrow_convertible operation, which implement the C++ TR1
+is_convertible/is_nothrow_convertible type relationship predicate (see
+[lib.meta.rel]).  Store a boolean constant in *constant whose value is "true"
+if the first operand type is "implicitly convertible to" the second operand
+type.  If either of the operand types is dependent, store a ck_template_param
+constant in *constant.  The constant will be of the tpck_expression variant and
+will point to the given expression.  If maintain_expression is TRUE, the
+backing expression for the returned constant will be set as well.
 */
 {
   an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
@@ -7741,7 +7741,8 @@ constant will be set as well.
         goto result_known;
       }  /* if */       
     }  /* if */
-    result = compute_is_convertible(type1, type2);
+    result = compute_is_convertible(type1, type2,
+                                    expr->variant.builtin_operation.kind);
 result_known:
     arg1->type_definition_needed = TRUE;
     arg2->type_definition_needed = TRUE;
@@ -7760,6 +7761,7 @@ static void fold_reference_binds_to_temporary(
                                        a_boolean          maintain_expression)
 /*
 expr is an enk_builtin_operation node for a __reference_binds_to_temporary
+__reference_constructs_from_temporary, or __reference_converts_from_temporary
 operation.  If the operand types are nondependent, store a boolean constant in
 *constant.  The boolean constant will have value "true" if the first operand
 is a reference type and binding a value of the second type to that reference
@@ -7784,7 +7786,8 @@ expression for the returned constant will be set as well.
       is_template_dependent_type(type2)) {
     make_template_param_expr_constant(expr, constant);
   } else {
-    a_boolean  result = compute_reference_binds_to_temporary(type1, type2);
+    a_boolean  result = compute_reference_binds_to_temporary(type1, type2,
+                                         expr->variant.builtin_operation.kind);
     clear_constant(constant, (a_constant_repr_kind)ck_integer);
     set_integer_value(&constant->variant.integer_value,
                       (a_host_large_integer)result);
@@ -10058,9 +10061,12 @@ constant is set as well.
         fold_is_base_of(expr, constant, maintain_expression);
         break;
       case bok_is_convertible_to:
+      case bok_is_nothrow_convertible:
         fold_is_convertible_to(expr, constant, maintain_expression);
         break;
       case bok_reference_binds_to_temporary:
+      case bok_reference_constructs_from_temporary:
+      case bok_reference_converts_from_temporary:
         fold_reference_binds_to_temporary(expr, constant, maintain_expression);
         break;
       case bok_is_constructible:

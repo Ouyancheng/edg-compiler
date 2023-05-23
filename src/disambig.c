@@ -932,6 +932,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_remove_cvref:
       case tok_remove_extent:
       case tok_remove_pointer:
+      case tok_remove_reference:
       case tok_remove_reference_t:
       case tok_remove_restrict:
       case tok_remove_volatile:

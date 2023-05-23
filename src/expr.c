@@ -14422,8 +14422,17 @@ previously-scanned construct of this kind.  Either way, return the result in
       case tok_is_convertible_to:
         bok = bok_is_convertible_to;
         break;
+      case tok_is_nothrow_convertible:
+        bok = bok_is_nothrow_convertible;
+        break;
       case tok_reference_binds_to_temporary:
         bok = bok_reference_binds_to_temporary;
+        break;
+      case tok_reference_constructs_from_temporary:
+        bok = bok_reference_constructs_from_temporary;
+        break;
+      case tok_reference_converts_from_temporary:
+        bok = bok_reference_converts_from_temporary;
         break;
       case tok_is_layout_compatible:
         bok = bok_is_layout_compatible;
@@ -16505,6 +16514,7 @@ Convert the given token into the appropriate a_typeref_kind.
     case tok_remove_cvref:          result = trk_remove_cvref;         break;
     case tok_remove_extent:         result = trk_remove_extent;        break;
     case tok_remove_pointer:        result = trk_remove_pointer;       break;
+    case tok_remove_reference:      result = trk_remove_reference;     break;
     case tok_remove_reference_t:    result = trk_remove_reference_t;   break;
     case tok_remove_restrict:       result = trk_remove_restrict;      break;
     case tok_remove_volatile:       result = trk_remove_volatile;      break;
@@ -16628,6 +16638,7 @@ called from outside of the expression-processing routines.
             result = type_arg;
           }  /* if */
           break;
+        case tok_remove_reference:
         case tok_remove_reference_t:
           if (is_reference_type(type_arg)) {
             result = type_pointed_to(type_arg);
@@ -31807,6 +31818,7 @@ Return TRUE if the given token kind represents a "trait" name (like
     case tok_is_base_of:
     case tok_is_class:
     case tok_is_convertible_to:
+    case tok_is_nothrow_convertible:
     case tok_is_empty:
     case tok_is_enum:
     case tok_is_function:
@@ -31849,6 +31861,8 @@ Return TRUE if the given token kind represents a "trait" name (like
     case tok_has_unique_object_representations:
     case tok_is_aggregate:
     case tok_reference_binds_to_temporary:
+    case tok_reference_constructs_from_temporary:
+    case tok_reference_converts_from_temporary:
     case tok_is_same:
     case tok_is_same_as:
     case tok_builtin_has_attribute:
@@ -34586,6 +34600,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_is_base_of:
     case tok_is_class:
     case tok_is_convertible_to:
+    case tok_is_nothrow_convertible:
     case tok_is_empty:
     case tok_is_enum:
     case tok_is_function:
@@ -34654,6 +34669,8 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_has_unique_object_representations:
     case tok_is_aggregate:
     case tok_reference_binds_to_temporary:
+    case tok_reference_constructs_from_temporary:
+    case tok_reference_converts_from_temporary:
     case tok_is_same:
     case tok_is_same_as:
     case tok_builtin_has_attribute:
@@ -40806,7 +40823,10 @@ handle_identifier:
     case tok_is_same_as:
     case tok_is_base_of:
     case tok_is_convertible_to:
+    case tok_is_nothrow_convertible:
     case tok_reference_binds_to_temporary:
+    case tok_reference_constructs_from_temporary:
+    case tok_reference_converts_from_temporary:
     case tok_is_layout_compatible:
     case tok_is_pointer_interconvertible_base_of:
       /* Various binary type traits helper constructs: */
@@ -41103,6 +41123,7 @@ handle_trapped_left_paren:
     case tok_remove_cvref:
     case tok_remove_extent:
     case tok_remove_pointer:
+    case tok_remove_reference:
     case tok_remove_reference_t:
     case tok_remove_restrict:
     case tok_remove_volatile:
@@ -49071,6 +49092,9 @@ TRUE if the operator is a unary operator, FALSE otherwise.
     case bok_is_convertible_to:
       operator_token = tok_is_convertible_to;
       break;
+    case bok_is_nothrow_convertible:
+      operator_token = tok_is_nothrow_convertible;
+      break;
     case bok_is_nothrow_assignable:
       operator_token = tok_is_nothrow_assignable;
       break;
@@ -49099,6 +49123,12 @@ TRUE if the operator is a unary operator, FALSE otherwise.
       break;
     case bok_reference_binds_to_temporary:
       operator_token = tok_reference_binds_to_temporary;
+      break;
+    case bok_reference_constructs_from_temporary:
+      operator_token = tok_reference_constructs_from_temporary;
+      break;
+    case bok_reference_converts_from_temporary:
+      operator_token = tok_reference_converts_from_temporary;
       break;
     case bok_is_layout_compatible:
       operator_token = tok_is_layout_compatible;
@@ -50004,7 +50034,10 @@ a enclosing expression).
       case tok_is_same_as:
       case tok_is_base_of:
       case tok_is_convertible_to:
+      case tok_is_nothrow_convertible:
       case tok_reference_binds_to_temporary:
+      case tok_reference_constructs_from_temporary:
+      case tok_reference_converts_from_temporary:
       case tok_is_layout_compatible:
       case tok_is_pointer_interconvertible_base_of:
         scan_binary_type_trait_helper(rcblock, result);
@@ -52052,12 +52085,16 @@ done:
 }  /* make_declval_arg */
 
 
-a_boolean compute_is_convertible(a_type_ptr  src_type,
-                                 a_type_ptr  dst_type)
+a_boolean compute_is_convertible(a_type_ptr               src_type,
+                                 a_type_ptr               dst_type,
+                                 a_builtin_operation_kind op)
+
 /*
-Compute the "std::is_convertible" type relationship predicate of the C++11
-standard library.  See [meta.rel].  It determines whether "create<src_type>()" 
-is convertible to dst_type in the following:
+   FIXME: Handle op == bok_is_nothrow_convertible case.
+Compute the "std::is_convertible" or "std::is_nothrow_convertible" type
+relationship predicate of the C++ standard library.  See [meta.rel].  It
+determines whether "create<src_type>()" is convertible to dst_type in the
+following:
 
       dst_type test() { return create<src_type>(); }
 
@@ -52437,9 +52474,13 @@ have_result:
 }  /* compute_is_assignable */
 
 
-a_boolean compute_reference_binds_to_temporary(a_type_ptr  ref_type,
-                                               a_type_ptr  init_type)
+a_boolean compute_reference_binds_to_temporary(
+                                            a_type_ptr               ref_type,
+                                            a_type_ptr               init_type,
+                                            a_builtin_operation_kind op)
 /*
+FIXME: update to handle __reference_constructs_from_temporary and
+__reference_converts_from_temporary (and possibly rename?)
 Return TRUE if
 
 	R& r = declval<T>();
