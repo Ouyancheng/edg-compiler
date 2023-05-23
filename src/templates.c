@@ -17177,8 +17177,11 @@ Do some simple consistency checking on a function template argument list.
     internal_error("check_function_template_arg_list: too few template args");
   }  /* if */
 }  /* check_function_template_arg_list */
+
 #endif /* CHECKING */
 
+static a_boolean is_artifact_of_failing_instantiation(
+                                                  a_template_instance_ptr tip);
 
 static void instantiate_exception_spec_if_needed_full(
                                           a_tmpl_decl_state_ptr  decl_state,
@@ -17268,7 +17271,7 @@ from template declaration processing, and is NULL otherwise.
       } else if (sym->variant.routine.pending_mapped_exc_spec) {
         resolve_pending_mapped_exc_spec(sym, esp);
       }  /* if */
-    } else {
+    } else if (!is_artifact_of_failing_instantiation(tip)) {
       /* The template function has an exception specification that is still in
          a "cached" state. */
       a_template_cache_ptr      es_cache;
@@ -35872,6 +35875,20 @@ such cases).
 }  /* check_if_already_specialized */
 
 
+static a_boolean is_artifact_of_failing_instantiation(a_symbol_ptr templ_sym)
+/*
+If the instantiation of the given template instance should be suppressed as it
+would be a (recursive) instantiation originating from an invalid template
+instantiation (of the same template), return TRUE; otherwise, return FALSE.
+*/
+{
+  a_template_symbol_supplement_ptr tssp =
+                                     template_supplement_for_symbol(templ_sym);
+
+  return tssp->invalid_active_instantiation != NULL;
+}  /* is_artifact_of_failing_instantiation */
+
+
 static a_boolean is_artifact_of_failing_instantiation(
                                                    a_template_instance_ptr tip)
 /*
@@ -35880,10 +35897,18 @@ would be a (recursive) instantiation originating from an invalid template
 instantiation (of the same template), return TRUE; otherwise, return FALSE.
 */
 {
-  a_template_symbol_supplement_ptr tssp =
-                             template_supplement_for_symbol(tip->template_sym);
+  a_boolean    result = FALSE;
+  a_symbol_ptr templ_sym = tip->template_sym;
 
-  return tssp->invalid_active_instantiation != NULL;
+  if (is_artifact_of_failing_instantiation(templ_sym)) {
+    result = TRUE;
+  } else if (templ_sym->kind == sk_function_template) {
+    templ_sym = prototype_template_of(templ_sym);
+    if (is_artifact_of_failing_instantiation(templ_sym)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
 }  /* is_artifact_of_failing_instantiation */
 
 

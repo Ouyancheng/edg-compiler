@@ -5481,7 +5481,9 @@ The message is formatted into text strings and is output.
         a_template_symbol_supplement_ptr supp =
                                               templ_sym->variant.template_info;
 
-        supp->invalid_active_instantiation = ssep->instance_sym;
+        if (supp->invalid_active_instantiation == NULL) {
+          supp->invalid_active_instantiation = ssep->instance_sym;
+        }  /* if */
       }  /* if */
     }  /* if */
 
