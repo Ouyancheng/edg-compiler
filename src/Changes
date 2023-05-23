@@ -3,7 +3,7 @@ Version 6.5
 5/22/23  [EDGcpfe/24940,EDGcpfe/25601,EDGcpfe/26354]
 Abort in push_template_instantiation_scope
 
-A number of situations could result in an assertion error when pushing a
+A number of situations could result in an assertion error when pushing an
 instantiation scope for rescanning purposes.  For example, in Clang C++20 mode:
 
   template<typename T> decltype(T::f()) g(T);
