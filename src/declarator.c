@@ -1417,6 +1417,9 @@ struct a_noexcept_arg_descr {
 			/* The list of prototype scope symbols that were
 			   active when the noexcept operand tokens were
 			   cached. */
+  a_scope_depth	prototype_scope_number;
+			/* The scope number to use for the function prototype
+			   scope. */
 };
 
 #if EXPENSIVE_CHECKING
@@ -1428,7 +1431,8 @@ Return TRUE if and only if the given descriptors are equivalent.
 */
 {
   return nad1.class_type == nad2.class_type &&
-         nad1.prototype_scope_symbols == nad2.prototype_scope_symbols;
+         nad1.prototype_scope_symbols == nad2.prototype_scope_symbols &&
+         nad1.prototype_scope_number == nad2.prototype_scope_number;
 }  /* operator== */
 
 
@@ -1638,6 +1642,7 @@ declaration on which the exception specification appears.
       terminate_token_cache(esp->variant.token_cache);
       nad.class_type = (ssep-1)->assoc_type;
       nad.prototype_scope_symbols = func_info->prototype_scope_symbols;
+      nad.prototype_scope_number = ssep->number;
       noexcept_args->map(esp, nad);
       add_end_of_parse_action(mark_mapped_exc_spec, dps,
                               /*secondary_decls=*/TRUE);

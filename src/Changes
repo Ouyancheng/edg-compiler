@@ -1,5 +1,25 @@
 Version 6.5
 
+5/24/23  [EDGcpfe/26058]
+is_local_to_function incorrectly set to FALSE for friend function parameter
+
+Consider (in C++11 mode):
+
+  template<bool>
+  struct A {
+    friend void f(A a) noexcept(true) { }
+  };
+  void g(A<true> o) {
+    f(o);
+  }
+
+As the noexcept specification is only instantiated when needed, the front end
+needs to recreate the function prototype scope for the delayed instantiation.
+Previously, this prototype scope was not recreated with the same scope number
+as the original scope.  That in turn caused is_local_to_function of the friend
+function parameters to be set to FALSE.
+
+
 5/24/23  [EDGcpfe/23420,EDGcpfe/26014,EDGcpfe/26353]
 Parsing of friend function noexcept specification in complete class context
 
