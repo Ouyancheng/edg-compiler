@@ -1501,7 +1501,12 @@ the associated noexcept specifier that needs instantiation.
     }  /* if */
     esp->arg_cached = FALSE;
     esp->variant.token_cache = NULL;
-    sym->variant.routine.pending_mapped_exc_spec = FALSE;
+    if (rout_type_supp(rp->type)->exception_specification == esp) {
+      /* Only clear the flag on the symbol if the exception specification is
+         associated with that symbol (which would not be the case when matching
+         declarations). */
+      sym->variant.routine.pending_mapped_exc_spec = FALSE;
+    }  /* if */
     delayed_scan_of_exception_spec(rp, cache, esp);
     free_token_cache(cache);
     noexcept_args->unmap(esp);
@@ -1617,11 +1622,9 @@ declaration on which the exception specification appears.
     switch_to_file_scope_region(&region_to_switch_back_to);
     if (scope_is(ssep, sck_func_prototype) &&
         scope_is((ssep-1), sck_class_struct_union) &&
-        !(ssep-1)->in_prototype_instantiation &&
-        depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
         (dps->dso_flags & DSO_FRIEND) != 0 &&
         dps->sym == NULL) {
-      /* A friend function in a class template instantiation. */
+      /* A friend function. */
       a_token_set_array     stop_tokens;
       a_noexcept_arg_descr  nad;
       check_assertion(func_info != NULL);
@@ -1690,7 +1693,8 @@ specification to parse; otherwise, use the specification recorded in rp->type.
   /* Recreate a declaration parse state for the routine. */
   init_decl_parse_state(&dps);
   dps.sym = symbol_for(rp);
-  if (rp->is_prototype_instantiation && !rp->source_corresp.is_class_member) {
+  if (rp->is_prototype_instantiation && !rp->source_corresp.is_class_member &&
+      rp->assoc_template != NULL) {
     /* For non-member function template prototype instantiations, the template
        itself should not be visible in its own noexcept-specifier because the
        function declarator is not complete at that point yet.  (For class
@@ -1734,7 +1738,7 @@ specification to parse; otherwise, use the specification recorded in rp->type.
   }  /* if */
   perform_deferred_access_checks_for_function(rp);
   end_deferral_of_access_checks();
-  if (rp->is_prototype_instantiation && !rp->source_corresp.is_class_member) {
+  if (lookup_sym != NULL) {
     lookup_sym->is_invisible = saved_is_invisible;
   }  /* if */
   if (curr_token != tok_end_of_source) {

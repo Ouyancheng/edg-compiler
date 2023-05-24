@@ -3153,6 +3153,9 @@ and for member functions of template classes.
             /* Make sure no further processing will be done here. */
             daefp = NULL;
           } else {
+            if (rfp->process_exception_spec) {
+              instantiate_exception_spec_if_needed(sym);
+            }  /* if */
             /* The default arg token cache is discarded for declarations
                that are not member functions of the current class (including
                friend declarations). */
@@ -11729,6 +11732,8 @@ possibility.
   a_type_ptr                   old_type;
   a_symbol_reference_kind      srk_flags;
   a_source_sequence_entry_ptr  declarator_ssep = NULL;
+  an_exception_specification_ptr
+                               esp;
 
   db_enter(3, "decl_friend_function");
   if (is_template_dependent_context() &&
@@ -12124,6 +12129,17 @@ decl_processed:
          instantiation of a class, set the appropriate flag in the
          routine entry. */
       sym->variant.routine.ptr->friend_defined_in_instantiation = TRUE;
+    }  /* if */
+  }  /* if */
+  esp = rout_type_supp(skip_typerefs(function_type))->exception_specification;
+  if (esp != NULL && esp->arg_cached) {
+    if (is_real_instantiation_context()) {
+      /* We need to keep the parameter id list as the exception specification
+         only gets instantiated when needed. */
+      func_info->keep_param_id_list = TRUE;
+    } else {
+      /* The exception specification gets parsed when the class is complete. */
+      curr_routine_fixup->process_exception_spec = TRUE;
     }  /* if */
   }  /* if */
   /* Do processing required for any pragmas that are bound to the current
