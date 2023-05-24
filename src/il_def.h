@@ -13546,8 +13546,6 @@ enum a_builtin_operation_kind : a_byte {
   bok_is_class,		/* __is_class.  One operand: A type. */
   bok_is_convertible_to,
 			/* __is_convertible_to.  Two operands, both types. */
-  bok_is_nothrow_convertible,
-			/* __nothrow_convertible.  Two operands, both types. */
   bok_is_empty,		/* __is_empty.  One operand: A type. */
   bok_is_enum,		/* __is_enum.  One operand: A type. */
   bok_is_pod,		/* __is_pod.  One operand: A type. */
@@ -13631,12 +13629,6 @@ enum a_builtin_operation_kind : a_byte {
   bok_reference_binds_to_temporary,
 			/* Clang's __reference_binds_to_temporary.  Two type
 			   operands. */
-  bok_reference_constructs_from_temporary,
-			/* GCC's __reference_constructs_from_temporary.  Two
-			   type operands. */
-  bok_reference_converts_from_temporary,
-			/* GCC's __reference_converts_from_temporary.  Two type
-			   operands. */
   bok_is_same,          /* __is_same (Clang).  Two type operands. */
   bok_is_same_as,       /* __is_same_as (GCC).  Two type operands. */
   bok_is_function,      /* __is_function.  One type operand. */
@@ -13697,6 +13689,15 @@ enum a_builtin_operation_kind : a_byte {
   bok_is_unbounded_array,
                         /* __is_unbounded_array (Clang).  One type operand. */
   bok_is_referenceable, /* __is_referenceable (Clang).  One type operand. */
+  bok_is_nothrow_convertible,
+			/* __is_nothrow_convertible.  Two operands, both
+			   types. */
+  bok_reference_constructs_from_temporary,
+			/* GCC's __reference_constructs_from_temporary.  Two
+			   type operands. */
+  bok_reference_converts_from_temporary,
+			/* GCC's __reference_converts_from_temporary.  Two type
+			   operands. */
   bok_last              /* Marks the end of the list. */
 };
 
@@ -18189,7 +18190,6 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__is_base_of",
   "__is_class",
   "__is_convertible_to",
-  "__is_nothrow_convertible",
   "__is_empty",
   "__is_enum",
   "__is_pod",
@@ -18235,8 +18235,6 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__has_unique_object_representations",
   "__is_aggregate",
   "__reference_binds_to_temporary",
-  "__reference_constructs_from_temporary",
-  "__reference_converts_from_temporary",
   "__is_same",
   "__is_same_as",
   "__is_function",
@@ -18275,6 +18273,9 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__is_bounded_array",
   "__is_unbounded_array",
   "__is_referenceable",
+  "__is_nothrow_convertible",
+  "__reference_constructs_from_temporary",
+  "__reference_converts_from_temporary",
   "last"
 }
 #endif /* VAR_INITIALIZERS */
