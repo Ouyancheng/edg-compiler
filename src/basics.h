@@ -1167,6 +1167,17 @@ global suppression of these warnings.
 #define BEGIN_DISABLE_GCC_WARNING(warning) /* nothing */
 #define END_DISABLE_GCC_WARNING /* nothing */
 #endif /* SUPPRESS_BAD_GNU_WARNINGS */
+/* Define a macro for -Wdangling-pointer (added in GCC 12.1). */
+#if defined(__GNUC__) && \
+    (__GNUC__ > 12 || (__GNUC__ == 12 && __GNUC_MINOR__ >= 1))
+#define BEGIN_DISABLE_GCC_WARNING_DANGLING_PTR \
+  BEGIN_DISABLE_GCC_WARNING("-Wdangling-pointer")
+#define END_DISABLE_GCC_WARNING_DANGLING_PTR \
+  END_DISABLE_GCC_WARNING
+#else  /* !(defined(__GNUC__) && __GNUC__ > 12 || (__GNUC__ == 12 && ...)) */
+#define BEGIN_DISABLE_GCC_WARNING_DANGLING_PTR /* nothing */
+#define END_DISABLE_GCC_WARNING_DANGLING_PTR /* nothing */
+#endif /* defined(__GNUC__) && __GNUC__ > 12 || (__GNUC__ == 12 && ...) */
 /* Define a macro for -Wstringop-overflow (added in GCC 7.1). */
 #if defined(__GNUC__) && \
     (__GNUC__ > 7 || (__GNUC__ == 7 && __GNUC_MINOR__ >= 1))

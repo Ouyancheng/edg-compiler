@@ -7793,6 +7793,7 @@ be NULL if no assignments will be output.  icbp points to a control
 block with state information for the processing.
 */
 {
+  check_assertion(outer_level_pos == NULL || outer_level_pos->next == NULL);
   a_gen_init_pos_descr ipd, *ipdp = &ipd;
   a_constant_ptr       elem_con;
   a_type_ptr           elem_type = NULL;
@@ -7909,7 +7910,11 @@ block with state information for the processing.
     ipdp->type = type;
     ipdp->curr_field = NULL;
     if (outer_level_pos != NULL) {
+      /* Disable spurious GCC warning about writing outer_level_pos->next to
+         the address of a local varible (ipdp points to local variable ipd). */
+BEGIN_DISABLE_GCC_WARNING_DANGLING_PTR
       outer_level_pos->next = ipdp;
+END_DISABLE_GCC_WARNING_DANGLING_PTR
       if (type->kind == (a_type_kind)tk_array) {
         /* Propagate the effect of a ck_init_repeat over multidimensional
            arrays. */
@@ -8313,6 +8318,7 @@ block with state information for the processing.
 #if C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX
   release_local_constant(&complex_constant);
 #endif /* C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX */
+  check_assertion(outer_level_pos == NULL || outer_level_pos->next == NULL);
 }  /* dump_initializer_part */
 
 
