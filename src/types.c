@@ -14215,7 +14215,7 @@ is a class type it caches the result in its class type supplement.
     ctsp->contains_unnamed_namespace_type = result;
     ctsp->contains_unnamed_namespace_type_cached = TRUE;
   }  /* if */
-}  /* ttt_post_is_error_type */
+}  /* ttt_post_is_unnamed_namespace_type */
 
 
 static a_boolean ttt_is_error_type(a_type_ptr  type_ptr,
