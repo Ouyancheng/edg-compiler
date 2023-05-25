@@ -1,5 +1,25 @@
 Version 6.5
 
+5/25/23  [EDGcpfe/26368]
+Access to uninitialized memory in interpreter (do_constexpr_condition_cleanup)
+
+In some cases, the front end could access uninitialized memory in the function
+do_constexpr_condition_cleanup of the constant-evaluation interpreter, after
+interpretation failed.  For example:
+
+  struct S;
+  S* g();
+  void f() {
+    []() {
+        if (auto s = g(); true) {}
+    }();
+  }
+
+Here, after failing to evaluate g() (and, thus, failing to initializing s),
+the interpreter's cleanup process attempted to access the contents of s despite
+it not being initialized.  That is now fixed.
+
+
 5/24/23  [EDGcpfe/26058]
 is_local_to_function incorrectly set to FALSE for friend function parameter
 

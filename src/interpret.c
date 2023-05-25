@@ -6608,8 +6608,10 @@ loop constructs they may be needed again).
       a_byte               *var_bytes;
       a_constexpr_address  *cap;
       get_stack_bytes(ips, cond_var, var_bytes);
-      cap = (a_constexpr_address*)var_bytes;
-      release_variant_path_if_needed(cap);
+      if (complete_object_is_initialized(var_bytes)) {
+        cap = (a_constexpr_address*)var_bytes;
+        release_variant_path_if_needed(cap);
+      }  /* if */
     }  /* if */
   }  /* if */
   if (init != NULL) {
@@ -6619,12 +6621,14 @@ loop constructs they may be needed again).
       for (; p != NULL; p = p->next) {
         if (p->entity.kind == iek_variable) {
           a_variable_ptr  vp = (a_variable_ptr)p->entity.ptr;
-          if (skip_typerefs(vp->type)->kind == (a_type_kind)tk_pointer) {
+          if (type_is(skip_typerefs(vp->type), tk_pointer)) {
             a_byte               *var_bytes;
             a_constexpr_address  *cap;
             get_stack_bytes(ips, vp, var_bytes);
-            cap = (a_constexpr_address*)var_bytes;
-            release_variant_path_if_needed(cap);
+            if (complete_object_is_initialized(var_bytes)) {
+              cap = (a_constexpr_address*)var_bytes;
+              release_variant_path_if_needed(cap);
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* for */
