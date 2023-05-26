@@ -7936,6 +7936,33 @@ cannot be evaluated, return FALSE.
   return result;
 }  /* do_constexpr_builtin_fptest */
 
+
+static a_boolean do_constexpr_builtin_copysign(
+                                      a_float_kind             fpkind,
+                                      an_internal_float_value  *fpval1,
+                                      an_internal_float_value  *fpval2,
+                                      a_byte                   *result_storage)
+/*
+Perform the __builtin_copysign* operation on the two floating-point values
+(both of fpkind) and return the result in *result_storage and return TRUE.
+The routine returns FALSE if a negation is required and the negation fails.
+*/
+{
+  a_boolean  result = TRUE;
+
+  if (fp_signbit(fpkind, fpval1) == fp_signbit(fpkind, fpval2)) {
+    *(an_internal_float_value *)result_storage = *fpval1;
+  } else {
+    a_boolean err, dep;
+    fp_negate(fpkind, fpval1, (an_internal_float_value*)result_storage,
+              &err, &dep);
+    if (err || dep) {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* do_constexpr_builtin_fptest */
+
 #endif /* C99_IL_EXTENSIONS_SUPPORTED && TARG_HAS_IEEE_FLOATING_POINT */
 
 static a_boolean do_constexpr_builtin_bitcount(a_routine_ptr  callee,
@@ -9117,6 +9144,45 @@ to FALSE and the reason for the failure is recorded in *ips.
             a_float_kind  fk = tp->variant.float_kind;
             if (!do_constexpr_builtin_fptest(callee, fk, fp_value(arg1_bytes),
                                              result_storage)) {
+              info_with_pos(ec_constexpr_fp_error, &call_node->position, ips);
+              do_constexpr_fail(*p_result);
+            }  /* if */
+          } else {
+            do_constexpr_fail(*p_result);
+          }  /* if */
+        }  /* if */
+#else /* !TARG_HAS_IEEE_FLOATING_POINT */
+        interpreted = FALSE;
+        do_constexpr_fail(*p_result);
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
+      }
+      break;
+    case bfk_copysign:
+    case bfk_copysignf:
+    case bfk_copysignl:
+      {
+#if TARG_HAS_IEEE_FLOATING_POINT
+        interpreted = TRUE;
+        if (args == NULL || args->next == NULL || args->next->next != NULL) {
+          unexpected_condition();
+        } else {
+          a_type_ptr    tp = skip_typerefs(args->type);
+          a_byte_count  n_bytes = value_bytes_for_type(ips, tp, p_result);
+          if (!*p_result) break;
+          check_assertion(is_real_floating_type(tp));
+          alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
+          args2 = args->next;
+          a_type_ptr arg2_tp = skip_typerefs(args2->type);
+          n_bytes = value_bytes_for_type(ips, arg2_tp, p_result);
+          if (!*p_result) break;
+          check_assertion(is_real_floating_type(arg2_tp));
+          alloc_complete_object(ips, n_bytes, arg2_tp, arg2_bytes);
+          if (do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes) &&
+              do_constexpr_expression(ips, args2, arg2_bytes, arg2_bytes)) {
+            a_float_kind  fk = tp->variant.float_kind;
+            if (!do_constexpr_builtin_copysign(fk, fp_value(arg1_bytes),
+                                               fp_value(arg2_bytes),
+                                               result_storage)) {
               info_with_pos(ec_constexpr_fp_error, &call_node->position, ips);
               do_constexpr_fail(*p_result);
             }  /* if */

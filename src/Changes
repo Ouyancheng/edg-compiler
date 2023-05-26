@@ -1,5 +1,12 @@
 Version 6.5
 
+5/26/23  [EDGcpfe/26219]
+GNU/Clang compatibility: compile-time execution of __builtin_copysign*
+
+The __builtin_copysign, __builtin_copysignf, and __builtin_copysignl routines
+can now be invoked at compilation time in GNU and clang emulation modes.
+
+
 5/25/23  [EDGcpfe/26368]
 Access to uninitialized memory in interpreter (do_constexpr_condition_cleanup)
 

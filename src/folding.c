@@ -10224,6 +10224,9 @@ pseudo_call can be NULL if that information is not needed.
       case bfk_ceilf:
       case bfk_ceill:
       case bfk_is_constant_evaluated:
+      case bfk_copysign:
+      case bfk_copysignf:
+      case bfk_copysignl:
         result = TRUE;
         break;
       case bfk_assume_aligned:
@@ -10417,6 +10420,47 @@ Otherwise, return FALSE.
   }  /* if */
   return success;
 }  /* fold_fptest_if_possible */
+
+
+static a_boolean fold_copysign_if_possible(a_routine_ptr     rp,
+                                           an_expr_node_ptr  arg1,
+                                           an_expr_node_ptr  arg2,
+                                           a_constant        *result_con)
+/*
+rp represents a builtin __builtin_copysign* routine which is being applied to
+the given two arguments.  "Copy" the sign bit from the second argument to the
+first (if both are constants) and set *result_con to the resulting value and
+return TRUE.  Otherwise, return FALSE.
+*/
+{
+  a_boolean   success = FALSE;
+
+  check_assertion(is_gnu_builtin_function(rp));
+  if (is_constant_node(arg1) && node_constant_is(arg1, ck_float) &&
+      is_constant_node(arg2) && node_constant_is(arg2, ck_float)) {
+    a_constant_ptr  cp1 = node_constant(arg1);
+    a_constant_ptr  cp2 = node_constant(arg2);
+    a_float_kind    fkind = skip_typedefs(cp1->type)->variant.float_kind;
+    check_assertion(fkind == skip_typedefs(cp2->type)->variant.float_kind &&
+                    fkind ==
+                         skip_typedefs(result_con->type)->variant.float_kind);
+    /* If the sign bit is the same in the two constants, then there's no
+       need to change, otherwise negate the first argument. */
+    success = TRUE;
+    if (fp_signbit(fkind, &cp1->variant.float_value) ==
+        fp_signbit(fkind, &cp2->variant.float_value)) {
+      result_con->variant.float_value = cp1->variant.float_value;
+    } else {
+      a_boolean err, dep;
+      fp_negate(fkind, &cp1->variant.float_value,
+                &result_con->variant.float_value, &err, &dep);
+      if (err || dep) {
+        success = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return success;
+}  /* fold_copysign_if_possible */
 
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
@@ -10760,6 +10804,21 @@ the folding mechanism is used as a way to validate argument values.
           *err_code = ec_call_requires_floating_point_argument;
         } else {
           folded = fold_fptest_if_possible(rp, args, result);
+        }  /* if */
+        break;
+    case bfk_copysign:
+    case bfk_copysignf:
+    case bfk_copysignl:
+        if (args == NULL || args2 == NULL || args2->next != NULL) {
+          *err_code = ec_wrong_number_of_arguments;
+        } else if (!is_real_floating_type(args->type) &&
+                   !is_template_param_type(args->type)) {
+          *err_code = ec_call_requires_floating_point_argument;
+        } else if (!is_real_floating_type(args2->type) &&
+                   !is_template_param_type(args2->type)) {
+          *err_code = ec_call_requires_floating_point_argument;
+        } else {
+          folded = fold_copysign_if_possible(rp, args, args2, result);
         }  /* if */
         break;
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
