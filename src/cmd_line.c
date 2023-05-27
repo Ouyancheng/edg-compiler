@@ -6459,6 +6459,11 @@ file.
 #else /* !defined(DEFAULT_ADDRESS_OF_ELLIPSIS_ALLOWED) */
   comment_undefined_macro_name(DEFAULT_ADDRESS_OF_ELLIPSIS_ALLOWED);
 #endif /* defined(DEFAULT_ADDRESS_OF_ELLIPSIS_ALLOWED) */
+#if defined(DEFAULT_ADD_MATCH_NOTES)
+  define_numeric_valued_macro(DEFAULT_ADD_MATCH_NOTES);
+#else /* !defined(DEFAULT_ADD_MATCH_NOTES) */
+  comment_undefined_macro_name(DEFAULT_ADD_MATCH_NOTES);
+#endif /* defined(DEFAULT_ADD_MATCH_NOTES) */
 #if defined(DEFAULT_ALLOW_ANACHRONISMS)
   define_numeric_valued_macro(DEFAULT_ALLOW_ANACHRONISMS);
 #else /* !defined(DEFAULT_ALLOW_ANACHRONISMS) */
