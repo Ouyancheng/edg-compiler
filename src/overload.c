@@ -78,11 +78,6 @@ static a_boolean check_narrowing_conversion(an_operand  *source_operand,
 
 #if DEBUG
 static unsigned long
-		overload_level;
-			/* Number of levels of overload resolution
-			   underway. */ 
-
-static unsigned long
 		n_viability_checks = 0,
 		n_viability_failures = 0,
 		n_explicit_arg_viability_checks = 0,
@@ -257,7 +252,7 @@ Output a log of the current substitution stack.
 {
   a_substitution_stack_entry_ptr  ssep = substitution_stack;
   int                             k;
-
+  
   for (k = 1; ssep != NULL; ssep = ssep->prev, ++k) {
     fprintf(f_debug, "\nSubstitution -%d\n", k);
     db_sym(ssep->sym);
@@ -266,6 +261,40 @@ Output a log of the current substitution stack.
 }  /* db_substitution_stack */
 
 #endif  /* DEBUG */
+
+using a_small_ovl_res_stack_stack = Small_dyn_array<an_ovl_res_stack, 3>;
+static a_small_ovl_res_stack_stack
+                *ovl_res_stack_stack;
+                        /* Pointer to a stack of, stacks of cascading overload
+                           resolution tasks. */
+
+
+an_ovl_res_stack *ovl_res_stack()
+/*
+Return the current overload resolution stack.
+*/
+{
+  return &(ovl_res_stack_stack->back_elem());
+}  /* ovl_res_stack */
+
+
+void push_new_ovl_res_stack()
+/*
+Push a new overload resolution stack.
+*/
+{
+  ovl_res_stack_stack->push_back(an_ovl_res_stack());
+}  /* push_new_ovl_res_stack */
+
+
+void pop_cur_ovl_res_stack()
+/*
+Pop the current overload resolution stack.
+*/
+{
+  ovl_res_stack_stack->pop_back();
+}  /* pop_cur_ovl_res_stack */
+
 
 /*
 Return TRUE if the indicated symbol is invisible because it was
@@ -2293,8 +2322,8 @@ arg_list gives the operand list, but is NULL if the operand types
 should not be listed.  bound_function_selector is the selector object,
 if there is one, or NULL otherwise.  kind gives the operator associated
 with any entries in the set for built-in operators.  The start_error
-or equivalent has already been done, and this routine does the end_diagnostic
-call.
+or equivalent has already been done, and the caller is also responsible
+for the corresponding end_diagnostic call.
 */
 {
   a_candidate_function_ptr cfp;
@@ -2387,7 +2416,6 @@ call.
       display_operand_types(arg_list, kind, dp);
     }  /* if */
   }  /* if */
-  end_diagnostic(dp);
 }  /* diagnose_overload_ambiguity */
 
 
@@ -2830,7 +2858,10 @@ Display the current overload resolution nesting level at the start
 of a line of debug output.
 */
 {
-  fprintf(f_debug, "[%lu] ", overload_level);
+  fprintf(f_debug,
+          "[%lu.%d] ",
+          (unsigned long)ovl_res_stack()->overload_level(),
+          (int)ovl_res_stack()->emit_note_diagnostics());
 }  /* db_display_overload_level */
 
 #endif /* DEBUG */
@@ -5696,9 +5727,7 @@ in a new-expression).
   an_arg_list_elem_ptr     arg_list_elem;
   a_param_type_ptr         param, param_before_deduction = NULL;
   a_param_type_ptr         first_param_before_deduction;
-#if DEBUG
-  unsigned long            narg;
-#endif /* DEBUG */
+  int32_t                  narg;
   a_boolean                suppress_param_advance, first_pass;
   an_arg_match_summary_ptr this_match, this_match_next;
   an_arg_match_summary_ptr arg_match = NULL, saved_arg_match_next = NULL;
@@ -5717,7 +5746,9 @@ in a new-expression).
   a_boolean                rescan_pushed = FALSE;
   a_boolean                allocated_this_param = FALSE;
   an_operand               dummy_operand;
+  a_diag_list_ptr          notes = NULL;
 
+  
   *discarded_because_post_decl = FALSE;
   if (expr_stack != NULL && expr_stack->any_suppressed_error) {
     /* Do not continue overload resolution if we have already found a
@@ -5731,6 +5762,11 @@ in a new-expression).
   if (routine_type == NULL) {
     function_symbol = fundamental_symbol_of(proj_function_symbol);
     routine_type = func_sym_routine(function_symbol)->type;
+  }  /* if */
+  if (ovl_res_stack()->top().emit_note_diagnostics &&
+      function_symbol != NULL && !candidate_already_noted(function_symbol)) {
+    /* Prepare to record notes explaining why this candidate is not viable. */
+    notes = current_ovl_res_notes();
   }  /* if */
   if (has_explicit_this_parameter(skip_typerefs(routine_type))) {
     /* If this is a function with an explicit "this" parameter, we need to add
@@ -5818,6 +5854,11 @@ in a new-expression).
         goto reject_function;
       }  /* if */
       if (is_ineligible(function_symbol)) {
+        if (notes != NULL) {
+          more_info_sym_diagnostic(ec_candidate_failed_constraint,
+                                   &function_symbol->decl_position,
+                                   function_symbol, notes);
+        }  /* if */
         goto reject_function;
       }  /* if */
       routine_type = routine->type;
@@ -5858,6 +5899,11 @@ in a new-expression).
           check_arg_count_mismatch = FALSE;
           if (arg_count_mismatch(routine_type, arg_list, routine,
                                  &param_array_expanded_case)) {
+            if (notes != NULL) {
+              more_info_sym_diagnostic(ec_candidate_wrong_param_count,
+                                       &function_symbol->decl_position,
+                                       function_symbol, notes);
+            }  /* if */
             goto reject_function;
           }  /* if */
         }  /* if */
@@ -5899,6 +5945,17 @@ in a new-expression).
 #if DEBUG
           n_explicit_arg_viability_failures += 1;
 #endif /* DEBUG */
+          if (notes != NULL) {
+            /* Ideally, we'd want to know why the substitution failed.
+               For now, we just leave it at this.  Note that we pushed an
+               instantiation context, so we must use "notes" and not
+               current_ovl_res_notes(). */
+            more_info_sym_tap_diagnostic(
+                                     ec_candidate_expl_templ_arg_subst_failed,
+                                     &function_symbol->decl_position,
+                                     function_symbol, template_arg_list,
+                                     notes);
+          }  /* if */
           goto reject_function;
         }  /* if */
       }  /* if */
@@ -5909,6 +5966,11 @@ in a new-expression).
          routine_is_move_assignment_operator(routine))) {
       /* Core issue 1402: defaulted and deleted move constructors and
          move assignment operators are ignored by overload resolution. */
+      if (notes != NULL) {
+        more_info_sym_diagnostic(ec_impl_deleted_move_candidate_ignored,
+                                 &function_symbol->decl_position,
+                                 function_symbol, notes);
+      }  /* if */
       goto reject_function;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -5991,6 +6053,11 @@ in a new-expression).
   if (check_arg_count_mismatch &&
       arg_count_mismatch(routine_type, arg_list, routine,
                          &param_array_expanded_case)) {
+    if (notes != NULL) {
+      more_info_sym_diagnostic(ec_candidate_wrong_param_count,
+                               &function_symbol->decl_position,
+                               function_symbol, notes);
+    }  /* if */
     goto reject_function;
   }  /* if */
   /* The function looks okay from the standpoint of argument count. */
@@ -6019,9 +6086,7 @@ in a new-expression).
     param = rtsp->param_type_list;
     suppress_param_advance = FALSE;
     param_before_deduction = first_param_before_deduction;
-#if DEBUG
     narg = 0;
-#endif /* DEBUG */
     for (arg_list_elem = arg_list;
          arg_list_elem != NULL;
          arg_list_elem = next_elem(arg_list_elem)) {
@@ -6029,11 +6094,11 @@ in a new-expression).
          first argument. */
       a_boolean allow_expl_conv_funcs_this_arg = (allow_expl_conv_funcs &&
                                                   (arg_list_elem == arg_list));
-#if DEBUG
       narg++;
+#if DEBUG
       if (debug_level >= 4 || db_flag_is_set("overload")) {
         db_display_overload_level();
-        fprintf(f_debug, "determine_function_viability: arg %lu", narg);
+        fprintf(f_debug, "determine_function_viability: arg %d", narg);
         if (!first_pass) fprintf(f_debug, " (pass 2)");
         fprintf(f_debug, "\n");
       }  /* if */
@@ -6083,9 +6148,17 @@ in a new-expression).
              and therefore param_before_deduction will be NULL when the second
              call argument ('x') is considered.
           */
-          check_assertion(param_before_deduction != NULL ||
-                          function_symbol->variant.template_info
-                                         ->has_variadic_template_params);
+          int32_t  arg_num = narg;
+          if (param_before_deduction == NULL) {
+            arg_num = 1;
+            check_assertion(function_symbol->variant.template_info
+                                           ->has_variadic_template_params);
+          }  /* if */
+          if (notes != NULL) {
+            more_info_sym_num_diagnostic(ec_arg_for_empty_param_pack,
+                                         &function_symbol->decl_position,
+                                         function_symbol, arg_num, notes);
+          }  /* if */
           goto reject_function;
         } else {
           unexpected_condition_str(
@@ -6225,7 +6298,14 @@ in a new-expression).
         }  /* if */
         if (!first_pass) arg_match->next = saved_arg_match_next;
         /* If no match is possible, go on to the next function. */
-        if (arg_match->match_level == aml_none) goto reject_function;
+        if (arg_match->match_level == aml_none) {
+          if (notes != NULL) {
+            more_info_sym_num_diagnostic(ec_nonviable_because_arg_mismatch,
+                                         &function_symbol->decl_position,
+                                         function_symbol, narg, notes);
+          }  /* if */
+          goto reject_function;
+        }  /* if */
         if (microsoft_bugs && arg_match->match_level == aml_exact &&
             arg_match->conversion
                       .user_conversion_for_class_copy_must_be_determined &&
@@ -6263,6 +6343,7 @@ in a new-expression).
                    int r = g(sc);  // Normally an error attempting to call (1).
                                    // Okay in Microsoft mode and calls (2).
             */
+// FIXME: Does this need a note?
             goto reject_function;
           }  /* if */
         }  /* if */
@@ -6302,6 +6383,11 @@ next_argument:
 #if DEBUG
       n_deduction_viability_failures += 1;
 #endif /* DEBUG */
+      if (notes != NULL) {
+        more_info_sym_diagnostic(ec_deduction_failed,
+                                 &function_symbol->decl_position,
+                                 function_symbol, notes);
+      }  /* if */
       goto reject_function;
     } else if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
       a_scope_stack_entry_ptr  ssep;
@@ -6318,6 +6404,7 @@ next_argument:
                                    ssep->template_arg_list, eta_flags)) {
         /* While partially instantiating a function template, do not consider
            that particular candidate instance. */
+// FIXME Does this need a note?
         goto reject_function;
       }  /* if */
     }  /* if */
@@ -6345,6 +6432,11 @@ next_argument:
                                       local_template_arg_list,
                                       /*diagnose=*/FALSE)) {
         --(tssp->variant.function.pending_deductions);
+        if (notes != NULL) {
+          more_info_sym_diagnostic(ec_candidate_failed_constraint,
+                                   &function_symbol->decl_position,
+                                   function_symbol, notes);
+        }  /* if */
         goto reject_function;
       }  /* if */
       --(tssp->variant.function.pending_deductions);
@@ -7035,6 +7127,7 @@ are viable functions, FALSE if not.  Issues no errors.
   a_boolean                matched_except_for_missing_selector = FALSE;
   a_boolean                matched_except_for_selector = FALSE;
 
+  ovl_res_stack()->push();
   try_overloaded_function_match(overloaded_function_symbol,
                                 is_template_id,
                                 template_arg_list,
@@ -7056,6 +7149,7 @@ are viable functions, FALSE if not.  Issues no errors.
                                 /*inaccessible_match=*/(a_symbol **)NULL,
                                 &matched_except_for_missing_selector,
                                 &matched_except_for_selector);
+  ovl_res_stack()->pop();
   possible = (candidate_functions != NULL);
   free_candidate_function_list(candidate_functions);
   return possible;
@@ -10630,32 +10724,48 @@ This routine is called only in C++ mode.
 {
   a_candidate_function_ptr candidate_functions;
   a_symbol_ptr             function_symbol;
-  a_symbol_ptr             inaccessible_match = NULL;
-  a_boolean                matched_except_for_missing_selector = FALSE;
-  a_boolean                matched_except_for_selector = FALSE;
+  a_symbol_ptr             inaccessible_match;
+  a_boolean                matched_except_for_missing_selector;
+  a_boolean                matched_except_for_selector;
   a_boolean                undecidable_because_of_error, ambiguous;
-  a_boolean                sym_is_undefined = FALSE;
-  a_boolean                some_function_tried = FALSE;
-  a_boolean                dependent_call = FALSE;
-  a_boolean                known_to_be_visible = FALSE;
+  a_boolean                sym_is_undefined;
+  a_boolean                some_function_tried;
+  a_boolean                dependent_call;
+  a_boolean                known_to_be_visible;
+  a_boolean                suppress_note_reporting_pass;
   an_arg_list_elem_ptr     arg_list_elem;
+  a_diagnostic_ptr         dp = NULL;
+  /* Do not provide initial values here (must be set after reprocess_with_notes
+     label below). */
 
   db_enter(4, "select_overloaded_function");
+  ovl_res_stack()->push();
 #if DEBUG
-  overload_level++;
   if (debug_level >= 4 || db_flag_is_set("overload")) {
     db_display_overload_level();
     db_symbol(overloaded_function_symbol,
               "Entering select_overloaded_function with ", 4);
   }  /* if */
 #endif /* DEBUG */
-  if (!have_selector) bound_function_selector = NULL;
-  /* candidate_functions will contain the list of viable functions. */
-  candidate_functions = NULL;
   if (unknown_dependent_function != NULL) *unknown_dependent_function = FALSE;
   if (found_through_adl != NULL) *found_through_adl = FALSE;
   if (single_function != NULL) *single_function = FALSE;
   if (init_list_ctor_case != NULL) *init_list_ctor_case = FALSE;
+  suppress_note_reporting_pass = !add_match_notes;
+  /* When two passes are needed (the second one to emit more thorough error
+     diagnostics), the second pass starts here.  All initialization of local
+     variable state related to overloads should be after this label.*/
+reprocess_with_notes:
+  inaccessible_match = NULL;
+  matched_except_for_missing_selector = FALSE;
+  matched_except_for_selector = FALSE;
+  sym_is_undefined = FALSE;
+  some_function_tried = FALSE;
+  dependent_call = FALSE;
+  known_to_be_visible = FALSE;
+  if (!have_selector) bound_function_selector = NULL;
+  /* candidate_functions will contain the list of viable functions. */
+  candidate_functions = NULL;
   /* The "single function" processing is not compatible with trying
      surrogate functions. */
   if (surrogate_function_conv_sym != NULL) {
@@ -11048,6 +11158,9 @@ in_instantiation:
   *arg_match_list = NULL;
   if (undecidable_because_of_error) {
     /* There was some previous error, so do not put out an error message. */
+  } else if (ovl_res_stack()->emit_note_diagnostics()) {
+    /* We've just completed the note processing pass; no need to generate
+       errors (they've already been emitted). */
   } else if (candidate_functions == NULL) {
     /* None of the functions applies. */
     if (inaccessible_match != NULL) {
@@ -11071,6 +11184,9 @@ in_instantiation:
       /* On a rescan, do not enter the name into the symbol table. */
       if (!expr_stack->template_deduction_context) {
         enter_undefined_symbol(overloaded_function_symbol);
+        /* Changing the symbol to undefined causes problems for a second
+           pass, so skip it. */
+        suppress_note_reporting_pass = TRUE;
       }  /* if */
       if (expr_error_should_be_issued()) {
         pos_st_error(default_undefined_code[(int)ovl_context], call_position,
@@ -11120,19 +11236,17 @@ normal_no_function_matches:
         if (err_none_applies == ec_no_matching_function ||
             err_none_applies == ec_no_matching_new_function) {
           if (is_ineligible(overloaded_function_symbol)) {
-            err_none_applies = ec_function_ineligible;
+            // FIXME err_none_applies = ec_function_ineligible;
           } else {
             err_none_applies = ec_function_does_not_match_arguments;
           }  /* if */
         }  /* if */
       }  /* if */
-      if (expr_error_should_be_issued()) {
-        a_diagnostic_ptr dp;
+      if (dp == NULL && expr_error_should_be_issued()) {
         dp = pos_sy_start_error(err_none_applies, call_position,
                                 overloaded_function_symbol);
         display_argument_list_types(object_type, arg_list, dp);
         add_on_diag_for_skipped_inaccessible_function(inaccessible_match, dp);
-        end_diagnostic(dp);
       }  /* if */
     }  /* if */
     if (template_arg_list != NULL && template_arg_list->arg_operand != NULL) {
@@ -11163,7 +11277,6 @@ normal_no_function_matches:
          functions. */
       a_boolean                use_class_call_message = FALSE;
       a_candidate_function_ptr cfp;
-      a_diagnostic_ptr         dp = NULL;
       for (cfp = candidate_functions; cfp != NULL; cfp = cfp->next) {
         if (cfp->surrogate_function_conv_sym != NULL) {
           use_class_call_message = TRUE;
@@ -11237,6 +11350,27 @@ normal_no_function_matches:
   }  /* if */
   /* Free the candidate functions list. */
   free_candidate_function_list(candidate_functions);
+  if (!suppress_note_reporting_pass && dp != NULL &&
+      ovl_res_stack()->note_reporting_pass_needed()) {
+    /* Some error was emitted above and we're processing the top-most
+       overload -- redo the overload processing, this time adding additional
+       notes that should help with diagnosing the issue. */
+#if DEBUG
+    if (debug_level >= 4 || db_flag_is_set("overload")) {
+      db_display_overload_level();
+      db_symbol(overloaded_function_symbol,
+                "Reprocessing overload symbol for additional notes ", 4);
+    }  /* if */
+#endif /* DEBUG */
+    goto reprocess_with_notes;
+  } else if (dp != NULL) {
+    a_diag_list  *notes = current_ovl_res_notes();
+    if (!is_empty_diag_list(notes)) {
+      add_more_info_list(dp, notes);
+    }  /* if */
+    end_diagnostic(dp);
+    dp = NULL;
+  }  /* if */
 have_function:
   if (do_dependent_name_processing &&
       is_non_rescan_prototype_instantiation_context() &&
@@ -11274,8 +11408,8 @@ have_function:
     db_symbol(function_symbol,
               "Leaving select_overloaded_function, function_symbol = ", 4);
   }  /* if */
-  overload_level--;
 #endif /* DEBUG */
+  ovl_res_stack()->pop();
   db_exit();
   return function_symbol;
 }  /* select_overloaded_function */
@@ -16838,6 +16972,75 @@ bound to a reference.
   return possible;
 }  /* conversion_from_class_or_handle_possible */
 
+static a_const_char* text_for_type_code(a_const_char  code)
+/*
+Return a string describing the given type code in diagnostics.
+*/
+{
+  a_const_char  *result;
+
+  switch (code) {
+    case INTEGRAL_TYPE_CODE:
+      result = error_text(ec_integral_operand);
+      break;
+    case PROMOTED_INTEGRAL_TYPE_CODE:
+      result = error_text(ec_promoted_integral_operand);
+      break;
+    case PTRDIFF_T_TYPE_CODE:
+      result = error_text(ec_ptrdiff_t_operand);
+      break;
+    case ENUM_TYPE_CODE:
+      result = error_text(ec_enum_operand);
+      break;
+    case SCOPED_ENUM_TYPE_CODE:
+      result = error_text(ec_scoped_enum_operand);
+      break;
+    case ARITH_TYPE_CODE:
+      result = error_text(ec_arith_operand);
+      break;
+    case PROMOTED_ARITH_TYPE_CODE:
+      result = error_text(ec_promoted_arith_operand);
+      break;
+    case NONBOOL_ARITH_TYPE_CODE:
+      result = error_text(ec_nonbool_arith_operand);
+      break;
+    case POINTER_TYPE_CODE:
+      result = error_text(ec_pointer_operand);
+      break;
+    case NULLPTR_TYPE_CODE:
+      result = error_text(ec_nullptr_operand);
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case HANDLE_TYPE_CODE:
+      result = error_text(ec_handle_operand);
+      break;
+    case HANDLE_TO_CLI_ARRAY_TYPE_CODE:
+      result = error_text(ec_handle_to_cli_array_operand);
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case POINTER_TO_OBJECT_TYPE_CODE:
+      result = error_text(ec_pointer_to_object_operand);
+      break;
+    case POINTER_TO_FUNCTION_TYPE_CODE:
+      result = error_text(ec_pointer_to_function_operand);
+      break;
+    case PTR_TO_MEMBER_TYPE_CODE:
+      result = error_text(ec_ptr_to_member_operand);
+      break;
+    case BOOL_TYPE_CODE:
+      result = error_text(ec_bool_operand);
+    case BOOL_EQUIVALENT_TYPE_CODE:
+      result = error_text(ec_bool_equivalent_operand);
+      break;
+    case CLASS_TYPE_CODE:
+      result = error_text(ec_class_operand);
+      break;
+    default:
+      unexpected_condition_str("text_for_type_code: bad type code");
+  }  /* switch */
+  return result;
+}  /* text_for_type_code */
+
 
 static void try_builtin_operands_match(
                        an_opname_kind           kind,
@@ -16860,7 +17063,7 @@ for pattern strings containing corresponding types (it indicates
 the target type to be used).
 */
 {
-  a_boolean                okay;
+  a_boolean                okay = TRUE;
   char                     type_code;
   a_const_char             *type_pattern_position;
   an_arg_list_elem_ptr     alep;
@@ -16870,9 +17073,7 @@ the target type to be used).
   a_conv_descr             conversion;
   a_std_conv_descr         std_conv;
   a_boolean                ambiguous, need_lvalue_result, operand_is_lvalue;
-#if DEBUG
-  unsigned long            narg;
-#endif /* DEBUG */
+  int32_t                  narg = 0;
   a_conv_context_set       conv_context = CCO_BUILTIN_OP;
 
   /* This routine is similar to try_overloaded_function_match (but it only
@@ -16883,10 +17084,8 @@ the target type to be used).
     fprintf(f_debug, "try_builtin_operands_match: considering %s\n",
                      operand_type_pattern);
   }  /* if */
-  narg = 0;
 #endif /* DEBUG */
   arg_match_list = end_arg_match_list = NULL;
-  okay = TRUE;
   need_lvalue_result = first_operand_must_be_lvalue;
   /* Go through the operands and determine the match level on each operand. */
   for (type_pattern_position = operand_type_pattern, alep = operand_list;
@@ -16901,11 +17100,11 @@ the target type to be used).
       internal_error("try_builtin_operands_match: ran off pattern");
     }  /* if */
 #endif /* CHECKING */
-#if DEBUG
     narg++;
+#if DEBUG
     if (debug_level >= 4 || db_flag_is_set("overload")) {
       db_display_overload_level();
-      fprintf(f_debug, "try_builtin_operands_match: operand %lu\n", narg);
+      fprintf(f_debug, "try_builtin_operands_match: operand %d\n", narg);
     }  /* if */
 #endif /* DEBUG */
     /* Because braced-init-lists are not allowed as operands of operators,
@@ -17232,6 +17431,32 @@ the target type to be used).
        the built-in operator. */
     if (arg_match->match_level == aml_none) {
       okay = FALSE;
+      if (ovl_res_stack()->top().emit_note_diagnostics) {
+        /* Record a note explaining which candidate is being rejected. */
+        /* Construct a string describing the "signature" of the built-in
+           candidate. */
+        a_const_char  *op_str;
+        a_string      op_sig(opname_names[kind], "(");
+        op_sig.append(text_for_type_code(operand_type_pattern[0]));
+        if (operand_type_pattern[1] != ';' &&
+            operand_type_pattern[1] != '\0') {
+          /* A binary operator. */
+          op_sig.append(", ");
+          op_sig.append(text_for_type_code(operand_type_pattern[1]));
+        }  /* if */
+        op_sig.append(")");
+        /* op_sig is about to be deallocated, but the diagnostic note created
+           here will not be emitted until later: Copy the string to a more
+           permanent allocation. */
+        op_str = (a_const_char*)copy_string_of_length_to_region(
+                                                  FRONT_END_REGION_NUMBER,
+                                                  op_sig.as_temp_characters(),
+                                                  op_sig.length());
+        more_info_st_num_diagnostic(
+                           ec_builtin_operator_nonviable_because_arg_mismatch,
+                           &error_position, op_str, narg,
+                           current_ovl_res_notes());
+      }  /* if */
       break;
     }  /* if */
   }  /* for */
@@ -18039,6 +18264,7 @@ Adjust the operand type to match the type requirement.
                                         (an_operand *)NULL,
                                         (an_arg_list_elem *)NULL,
                                         (an_opname_kind)onk_none, dp);
+            end_diagnostic(dp);
           }  /* if */
           free_candidate_function_list(ambiguity_list);
         }  /* if */
@@ -18906,7 +19132,7 @@ selected, it is stored in *rewritten_candidate.
   an_operand               function_operand;
   a_candidate_function_ptr candidate_functions;
   an_arg_match_summary_ptr arg_match;
-  a_symbol_ptr             inaccessible_match = NULL;
+  a_symbol_ptr             inaccessible_match;
   a_boolean                member_is_best_match;
   a_boolean                nonstatic_member_is_best_match;
   an_expr_node_ptr         arg;
@@ -18915,8 +19141,8 @@ selected, it is stored in *rewritten_candidate.
   a_boolean                ambiguous;
   a_boolean                undecidable_because_of_error;
   a_boolean                arg_list_not_used;
-  a_boolean                dependent_call = FALSE;
-  a_boolean                defer_overload_resolution = FALSE;
+  a_boolean                dependent_call;
+  a_boolean                defer_overload_resolution;
   a_boolean                found_through_adl = FALSE;
   a_boolean                selector_is_object_pointer = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -18925,10 +19151,11 @@ selected, it is stored in *rewritten_candidate.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_boolean                folded_to_constant = FALSE;
   an_opname_kind           orig_kind = kind;
+  a_diagnostic_ptr         dp = NULL;
 
   db_enter(4, "check_for_operator_overloading");
+  ovl_res_stack()->push();
 #if DEBUG
-  overload_level++;
   if (debug_level >= 4 || db_flag_is_set("overload")) {
     db_display_overload_level();
     fprintf(f_debug, "Entering check_for_operator_overloading\n");
@@ -19017,6 +19244,12 @@ selected, it is stored in *rewritten_candidate.
     } else {
       /* At least one operand must have a class type or enum type.
          An error operand for the second operand counts as a class operand. */
+      /* When two passes are needed (the second one to emit more thorough error
+         diagnostics), the second pass starts here. */
+reprocess_with_notes:
+      inaccessible_match = NULL;
+      dependent_call = FALSE;
+      defer_overload_resolution = FALSE;
       candidate_functions = select_overloaded_operator(
                                                 kind, unary_operator,
                                                 must_be_member_function,
@@ -19033,7 +19266,12 @@ selected, it is stored in *rewritten_candidate.
                                                 &ambiguous,
                                                 &arg_list,
                                                 &inaccessible_match);
-      if (arg_list != NULL) {
+      if (ovl_res_stack()->emit_note_diagnostics()) {
+        /* We've just completed the note processing pass; no need to generate
+           errors (they've already been emitted), but free any allocated
+           resources. */
+        goto free_stuff;
+      } else if (arg_list != NULL) {
         /* Overload resolution processing occurred. */
         function_symbol = NULL;
         arg_expr_list = NULL;
@@ -19075,6 +19313,8 @@ selected, it is stored in *rewritten_candidate.
                here on in we can freely modify the operands, because if we
                don't a get a match via operator synthesis we will issue an
                error and it doesn't matter that we altered the operands. */
+            /* Note that this also disables an additional notes processing
+               pass (because the operands have changed). */
             an_operand       operand_1_clone;
             a_boolean        temp_init_used;
             an_expr_node_ptr temp_init_expr = NULL;
@@ -19201,14 +19441,12 @@ no_applicable_operator_function:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             *processed = TRUE;
             if (expr_error_should_be_issued()) {
-              a_diagnostic_ptr dp;
               dp = pos_st_start_error(ec_no_matching_operator_function,
                                       operator_position,
                                       opname_names[(int)kind]);
               display_operand_types(arg_list, kind, dp);
               add_on_diag_for_skipped_inaccessible_function(
                                                        inaccessible_match, dp);
-              end_diagnostic(dp);
             }  /* if */
             make_error_operand(result);
             arg_list_not_used = TRUE;
@@ -19223,7 +19461,6 @@ no_applicable_operator_function:
           }  /* if */
 #endif /* DEBUG */
           if (expr_error_should_be_issued()) {
-            a_diagnostic_ptr dp;
             dp = pos_st_start_error(ec_ambiguous_operator_function,
                                     operator_position,
                                     opname_names[(int)kind]);
@@ -19585,6 +19822,7 @@ no_applicable_operator_function:
             }  /* if */
           }  /* if */
         }  /* if */
+free_stuff:
         /* Free the candidate functions list. */
         free_candidate_function_list(candidate_functions);
         if (arg_list_not_used) {
@@ -19603,6 +19841,24 @@ no_applicable_operator_function:
         }  /* if */
         free_arg_list(arg_list);
       }  /* if */
+      if (dp != NULL &&
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          !potential_operator_synthesis_case &&
+          /* Because operators might have been modified. */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          ovl_res_stack()->note_reporting_pass_needed()) {
+        /* An error was just emitted and we're processing the top-most
+           overload -- redo the overload processing, this time adding
+           additional notes that should help with diagnosing the issue. */
+#if DEBUG
+        if (debug_level >= 4 || db_flag_is_set("overload")) {
+          db_display_overload_level();
+          fprintf(f_debug,
+                  "Reprocessing operator overload for additional notes\n");
+        }  /* if */
+#endif /* DEBUG */
+        goto reprocess_with_notes;
+      }  /* if */
     }  /* if */
     if (*processed && !folded_to_constant) {
       rule_out_expr_kinds(ROEK_CONSTANT, result);
@@ -19612,13 +19868,21 @@ no_applicable_operator_function:
   if (*processed) {
     result->position = *operator_position;
   }  /* if */
+  if (dp != NULL) {
+    a_diag_list  *notes = current_ovl_res_notes();
+    if (!is_empty_diag_list(notes)) {
+      add_more_info_list(dp, notes);
+    }  /* if */
+    end_diagnostic(dp);
+    dp = NULL;
+  }  /* if */
 #if DEBUG
   if (debug_level >= 4 || db_flag_is_set("overload")) {
     db_display_overload_level();
-    fprintf(f_debug, "Leaving check_for_operator_overloading\n");
+    fprintf(f_debug, "Leaving f_check_for_operator_overloading\n");
   }  /* if */
-  overload_level--;
 #endif /* DEBUG */
+  ovl_res_stack()->pop();
   db_exit();
 }  /* f_check_for_operator_overloading */
 
@@ -19695,8 +19959,8 @@ error.  conv_context describes the context of the conversion.
      select_overloaded_function that works for user-defined conversion
      functions (no arguments, just a "this" parameter). */
   db_enter(4, "conversion_to_class_possible");
+  ovl_res_stack()->push();
 #if DEBUG
-  overload_level++;
   if (debug_level >= 4 || db_flag_is_set("overload")) {
     db_display_overload_level();
     fprintf(f_debug, "Entering conversion_to_class_possible, dest_type = ");
@@ -20127,8 +20391,8 @@ error.  conv_context describes the context of the conversion.
     fprintf(f_debug, "Leaving conversion_to_class_possible: %s\n",
                      okay ? "okay" : "not okay");
   }  /* if */
-  overload_level--;
 #endif /* DEBUG */
+  ovl_res_stack()->pop();
   db_exit();
   return okay;
 }  /* conversion_to_class_possible */
@@ -20181,8 +20445,8 @@ conv_context describes the context of the conversion.  */
 
   /* This routine is similar to select_overloaded_function. */
   db_enter(4, "conversion_from_class_possible");
+  ovl_res_stack()->push();
 #if DEBUG
-  overload_level++;
   if (debug_level >= 4 || db_flag_is_set("overload")) {
     db_display_overload_level();
     fprintf(f_debug, "Entering conversion_from_class_possible, dest_type = ");
@@ -20272,8 +20536,8 @@ conv_context describes the context of the conversion.  */
     fprintf(f_debug, "Leaving conversion_from_class_possible: %s\n",
                      okay ? "okay" : "not okay");
   }  /* if */
-  overload_level--;
 #endif /* DEBUG */
+  ovl_res_stack()->pop();
   db_exit();
   return okay;
 }  /* conversion_from_class_possible */
@@ -20357,6 +20621,7 @@ error and set *processed to TRUE if the conversion is ambiguous.
                                       (an_operand *)NULL,
                                       (an_arg_list_elem *)NULL,
                                       (an_opname_kind)onk_none, dp);
+          end_diagnostic(dp);
         }  /* if */
         free_candidate_function_list(ambiguity_list);
       }  /* if */
@@ -20416,8 +20681,8 @@ describes the context of the conversion.
     a_boolean  builtin_case = (builtin_types_allowed != BTK_NONE);
     a_type_ptr source_type = source_operand->type;
     clear_conv_descr(conversion);
+    ovl_res_stack()->push();
 #if DEBUG
-    overload_level++;
     if (debug_level >= 4 || db_flag_is_set("overload")) {
       db_display_overload_level();
       fprintf(f_debug,
@@ -20531,8 +20796,8 @@ describes the context of the conversion.
               "Leaving cli_handle_user_defined_conversion_possible: %s\n",
               okay ? "okay" : "not okay");
     }  /* if */
-    overload_level--;
 #endif /* DEBUG */
+    ovl_res_stack()->pop();
   }  /* if */
   db_exit();
   return okay;
@@ -20979,6 +21244,7 @@ that case).
                                       (an_operand *)NULL,
                                       (an_arg_list_elem *)NULL,
                                       (an_opname_kind)onk_none, dp);
+          end_diagnostic(dp);
         }  /* if */
         free_candidate_function_list(ambiguity_list);
       }  /* if */
@@ -24249,6 +24515,7 @@ the conversion.
                                     (an_operand *)NULL,
                                     (an_arg_list_elem *)NULL,
                                     (an_opname_kind)onk_none, dp);
+        end_diagnostic(dp);
       }  /* if */
       free_candidate_function_list(ambiguity_list);
       conv_to_error_operand(source_operand);
@@ -25221,7 +25488,8 @@ used).
       }  /* if */
     }  /* if */
   }  /* for */
-  if (ctor_rout == NULL) {
+  if (ctor_rout == NULL &&
+      !ovl_res_stack()->emit_note_diagnostics()) {
     expr_pos_error(ec_missing_initializer_list_ctor, pos);
   }  /* if */
   return ctor_rout;
@@ -27943,6 +28211,7 @@ can convert to or from handles.
                                     (an_operand *)NULL,
                                     (an_arg_list_elem *)NULL,
                                     (an_opname_kind)onk_none, dp);
+        end_diagnostic(dp);
       }  /* if */
       free_candidate_function_list(ambiguity_list);
     }  /* if */
@@ -27987,8 +28256,8 @@ find_default_constructor.
   an_overload_set_traversal_block ostblock;
 
   db_enter(4, "select_overloaded_default_constructor");
+  ovl_res_stack()->push();
 #if DEBUG
-  overload_level++;
   if (debug_level >= 4 || db_flag_is_set("overload")) {
     db_display_overload_level();
     fprintf(f_debug,
@@ -28092,8 +28361,8 @@ find_default_constructor.
     db_symbol(ctor_sym,
               "Leaving select_overloaded_default_constructor, ctor_sym = ", 4);
   }  /* if */
-  overload_level--;
 #endif /* DEBUG */
+  ovl_res_stack()->pop();
   db_exit();
   return ctor_sym;
 }  /* select_overloaded_default_constructor */
@@ -28287,8 +28556,8 @@ do access checking on the copy constructor.
 
   /* This routine is similar to select_overloaded_function. */
   db_enter(4, "select_overloaded_copy_constructor");
+  ovl_res_stack()->push();
 #if DEBUG
-  overload_level++;
   if (debug_level >= 4 || db_flag_is_set("overload")) {
     db_display_overload_level();
     fprintf(f_debug,
@@ -28509,8 +28778,8 @@ next_function:;
     db_symbol(cctor_sym,
               "Leaving select_overloaded_copy_constructor, cctor_sym = ", 4);
   }  /* if */
-  overload_level--;
 #endif /* DEBUG */
+  ovl_res_stack()->pop();
   db_exit();
   return cctor_sym;
 }  /* select_overloaded_copy_constructor */
@@ -28560,8 +28829,8 @@ assignment operator.
 
   /* This routine is similar to select_overloaded_function. */
   db_enter(4, "select_overloaded_assignment_operator");
+  ovl_res_stack()->push();
 #if DEBUG
-  overload_level++;
   if (debug_level >= 4 || db_flag_is_set("overload")) {
     db_display_overload_level();
     fprintf(f_debug,
@@ -28776,8 +29045,8 @@ next_function:;
               "Leaving select_overloaded_assignment_operator, assign_sym = ",
               4);
   }  /* if */
-  overload_level--;
 #endif /* DEBUG */
+  ovl_res_stack()->pop();
   db_exit();
   return assign_sym;
 }  /* select_overloaded_assignment_operator */
@@ -29532,10 +29801,11 @@ These are initializations that must be redone for each compilation.
   avail_arg_match_summaries = NULL;
 #if DEBUG
   num_candidate_functions_allocated = 0;
-  overload_level = 0;
 #endif /* DEBUG */
   substitution_stack = NULL;
   avail_substitution_stack_entries = NULL;
+  ovl_res_stack_stack = new_fe<a_small_ovl_res_stack_stack>();
+  push_new_ovl_res_stack();
 }  /* overload_init */
 
 /* Conditionally close the "edg" namespace. */

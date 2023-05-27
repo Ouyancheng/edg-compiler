@@ -337,6 +337,16 @@ command-line option.
 #endif /* ifndef DEFAULT_BRIEF_DIAGNOSTICS */
 
 /*
+Flag that is TRUE if notes should be added to provide details about overload
+resolution failures.  (This is the initial value of the variable
+add_match_notes, which can be overridden by the --[no_]add_match_notes
+command-line option.
+*/
+#ifndef DEFAULT_ADD_MATCH_NOTES
+#define DEFAULT_ADD_MATCH_NOTES TRUE
+#endif /* ifndef DEFAULT_ADD_MATCH_NOTES */
+
+/*
 TRUE if the column number should be included as part of the diagnostic
 output in brief diagnostics mode.
 */
@@ -4139,6 +4149,11 @@ unmodified) value.
 }  /* enum_cast */
 
 #endif /* USE_ENUMS_IN_BITFIELDS */
+
+EXTERN a_boolean
+                add_match_notes;
+                        /* TRUE if notes should be added to error messages
+			   describing failures to match overload sets. */
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

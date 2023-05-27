@@ -647,6 +647,7 @@ check_abbreviation()
   esac
   if [ $keyword_option -ne 0 ] ; then
     grep -E "^$opt_name" <<END_OF_INPUT >$cmd_tmp_file
+--add_match_notes
 --aligned_new
 --alternative_tokens
 --anachronisms
@@ -830,6 +831,7 @@ check_abbreviation()
 --near_data_pointers
 --new_for_init
 --nm
+--no_add_match_notes
 --no_aligned_new
 --no_alternative_tokens
 --no_anachronisms
@@ -1736,7 +1738,9 @@ process_option()
          --check_unicode_security | \
          --no_check_unicode_security | \
          --old_id_chars | \
-         --no_old_id_chars)
+         --no_old_id_chars | \
+         --add_match_notes | \
+         --no_add_match_notes)
 #     Options that require additional processing
       case $arg in
         -m | --c | --c89 | --c99 | --no_c99 | --c11 | --c18 | --c17 | --c23 | \

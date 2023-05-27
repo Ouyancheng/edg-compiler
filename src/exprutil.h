@@ -154,7 +154,7 @@ enum a_cast_source_form {
 /*
 The context kinds in which overload resolution functions like
 select_overloaded_function and select_and_prepare_to_call_overloaded_function
-are called.  This decides determines what kind of error messages might be
+are called.  This determines what kind of error messages might be
 issued when overload resolution fails.  In some cases it can also decide other
 aspects of the call resolution (such as lookup).
 */
@@ -802,6 +802,8 @@ some of the transformations.
 			   situations, so we leave the default as no copy. */
 #define TOPT_NO_OPTIONS 0
 typedef int a_transformation_options_set;
+
+extern a_boolean expr_error_should_be_issued(void);
 
 /* Include overload.h after an_operand has been defined to avoid circular
    reference problems. */
@@ -2836,8 +2838,6 @@ extern void record_suppressed_error(void);
 extern a_boolean expr_diagnostic_should_be_issued(an_error_severity sev,
                                                   an_error_code     err_code,
                                                   a_source_position *pos);
-
-extern a_boolean expr_error_should_be_issued(void);
 
 extern a_boolean is_consteval_diag_deferred();
 

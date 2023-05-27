@@ -952,10 +952,28 @@ extern void more_info_num2_diagnostic(an_error_code     error_code,
                                       int32_t           num2,
                                       a_diag_list_ptr   diag_list);
 
+extern void more_info_sym_num_diagnostic(an_error_code     error_code,
+                                         a_source_position *error_pos,
+                                         struct a_symbol   *sym,
+                                         int32_t           num,
+                                         a_diag_list_ptr   diag_list);
+
+extern void more_info_st_num_diagnostic(an_error_code     error_code,
+                                        a_source_position *error_pos,
+                                        a_const_char      *fill_in_str,
+                                        int32_t           num,
+                                        a_diag_list_ptr   diag_list);
+
 extern void more_info_tap_diagnostic(an_error_code      error_code,
                                      a_source_position  *error_pos,
                                      a_template_arg_ptr tap,
                                      a_diag_list_ptr    diag_list);
+
+extern void more_info_sym_tap_diagnostic(an_error_code     error_code,
+                                         a_source_position *error_pos,
+                                         struct a_symbol   *sym,
+                                         a_template_arg    *tap,
+                                         a_diag_list_ptr   diag_list);
 
 extern void add_more_info_list(a_diagnostic_ptr		dp,
 			       a_diag_list_ptr		dlp);

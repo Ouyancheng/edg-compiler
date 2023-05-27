@@ -1701,6 +1701,12 @@ Initialize the option information table.
   add_option_description(optk_old_id_chars, "no_old_id_chars", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_add_match_notes, "add_match_notes", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_add_match_notes, "no_add_match_notes", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_dump_command_options, "dump_command_options",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_none);
@@ -11578,6 +11584,9 @@ enable_microsoft_mode:
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
       case optk_old_id_chars:
         old_id_chars = opt_value;
+        break;
+      case optk_add_match_notes:
+        add_match_notes = opt_value;
         break;
       case optk_dump_command_options:
         /* Display all of the command-line options that can be specified

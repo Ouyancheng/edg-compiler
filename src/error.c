@@ -7832,6 +7832,60 @@ diagnostics pointed to by diag_list.  The given numbers are used for fill-ins
 }  /* more_info_num2_diagnostic */
 
 
+void more_info_sym_num_diagnostic(an_error_code     error_code,
+                                  a_source_position *error_pos,
+                                  struct a_symbol   *sym,
+                                  int32_t           num,
+                                  a_diag_list_ptr   diag_list)
+/*
+Add the indicated diagnostic with the associated position to the list of
+diagnostics pointed to by diag_list.  The given symbol is used to replace the
+%n fill-in and the given number is used for the %d fill-in.
+*/
+{
+  a_diagnostic_ptr	dp;
+
+  dp = create_primary_diagnostic(error_code, error_pos, es_more_info);
+  add_symbol_fill_in(dp, sym);
+  add_number_fill_in(dp, num);
+  check_assertion(diag_list != NULL);
+  /* Add the diagnostic to the given list. */
+  if (diag_list->head == NULL) {
+    diag_list->head = dp;
+  } else {
+    diag_list->tail->next = dp;
+  }  /* if */
+  diag_list->tail = dp;
+}  /* more_info_sym_num_diagnostic */
+
+
+void more_info_st_num_diagnostic(an_error_code     error_code,
+                                 a_source_position *error_pos,
+                                 a_const_char      *fill_in_str,
+                                 int32_t           num,
+                                 a_diag_list_ptr   diag_list)
+/*
+Add the indicated diagnostic with the associated position to the list of
+diagnostics pointed to by diag_list.  The given string is used to replace the
+%s fill-in and the given number is used for the %d fill-in.
+*/
+{
+  a_diagnostic_ptr	dp;
+
+  dp = create_primary_diagnostic(error_code, error_pos, es_more_info);
+  add_string_fill_in(dp, fill_in_str);
+  add_number_fill_in(dp, num);
+  check_assertion(diag_list != NULL);
+  /* Add the diagnostic to the given list. */
+  if (diag_list->head == NULL) {
+    diag_list->head = dp;
+  } else {
+    diag_list->tail->next = dp;
+  }  /* if */
+  diag_list->tail = dp;
+}  /* more_info_st_num_diagnostic */
+
+
 void more_info_tap_diagnostic(an_error_code     error_code,
                               a_source_position *error_pos,
                               a_template_arg    *tap,
@@ -7845,6 +7899,27 @@ to replace a %T placeholder in the diagnostic string.
   general_diagnostic(es_more_info, error_code, error_pos,
                      (a_const_char*)NULL, (a_const_char*)NULL,
                      (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                     (a_type_ptr)NULL, (a_type_ptr)NULL,
+                     tap, (a_template_arg_ptr)NULL,
+                     (a_source_position*)NULL, diag_list);
+}  /* more_info_tap_diagnostic */
+
+
+void more_info_sym_tap_diagnostic(an_error_code     error_code,
+                                  a_source_position *error_pos,
+                                  a_symbol_ptr      sym,
+                                  a_template_arg    *tap,
+                                  a_diag_list_ptr   diag_list)
+/*
+Add the indicated diagnostic with the associated position to the list of
+diagnostics pointed to by diag_list.  The given symbol and template argument
+list are used to replace a %n and %T placeholders, respectively, in the
+diagnostic string.
+*/
+{
+  general_diagnostic(es_more_info, error_code, error_pos,
+                     (a_const_char*)NULL, (a_const_char*)NULL,
+                     sym, (a_symbol_ptr)NULL,
                      (a_type_ptr)NULL, (a_type_ptr)NULL,
                      tap, (a_template_arg_ptr)NULL,
                      (a_source_position*)NULL, diag_list);

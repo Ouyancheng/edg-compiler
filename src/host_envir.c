@@ -6184,6 +6184,7 @@ This is done before command line processing.
 #endif /* READ_CPPCLI_PORTABLE_ASSEMBLIES && !STANDALONE_UTILITY_PROGRAM */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED &&
           (!CPPCLI_ENABLING_POSSIBLE || !EDG_WIN32) */
+  add_match_notes = DEFAULT_ADD_MATCH_NOTES;
   /* Make sure the predefined macro mode enumeration and the array of
      mode names match. */
   check_assertion_str2(predef_macro_mode_names[(int)pmm_last] != NULL &&

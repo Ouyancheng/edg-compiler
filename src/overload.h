@@ -525,6 +525,173 @@ EXTERN an_arg_match_summary_ptr
 			/* List of argument match summary entries that have
 			   been freed and are available for reuse. */
 
+/*
+A type describing an entry in the overload resolution stack.
+FIXME: Used for error reporting now, but could be used for argument passing.
+*/
+struct an_ovl_resolution_descr {
+  inline an_ovl_resolution_descr();
+  inline ~an_ovl_resolution_descr()
+    { if (this->noted_candidates != NULL) delete_fe(this->noted_candidates); }
+  a_boolean     emit_note_diagnostics = FALSE;
+                        /* TRUE if we're in the "note processing" pass.
+                           Currently only set in the top-most overload (i.e.,
+                           the bottom of the stack). */
+
+  size_t        candidate_count = 0;
+                        /* Number of candidates found. */
+private:
+  a_diag_list   notes = { NULL, NULL };
+                        /* Notes attached to the principal diagnostic
+                           adding details about various failures. */
+  friend a_diag_list* current_ovl_res_notes();
+  Ptr_set<a_symbol_ptr>
+                *noted_candidates = NULL;
+                        /* The set of candidates that have notes associated
+                           with them.  (Used to avoid duplicate notes.) */
+  friend a_boolean candidate_already_noted(a_symbol_ptr  sym);
+} /* an_ovl_resolution_descr */;
+
+
+inline an_ovl_resolution_descr::an_ovl_resolution_descr()
+/*
+Constructor for an_ovl_resolution_descr.
+*/
+  : emit_note_diagnostics(FALSE)
+  , candidate_count(0)
+  , notes{ NULL, NULL }
+{
+} /* an_ovl_resolution_descr::an_ovl_resolution_descr */
+
+
+/*
+An overload resolution stack.  Uses Dyn_array to maintain a "stack" of entries
+for each overload level.
+*/
+struct an_ovl_res_stack {
+  an_ovl_res_stack() = default;
+  an_ovl_res_stack(const an_ovl_res_stack&) = delete;
+  inline an_ovl_res_stack(an_ovl_res_stack&&);
+
+  void push()
+    { this->underlying_array.push_back(an_ovl_resolution_descr{}); }
+  void pop()
+    { this->underlying_array.pop_back(); }
+
+  an_ovl_resolution_descr &top()
+    { return this->underlying_array.back_elem(); }
+  const an_ovl_resolution_descr &top() const
+    { return this->underlying_array.back_elem(); }
+  an_ovl_resolution_descr &bottom()
+    { return this->underlying_array.back_elem(); }
+  const an_ovl_resolution_descr &bottom() const
+    { return this->underlying_array.back_elem(); }
+
+  a_boolean is_empty() const
+    { return this->underlying_array.length() == 0; }
+  void increase_candidate_count()
+    { this->top().candidate_count++; }
+  size_t overload_level() const
+    { return this->underlying_array.length(); }
+  a_boolean has_multiple_levels() const
+    { return this->underlying_array.length() > 1; }
+  a_boolean emit_note_diagnostics() const
+    { return !this->is_empty() && this->bottom().emit_note_diagnostics; }
+  a_boolean note_reporting_pass_needed();
+#if 0
+  // FIXME: variadic?
+  void add_note(...) const
+    { if (emit_note_diagnostics()) this->report_note(); }
+#endif
+private:
+  Small_dyn_array<an_ovl_resolution_descr, 25>
+                underlying_array;
+                        /* The array providing the storage backing this
+                           overload resolution stack. */
+};  /* an_ovl_res_stack */
+
+
+inline an_ovl_res_stack::an_ovl_res_stack(an_ovl_res_stack &&other)
+/*
+Move constructor.
+*/
+: underlying_array(move_from(&(other.underlying_array)))
+{
+}  /* an_ovl_res_stack::an_ovl_res_stack */
+
+
+inline a_boolean an_ovl_res_stack::note_reporting_pass_needed(void)
+/*
+Returns TRUE if a second, error reporting pass, is needed at this level
+of overload.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (!expr_error_should_be_issued()) {
+    /* If we're not producing diagnostics, no pass is needed. */
+  } else if (this->has_multiple_levels()) {
+    /* Re-processing of overloads is only triggered at the top-most level. */
+  } else if (this->underlying_array.front_elem().emit_note_diagnostics) {
+    /* Just finished emitting errors, so we're done. */
+#if 0 // FIXME:
+  } else if (this->underlying_array.front_elem().candidate_count >
+                                                                  some limit) {
+    /* FIXME don't overwhelm users with errors if there are too many */
+#endif
+  } else {
+    /* An error processing pass is needed. */
+    // FIXME check_assertion(is_at_least_one_error());
+    this->underlying_array.front_elem().emit_note_diagnostics = TRUE;
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* note_reporting_pass_needed */
+
+
+extern an_ovl_res_stack *ovl_res_stack();
+
+extern void push_new_ovl_res_stack();
+
+extern void pop_cur_ovl_res_stack();
+
+inline a_diag_list* current_ovl_res_notes()
+/*
+Return the notes associated with a diagnostic at the current overload
+resolution level.
+*/
+{
+  return &(ovl_res_stack()->top().notes);
+}  /* current_ovl_res_notes */
+
+
+inline a_boolean candidate_already_noted(a_symbol_ptr  sym)
+/*
+Return whether in the current level of overload resolution, the given
+symbol already has a note associated with it.  If the result is FALSE,
+record the candidate as now having an associated note (the expectation
+is that the caller is about to record that note).
+*/
+{
+  an_ovl_resolution_descr  *descr = &(ovl_res_stack()->top());
+  Ptr_set<a_symbol_ptr>    *sym_set = descr->noted_candidates;
+  a_boolean                result;
+
+  if (sym_set == NULL) {
+    /* The set of candidates is created on-demand. */
+    result = FALSE;
+    sym_set = new_fe<Ptr_set<a_symbol_ptr>>(3);
+    descr->noted_candidates = sym_set;
+  } else {
+    result = sym_set->contains(sym);
+  }  /* if */
+  if (!result) {
+    sym_set->add(sym);
+  }  /* if */
+  return result;
+}  /* candidate_already_noted */
+
+
 #if DEBUG
 /*
 Counts of entries allocated, for debugging purposes.
