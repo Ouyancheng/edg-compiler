@@ -10427,7 +10427,7 @@ static a_boolean fold_copysign_if_possible(a_routine_ptr     rp,
                                            an_expr_node_ptr  arg2,
                                            a_constant        *result_con)
 /*
-rp represents a builtin __builtin_copysign* routine which is being applied to
+rp represents a builtin __builtin_copysign* routine that is being applied to
 the given two arguments.  "Copy" the sign bit from the second argument to the
 first (if both are constants) and set *result_con to the resulting value and
 return TRUE.  Otherwise, return FALSE.
