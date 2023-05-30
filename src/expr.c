@@ -52099,8 +52099,10 @@ following:
       dst_type test() { return create<src_type>(); }
 
 with the "create" template declared as follows:
+
       template<class T>
         typename add_rvalue_reference<T>::type create();
+
 Called from fold_is_convertible_to, which may have pre-adjusted the source and
 destination types in Microsoft mode.
 */
@@ -52161,6 +52163,13 @@ destination types in Microsoft mode.
                                  conv_context, ec_no_error);
       }  /* if */
       result = !expr_stack->any_suppressed_error;
+      if (result && op == bok_is_nothrow_convertible &&
+          is_expression_operand(opnd) &&
+          expr_might_throw(opnd->variant.expression)) {
+        /* For the nothrow variant of the predicate the resulting conversion
+           may not potentially throw an exception. */
+        result = FALSE;
+      }  /* if */
       free_init_component_list(src_val);
     } else {
       /* This can occur with references to incomplete types. */

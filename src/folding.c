@@ -7669,15 +7669,17 @@ static void fold_is_convertible_to(an_expr_node_ptr   expr,
                                    a_constant_ptr     constant,
                                    a_boolean          maintain_expression)
 /*
-expr is an enk_builtin_operation node for an __is_convertible_to or
-__is_nothrow_convertible operation, which implement the C++ TR1
-is_convertible/is_nothrow_convertible type relationship predicate (see
+expr is an enk_builtin_operation node for an __is_convertible or
+__is_nothrow_convertible operation, which implement the C++ standard library
+is_convertible/is_nothrow_convertible type relationship predicates (see
 [lib.meta.rel]).  Store a boolean constant in *constant whose value is "true"
 if the first operand type is "implicitly convertible to" the second operand
 type.  If either of the operand types is dependent, store a ck_template_param
 constant in *constant.  The constant will be of the tpck_expression variant and
 will point to the given expression.  If maintain_expression is TRUE, the
 backing expression for the returned constant will be set as well.
+
+(Note: __is_convertible can also be spelled __is_convertible_to.)
 */
 {
   an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
