@@ -5426,8 +5426,30 @@ arrays.
 */
 #define integer_kind_to_cli_symbol_kind(ik)                           \
   ((a_cli_symbol_kind)((int)csk_first_integer + (int)(ik)))
-#define float_kind_to_cli_symbol_kind(fk)                             \
-  ((a_cli_symbol_kind)((int)csk_first_float + (int)(fk) - (int)fk_float))
+inline a_cli_symbol_kind float_kind_to_cli_symbol_kind(a_float_kind fk)
+/*
+Return the CLI symbol kind corresponding to the float kind fk.
+*/
+{
+  a_cli_symbol_kind csk = csk_system_double_is_long;
+
+  switch (fk) {
+    case fk_float:
+      csk = csk_system_single;
+      break;
+    case fk_float32x:
+    case fk_double:
+      csk = csk_system_double;
+      break;
+    case fk_float64x:
+    case fk_long_double:
+      csk = csk_system_double_is_long;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return csk;
+}  /* float_kind_to_cli_symbol_kind */
 
 /*
 Macros to return a cli_symbols entry given one of

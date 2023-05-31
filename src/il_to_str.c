@@ -1461,7 +1461,7 @@ beginning with "**BAD" for a bad float kind.
     case fk_float:        p = "float";              break;
     case fk_float32x:     p = "_Float32x";          break;
     case fk_double:       p = "double";             break;
-    case fk_float64x:     p = "_float64x";          break;
+    case fk_float64x:     p = "_Float64x";          break;
     case fk_long_double:  p = "long double";        break;
     case fk_float80:      p = "__float80";          break;
     case fk_float128:     p = "__float128";         break;
