@@ -1,5 +1,43 @@
 Version 6.5
 
+5/31/23  [EDGcpfe/22778]
+Overload resolution failure diagnostics
+
+The front end has been modified to provide additional notes in overload
+resolution failure diagnostics.  Whether these notes are emitted is controlled
+by the global variable add_match_nodes, whose default value is controlled by
+the configuration macro DEFAULT_ADD_MATCH_NOTES.  Command-line options
+--add_match_nodes/--no_add_match_notes can override this default.  Assuming
+the additional notes are enabled, the example
+
+  template<typename T> int f(T);
+  template<typename T> T f(int, int);
+  auto r = f<void>(42);
+
+now elicits the following diagnostics:
+
+  "fail.cpp", line 3: error: no instance of overloaded function "f" matches the
+            argument list
+              argument types are: (int)
+    auto r = f<void>(42);
+             ^
+  "fail.cpp", line 2: note: number of parameters of function template
+            "f<T>(int, int)" does not match the call
+    template<typename T> T f(int, int);
+                           ^
+  "fail.cpp", line 1: note: substituting explicit template arguments "<void>"
+            for function template "f(T)" failed
+    template<typename T> int f(T);
+                             ^
+
+It is expected that these notes will evolve in forthcoming versions (for
+example, the last note in the above example should eventually be more
+descriptive about the reason for the substitution failure).  For customers
+recording front end output for regression testing, we recommend first
+the front end with DEFAULT_ADD_MATCH_NOTES set to 0 and once that is
+validated, enable the feature by switching DEFAULT_ADD_MATCH_NOTES to 1.
+
+
 5/30/23  [EDGcpfe/18316,EDGcpfe/22881,EDGcpfe/26290,EDGcpfe/26308,
           EDGcpfe/26332]
 GNU compatibility: _Float32x and _Float64x floating-point types
