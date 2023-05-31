@@ -3136,6 +3136,10 @@ to the character position following what was demangled.
               }  /* switch */
             } else if (ch == '2') {
               s = "_Float16";
+            } else if (ch == '4') {
+              s = "_Float32x";
+            } else if (ch == '8') {
+              s = "_Float64x";
             } else {
               bad_mangled_name(dctl);
               s = "";
@@ -5308,11 +5312,17 @@ demangled as part of the template function instead).
             p = get_number(p, &num, dctl);
             if (*p == 'b' && num == 16) {
               s = "std::bfloat16_t";
-            } else if (*p == 'x' && num == 16) {
-              s = "_Float16";
+            } else if (*p == 'x') {
+              switch (num) {
+                case 32:    s = "_Float32x";   break;
+                case 64:    s = "_Float64x";   break;
+                default:
+                  bad_mangled_name(dctl);
+                  break;
+              }  /* switch */
             } else if (*p == '_') {
               switch (num) {
-                case 16:    s = "std::float16_t";   break;
+                case 16:    s = "std::float16_t";   break; /* Also _Float16. */
                 case 32:    s = "std::float32_t";   break;
                 case 64:    s = "std::float64_t";   break;
                 case 128:   s = "std::float128_t";  break;
