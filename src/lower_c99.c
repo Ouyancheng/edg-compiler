@@ -2560,6 +2560,8 @@ static a_library_name_array float_fixed_conv_routine_name = {
                                                          NULL, /* fk_fp16 */
                                                          "_Fixed_from_float",
                                                          "_Fixed_from_double",
+                                                         "_Fixed_from_double",
+                                                         "_Fixed_from_ldouble",
                                                          "_Fixed_from_ldouble",
                                                          NULL,
                                                          NULL};
@@ -2569,6 +2571,8 @@ static a_library_name_array fixed_float_conv_routine_name = {
                                                            NULL, /* fk_fp16 */
                                                            "_Fixed_to_float",
                                                            "_Fixed_to_double",
+                                                           "_Fixed_to_double",
+                                                           "_Fixed_to_ldouble",
                                                            "_Fixed_to_ldouble",
                                                            NULL,
                                                            NULL};
