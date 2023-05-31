@@ -2248,10 +2248,10 @@ adjusted to make the implicit bit explicit.
     fp_ptr += offset;
     if (*fp_ptr != 0) is_zero = FALSE;
     mp->parts[1] = *fp_ptr;
-  } else if (((kind == fk_float64x || kind == fk_long_double) &&
+  } else if ((((kind == fk_float64x || kind == fk_long_double) &&
                targ_ldbl_mant_dig == 113) ||
              (kind == (a_float_kind)fk_float128 &&
-              targ_flt128_mant_dig == 113) &&
+              targ_flt128_mant_dig == 113)) &&
              /*lint --e(506)*/sizeof(a_host_fp_value) == sizeof(val)*4) {
     /* 128-bit representation. */
     /* The code below constructs the value from fp_temp.  Copy the source to
