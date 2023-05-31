@@ -804,7 +804,8 @@ of the resulting diagnostic.
              (gnu_mode && gnu_version >= 130000)) {
     /* Default to double if none of the extended float suffixes match. */
     kind = fk_double;
-    if ((actual_end[-3] == 'f' || actual_end[-3] == 'F')) {
+    if (actual_end > start_of_curr_token + 3 &&
+        (actual_end[-3] == 'f' || actual_end[-3] == 'F')) {
       if (strncmp(actual_end - 2, "128", 3) == 0) {
         if (float128_enabled) {
           kind = fk_std_float128;
@@ -827,7 +828,8 @@ of the resulting diagnostic.
         unexpected_condition();
       }  /* if */
       actual_end -= 4;
-    } else if (actual_end[-2] == 'f' || actual_end[-2] == 'F') {
+    } else if (actual_end > start_of_curr_token + 2 &&
+               (actual_end[-2] == 'f' || actual_end[-2] == 'F')) {
       if ((actual_end[-3] == 'b' || actual_end[-3] == 'B') &&
           actual_end[-1] == '1' && *actual_end == '6') {
         /* std::bfloat16 is not yet supported. */
@@ -867,7 +869,7 @@ of the resulting diagnostic.
         }  /* switch */
       }  /* if */
     }  /* if */
-  } else if (float16_enabled &&
+  } else if (float16_enabled && actual_end > start_of_curr_token + 2 &&
              (actual_end[-2] == 'f' || actual_end[-2] == 'F') &&
              actual_end[-1] == '1' && *actual_end == '6') {
     kind = fk_float16;
