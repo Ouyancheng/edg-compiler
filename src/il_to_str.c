@@ -1459,7 +1459,9 @@ beginning with "**BAD" for a bad float kind.
     case fk_float16:      p = "_Float16";           break;
     case fk_fp16:         p = "__fp16";             break;
     case fk_float:        p = "float";              break;
+    case fk_float32x:     p = "_Float32x";          break;
     case fk_double:       p = "double";             break;
+    case fk_float64x:     p = "_float64x";          break;
     case fk_long_double:  p = "long double";        break;
     case fk_float80:      p = "__float80";          break;
     case fk_float128:     p = "__float128";         break;
@@ -5408,6 +5410,13 @@ it represents a backing expression for the floating-point constant value.
       gnu_builtin_suffix = "f";
       max_exp = targ_flt_max_exp;
 #endif /* (BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && BUILTIN_... */
+    } else if (fkind == fk_float32x) {
+      suffix = "f32x";
+#if (BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && \
+    BUILTIN_FUNCTIONS_ENABLED
+      gnu_builtin_suffix = "f32x";
+      max_exp = targ_dbl_max_exp;
+#endif /* (BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && BUILTIN_... */
     } else if (fkind == (a_float_kind)fk_long_double) {
       suffix = "L";
 #if BACK_END_IS_C_GEN_BE
@@ -5421,6 +5430,13 @@ it represents a backing expression for the floating-point constant value.
     BUILTIN_FUNCTIONS_ENABLED
       gnu_builtin_suffix = "l";
       max_exp = targ_ldbl_max_exp;
+#endif /* (BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && BUILTIN_... */
+    } else if (fkind == fk_float64x) {
+      suffix = "f64x";
+#if (BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && \
+    BUILTIN_FUNCTIONS_ENABLED
+      gnu_builtin_suffix = "f64x";
+      max_exp = targ_flt80_max_exp;
 #endif /* (BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && BUILTIN_... */
     } else if (fkind == (a_float_kind)fk_float80) {
       suffix = "W";

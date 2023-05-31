@@ -11318,12 +11318,19 @@ end_float_accum:
           potential_ud_suffix = TRUE;
         }  /* if */
       } else if (ch == 'f' || ch == 'F') {
-        if ((*p == '1' && p[1] == '6') ||
-            (accept_f_suffix &&
-             ((*p == '3' && p[1] == '2') ||
-              (*p == '6' && p[1] == '4')))) {
-          /* f16, f32, or f64 */
+        if ((*p == '1' && p[1] == '6')) {
+          /* f16 */
           curr_char_loc += 2;
+        } else if (accept_f_suffix &&
+                   ((*p == '3' && p[1] == '2') ||
+                    (*p == '6' && p[1] == '4'))) {
+          if (p[2] == 'x') {
+            /* f32x or f64x */
+            curr_char_loc += 3;
+          } else {
+            /* f32 or f64 */
+            curr_char_loc += 2;
+          }  /* if */
         } else if (accept_f_suffix &&
                    *p == '1' && p[1] == '2' && p[2] == '8') {
           curr_char_loc += 3;

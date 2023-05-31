@@ -74,10 +74,12 @@ BEGIN_EDG_NAMESPACE
 #define MANGLING_STRING_FOR_INT128 "n"
 #define MANGLING_STRING_FOR_UNSIGNED_INT128 "o"
 #endif /* INT128_EXTENSIONS_ALLOWED */
-#define MANGLING_STRING_FOR_FLOAT16 "DF16x"
+#define MANGLING_STRING_FOR_FLOAT16 "DF16"
 #define MANGLING_STRING_FOR_FP16 "Dh"
 #define MANGLING_STRING_FOR_FLOAT "f"
+#define MANGLING_STRING_FOR_FLOAT32X "DF32x"
 #define MANGLING_STRING_FOR_DOUBLE "d"
+#define MANGLING_STRING_FOR_FLOAT64X "DF64x"
 #define MANGLING_STRING_FOR_LONG_DOUBLE "e"
 #define MANGLING_STRING_FOR_FLOAT80 "u7float80"
 #define MANGLING_STRING_FOR_FLOAT128 "g"
@@ -333,7 +335,9 @@ Z = template parameter (demangle_type_name)
 #define MANGLING_STRING_FOR_FLOAT16 "mf2"
 #define MANGLING_STRING_FOR_FP16 MANGLING_STRING_FOR_FLOAT16
 #define MANGLING_STRING_FOR_FLOAT "f"
+#define MANGLING_STRING_FOR_FLOAT32X "mf4"
 #define MANGLING_STRING_FOR_DOUBLE "d"
+#define MANGLING_STRING_FOR_FLOAT64X "mf8"
 #define MANGLING_STRING_FOR_LONG_DOUBLE "r"
 #define MANGLING_STRING_FOR_FLOAT80 "mf10"
 #define MANGLING_STRING_FOR_FLOAT128 "mf16"
@@ -10281,8 +10285,14 @@ top_of_loop:
           case fk_float:
             s = MANGLING_STRING_FOR_FLOAT;
             break;
+          case fk_float32x:
+            s = MANGLING_STRING_FOR_FLOAT32X;
+            break;
           case fk_double:
             s = MANGLING_STRING_FOR_DOUBLE;
+            break;
+          case fk_float64x:
+            s = MANGLING_STRING_FOR_FLOAT64X;
             break;
           case fk_long_double:
             s = MANGLING_STRING_FOR_LONG_DOUBLE;

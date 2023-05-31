@@ -727,7 +727,9 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_is_void */
    (an_opname_kind)onk_none,          /* tok_is_volatile */
    (an_opname_kind)onk_none,          /* tok_float32 */
+   (an_opname_kind)onk_none,          /* tok_float32x */
    (an_opname_kind)onk_none,          /* tok_float64 */
+   (an_opname_kind)onk_none,          /* tok_float64x */
    (an_opname_kind)onk_none,          /* tok_float128 */
    (an_opname_kind)onk_none,          /* tok_is_bounded_array */
    (an_opname_kind)onk_none,          /* tok_is_unbounded_array */

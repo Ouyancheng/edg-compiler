@@ -26511,7 +26511,9 @@ for each compilation.
   num_mantissa_bits[(int)fk_float16]      = 11;
   num_mantissa_bits[(int)fk_fp16]         = 11;
   num_mantissa_bits[(int)fk_float]        = targ_flt_mant_dig;
+  num_mantissa_bits[(int)fk_float32x]     = targ_dbl_mant_dig;
   num_mantissa_bits[(int)fk_double]       = targ_dbl_mant_dig;
+  num_mantissa_bits[(int)fk_float64x]     = targ_ldbl_mant_dig;
   num_mantissa_bits[(int)fk_long_double]  = targ_ldbl_mant_dig;
   num_mantissa_bits[(int)fk_float80]      = targ_flt80_mant_dig;
   num_mantissa_bits[(int)fk_float128]     = targ_flt128_mant_dig;
@@ -26524,7 +26526,9 @@ for each compilation.
   flt_type_size[(int)fk_float16]      = 2;
   flt_type_size[(int)fk_fp16]         = 2;
   flt_type_size[(int)fk_float]        = targ_sizeof_float;
+  flt_type_size[(int)fk_float32x]     = targ_sizeof_double;
   flt_type_size[(int)fk_double]       = targ_sizeof_double;
+  flt_type_size[(int)fk_float64x]     = targ_sizeof_long_double;
   flt_type_size[(int)fk_long_double]  = targ_sizeof_long_double;
   flt_type_size[(int)fk_float80]      = targ_sizeof_float80;
   flt_type_size[(int)fk_float128]     = targ_sizeof_float128;
@@ -26537,7 +26541,9 @@ for each compilation.
   min_exponent[(int)fk_float16]      = -13;
   min_exponent[(int)fk_fp16]         = -13;
   min_exponent[(int)fk_float]        = targ_flt_min_exp;
+  min_exponent[(int)fk_float32x]     = targ_dbl_min_exp;
   min_exponent[(int)fk_double]       = targ_dbl_min_exp;
+  min_exponent[(int)fk_float64x]     = targ_ldbl_min_exp;
   min_exponent[(int)fk_long_double]  = targ_ldbl_min_exp;
   min_exponent[(int)fk_float80]      = targ_flt80_min_exp;
   min_exponent[(int)fk_float128]     = targ_flt128_min_exp;
@@ -26550,7 +26556,9 @@ for each compilation.
   max_exponent[(int)fk_float16]      = 16;
   max_exponent[(int)fk_fp16]         = 16;
   max_exponent[(int)fk_float]        = targ_flt_max_exp;
+  max_exponent[(int)fk_float32x]     = targ_dbl_max_exp;
   max_exponent[(int)fk_double]       = targ_dbl_max_exp;
+  max_exponent[(int)fk_float64x]     = targ_ldbl_max_exp;
   max_exponent[(int)fk_long_double]  = targ_ldbl_max_exp;
   max_exponent[(int)fk_float80]      = targ_flt80_max_exp;
   max_exponent[(int)fk_float128]     = targ_flt128_max_exp;

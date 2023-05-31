@@ -804,15 +804,23 @@ of the resulting diagnostic.
              (gnu_mode && gnu_version >= 130000)) {
     /* Default to double if none of the extended float suffixes match. */
     kind = fk_double;
-    if ((actual_end[-3] == 'f' || actual_end[-3] == 'F') &&
-        strncmp(actual_end - 2, "128", 3) == 0) {
-      if (float128_enabled) {
-        kind = fk_std_float128;
+    if ((actual_end[-3] == 'f' || actual_end[-3] == 'F')) {
+      if (strncmp(actual_end - 2, "128", 3) == 0) {
+        if (float128_enabled) {
+          kind = fk_std_float128;
+        } else {
+          *err_code = ec_std_float128_not_supported;
+          *err_pos = actual_end - 3;
+          *severity = strict_ansi_mode ? strict_ansi_error_severity
+                                       : es_warning;
+          kind = fk_std_float64;
+        }  /* if */
+      } else if (strncmp(actual_end - 2, "32x", 3) == 0) {
+        kind = fk_float32x;
+      } else if (strncmp(actual_end - 2, "64x", 3) == 0) {
+        kind = fk_float64x;
       } else {
-        *err_code = ec_std_float128_not_supported;
-        *err_pos = actual_end - 3;
-        *severity = strict_ansi_mode ? strict_ansi_error_severity : es_warning;
-        kind = fk_std_float64;
+        unexpected_condition();
       }  /* if */
       actual_end -= 4;
     } else if (actual_end[-2] == 'f' || actual_end[-2] == 'F') {

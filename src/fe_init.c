@@ -1261,7 +1261,9 @@ Install the keywords in the symbol table.
     }  /* if */
     if (gnu_version >= 130000) {
       enter_keyword(tok_float32, "_Float32");
+      enter_keyword(tok_float32x, "_Float32x");
       enter_keyword(tok_float64, "_Float64");
+      enter_keyword(tok_float64x, "_Float64x");
 #if FLOAT128_ENABLING_POSSIBLE
       enter_keyword(tok_float128, "_Float128");
 #endif /* FLOAT128_ENABLING_POSSIBLE */

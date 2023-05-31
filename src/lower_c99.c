@@ -1231,9 +1231,11 @@ floating-point format.
 /*
 Typedef for a list of library routine names that perform the same function
 but on complex types with different underlying floating-point types.  Used
-when calling select_name_from_float_kind.  The order of elements corresponds
-to _Float16, __fp16, float, double, long double, __float80, and __float128
-types (where _Complex __fp16 is currently unsupported).
+when calling select_name_from_float_kind.  The order of elements
+corresponds to _Float16, __fp16, float, _Float32x, double, _Float64x, long
+double, __float80, and __float128 types (where _Complex __fp16 is currently
+unsupported).  _Float32x is implemented as double, and _Float64x is
+implemented as long double.
 */
 typedef a_const_char *a_library_name_array[(int)fk_first_extended_type];
 
@@ -1314,6 +1316,7 @@ lowered IL.
       }  /* if */
       result = lowered_complex_float;
       break;
+    case fk_float32x:
     case fk_double:
       if (lowered_complex_double == NULL) {
         lowered_complex_double = make_lowered_complex_type(
@@ -1321,6 +1324,7 @@ lowered IL.
       }  /* if */
       result = lowered_complex_double;
       break;
+    case fk_float64x:
     case fk_long_double:
       if (lowered_complex_long_double == NULL) {
         lowered_complex_long_double = make_lowered_complex_type(
@@ -1399,6 +1403,8 @@ static a_library_name_array itoc_routine_name = {
                                           NULL, /* fk_fp16 */
                                           "__c99_ifloat_to_cfloat",
                                           "__c99_idouble_to_cdouble",
+                                          "__c99_idouble_to_cdouble",
+                                          "__c99_ilong_double_to_clong_double",
                                           "__c99_ilong_double_to_clong_double",
                                           "__c99_ifloat80_to_cfloat80",
                                           "__c99_ifloat128_to_cfloat128"};
@@ -1409,6 +1415,8 @@ static a_library_name_array ctoi_routine_name = {
                                           NULL, /* fk_fp16 */
                                           "__c99_cfloat_to_ifloat",
                                           "__c99_cdouble_to_idouble",
+                                          "__c99_cdouble_to_idouble",
+                                          "__c99_clong_double_to_ilong_double",
                                           "__c99_clong_double_to_ilong_double",
                                           "__c99_cfloat80_to_ifloat80",
                                           "__c99_cfloat128_to_ifloat128"};
@@ -1419,6 +1427,8 @@ static a_library_name_array rtoc_routine_name = {
                                           NULL, /* fk_fp16 */
                                           "__c99_float_to_cfloat",
                                           "__c99_double_to_cdouble",
+                                          "__c99_double_to_cdouble",
+                                          "__c99_long_double_to_clong_double",
                                           "__c99_long_double_to_clong_double",
                                           "__c99_float80_to_cfloat80",
                                           "__c99_float128_to_cfloat128"};
@@ -1429,6 +1439,8 @@ static a_library_name_array ctor_routine_name = {
                                           NULL, /* fk_fp16 */
                                           "__c99_cfloat_to_float",
                                           "__c99_cdouble_to_double",
+                                          "__c99_cdouble_to_double",
+                                          "__c99_clong_double_to_long_double",
                                           "__c99_clong_double_to_long_double",
                                           "__c99_cfloat80_to_float80",
                                           "__c99_cfloat128_to_float128"};
@@ -1439,6 +1451,8 @@ static a_library_name_array cast_float16_routine_name = {
                                           NULL, /* fk_fp16 */
                                           "__c99_cfloat16_to_cfloat",
                                           "__c99_cfloat16_to_cdouble",
+                                          "__c99_cfloat16_to_cdouble",
+                                          "__c99_cfloat16_to_clong_double",
                                           "__c99_cfloat16_to_clong_double",
                                           "__c99_cfloat16_to_cfloat80",
                                           "__c99_cfloat16_to_cfloat128"};
@@ -1447,6 +1461,8 @@ static a_library_name_array cast_float_routine_name = {
                                           NULL, /* fk_fp16 */
                                           NULL,
                                           "__c99_cfloat_to_cdouble",
+                                          "__c99_cfloat_to_cdouble",
+                                          "__c99_cfloat_to_clong_double",
                                           "__c99_cfloat_to_clong_double",
                                           "__c99_cfloat_to_cfloat80",
                                           "__c99_cfloat_to_cfloat128"};
@@ -1456,6 +1472,8 @@ static a_library_name_array cast_double_routine_name = {
                                           NULL, /* fk_fp16 */
                                           "__c99_cdouble_to_cfloat",
                                           NULL,
+                                          NULL,
+                                          "__c99_cdouble_to_clong_double",
                                           "__c99_cdouble_to_clong_double",
                                           "__c99_cdouble_to_cfloat80",
                                           "__c99_cdouble_to_cfloat128"};
@@ -1465,6 +1483,8 @@ static a_library_name_array cast_long_double_routine_name = {
                                           NULL, /* fk_fp16 */
                                           "__c99_clong_double_to_cfloat",
                                           "__c99_clong_double_to_cdouble",
+                                          "__c99_clong_double_to_cdouble",
+                                          NULL,
                                           NULL,
                                           "__c99_clong_double_to_cfloat80",
                                           "__c99_clong_double_to_cfloat128"};
@@ -1475,6 +1495,8 @@ static a_library_name_array cast_float80_routine_name = {
                                           NULL, /* fk_fp16 */
                                           "__c99_cfloat80_to_cfloat",
                                           "__c99_cfloat80_to_cdouble",
+                                          "__c99_cfloat80_to_cdouble",
+                                          "__c99_cfloat80_to_clong_double",
                                           "__c99_cfloat80_to_clong_double",
                                           NULL,
                                           "__c99_cfloat80_to_cfloat128"};
@@ -1486,6 +1508,8 @@ static a_library_name_array cast_float128_routine_name = {
                                           NULL, /* fk_fp16 */
                                           "__c99_cfloat128_to_cfloat",
                                           "__c99_cfloat128_to_cdouble",
+                                          "__c99_cfloat128_to_cdouble",
+                                          "__c99_cfloat128_to_clong_double",
                                           "__c99_cfloat128_to_clong_double",
                                           "__c99_cfloat128_to_cfloat80",
                                           NULL};
@@ -1497,6 +1521,8 @@ static a_library_name_array xnegate_routine_name = {
                                           NULL, /* fk_fp16 */
                                           "__c99_complex_float_negate",
                                           "__c99_complex_double_negate",
+                                          "__c99_complex_double_negate",
+                                          "__c99_complex_long_double_negate",
                                           "__c99_complex_long_double_negate",
                                           "__c99_complex_float80_negate",
                                           "__c99_complex_float128_negate"};
@@ -1530,6 +1556,8 @@ static a_library_name_array xadd_routine_name = {
                                                NULL, /* fk_fp16 */
                                                "__c99_complex_float_add",
                                                "__c99_complex_double_add",
+                                               "__c99_complex_double_add",
+                                               "__c99_complex_long_double_add",
                                                "__c99_complex_long_double_add",
                                                "__c99_complex_float80_add",
                                                "__c99_complex_float128_add"};
@@ -1563,6 +1591,8 @@ static a_library_name_array xsubtract_routine_name = {
                                          NULL, /* fk_fp16 */
                                          "__c99_complex_float_subtract",
                                          "__c99_complex_double_subtract",
+                                         "__c99_complex_double_subtract",
+                                         "__c99_complex_long_double_subtract",
                                          "__c99_complex_long_double_subtract",
                                          "__c99_complex_float80_subtract",
                                          "__c99_complex_float128_subtract"};
@@ -1596,6 +1626,8 @@ static a_library_name_array xmultiply_routine_name = {
                                          NULL, /* fk_fp16 */
                                          "__c99_complex_float_multiply",
                                          "__c99_complex_double_multiply",
+                                         "__c99_complex_double_multiply",
+                                         "__c99_complex_long_double_multiply",
                                          "__c99_complex_long_double_multiply",
                                          "__c99_complex_float80_multiply",
                                          "__c99_complex_float128_multiply"};
@@ -1629,6 +1661,8 @@ static a_library_name_array xdivide_routine_name = {
                                            NULL, /* fk_fp16 */
                                            "__c99_complex_float_divide",
                                            "__c99_complex_double_divide",
+                                           "__c99_complex_double_divide",
+                                           "__c99_complex_long_double_divide",
                                            "__c99_complex_long_double_divide",
                                            "__c99_complex_float80_divide",
                                            "__c99_complex_float128_divide"};
@@ -1661,6 +1695,8 @@ static a_library_name_array xeq_routine_name = {"__c99_complex_float16_eq",
                                                 NULL, /* fk_fp16 */
                                                 "__c99_complex_float_eq",
                                                 "__c99_complex_double_eq",
+                                                "__c99_complex_double_eq",
+                                                "__c99_complex_long_double_eq",
                                                 "__c99_complex_long_double_eq",
                                                 "__c99_complex_float80_eq",
                                                 "__c99_complex_float128_eq"};
@@ -1694,6 +1730,8 @@ static a_library_name_array xne_routine_name = {"__c99_complex_float16_ne",
                                                 NULL, /* fk_fp16 */
                                                 "__c99_complex_float_ne",
                                                 "__c99_complex_double_ne",
+                                                "__c99_complex_double_ne",
+                                                "__c99_complex_long_double_ne",
                                                 "__c99_complex_long_double_ne",
                                                 "__c99_complex_float80_ne",
                                                 "__c99_complex_float128_ne"};
@@ -2038,6 +2076,8 @@ static a_library_name_array xconj_routine_name = {
                                              NULL, /* fk_fp16 */
                                              "__c99_complex_float_conj",
                                              "__c99_complex_double_conj",
+                                             "__c99_complex_double_conj",
+                                             "__c99_complex_long_double_conj",
                                              "__c99_complex_long_double_conj",
                                              "__c99_complex_float80_conj",
                                              "__c99_complex_float128_conj"};
@@ -4757,12 +4797,17 @@ Replace the imaginary and complex C99 types by their lowered representations.
 */
 {
   lower_c99_imaginary_type((a_float_kind)fk_float, "_Imaginary_float");
+  lower_c99_imaginary_type((a_float_kind)fk_float32x, "_Imaginary_double");
   lower_c99_imaginary_type((a_float_kind)fk_double, "_Imaginary_double");
+  lower_c99_imaginary_type((a_float_kind)fk_float64x,
+                           "_Imaginary_long_double");
   lower_c99_imaginary_type((a_float_kind)fk_long_double,
                            "_Imaginary_long_double");
   lower_c99_complex_type((a_float_kind)fk_float16, "_Complex_float16");
   lower_c99_complex_type((a_float_kind)fk_float, "_Complex_float");
+  lower_c99_complex_type((a_float_kind)fk_float32x, "_Complex_double");
   lower_c99_complex_type((a_float_kind)fk_double, "_Complex_double");
+  lower_c99_complex_type((a_float_kind)fk_float64x, "_Complex_long_double");
   lower_c99_complex_type((a_float_kind)fk_long_double, "_Complex_long_double");
   lower_c99_complex_type((a_float_kind)fk_float80, "_Complex_float80");
   lower_c99_complex_type((a_float_kind)fk_float128, "_Complex_float128");

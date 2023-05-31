@@ -791,9 +791,11 @@ floating point types.
   float_field_alignments[(int)fk_float16] = 2;
   float_field_alignments[(int)fk_fp16] = 2;
   float_field_alignments[(int)fk_float] = targ_float_field_alignment;
+  float_field_alignments[(int)fk_float32x] = targ_double_field_alignment;
   float_field_alignments[(int)fk_double] = targ_double_field_alignment;
+  float_field_alignments[(int)fk_float64x] = targ_long_double_field_alignment;
   float_field_alignments[(int)fk_long_double] =
-                                             targ_long_double_field_alignment;
+                                              targ_long_double_field_alignment;
   float_field_alignments[(int)fk_float80] = targ_float80_field_alignment;
   float_field_alignments[(int)fk_float128] = targ_float128_field_alignment;
   float_field_alignments[(int)fk_std_bfloat16] = 2;

@@ -5169,8 +5169,14 @@ set, leave it alone.  Also compute and set the alignment requirement.
           case fk_float:
             alignment = targ_alignof_float;
             break;
+          case fk_float32x:
+            alignment = targ_alignof_double;
+            break;
           case fk_double:
             alignment = targ_alignof_double;
+            break;
+          case fk_float64x:
+            alignment = targ_alignof_float80;
             break;
           case fk_long_double:
             alignment = targ_alignof_long_double;

@@ -7353,8 +7353,10 @@ enum a_basic_type {
   bt_fp16,
   bt_float,
   bt_float32,
+  bt_float32x,
   bt_double,
   bt_float64,
+  bt_float64x,
   bt_float128,
   bt_typedef,
   bt_struct_union,
@@ -7873,7 +7875,9 @@ _Sat was specified.
     case bt_float:
     case bt_double:
     case bt_float32:
+    case bt_float32x:
     case bt_float64:
+    case bt_float64x:
     case bt_float128:
       if (sign != sign_none || (size != size_none && size != size_long)) {
         bad_combination = TRUE;
@@ -7888,8 +7892,12 @@ _Sat was specified.
           } else if (basic_type == bt_float) {
             /* float. */
             fkind = (a_float_kind)fk_float;
+          } else if (basic_type == bt_float32x) {
+            fkind = (a_float_kind)fk_float32x;
           } else if (basic_type == bt_double) {
             fkind = (a_float_kind)fk_double;
+          } else if (basic_type == bt_float64x) {
+            fkind = (a_float_kind)fk_float64x;
           } else if (basic_type == bt_float32) {
             fkind = (a_float_kind)fk_std_float32;
           } else if (basic_type == bt_float64) {
@@ -11229,7 +11237,9 @@ storage_class_specifier:
       case tok_accum:
 #endif /* FIXED_POINT_ALLOWED */
       case tok_float32:
+      case tok_float32x:
       case tok_float64:
+      case tok_float64x:
       case tok_float128:
         /* A type specifier (3.5.2) that indicates a basic type. */
         if (!type_specifier_allowed) {
@@ -11277,7 +11287,9 @@ storage_class_specifier:
             case tok_accum:    basic_type = bt_accum;   break;
 #endif /* FIXED_POINT_ALLOWED */
             case tok_float32:  basic_type = bt_float32; break;
+            case tok_float32x: basic_type = bt_float32x; break;
             case tok_float64:  basic_type = bt_float64; break;
+            case tok_float64x: basic_type = bt_float64x; break;
             case tok_float128: basic_type = bt_float128; break;
             default:
               unexpected_condition_str("decl_specifiers: bad type specifier");
@@ -12569,7 +12581,8 @@ exit_loop:
 #if C99_IL_EXTENSIONS_SUPPORTED
     if (complex_attr != cxa_none &&
         basic_type != bt_float && basic_type != bt_double &&
-        basic_type != bt_float32 && basic_type != bt_float64 &&
+        basic_type != bt_float32 && basic_type != bt_float32x &&
+        basic_type != bt_float64 && basic_type != bt_float64x &&
         basic_type != bt_float128) {
       /* _Complex and _Imaginary usually require "float" or "double".  GNU C
          mode is an exception: If no type specifier is mentioned, "double" is

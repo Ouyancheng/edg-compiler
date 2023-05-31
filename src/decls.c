@@ -13801,8 +13801,14 @@ types, e.g., "unsigned int".  See ARM 7.1.6 and 5.2.3.
     case tok_float32:
       type = float_type(fk_std_float32);
       break;
+    case tok_float32x:
+      type = float_type(fk_float32x);
+      break;
     case tok_float64:
       type = float_type(fk_std_float64);
+      break;
+    case tok_float64x:
+      type = float_type(fk_float64x);
       break;
     case tok_float128:
       type = float_type(fk_std_float128);

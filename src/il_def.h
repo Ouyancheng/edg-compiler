@@ -1460,7 +1460,9 @@ enum a_token_kind : unsigned short {
   tok_is_void,
   tok_is_volatile,
   tok_float32,
+  tok_float32x,
   tok_float64,
+  tok_float64x,
   tok_float128,
   tok_is_bounded_array,
   tok_is_unbounded_array,
@@ -1709,7 +1711,9 @@ EXTERN a_const_char
    "__is_void",
    "__is_volatile",
    "_Float32",
+   "_Float32x",
    "_Float64",
+   "_Float64x",
    "_Float128",
    "__is_bounded_array",
    "__is_unbounded_array",
@@ -5358,28 +5362,37 @@ typedef struct a_fixed_point_type_descr {
 #endif /* FIXED_POINT_ALLOWED */
 
 enum a_float_kind : a_byte {
-  /* Enumeration of the possible float kinds.  The first two enumerators are
-     for the _Float16 and __fp16 types available in many language dialects.
-     The next three designate distinct standard types (that may or may not
-     share a target representation).  Some platforms support __float80 and
-     __float128 typedefs to designate floating point types.  If those types are
-     distinct from the standard types, they are represented using
-     fk_float80 and/or fk_float128 respectively; otherwise, the standard
-     float kinds are used (e.g., it is not uncommon for __float80 and "long
-     double" to designate the same type -- if so, fk_long_double is used in
-     both cases).  The extended floating-point types (described in WG21
-     document P1467R9) must follow the traditional types, as
-     promoted_float_kind relies on this ordering.  If you add floating
-     point types to this enumeration, be sure to update exprutil_init() and
-     init_field_alignment_tables() with the appropriate information for the
-     new floating-point type.  See also select_name_from_float_kind() when
+  /* Enumeration of the possible float kinds.  In general, floating point
+     types that are distinct (for overloading and template specialization)
+     should be represented in this list, even if the types share a common
+     representation.  Some special considerations apply to certain kinds:
+
+     Some platforms support __float80 and __float128 typedefs to designate
+     floating point types.  If those types are distinct from the standard
+     types, they are represented using fk_float80 and/or fk_float128
+     respectively; otherwise, the standard float kinds are used (e.g., it
+     is not uncommon for __float80 and "long double" to designate the same
+     type -- if so, fk_long_double is used in both cases).
+
+     The extended floating-point types (described in WG21 document P1467R9)
+     must follow the traditional types, as promoted_float_kind relies on
+     this ordering.
+
+     If you add floating point types to this enumeration, be sure to update
+     exprutil_init() and init_field_alignment_tables() with the appropriate
+     information for the new types, as well as the spelling of the types in
+     float_kind_name() and the related floating-point suffixes in
+     form_float_constant().  See also select_name_from_float_kind()
+     (forming the names of related library routines for complex types) when
      adding a new type that is less than fk_first_extended_type.
 */
   fk_float16,
   fk_fp16,              /* __fp16 has the same format as _Float16, but gets
                            different mangling treatment. */
   fk_float,
+  fk_float32x,
   fk_double,
+  fk_float64x,
   fk_long_double,
   fk_float80,		/* __float80, if distinct. */
   fk_float128,		/* __float128, if distinct. */
