@@ -819,6 +819,10 @@ of the resulting diagnostic.
         kind = fk_float32x;
       } else if (strncmp(actual_end - 2, "64x", 3) == 0) {
         kind = fk_float64x;
+      } else if (is_hexadecimal) {
+        /* Presumably the 'F'/'f' is a hexadecimal digit and not part of
+           the suffix. */
+        kind = fk_double;
       } else {
         unexpected_condition();
       }  /* if */
