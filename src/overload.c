@@ -17029,6 +17029,7 @@ Return a string describing the given type code in diagnostics.
       break;
     case BOOL_TYPE_CODE:
       result = error_text(ec_bool_operand);
+      break;
     case BOOL_EQUIVALENT_TYPE_CODE:
       result = error_text(ec_bool_equivalent_operand);
       break;
@@ -19140,7 +19141,7 @@ selected, it is stored in *rewritten_candidate.
   an_operand               *bound_function_selector;
   a_boolean                ambiguous;
   a_boolean                undecidable_because_of_error;
-  a_boolean                arg_list_not_used;
+  a_boolean                arg_list_not_used = FALSE;
   a_boolean                dependent_call;
   a_boolean                defer_overload_resolution;
   a_boolean                found_through_adl = FALSE;
