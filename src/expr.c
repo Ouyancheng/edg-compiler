@@ -52093,7 +52093,6 @@ a_boolean compute_is_convertible(a_type_ptr               src_type,
                                  a_builtin_operation_kind op)
 
 /*
-   FIXME: Handle op == bok_is_nothrow_convertible case.
 Compute the "std::is_convertible" or "std::is_nothrow_convertible" type
 relationship predicate of the C++ standard library.  See [meta.rel].  It
 determines whether "create<src_type>()" is convertible to dst_type in the
@@ -52491,14 +52490,22 @@ a_boolean compute_reference_binds_to_temporary(
                                             a_type_ptr               init_type,
                                             a_builtin_operation_kind op)
 /*
-FIXME: update to handle __reference_constructs_from_temporary and
-__reference_converts_from_temporary (and possibly rename?)
-Return TRUE if
+When op is bok_reference_converts_from_temporary or
+bok_reference_binds_to_temporary return TRUE if
 
-	R& r = declval<T>();
+	R& r = __initializer<T>();
 
 (where R& is corresponds to ref_type and T to init_type) is valid and causes r
-to be bound to a temporary.  Otherwise, return FALSE.
+to be bound to a temporary.  __initializer is std::declval<T>() when op is
+bok_reference_binds_to_temporary or when init_type is a reference type;
+otherwise, it is a prvalue of type T.
+
+When op is bok_reference_constructs_from_temporary return TRUE if
+
+	R& r(__initializer<T>())
+
+is valid and causes r to be bound to a temporary (R&, T, and __initializer as
+described previously).
 */
 {
   a_boolean               result = FALSE;
@@ -52508,8 +52515,10 @@ to be bound to a temporary.  Otherwise, return FALSE.
     an_expr_stack_entry_ptr saved_expr_stack;
     an_arg_list_elem_ptr    init_arg;
     an_operand              *init_opnd;
+    an_expr_node            *orig_prvalue = NULL;
     a_boolean               saved_defer_access_checks;
     a_memory_region_number  region_to_switch_back_to;
+    a_conv_context_set      conv_context = CCO_TYPE_TRAITS_CHECK;
     /* Even though this is not an expression scan, make sure the expr_stack
        has something on it.  If there is already something on the stack,
        save it, clear the stack, and restore it later. */
@@ -52527,6 +52536,20 @@ to be bound to a temporary.  Otherwise, return FALSE.
       goto have_result;
     }  /* if */
     init_opnd = operand_of_arg_list_elem(init_arg);
+    if (op != bok_reference_binds_to_temporary) {
+      /* __reference_binds_to_temporary only considers lvalues or xvalues and
+         copy-initialization.  The other variants also handle prvalues, and
+         __reference_constructs_from_temporary uses direct-initialization. */
+      if (op == bok_reference_constructs_from_temporary) {
+        conv_context |= CCO_DIRECT_INITIALIZATION;
+      }  /* if */
+      if (!is_reference_type(init_type)) {
+        orig_prvalue = init_opnd->variant.expression;
+        orig_prvalue->is_lvalue = FALSE;
+        orig_prvalue->is_xvalue = FALSE;
+        init_opnd->state = os_prvalue;
+      }  /* if */
+    }  /* if */
     /* Check the validity of the reference binding. */
     expr_stack->suppress_diagnostics = TRUE;
     expr_stack->suppress_constexpr_call_folding = TRUE;
@@ -52535,13 +52558,19 @@ to be bound to a temporary.  Otherwise, return FALSE.
     prep_reference_initializer_operand(init_opnd, ref_type,
                                        (a_conv_descr*)NULL,
                                        /*leave_as_object=*/TRUE,
-                                       CCO_TYPE_TRAITS_CHECK,
+                                       conv_context,
                                        ec_no_error);
     if (!expr_stack->any_suppressed_error) {
       /* Check whether init_opnd represents a temporary. */
       if (is_expression_operand(init_opnd)) {
         an_expr_node_ptr    node = init_opnd->variant.expression;
         if (find_top_temporary(node, /* create_class_temp=*/FALSE) != NULL) {
+          result = TRUE;
+        } else if (orig_prvalue != NULL &&
+                   (node == orig_prvalue ||
+                    ((node_is_operator(node, eok_lvalue_adjust) ||
+                      node_is_operator(node, eok_base_class_cast)) &&
+                     node->variant.operation.operands == orig_prvalue))) {
           result = TRUE;
         }  /* if */
       }  /* if */

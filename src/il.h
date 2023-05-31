@@ -2431,7 +2431,7 @@ typedef int a_conv_context_set;
 #define CCO_TYPE_TRAITS_CHECK ((a_conv_context_set)0x40000)
 			/* Used when a conversion is being checked for a
 			   type traits helper function (e.g.,
-			   __is_convertible_to). */
+			   __is_convertible). */
 #define CCO_CONVERTED_CONSTANT_EXPR ((a_conv_context_set)0x80000)
 			/* Used when the conversion context is a "converted
 			   constant expression" (a C++11 concept). */

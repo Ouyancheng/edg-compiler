@@ -24959,7 +24959,7 @@ the conversion.
          code above for the list-initialization code must change as
          well. */
       a_conv_context_set  conv_context_for_temp = conv_context;
-      if (!clang_mode && !gpp_mode && !ms_version_is(<1929)) {
+      if (!clang_version_is(any_version) && !ms_version_is(<1929)) {
         /* Core issue 2267 was resolved by requiring copy-list-initialization
            for the temporary even if the main initialization is direct
            initialization.  For example:

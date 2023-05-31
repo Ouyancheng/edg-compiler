@@ -84,6 +84,10 @@ __reference_constructs_from_temporary, __reference_converts_from_temporary and
 __remove_reference type traits have been implemented in GNU emulation mode
 when gnu_version >= 130000.
 
+While implementing these type traits it was found that GCC implements the
+resolution of Core issue 2267 unlike our claims in the entry for EDGcpfe/23402;
+the behavior of the front end was adjusted to match in the corresponding modes.
+
 
 5/22/23  [EDGcpfe/24940,EDGcpfe/25601,EDGcpfe/26354]
 Abort in push_template_instantiation_scope

@@ -766,8 +766,7 @@ modes.
   enter_keyword((a_token_kind)tok_is_abstract, "__is_abstract");
   enter_keyword((a_token_kind)tok_is_base_of, "__is_base_of");
   enter_keyword((a_token_kind)tok_is_class, "__is_class");
-  enter_keyword((a_token_kind)tok_is_convertible_to,
-                "__is_convertible_to");
+  enter_keyword((a_token_kind)tok_is_convertible_to, "__is_convertible_to");
   enter_keyword((a_token_kind)tok_is_empty, "__is_empty");
   enter_keyword((a_token_kind)tok_is_enum, "__is_enum");
   enter_keyword((a_token_kind)tok_is_function, "__is_function");
