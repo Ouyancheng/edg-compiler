@@ -807,6 +807,7 @@ of the resulting diagnostic.
     if (actual_end > start_of_curr_token + 3 &&
         (actual_end[-3] == 'f' || actual_end[-3] == 'F')) {
       if (strncmp(actual_end - 2, "128", 3) == 0) {
+        actual_end -= 4;
         if (float128_enabled) {
           kind = fk_std_float128;
         } else {
@@ -818,16 +819,17 @@ of the resulting diagnostic.
         }  /* if */
       } else if (strncmp(actual_end - 2, "32x", 3) == 0) {
         kind = fk_float32x;
+        actual_end -= 4;
       } else if (strncmp(actual_end - 2, "64x", 3) == 0) {
         kind = fk_float64x;
+        actual_end -= 4;
       } else if (is_hexadecimal) {
         /* Presumably the 'F'/'f' is a hexadecimal digit and not part of
-           the suffix. */
-        kind = fk_double;
+           the suffix.  Leave the type as double, and don't back up over
+           the nonexistent suffix. */
       } else {
         unexpected_condition();
       }  /* if */
-      actual_end -= 4;
     } else if (actual_end > start_of_curr_token + 2 &&
                (actual_end[-2] == 'f' || actual_end[-2] == 'F')) {
       if ((actual_end[-3] == 'b' || actual_end[-3] == 'B') &&
