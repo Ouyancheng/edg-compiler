@@ -7586,8 +7586,12 @@ unchanged.
       basic_type = bt_fp16;
     } else if (fkind == fk_float) {
       basic_type = bt_float;
+    } else if (fkind == fk_float32x) {
+      basic_type = bt_float32x;
     } else if (fkind == fk_double) {
       basic_type = bt_double;
+    } else if (fkind == fk_float64x) {
+      basic_type = bt_float64x;
     }  /* if */
   }  /* if */
   if (basic_type != bt_typedef) dps->specifiers_type = NULL;

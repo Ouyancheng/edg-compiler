@@ -2174,10 +2174,12 @@ Transform the given complex cast expression into a function call
           library_routine_name = /*lint -e(545)*/&cast_float_routine_name;
           routine_ptr = cast_float_routine;
           break;
+        case fk_float32x:
         case fk_double:
           library_routine_name = /*lint -e(545)*/&cast_double_routine_name;
           routine_ptr = cast_double_routine;
           break;
+        case fk_float64x:
         case fk_long_double:
           library_routine_name =/*lint -e(545)*/&cast_long_double_routine_name;
           routine_ptr = cast_long_double_routine;
