@@ -6589,7 +6589,9 @@ pos.
         for (fkind = (a_float_kind)0;
              fkind < (a_float_kind)fk_first_extended_type;
              fkind = (a_float_kind)((int)fkind + 1)) {
-          if (float_type(fkind)->size == size) {
+          if (fkind == fk_float32x || fkind == fk_float64x) {
+            /* Ignore _FloatNx types. */
+          } else if (float_type(fkind)->size == size) {
             break; 
           }  /* if */
         }  /* for */
