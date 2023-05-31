@@ -1,5 +1,12 @@
 Version 6.5
 
+5/31/23  [EDGcpfe/26274]
+GNU compatibility: GCC 13.1.0 builtins
+
+The front end has been updated with the latest builtin signatures from
+version GCC 13.1.0.
+
+
 5/31/23  [EDGcpfe/22778]
 Overload resolution failure diagnostics
 
