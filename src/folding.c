@@ -7762,7 +7762,7 @@ static void fold_reference_binds_to_temporary(
                                        a_constant_ptr     constant,
                                        a_boolean          maintain_expression)
 /*
-expr is an enk_builtin_operation node for a __reference_binds_to_temporary
+expr is an enk_builtin_operation node for a __reference_binds_to_temporary,
 __reference_constructs_from_temporary, or __reference_converts_from_temporary
 operation.  If the operand types are nondependent, store a boolean constant in
 *constant.  The boolean constant will have value "true" if the first operand
@@ -7788,8 +7788,8 @@ expression for the returned constant will be set as well.
       is_template_dependent_type(type2)) {
     make_template_param_expr_constant(expr, constant);
   } else {
-    a_boolean  result = compute_reference_binds_to_temporary(type1, type2,
-                                         expr->variant.builtin_operation.kind);
+    a_boolean  result = compute_reference_binds_to_temporary(
+                          type1, type2, expr->variant.builtin_operation.kind);
     clear_constant(constant, (a_constant_repr_kind)ck_integer);
     set_integer_value(&constant->variant.integer_value,
                       (a_host_large_integer)result);
