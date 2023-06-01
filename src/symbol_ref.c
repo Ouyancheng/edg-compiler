@@ -2410,11 +2410,11 @@ IL entry in place of whatever is pointed to by the symbol.
         /* If we are marking a template static data member as referenced, also
            set its instantiation required flag. */
         a_variable_ptr  vp = sym_ptr->variant.static_data_member.variable;
-        if (gpp_mode && !clang_mode && vp->initializer_in_class &&
+        if (gpp_mode && vp->initializer_in_class &&
             vp->init_kind == initk_none) {
-          /* In GNU C++ mode, in-class static data member initializers are
-             instantiated on demand.  Ensure that the initializer is now
-             processed. */
+          /* In GNU and Clang C++ modes, in-class static data member
+             initializers may be instantiated on demand.  Ensure that the
+             initializer is now processed. */
           ensure_inclass_static_member_constant_initializer_is_scanned(vp);
         }  /* if */
         set_instance_required(sym_ptr, TRUE, SIR_DEFER_INLINE);
