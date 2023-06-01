@@ -3981,7 +3981,7 @@ static a_statement_ptr make_spaceship_element_comparison(
 /*
 Create a pair of statements:
 
-        R v{arg1 <=> arg2);
+        R v{arg1 <=> arg2};
         if (v != 0) return v;
 
 with R the given type, and return a pointer to the first statement.  block is
@@ -4100,7 +4100,7 @@ its associated scope is also given.
          like this:
            tmp = 0;
            do {
-             R v{arg1[tmp] <=> arg2[tmp]);
+             R v{arg1[tmp] <=> arg2[tmp]};
              if (v != 0) return v;
            } while (++tmp < num_elements);
          Note that comparing multidimensional arrays is done as a single loop
