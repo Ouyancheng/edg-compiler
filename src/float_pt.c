@@ -356,12 +356,14 @@ are supported on all platforms.
   /* Check worst case rather than byte by byte. */
   check_assertion(size >= (1 + 2 + 2 + 28 + 1 + 6 + 1));
   if (kind == fk_float80 ||
-      (kind == fk_long_double && targ_ldbl_mant_dig == 64)) {
+      ((kind == fk_float64x || kind == fk_long_double) &&
+       targ_ldbl_mant_dig == 64)) {
       /* 80 bits. */
     bytes = 10;
     implied_hidden_bit = FALSE;
   } else if (kind == fk_float128 || kind == fk_std_float128 ||
-             (kind == fk_long_double && targ_ldbl_mant_dig == 113)) {
+             ((kind == fk_float64x || kind == fk_long_double) &&
+              targ_ldbl_mant_dig == 113)) {
       /* 128 bits. */
     bytes = 16;
     implied_hidden_bit = TRUE;
@@ -1286,7 +1288,7 @@ before setting it if there are unused bits.
       }  /* if */
 #endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
 #if HOST_FP_VALUE_IS_128BIT
-    } else if (kind == fk_long_double) {
+    } else if (kind == fk_float64x || kind == fk_long_double) {
       /* Convert from an internal __float128 to a target long double.  This
          can't be converted to a host long double (similar to the float and
          double cases above) because the long double format may differ between
@@ -1363,7 +1365,7 @@ Fetch the value from float_value (of kind kind) and return it.
 #endif /* USE_SOFTFLOAT */
 #endif /* !USE_DOUBLE_FOR_HOST_FP_VALUE */
 #if HOST_FP_VALUE_IS_128BIT
-  } else if (kind == fk_long_double) {
+  } else if (kind == fk_float64x || kind == fk_long_double) {
     /* Convert from long double to a_host_fp_value (e.g., __float128). */
 #if USE_SOFTFLOAT
     check_assertion(targ_ldbl_mant_dig != 53);
