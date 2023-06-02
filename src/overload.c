@@ -265,7 +265,7 @@ Output a log of the current substitution stack.
 using a_small_ovl_res_stack_stack = Small_dyn_array<an_ovl_res_stack, 3>;
 static a_small_ovl_res_stack_stack
                 *ovl_res_stack_stack;
-                        /* Pointer to a stack of, stacks of cascading overload
+                        /* Pointer to a stack of stacks of cascading overload
                            resolution tasks. */
 
 
@@ -5748,7 +5748,6 @@ in a new-expression).
   an_operand               dummy_operand;
   a_diag_list_ptr          notes = NULL;
 
-  
   *discarded_because_post_decl = FALSE;
   if (expr_stack != NULL && expr_stack->any_suppressed_error) {
     /* Do not continue overload resolution if we have already found a
@@ -6343,7 +6342,6 @@ in a new-expression).
                    int r = g(sc);  // Normally an error attempting to call (1).
                                    // Okay in Microsoft mode and calls (2).
             */
-// FIXME: Does this need a note?
             goto reject_function;
           }  /* if */
         }  /* if */
@@ -6404,7 +6402,6 @@ next_argument:
                                    ssep->template_arg_list, eta_flags)) {
         /* While partially instantiating a function template, do not consider
            that particular candidate instance. */
-// FIXME Does this need a note?
         goto reject_function;
       }  /* if */
     }  /* if */
@@ -10735,8 +10732,11 @@ This routine is called only in C++ mode.
   a_boolean                suppress_note_reporting_pass;
   an_arg_list_elem_ptr     arg_list_elem;
   a_diagnostic_ptr         dp = NULL;
-  /* Do not provide initial values here (must be set after reprocess_with_notes
-     label below). */
+
+  /* Do not provide initial values in the declarations above.  Instead set the
+     initial values after the label "reprocess_with_notes" below to ensure
+     that the initializations are also performed when performing a second pass
+     to add diagnostic notes. */
 
   db_enter(4, "select_overloaded_function");
   ovl_res_stack()->push();
@@ -11236,7 +11236,8 @@ normal_no_function_matches:
         if (err_none_applies == ec_no_matching_function ||
             err_none_applies == ec_no_matching_new_function) {
           if (is_ineligible(overloaded_function_symbol)) {
-            // FIXME err_none_applies = ec_function_ineligible;
+            /* For ineligible functions, keep the generic diagnostic because
+               the "mismatch" is not really about the arguments. */
           } else {
             err_none_applies = ec_function_does_not_match_arguments;
           }  /* if */
@@ -19271,7 +19272,7 @@ reprocess_with_notes:
         /* We've just completed the note processing pass; no need to generate
            errors (they've already been emitted), but free any allocated
            resources. */
-        goto free_stuff;
+        goto free_resources;
       } else if (arg_list != NULL) {
         /* Overload resolution processing occurred. */
         function_symbol = NULL;
@@ -19823,7 +19824,7 @@ no_applicable_operator_function:
             }  /* if */
           }  /* if */
         }  /* if */
-free_stuff:
+free_resources:
         /* Free the candidate functions list. */
         free_candidate_function_list(candidate_functions);
         if (arg_list_not_used) {

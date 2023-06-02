@@ -154,9 +154,9 @@ enum a_cast_source_form {
 /*
 The context kinds in which overload resolution functions like
 select_overloaded_function and select_and_prepare_to_call_overloaded_function
-are called.  This determines what kind of error messages might be
-issued when overload resolution fails.  In some cases it can also decide other
-aspects of the call resolution (such as lookup).
+are called.  This determines what kind of error messages might be issued when
+overload resolution fails.  In some cases it can also decide other aspects of
+the call resolution (such as lookup).
 */
 enum an_overload_context {
   oc_default,                 /* Ordinary function or member function calls

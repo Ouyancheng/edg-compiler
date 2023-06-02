@@ -4151,8 +4151,8 @@ unmodified) value.
 #endif /* USE_ENUMS_IN_BITFIELDS */
 
 EXTERN a_boolean
-                add_match_notes;
-                        /* TRUE if notes should be added to error messages
+		add_match_notes;
+			/* TRUE if notes should be added to error messages
 			   describing failures to match overload sets. */
 
 /* Conditionally close the "edg" namespace. */

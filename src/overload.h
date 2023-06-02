@@ -527,7 +527,6 @@ EXTERN an_arg_match_summary_ptr
 
 /*
 A type describing an entry in the overload resolution stack.
-FIXME: Used for error reporting now, but could be used for argument passing.
 */
 struct an_ovl_resolution_descr {
   inline an_ovl_resolution_descr();
@@ -598,11 +597,6 @@ struct an_ovl_res_stack {
   a_boolean emit_note_diagnostics() const
     { return !this->is_empty() && this->bottom().emit_note_diagnostics; }
   a_boolean note_reporting_pass_needed();
-#if 0
-  // FIXME: variadic?
-  void add_note(...) const
-    { if (emit_note_diagnostics()) this->report_note(); }
-#endif
 private:
   Small_dyn_array<an_ovl_resolution_descr, 25>
                 underlying_array;
@@ -634,14 +628,8 @@ of overload.
     /* Re-processing of overloads is only triggered at the top-most level. */
   } else if (this->underlying_array.front_elem().emit_note_diagnostics) {
     /* Just finished emitting errors, so we're done. */
-#if 0 // FIXME:
-  } else if (this->underlying_array.front_elem().candidate_count >
-                                                                  some limit) {
-    /* FIXME don't overwhelm users with errors if there are too many */
-#endif
   } else {
     /* An error processing pass is needed. */
-    // FIXME check_assertion(is_at_least_one_error());
     this->underlying_array.front_elem().emit_note_diagnostics = TRUE;
     result = TRUE;
   }  /* if */
