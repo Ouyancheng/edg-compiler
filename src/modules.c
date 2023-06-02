@@ -1310,7 +1310,7 @@ Note that templ must refer to the canonical template.
   result = load_template_specializations_from_ifc_module(templ);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return result;
-}  /* load_template_definition_from_module */
+}  /* load_template_specializations_from_module */
 
 
 a_boolean has_type_definition_from_module(ARG_UNUSED a_type_ptr  ty)
