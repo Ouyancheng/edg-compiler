@@ -185,9 +185,9 @@ a target configuration).
 */
 /*lint -emacro(506,kind_is_binary64)*/
 #define kind_is_binary64(kind)                                                \
-  ((kind) == (a_float_kind)fk_double ||                                       \
-   (kind) == (a_float_kind)fk_float32x ||                                     \
-   ((kind) == (a_float_kind)fk_long_double &&                                 \
+  ((kind) == fk_double ||                                                     \
+   (kind) == fk_float32x ||                                                   \
+   (((kind) == fk_float64x || (kind) == fk_long_double) &&                    \
     (long_double_is_double || !FP_HAS_LONG_DOUBLE)) ||                        \
    (is_extended_flt_kind(kind) && flt_type_size[(int)kind] == 8))
 
