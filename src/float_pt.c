@@ -3123,7 +3123,7 @@ corresponding return value is not needed.
       (void)memcpy((char *)&double_temp, (char *)float_value, sizeof(double));
       (void)sprintf(str, "%la", double_temp);
 #if USE_FLOAT128_FOR_HOST_FP_VALUE
-    } else if (kind == fk_float64x ||kind == fk_long_double ||
+    } else if (kind == fk_float64x || kind == fk_long_double ||
                kind == fk_float80 || kind == fk_std_float128) {
       long double ld_temp;
       (void)memcpy((char *)&ld_temp, (char *)float_value, sizeof(long double));
@@ -3928,7 +3928,7 @@ Returns TRUE if the sign bit of the floating-point value represented by
     if (host_little_endian) fp_ptr += 1;
     val = *fp_ptr;
     is_negative = (val & 0x80000000) != 0;
-  } else if ((((kind == fk_float64x ||kind == fk_long_double) &&
+  } else if ((((kind == fk_float64x || kind == fk_long_double) &&
                targ_ldbl_mant_dig == 64) ||
               (kind == (a_float_kind)fk_float80 &&
                targ_flt80_mant_dig == 64)) &&
