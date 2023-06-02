@@ -7353,7 +7353,7 @@ Note that templ must refer to the canonical template.
   }  /* if */
 #endif /* DEBUG */
   return result;
-}  /* load_template_definition_from_ifc_module */
+}  /* load_template_specializations_from_ifc_module */
 
 
 static inline Opt<an_ifc_decl_index>
