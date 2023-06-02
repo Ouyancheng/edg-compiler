@@ -1204,14 +1204,14 @@ global suppression of these warnings.
 /*
 Versions of Clang prior to 3.9 suffered from an issue with explicit
 specializations when the template being specialized was deleted.  As a
-workaround for older versions of clang, provide DELETED_FN_DEF which set these
-functions to empty function bodies when necessary.  DELETED_FN_DEF is normally
-sufficient as Clang does not diagnose empty function bodies for non-constexpr
-function templates which specify a return type, so this can be used for (most)
-non-void functions (i.e., the Wreturn-type warning is not generally a concern).
-In the cases where DELETED_FN_DEF cannot be used (e.g., a constexpr function),
-HOST_SUPPORTS_DELETED_FUNCTION_TEMPLATES can be used to create more appropriate
-logic.
+workaround for older versions of clang, provide DELETED_FN_DEF, which sets
+these functions to empty function bodies when necessary.  DELETED_FN_DEF is
+normally sufficient as Clang does not diagnose empty function bodies for
+non-constexpr function templates that specify a return type, so this can be
+used for (most) non-void functions (i.e., the return-type warning is not
+generally a concern).  In the cases where DELETED_FN_DEF cannot be used
+(e.g., a constexpr function), HOST_SUPPORTS_DELETED_FUNCTION_TEMPLATES can
+be used to create more appropriate logic.
 */
 #if defined(__clang__) && \
     (__clang_major__ == 3 && __clang_minor__ < 9)

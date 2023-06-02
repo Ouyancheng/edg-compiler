@@ -3813,7 +3813,7 @@ inline a_boolean checked_addition(an_integer_type *output,
                                   uint64_t        a,
                                   uint64_t        b)
 /*
-Perform a checked addition, *output = a + b.  Return TRUE if the *output has
+Perform a checked addition, *output = a + b.  Return TRUE if *output has
 been set and overflow did not occur; otherwise, return FALSE.
 */
 {
@@ -3838,7 +3838,7 @@ inline a_boolean checked_multiplication(an_integer_type *output,
                                         uint64_t        a,
                                         uint64_t        b)
 /*
-Perform a checked multiplication, *output = a * b.  Return TRUE if the *output
+Perform a checked multiplication, *output = a * b.  Return TRUE if *output
 has been set and overflow did not occur; otherwise, return FALSE.
 */
 {
