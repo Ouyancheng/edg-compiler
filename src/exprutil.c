@@ -21782,6 +21782,7 @@ it might produce an error).
             con_expr_value = node_constant(op1);
           }  /* if */
           node->is_lvalue = node->is_xvalue = FALSE;
+          node->type = op1->type;
           processed = TRUE;
           break;
         case eok_lvalue_cast:
