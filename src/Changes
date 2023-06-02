@@ -40,7 +40,7 @@ now elicits the following diagnostics:
 It is expected that these notes will evolve in forthcoming versions (for
 example, the last note in the above example should eventually be more
 descriptive about the reason for the substitution failure).  For customers
-recording front end output for regression testing, we recommend first
+recording front end output for regression testing, we recommend first building
 the front end with DEFAULT_ADD_MATCH_NOTES set to 0 and once that is
 validated, enable the feature by switching DEFAULT_ADD_MATCH_NOTES to 1.
 
