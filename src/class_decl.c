@@ -1556,7 +1556,7 @@ Perform any pending checks indicated by the pending_exception_check_entries
 list and free that list.
 */
 {
-  a_pending_exception_check_entry_ptr  pecp, *p_pecp;
+  a_pending_exception_check_entry_ptr  pecp, *p_pecp, pecp2, *p_pecp2;
 
   p_pecp = &pending_exception_check_entries;
   pecp = *p_pecp;
@@ -1567,6 +1567,39 @@ list and free that list.
       if (pecp->overridden_sym != NULL) {
         /* This entry is to check a virtual override constraint. */
         a_routine_ptr  brp = pecp->overridden_sym->variant.routine.ptr;
+        if (microsoft_mode) {
+          /* In some Microsoft modes, the following is accepted:
+                 struct I { virtual void f() noexcept = 0; };
+                 struct B: I {
+                   virtual __declspec(nothrow) void f() = 0;
+                 };
+                 struct D: B {
+                   void f() override;
+                 };
+             In that case, we will have two entries: D::f overriding B::f and
+             D::f overriding I::f (in that order on the pecp list).  The first
+             will not elicit a diagnostic because B::f is "noexcept" because
+             of an attribute (see report_override_exception_spec_mismatch).
+             The latter would normally trigger a diagnostic, but shouldn't.
+             While handling a more derived overridden symbol we therefore
+             eliminate any later entries for less derived symbols. */
+
+          p_pecp2 = &pecp->next;
+          for (;;) {
+            pecp2 = *p_pecp2;
+            if (pecp2 == NULL) break;
+            if (pecp->sym == pecp2->sym &&
+                find_base_class_of(
+                           sym_parent_class(pecp->overridden_sym),
+                           sym_parent_class(pecp2->overridden_sym)) != NULL) {
+              *p_pecp2 = pecp2->next;
+              pecp2->next = avail_pending_exception_check_entries;
+              avail_pending_exception_check_entries = pecp2;
+            } else {
+              p_pecp2 = &pecp2->next;
+            }  /* if */
+          }  /* for */
+        }  /* if */
         if (type_has_less_restrictive_exception_spec(rp->type, brp->type)) {
           /* The exception specification for the overriding virtual function
              is less restrictive than that of the overridden function. */
