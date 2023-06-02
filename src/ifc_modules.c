@@ -3055,7 +3055,7 @@ associated entity kind.
     scan_nonmember_declaration(&dps, /*=*/NULL);
   }
   return get_parsed_entity(&dps, kind);
-}  /* parse_cached_partial_specialization */
+}  /* parse_cached_using_declaration */
 
 #if DEBUG
 
