@@ -7923,7 +7923,7 @@ diagnostic string.
                      (a_type_ptr)NULL, (a_type_ptr)NULL,
                      tap, (a_template_arg_ptr)NULL,
                      (a_source_position*)NULL, diag_list);
-}  /* more_info_tap_diagnostic */
+}  /* more_info_sym_tap_diagnostic */
 
 
 void pch_message(an_error_code error_code,

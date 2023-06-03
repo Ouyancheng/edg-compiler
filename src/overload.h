@@ -536,7 +536,6 @@ struct an_ovl_resolution_descr {
                         /* TRUE if we're in the "note processing" pass.
                            Currently only set in the top-most overload (i.e.,
                            the bottom of the stack). */
-
   size_t        candidate_count = 0;
                         /* Number of candidates found. */
 private:
