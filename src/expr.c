@@ -17176,6 +17176,7 @@ if the type is not appropriate.
       check_assertion(is_floating_type(tp));
       if (tp->variant.float_kind == (a_float_kind)fk_float80 ||
           tp->variant.float_kind == (a_float_kind)fk_float128 ||
+          tp->variant.float_kind == (a_float_kind)fk_float32x ||
           tp->variant.float_kind == (a_float_kind)fk_float64x ||
           tp->variant.float_kind == (a_float_kind)fk_std_bfloat16) {
         if (expr_error_should_be_issued()) {

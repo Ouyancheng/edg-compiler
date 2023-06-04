@@ -177,6 +177,20 @@ static a_boolean lint_is_NaN(long double x) /*lint !e528*/
 #endif /* ifdef _lint */
 
 /*
+Macro that returns TRUE if the representation of the floating-point kind is
+that of double.
+*/
+#define repr_is_double(kind)                                                  \
+  ((kind) == fk_float32x || (kind) == fk_double)
+
+/*
+Macro that returns TRUE if the representation of the floating-point kind is
+that of long double.
+*/
+#define repr_is_long_double(kind)                                             \
+  ((kind) == fk_float64x || (kind) == fk_long_double)
+
+/*
 Macro that returns TRUE if the floating-point kind is binary 64 (i.e.,
 64-bit floating-point).  That's always the case for "double", but may also
 be the case for "long double" in some configurations (but that must be
@@ -185,9 +199,8 @@ a target configuration).
 */
 /*lint -emacro(506,kind_is_binary64)*/
 #define kind_is_binary64(kind)                                                \
-  ((kind) == fk_double ||                                                     \
-   (kind) == fk_float32x ||                                                   \
-   (((kind) == fk_float64x || (kind) == fk_long_double) &&                    \
+  (repr_is_double(kind) ||                                                   \
+   (repr_is_long_double(kind) &&                    \
     (long_double_is_double || !FP_HAS_LONG_DOUBLE)) ||                        \
    (is_extended_flt_kind(kind) && flt_type_size[(int)kind] == 8))
 
@@ -356,14 +369,12 @@ are supported on all platforms.
   /* Check worst case rather than byte by byte. */
   check_assertion(size >= (1 + 2 + 2 + 28 + 1 + 6 + 1));
   if (kind == fk_float80 ||
-      ((kind == fk_float64x || kind == fk_long_double) &&
-       targ_ldbl_mant_dig == 64)) {
+      (repr_is_long_double(kind) && targ_ldbl_mant_dig == 64)) {
       /* 80 bits. */
     bytes = 10;
     implied_hidden_bit = FALSE;
   } else if (kind == fk_float128 || kind == fk_std_float128 ||
-             ((kind == fk_float64x || kind == fk_long_double) &&
-              targ_ldbl_mant_dig == 113)) {
+             (repr_is_long_double(kind) && targ_ldbl_mant_dig == 113)) {
       /* 128 bits. */
     bytes = 16;
     implied_hidden_bit = TRUE;
@@ -1288,7 +1299,7 @@ before setting it if there are unused bits.
       }  /* if */
 #endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
 #if HOST_FP_VALUE_IS_128BIT
-    } else if (kind == fk_float64x || kind == fk_long_double) {
+    } else if (repr_is_long_double(kind)) {
       /* Convert from an internal __float128 to a target long double.  This
          can't be converted to a host long double (similar to the float and
          double cases above) because the long double format may differ between
@@ -1365,7 +1376,7 @@ Fetch the value from float_value (of kind kind) and return it.
 #endif /* USE_SOFTFLOAT */
 #endif /* !USE_DOUBLE_FOR_HOST_FP_VALUE */
 #if HOST_FP_VALUE_IS_128BIT
-  } else if (kind == fk_float64x || kind == fk_long_double) {
+  } else if (repr_is_long_double(kind)) {
     /* Convert from long double to a_host_fp_value (e.g., __float128). */
 #if USE_SOFTFLOAT
     check_assertion(targ_ldbl_mant_dig != 53);
@@ -1453,9 +1464,9 @@ float and 11 bits for _Float16).
         size = 2;
       } else if (kind == fk_float) {
         size = targ_sizeof_float;
-      } else if (kind == fk_float32x || kind == fk_double) {
+      } else if (repr_is_double(kind)) {
         size = targ_sizeof_double;
-      } else if (kind == fk_float64x || kind == fk_long_double) {
+      } else if (repr_is_long_double(kind)) {
         size = targ_sizeof_long_double;
       } else if (kind == fk_float80) {
         size = targ_sizeof_float80;
@@ -1595,7 +1606,7 @@ Otherwise, return FALSE.
     memcpy((char*)&fp_part, fp_bytes, sizeof(fp_part));
     *biased_exp = (long)((fp_part & 0x7fffffff) >> 20);
 #if !USE_DOUBLE_FOR_HOST_FP_VALUE
-  } else if (kind == fk_float64x || kind == fk_long_double) {
+  } else if (repr_is_long_double(kind)) {
     if (targ_ldbl_mant_dig == 64) {
       /* In little-endian 80/96-bit long double representations, the most
          significant part is the third (i.e., last) word. */
@@ -1745,8 +1756,7 @@ point targets, the maximum value is positive infinity.
 {
   a_boolean  result;
 
-  if (long_double_is_double && (kind == fk_float64x ||
-                                kind == fk_long_double)) {
+  if (long_double_is_double && repr_is_long_double(kind)) {
     /* When long double is mapped onto double, store this value as a double. */
     kind = (a_float_kind)fk_double;
   }  /* if */
@@ -2095,8 +2105,7 @@ type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
   int	mant_dig = 0;
   int	bits;
 
-  if (long_double_is_double && (kind == fk_float64x ||
-                                kind == fk_long_double)) {
+  if (long_double_is_double && repr_is_long_double(kind)) {
     /* When long double is mapped onto double, store this value as a double. */
     kind = (a_float_kind)fk_double;
   }  /* if */
@@ -2116,8 +2125,8 @@ type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
     int	bits_needed;
     int	implicit_bits;
     /* Some long double kinds do not make use of an implicit mantissa bit. */
-    implicit_bits = (kind == fk_float64x || kind == fk_long_double) &&
-                    long_double_has_no_implicit_bit ? 0 : 1;
+    implicit_bits = (repr_is_long_double(kind) &&
+                     long_double_has_no_implicit_bit) ? 0 : 1;
     /* Compute the number of additional bits needed to represent the value
        in denormalized form. */
     bits_needed = (int)(min_exp - *exponent);
@@ -2143,8 +2152,8 @@ type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
     /* Some long double kinds do not make use of an implicit mantissa bit. */
     int	implicit_bits;
     int	value_bits;
-    implicit_bits = (kind == fk_float64x || kind == fk_long_double) &&
-                    long_double_has_no_implicit_bit ? 0 : 1;
+    implicit_bits = (repr_is_long_double(kind) &&
+                     long_double_has_no_implicit_bit) ? 0 : 1;
     value_bits = bits + implicit_bits;
     if (value_bits > mant_dig) *inexact = TRUE;
   }
@@ -2186,8 +2195,7 @@ adjusted to make the implicit bit explicit.
 
   /* Clear the mantissa value. */
   init_mantissa(mp);
-  if (long_double_is_double && (kind == fk_float64x ||
-                                kind == fk_long_double)) {
+  if (long_double_is_double && repr_is_long_double(kind)) {
     /* When long double is mapped onto double, load this value as a double. */
     kind = (a_float_kind)fk_double;
   }  /* if */
@@ -2229,8 +2237,7 @@ adjusted to make the implicit bit explicit.
     if (val != 0) is_zero = FALSE;
     mp->parts[0] |= (val >> 20);
     mp->parts[1] = val << 12;
-  } else if ((((kind == fk_float64x || kind == fk_long_double) &&
-               targ_ldbl_mant_dig == 64) ||
+  } else if (((repr_is_long_double(kind) && targ_ldbl_mant_dig == 64) ||
               (kind == (a_float_kind)fk_float80 &&
                targ_flt80_mant_dig == 64)) &&
              /*lint --e(506)*/sizeof(a_host_fp_value) >= sizeof(val)*3) {
@@ -2250,8 +2257,7 @@ adjusted to make the implicit bit explicit.
     fp_ptr += offset;
     if (*fp_ptr != 0) is_zero = FALSE;
     mp->parts[1] = *fp_ptr;
-  } else if ((((kind == fk_float64x || kind == fk_long_double) &&
-               targ_ldbl_mant_dig == 113) ||
+  } else if (((repr_is_long_double(kind) && targ_ldbl_mant_dig == 113) ||
              (kind == (a_float_kind)fk_float128 &&
               targ_flt128_mant_dig == 113)) &&
              /*lint --e(506)*/sizeof(a_host_fp_value) == sizeof(val)*4) {
@@ -2284,7 +2290,7 @@ adjusted to make the implicit bit explicit.
     mp->parts[3] = val << 16;
     val = *fp_ptr;
   } else {
-    unexpected_condition_str((kind == fk_float64x || kind == fk_long_double) ?
+    unexpected_condition_str(repr_is_long_double(kind) ?
                                 "load_hex_fp_value: bad long double size" :
                                 "load_hex_fp_value: bad float kind");
   }  /* if */
@@ -2294,7 +2300,7 @@ adjusted to make the implicit bit explicit.
     *is_negative = FALSE;
   } else {
     if (restore_implicit_bit &&
-        ((kind != fk_float64x && kind != fk_long_double) ||
+        (!repr_is_long_double(kind) ||
          !long_double_has_no_implicit_bit)) {
       /* Make explicit the implicit bit of the mantissa. */
       shift_right_mantissa(mp, 1);
@@ -2375,8 +2381,7 @@ the long double kind will have already been mapped to double by the caller.
     /* The code above constructs the value in fp_temp.  Copy this to the
        destination value. */
     memcpy((char*)float_value, (char*)fp_temp, sizeof(val) * 2);
-  } else if (((kind == fk_float64x || kind == fk_long_double) &&
-              targ_ldbl_mant_dig == 64) ||
+  } else if ((repr_is_long_double(kind) && targ_ldbl_mant_dig == 64) ||
              (kind == (a_float_kind)fk_float80 &&
               targ_flt80_mant_dig == 64)) {
     /* 80-bit representation in a 96-bit container. */
@@ -2394,8 +2399,7 @@ the long double kind will have already been mapped to double by the caller.
     /* The code above constructs the value in fp_temp.  Copy this to the
        destination value. */
     memcpy((char*)float_value, (char*)fp_temp, sizeof(val) * 3);
-  } else if ((((kind == fk_float64x || kind == fk_long_double) &&
-               targ_ldbl_mant_dig == 113) ||
+  } else if (((repr_is_long_double(kind) && targ_ldbl_mant_dig == 113) ||
               (kind == (a_float_kind)fk_float128 &&
                targ_flt128_mant_dig == 113) ||
               is_extended_flt_kind(kind)) &&
@@ -2563,8 +2567,7 @@ because the exponent was out of range).
   int		mant_dig = 0;
 
   *err = FALSE;
-  if (long_double_is_double && (kind == fk_float64x ||
-                                kind == fk_long_double)) {
+  if (long_double_is_double && repr_is_long_double(kind)) {
     /* When long double is mapped onto double, use double. */
     kind = (a_float_kind)fk_double;
   }  /* if */
@@ -2581,7 +2584,7 @@ because the exponent was out of range).
     /* Round the value to the nearest representable value. */
     round_hex_fp_value(mp, &exponent, mant_dig, /*is_fixed_point=*/FALSE,
                        /*is_signed=*/FALSE, inexact);
-    if ((kind != fk_float64x && kind != fk_long_double) ||
+    if (!repr_is_long_double(kind) ||
         !long_double_has_no_implicit_bit) {
       /* Shift one bit further to have an implied initial one bit.  This is
          only done for floating point representations that use an implicit
@@ -2792,8 +2795,7 @@ before setting it if there are unused bits.
 #endif /* FLOAT128_ENABLING_POSSIBLE */
     } else {
 #if FP_HAS_LONG_DOUBLE
-      check_assertion(kind == fk_long_double ||
-                      kind == fk_float64x);
+      check_assertion(repr_is_long_double(kind));
       res = read_long_double((unsigned char *)&float_value_temp, str,
                              (int)strlen(str));
 #if DEBUG
@@ -2917,8 +2919,7 @@ be NULL if the corresponding return value is not needed.
       (void)quadmath_snprintf(str, sizeof(str), "%.8Qg", temp);
     } else if (kind == fk_float || kind == fk_std_float32) {
       (void)quadmath_snprintf(str, sizeof(str), "%.10Qg", temp);
-    } else if (kind == fk_float32x || kind == fk_double ||
-               kind == fk_std_float64) {
+    } else if (repr_is_double(kind) || kind == fk_std_float64) {
       (void)quadmath_snprintf(str, sizeof(str), "%.19Qg", temp);
     } else if (kind == fk_float128 || kind == fk_std_float128) {
       (void)quadmath_snprintf(str, sizeof(str), "%.34Qg", temp);
@@ -2945,8 +2946,7 @@ be NULL if the corresponding return value is not needed.
       (void)sprintf(str, "%.8Lg", fpval);
     } else if (kind == fk_float || kind == fk_std_float32) {
       (void)sprintf(str, "%.10Lg", fpval);
-    } else if (kind == fk_float32x || kind == fk_double ||
-               kind == fk_std_float64) {
+    } else if (repr_is_double(kind) || kind == fk_std_float64) {
       (void)sprintf(str, "%.19Lg", fpval);
     } else {
       /* fk_long_double or fk_float80 or fk_std_float128. */
@@ -3040,7 +3040,7 @@ be NULL if the corresponding return value is not needed.
 #endif /* FLOAT128_ENABLING_POSSIBLE */
     } else {
 #if FP_HAS_LONG_DOUBLE
-      check_assertion(kind == fk_float64x || kind == fk_long_double);
+      check_assertion(repr_is_long_double(kind));
       res = write_long_double(str, sizeof(str), (unsigned char *)float_value);
 #if DEBUG
       if (db_flag_is_set("fp")) {
@@ -3123,8 +3123,8 @@ corresponding return value is not needed.
       (void)memcpy((char *)&double_temp, (char *)float_value, sizeof(double));
       (void)sprintf(str, "%la", double_temp);
 #if USE_FLOAT128_FOR_HOST_FP_VALUE
-    } else if (kind == fk_float64x || kind == fk_long_double ||
-               kind == fk_float80 || kind == fk_std_float128) {
+    } else if (repr_is_long_double(kind) || kind == fk_float80 ||
+               kind == fk_std_float128) {
       long double ld_temp;
       (void)memcpy((char *)&ld_temp, (char *)float_value, sizeof(long double));
       (void)sprintf(str, "%La", ld_temp);
@@ -3176,7 +3176,7 @@ for the representation of floating-point values in mangled names.
     data_size = 2;
   } else if (kind == fk_float) {
     data_size = sizeof(float);
-  } else if (kind == fk_float32x || kind == fk_double) {
+  } else if (repr_is_double(kind)) {
     data_size = sizeof(double);
   } else if (kind == fk_std_float32) {
     data_size = 4;
@@ -3188,7 +3188,7 @@ for the representation of floating-point values in mangled names.
 #if ABI_COMPATIBILITY_VERSION >= 402
   /* The long double format sometimes contains some unused bytes.
      Put out zeros for the padding space. */
-  if (kind == fk_float64x || kind == fk_long_double) {
+  if (repr_is_long_double(kind)) {
     int	pad_size = (int)(sizeof(long double) - data_size);
     for (j = 0; j < pad_size; j++, i++)  {
       (void)sprintf(&str[i*2], "00");
@@ -3904,8 +3904,7 @@ Returns TRUE if the sign bit of the floating-point value represented by
   an_fp_value_part	fp_temp[4];
   a_boolean		is_negative = FALSE;
 
-  if (long_double_is_double && (kind == fk_float64x ||
-                                kind == fk_long_double)) {
+  if (long_double_is_double && repr_is_long_double(kind)) {
     /* When long double is mapped onto double, use double. */
     kind = (a_float_kind)fk_double;
   }  /* if */
@@ -3928,8 +3927,7 @@ Returns TRUE if the sign bit of the floating-point value represented by
     if (host_little_endian) fp_ptr += 1;
     val = *fp_ptr;
     is_negative = (val & 0x80000000) != 0;
-  } else if ((((kind == fk_float64x || kind == fk_long_double) &&
-               targ_ldbl_mant_dig == 64) ||
+  } else if (((repr_is_long_double(kind) && targ_ldbl_mant_dig == 64) ||
               (kind == (a_float_kind)fk_float80 &&
                targ_flt80_mant_dig == 64)) &&
              /*lint --e(506)*/sizeof(a_host_fp_value) >= sizeof(val)*3) {
@@ -3941,8 +3939,7 @@ Returns TRUE if the sign bit of the floating-point value represented by
     if (host_little_endian) fp_ptr += 2;
     val = *fp_ptr;
     is_negative = (val & 0x8000) != 0;
-  } else if ((((kind == fk_float64x || kind == fk_long_double) &&
-               targ_ldbl_mant_dig == 113) ||
+  } else if (((repr_is_long_double(kind) && targ_ldbl_mant_dig == 113) ||
               (kind == fk_float128 &&
                targ_flt128_mant_dig == 113) ||
               kind == fk_std_float128) &&
