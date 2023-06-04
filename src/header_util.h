@@ -113,12 +113,19 @@ struct Opt {
 private:
   a_boolean     storing_value;
                         /* TRUE if there is a value stored, FALSE otherwise. */
+#ifdef UNION_AS_STRUCT
+/* FIXME: Workaround for union-as-struct build issue. */
+#undef union
+#endif /* indef UNION_AS_STRUCT */
   union {
     a_Value_type
                 stored_value;
                         /* The value stored.  Represented as a union so the
                            value can be uninitialized, and construction and
                            destruction are manually managed. */
+#ifdef UNION_AS_STRUCT
+#define union struct
+#endif /* indef UNION_AS_STRUCT */
   };
 #if CHECKING
   a_boolean     value_presence_checked = FALSE;
