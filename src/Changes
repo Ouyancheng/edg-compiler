@@ -51,10 +51,11 @@ GNU compatibility: _Float32x and _Float64x floating-point types
 
 In GNU modes with gnu_version >= 130000, the front end now supports the
 _Float32x and _Float64x floating-point types.  Although they are distinct
-types, _Float32x shares the representation of double and _Float64x, that of
-long double.  In addition, the f32x/F32x and f64x/F64x floating-point
-literal suffixes are recognized and give literals the _Float32x and
-_Float64x types, respectively.  For example, with --gnu_version=130100:
+types, _Float32x and _Float64x have the same representation as double and
+long double, respectively.  In addition, the f32x/F32x and f64x/F64x
+floating-point literal suffixes are recognized and give literals the
+_Float32x and _Float64x types, respectively.  For example, with
+--gnu_version=130100:
 
   _Float32x x = 1.0f32x;   // Now accepted with gnu_version >= 130000
 
