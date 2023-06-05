@@ -1279,7 +1279,7 @@ a right shift if shift_right is TRUE, left otherwise.  If an error occurs
        folded. */
     *err = TRUE;
   }  /* if */
-} /* fxp_shift */
+}  /* fxp_shift */
 
 
 void fxp_add(a_constant		*constant_1,
@@ -1316,7 +1316,7 @@ If an error occurs (e.g., overflow), err is set to TRUE.
   } else {
     *did_not_fold = TRUE;
   }  /* if */
-} /* fxp_add */
+}  /* fxp_add */
 
 
 void fxp_subtract(a_constant	*constant_1,
@@ -1353,7 +1353,7 @@ If an error occurs (e.g., overflow), err is set to TRUE.
   } else {
     *did_not_fold = TRUE;
   }  /* if */
-} /* fxp_subtract */
+}  /* fxp_subtract */
 
 
 void fxp_multiply(a_constant	*constant_1,
@@ -1390,7 +1390,7 @@ If an error occurs (e.g., overflow), err is set to TRUE.
   } else {
     *did_not_fold = TRUE;
   }  /* if */
-} /* fxp_multiply */
+}  /* fxp_multiply */
 
 
 void fxp_divide(a_constant	*constant_1,
@@ -1430,7 +1430,7 @@ If an error occurs (e.g., overflow), err is set to TRUE.
   } else {
     *did_not_fold = TRUE;
   }  /* if */
-} /* fxp_divide */
+}  /* fxp_divide */
 
 
 int fxp_compare(a_constant	*constant_1,

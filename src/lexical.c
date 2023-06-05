@@ -3001,7 +3001,7 @@ to the correct next token.
     decr_tokens_in_cache(cache);
     free_cached_token(ctp);
   }  /* if */
-} /* remove_token_from_cache */
+}  /* remove_token_from_cache */
 
 
 void free_tokens_from_reusable_cache(a_cached_token_ptr	ctp,
@@ -4749,7 +4749,7 @@ optimize calls to nested_source_line_modif.
 
     slmp->next_in_hash_table = source_line_modif_hash_table[hash];
     source_line_modif_hash_table[hash] = slmp;
-  } /* if */
+  }  /* if */
 }  /* add_source_line_modif_to_hash_table */
 
 
@@ -6477,7 +6477,7 @@ entry is found or created, return the pointer in ifhp_ptr.
   }  /* if */
 #endif /* DEBUG */
   return result;
-} /* suppress_subsequent_include_of_file */
+}  /* suppress_subsequent_include_of_file */
 
 
 #if DEBUG
@@ -7413,7 +7413,7 @@ a catastrophic error is not issued, FALSE is returned.
       search_path = sys_incl_search_path;
     } else {
       search_path = incl_search_path;
-    } /* if */
+    }  /* if */
   }  /* if */
   *new_input_file = NULL;
   *suppress_include = FALSE;
@@ -10178,7 +10178,7 @@ end_of_current_line:
                                        /*extend_current_line=*/FALSE)) {
             /* End of file, end the white-space skip. */
             goto end_skip;
-          } /* if */
+          }  /* if */
           /* Not end of file, keep checking for white space in the new line. */
         } else {
           /* End of the expansion text for a macro.  Find the character
@@ -15161,7 +15161,7 @@ returns TRUE.  On input symbol points to the symbol for the first token.
     }  /* if */
   }  /* if */
   return is_whitespace_keyword;
-} /* check_for_whitespace_keyword */
+}  /* check_for_whitespace_keyword */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -16832,7 +16832,7 @@ check_start_of_pp_directive:
           if (rescan) goto rescan_token;
           ctoken = tok_error;
           goto end_of_token_scan;
-	} /* if */
+	}  /* if */
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
 	if (in_preprocessing_directive && !caching_pragma_tokens) {
 	  /* We recognize and return these preprocessing tokens even if
@@ -16857,7 +16857,7 @@ check_start_of_pp_directive:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 	  } else {
 	    ctoken = tok_sharp;
-	  } /* if */
+	  }  /* if */
 	} else if (!any_tokens_gotten_from_curr_source_line &&
                    (!pcc_preprocessing_mode || no_chars_before_sharp) &&
                    !in_token_insertion_from_string) {
@@ -16880,7 +16880,7 @@ check_start_of_pp_directive:
 	       scan another token. */
 	    skip_white_space();
 	    goto start_of_token_scan;
-	  } /* if */
+	  }  /* if */
 	  /* Skipping because of an #if or the like, just return this
 	     as a token for further checking. */
 	  ctoken = tok_sharp;
@@ -16890,9 +16890,9 @@ check_start_of_pp_directive:
 	  err_code_for_error_token = ec_bad_use_of_sharp;
 	  if (!fetch_pp_tokens) {
 	    error_at_line_pos(err_code_for_error_token, start_of_curr_token);
-	  } /* if */
+	  }  /* if */
 	  ctoken = tok_error;
-	} /* if */
+	}  /* if */
       }
       /* When we reach this point, curr_char_loc should have already been
          advanced past the characters that make up this token (unlike
@@ -26026,7 +26026,7 @@ end_tsn.
       /* Otherwise, fallback to the common token printing, ignoring pseudo
          tokens. */
       add_cached_token_to_string(ctp, /*print_pseudo_tokens=*/FALSE);
-    } /* if */
+    }  /* if */
   }  /* for */
 }  /* add_cached_tokens_to_string */
 
@@ -26194,7 +26194,7 @@ C++/CLI delegate class types.)
       } else {
         define_class = TRUE;
       }  /* if */
-    } /* if */
+    }  /* if */
   }  /* if */
 #endif /* CPPCLI_ENABLING_POSSIBLE */
   /* This routine cannot handle local classes. */

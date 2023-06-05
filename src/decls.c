@@ -7833,7 +7833,7 @@ for use in generating cross-reference output describing this declaration.
           }  /* if */
         }  /* if */
       }  /* if */
-    } /* if */
+    }  /* if */
   }  /* if */
   if (is_variable_def && is_or_has_volatile_qualified_type(type_ptr)) {
     /* A variable with a volatile type is considered to be used and modified
@@ -11400,7 +11400,7 @@ definition of a member function of a class template.
     if (func_info->is_definition) {
       if (sym->defined) {
         pos_sy_error(ec_already_defined, &locator->source_position, sym);
-      } /* if */
+      }  /* if */
     } else if (!microsoft_out_of_class_redecl) {
       if (!microsoft_mode &&
           sym->is_class_member && !idlb.is_friend_decl && !is_specialization) {
@@ -11415,14 +11415,14 @@ definition of a member function of a class template.
           pos_sy_error(ec_member_function_redecl_outside_class,
                        &locator->source_position, sym);
         }  /* if */
-      } /* if */
-    } /* if */
+      }  /* if */
+    }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (func_info->is_definition) {
       set_routine_declared_type(rout_ptr, func_info->declared_type);
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  } /* if */
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (func_info->is_definition || dps->first_decl) {
     update_decl_pos_info(&rout_ptr->source_corresp,
@@ -22000,7 +22000,7 @@ are encountered.
                   /*is_top_level_declaration=*/TRUE,
                   /*marked_as_gnu_extension=*/FALSE,
                   (a_param_id_ptr)NULL, (a_source_range *)NULL);
-    } /* while */
+    }  /* while */
   }  /* if */
   check_assertion_str2(!header_stop_position_pending, "translation_unit:",
                        "header stop position not found");

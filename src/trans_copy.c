@@ -2209,7 +2209,7 @@ unit set to the primary translation unit.
           overwrite_primary_type(corresp_type, primary_type);
           corresp_type = primary_type;
         }  /* if */
-      } /* if */
+      }  /* if */
       if (add_to_list) {
         /* Add the type to the end of the list. */
 #if DEBUG
@@ -2835,7 +2835,7 @@ unit.
     }  /* for */
   }
 #endif /* ONE_INSTANTIATION_PER_OBJECT || MAINTAIN_NEEDED_FLAGS */
-} /* finish_scope_moved_entity_processing */
+}  /* finish_scope_moved_entity_processing */
 
 
 static void finish_moved_entity_processing(a_translation_unit_ptr tup)
@@ -3137,7 +3137,7 @@ from a primary IL entry.
     set_routine_keep_definition_in_il(routine);
     set_routine_definition_needed(routine);
   }  /* if */
-} /* mark_secondary_il_entry_as_needed */
+}  /* mark_secondary_il_entry_as_needed */
 
 
 static char *remap_secondary_pointer_for_mark(char             *ptr,

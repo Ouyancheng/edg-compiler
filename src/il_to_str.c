@@ -2296,7 +2296,7 @@ by octl.
           }  /* if */
           form_type(type->variant.typeref.extra_info->operator_type_arg, octl);
           octl->output_str(")", octl);
-        } /* if */
+        }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
       } else if (is_typeref_kind(type, trk_is_typeof_with_expression) ||
                  is_typeref_kind(type, trk_is_typeof_with_type_operand)) {
@@ -2333,7 +2333,7 @@ by octl.
             form_type(type->variant.typeref.type, octl);
           }  /* if */
           octl->output_str(")", octl);
-        } /* if */
+        }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
       } else if (is_typeref_kind(type, trk_is_deduced_decltype_auto)) {
         an_expr_node_ptr  constraint = type->variant.typeref.extra_info->expr;
@@ -3207,7 +3207,7 @@ in the way described by octl.
         octl->output_str(" ", octl);
         octl->output_str(name_linkage_kind_names[linkage], octl);
       }  /* if */
-    } /* if */
+    }  /* if */
     /* Output a cv-qualifier for a member function, if there is one.  For a
        lambda body, however, output "mutable" if the routine is not const. */
     if (is_lambda) {
@@ -4400,7 +4400,7 @@ ck_address constant).  Do the output in the way described by octl.
     octl->output_str("::typeid", octl);
   } else {
     octl->output_str(")", octl);
-  } /* if */
+  }  /* if */
 }  /* form_typeid_reference */
 
 
@@ -6785,7 +6785,7 @@ do_sizeof_cases:
                             octl);
         }  /* if */
         octl->output_str("] = ", octl);
-      } /* if */
+      }  /* if */
       break;
     case ck_void:
       octl->output_str("((void)0)", octl);

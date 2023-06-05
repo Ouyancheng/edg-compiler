@@ -446,9 +446,9 @@ redundant matching virtual base classes.
 	      result = FALSE;
 	      break;
 	    }
-	  } /* if */
+	  }  /* if */
 	}
-      } /* if */
+      }  /* if */
     }  /* for */
   }  /* if */
   return result;

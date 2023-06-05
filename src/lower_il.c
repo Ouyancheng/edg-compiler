@@ -2648,7 +2648,7 @@ of the type specified by TARG_IA64_VTABLE_ENTRY_INT_KIND (typically ptrdiff_t).
   entry_expr = make_operator_node((an_expr_operator_kind)eok_subscript,
                                   make_vtbl_entry_type(), vtbl_expr);
   return entry_expr;
-} /* make_vtbl_entry_expr */
+}  /* make_vtbl_entry_expr */
 
 #else /* !IA64_ABI */
 
@@ -6696,15 +6696,15 @@ to the end.
 */
 {
   if (*first_con == NULL) {
-    *first_con = *last_con = init; 
+    *first_con = *last_con = init;
   } else if (prepend) {
     init->next = *first_con;
     *first_con = init;
   } else {
     (*last_con)->next = init;
     *last_con = init;
-  } /* if */
-} /* add_init */
+  }  /* if */
+}  /* add_init */
 
 
 static void add_vtbl_entry_init(a_targ_ptrdiff_t delta,
@@ -7579,7 +7579,7 @@ table.
   /* Skip the loop if there are no functions. */
   if (highest_entry_number == VIRTUAL_FUNCTION_NUMBER_NONE) {
     goto done;
-  } /* if */
+  }  /* if */
   primary_function = NULL;
   /*lint --e{850} entry_number modified in loop */
   for (; entry_number <= highest_entry_number; entry_number++) {
@@ -9426,7 +9426,7 @@ Do IL lowering of the indicated type and everything under it.
 #if MAINTAIN_NEEDED_FLAGS
                 type_changed = TRUE;
 #endif /* MAINTAIN_NEEDED_FLAGS */
-              } /* if */
+              }  /* if */
               /* Clear the default_arg_expr field to make the IL more
                  like C IL.  Note this throws away the expression. */
               if (keep_object_lifetime_info_in_lowered_il) {
@@ -9678,7 +9678,7 @@ variable's mangled name.
                    var->storage_class == (a_storage_class)sc_unspecified) ||
                    var->is_inline);
   var->comdat_group = var->source_corresp.name;
-} /* put_variable_into_comdat_group */
+}  /* put_variable_into_comdat_group */
 
 #endif /* LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS */
 
@@ -9995,7 +9995,7 @@ elsewhere.
     put_routine_into_comdat_group(routine);
   }  /* if */
 #endif /* !IA64_ABI */
-} /* lower_extern_inline_routine */
+}  /* lower_extern_inline_routine */
 
 #endif /* LOWER_EXTERN_INLINE */
 #if GNU_FUNCTION_MULTIVERSIONING
@@ -11815,7 +11815,7 @@ lvalue to its logical "not".
       result_value_node = add_cast(result_value_node, x_rvalue->type);
       if (!predecr_case) {
         x_rvalue_copy = make_reusable_copy(x_rvalue, /*vars_can_change=*/TRUE);
-      } /* if */
+      }  /* if */
     }  /* if */
     /* Make the assignment: (x = 1) or (x = !temp). */
     x_lvalue_copy->next = result_value_node;
@@ -13863,7 +13863,7 @@ throughout the entire expression).
                  node_operator_is(child, eok_indirect)) {
         /* Optimize "(*x).y" to "x->y". */
         rewrite_dot_field_as_points_to_field(expr);
-      } /* if */
+      }  /* if */
     } else if (op == (an_expr_operator_kind)eok_assign &&
                !expr->is_lvalue &&
                is_variable_node(child) &&
@@ -13873,8 +13873,8 @@ throughout the entire expression).
          can happen when lowering some expressions. */
       check_assertion(il_identical_types(expr->type, child->next->type));
       overwrite_node(expr, child->next);
-    } /* if */
-  } /* if */
+    }  /* if */
+  }  /* if */
 }  /* optimize_node_if_possible */
 
 #if LOWER_STRING_LITERALS_TO_NON_CONST
@@ -21779,7 +21779,7 @@ Do IL lowering of the indicated scope and everything under it.
       if (routine->source_corresp.name != NULL) {
         fprintf(f_debug, "lower_scope: function \"%s\"\n",
                          routine->source_corresp.name);
-      } /* if */
+      }  /* if */
     }  /* if */
 #endif /* DEBUG */
     if (routine->source_corresp.is_class_member) {

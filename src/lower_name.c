@@ -8646,8 +8646,8 @@ with partial specialization arguments.
     }  /* if */
   }  /* if */
   return has_partial_spec_args;
-} /* parents_have_partial_spec_args */
-  
+}  /* parents_have_partial_spec_args */
+
 
 /*
 The prefix put on the front of the type encoding for a nested type to get
@@ -12941,7 +12941,7 @@ a constructor or destructor, return the primary entry point name.
        instantiated (there's only one entry on the instantiation list
        representing all the entry points). */
     force_primary_name = TRUE;
-  } /* if */
+  }  /* if */
 #endif /* IA64_ABI */
   mangled_name = get_mangled_function_name_full(routine, force_primary_name,
                                           /*externalize_if_necessary=*/TRUE);
@@ -15117,7 +15117,7 @@ correspondence entry for the entity whose name this is.
       for (cspp = hash_table[i]; cspp != NULL; cspp = cspp_next) {
         cspp_next = cspp->next;
         free_compressible_string_pos(cspp);
-      } /* for */
+      }  /* for */
     }  /* for */
     /* The prefix on the compressed form is "__CPR" followed by the size
        of the original (uncompressed) name, not counting the final null. */

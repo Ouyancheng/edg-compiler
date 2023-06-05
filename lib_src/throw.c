@@ -578,7 +578,7 @@ Print the contents of a region description entry.
     fprintf(__f_debug, "  handle=%d\n", ehrdp->handle);
     fprintf(__f_debug, "  next region=%d\n", ehrdp->index_of_next_region);
   }  /* if */
-} /* db_eh_region_descr */
+}  /* db_eh_region_descr */
 
 
 static const char *eh_stack_entry_kind_name(an_eh_stack_entry_kind kind)
@@ -1991,7 +1991,7 @@ get called.
 */
 {
   unexpected_condition();
-} /* __suppress_optim_on_vars_in_try */
+}  /* __suppress_optim_on_vars_in_try */
 
 EXTERN_C an_eh_stack_entry_ptr __get_curr_eh_stack_entry(void)
 /*

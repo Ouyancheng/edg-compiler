@@ -1344,7 +1344,7 @@ including the associated block size.
               tp->variant.typeref.extra_info->upc_block_size);
     }  /* if */
   }  /* if */
-} /* db_shared_block_size */
+}  /* db_shared_block_size */
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
@@ -1645,7 +1645,7 @@ Dump the contents of the indicated type entry, for debug purposes.
               any_indirect_base_classes = TRUE;
             }  /* if */
             if (bcp->is_virtual) any_virtual_base_classes = TRUE;
-          } /* for */
+          }  /* for */
           fp = tp->variant.class_struct_union.field_list;
           for (; fp != NULL; fp = fp->next) db_field(fp, 0);
           if (any_virtual_base_classes) {
@@ -1657,7 +1657,7 @@ Dump the contents of the indicated type entry, for debug purposes.
 #endif /* !CFRONT_OBJECT_CODE_COMPATIBILITY */
                 db_virtual_base_class_ptr(bcp, 0);
               }  /* if */
-            } /* for */
+            }  /* for */
           }  /* if */
           if (ctsp != NULL &&
               !scope_is_null_or_placeholder(ctsp->assoc_scope)) {
@@ -3978,7 +3978,7 @@ a file that contains metadata).
   add_seq_number_lookup_entry(sfp, sfp->first_seq_number,
                               sfp->first_line_number);
   db_exit();
-} /* record_start_of_source_file */
+}  /* record_start_of_source_file */
 
 
 void record_inclusion_of_module_source_file(
@@ -8486,7 +8486,7 @@ definition of the CC flags in il.h for more information.
                   eq = FALSE;
                 } else {
                   eq = compare_expressions(expr1, expr2, options);
-                } /* if */
+                }  /* if */
               }  /* if */
               break;
             case tpck_template_ref:
@@ -9733,7 +9733,7 @@ which case the resulting constant is an empty aggregate.
           base_con->constant_for_base_class = TRUE;
           base_con->constant_for_base_class_from_constexpr_folding = TRUE;
           add_constant_to_aggregate(base_con, con, bcp, (a_field_ptr)NULL);
-        } /* if */
+        }  /* if */
       }  /* for */
     }  /* if */
     if (!is_immediate_class_type(type) ||
@@ -13339,7 +13339,7 @@ and return a pointer to the new array type.
         explicit_alignment = old_array->alignment;
       }  /* if */
       old_array = old_array->variant.typeref.type;
-    } /* while */
+    }  /* while */
     /* Allocate a new array type and copy the old one into it.  Note that
        some of the source correspondence information should not be preserved
        in the copy. */
@@ -24419,7 +24419,7 @@ expression-traversal routines.  Set tblock->result to TRUE if so.
             if (is_function_type(func_type) &&
                 is_nothrow_type(func_type)) {
               might_throw = FALSE;
-            } /* if */
+            }  /* if */
           }  /* if */
         }  /* if */
       } else if (node_operator_is(node, eok_ref_dynamic_cast)) {
@@ -24793,7 +24793,7 @@ associated with the statement expression from its parent's scopes list.
   clear_expr_or_stmt_traversal_block(&tblock);
   tblock.process_expr = remove_statement_expr_src_seq_entries;
   traverse_expr(expr, &tblock);
-} /* eliminate_statement_expr_src_seq_entries */
+}  /* eliminate_statement_expr_src_seq_entries */
 
 #endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
  
@@ -29603,7 +29603,7 @@ return FALSE.
     result = TRUE;
   }  /* if */
   return result;
-} /* upc_block_size_too_large */
+}  /* upc_block_size_too_large */
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
 

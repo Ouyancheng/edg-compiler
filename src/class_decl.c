@@ -4764,7 +4764,7 @@ a whole (i.e., including fixups for default arguments, etc.).
     force_definition_of_generated_exported_members(class_type);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-} /* wrap_up_class_definition */
+}  /* wrap_up_class_definition */
 
 
 static void process_deferred_class_fixups(a_boolean	for_instantiation)
@@ -5084,7 +5084,7 @@ ambiguity.
     }  /* while */
   }  /* for */
   db_exit();
-} /* report_virtual_function_ambiguities */
+}  /* report_virtual_function_ambiguities */
 
 
 static void find_final_overrider(a_base_class_ptr  *p_bcp,
@@ -9160,7 +9160,7 @@ list.  Returns a pointer to the new end of the list.
       new_base = bcp;
     } else {
       new_base = corresp_base_class(bcp, base);
-    } /* if */
+    }  /* if */
     /* If the new_base is virtual, we may already have a copy on the
        list. */
     if (new_base->is_virtual) {
@@ -11487,8 +11487,8 @@ that the routine indicated by rout_ptr is a friend.
     if (clep->class_type == class_type) {
       pos_remark(ec_duplicate_friend_decl, &error_position);
       break;
-    } /* if */
-  } /* for */
+    }  /* if */
+  }  /* for */
   /* Add a friend declaration to the befriending_classes list. */
   clep = alloc_list_entry_for_class_full(&rout_ptr->source_corresp);
   clep->class_type = class_type;
@@ -20551,7 +20551,7 @@ declarations.
                      ec_ref_not_allowed_in_union, &decl_state->start_pos);
       if ((int)strict_ansi_error_severity > (int)es_warning) {
         err = TRUE;
-      } /* if */
+      }  /* if */
 #if NAMED_ADDRESS_SPACES_ALLOWED
     } else if (type_qualified_with_named_address_space(field_type)) {
       pos_error(ec_field_type_cannot_be_qualified_with_named_address_space,
@@ -23400,7 +23400,7 @@ requirements of a valid dispose pattern implementation of Dispose(bool) (i.e.,
                                           (an_access_specifier)as_protected) {
         *p_is_valid = TRUE;
       }  /* if */
-    } /* if */
+    }  /* if */
   }  /* if */
   return result;
 }  /* is_dispose_bool_function */
@@ -23437,7 +23437,7 @@ The caller must initialize *p_is_idisposable_dispose.
                                  get_idisposable_dispose_routine())) {
         *p_is_idisposable_dispose = TRUE;
       }  /* if */
-    } /* if */
+    }  /* if */
   }  /* if */
   return result;
 }  /* is_dispose_void_function */
@@ -27952,7 +27952,7 @@ signature that matches that of the delegate definition).
                                             /*param4_type=*/(a_type_ptr)NULL);
     decl_member_function(&member_loc, func_info, &class_state, &member_info,
                          /*compiler_generated=*/TRUE);
-  } /* if */
+  }  /* if */
   /* Wrap up the definition. */
   complete_class_definition(class_type, decl_level, &class_state);
   pop_scope();
@@ -29278,7 +29278,7 @@ and, in C++/CLI mode, vice versa.
     /* Link the enum type with the boxed type and vice versa. */
     integer_type_supp(tp)->boxed_type = btp;
     ctsp->corresponding_basic_type = tp;
-  } /* if */
+  }  /* if */
 }  /* make_boxed_enum_type */
 
 
@@ -29917,7 +29917,7 @@ block of information that is provided if this is a member template declaration.
       }  /* if */
     }  /* if */
 #endif /* CHECKING */
-  } /* if */
+  }  /* if */
   if (dso_flags & DSO_DANGLING_TYPE_SPECIFIER) {
     /* A malformed declaration was detected by decl_specifiers.  Issue
        errors indicating that an identifier (= a declarator) is missing,
@@ -32973,9 +32973,9 @@ classes.
         }  /* if */
         if (bad_export) {
           pos_error(ec_export_class_members, &export_pos);
-        } /* if */
+        }  /* if */
         /* Scan a member declaration. */
-        if (curr_token == tok_semicolon && 
+        if (curr_token == tok_semicolon &&
             (C_dialect == C_dialect_cplusplus ||
              !(class_state.is_first_field && next_token() == tok_rbrace))) {
           /* No declaration -- just a semicolon.  That is valid in C++14 mode.

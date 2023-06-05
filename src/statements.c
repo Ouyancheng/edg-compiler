@@ -2187,7 +2187,7 @@ by traversing the control-flow list backwards from *start to *end.
       fputs("NULL\n", f_debug);
     } else {
       db_cfd(end);
-    } /* if */
+    }  /* if */
   }  /* if */
 #endif /* DEBUG */
   cfdp = start;
@@ -2441,13 +2441,13 @@ the goto, and label_cfsp describes the associated label.
       fputs("NULL\n", f_debug);
     } else {
       db_cfd(common_parent);
-    } /* if */
+    }  /* if */
     fputs("outermost_noncommon_parent = ", f_debug);
     if (outermost_noncommon_parent == NULL) {
       fputs("NULL\n", f_debug);
     } else {
       db_cfd(outermost_noncommon_parent);
-    } /* if */
+    }  /* if */
   }  /* if */
 #endif /* DEBUG */
   /* There are 2 orthogonal sets of criteria for determining how to search
@@ -3110,7 +3110,7 @@ if the truth cannot be discovered, is FALSE.
       /* Loop expression is a non-zero constant: it's an infinite loop. */
       is_inf_loop = TRUE;
     }  /* if */
-  } /* if */
+  }  /* if */
   return(is_inf_loop);
 }  /* is_infinite_loop */
 
@@ -6313,7 +6313,7 @@ GNU allows a syntax similar to Fortran's assigned goto:
        the goto to allow diagnosis of jump-over-initialization errors.  If
        it is backward reference, do the checking immediately. */
     check_for_jump_over_initialization(sp, &goto_pos);
-  } /* else */
+  }  /* else */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   if (curr_token == tok_semicolon) {
     curr_construct_end_position = end_pos_curr_token;

@@ -6152,7 +6152,7 @@ default arguments) to the given IL template param; otherwise, return FALSE.
              non-type template parameter in the IL have different types. */
           goto no_match;
         }  /* if */
-      } /* if */
+      }  /* if */
       break;
     case ifc_ps_template:
       if (param_sym->kind != sk_class_template) {
@@ -7622,7 +7622,7 @@ return TRUE.
     }  /* if */
   }  /* if */
   return result;
-} /* lazy_init_module_scope */
+}  /* lazy_init_module_scope */
 
 
 static void ensure_module_scope(a_scope_ptr              scope,
@@ -8443,7 +8443,7 @@ class_struct_union_case:
                                               /*new_value=*/scope_depth);
             tag_sym = make_unnamed_tag_symbol(sk_enum_tag, &pos);
             enum_type->variant.integer.originally_unnamed = TRUE;
-          } /* if */
+          }  /* if */
           tag_sym->variant.enumeration.type = enum_type;
           set_source_corresp(&(enum_type->source_corresp), tag_sym);
 #if NEED_NAME_MANGLING
@@ -12997,6 +12997,7 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
         /* FIXME: Currently unsupported. */
         issue_unsupported_construct_error(this, "ExprSort::ArrayValue",
                                           &error_position);
+        goto invalid;
       }
     case ifc_es_expr_dyad:
       { Opt<an_ifc_expr_dyad> opt_ied;
@@ -20286,7 +20287,7 @@ tuple elements by '::' instead of ','.
           cache_token(cache, tok_lparen);
           if (!is_null_index(argument)) {
             cache_expr(cache, argument, cinfo);
-          } /* if */
+          }  /* if */
           cache_token(cache, tok_rparen);
         };  /* cache_arg */
 
@@ -22378,7 +22379,7 @@ Add the tokens corresponding to the given declaration's (decl) name to cache.
     cache->invalidate();
     check_assertion_str(is_at_least_one_error(),
                         "expected errors from name_from_decl");
-  } /* if */
+  }  /* if */
 }  /* an_ifc_module::cache_name_from_decl */
 
 

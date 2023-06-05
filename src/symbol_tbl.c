@@ -2885,7 +2885,7 @@ and implicit return types).
                parent->header->identifier) == 0) {
       answer = TRUE;
     }  /* if */
-  } /* if */
+  }  /* if */
   if (!answer && loc->symbol_header != NULL) {
     /* Misdeclared destructors may not be marked as class members: */
     a_const_char *name = loc->symbol_header->identifier;
@@ -16118,13 +16118,13 @@ is_pack_element is TRUE if the parameter is a pack element.
         pos_error(ec_dupl_param_name, &error_position);
         set_to_error_locator(*locator);
       }  /* if */
-    } /* if */
+    }  /* if */
   } else if (is_prototype_param_decl) {
     /* Assume that if an error locator is passed in and this is a prototype
        parameter declaration that we have an unnamed parameter.  We'll need
        a param_id entry to keep track of the type. */
     unnamed_param = TRUE;
-  } /* if */
+  }  /* if */
   /* Create a param_id entry and enter it onto the param_id list.  Skip
      this if we have an old-style param id list in which a duplicate was
      encountered. */

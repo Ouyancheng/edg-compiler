@@ -5285,7 +5285,7 @@ integral type, as in "(int)&x - (int)&x".
   release_local_constant(&offset_2);
   release_local_constant(&offset_1);
   *did_not_fold = cannot_fold;
-} /* do_pdiff */
+}  /* do_pdiff */
 
 
 a_boolean compare_address_constants(a_constant_ptr  con1,
@@ -5601,7 +5601,7 @@ tc is a constant representing N*THREADS.  Set ic to N.
 {
   copy_constant(tc, ic);
   ic->kind = (a_constant_repr_kind)ck_integer;
-} /* convert_upc_threads_constant_to_integer */
+}  /* convert_upc_threads_constant_to_integer */
 
 
 static void binary_upc_threads_operation(

@@ -1050,7 +1050,7 @@ Add "name" to the path name in "buffer".
       need_to_add_slash = need_to_add_slash && (last_char != '\\');
     }  /* if */
 #endif /* __VMS__ */
-  } /* if */
+  }  /* if */
   if (need_to_add_slash) {
     /* Add the slash following the directory name. */
     add_char_to_text_buffer(buffer, separator_char);
@@ -4063,7 +4063,7 @@ are assumed to be Latin-1.
         /* First byte is invalid (e.g., it's a continuation byte having 10
            in the top two bits). */
         local_err = TRUE;
-      } /* if */
+      }  /* if */
       if (local_err) {
         if (err != NULL) *err = TRUE;
         len = 1;
@@ -4216,7 +4216,7 @@ are assumed to be Latin-1.
         /* First byte is invalid (e.g., it's a continuation byte having 10
            in the top two bits). */
         local_err = TRUE;
-      } /* if */
+      }  /* if */
       if (local_err) {
         *wc = 0;
         numch = 1;
@@ -4991,7 +4991,7 @@ upper-case mapping each UTF-16 code unit.
     }  /* if */
   }  /* for */
   return result;
-} /* compare_file_chars_case_insensitive */
+}  /* compare_file_chars_case_insensitive */
 
 #endif /* __MICROSOFT_OS__ && EDG_WIN32 && UNICODE_SOURCE_SUPPORTED */
 

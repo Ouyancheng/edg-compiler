@@ -1896,7 +1896,7 @@ by a semicolon; otherwise it is left unchanged.
 
     }  /* if */
   }  /* if */
-} /* check_nested_class_redeclaration */
+}  /* check_nested_class_redeclaration */
 
 
 static a_boolean same_entity_as_a_type_info_type(a_type_ptr type)

@@ -116,7 +116,7 @@ allocation and generates a catastrophic error.
 
   if ((ptr = (a_void_ptr)malloc(size)) == NULL) {
     me_error("out of memory", (char *)NULL);
-  } /* if */
+  }  /* if */
   return (ptr);
 }  /* me_malloc_with_check */
 

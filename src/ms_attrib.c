@@ -3064,7 +3064,7 @@ attributes to a variable.
       } else {
         cli_attr_target = msat_field;
       }  /* if */
-    } /* if */
+    }  /* if */
   } else {
     attr_target = msat_variable;
   }  /* if */

@@ -860,7 +860,7 @@ allocation and generates a catastrophic error.
 
   if ((ptr = (a_void_ptr)malloc(size)) == NULL) {
     pl_error(pl_ec_out_of_memory, (char *)NULL);
-  } /* if */
+  }  /* if */
   return (ptr);
 }  /* pl_malloc_with_check */
 
@@ -883,7 +883,7 @@ malloc_with_check.
     ptr = (a_void_ptr)realloc((a_realloc_arg)old_ptr, new_size);
     if (ptr == NULL) {
       pl_error(pl_ec_out_of_memory, (char *)NULL);
-    } /* if */
+    }  /* if */
   }  /* if */
   return ptr;
 }  /* pl_realloc_with_check */

@@ -7289,7 +7289,7 @@ complete.  The function returns the newly created a_constructor_init.
   }  /* if */
   cibp->end_of_direct_list = new_cip;
   return new_cip;
-} /* add_new_unresolved_base_ctor_init */
+}  /* add_new_unresolved_base_ctor_init */
 
 
 static a_symbol_ptr look_up_mem_initializer_id(void)

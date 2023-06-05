@@ -228,7 +228,7 @@ allocation and generates a catastrophic error.
 
   if ((ptr = (char *)malloc((true_size_t)size_t_arg(size))) == NULL) {
     catastrophe(ec_out_of_memory);
-  } /* if */
+  }  /* if */
 #if DEBUG
   /* Track total allocation. */
   /* Can't do this conditionally on db_active since db_active is not yet
@@ -308,7 +308,7 @@ malloc_with_check.  "old_size" is present to help with tracking of space used.
     if ((ptr = (char *)realloc(old_ptr,
                                (true_size_t)size_t_arg(new_size))) == NULL) {
       catastrophe(ec_out_of_memory);
-    } /* if */
+    }  /* if */
 #if DEBUG
     /* Track total allocation. */
     /* Can't do this conditionally on db_active since db_active is not yet
@@ -2239,7 +2239,7 @@ Free the general memory specified by *list.
          allocation table.  Free it now. */
       free((a_void_ptr)map);
     }  /* if */
-  } /* for */
+  }  /* for */
   /* Reset the list pointer. */
   *list = NULL;
 }  /* free_general_memory */

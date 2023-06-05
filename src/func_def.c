@@ -1918,7 +1918,7 @@ of lambda expressions.
           p_lcp = &(*p_lcp)->next;
         }  /* if */
       }  /* while */
-    } /* if */
+    }  /* if */
     /* The lambda call operator was made invisible above; make it visible
        again. */
     if (rout_ptr->is_template_function) {

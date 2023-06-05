@@ -389,7 +389,7 @@ the "#" the current token (at least logically).
     }  /* if */
   }  /* if */
   return(kind);
-} /* identify_dir_keyword */
+}  /* identify_dir_keyword */
 
 
 static void nonstandard_pp_directive(void)
@@ -3716,7 +3716,7 @@ Push an entry onto the top of the stack.
   }  /* if */
   upsep->next = upc_coherence_stack;
   upc_coherence_stack = upsep;
-} /* push_upc_pragma */
+}  /* push_upc_pragma */
 
 
 static void pop_upc_pragma(void)

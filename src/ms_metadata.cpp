@@ -616,7 +616,7 @@ returns true.
     } else {
       end = move(iter1, iter2 - 1, end);
       iter1 = iter2;
-    } /* if */
+    }  /* if */
   }  /* while */
 }  /* unescape_escaped_character_if */
 
@@ -1127,10 +1127,10 @@ public:
   a_qualifier_flag_set qualifier_flags() const { return qualifier_flags_; }
   void set_qualifier_flags(a_qualifier_flag_set qualifier_flags) {
     qualifier_flags_ = qualifier_flags;
-  } /* set_qualifier_flags */
+  }  /* set_qualifier_flags */
   void add_qualifier_flags(a_qualifier_flag_set qualifier_flags) {
     qualifier_flags_ |= qualifier_flags;
-  } /* set_qualifier_flags */
+  }  /* set_qualifier_flags */
 
   virtual bool uses_unresolved_type(
                         a_const_class_type_wrapper_ptr &unresolved_type) const
@@ -2048,7 +2048,7 @@ public:
       if (string_length == 0) {
         /* string_value is a NULL-terminated string. */
         string_length = wcslen(string_value);
-      } /* if */
+      }  /* if */
       value_.string.value = new wchar_t[string_length];
       memcpy(value_.string.value, string_value,
              string_length * sizeof(wchar_t));
@@ -2409,13 +2409,13 @@ public:
   {
     decode();
     return fixed_args_;
-  } /* fixed_args */
+  }  /* fixed_args */
 
   a_const_attribute_argument_list &named_args() const
   {
     decode();
     return named_args_;
-  } /* named_args */
+  }  /* named_args */
 
   mdCustomAttribute token() const { return token_; }
   mdToken ctor_token() const { decode_type(); return ctor_token_; }
@@ -5167,7 +5167,7 @@ void a_custom_attribute::decode_type() const
       } else {
         unexpected_condition();
       }  /* if */
-    } /* if */
+    }  /* if */
   }  /* if */
 }  /* a_custom_attribute::decode_type */
 
@@ -6603,7 +6603,7 @@ delegate and to FALSE otherwise.
         if (!is_nested) {
           /* Emit the assembly level visibility - either public or private. */
           buffer << type_definition.accessibility().get_string() << ' ';
-        } /* if */
+        }  /* if */
       }  /* if */
       /* Emit the tokens that represent the kind. */
       buffer << a_type_definition::string_from_kind(kind) << ' ';
@@ -7085,7 +7085,7 @@ a_method_parameter::a_method_parameter(const an_import_scope &import_scope,
           attributes_ &= ~pdIn;
         }  /* if */
       }  /* if */
-    } /* if */
+    }  /* if */
   }  /* if */
 }  /* a_method_parameter::a_method_parameter. */
 
@@ -7283,7 +7283,7 @@ Decode a type signature that is modified with a custom type modifier.
          V^ const:
            modopt(Const) modopt(Boxed) modopt(V) Class System::ValueType */
       break;
-    } /* if */
+    }  /* if */
     element_type = peek_element_type();
     if (element_type != ELEMENT_TYPE_CMOD_REQD &&
         element_type != ELEMENT_TYPE_CMOD_OPT) {
@@ -8324,7 +8324,7 @@ Returns the source code for the value.
           buffer << 'p' << dec << (exponent - bias);
         }  /* if */
         break;
-      } /* case ELEMENT_TYPE_R4 */
+      }  /* case ELEMENT_TYPE_R4 */
     case ELEMENT_TYPE_R8:
       { ULONGLONG d = *reinterpret_cast<const ULONGLONG*>(
                                                         &value_.double_value);
@@ -8356,7 +8356,7 @@ Returns the source code for the value.
           buffer << 'p' << dec << (exponent - bias);
         }  /* if */
         break;
-      } /* case ELEMENT_TYPE_R8 */
+      }  /* case ELEMENT_TYPE_R8 */
     case ELEMENT_TYPE_STRING:
       { wchar_t *string_value = value_.string.value;
         size_t  string_length = value_.string.length;
@@ -8370,7 +8370,7 @@ Returns the source code for the value.
           buffer << L'\"';
         }
         break;
-      } /* case ELEMENT_TYPE_STRING */
+      }  /* case ELEMENT_TYPE_STRING */
     case ELEMENT_TYPE_OBJECT:
       /* The nullptr constant. */
       check_assertion(value_.unsigned_int_value == 0);
@@ -8787,7 +8787,7 @@ a_qualified_name an_import_scope::name_from_typedef(
                                        scope,
                                        enclosing_type_generic_param_count,
                                        unresolved_generic_argument);
-  } /* if */
+  }  /* if */
   BYTE generic_arity = generic_parameter_count -
                                            enclosing_type_generic_param_count;
   if (generic_arity > 0) {

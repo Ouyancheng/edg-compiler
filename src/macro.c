@@ -2153,7 +2153,7 @@ and return a pointer to it.
     init_macro_text_map(MACRO_ARGUMENT_TEXT_MAP_INITIAL_COUNT,
                         &map->exp_text_map, /*resizable=*/TRUE);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-  } /* if */
+  }  /* if */
   map->next         = NULL;
   map->raw_len      = 0;
   map->initial_raw_text_not_in_primary_source_line = NULL;

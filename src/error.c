@@ -1505,7 +1505,7 @@ specified by dp.
       if (! dfip->variant.symbol.name_only) {
         f_add_string_to_text_buffer(msg_buffer, error_text(ec_keyword));
         add_string_to_text_buffer(msg_buffer, " ");
-      } /* if */
+      }  /* if */
       add_string_to_text_buffer(msg_buffer, "\"");
       /* Use the name in the header. */
       add_string_to_text_buffer(msg_buffer, sym->header->identifier);
@@ -1763,7 +1763,7 @@ symbol_name:
           f_add_string_to_text_buffer(msg_buffer, error_text(entity_kind));
           add_string_to_text_buffer(msg_buffer, " ");
         }  /* if */
-      } /* if */
+      }  /* if */
       /* Add color if so configured. */
       annotate_diagnostic(msg_buffer, da_quote);
       /* Add the beginning double quote. */
@@ -3761,7 +3761,7 @@ message appears by itself on a separate line.
   }  /* if */
 #endif /* CHECKING */
   return result;
-} /* include_in_context_output */
+}  /* include_in_context_output */
 
 
 static int bucket_for_diag(an_error_code		error_code,

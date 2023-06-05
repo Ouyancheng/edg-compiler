@@ -7899,7 +7899,7 @@ evk_unspecified if the string is not recognized.
     result = (an_ELF_visibility_kind)evk_internal;
   } else if (strcmp(visibility_str, "default") == 0) {
     result = (an_ELF_visibility_kind)evk_default;
-  } /* if */
+  }  /* if */
   return result;
 }  /* ELF_visibility_from_string */
 

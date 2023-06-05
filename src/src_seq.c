@@ -1010,7 +1010,7 @@ entry that has already been created and linked in for this entity.
       db_source_sequence_entry(new_ssep);
     }  /* if */
 #endif /* DEBUG */
-  } /* if */
+  }  /* if */
   db_exit();
 }  /* f_update_source_sequence_list */
 

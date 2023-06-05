@@ -132,7 +132,7 @@ Put out a scope kind name (for debugging).
     case sck_template_declaration:   s = "template declaration";     break;
     case sck_template_instantiation: s = "template instantiation";   break;
     default_is_unexpected();
-  } /* switch */
+  }  /* switch */
   fputs(s, f_debug);
   return (int)strlen(s);
 }  /* db_scope_kind */
@@ -6642,8 +6642,8 @@ curr_routine points to the routine entry; otherwise, it is NULL.
           if (sym->referenced) primary_sym->referenced = TRUE;
           if (sym->value_has_been_set) {
             primary_sym->value_has_been_set = TRUE;
-          } /* if */
-        } /* if */
+          }  /* if */
+        }  /* if */
       }  /* if */
 #if CHECKING
       scp = &var_ptr->source_corresp;
@@ -9013,7 +9013,7 @@ routine should be kept.
 #endif /* NEED_NAME_MANGLING */
         }  /* if */
       }  /* if */
-    } /* if */
+    }  /* if */
   }  /* if */
   if (result) {
     /* Record that lowering has been delayed on at least one function in the

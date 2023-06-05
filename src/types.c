@@ -3886,7 +3886,7 @@ this object must be a pointer-to-upc-shared.
     result = is_shared_qualified_type(tp);
   }  /* if */
   return result;
-} /* is_underlying_shared_qualified_type */
+}  /* is_underlying_shared_qualified_type */
 
 
 a_boolean is_shared_void_star_type(a_type_ptr tp)
@@ -4006,7 +4006,7 @@ dimensioned array type.
     }  /* for */
   }  /* if */
   return result;
-} /* is_underlying_threads_dimensioned_array_type */
+}  /* is_underlying_threads_dimensioned_array_type */
 
 
 a_targ_size_t upc_local_type_size(a_type_ptr  tp)
@@ -5999,7 +5999,7 @@ object or a prvalue that is a pointer (or C++/CLI handle) to an object.
         unexpected_condition_str(
                  "examine_expr_for_complete_object_type: bad expression kind");
     }  /* switch */
-  } /* if */
+  }  /* if */
   if (!tblock->terminate) {
     if (complete_object_type != NULL) {
       /* We've determined a complete object type at this level. */
@@ -6911,7 +6911,7 @@ check_typerefs:
       }  /* if */
       if (tp1->variant.typeref.is_nonreal) is_nonreal1 = TRUE;
       tp1 = tp1->variant.typeref.type;
-    } /* while */
+    }  /* while */
     if (tp1->kind == (a_type_kind)tk_template_param) is_nonreal1 = TRUE;
     while (tp2->kind == (a_type_kind)tk_typeref) {
       if (!has_name(tp2)) {
@@ -6923,7 +6923,7 @@ check_typerefs:
       }  /* if */
       if (tp2->variant.typeref.is_nonreal) is_nonreal2 = TRUE;
       tp2 = tp2->variant.typeref.type;
-    } /* while */
+    }  /* while */
     if (tp2->kind == (a_type_kind)tk_template_param) is_nonreal2 = TRUE;
     if (type_1->kind == (a_type_kind)tk_typeref &&
         type_2->kind == (a_type_kind)tk_typeref) {
@@ -12013,7 +12013,7 @@ user-defined conversions.
             allowed = TRUE;
           }  /* if */
         }  /* if */
-      } /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   if (!allowed && is_template_dependent_type(dest_type)) {

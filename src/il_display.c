@@ -7620,7 +7620,7 @@ Display the indicated asm operand.
   }  /* for */
 #endif /* RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
   disp_ptr("expr", (char *)ptr->expression, iek_expr_node);
-} /* disp_asm_operand */
+}  /* disp_asm_operand */
 
 
 static void disp_named_register_list(a_named_register_list_ptr ptr)

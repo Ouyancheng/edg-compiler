@@ -1118,7 +1118,7 @@ get_token_with_colon_separation for a description of seen_tok_colon_colon.
         /* End of output list; consume colon and continue. */
         output = FALSE;
         (void)get_token_with_colon_separation(seen_tok_colon_colon);
-      } /* if */
+      }  /* if */
     } else if (curr_token == tok_comma) {
       (void)get_token_with_colon_separation(seen_tok_colon_colon);
       if (curr_token != tok_string_literal && curr_token != tok_lbracket) {

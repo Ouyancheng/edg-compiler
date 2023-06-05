@@ -4179,7 +4179,7 @@ bare name and the explicit template argument list and to FALSE otherwise.
         assoc_template = var->template_info->assoc_template;
       }  /* if */
       result = (tap != NULL);
-    } /* if */
+    }  /* if */
   }  /* if */
   if (arg_ptr != NULL) {
     *arg_ptr = tap;

@@ -121,7 +121,7 @@ start_new_argument:
     /* Start the next argument. */
     optind++;
     goto start_new_argument;
-  } /* if */
+  }  /* if */
   /* See if the option letter appears in the string of legal options. */
   optpos = strchr((char *)optstring, *optchar);
   if (optpos == NULL) {

@@ -103,7 +103,7 @@ exit status.
 
 static a_void_ptr malloc_with_check(sizeof_t size)
 /*
-Interface to malloc that allocates "size" bytes.  Checks for failure of 
+Interface to malloc that allocates "size" bytes.  Checks for failure of
 allocation and generates a catastrophic error.
 */
 {
@@ -111,7 +111,7 @@ allocation and generates a catastrophic error.
 
   if ((ptr = (a_void_ptr)malloc(size)) == NULL) {
     error_util("out of memory");
-  } /* if */
+  }  /* if */
   return (ptr);
 }  /* malloc_with_check */
 

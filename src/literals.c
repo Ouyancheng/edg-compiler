@@ -1741,8 +1741,8 @@ the actual number of converted characters may be less than num_chars.  */
           and_integer_values(&number, &mask);
         }  /* if */
         shift_left_integer_value(&ch_int_val, (int)i*centity_bits, &err);
-      } /* if */
-    } /* if */
+      }  /* if */
+    }  /* if */
     or_integer_values(&number, &ch_int_val);
     if (microsoft_mode && temp_ptr <= end_of_curr_token - LE_ESCAPE_LEN &&
         *temp_ptr == LE_ESCAPE) {

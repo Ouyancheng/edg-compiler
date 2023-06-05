@@ -8651,7 +8651,7 @@ parameters.
              to zero. */
           force_zeroing_of_comdat_variable = TRUE;
         }  /* if */
-      } /* if */
+      }  /* if */
 #if SUN_EXTENSIONS_ALLOWED && C_GEN_BE_GENERATES_ANSI_C
       if (sun_is_generated_code_target) {
         /* Sun-specific "link scope specifiers" (__global, __symbol, or
@@ -10897,7 +10897,7 @@ declare_routine:
       write_space();
       end_comment();
       write_space();
-    } /* if */
+    }  /* if */
 #endif /* IA64_ABI */
 #if SUN_EXTENSIONS_ALLOWED && C_GEN_BE_GENERATES_ANSI_C
     if (sun_is_generated_code_target) {

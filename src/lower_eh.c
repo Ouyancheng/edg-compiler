@@ -613,7 +613,7 @@ string literals were implemented).
         break;
       default:
         unexpected_condition();
-    } /* if */
+    }  /* if */
 #endif /* IA64_ABI */
     /* field: base_class "base" */
     make_lowered_field("base", base_class, *type_ptr, &last_field);
@@ -706,7 +706,7 @@ string literals were implemented).
         break;
       default:
         unexpected_condition();
-    } /* switch */
+    }  /* switch */
 #endif /* IA64_ABI */
     finish_class_type(*type_ptr);
   }  /* if */
@@ -769,10 +769,10 @@ For example, if "type" is a pointer type, the kind is tik_pointer.
             tinfo_kind = tik_vmi_class;
             break;
           }  /* if */
-        } /* if */
+        }  /* if */
         /* Continue to the next base class. */
         bases = bases->next;
-      } /* while */
+      }  /* while */
     }  /* if */
   } else {
     unexpected_condition_str("get_typeinfo_kind: bad type");
@@ -1221,7 +1221,7 @@ is placed in a COMDAT.
       if (routine_might_exist_in_multiple_copies(enclosing_routine)) {
         is_extern = TRUE;
       }  /* if */
-    } /* if */
+    }  /* if */
   }  /* if */
   return is_extern;
 }  /* type_is_externally_visible */
@@ -2828,7 +2828,7 @@ if necessary.
     typeinfo_var = make_typeinfo_var(type);
   }  /* if */
   return typeinfo_var;
-} /* get_typeinfo_var */
+}  /* get_typeinfo_var */
 
 
 static a_variable_ptr typeinfo_var_for_type(
@@ -5832,7 +5832,7 @@ Make an expression that does a rethrow, and return a pointer to it.
 
   rethrow_routine->type->variant.routine.extra_info->does_not_return = TRUE;
   return rethrow_node;
-} /* make_rethrow_call */
+}  /* make_rethrow_call */
 
 #if ABI_COMPATIBILITY_VERSION >= 235
 
@@ -5852,7 +5852,7 @@ pointer to it.
   internal_rethrow_routine->type
                           ->variant.routine.extra_info->does_not_return = TRUE;
   return rethrow_node;
-} /* make_internal_rethrow_call */
+}  /* make_internal_rethrow_call */
 
 #endif /* ABI_COMPATIBILITY_VERSION >= 235 */
 #endif /* DO_FULL_PORTABLE_EH_LOWERING */

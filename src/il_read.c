@@ -604,7 +604,7 @@ necessary to make it directly accessible in memory.
               (void)fprintf(f_debug, " - %ld\n", (long)idx-1);
             }  /* if */
             idx++;
-          } /* while */
+          }  /* while */
         } else {
           for (idx = 1; idx <= entry_count; idx++) {
             if (get_entry_read_array(byte_entry_kind, idx) == FALSE) {

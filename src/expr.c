@@ -412,7 +412,7 @@ but within the signature of a lambda, it is the function enclosing the lambda.
         ssep -= 1;
         if (ssep->depth_innermost_function_scope != NO_SCOPE_DEPTH) {
           result = scope_stack[ssep->depth_innermost_function_scope].il_scope;
-        } /* if */
+        }  /* if */
       } else {
         break;
       }  /* if */
@@ -3125,7 +3125,7 @@ to TRUE.
   } else if (args_will_be_discarded) {
     /* Arguments will be discarded, e.g., because of an error. */
     arg_block.args_will_be_discarded = TRUE;
-  } /* if */
+  }  /* if */
   if (arg_list_supplied) {
     /* Use the argument list supplied.  rcblock can be non-NULL here if the
        expression list had to be previously re-scanned already. */
@@ -6077,7 +6077,7 @@ indicated type.
         target->variant.expression->variant.routine.name_reference = nrp;
         nrp->special_kind =
                       (a_special_function_kind)sfk_gnu_atomic_generic_function;
-      } /* if */
+      }  /* if */
       /* Convert the prescanned arguments to the type expected by the
          function (if needed) and build the argument list in expression
          form.  In the template-dependent case, build the argument list
@@ -20415,7 +20415,7 @@ delegate initializer, given by rcblock->argument_list.
                                    &ambiguous) != NULL;
           if (unknown_dependent_function) {
             assume_static = TRUE;
-          } /* if */
+          }  /* if */
         }  /* if */
         if (!assume_static && !err) {
           /* No static function matched. */
@@ -34426,7 +34426,7 @@ operation_type_determined:
                             &err_code);
           if (err_code != ec_no_error) {
             expr_pos_warning(err_code, &operand_2.position);
-          } /* if */
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
@@ -36328,7 +36328,7 @@ verification.
         check_c99_inline_definition((a_variable_ptr)NULL, &error_position);
       }  /* if */
     }  /* if */
-  } /* if */
+  }  /* if */
 }  /* check_reference_from_inline_function */
 
 
@@ -49580,7 +49580,7 @@ set accordingly.
       operator_token = tok_new;
     } else {
       operator_token = tok_delete;
-    } /* if */
+    }  /* if */
     *unary = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (expr->kind == (an_expr_node_kind)enk_gcnew) {
@@ -49767,7 +49767,7 @@ a enclosing expression).
        default rescan info for any subnodes that don't have their own
        rescan info. */
     expr_stack->default_rescan_info = explicit_eriep;
-  } /* if */
+  }  /* if */
   /* The expr field in the control block is used as a way to pass the
      expression to the scan_xxx_operator routines without having to add
      an extra parameter on each of those routines. */
@@ -51429,7 +51429,7 @@ integer expression for the thread number.
   }  /* if */
   pop_expr_stack();
   return node;
-} /* scan_upc_forall_affinity */
+}  /* scan_upc_forall_affinity */
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
 

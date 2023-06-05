@@ -2529,7 +2529,7 @@ template parameters.
           /* Not an underscore -- just copy to output. */
           write_id_ch(*p, dctl);
           p += 1;
-        } /* if */
+        }  /* if */
       }  /* for */
       write_id_ch(']', dctl);
       end_ptr = p;
@@ -4582,7 +4582,7 @@ the type when it is used as a substitution).
         bad_mangled_name(dctl);
         return;
       }  /* if */
-    } /* if */
+    }  /* if */
     subp = &substitutions[number];
     subp->start = start;
     subp->kind = kind;
@@ -8630,7 +8630,7 @@ and "user_buffer_size" is set to the new size.
       if (buf_to_use != temp_buffer && buf_to_use != user_buffer) {
         free(buf_to_use);
       }  /* if */
-    } /* if */
+    }  /* if */
     /* Determine the final result. */
     if (result_status == CXA_DEMANGLE_SUCCESS) {
       result_buffer = buf_to_use;

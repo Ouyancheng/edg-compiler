@@ -4056,7 +4056,7 @@ Initialize static variables related to float_pt.c.
      have an implicit mantissa bit. */
   if (targ_ldbl_mant_dig == 64) {
     long_double_has_no_implicit_bit = TRUE;
-  } /* if */
+  }  /* if */
 #if USE_SOFTFLOAT
   /* Initialize SoftFloat global variables to default values.  See the
      SoftFloat documentation for available settings. */

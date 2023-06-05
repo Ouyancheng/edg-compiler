@@ -548,7 +548,7 @@ private:
                         /* The set of candidates that have notes associated
                            with them.  (Used to avoid duplicate notes.) */
   friend a_boolean candidate_already_noted(a_symbol_ptr  sym);
-} /* an_ovl_resolution_descr */;
+}  /* an_ovl_resolution_descr */;
 
 
 inline an_ovl_resolution_descr::an_ovl_resolution_descr()
@@ -559,7 +559,7 @@ Constructor for an_ovl_resolution_descr.
   , candidate_count(0)
   , notes{ NULL, NULL }
 {
-} /* an_ovl_resolution_descr::an_ovl_resolution_descr */
+}  /* an_ovl_resolution_descr::an_ovl_resolution_descr */
 
 
 /*

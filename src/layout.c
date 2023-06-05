@@ -650,7 +650,7 @@ curr_max_member_alignment.
   }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
   db_exit();
-} /* pack_pragma */
+}  /* pack_pragma */
 
 
 a_targ_alignment current_max_alignment_for_class_members(void)
@@ -699,7 +699,7 @@ if necessary.
       *alignment = pack_alignment;
     }  /* if */
   }  /* if */
-} /* adjust_alignment_for_packing */
+}  /* adjust_alignment_for_packing */
 
 
 static a_boolean apply_explicit_field_alignment_directive(
@@ -1342,7 +1342,7 @@ container when that size is smaller than the alignment.
         container_alignment = curr_max_member_alignment;
       }  else {
         container_alignment = declared_alignment;
-      } /* if */
+      }  /* if */
       if (container_alignment > lob->alignment) {
         lob->alignment = container_alignment;
       }  /* if */
@@ -1375,7 +1375,7 @@ container when that size is smaller than the alignment.
       /* Establish the new container. */
       lob->curr_container_type = base_type;
       lob->curr_container_avail_bits = (container_size * targ_char_bit);
-    } /* if */
+    }  /* if */
   } else if (bit_size == 0 ||
              field->alignment != 0 ||
              !fits_in_container(container_size, container_alignment)) {
@@ -1728,7 +1728,7 @@ is FALSE, field subobjects are ignored while searching for a conflict.
     /* Early GNU implementations of the IA-64 class layout algorithm ignore
        conflicts with array subobjects that have a dimension equal to 1. */
     goto done;
-  } /* if */
+  }  /* if */
   if (array_subobject &&
       !has_any_unknown_specified_bound(subobject_type) &&
       !is_incomplete_type(subobject_type)) {

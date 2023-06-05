@@ -3973,7 +3973,7 @@ kind of mismatch here.
       /* A template parameter type is okay. */
     } else {
       check_assertion(is_error_type(selector_type));
-    } /* if */
+    }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode) {
@@ -4022,7 +4022,7 @@ kind of mismatch here.
       match_summary->match_level = aml_none;
       goto done;
     }  /* if */
-  } /* if */
+  }  /* if */
   determine_arg_match_level(selector,
                             selector == NULL ? selector_type : NULL,
                             param_type,
@@ -4188,7 +4188,7 @@ parameter.  proj_function_symbol can be NULL if it is known that the routine
     /* For functions with explicit an "this" parameter, the "implicit object
        parameter" is really the "explicit object parameter". */
     impl_obj_param_type = rtsp->param_type_list->type;
-  } /* if */
+  }  /* if */
   return impl_obj_param_type;
 }  /* object_parameter_type */
 
@@ -5024,7 +5024,7 @@ deduction failed.
                defaulting those after the first.  Fail. */
             updated_routine_type = NULL;
           }  /* if */
-        } /* if */
+        }  /* if */
       }  /* if */
     } else if (special_kind_is(routine, sfk_operator)) {
       /* Ensure overloaded operator template instances have valid types. */
@@ -7607,7 +7607,7 @@ in [over.ics.rank].
           cmp = -1;
         } else {
           cmp = 1;
-        } /* if */
+        }  /* if */
       }  /* if */
     } else {
       /* Initialization case: two source types, one destination type. */
@@ -8425,7 +8425,7 @@ if the return type is not available (e.g., for a template).
       type = routine_symbol_type(sym);
       type = return_type_of(type);
     }  /* if */
-  } /* if */
+  }  /* if */
   return type;
 }  /* candidate_return_type */
 
@@ -10253,7 +10253,7 @@ Return TRUE if the given component is type dependent.
     /* Treat as nondependent. */
   } else {
     unexpected_condition();
-  } /* if */
+  }  /* if */
   return is_dependent;
 }  /* arg_list_elem_is_type_dependent */
 
@@ -10272,7 +10272,7 @@ presence of a pack expansion in the list also makes it "type dependent".
     if (arg_list_elem_is_type_dependent(alep)) {
       is_dependent = TRUE;
       break;
-    } /* if */
+    }  /* if */
   }  /* for */
   return is_dependent;
 }  /* arg_list_is_type_dependent */
@@ -10302,7 +10302,7 @@ Return TRUE if the given component is instantiation-dependent.
     /* Treat as nondependent. */
   } else {
     unexpected_condition();
-  } /* if */
+  }  /* if */
   return is_dependent;
 }  /* arg_list_elem_is_dependent */
 
@@ -13844,7 +13844,7 @@ parameter with the indicated type.
     } else {
       /* Types are outright incompatible. */
       severity = (an_error_severity)es_warning;
-    } /* if */
+    }  /* if */
   }  /* if */
   return severity;
 }  /* arg_okay_for_old_style_param */
@@ -16594,7 +16594,7 @@ as its first operand.
         unexpected_condition_str(
                            "operand_type_pattern_for_operator: bad binary op");
     }  /* switch */
-  } /* if */
+  }  /* if */
   return operand_type_pattern;
 }  /* operand_type_pattern_for_operator */
 
@@ -20997,7 +20997,7 @@ other cases, FALSE is returned and the source operand is left unchanged.
                           operand_is_lvalue_for_rref_variable(source_operand,
                                                               &var2))) &&
                         var == var2);
-      } /* if */
+      }  /* if */
 #endif /* CHECKING */
     }  /* if */
   }  /* if */
@@ -25241,7 +25241,7 @@ TRUE, the result *p_dip and *p_constant are not constructed.
           con->is_result_of_constexpr_call = TRUE;
           if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
             add_temp_init_backing_expression(con, dip);
-          } /* if */
+          }  /* if */
           dip = NULL;
         }  /* if */
       } else {
@@ -25438,7 +25438,7 @@ initialization processing.
       expr_pos_ty2_diagnostic(sev, err_code, &source_operand->position,
                               source_type, dest_type);
     }  /* if */
-  } /* if */
+  }  /* if */
   return is_narrowing;
 }  /* check_narrowing_conversion */
 
@@ -27738,7 +27738,7 @@ the requirement is returned.  Otherwise, NULL is returned.
          std_conv.warning_suggested == (an_error_code)ec_no_error)) {
       /* source_operand can be converted to the type of this member. */
       break;
-    } /* if */
+    }  /* if */
   }  /* for */
   db_exit();
   return f;
@@ -27793,7 +27793,7 @@ aggregate constant.
        not enter this code at all if the source_operand is 
        already erroneous. */
     unexpected_condition();
-  } /* if */
+  }  /* if */
   /* Build the entire aggregate initializer. */
   designator_con->next = member_con;
   aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);

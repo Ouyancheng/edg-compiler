@@ -1867,7 +1867,7 @@ The following option formats are supported:
     if (optchar != NULL && *optchar == '\0') {
       /* Start the next argument. */
       opt_ind++;
-    } /* if */
+    }  /* if */
     if (opt_ind >= argc) {
       /* No more arguments. */
       goto end_of_routine;
@@ -2832,7 +2832,7 @@ option values if they were not already set by a command line option.
     if (!option_kind_used[(int)optk_cpp11_sfinae] &&
         !option_kind_used[(int)optk_cpp11_mode]) {
       cpp11_sfinae_enabled = (microsoft_version >= 1600);
-    } /* if */
+    }  /* if */
     if (!option_kind_used[(int)optk_cpp11_sfinae_ignore_access]) {
       if (cpp11_sfinae_enabled && microsoft_mode && microsoft_version < 1910) {
         /* Older versions of MSVC appear not to implement access SFINAE yet.
@@ -3542,7 +3542,7 @@ process.
   } else if (c99_mode) {
     /* Turn on features implied by C99 mode and later C standard modes. */
     check_and_set_new_c_mode_options();
-  } /* if */
+  }  /* if */
   elab_type_lookup_finds_typedefs = FALSE;
   if (option_kind_used[(int)optk_type_traits_helpers]) {
     command_line_error(ec_cl_type_traits_helpers_option_only_in_cplusplus);
@@ -5351,7 +5351,7 @@ before this routine is called.
   if (!option_kind_used[(int)optk_cpp11_sfinae] &&
       !option_kind_used[(int)optk_cpp11_mode]) {
     cpp11_sfinae_enabled = (gnu_version >= 30400);
-  } /* if */
+  }  /* if */
   if (!option_kind_used[(int)optk_cpp11_sfinae_ignore_access]) {
     /* g++ seems to ignore access checking until 4.8. */
     if (cpp11_sfinae_enabled) {

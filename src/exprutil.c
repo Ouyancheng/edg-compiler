@@ -5452,7 +5452,7 @@ dynamic init that underlies the cast, or NULL if there isn't one.
         orig_type = expr->type;
       } else {
         orig_type = eriep->type;
-      } /* if */
+      }  /* if */
     } else {
       op1 = expr->variant.operation.operands;
       orig_type = eriep->type;
@@ -15617,7 +15617,7 @@ instantiation for which we do not know the actual function to be called.
 
   for (arg = arg_list; arg != NULL; arg = next_elem(arg)) {
     prep_generic_argument(arg);
-  } /* for */
+  }  /* for */
 }  /* prep_generic_argument_list */
 
 

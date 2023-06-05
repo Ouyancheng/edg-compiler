@@ -832,7 +832,7 @@ Return TRUE if the template specified by sym is exported.
   /* If the ignore_export flag is set, don't treat the template as exported. */
   return tssp->il_template_entry->is_exported &&
          !tssp->il_template_entry->ignore_export;
-} /* template_is_exported */
+}  /* template_is_exported */
 
 
 static a_template_ptr make_il_template_entry(a_tmpl_decl_state_ptr decl_state)
@@ -9141,12 +9141,12 @@ diag_pos is non-NULL, issue an error at the given position.
                   diag_pos);
       }  /* if */
       is_valid = FALSE; 
-    } /* if */
+    }  /* if */
   } else {
     /* The template argument kind does not match.  This should have been 
        check by scan_template_argument_list(). */
     unexpected_condition();
-  } /* if */
+  }  /* if */
   return is_valid;
 }  /* is_valid_cli_special_ptr_instantiation */
 
@@ -13293,7 +13293,7 @@ points to the template parameter list.
               match = is_or_contains_template_param(ttp);
             }  /* if */
           }  /* if */
-        } /* if */
+        }  /* if */
       }  /* if */
     }  /* if */
   } else {
@@ -22012,7 +22012,7 @@ any classes that declared the nested class as a template friend.
         class_type->variant.class_struct_union.extra_info->assoc_template =
              ct_symbol->variant.class_struct_union.type
                       ->variant.class_struct_union.extra_info->assoc_template;
-      } /* if */
+      }  /* if */
     } else {
       /* A nested class within a prototype instantiation. */
       /* Although this is not a template, it is an instantiatable class and
@@ -22357,7 +22357,7 @@ created for template parameters that are packs.
     list_tail = tap;
   }  /* for */
   return list_head;
-} /* create_prototype_arg_list */
+}  /* create_prototype_arg_list */
 
 
 static void rename_prototype_arg_list(
@@ -22396,7 +22396,7 @@ the names of the template parameters specified by templ_param_list.
                                       variant.template_info->il_template_entry;
     }  /* if */
   }  /* for */
-} /* rename_prototype_arg_list */
+}  /* rename_prototype_arg_list */
 
 static void create_prototype_type(
         a_tmpl_decl_state_ptr			decl_state,
@@ -22684,8 +22684,8 @@ list and template argument list of a partial specialization are valid.
         /* Set decl_scope_err to indicate that the template cannot be used. */
         decl_state->decl_scope_err = TRUE;
       }  /* if */
-    } /* if */
-  } /* for */
+    }  /* if */
+  }  /* for */
   /* Go through the arguments and make sure they are valid. */
   templ_arg_list = prototype_type->
                      variant.class_struct_union.extra_info->template_arg_list;
@@ -24335,7 +24335,7 @@ redeclaration) and any redeclaration error should be suppressed.
                                   *is_redecl && !decl_state->defines_something,
                     &error_position)) {
         err = TRUE;
-      } /* if */
+      }  /* if */
     }  /* if */
     if (!err && sym->kind == (a_symbol_kind)sk_class_template &&
         !tssp->is_nonreal_member) {
@@ -24403,7 +24403,7 @@ redeclaration) and any redeclaration error should be suppressed.
         }  /* if */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    } /* if */
+    }  /* if */
   } else if (loc->is_qualified_name) {
     /* A qualified name that does not refer to a class template symbol.  Issue
        an error and set the locator to an error locator. */
@@ -28655,7 +28655,7 @@ supplement for this template should be returned to the caller.
     } else {
       pos_sy_error(ec_not_compatible_with_previous_decl,
 		   &locator->source_position, sym);
-    } /* if */
+    }  /* if */
     err = TRUE;
   } else if (!namespace_is_enclosed_by_scope(
                          sym, &scope_stack[depth_innermost_namespace_scope])) {
@@ -28737,7 +28737,7 @@ supplement for this template should be returned to the caller.
         sym->variant.static_data_member.instance_ptr->template_sym != sym) {
       internal_error(
                 "variable_template_declaration: bad instance for static mem");
-    } /* if */
+    }  /* if */
 #endif /* CHECKING */
     /* Make sure the declaration did not use features only valid for
        functions (e.g., "inline" in pre-C++17 dialects). */
@@ -28869,7 +28869,7 @@ supplement for this template should be returned to the caller.
     if (err) {
       discard_token_cache(&local_cache);
       p_token_cache = NULL;
-    } /* if */
+    }  /* if */
   } else {
     /* There is no initializer.  Stop the background caching and save
        the declaration up to this point. */
@@ -28877,7 +28877,7 @@ supplement for this template should be returned to the caller.
       make_template_decl_cache(decl_state, last_token_sequence_number_of_token,
                                /*include_last_token=*/FALSE);
     }  /* if */
-  } /* if */
+  }  /* if */
   if (is_variable_template && tssp != NULL) {
     /* Make sure that the default arguments for the template parameters
        are valid (i.e., that they are at the end of the parameter list). */
@@ -28978,7 +28978,7 @@ supplement for this template should be returned to the caller.
     /* If an error occurred earlier, return a NULL symbol. */
     sym = NULL;
     tssp = NULL;
-  } /* if */
+  }  /* if */
   *p_tssp = tssp;
   return sym;
 }  /* variable_template_declaration */
@@ -29159,8 +29159,8 @@ first declaration of the template.
         pos_sy2_diagnostic(severity, ec_not_used_in_template_function_params,
                            &param_sym->decl_position, param_sym, sym);
       }  /* if */
-    } /* if */
-  } /* for */
+    }  /* if */
+  }  /* for */
   if (!first_decl) {
     if (tssp->variant.function.must_have_only_one_decl) {
       /* The source position check is done to suppress errors when both
@@ -29637,8 +29637,8 @@ generic lambda call operators since they have no declarator-ids).
                            /*allow_missing_member_constraint=*/TRUE,
                            decl_pos)) {
       err = TRUE;
-    } /* if */
-  } /* if */
+    }  /* if */
+  }  /* if */
   if (deleted_functions_enabled && curr_token == tok_assign &&
       next_token() == tok_delete) {
     /* Although "= delete" is technically the definition of the template, we
@@ -29756,7 +29756,7 @@ generic lambda call operators since they have no declarator-ids).
       set_template_cache_info(&tssp->cache,
                               &local_token_cache,
                               decl_state->decl_info);
-    } /* if */
+    }  /* if */
     if (decl_state->class_declared_in != NULL) {
       /* Create a routine fixup entry so that the body of this template
          (if present) and any default arguments can have their prototype
@@ -29785,7 +29785,7 @@ generic lambda call operators since they have no declarator-ids).
       add_befriending_class_to_function_template(
                                           tssp, decl_state->class_declared_in);
     }  /* if */
-  } /* if */
+  }  /* if */
   if (decl_state->defines_something) {
     /* A function template definition -- leave it to the caller to advance
        past the closing right brace (or the final semicolon if this is a
@@ -30629,7 +30629,7 @@ obtained from decl_state.
     } else {
       any_unused = TRUE;
     }  /* if */
-  } /* for */
+  }  /* for */
   if (!any_used) {
     /* If none of the parameters were used in the type, check for an error
        type, and if one is found, consider the parameters used. */
@@ -31174,7 +31174,7 @@ instantiation of the containing class.
   if (err) {
     /* If an error occurred earlier, return a NULL symbol. */
     sym = NULL;
-  } /* if */
+  }  /* if */
   return sym;
 }  /* enum_template_declaration */
 
@@ -31378,7 +31378,7 @@ parameter lists that were scanned.
             /* Save a pointer to the token cache for function body.  tssp may
                be NULL in error cases. */
             if (tssp != NULL) p_template_body_cache = &tssp->cache.tokens;
-          } /* if */
+          }  /* if */
         } else {
           sym = deduction_guide_template_declaration(
                                             decl_state, &locator, &func_info);
@@ -31631,7 +31631,7 @@ parameter lists that were scanned.
                                                 &tssp->cache,
                                                 class_templ_cache_segments,
                                                 /*keep_default_args=*/TRUE);
-  } /* if */
+  }  /* if */
   /* Build the template string for this template */
 #if RECORD_TEMPLATE_STRINGS
   /* Build the string version of the template.  This must be done after the
@@ -31643,7 +31643,7 @@ parameter lists that were scanned.
     /* Remove any default arguments that may remain in the cache. */
     (void)extract_member_bodies(&tssp->cache, class_templ_cache_segments,
                                 /*keep_default_args=*/FALSE);
-  } /* if */
+  }  /* if */
   if (function_templ_cache_segments != NULL) {
     /* For function templates that are not class members, remove any
        default arguments that may have been specified. */
@@ -36760,7 +36760,7 @@ Attempt to open the export information in the directory specified by
   f_file = fopen_with_error(file_name, "r",
                             OFF_OKAY_IF_NOT_FOUND, ec_export_info);
   return f_file;
-} /* open_export_info_file */
+}  /* open_export_info_file */
 
 
 NORETURN static void bad_export_info_file(an_export_info_file_ptr eifp,
@@ -37860,7 +37860,7 @@ are being used).
                                   (char*)NULL, (a_symbol_ptr)NULL);
     }  /* if */
   }  /* for */
-} /* write_templates_to_exported_template_file */
+}  /* write_templates_to_exported_template_file */
 
 
 static void write_macro_information_to_exported_template_file(
@@ -39972,7 +39972,7 @@ symbol, otherwise we return NULL.
     }  /* if */
   }  /* if */
   return result_sym;
-} /* sym_if_template_class_member_function */
+}  /* sym_if_template_class_member_function */
 
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS

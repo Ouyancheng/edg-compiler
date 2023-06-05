@@ -4033,7 +4033,7 @@ A pointer to the expression created is returned.
                                                     make_delete_type(), NULL,
                                                     NULL, arg_expr_list);
     }  /* if */
-  } /* if */
+  }  /* if */
 #endif /* !IA64_ABI */
   if (aligned_delete) {
     /* The deallocation function must be called explicitly when it takes
@@ -10776,7 +10776,7 @@ do_keep_constant:
            initialization. */
         check_assertion(lambda_source.capture == NULL);
         goto do_keep_constant;
-      } /* No break due to goto. */
+      }  /* No break due to goto. */
     default:
       unexpected_condition_str("lower_dynamic_init: bad kind");
   }  /* switch */
@@ -13696,7 +13696,7 @@ init_stmt is the stmk_init statement.
       /* Delete the stmk_init statement. */
       turn_statement_into_noop(init_stmt);
     }  /* if */
-  } /* if */
+  }  /* if */
 }  /* lower_microsoft_C_mode_nonconstant_aggregate_init */
 
 #endif /* LOWER_MICROSOFT_NONCONSTANT_AGGREGATE */
@@ -16078,7 +16078,7 @@ the __vptr field.
                                               (a_base_class_ptr)NULL);
     } else {
       vtbl_addr_node = NULL;
-    } /* if */
+    }  /* if */
   }  /* if */
   if (vtbl_addr_node != NULL) {
     /* Assign the primary virtual table address to the virtual table

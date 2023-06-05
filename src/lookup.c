@@ -811,7 +811,7 @@ of the symbol header.
         }  /* if */
       }  /* if */
     }  /* if */
-  } /* for */
+  }  /* for */
   if (sym == NULL) {
     /* No symbol was found -- create one now. */
     a_symbol_header_ptr		hdr;
@@ -6837,7 +6837,7 @@ list pointer in type_list.  *type_list should be NULL on the first call.
                  argument dependent lookup.  Template template arguments
                  are handled later. */
               add_to_arg_dependent_lookup_list(tap->variant.type, type_list);
-            } /* if */
+            }  /* if */
           }  /* for */
         }  /* if */
         break;

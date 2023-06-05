@@ -2642,7 +2642,7 @@ check_label_decl_seq:
                                    "record_symbol_reference_full:",
                                    "within_try_block not set properly");
             }  /* for */
-          } /* if */
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
