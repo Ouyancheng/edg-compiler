@@ -1,5 +1,22 @@
 Version 6.5
 
+6/5/23   [EDGcpfe/10223]
+Invalid recursive templates no longer instantiate infinitely
+
+Consider the following invalid code:
+
+  template<typename T>
+  void foo(T) noexcept(foo([](T a, T b) {a + b;} )) {
+  }
+
+  void g() {
+    foo([]{return 0;});
+  }
+
+Previously, this would result in an infinite recursive instantiation and
+accompanying diagnostics.  This is now fixed.
+
+
 6/5/23   [EDGcpfe/26345]
 Expansion of integral diagnostic fill-ins
 
