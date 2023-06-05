@@ -231,7 +231,7 @@ Display one scope stack entry.
       }  /* if */
       break;
     default_is_unexpected();
-  } /* switch */
+  }  /* switch */
   fputs("\n", f_debug);
 }  /* db_scope_stack_entry */
 

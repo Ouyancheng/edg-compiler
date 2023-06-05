@@ -3712,8 +3712,6 @@ parameters.
   a_template_ptr result = alloc_template();
 
   result->kind = templk_template_template_param;
-  /* FIXME: Do we need to record the structure? */
-  // result->template_decl =
 
   a_template_nesting_depth  pdepth = get_ifc_level(param_decl);
   a_template_param_list_pos pnum = get_ifc_position(param_decl);
@@ -8982,6 +8980,7 @@ class_struct_union_case:
 #endif /* CHECKING */
       /* Intentionally fall through in non-checking modes to the unsupported
          node reporting and module entity invalidation logic. */
+      FALLTHROUGH
     case ifc_ds_decl_barren:
     case ifc_ds_decl_syntax_tree:
     case ifc_ds_decl_using_directive:
