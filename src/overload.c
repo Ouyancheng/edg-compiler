@@ -10752,6 +10752,12 @@ This routine is called only in C++ mode.
   if (single_function != NULL) *single_function = FALSE;
   if (init_list_ctor_case != NULL) *init_list_ctor_case = FALSE;
   suppress_note_reporting_pass = !add_match_notes;
+  if (ovl_context == oc_ctad) {
+    /* As currently produced, the overload failure notes are not helpful for
+       class template argument deduction cases.  So we inhibit them for now.
+       A future update will improve this. */
+    suppress_note_reporting_pass = TRUE;
+  }  /* if */
   /* When two passes are needed (the second one to emit more thorough error
      diagnostics), the second pass starts here.  All initialization of local
      variable state related to overloads should be after this label.*/
