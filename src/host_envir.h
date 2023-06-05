@@ -2201,6 +2201,13 @@ to one that's big-endian.
 /*
 The maximum number of lines a module is allowed to claim it contains in a
 single source file.
+
+As the front end has a finite number of sequence numbers that can be
+represented, module files that claim an extreme number of lines can result in
+the front end running out of sequence numbers.  This macro limits the number of
+sequence numbers a module can claim by limiting the maximum representable line
+number each module source file is allowed to claim (note that a binary module
+interface file may reference multiple module source files).
 */
 #ifndef MODULE_MAX_LINE_NUMBER
 #define MODULE_MAX_LINE_NUMBER 250000
