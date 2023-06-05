@@ -644,7 +644,7 @@ Utility to print some debug information for every access to an IFC module file.
     }  /* switch */
     (void)fprintf(f_debug, " (%s)\n", value_str);
   }  /* if */
-}  /* f_db_get_byte */
+}  /* an_ifc_module::f_db_get_byte */
 
 #else /* !(DEBUG && EXPENSIVE_CHECKING) */
 #define db_get_byte(value_str, addr, len) /*nothing*/
@@ -659,7 +659,7 @@ Given a partition kind, return a reference to the corresponding metadata entry.
   /* Subtract 1 as ifc_pk_none isn't included in the partition metadata map. */
   check_assertion(part_kind != ifc_pk_none);
   return this->partitions[part_kind - 1];
-}  /* get_partition_metadata */
+}  /* an_ifc_module::get_partition_metadata */
 
 
 const an_ifc_partition_metadata &an_ifc_module::get_partition_metadata(
@@ -671,7 +671,7 @@ Given a partition kind, return a reference to the corresponding metadata entry.
 {
   /* Delegate to the non-const implementation. */
   return const_cast<an_ifc_module*>(this)->get_partition_metadata(part_kind);
-}  /* get_partition_metadata */
+}  /* an_ifc_module::get_partition_metadata */
 
 
 static an_ifc_module *get_as_an_ifc_module(a_module_interface_ptr interface)
@@ -2628,7 +2628,7 @@ otherwise.
     result = (mod_name == module_name);
   }  /* if */
   return result;
-}  /* matches_module */
+}  /* an_ifc_module::matches_module */
 
 static size_t calculate_validation_block_byte_count(uint32_t num_elements)
 /*
@@ -2733,7 +2733,7 @@ exported imports need to be imported).
       transitive_import_module(get_ifc_reference(*opt_imir));
     }  /* for */
   }  /* if */
-}  /* import_referenced_modules */
+}  /* an_ifc_module::import_referenced_modules */
 
 
 void an_ifc_module::define_ifc_macro(an_ifc_macro_index macro)
@@ -2787,7 +2787,7 @@ already saved for restoration.
       }  /* if */
     }
   }  /* if */
-}  /* define_ifc_macro */
+}  /* an_ifc_module::define_ifc_macro */
 
 
 void an_ifc_module::export_ifc_macros()
@@ -2845,7 +2845,7 @@ Export all macro definitions in this module (presumably a header unit).
   }  /* if */
   /* Restore the current token. */
   f_rescan_cached_tokens(&cache, /*discard_curr_token=*/TRUE);
-}  /* export_ifc_macros */
+}  /* an_ifc_module::export_ifc_macros */
 
 
 void an_ifc_module::close()
@@ -2864,7 +2864,7 @@ Close the module file specified in the module-import-declaration.
 #endif /* EDG_WIN32 */
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   }  /* if */
-}  /* close_ifc_module_file */
+}  /* an_ifc_module::close */
 
 
 void an_ifc_module::pch_reset(a_module_import_decl_ptr midp)
@@ -2885,7 +2885,7 @@ location as the original.
     /* This shouldn't happen (the original initialization succeeded). */
     unexpected_condition();
   }  /* if */
-}  /* ifc_modules_pch_reset */
+}  /* an_ifc_module::pch_reset */
 
 
 static void prepare_cached_template_parse(
@@ -4757,7 +4757,7 @@ invalid:
                       "expected errors for bad statement cache");
   cache->invalidate();
 done:;
-}  /* cache_statement */
+}  /* an_ifc_module::cache_statement */
 
 
 static void cache_template_param_chart(a_module_token_cache_ptr cache,
@@ -5526,7 +5526,7 @@ instead.
   }  /* if */
 done:
   return result;
-}  /* cache_function_body */
+}  /* an_ifc_module::cache_function_body */
 
 namespace {
 
@@ -9571,7 +9571,7 @@ Complete the definition of the class referred to by mep (if needed).
     }  /* if */
 #endif /* DEBUG */
   }  /* if */
-}  /* complete_definition_of_module_class */
+}  /* an_ifc_module::complete_definition_of_module_class */
 
 
 a_boolean has_type_definition_from_ifc_module(a_type_ptr  ty)
@@ -9624,7 +9624,7 @@ Print debug information for an IFC module
   (void)fprintf(f_debug, ", kind: mk_ifc, version: %u.%u\n",
                 (an_ifc_version_storage)get_ifc_major_version(header),
                 (an_ifc_version_storage)get_ifc_minor_version(header));
-}  /* debug */
+}  /* an_ifc_module::debug */
 
 
 void an_ifc_module::db_module_entity(a_module_entity_ptr mep) const
@@ -9642,7 +9642,7 @@ Print debug information related to a module entity that refers to this module.
   } else {
     (void)fprintf(f_debug, "\n");
   }  /* if */
-}  /* db_module_entity */
+}  /* an_ifc_module::db_module_entity */
 
 
 void db_mep(a_module_entity_ptr mep)
@@ -9763,7 +9763,7 @@ Print the corresponding file and line number for the source location
     (void)fprintf(f_debug, "%s: line %lu colmun %lu\n", full_name,
                   (unsigned long) line_number, (unsigned long) pos.column);
   }  /* if */
-}  /* db_locus */
+}  /* an_ifc_module::db_locus */
 
 #endif /* DEBUG */
 
@@ -9819,7 +9819,7 @@ FALSE, and issue diagnostics if issue_diag is TRUE.
   }
 done:
   return result;
-}  /* init_string_table_and_header */
+}  /* an_ifc_module::init_string_table_and_header */
 
 namespace {
 
@@ -10089,7 +10089,7 @@ diagnostics if issue_diag is TRUE.
 #endif /* EXPENSIVE_CHECKING */
 done:
   return result;
-}  /* initialize_members_from_ifc_module_file */
+}  /* an_ifc_module::initialize_members_from_ifc_module_file */
 
 
 a_boolean an_ifc_module::open_and_map_ifc_module_file(
@@ -10172,7 +10172,7 @@ TRUE) otherwise.
                  mod->full_name);
   }  /* if */
   return !err;
-}  /* open_and_map_ifc_module_file */
+}  /* an_ifc_module::open_and_map_ifc_module_file */
 
 #if EXPENSIVE_CHECKING
 
@@ -10388,7 +10388,7 @@ been confirmed to exist and the path stored in midp.
   }  /* if */
 done:
   return result;
-}  /* import */
+}  /* an_ifc_module::import */
 
 
 uint32_t an_ifc_module::get_num_entries(an_ifc_partition_kind partition) const
@@ -10405,7 +10405,7 @@ Return the number of entries in a given partition.
     num_entries = metadata.size / metadata.entry_size;
   }  /* if */
   return num_entries;
-}  /* get_num_entries */
+}  /* an_ifc_module::get_num_entries */
 
 
 static a_calling_convention conv_calling_convention(
@@ -11880,7 +11880,7 @@ invalid:
   result = error_type();
 done:
   return result;
-}  /* type_for_template_id */
+}  /* an_ifc_module::type_for_template_id */
 
 
 a_boolean an_ifc_module::source_position_from_locus(
@@ -11892,7 +11892,7 @@ Return TRUE if processing succeeded, otherwise return FALSE.
 */
 {
   return EDG_PREFIX::source_position_from_locus(pos, locus);
-}  /* source_position_from_locus */
+}  /* an_ifc_module::source_position_from_locus */
 
 
 using a_bad_operator_name_encoding_array = Small_dyn_array<a_const_char*, 42>;
@@ -12677,7 +12677,7 @@ initialization succeeds; otherwise, return FALSE.
     check_assertion(!err);
   }  /* if */
   return result;
-}  /* init_dps */
+}  /* an_ifc_module::init_dps */
 
 
 template<typename an_ifc_Index_type>
@@ -12718,7 +12718,7 @@ FIXME: Not sure if we need source location here.
     }  /* if */
   }  /* if */
   return result;
-}  /* init_locator_from_name */
+}  /* an_ifc_module::init_locator_from_name */
 
 
 template<typename an_ifc_Index_type>
@@ -12740,7 +12740,7 @@ FALSE.
     result = FALSE;
   }  /* if */
   return result;
-}  /* init_decl_locator */
+}  /* an_ifc_module::init_decl_locator */
 
 
 template<typename an_ifc_Decl_type>
@@ -12764,7 +12764,7 @@ succeeded, otherwise return FALSE.
     result = init_decl_locator(name_idx, locus, loc);
   }  /* if */
   return result;
-}  /* init_decl_locator */
+}  /* an_ifc_module::init_decl_locator */
 
 
 static a_boolean unsigned_integer_for_literal(an_integer_value *value,
@@ -12853,7 +12853,7 @@ invalid:
   /* FIXME: Error handling could be improved here. */
   set_unsigned_integer_value(value, (a_host_large_unsigned)0);
 done:;
-}  /* unsigned_integer_for_expr_index */
+}  /* an_ifc_module::unsigned_integer_for_expr_index */
 
 
 static a_constant_ptr constant_for_literal(
@@ -12997,7 +12997,6 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
         /* FIXME: Currently unsupported. */
         issue_unsupported_construct_error(this, "ExprSort::ArrayValue",
                                           &error_position);
-        goto invalid;
       }
     case ifc_es_expr_dyad:
       { Opt<an_ifc_expr_dyad> opt_ied;
@@ -13291,7 +13290,7 @@ invalid:
   expect_error_str("expected errors for bad constant");
 done:
   return result;
-}  /* constant_for_expr_index */
+}  /* an_ifc_module::constant_for_expr_index */
 
 
 a_constant_ptr an_ifc_module::constant_for_named_decl(
@@ -13356,7 +13355,7 @@ invalid:
   expect_error_str("expected errors for bad constant");
 done:
   return result;
-}  /* constant_for_named_decl */
+}  /* an_ifc_module::constant_for_named_decl */
 
 
 a_boolean an_ifc_module::fill_in_routine_parameter_defaults(
@@ -13424,7 +13423,7 @@ successful, FALSE if any errors were encountered.
   }  /* if */
 done:
   return result;
-}  /* fill_in_routine_parameter_defaults */
+}  /* an_ifc_module::fill_in_routine_parameter_defaults */
 
 namespace {
 
@@ -14028,7 +14027,7 @@ Add tokens corresponding to directive to cache.
       break;
     default_is_unexpected_str("Unknown SourceDirective");
   }  /* switch */
-}  /* cache_source_directive */
+}  /* an_ifc_module::cache_source_directive */
 
 
 void an_ifc_module::cache_source_punctuator(
@@ -14105,7 +14104,7 @@ invalid:
   expect_error_str("expected errors for bad source punctuator cache");
   cache->invalidate();
 done:;
-}  /* cache_source_punctuator */
+}  /* an_ifc_module::cache_source_punctuator */
 
 
 void an_ifc_module::cache_source_literal(
@@ -14247,7 +14246,7 @@ invalid:
   expect_error_str("expected errors for bad source literal cache");
   cache->invalidate();
 done:;
-}  /* cache_source_literal */
+}  /* an_ifc_module::cache_source_literal */
 
 
 void an_ifc_module::cache_source_operator(a_module_token_cache_ptr     cache,
@@ -14390,7 +14389,7 @@ invalid:
   expect_error_str("expected errors for bad source operator cache");
   cache->invalidate();
 done:;
-}  /* cache_source_operator */
+}  /* an_ifc_module::cache_source_operator */
 
 
 void an_ifc_module::cache_source_keyword(a_module_token_cache_ptr   cache,
@@ -15025,7 +15024,7 @@ invalid:
   expect_error_str("expected errors for bad source keyword cache");
   cache->invalidate();
 done:;
-}  /* cache_source_keyword */
+}  /* an_ifc_module::cache_source_keyword */
 
 
 static a_boolean
@@ -15125,7 +15124,7 @@ invalid:
   expect_error_str("expected errors for bad source identifier cache");
   cache->invalidate();
 done:;
-}  /* cache_source_identifier */
+}  /* an_ifc_module::cache_source_identifier */
 
 
 template<typename an_ifc_Index_type>
@@ -15212,7 +15211,7 @@ string to cache.
       cache_ud_literal(cache, str, suffix_str);
     }  /* if */
   }  /* if */
-}  /* cache_string */
+}  /* an_ifc_module::cache_string */
 
 
 template<typename an_ifc_Word_type>
@@ -15260,7 +15259,7 @@ Add token(s) corresponding to word to cache.
 */
 {
   EDG_PREFIX::cache_word(this, cache, word);
-}  /* cache_word */
+}  /* an_ifc_module::cache_word */
 
 
 void an_ifc_module::cache_word(a_module_token_cache_ptr   cache,
@@ -15270,7 +15269,7 @@ Add token(s) corresponding to word to cache.
 */
 {
   EDG_PREFIX::cache_word(this, cache, word);
-}  /* cache_word */
+}  /* an_ifc_module::cache_word */
 
 
 uint32_t an_ifc_module::cache_sentence(
@@ -15322,7 +15321,7 @@ invalid:
   cache->invalidate();
 done:
   return idx;
-}  /* cache_sentence */
+}  /* an_ifc_module::cache_sentence */
 
 
 /* FIXME: Codegen this? */
@@ -15412,7 +15411,7 @@ Otherwise, return FALSE.
   }  /* if */
 done:
   return result;
-}  /* sentence_is_deleted */
+}  /* an_ifc_module::sentence_is_deleted */
 
 
 template<typename an_ifc_Node_type>
@@ -17043,7 +17042,7 @@ can be consistently cached via a ScopeIndex.
   cache_name_fn();
   /* Cache the scope's body. e.g., for a class the member-specification. */
   cache_scope_fn();
-}  /* cache_scope_decl */
+}  /* an_ifc_module::cache_scope_decl */
 
 
 void an_ifc_module::cache_scope_decl(a_module_token_cache_ptr cache,
@@ -17117,7 +17116,7 @@ decisions about what to cache.
     }  /* if */
   };
   cache_scope_decl(cache, decl_idx, type, cache_name_fn, cache_scope_fn);
-}  /* cache_scope_decl */
+}  /* an_ifc_module::cache_scope_decl */
 
 
 void an_ifc_module::cache_type_first_part(a_module_token_cache_ptr cache,
@@ -17661,7 +17660,7 @@ invalid:
   expect_error_str("expected errors for bad type cache");
   cache->invalidate();
 done:;
-}  /* cache_type_first_part */
+}  /* an_ifc_module::cache_type_first_part */
 
 
 void an_ifc_module::cache_type_second_part(a_module_token_cache_ptr cache,
@@ -17856,7 +17855,7 @@ invalid:
   expect_error_str("expected errors for bad type cache");
   cache->invalidate();
 done:;
-}  /* cache_type_second_part */
+}  /* an_ifc_module::cache_type_second_part */
 
 
 void an_ifc_module::cache_type(a_module_token_cache_ptr cache,
@@ -17873,7 +17872,7 @@ cache_type_first_part and cache_type_second_part should be used instead.
 {
   cache_type_first_part(cache, type, cinfo);
   cache_type_second_part(cache, type, cinfo);
-}  /* cache_type */
+}  /* an_ifc_module::cache_type */
 
 
 void an_ifc_module::cache_operator(a_module_token_cache_ptr     cache,
@@ -17903,7 +17902,7 @@ Add the tokens corresponding to the given Operator to cache.
       break;
     default_is_unexpected_str("Unexpected OperatorSort");
   }  /* switch */
-}  /* cache_operator */
+}  /* an_ifc_module::cache_operator */
 
 
 /*lint -e2707*/ /* Remove when the routine returns to its caller. */
@@ -17937,7 +17936,7 @@ invalid:
   expect_error_str("expected errors for bad operator cache");
   cache->invalidate();
 done:;
-}  /* cache_operator */
+}  /* an_ifc_module::cache_operator */
 
 
 void an_ifc_module::cache_operator(a_module_token_cache_ptr     cache,
@@ -18221,7 +18220,7 @@ invalid:
   expect_error_str("expected errors for bad operator cache");
   cache->invalidate();
 done:;
-}  /* cache_operator */
+}  /* an_ifc_module::cache_operator */
 
 
 void an_ifc_module::cache_operator(a_module_token_cache_ptr     cache,
@@ -18430,7 +18429,7 @@ invalid:
   expect_error_str("expected errors for bad operator cache");
   cache->invalidate();
 done:;
-}  /* cache_operator */
+}  /* an_ifc_module::cache_operator */
 
 
 void an_ifc_module::cache_operator(a_module_token_cache_ptr     cache,
@@ -18462,7 +18461,7 @@ invalid:
   expect_error_str("expected errors for bad operator cache");
   cache->invalidate();
 done:;
-}  /* cache_operator */
+}  /* an_ifc_module::cache_operator */
 
 
 /*lint -e2707*/ /* Remove when the routine returns to its caller. */
@@ -18496,7 +18495,7 @@ invalid:
   expect_error_str("expected errors for bad operator cache");
   cache->invalidate();
 done:;
-}  /* cache_operator */
+}  /* an_ifc_module::cache_operator */
 
 
 void an_ifc_module::cache_operator(a_module_token_cache_ptr      cache,
@@ -18537,7 +18536,7 @@ invalid:
   expect_error_str("expected errors for bad operator cache");
   cache->invalidate();
 done:;
-}  /* cache_operator */
+}  /* an_ifc_module::cache_operator */
 
 
 uint32_t an_ifc_module::try_cache_class_attributes_from_body(
@@ -18563,7 +18562,7 @@ later processing).
     pop_stop_token_stack();
   }  /* if */
   return offset;
-}  /* try_cache_class_attributes_from_body */
+}  /* an_ifc_module::try_cache_class_attributes_from_body */
 
 
 uint32_t an_ifc_module::cache_decl_template_declaration(
@@ -18624,7 +18623,7 @@ there is no offset/the offset is not needed.
     cache_token(cache, tok_semicolon);
   }  /* if */
   return offset;
-}  /* cache_decl_template_declaration */
+}  /* an_ifc_module::cache_decl_template_declaration */
 
 
 void an_ifc_module::cache_decl_template(a_module_token_cache_ptr   cache,
@@ -18653,7 +18652,7 @@ context to help inform decisions about what to cache.
   if (has_cached_definition) {
     (void)cache_sentence(cache, decl_body, offset);
   }  /* if */
-}  /* cache_decl_template */
+}  /* an_ifc_module::cache_decl_template */
 
 
 static void cache_template_argument_list(a_module_token_cache_ptr cache,
@@ -18816,7 +18815,7 @@ invalid:
   expect_error_str("expected errors for bad partial specialization cache");
   cache->invalidate();
 done:;
-}  /* cache_decl_partial_specialization */
+}  /* an_ifc_module::cache_decl_partial_specialization */
 
 
 template<typename an_ifc_Node_type>
@@ -19059,7 +19058,7 @@ invalid:
   expect_error_str("expected errors for bad specialization cache");
   cache->invalidate();
 done:;
-}  /* cache_decl_specialization */
+}  /* an_ifc_module::cache_decl_specialization */
 
 
 void an_ifc_module::cache_type_param_introducer(
@@ -19084,7 +19083,7 @@ parameter pack, FALSE otherwise.
   if (is_pack) {
     cache_token(cache, tok_ellipsis);
   }  /* if */
-}  /* cache_type_param_introducer */
+}  /* an_ifc_module::cache_type_param_introducer */
 
 
 template<typename a_Cache_fn>
@@ -19318,7 +19317,7 @@ invalid:
   expect_error_str("expected errors for bad attr cache");
   cache->invalidate();
 done:;
-}  /* cache_attr */
+}  /* an_ifc_module::cache_attr */
 
 
 void an_ifc_module::cache_attrs(a_module_token_cache_ptr cache,
@@ -19333,7 +19332,7 @@ decl_idx to the cache.
   if (!is_null_index(attr_idx)) {
     cache_attr(cache, attr_idx, /*cache_brackets=*/TRUE);
   }  /* if */
-}  /* cache_attrs */
+}  /* an_ifc_module::cache_attrs */
 
 
 void an_ifc_module::cache_template_head(a_module_token_cache_ptr cache,
@@ -19352,7 +19351,7 @@ context to help inform decisions about what to cache.
   } else {
     cache_template_param_chart(cache, chart_idx, cinfo);
   }  /* if */
-}  /* cache_template_head */
+}  /* an_ifc_module::cache_template_head */
 
 
 void an_ifc_module::cache_decl(a_module_token_cache_ptr cache,
@@ -19854,7 +19853,7 @@ invalid:
   expect_error_str("expected errors for bad decl cache");
   cache->invalidate();
 done:;
-}  /* cache_decl */
+}  /* an_ifc_module::cache_decl */
 
 
 static void cache_args_with_parens(a_module_token_cache_ptr cache,
@@ -20955,7 +20954,7 @@ invalid:
   expect_error_str("expected errors for bad expr cache");
   cache->invalidate();
 done:;
-}  /* cache_expr */
+}  /* an_ifc_module::cache_expr */
 
 
 static void cache_syntactic_type_qualifiers(
@@ -22231,7 +22230,7 @@ invalid:
   expect_error_str("expected errors for bad syntax cache");
   cache->invalidate();
 done:;
-}  /* cache_syntax */
+}  /* an_ifc_module::cache_syntax */
 
 
 void an_ifc_module::cache_name(a_module_token_cache_ptr cache,
@@ -22360,7 +22359,7 @@ invalid:
   expect_error_str("expected errors for bad name cache");
   cache->invalidate();
 done:;
-}  /* cache_name */
+}  /* an_ifc_module::cache_name */
 
 
 void an_ifc_module::cache_name_from_decl(a_module_token_cache_ptr cache,
@@ -22380,7 +22379,7 @@ Add the tokens corresponding to the given declaration's (decl) name to cache.
     check_assertion_str(is_at_least_one_error(),
                         "expected errors from name_from_decl");
   } /* if */
-}  /* cache_name_from_decl */
+}  /* an_ifc_module::cache_name_from_decl */
 
 
 static a_boolean func_macro_is_variadic(const an_ifc_variadic_arity& arity)
@@ -22475,7 +22474,7 @@ invalid:
   expect_error_str("expected errors for bad macro cache");
   cache->invalidate();
 done:;
-}  /* cache_macro */
+}  /* an_ifc_module::cache_macro */
 
 
 static void cache_form_spelling(a_module_token_cache_ptr     cache,
@@ -22707,7 +22706,7 @@ invalid:
   expect_error_str("expected errors for bad form cache");
   cache->invalidate();
 done:;
-}  /* cache_form */
+}  /* an_ifc_module::cache_form */
 
 
 static void add_backtrace(a_diagnostic_ptr              diag_ptr,
@@ -22921,7 +22920,7 @@ If not found, return the appropriate trait to indicate "none".
     result = get_ifc_trait(*opt_itmvt);
   }  /* if */
   return result;
-}  /* get_vendor_traits */
+}  /* an_ifc_module::get_vendor_traits */
 
 
 char *an_ifc_module::parse_cached_explicit_specialization(
@@ -22958,7 +22957,7 @@ specialization entity and update *kind with the associated entity kind.
                                                 /*orig_dps=*/NULL);
   }
   return get_parsed_entity(&dps, kind);
-}  /* parse_cached_explicit_specialization */
+}  /* an_ifc_module::parse_cached_explicit_specialization */
 
 
 char *an_ifc_module::parse_cached_explicit_instantiation(
@@ -22998,7 +22997,7 @@ kind.
     explicit_instantiation(&dps, options, &template_kw_pos);
   }
   return get_parsed_entity(&dps, kind);
-}  /* parse_cached_explicit_instantiation */
+}  /* an_ifc_module::parse_cached_explicit_instantiation */
 
 #if DEBUG
 
@@ -23026,7 +23025,7 @@ Display the contents of the IFC file header.
   (void)fprintf(f_debug, "  partition_count = %u\n", header.partition_count);
   (void)fprintf(f_debug, "  internal = %d\n", header.internal);
 #endif /* 0 */
-}  /* db_ifc_file_header */
+}  /* an_ifc_module::db_ifc_file_header */
 
 
 void an_ifc_module::db_ifc_scope(an_ifc_scope_index scope)
@@ -23051,7 +23050,7 @@ Display the contents of the specified scope.
       this->db_ifc_declaration(mem_idx);
     }  /* for */
   }  /* if */
-}  /* db_ifc_scope */
+}  /* an_ifc_module::db_ifc_scope */
 
 
 void an_ifc_module::db_ifc_declaration(an_ifc_decl_index decl)
@@ -23063,7 +23062,7 @@ Display the contents of the specified declaration.
 
   cache_decl(&cache, decl, /*cinfo=*/{});
   db_tokens(&cache);
-}  /* db_ifc_declaration */
+}  /* an_ifc_module::db_ifc_declaration */
 
 #endif /* DEBUG */
 
