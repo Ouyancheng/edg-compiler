@@ -4407,6 +4407,12 @@ static a_boolean
 			   feature test macro. */
 
 static a_boolean
+		auto_cast_enabled;
+			/* TRUE if C++23 cast to auto is enabled.  Used to
+			   support the __cpp_auto_cast feature test
+			   macro. */
+
+static a_boolean
 		c_alignas_enabled;
 			/* TRUE if the _Alignas specifier is enabled in C
 			   mode.  Used to support
@@ -4480,6 +4486,11 @@ static a_feature_support feature_support_list[] = {
     &overaligned_allocation_enabled,
     "__cpp_aligned_new",
     "201606L" },
+  { "",
+    0,
+    &auto_cast_enabled,
+    "__cpp_auto_cast",
+    "202110L" },
   { "",
     0,
     &capture_star_this_enabled,
@@ -11225,6 +11236,7 @@ command line -D options.
   decltype_keyword_enabled = decltype_enabled &&
                                             !enable_underscore_decltype_only;
   initializer_lists_enabled = cpp11_mode;
+  auto_cast_enabled = cpp23_mode;
   c_alignas_enabled = C_mode() && alignas_enabled;
   c_alignof_enabled = C_mode() && alignof_enabled;
   c_generic_enabled = c11_mode;

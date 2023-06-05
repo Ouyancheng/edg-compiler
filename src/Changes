@@ -6276,8 +6276,9 @@ decaying array and function glvalues to pointer prvalues.  For example:
   int x = f(g()),        // Calls (1).
       y = f(auto(g()));  // Calls (2), materializing a temporary.
 
-This feature was added to C++23 through the standardization committee's paper
-P0849R8.
+This feature was added to C++23 through the standardization committee's
+paper P0849R8.  The macro __cpp_auto_cast is defined with the value 202110L
+when the feature is enabled.
 
 
 5/10/22  [EDGcpfe/24436,EDGcpfe/25294]
