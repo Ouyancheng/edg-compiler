@@ -7555,7 +7555,7 @@ Report the indicated warning (with the indicated string and unsigned numbers).
   add_unsigned_number_fill_in(dp, num1);
   add_unsigned_number_fill_in(dp, num2);
   wrap_up_diagnostic(dp);
-}  /* st_num2_warning */
+}  /* st_unum2_warning */
 
 
 void pos_sy2_warning(an_error_code     error_code,
