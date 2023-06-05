@@ -14738,7 +14738,7 @@ from which a template parameter value can be deduced.
           found = TRUE;
           *force_end_of_traversal = TRUE;
         }  /* if */
-      }  /* if*/
+      }  /* if */
     } else if (is_immediate_class_type(type_ptr)) {
       if (type_ptr->variant.class_struct_union.is_nonreal_class ||
           is_cli_type_to_treat_as_nonreal(type_ptr)) {

@@ -1709,7 +1709,7 @@ Print a candidate function entry for debugging purposes.
   }  /* if */
   if (has_notes) {
     fprintf(f_debug, ")\n");
-  }  /* if*/
+  }  /* if */
   /* Display the arg match list. */
   narg = 0;
   for (amsp = cfp->arg_matches; amsp != NULL; amsp = amsp->next) {

@@ -8486,7 +8486,7 @@ if the constraints fails, or FALSE otherwise.
     push_class_reactivation_scope(enclosing_class, /*extend_namespace=*/FALSE);
     push_instantiation_scope_for_rescan(
        symbol_for(class_type_supp(enclosing_template_class)->assoc_template));
-  }  /*if */
+  }  /* if */
   /* Identify all the substitutions applicable to the constraint. */
   get_all_class_subst_pairs(enclosing_class, &subst_pairs);
   /* We are going to substitute the constraint from the outside in.  All but

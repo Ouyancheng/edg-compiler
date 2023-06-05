@@ -6698,8 +6698,8 @@ to TRUE if we are in Microsoft mode and in a for-init block.
           end_diagnostic(dp);
         }  /* if */
         hiding = TRUE;
-      }  /*if */
-    }  /*if */
+      }  /* if */
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return hiding;
@@ -12586,7 +12586,7 @@ symbol entry, and return a pointer to it in state->sym.
         check_for_vla_inside_statement_expression(&locator->source_position);
       }  /* if */
     }  /* if */
-  }  /*if */
+  }  /* if */
   /* Return the type name symbol to the caller. */
   state->sym = sym;
   attach_decl_attributes(state, /*primary_decl=*/!is_redecl);
@@ -14955,7 +14955,7 @@ error variable generated for error recovery purposes.
       pos_error(ec_condition_decl_must_have_initializer, diag_pos);
       vp = NULL;
       goto done_with_checks;
-    }  /*if */
+    }  /* if */
     if (vp->has_parenthesized_initializer) {
       pos_error(ec_parenthesized_init_not_allowed, diag_pos);
     }  /* if */
@@ -21849,7 +21849,7 @@ advance_past_final_token:
     if (curr_token == tok_ifc_decl) {
       if (dps->sym != NULL) {
         record_symbol_for_ifc_decl(dps->sym);
-      }  /*if */
+      }  /* if */
       (void)get_token();
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

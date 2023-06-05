@@ -16611,37 +16611,37 @@ cast.  See lower_expr for typical invocation.
           case eok_negate:
             if (node_operator_type_kind_is(expr, tk_complex)) {
               lower_c99_xnegate(expr);
-            }  /*if */
+            }  /* if */
             break;
           case eok_add:
             if (node_operator_type_kind_is(expr, tk_complex)) {
               lower_c99_xadd(expr);
-            }  /*if */
+            }  /* if */
             break;
           case eok_subtract:
             if (node_operator_type_kind_is(expr, tk_complex)) {
               lower_c99_xsubtract(expr);
-            }  /*if */
+            }  /* if */
             break;
           case eok_multiply:
             if (node_operator_type_kind_is(expr, tk_complex)) {
               lower_c99_xmultiply(expr);
-            }  /*if */
+            }  /* if */
             break;
           case eok_divide:
             if (node_operator_type_kind_is(expr, tk_complex)) {
               lower_c99_xdivide(expr);
-            }  /*if */
+            }  /* if */
             break;
           case eok_eq:
             if (node_operator_type_kind_is(expr, tk_complex)) {
               lower_c99_xeq(expr);
-            }  /*if */
+            }  /* if */
             break;
           case eok_ne:
             if (node_operator_type_kind_is(expr, tk_complex)) {
               lower_c99_xne(expr);
-            }  /*if */
+            }  /* if */
             break;
 #if C99_IL_EXTENSIONS_SUPPORTED
           case eok_xconj:

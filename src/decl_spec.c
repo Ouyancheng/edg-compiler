@@ -6530,7 +6530,7 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
         severity = es_error;
         err_code = ec_incomplete_enum_bit_field_or_bad_opaque_enum;
         enum_type->incomplete = FALSE;
-      }  /* if*/
+      }  /* if */
       pos_diagnostic(severity, err_code, &locator.source_position);
     }  /* if */
     /* set_type_size is called later, once the final type is known. */

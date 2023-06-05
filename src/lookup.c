@@ -3739,7 +3739,7 @@ routine.
         a_type_ptr			class_type = ssep->assoc_type;
         check_assertion(class_type != NULL);
         sym = look_up_conversion_template_instance(locator, class_type);
-      }  /*if */
+      }  /* if */
     }  /* if */
     if (sym != NULL) break;
     if (lookup_state->is_linkage_lookup) {

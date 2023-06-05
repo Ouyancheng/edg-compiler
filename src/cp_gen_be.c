@@ -13243,7 +13243,7 @@ removed and FALSE otherwise.
          dip->kind == (a_dynamic_init_kind)dik_class_result_via_ctor)) {
       /* The temporary expression might include an lvalue cast sequence. */
       node = dip->variant.expression;
-    }  /* if*/
+    }  /* if */
   }  /* if */
   while (is_operation_node(node) && node->compiler_generated &&
          (node_operator_is(node, eok_cast) ||

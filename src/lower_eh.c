@@ -1945,7 +1945,7 @@ typeinfo variable in a COMDAT group.
                                      (a_virtual_table_index)vtbl_entry_size());
               } else {
                 offset = (a_host_large_integer)base->offset;
-              }  /* if*/
+              }  /* if */
               /* Flags field. */
               base_flags_value = 0;
               if (base->is_virtual) {

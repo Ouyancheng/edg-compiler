@@ -16039,7 +16039,7 @@ a pointer over a reference type or creating an array of references.
                 if (tap->is_pack) {
                   ctws_state->substituted_parameter_pack = TRUE;
                 }  /* if */
-              }  /* if*/
+              }  /* if */
             }  /* if */
           }  /* if */
         }
@@ -25910,8 +25910,8 @@ the associated concept; otherwise, set it to NULL.
         result = (a_symbol_kind)sk_type;
       }  /* if */
       goto done;
-    }  /*if */
-  }  /*if */
+    }  /* if */
+  }  /* if */
   /* Bypass the initial token of the declaration. */
   first_token = curr_token;
   if (curr_token != tok_end_of_source) (void)get_token();
@@ -42825,7 +42825,7 @@ guide is recorded in the template symbol supplement associated with alias_sym.
         new_tssp->variant.function.decl_cache.decl_info
                                            ->template_decl = new_template_decl;
         new_tssp->il_template_entry->template_decl = new_template_decl;
-      }  /*if */
+      }  /* if */
       /* The associated constraints are the conjunction of the associated
          constraints of the guide and a constraint that is satisfied if and
          only if the arguments of the alias template are deducible from the

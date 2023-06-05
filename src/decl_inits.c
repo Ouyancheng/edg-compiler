@@ -2631,10 +2631,10 @@ for use in an enk_gcnew node.  (dim_exprs itself must be non-NULL.)
                                 &aggr_con);
       if (*dim_exprs == NULL) {
         *dim_exprs = make_cli_array_length_nodes(rank, dims);
-      }  /*if */
+      }  /* if */
     } else {
       aggr_init_generic_element(icp, atype, is, &aggr_con);
-    }  /*if */
+    }  /* if */
   } else {
     /* Presumably a handle to a generic type (that could end up being a CLI
        array type). */

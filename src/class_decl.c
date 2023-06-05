@@ -22526,7 +22526,7 @@ routine issues an error accordingly when that happens.
       rtsp->exception_specification = NULL;
     } else {
       ensure_all_field_initializers_scanned(class_type);
-    }  /* if*/
+    }  /* if */
   }  /* if */
   if (rtsp->exception_specification != NULL) {
     a_symbol_ptr  bctor = NULL;
@@ -24920,7 +24920,7 @@ any needed inherited constructors.
   for (udp = class_scope->using_declarations; udp != NULL; udp = udp->next) {
     if (udp->is_inheriting_ctor) {
       generate_inheriting_constructors_for_using_decl(udp, cdsp);
-    }  /*if */
+    }  /* if */
   }  /* for */
 }  /* generate_inheriting_constructors */
 
@@ -33226,7 +33226,7 @@ next_declaration:
         if (curr_token == tok_ifc_decl) {
           if (member_sym != NULL) {
             record_symbol_for_ifc_decl(member_sym);
-          }  /*if */
+          }  /* if */
           (void)get_token();
         }  /* if */
 #else /* MICROSOFT_EXTENSIONS_ALLOWED */

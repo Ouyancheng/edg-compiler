@@ -10910,7 +10910,7 @@ tested is at curr_char_loc or the following position.
 	/* Skip over the apostrophe. */                                       \
 	++curr_char_loc;                                                      \
       }  /* if */                                                             \
-    }  /* if*/                                                                \
+    }  /* if */                                                               \
   }  /* if */
 
   macro_line_loc_to_source_pos(curr_char_loc, start_pos);
@@ -18756,7 +18756,7 @@ token).
             /* The suffix might be omitted and the next token might be useful
                in interpreting what comes next. */
             unget_token();
-          }  /*if */
+          }  /* if */
         } else {
           make_literal_opname_locator(
                          locator_for_curr_id.symbol_header->identifier,
@@ -24019,7 +24019,7 @@ selection operator, in which case it points to the type of the left operand.
                coalesce routine that an error has occurred. */
             qualifier_type = NULL;
           }  /* if */
-        }  /* if*/
+        }  /* if */
       }  /* if */
     }  /* if */
     /* The name can be an operator name like "operator+". */
@@ -24407,8 +24407,8 @@ See also coalesce_and_lookup_generalized_identifier.
                 }  /* if */
               }  /* if */
             }  /* if */
-          }  /* if*/
-        }  /* if */ 
+          }  /* if */
+        }  /* if */
       }  /* if */
       /* If the symbol found is a class template then this must be a
          reference to a instance of the class template.  This can occur when
@@ -24445,7 +24445,7 @@ See also coalesce_and_lookup_generalized_identifier.
         *err = TRUE;
       }  /* if */
     }  /* if */
-  }  /*if */
+  }  /* if */
   if (!okay) {
     /* For the error cases, set the current locator to an error locator. 
        Restore the type of the qualifier so that it can be used for

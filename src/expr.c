@@ -18354,7 +18354,7 @@ indication in *rcblock).
     } else {
       (void)look_up_name_string_in_namespace("type_info", (a_namespace*)NULL,
                                              IDL_NO_OPTIONS);
-    }  /* if*/
+    }  /* if */
     complete_type_is_needed(type_of_type_info);
   }  /* if */
   if (!err && !is_cli_typeid &&
@@ -27954,7 +27954,7 @@ freed by this routine.
         arg_list = rescan_expr_list(rcblock->argument_list, rcblock);
       } else {
         arg_list = braced_init_list;
-      }  /* if*/
+      }  /* if */
       dps.retrieve_initializer_from_cache = TRUE;
       if (arg_list != NULL) {
         add_init_component_to_initializer_cache(
@@ -39608,7 +39608,7 @@ done_with_requirements:
         result->position = node->position;
       } else {
         make_expression_operand(node, result);
-      }  /*if */
+      }  /* if */
       if (scope_stack_top().in_prototype_instantiation) {
         /* Associate with the token sequence number of the "requires" token
            the sequence number of the right brace closing the requires

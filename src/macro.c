@@ -9747,7 +9747,7 @@ null-terminated.  Do not add the value if it exists already on the list.
     app->values = avp;
     /* Copy the value string into freshly-allocated storage for it. */
     avp->value = strcpy(alloc_fe((sizeof_t)(strlen(value)+1)), value);
-  }  /*if */
+  }  /* if */
 }  /* add_assert_value */
 
 
@@ -10650,7 +10650,7 @@ Enter symbols for the predefined macros in C99 and later revisions.
     (void)enter_predef_macro("1", "__STDC_NO_VLA__",
                              /*cannot_be_redefined=*/TRUE,
                              /*ref_suppresses_pch_file=*/FALSE);
-  }  /*if */
+  }  /* if */
   if (!c11_atomic_enabled) {
     /* Atomic types are not supported by the front end. */
     (void)enter_predef_macro("1", "__STDC_NO_ATOMICS__",

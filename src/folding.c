@@ -7725,7 +7725,7 @@ backing expression for the returned constant will be set as well.
         /* Prior to a recent build of MSVC "19.00", Microsoft implicitly added
            an "lvalue reference" layer on top of array types. */
         force_array_to_reference = TRUE;
-      }  /* if*/
+      }  /* if */
       if (is_function_type(type1) ||
           (force_array_to_reference && is_array_type(type1))) {
         /* Microsoft appears to treat conversions from functions and arrays as
@@ -8021,7 +8021,7 @@ checking is needed (see microsoft_has_assign_predicate).
           } else {
             /* A throwing copy assignment operator. */
             break;
-          }  /*if */
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* for */
@@ -8103,7 +8103,7 @@ is needed (see microsoft_has_copy_predicate).
           } else {
             /* A throwing copy constructor. */
             break;
-          }  /*if */
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* for */

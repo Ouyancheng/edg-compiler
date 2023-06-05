@@ -3469,7 +3469,7 @@ handle_class_type_supplement_for_class:
         } else {
           walk_ptr(eptr->generic_constraints, a_generic_constraint_ptr,
                    iek_generic_constraint);
-        }  /*if */
+        }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (eptr->coordinates.depth ==
                                    CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH) {
