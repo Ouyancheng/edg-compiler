@@ -1497,8 +1497,9 @@ the associated noexcept specifier that needs instantiation.
                                           /*reactivate_template_params=*/TRUE,
                                           /*extend_namespace=*/FALSE);
      /* Recreate a function prototype scope equivalent to the original. */
-    (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
-                     rp->type, (a_routine_ptr)NULL);
+    (void)push_scope((a_scope_kind)sck_func_prototype,
+                     nad.prototype_scope_number, rp->type,
+                     (a_routine_ptr)NULL);
     scope_stack_top().outside_parameter_list = TRUE;
     if (nad.prototype_scope_symbols != NULL) {
       reactivate_prototype_scope_symbols(nad.prototype_scope_symbols);
