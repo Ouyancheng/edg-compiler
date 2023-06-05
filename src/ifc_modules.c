@@ -11423,7 +11423,7 @@ the template argument list; otherwise, return FALSE.
     end_diagnostic(diag);
   }  /* if */
   return result;
-}  /* append_argument */
+}  /* a_template_argument_append_state::append_argument */
 
 
 a_boolean a_template_argument_append_state::terminate_pack()
@@ -11443,7 +11443,7 @@ FALSE.
     }  /* if */
   }  /* if */
   return result;
-}  /* terminate_pack */
+}  /* a_template_argument_append_state::terminate_pack */
 
 
 static a_boolean is_template_template_argument(an_ifc_type_index type_idx)
