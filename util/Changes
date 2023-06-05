@@ -1,5 +1,12 @@
 Version 6.5
 
+6/5/23   [EDGcpfe/26345]
+Added %u error message fill-in
+
+mk_errinfo has been updated to support the %u fill-in (with the -mml
+command-line option).
+
+
 3/16/23  [EDGcpfe/26146]
 Fixed issues with dettarg calculations, primarily affecting 32-bit systems
 

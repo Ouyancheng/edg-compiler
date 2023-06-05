@@ -716,6 +716,7 @@ static void me_create_doc_fillin(a_const_char **ptr_to_ptr)
               case 'o': name_only = TRUE; break;
               case 'a': template_args = TRUE; break;
               case 'd': decl_pos = TRUE; break;
+              case 'u': decl_pos = TRUE; break;
               case 't': break;  /* New template name output -- ignored. */
               case 'T': break;  /* Display translation unit -- ignored. */
               case 'p': break;  /* Force parameter type -- ignored. */
@@ -746,6 +747,7 @@ static void me_create_doc_fillin(a_const_char **ptr_to_ptr)
         }  /* if */
         break;
       case 'd':
+      case 'u':
         output_doc_string("n", 0, fk_em);
         break;
       default:
