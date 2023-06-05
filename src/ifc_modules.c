@@ -11083,7 +11083,7 @@ corresponding type, return an error type.
                     }
                     goto invalid;
                   default_is_unexpected();
-                } /* switch */
+                }  /* switch */
               }
               break;
             default:
