@@ -39,7 +39,8 @@
 # The text string includes markers indicating the location of fill-ins
 # in the message (e.g., %t for a type).  The supported fill-ins are:
 #
-#  d#		- an integer numeric insertion.
+#  d#		- a signed integer numeric insertion.
+#  u#		- an unsigned integer numeric insertion.
 #  s[q]#	- user provided string insertion.
 #  t#		- type insertion in double quotes.
 #  n[f|o|a|t][d|T]#

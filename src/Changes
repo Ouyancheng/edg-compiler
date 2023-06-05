@@ -1,5 +1,13 @@
 Version 6.5
 
+6/5/23   [EDGcpfe/26345]
+Expansion of integral diagnostic fill-ins
+
+A new diagnostic fill-in, %u, can now be used in error_msg.txt for diagnostics
+that need to emit unsigned integers (up to 64-bits).  Additionally, the front
+end now supports up to 64-bit signed integers when using %d.
+
+
 5/31/23  [EDGcpfe/26274]
 GNU compatibility: GCC 13.1.0 builtins
 

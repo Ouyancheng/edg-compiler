@@ -4983,7 +4983,7 @@ diag_ptr.
 
   dfip->variant.unsigned_number = number;
   add_fill_in_to_diagnostic(diag_ptr, dfip);
-}  /* add_number_fill_in */
+}  /* add_unsigned_number_fill_in */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
