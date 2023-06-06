@@ -1213,25 +1213,36 @@ global suppression of these warnings.
 #endif /* defined(__GNUC__) && __GNUC__ > 4 || (__GNUC__ == 4 && ...) */
 
 /*
-Versions of Clang prior to 3.9 suffered from an issue with explicit
-specializations when the template being specialized was deleted.  As a
-workaround for older versions of clang, provide DELETED_FN_DEF, which sets
-these functions to empty function bodies when necessary.  DELETED_FN_DEF is
-normally sufficient as Clang does not diagnose empty function bodies for
-non-constexpr function templates that specify a return type, so this can be
-used for (most) non-void functions (i.e., the return-type warning is not
-generally a concern).  In the cases where DELETED_FN_DEF cannot be used
-(e.g., a constexpr function), HOST_SUPPORTS_DELETED_FUNCTION_TEMPLATES can
-be used to create more appropriate logic.
+As some compilers have issues with deleted function templates,
+HOST_SUPPORTS_DELETED_FUNCTION_TEMPLATES and DELETED_FN_DEF are provided to
+allow workarounds to be implemented.
+
+Typically, the DELETED_FN_DEF macro is used in place of an explicit "= delete;"
+for a deleted function.  This macro covers the general case by simply using an
+empty function body (which no known problematic implementation diagnoses for
+non-constexpr function templates that specify a return type).  In other cases,
+HOST_SUPPORTS_DELETED_FUNCTION_TEMPLATES can be used directly to create
+appropriate logic.
+
+Deleted function template support is (by default) automatically disabled for
+versions of Clang prior to 3.9 (which all suffer from this problem).  If the
+default is incorrect for the compiler being used to build the front end,
+setting HOST_SUPPORTS_DELETED_FUNCTION_TEMPLATES to the desired value should be
+sufficient.
 */
+#ifndef HOST_SUPPORTS_DELETED_FUNCTION_TEMPLATES
 #if defined(__clang__) && \
     (__clang_major__ == 3 && __clang_minor__ < 9)
 #define HOST_SUPPORTS_DELETED_FUNCTION_TEMPLATES 0
-#define DELETED_FN_DEF {}
 #else  /* !(defined(__clang__) && (__clang_major__ == 3 && ...)) */
 #define HOST_SUPPORTS_DELETED_FUNCTION_TEMPLATES 1
-#define DELETED_FN_DEF = delete;
 #endif /* defined(__clang__) && (__clang_major__ == 3 && ...) */
+#endif /* ifndef HOST_SUPPORTS_DELETED_FUNCTION_TEMPLATES */
+#if HOST_SUPPORTS_DELETED_FUNCTION_TEMPLATES
+#define DELETED_FN_DEF = delete;
+#else /* !HOST_SUPPORTS_DELETED_FUNCTION_TEMPLATES */
+#define DELETED_FN_DEF {}
+#endif /* HOST_SUPPORTS_DELETED_FUNCTION_TEMPLATES */
 
 /*
 Some coding standards require a default label in switches even if it's
