@@ -1244,7 +1244,7 @@ FALSE value results in omission of the default cases.
 */
 #ifndef CHECK_SWITCH_DEFAULT_UNEXPECTED
 #define CHECK_SWITCH_DEFAULT_UNEXPECTED CHECKING
-#endif /* ifndef EXHAUSTIVE_DEFAULT */
+#endif /* ifndef CHECK_SWITCH_DEFAULT_UNEXPECTED */
 
 /*
 In some cases, lint mistakenly determines that a value may be uninitialized
