@@ -21,7 +21,7 @@ accompanying diagnostics.  This is now fixed.
 Expansion of integral diagnostic fill-ins
 
 A new diagnostic fill-in, %u, can now be used in error_msg.txt for diagnostics
-that need to emit unsigned integers (up to 64-bits).  Additionally, the front
+that need to emit unsigned integers (up to 64 bits).  Additionally, the front
 end now supports up to 64-bit signed integers when using %d.
 
 
