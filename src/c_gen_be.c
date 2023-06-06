@@ -7910,7 +7910,7 @@ block with state information for the processing.
     ipdp->type = type;
     ipdp->curr_field = NULL;
     if (outer_level_pos != NULL) {
-      /* Disable spurious GCC warning about writing outer_level_pos->next to
+      /* Disable spurious GCC warning about setting outer_level_pos->next to
          the address of a local variable (ipdp points to local variable
          ipd). */
 BEGIN_DISABLE_GCC_WARNING_DANGLING_PTR
