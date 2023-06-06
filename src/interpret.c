@@ -8264,6 +8264,11 @@ have identical internal representations).
     tp = complete_object_type(paddr);
     if (paddr == addr) {
       if (type_is(tp, tk_array)) {
+        /* For an array, return its top-level element type (top-level in the
+           sense that for a multi-dimensional array we still produce an array
+           type; not the underlying array element type).  If the complete
+           object was dynamically allocated, the stored complete object type
+           is already that element type and no adjustment is needed. */
         if (!complete_obj_flag(paddr, COMPLETE_OBJ_DYN_ALLOC)) {
           tp = skip_typerefs(tp->variant.array.element_type);
         }  /* if */
@@ -8304,6 +8309,12 @@ have identical internal representations).
              addresses can only point to the start of a scalar object or one
              past the end of one. */
           unexpected_condition();
+        }  /* if */
+        if (type_is(tp, tk_array)) {
+          /* For an array, return its top-level element type (top-level in the
+             sense that for a multi-dimensional array we still produce an array
+             type; not the underlying array element type). */
+          tp = skip_typerefs(tp->variant.array.element_type);
         }  /* if */
       } while (paddr != addr);
     }  /* if */

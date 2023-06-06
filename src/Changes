@@ -1,5 +1,13 @@
 Version 6.5
 
+6/6/23   [EDGcpfe/26385]
+Corruption in evaluation of __builtin_memcmp
+
+The constant-evaluation of __builtin_memcmp sometimes performed an out-of-
+bounds access when the operands included the address of a member array.  That
+is now fixed.
+
+
 6/5/23   [EDGcpfe/10223]
 Invalid recursive templates no longer instantiate infinitely
 
