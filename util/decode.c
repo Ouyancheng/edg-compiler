@@ -3334,13 +3334,15 @@ not empty, because it contains a name or a derived type).
 */
 {
   a_const_char *p = ptr, *qualp = p;
-  char    kind, ext_kind;
+  char         kind;
 
   /* Remove type qualifiers. */
   p = remove_immediate_type_qualifiers(p, dctl);
   kind = get_char(p, dctl);
   if (kind == 'P' || kind == 'R' || kind == 'E' || kind == 'H') {
     a_boolean need_space = TRUE;
+    char      ext_kind = '\0';
+
     /* Pointer, reference, rvalue reference, or C++/CLI pointer-like type.
        For example, "Pc" is pointer to char. */
     if (kind == 'H') {
