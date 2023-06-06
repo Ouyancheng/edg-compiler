@@ -581,8 +581,8 @@ extern void pos_st_num2_diagnostic(an_error_severity error_severity,
                                    int32_t           num2);
 extern void num2_add_diag_info(a_diagnostic_ptr primary_dp,
                                an_error_code    error_code,
-                               int32_t          num1,
-                               int32_t          num2);
+                               int64_t          num1,
+                               int64_t          num2);
 extern void st_num_add_diag_info(a_diagnostic_ptr primary_dp,
                                  an_error_code    error_code,
                                  a_const_char     *error_string,

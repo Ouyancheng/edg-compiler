@@ -6477,8 +6477,8 @@ unsigned numbers) to primary_dp.
 
 void num2_add_diag_info(a_diagnostic_ptr primary_dp,
                         an_error_code    error_code,
-                        int32_t          num1,
-                        int32_t          num2)
+                        int64_t          num1,
+                        int64_t          num2)
 /*
 Add the specified diagnostic message (with the indicated fill-in numbers) to
 primary_dp.
