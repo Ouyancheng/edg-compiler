@@ -3834,7 +3834,7 @@ been set and overflow did not occur; otherwise, return FALSE.
     result = FALSE;
   } else {
     result = TRUE;
-    *output = a + b;
+    *output = (an_integer_type)(a + b);
   }  /* if */
   return result;
 }  /* checked_addition */
@@ -3859,7 +3859,7 @@ has been set and overflow did not occur; otherwise, return FALSE.
     result = FALSE;
   } else {
     result = TRUE;
-    *output = a * b;
+    *output = (an_integer_type)(a * b);
   }  /* if */
   return result;
 }  /* checked_multiplication */
