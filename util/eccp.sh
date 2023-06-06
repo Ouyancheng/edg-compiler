@@ -541,6 +541,21 @@ try_debug_driver()
 
 
 #
+# Function used to execute a grep operation on a fixed string.
+#
+grep_f()
+{
+  # Test for grep -F support. On older systems that do not provide grep -F,
+  # attempt to fallback to fgrep.
+  if echo "test" | grep -F "test" > /dev/null 2>&1 ; then
+    grep -F $@
+  else
+    fgrep $@
+  fi
+}  # grep_f
+
+
+#
 # Function that compiles a generated C file
 #
 compile_int_c()
@@ -646,7 +661,7 @@ check_abbreviation()
       ;;
   esac
   if [ $keyword_option -ne 0 ] ; then
-    grep -E "^$opt_name" <<END_OF_INPUT >$cmd_tmp_file
+    grep "^$opt_name" <<END_OF_INPUT >$cmd_tmp_file
 --add_match_notes
 --aligned_new
 --alternative_tokens
@@ -2641,7 +2656,7 @@ do
   if [ $automatic_instantiation -ne 0 ] ; then
     if [ $one_instantiation_per_object -ne 0 -a -f $ti_file_name ] ; then
       instantiation_list=$eccp_tmpdir/instantiation_list.txt
-      grep -F "ifn:" $ti_file_name | sed -e "s/ifn://" >$instantiation_list
+      grep_f "ifn:" $ti_file_name | sed -e "s/ifn://" >$instantiation_list
       instantiation_list_exists=1
     fi
   fi
