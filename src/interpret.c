@@ -1822,7 +1822,7 @@ variant (from outer selection to inner selection).  For example:
 
 The a_constexpr_address entry representing &s.u[2].x.v.y[1] will have both the
 CA_VARIANT_PATH and CA_ARRAY_ELEMENT flags set (the latter flag is for the y[1]
-part; not the u[2] part since the address is not of the s.u[2] element
+part, not the u[2] part, since the address is not of the s.u[2] element
 specifically).  The address entry will point to a list of three variant path
 entries.  The first entry will record the base address of s.u[2].x.v.y.  The
 second will point to the address of the s.u[2] subobject and to the IL entry
@@ -8266,7 +8266,7 @@ have identical internal representations).
       if (type_is(tp, tk_array)) {
         /* For an array, return its top-level element type (top-level in the
            sense that for a multi-dimensional array we still produce an array
-           type; not the underlying array element type).  If the complete
+           type, not the underlying array element type).  If the complete
            object was dynamically allocated, the stored complete object type
            is already that element type and no adjustment is needed. */
         if (!complete_obj_flag(paddr, COMPLETE_OBJ_DYN_ALLOC)) {
@@ -8313,7 +8313,7 @@ have identical internal representations).
         if (type_is(tp, tk_array)) {
           /* For an array, return its top-level element type (top-level in the
              sense that for a multi-dimensional array we still produce an array
-             type; not the underlying array element type). */
+             type, not the underlying array element type). */
           tp = skip_typerefs(tp->variant.array.element_type);
         }  /* if */
       } while (paddr != addr);
@@ -19318,7 +19318,7 @@ the value representation of the integer value.
             cap->flags |= CA_CONST_STORAGE;
           }  /* if */
           if (type_is(tp, tk_array)) {
-            /* We are referring to the array as a whole; not just one element
+            /* We are referring to the array as a whole, not just one element
                of it.  Record the length in case it is needed later on. */
             cap->length =
                     (unsigned int)tp->variant.array.variant.number_of_elements;
