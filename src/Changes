@@ -1,5 +1,29 @@
 Version 6.5
 
+6/7/23   [EDGcpfe/26404]
+Segfault in alloc_or_dealloc_routine_from_new_delete
+
+In configurations where NEW_CAN_BE_FOLDED_INTO_CTOR or
+DELETE_CAN_BE_FOLDED_INTO_CTOR are TRUE, a missing skip_typerefs had caused
+a segfault on this example (with --c++20):
+
+  template <typename> struct A {};
+  template <typename T> struct A<T &> {
+    typedef T t;
+  };
+  template <typename T> concept C = requires { new T; };
+  template <typename T> A<T>::t f(T &&);
+  struct E {
+    E();
+  };
+  template <typename T> struct B {
+    B() requires C<T>;
+    B(T);
+  };
+  E e;
+  B b { f(e) };
+
+
 6/6/23   [EDGcpfe/26385]
 Corruption in evaluation of __builtin_memcmp
 

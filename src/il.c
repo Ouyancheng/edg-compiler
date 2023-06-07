@@ -24262,7 +24262,8 @@ indicated new or delete, or NULL if the routine cannot be determined.
         /* Non-array new. */
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
         if (is_class_struct_union_type(base_type)) {
-          rout = class_type_supp(base_type)->assoc_operator_new_routine;
+          rout = class_type_supp(skip_typerefs(base_type))->
+                                                    assoc_operator_new_routine;
         }  /* if */
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */
       }  /* if */
@@ -24296,7 +24297,8 @@ indicated new or delete, or NULL if the routine cannot be determined.
         /* Non-array delete. */
 #if DELETE_CAN_BE_FOLDED_INTO_DTOR
         if (is_class_struct_union_type(base_type)) {
-          rout = class_type_supp(base_type)->assoc_operator_delete_routine;
+          rout = class_type_supp(skip_typerefs(base_type))->
+                                                 assoc_operator_delete_routine;
         }  /* if */
 #endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
       }  /* if */
