@@ -7766,12 +7766,17 @@ default_label_case:
     case tok_rbrace:
       /* Right brace where the start of a statement was expected. */
       if (prev_was_label) {
-        /* When a label definition precedes a "}", let it by as an
-           extension, with a warning (at least) in all modes. */
-        if (strict_ansi_mode) {
-          diagnostic(strict_ansi_error_severity, ec_exp_statement);
+        if (cpp23_mode || c23_mode) {
+          /* A change has been made in C23 and C++23 to allow a label
+             as the last item in a compound statement. */
         } else {
-          pos_warning(ec_exp_statement, &error_position);
+          /* When a label definition precedes a "}", let it by as an
+             extension, with a warning (at least) in all modes. */
+          if (strict_ansi_mode) {
+            diagnostic(strict_ansi_error_severity, ec_exp_statement);
+          } else {
+            pos_warning(ec_exp_statement, &error_position);
+          }  /* if */
         }  /* if */
         /* Issue a diagnostic on trying to bind a pragma to the current
            statement. */
@@ -7863,6 +7868,8 @@ expr_statement:
         */
         if (is_dependent_statement) {
           pos_error(ec_dependent_stmt_is_declaration, &error_position);
+        } else if (c23_mode) {
+          /* A labeled declaration is allowed starting with C23. */
         } else if (c99_mode) {
           /* A labeled declaration is not allowed in C99 mode (the syntax
              doesn't allow it), but we allow it in default mode. */
