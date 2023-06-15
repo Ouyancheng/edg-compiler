@@ -9294,7 +9294,6 @@ lifetime list).
   check_assertion(scope->kind == (a_scope_kind)sck_function &&
                   routine->special_kind ==
                                     (a_special_function_kind)sfk_constructor &&
-                  scope->variant.routine.constructor_inits != NULL &&
                   parent_class_of(routine)->
                                 variant.class_struct_union.field_list != NULL);
   if (olp != NULL) {

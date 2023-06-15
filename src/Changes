@@ -1,5 +1,31 @@
 Version 6.5
 
+6/15/23  [EDGcpfe/26261]
+Incorrect initialization of [[no_unique_address]] fields in constructors
+
+Generated move and copy constructors for classes that contain fields with
+the [[no_unique_address]] attribute had mistakenly included code to initialize
+these fields even though they share an address with other field(s).  For
+example, with --c++20:
+
+  struct A {
+    unsigned z;
+    A() : z(0xfadeddad) { }
+    A(A&& _a) : z(_a.z) { _a.z = 0x33333333; }
+    A(A const& _a) : z(_a.z) { }
+  };
+  struct B { };
+  struct C {
+    A a;
+    [[no_unique_address]] B b;
+  };
+  int main() {
+    C c0;
+    C c1{(C&&)c0};  // Move constructor had overwritten the value of c1.a.z.
+    return (int)(c1.a.z == 0x33333333);
+  }
+
+
 6/13/23  [EDGcpfe/25509,EDGcpfe/25966]
 C23/C++23: Labels in compound statements
 

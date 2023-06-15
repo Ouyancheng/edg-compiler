@@ -8726,7 +8726,12 @@ non-NULL, set *end_of_list to the last initializer in the list.
       if (has_field != NULL) {
         *has_field = TRUE;
       }  /* if */
-      if (all_fields) {
+      if (field->is_optimized_empty_class) {
+        /* This field is for an optimized empty class (presumably because of
+           a no_unique_address attribute).  Do not initialize this field
+           (as it may share an address with another field). */
+        continue;
+      } else if (all_fields) {
         /* All fields are explicitly listed for a generated copy or move
            constructor, since even if there is no constructor at least a
            bitwise copy is required. */
