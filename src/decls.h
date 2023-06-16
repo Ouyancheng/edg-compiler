@@ -1982,12 +1982,6 @@ extern void add_implicit_using_directive(a_namespace_ptr nsp,
                                          a_boolean       inline_namespace,
                                          a_boolean       namespace_pushed);
 
-extern
-a_namespace_ptr make_namespace_alias(a_symbol_ptr             ns_sym,
-                                     a_symbol_locator         *locator,
-                                     a_symbol_ptr             aliased_sym,
-                                     a_source_sequence_entry  *namespace_ssep);
-
 extern a_boolean is_alias_declaration(a_boolean  *has_attr);
 
 extern void scan_and_attach_using_declaration_attributes(

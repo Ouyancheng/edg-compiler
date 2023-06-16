@@ -1,5 +1,16 @@
 Version 6.5
 
+6/16/23  [EDGcpfe/26428]
+Pragmas attached to namespace aliases
+
+A change in version 6.4 introduced a regression that prohibited a pragma
+from attaching to a namespace alias and has now been fixed.  For example:
+
+  namespace N {}
+  #pragma test_next_decl
+  namespace A = N;
+
+
 6/15/23  [EDGcpfe/26261]
 Incorrect initialization of [[no_unique_address]] fields in constructors
 
