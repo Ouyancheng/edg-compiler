@@ -42,8 +42,9 @@ C23/C++23: Labels in compound statements
 
 The changes in P2324R2 (C++23) and N2508 (C23) now allow a label to be the
 last item in a compound statement.  Additionally, C23 now allows a declaration
-to be labeled.  The front end had previously issued a warning (or error in
-strict mode) and now accepts them in the appropriate modes.  For example:
+to be labeled.  The front end had previously issued a warning (or error, in
+strict mode) for these constructs and now accepts them in the appropriate
+modes.  For example:
 
   void f() {
   first:  // No diagnostic in C23 mode.
