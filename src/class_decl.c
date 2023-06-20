@@ -18629,9 +18629,12 @@ template declaration and is NULL otherwise.
     (void)get_token();
     /* Until the initializer is instantiated, the variable is not "defined". */
     var->storage_class = sc_extern;
-  } else if (var->is_constexpr) {
-    /* A constexpr static data member declaration must have an initializer:
-       Issue an error. */
+  } else if (var->is_constexpr && !cpp17_mode) {
+    /* In pre-C++17 modes, a constexpr static data member declaration must
+       have an initializer.  (C++17 made constexpr static data members
+       implicitly inline, which requires initialization but not necessarily
+       an explicit initializer; that case is handled below.)  Issue an
+       error. */
     pos_error(ec_constexpr_static_data_member_without_initializer,
               &pos_curr_token);
     var->init_kind = (an_init_kind)initk_static;
