@@ -2969,8 +2969,10 @@ do_set_proper_definition_needed_flag:
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
         walk_list(eptr->ms_if_exists, an_ms_if_exists_ptr, iek_ms_if_exists);
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
-        if (kind == (a_scope_kind)sck_function || eptr->is_stmt_expr_block) {
-          remap_ptr(eptr->variant.routine.ptr, a_routine_ptr, iek_routine);
+        if (kind == sck_function || eptr->is_stmt_expr_block) {
+          if (kind == sck_function) {
+            remap_ptr(eptr->variant.routine.ptr, a_routine_ptr, iek_routine);
+          }  /* if */
           walk_ptr(eptr->assoc_block, a_statement_ptr, iek_statement);
         } else {
           remap_ptr(eptr->assoc_block, a_statement_ptr, iek_statement);
