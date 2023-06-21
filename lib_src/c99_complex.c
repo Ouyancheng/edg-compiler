@@ -4,7 +4,7 @@
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2022 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2023 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -427,6 +427,6 @@ CAST    (__c99_cfloat128_to_cfloat80, _Complex_float80, _Complex_float128,
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2022 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2023 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

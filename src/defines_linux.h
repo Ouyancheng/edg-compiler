@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1999-2022 Edison Design Group Inc.                   [_]          *
+* Copyright 1999-2023 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -964,7 +964,7 @@ configurations can be created in the same manner.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1999-2022 Edison Design Group Inc.                   [_]          *
+* Copyright 1999-2023 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 
