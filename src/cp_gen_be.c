@@ -21897,7 +21897,7 @@ this one is such a continuation.
     adjust_current_namespace(orig_scope, common_scope);
   }  /* if */
   var->declaration_has_been_put_out = TRUE;
-  if (var->declared_with_auto_type_specifier &&
+  if (var->declared_with_auto_type_specifier && !for_init &&
       is_immediate_class_type(unqual_var_type) &&
       unqual_var_type->variant.class_struct_union.extra_info->
                                                      is_lambda_closure_class &&

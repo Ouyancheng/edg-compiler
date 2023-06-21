@@ -1,5 +1,22 @@
 Version 6.5, June 21, 2023
 
+6/21/23  [EDGcpfe/26251]
+C++-generating back end: lambda as initializer in range-based for
+
+Given a statement in which the initializer for an init-statement is a
+lambda expression, the C++-generated back end previously put out a typedef
+declaration giving the closure type a temporary name (of the form
+__T12345678).  Such a declaration is not permitted by the syntax of C++ and
+is now suppressed.  For example, with --c++17:
+
+  void f() {
+    // Previously included "typedef decltype(l) __T1234578;" in the
+    // generated code before the call to l():
+    switch (auto l = []{return 0;}; l())
+      {}
+  }
+
+
 6/21/23  [EDGcpfe/26262]
 C++-generating back end: crash with non-public name as template argument
 
