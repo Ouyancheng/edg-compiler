@@ -380,6 +380,74 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* validate_sort */
 
 
+a_boolean is_known_sort(an_ifc_decl_sort_0_43 versioned)
+/*
+Given the versioned representation of DeclSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (versioned) {
+    case ifc_0_43_ds_decl_vendor_extension:
+    case ifc_0_43_ds_decl_enumerator:
+    case ifc_0_43_ds_decl_variable:
+    case ifc_0_43_ds_decl_parameter:
+    case ifc_0_43_ds_decl_field:
+    case ifc_0_43_ds_decl_bitfield:
+    case ifc_0_43_ds_decl_scope:
+    case ifc_0_43_ds_decl_enumeration:
+    case ifc_0_43_ds_decl_alias:
+    case ifc_0_43_ds_decl_temploid:
+    case ifc_0_43_ds_decl_template:
+    case ifc_0_43_ds_decl_partial_specialization:
+    case ifc_0_43_ds_decl_specialization:
+    case ifc_0_43_ds_decl_default_argument:
+    case ifc_0_43_ds_decl_concept:
+    case ifc_0_43_ds_decl_function:
+    case ifc_0_43_ds_decl_method:
+    case ifc_0_43_ds_decl_constructor:
+    case ifc_0_43_ds_decl_inherited_constructor:
+    case ifc_0_43_ds_decl_destructor:
+    case ifc_0_43_ds_decl_reference:
+    case ifc_0_43_ds_decl_using_declaration:
+    case ifc_0_43_ds_decl_using_directive:
+    case ifc_0_43_ds_decl_friend:
+    case ifc_0_43_ds_decl_expansion:
+    case ifc_0_43_ds_decl_deduction_guide:
+    case ifc_0_43_ds_decl_barren:
+    case ifc_0_43_ds_decl_tuple:
+    case ifc_0_43_ds_decl_syntax_tree:
+    case ifc_0_43_ds_decl_intrinsic:
+    case ifc_0_43_ds_decl_property:
+    case ifc_0_43_ds_decl_output_segment:
+      result = TRUE;
+      break;
+    default:
+      break;
+  }  /* switch */
+  return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                 *mod,
+                        an_ifc_decl_sort_0_43         versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of DeclSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* validate_sort */
+
+
 a_boolean is_known_sort(an_ifc_delimiter_sort_0_33 versioned)
 /*
 Given the versioned representation of DelimiterSort, return TRUE if the value
@@ -527,6 +595,131 @@ value represents a valid sort value; otherwise, return FALSE.
 
 a_boolean validate_sort(an_ifc_module                    *mod,
                         an_ifc_dyadic_operator_sort_0_33 versioned,
+                        const an_ifc_validation_trace    *parent)
+/*
+Given the versioned representation of DyadicOperatorSort, return TRUE if the
+value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* validate_sort */
+
+
+a_boolean is_known_sort(an_ifc_dyadic_operator_sort_0_43 versioned)
+/*
+Given the versioned representation of DyadicOperatorSort, return TRUE if the
+value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (versioned) {
+    case ifc_0_43_dos_unknown:
+    case ifc_0_43_dos_plus:
+    case ifc_0_43_dos_minus:
+    case ifc_0_43_dos_mult:
+    case ifc_0_43_dos_slash:
+    case ifc_0_43_dos_modulo:
+    case ifc_0_43_dos_remainder:
+    case ifc_0_43_dos_bitand:
+    case ifc_0_43_dos_bitor:
+    case ifc_0_43_dos_bitxor:
+    case ifc_0_43_dos_lshift:
+    case ifc_0_43_dos_rshift:
+    case ifc_0_43_dos_equal:
+    case ifc_0_43_dos_not_equal:
+    case ifc_0_43_dos_less:
+    case ifc_0_43_dos_less_equal:
+    case ifc_0_43_dos_greater:
+    case ifc_0_43_dos_greater_equal:
+    case ifc_0_43_dos_compare:
+    case ifc_0_43_dos_logic_and:
+    case ifc_0_43_dos_logic_or:
+    case ifc_0_43_dos_assign:
+    case ifc_0_43_dos_plus_assign:
+    case ifc_0_43_dos_minus_assign:
+    case ifc_0_43_dos_mult_assign:
+    case ifc_0_43_dos_slash_assign:
+    case ifc_0_43_dos_modulo_assign:
+    case ifc_0_43_dos_bitand_assign:
+    case ifc_0_43_dos_bitor_assign:
+    case ifc_0_43_dos_bitxor_assign:
+    case ifc_0_43_dos_lshift_assign:
+    case ifc_0_43_dos_rshift_assign:
+    case ifc_0_43_dos_comma:
+    case ifc_0_43_dos_dot:
+    case ifc_0_43_dos_arrow:
+    case ifc_0_43_dos_dot_star:
+    case ifc_0_43_dos_arrow_star:
+    case ifc_0_43_dos_curry:
+    case ifc_0_43_dos_apply:
+    case ifc_0_43_dos_index:
+    case ifc_0_43_dos_default_at:
+    case ifc_0_43_dos_new:
+    case ifc_0_43_dos_new_array:
+    case ifc_0_43_dos_destruct:
+    case ifc_0_43_dos_destruct_at:
+    case ifc_0_43_dos_cleanup:
+    case ifc_0_43_dos_qualification:
+    case ifc_0_43_dos_promote:
+    case ifc_0_43_dos_demote:
+    case ifc_0_43_dos_coerce:
+    case ifc_0_43_dos_rewrite:
+    case ifc_0_43_dos_bless:
+    case ifc_0_43_dos_cast:
+    case ifc_0_43_dos_explicit_conversion:
+    case ifc_0_43_dos_reinterpret_cast:
+    case ifc_0_43_dos_static_cast:
+    case ifc_0_43_dos_const_cast:
+    case ifc_0_43_dos_dynamic_cast:
+    case ifc_0_43_dos_narrow:
+    case ifc_0_43_dos_widen:
+    case ifc_0_43_dos_pretend:
+    case ifc_0_43_dos_closure:
+    case ifc_0_43_dos_zero_initialize:
+    case ifc_0_43_dos_clear_storage:
+    case ifc_0_43_dos_select:
+    case ifc_0_43_dos_msvc:
+    case ifc_0_43_dos_msvc_try_cast:
+    case ifc_0_43_dos_msvc_curry:
+    case ifc_0_43_dos_msvc_virtual_curry:
+    case ifc_0_43_dos_msvc_align:
+    case ifc_0_43_dos_msvc_bit_span:
+    case ifc_0_43_dos_msvc_bitfield_access:
+    case ifc_0_43_dos_msvc_obscure_bitfield_access:
+    case ifc_0_43_dos_msvc_initialize:
+    case ifc_0_43_dos_msvc_builtin_offset_of:
+    case ifc_0_43_dos_msvc_is_base_of:
+    case ifc_0_43_dos_msvc_is_convertible_to:
+    case ifc_0_43_dos_msvc_is_trivially_assignable:
+    case ifc_0_43_dos_msvc_is_nothrow_assignable:
+    case ifc_0_43_dos_msvc_is_assignable:
+    case ifc_0_43_dos_msvc_is_assignable_nocheck:
+    case ifc_0_43_dos_msvc_builtin_bit_cast:
+    case ifc_0_43_dos_msvc_builtin_is_layout_compatible:
+    case ifc_0_43_dos_msvc_builtin_is_pointer_interconvertible_base_of:
+    case ifc_0_43_dos_msvc_builtin_is_pointer_interconvertible_with_class:
+    case ifc_0_43_dos_msvc_builtin_is_corresponding_member:
+    case ifc_0_43_dos_msvc_intrinsic:
+    case ifc_0_43_dos_msvc_saturated_arithmetic:
+    case ifc_0_43_dos_msvc_builtin_allocation_annotation:
+      result = TRUE;
+      break;
+    default:
+      break;
+  }  /* switch */
+  return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                    *mod,
+                        an_ifc_dyadic_operator_sort_0_43 versioned,
                         const an_ifc_validation_trace    *parent)
 /*
 Given the versioned representation of DyadicOperatorSort, return TRUE if the
@@ -1168,6 +1361,125 @@ value represents a valid sort value; otherwise, return FALSE.
 
 a_boolean validate_sort(an_ifc_module                     *mod,
                         an_ifc_monadic_operator_sort_0_33 versioned,
+                        const an_ifc_validation_trace     *parent)
+/*
+Given the versioned representation of MonadicOperatorSort, return TRUE if the
+value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(mod, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* validate_sort */
+
+
+a_boolean is_known_sort(an_ifc_monadic_operator_sort_0_43 versioned)
+/*
+Given the versioned representation of MonadicOperatorSort, return TRUE if the
+value represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (versioned) {
+    case ifc_0_43_mos_unknown:
+    case ifc_0_43_mos_plus:
+    case ifc_0_43_mos_negate:
+    case ifc_0_43_mos_deref:
+    case ifc_0_43_mos_address:
+    case ifc_0_43_mos_complement:
+    case ifc_0_43_mos_not:
+    case ifc_0_43_mos_pre_increment:
+    case ifc_0_43_mos_pre_decrement:
+    case ifc_0_43_mos_post_increment:
+    case ifc_0_43_mos_post_decrement:
+    case ifc_0_43_mos_truncate:
+    case ifc_0_43_mos_ceil:
+    case ifc_0_43_mos_floor:
+    case ifc_0_43_mos_paren:
+    case ifc_0_43_mos_brace:
+    case ifc_0_43_mos_alignas:
+    case ifc_0_43_mos_alignof:
+    case ifc_0_43_mos_sizeof:
+    case ifc_0_43_mos_cardinality:
+    case ifc_0_43_mos_typeid:
+    case ifc_0_43_mos_noexcept:
+    case ifc_0_43_mos_requires:
+    case ifc_0_43_mos_co_return:
+    case ifc_0_43_mos_await:
+    case ifc_0_43_mos_yield:
+    case ifc_0_43_mos_throw:
+    case ifc_0_43_mos_new:
+    case ifc_0_43_mos_delete:
+    case ifc_0_43_mos_delete_array:
+    case ifc_0_43_mos_expand:
+    case ifc_0_43_mos_read:
+    case ifc_0_43_mos_materialize:
+    case ifc_0_43_mos_pseudo_dtor_call:
+    case ifc_0_43_mos_lookup_globally:
+    case ifc_0_43_mos_msvc:
+    case ifc_0_43_mos_msvc_assume:
+    case ifc_0_43_mos_msvc_alignof:
+    case ifc_0_43_mos_msvc_uuidof:
+    case ifc_0_43_mos_msvc_is_class:
+    case ifc_0_43_mos_msvc_is_union:
+    case ifc_0_43_mos_msvc_is_enum:
+    case ifc_0_43_mos_msvc_is_polymorphic:
+    case ifc_0_43_mos_msvc_is_empty:
+    case ifc_0_43_mos_msvc_is_trivially_copy_constructible:
+    case ifc_0_43_mos_msvc_is_trivially_copy_assignable:
+    case ifc_0_43_mos_msvc_is_trivially_destructible:
+    case ifc_0_43_mos_msvc_has_virtual_destructor:
+    case ifc_0_43_mos_msvc_is_nothrow_copy_constructible:
+    case ifc_0_43_mos_msvc_is_nothrow_copy_assignable:
+    case ifc_0_43_mos_msvc_is_pod:
+    case ifc_0_43_mos_msvc_is_abstract:
+    case ifc_0_43_mos_msvc_is_trivial:
+    case ifc_0_43_mos_msvc_is_trivially_copyable:
+    case ifc_0_43_mos_msvc_is_standard_layout:
+    case ifc_0_43_mos_msvc_is_literal_type:
+    case ifc_0_43_mos_msvc_is_trivially_move_constructible:
+    case ifc_0_43_mos_msvc_has_trivial_move_assign:
+    case ifc_0_43_mos_msvc_is_trivially_move_assignable:
+    case ifc_0_43_mos_msvc_is_nothrow_move_assignable:
+    case ifc_0_43_mos_msvc_underlying_type:
+    case ifc_0_43_mos_msvc_is_destructible:
+    case ifc_0_43_mos_msvc_is_nothrow_destructible:
+    case ifc_0_43_mos_msvc_has_unique_object_representations:
+    case ifc_0_43_mos_msvc_is_aggregate:
+    case ifc_0_43_mos_msvc_builtin_address_of:
+    case ifc_0_43_mos_msvc_is_ref_class:
+    case ifc_0_43_mos_msvc_is_value_class:
+    case ifc_0_43_mos_msvc_is_simple_value_class:
+    case ifc_0_43_mos_msvc_is_interface_class:
+    case ifc_0_43_mos_msvc_is_delegate:
+    case ifc_0_43_mos_msvc_is_final:
+    case ifc_0_43_mos_msvc_is_sealed:
+    case ifc_0_43_mos_msvc_has_finalizer:
+    case ifc_0_43_mos_msvc_has_copy:
+    case ifc_0_43_mos_msvc_has_assign:
+    case ifc_0_43_mos_msvc_has_user_destructor:
+    case ifc_0_43_mos_msvc_confusion:
+    case ifc_0_43_mos_msvc_confused_expand:
+    case ifc_0_43_mos_msvc_confused_dependent_sizeof:
+    case ifc_0_43_mos_msvc_confused_pop_state:
+    case ifc_0_43_mos_msvc_confused_dtor_action:
+    case ifc_0_43_mos_msvc_confused_vtor_displacement:
+      result = TRUE;
+      break;
+    default:
+      break;
+  }  /* switch */
+  return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module                     *mod,
+                        an_ifc_monadic_operator_sort_0_43 versioned,
                         const an_ifc_validation_trace     *parent)
 /*
 Given the versioned representation of MonadicOperatorSort, return TRUE if the
@@ -3009,6 +3321,37 @@ FALSE.
 
 
 a_boolean validate_index(an_ifc_module                 *mod,
+                         an_ifc_decl_index_0_43        versioned,
+                         const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of DeclIndex and the associated module,
+return TRUE if the value represents a valid index position; otherwise, return
+FALSE.
+*/
+{
+  a_boolean             result = TRUE;
+  an_ifc_decl_sort_0_43 sort = decl_sort(versioned);
+
+  if (!is_known_sort(sort)) {
+    invalid_partition(mod, parent);
+    result = FALSE;
+  } else {
+    an_ifc_decl_sort univ_sort = to_universal_sort(sort);
+
+    if (has_partition_kind(univ_sort)) {
+      an_ifc_partition_kind kind = to_partition_kind(univ_sort);
+      uint32_t              value = decl_value(versioned);
+
+      if (!validate_element_exists(mod, kind, value, parent)) {
+        result = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* validate_index */
+
+
+a_boolean validate_index(an_ifc_module                 *mod,
                          an_ifc_expr_index_0_33        versioned,
                          const an_ifc_validation_trace *parent)
 /*
@@ -3378,7 +3721,11 @@ represents a valid index position; otherwise, return FALSE.
 {
   a_boolean result = TRUE;
 
-  if (is_at_least(mod, 0, 41)) {
+  if (is_at_least(mod, 0, 43)) {
+    an_ifc_decl_index_0_43 versioned_index = (an_ifc_decl_index_0_43)versioned;
+
+    result = validate_index(mod, versioned_index, parent);
+  } else if (is_at_least(mod, 0, 41)) {
     an_ifc_decl_index_0_41 versioned_index = (an_ifc_decl_index_0_41)versioned;
 
     result = validate_index(mod, versioned_index, parent);
@@ -3526,6 +3873,91 @@ value represents a valid categorized sort; otherwise, return FALSE.
     case ifc_0_33_os_monadic_operator:
       { an_ifc_monadic_operator_sort_0_33 versioned_value =
                                   (an_ifc_monadic_operator_sort_0_33)raw_value;
+
+        if (!validate_sort(mod, versioned_value, parent)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }
+      break;
+    case ifc_0_33_os_niladic_operator:
+      { an_ifc_niladic_operator_sort_0_33 versioned_value =
+                                  (an_ifc_niladic_operator_sort_0_33)raw_value;
+
+        if (!validate_sort(mod, versioned_value, parent)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }
+      break;
+    case ifc_0_33_os_storage_instruction_operator:
+      { an_ifc_storage_instruction_operator_sort_0_33 versioned_value =
+                      (an_ifc_storage_instruction_operator_sort_0_33)raw_value;
+
+        if (!validate_sort(mod, versioned_value, parent)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }
+      break;
+    case ifc_0_33_os_triadic_operator:
+      { an_ifc_triadic_operator_sort_0_42 versioned_value =
+                                  (an_ifc_triadic_operator_sort_0_42)raw_value;
+
+        if (!validate_sort(mod, versioned_value, parent)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }
+      break;
+    case ifc_0_33_os_variadic_operator:
+      { an_ifc_variadic_operator_sort_0_33 versioned_value =
+                                 (an_ifc_variadic_operator_sort_0_33)raw_value;
+
+        if (!validate_sort(mod, versioned_value, parent)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }
+      break;
+    default:
+      break;
+  }  /* switch */
+done:
+  return result;
+}  /* validate_category */
+
+
+a_boolean validate_category(an_ifc_module                 *mod,
+                            an_ifc_operator_category_0_43 versioned,
+                            const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of OperatorCategory, return TRUE if the
+value represents a valid categorized sort; otherwise, return FALSE.
+*/
+{
+  a_boolean                 result = TRUE;
+  an_ifc_operator_sort_0_33 sort = operator_sort(versioned);
+  uint16_t                  raw_value = operator_value(versioned);
+
+  if (!validate_sort(mod, sort, parent)) {
+    result = FALSE;
+    goto done;
+  }  /* if */
+  switch (sort) {
+    case ifc_0_33_os_dyadic_operator:
+      { an_ifc_dyadic_operator_sort_0_43 versioned_value =
+                                   (an_ifc_dyadic_operator_sort_0_43)raw_value;
+
+        if (!validate_sort(mod, versioned_value, parent)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }
+      break;
+    case ifc_0_33_os_monadic_operator:
+      { an_ifc_monadic_operator_sort_0_43 versioned_value =
+                                  (an_ifc_monadic_operator_sort_0_43)raw_value;
 
         if (!validate_sort(mod, versioned_value, parent)) {
           result = FALSE;
@@ -4192,7 +4624,20 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
+
+      /* Copy the field (ParameterizedEntity::decl - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -4811,7 +5256,56 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace =
+                                         {"home_scope", /*offset=*/16, parent};
+      an_ifc_decl_index       stage_1;
+      a_boolean               stage_2;
+
+      /* Copy the field (DeclAlias::home_scope - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      if (stage_1.sort == ifc_ds_decl_specialization) {
+        stage_2 = TRUE;
+      } else {
+        stage_2 = FALSE;
+      }  /* if */
+      if (stage_2) {
+        an_ifc_decl_index          stage_3_0;
+        an_ifc_decl_specialization stage_3_1;
+        an_ifc_decl_index_0_43     stage_3_2;
+        an_ifc_validation_trace    stage_3_2_trace =
+                                                {"decl", /*offset=*/4, parent};
+
+        stage_3_0 = stage_1;
+        if (stage_3_0.sort != ifc_ds_decl_specialization) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        /* Use the obtained index to retrieve the appropriate instance of
+           DeclSpecialization.  Then, retrieve and return the desired value
+           held by the field decl. */
+        construct_node_unchecked(&stage_3_1, stage_3_0);
+        /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+           version-specific storage. */
+        static_assert(sizeof(stage_3_2) == 4,
+                      "stage_3_2 is not properly sized storage!");
+        copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+                            &stage_3_2_trace)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
@@ -4942,7 +5436,56 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace =
+                                         {"home_scope", /*offset=*/16, parent};
+      an_ifc_decl_index       stage_1;
+      a_boolean               stage_2;
+
+      /* Copy the field (DeclBitfield::home_scope - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      if (stage_1.sort == ifc_ds_decl_specialization) {
+        stage_2 = TRUE;
+      } else {
+        stage_2 = FALSE;
+      }  /* if */
+      if (stage_2) {
+        an_ifc_decl_index          stage_3_0;
+        an_ifc_decl_specialization stage_3_1;
+        an_ifc_decl_index_0_43     stage_3_2;
+        an_ifc_validation_trace    stage_3_2_trace =
+                                                {"decl", /*offset=*/4, parent};
+
+        stage_3_0 = stage_1;
+        if (stage_3_0.sort != ifc_ds_decl_specialization) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        /* Use the obtained index to retrieve the appropriate instance of
+           DeclSpecialization.  Then, retrieve and return the desired value
+           held by the field decl. */
+        construct_node_unchecked(&stage_3_1, stage_3_0);
+        /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+           version-specific storage. */
+        static_assert(sizeof(stage_3_2) == 4,
+                      "stage_3_2 is not properly sized storage!");
+        copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+                            &stage_3_2_trace)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
@@ -5178,7 +5721,56 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace =
+                                         {"home_scope", /*offset=*/12, parent};
+      an_ifc_decl_index       stage_1;
+      a_boolean               stage_2;
+
+      /* Copy the field (DeclConcept::home_scope - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      if (stage_1.sort == ifc_ds_decl_specialization) {
+        stage_2 = TRUE;
+      } else {
+        stage_2 = FALSE;
+      }  /* if */
+      if (stage_2) {
+        an_ifc_decl_index          stage_3_0;
+        an_ifc_decl_specialization stage_3_1;
+        an_ifc_decl_index_0_43     stage_3_2;
+        an_ifc_validation_trace    stage_3_2_trace =
+                                                {"decl", /*offset=*/4, parent};
+
+        stage_3_0 = stage_1;
+        if (stage_3_0.sort != ifc_ds_decl_specialization) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        /* Use the obtained index to retrieve the appropriate instance of
+           DeclSpecialization.  Then, retrieve and return the desired value
+           held by the field decl. */
+        construct_node_unchecked(&stage_3_1, stage_3_0);
+        /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+           version-specific storage. */
+        static_assert(sizeof(stage_3_2) == 4,
+                      "stage_3_2 is not properly sized storage!");
+        copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+                            &stage_3_2_trace)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/12, parent};
@@ -5323,7 +5915,56 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace =
+                                         {"home_scope", /*offset=*/16, parent};
+      an_ifc_decl_index       stage_1;
+      a_boolean               stage_2;
+
+      /* Copy the field (DeclConstructor::home_scope - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      if (stage_1.sort == ifc_ds_decl_specialization) {
+        stage_2 = TRUE;
+      } else {
+        stage_2 = FALSE;
+      }  /* if */
+      if (stage_2) {
+        an_ifc_decl_index          stage_3_0;
+        an_ifc_decl_specialization stage_3_1;
+        an_ifc_decl_index_0_43     stage_3_2;
+        an_ifc_validation_trace    stage_3_2_trace =
+                                                {"decl", /*offset=*/4, parent};
+
+        stage_3_0 = stage_1;
+        if (stage_3_0.sort != ifc_ds_decl_specialization) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        /* Use the obtained index to retrieve the appropriate instance of
+           DeclSpecialization.  Then, retrieve and return the desired value
+           held by the field decl. */
+        construct_node_unchecked(&stage_3_1, stage_3_0);
+        /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+           version-specific storage. */
+        static_assert(sizeof(stage_3_2) == 4,
+                      "stage_3_2 is not properly sized storage!");
+        copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+                            &stage_3_2_trace)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
@@ -5411,7 +6052,67 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_name(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace =
+                                         {"home_scope", /*offset=*/16, parent};
+      an_ifc_decl_index       stage_1;
+      a_boolean               stage_2;
+
+      /* Copy the field (DeclConstructor::home_scope - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      if (stage_1.sort == ifc_ds_decl_specialization) {
+        stage_2 = TRUE;
+      } else {
+        stage_2 = FALSE;
+      }  /* if */
+      if (stage_2) {
+        an_ifc_decl_index_0_43  stage_3_0;
+        an_ifc_validation_trace stage_3_0_trace =
+                                         {"home_scope", /*offset=*/16, parent};
+        an_ifc_decl_index       stage_3_1;
+
+        /* Copy the field (DeclConstructor::home_scope - DeclIndex) into
+           version-specific storage. */
+        static_assert(sizeof(stage_3_0) == 4,
+                      "stage_3_0 is not properly sized storage!");
+        copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/16);
+        if (!validate_index(universal.get_module(), stage_3_0,
+                            &stage_3_0_trace)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        stage_3_1 = to_universal_index(universal.get_module(), stage_3_0);
+        if (!has_ifc_name(stage_3_1)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        if (!validate(stage_3_1)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      } else {
+        an_ifc_decl_index stage_3_0;
+
+        stage_3_0 = get_ifc_home_scope(universal);
+        if (!has_ifc_name(stage_3_0)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        if (!validate(stage_3_0)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
@@ -5515,7 +6216,56 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace =
+                                         {"home_scope", /*offset=*/12, parent};
+      an_ifc_decl_index       stage_1;
+      a_boolean               stage_2;
+
+      /* Copy the field (DeclDeductionGuide::home_scope - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      if (stage_1.sort == ifc_ds_decl_specialization) {
+        stage_2 = TRUE;
+      } else {
+        stage_2 = FALSE;
+      }  /* if */
+      if (stage_2) {
+        an_ifc_decl_index          stage_3_0;
+        an_ifc_decl_specialization stage_3_1;
+        an_ifc_decl_index_0_43     stage_3_2;
+        an_ifc_validation_trace    stage_3_2_trace =
+                                                {"decl", /*offset=*/4, parent};
+
+        stage_3_0 = stage_1;
+        if (stage_3_0.sort != ifc_ds_decl_specialization) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        /* Use the obtained index to retrieve the appropriate instance of
+           DeclSpecialization.  Then, retrieve and return the desired value
+           held by the field decl. */
+        construct_node_unchecked(&stage_3_1, stage_3_0);
+        /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+           version-specific storage. */
+        static_assert(sizeof(stage_3_2) == 4,
+                      "stage_3_2 is not properly sized storage!");
+        copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+                            &stage_3_2_trace)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/12, parent};
@@ -5653,6 +6403,136 @@ done:
 
 
 template<>
+a_boolean validate(const an_ifc_decl_default_argument &universal,
+                   const an_ifc_validation_trace      *parent)
+/*
+Given the universal representation of DeclDefaultArgument, return TRUE if the
+representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (has_ifc_access(universal)) {
+    an_ifc_access_sort_0_33 stage_0;
+    an_ifc_validation_trace stage_0_trace = {"access", /*offset=*/21, parent};
+
+    /* Copy the field (DeclDefaultArgument::access - AccessSort) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 1,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/21);
+    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+  if (has_ifc_home_scope(universal)) {
+    an_ifc_decl_index_0_43  stage_0;
+    an_ifc_validation_trace stage_0_trace =
+                                         {"home_scope", /*offset=*/12, parent};
+    an_ifc_decl_index       stage_1;
+    a_boolean               stage_2;
+
+    /* Copy the field (DeclDefaultArgument::home_scope - DeclIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    if (stage_1.sort == ifc_ds_decl_specialization) {
+      stage_2 = TRUE;
+    } else {
+      stage_2 = FALSE;
+    }  /* if */
+    if (stage_2) {
+      an_ifc_decl_index          stage_3_0;
+      an_ifc_decl_specialization stage_3_1;
+      an_ifc_decl_index_0_43     stage_3_2;
+      an_ifc_validation_trace    stage_3_2_trace =
+                                                {"decl", /*offset=*/4, parent};
+
+      stage_3_0 = stage_1;
+      if (stage_3_0.sort != ifc_ds_decl_specialization) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      /* Use the obtained index to retrieve the appropriate instance of
+         DeclSpecialization.  Then, retrieve and return the desired value held
+         by the field decl. */
+      construct_node_unchecked(&stage_3_1, stage_3_0);
+      /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_3_2) == 4,
+                    "stage_3_2 is not properly sized storage!");
+      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      if (!validate_index(stage_3_1.get_module(), stage_3_2,
+                          &stage_3_2_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (has_ifc_initializer(universal)) {
+    an_ifc_expr_index_0_42  stage_0;
+    an_ifc_validation_trace stage_0_trace =
+                                        {"initializer", /*offset=*/16, parent};
+
+    /* Copy the field (DeclDefaultArgument::initializer - ExprIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+  if (has_ifc_locus(universal)) {
+    an_ifc_source_location_bytes stage_0;
+    an_ifc_validation_trace      stage_0_trace =
+                                               {"locus", /*offset=*/0, parent};
+    an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+    /* Update the universal storage pointer to the start of the field
+       (DeclDefaultArgument::locus - SourceLocation). */
+    stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
+#else /* !USE_MMAP_FOR_MODULES */
+    /* Copy the field (DeclDefaultArgument::locus - SourceLocation) into
+       universal storage. */
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                   /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+    stage_1 = {universal.get_module(), stage_0};
+    if (!validate(stage_1, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+  if (has_ifc_type(universal)) {
+    an_ifc_type_index_0_33  stage_0;
+    an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/8, parent};
+
+    /* Copy the field (DeclDefaultArgument::type - TypeIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* validate */
+
+
+template<>
 a_boolean validate(const an_ifc_decl_destructor  &universal,
                    const an_ifc_validation_trace *parent)
 /*
@@ -5715,7 +6595,56 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace =
+                                         {"home_scope", /*offset=*/12, parent};
+      an_ifc_decl_index       stage_1;
+      a_boolean               stage_2;
+
+      /* Copy the field (DeclDestructor::home_scope - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      if (stage_1.sort == ifc_ds_decl_specialization) {
+        stage_2 = TRUE;
+      } else {
+        stage_2 = FALSE;
+      }  /* if */
+      if (stage_2) {
+        an_ifc_decl_index          stage_3_0;
+        an_ifc_decl_specialization stage_3_1;
+        an_ifc_decl_index_0_43     stage_3_2;
+        an_ifc_validation_trace    stage_3_2_trace =
+                                                {"decl", /*offset=*/4, parent};
+
+        stage_3_0 = stage_1;
+        if (stage_3_0.sort != ifc_ds_decl_specialization) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        /* Use the obtained index to retrieve the appropriate instance of
+           DeclSpecialization.  Then, retrieve and return the desired value
+           held by the field decl. */
+        construct_node_unchecked(&stage_3_1, stage_3_0);
+        /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+           version-specific storage. */
+        static_assert(sizeof(stage_3_2) == 4,
+                      "stage_3_2 is not properly sized storage!");
+        copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+                            &stage_3_2_trace)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/12, parent};
@@ -5803,7 +6732,67 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_name(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace =
+                                         {"home_scope", /*offset=*/12, parent};
+      an_ifc_decl_index       stage_1;
+      a_boolean               stage_2;
+
+      /* Copy the field (DeclDestructor::home_scope - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      if (stage_1.sort == ifc_ds_decl_specialization) {
+        stage_2 = TRUE;
+      } else {
+        stage_2 = FALSE;
+      }  /* if */
+      if (stage_2) {
+        an_ifc_decl_index_0_43  stage_3_0;
+        an_ifc_validation_trace stage_3_0_trace =
+                                         {"home_scope", /*offset=*/12, parent};
+        an_ifc_decl_index       stage_3_1;
+
+        /* Copy the field (DeclDestructor::home_scope - DeclIndex) into
+           version-specific storage. */
+        static_assert(sizeof(stage_3_0) == 4,
+                      "stage_3_0 is not properly sized storage!");
+        copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/12);
+        if (!validate_index(universal.get_module(), stage_3_0,
+                            &stage_3_0_trace)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        stage_3_1 = to_universal_index(universal.get_module(), stage_3_0);
+        if (!has_ifc_name(stage_3_1)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        if (!validate(stage_3_1)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      } else {
+        an_ifc_decl_index stage_3_0;
+
+        stage_3_0 = get_ifc_home_scope(universal);
+        if (!has_ifc_name(stage_3_0)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        if (!validate(stage_3_0)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/12, parent};
@@ -5952,7 +6941,56 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace =
+                                         {"home_scope", /*offset=*/28, parent};
+      an_ifc_decl_index       stage_1;
+      a_boolean               stage_2;
+
+      /* Copy the field (DeclEnumeration::home_scope - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      if (stage_1.sort == ifc_ds_decl_specialization) {
+        stage_2 = TRUE;
+      } else {
+        stage_2 = FALSE;
+      }  /* if */
+      if (stage_2) {
+        an_ifc_decl_index          stage_3_0;
+        an_ifc_decl_specialization stage_3_1;
+        an_ifc_decl_index_0_43     stage_3_2;
+        an_ifc_validation_trace    stage_3_2_trace =
+                                                {"decl", /*offset=*/4, parent};
+
+        stage_3_0 = stage_1;
+        if (stage_3_0.sort != ifc_ds_decl_specialization) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        /* Use the obtained index to retrieve the appropriate instance of
+           DeclSpecialization.  Then, retrieve and return the desired value
+           held by the field decl. */
+        construct_node_unchecked(&stage_3_1, stage_3_0);
+        /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+           version-specific storage. */
+        static_assert(sizeof(stage_3_2) == 4,
+                      "stage_3_2 is not properly sized storage!");
+        copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+                            &stage_3_2_trace)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/28, parent};
@@ -6105,7 +7143,78 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_type_index_0_33  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/12, parent};
+      an_ifc_type_index       stage_1;
+      an_ifc_type_designated  stage_2;
+      an_ifc_decl_index_0_43  stage_3;
+      an_ifc_validation_trace stage_3_trace =
+                                        {"decl", /*offset=*/0, &stage_0_trace};
+      an_ifc_decl_index       stage_4;
+      a_boolean               stage_5;
+
+      /* Copy the field (DeclEnumerator::type - TypeIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      if (stage_1.sort != ifc_ts_type_designated) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      /* Use the obtained index to retrieve the appropriate instance of
+         TypeDesignated.  Then, retrieve and return the desired value held by
+         the field decl. */
+      construct_node_unchecked(&stage_2, stage_1);
+      /* Copy the field (TypeDesignated::decl - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_3) == 4,
+                    "stage_3 is not properly sized storage!");
+      copy_ifc_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
+      if (!validate_index(stage_2.get_module(), stage_3, &stage_3_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_4 = to_universal_index(stage_2.get_module(), stage_3);
+      if (stage_4.sort == ifc_ds_decl_specialization) {
+        stage_5 = TRUE;
+      } else {
+        stage_5 = FALSE;
+      }  /* if */
+      if (stage_5) {
+        an_ifc_decl_index          stage_6_0;
+        an_ifc_decl_specialization stage_6_1;
+        an_ifc_decl_index_0_43     stage_6_2;
+        an_ifc_validation_trace    stage_6_2_trace =
+                                                {"decl", /*offset=*/4, parent};
+
+        stage_6_0 = stage_4;
+        if (stage_6_0.sort != ifc_ds_decl_specialization) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        /* Use the obtained index to retrieve the appropriate instance of
+           DeclSpecialization.  Then, retrieve and return the desired value
+           held by the field decl. */
+        construct_node_unchecked(&stage_6_1, stage_6_0);
+        /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+           version-specific storage. */
+        static_assert(sizeof(stage_6_2) == 4,
+                      "stage_6_2 is not properly sized storage!");
+        copy_ifc_field(&stage_6_2, stage_6_1.get_storage(), /*offset=*/4);
+        if (!validate_index(stage_6_1.get_module(), stage_6_2,
+                            &stage_6_2_trace)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_type_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/12, parent};
       an_ifc_type_index       stage_1;
@@ -6319,7 +7428,21 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_operand(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace =
+                                             {"operand", /*offset=*/0, parent};
+
+      /* Copy the field (DeclExpansion::operand - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                              {"operand", /*offset=*/0, parent};
@@ -6468,7 +7591,56 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace =
+                                         {"home_scope", /*offset=*/16, parent};
+      an_ifc_decl_index       stage_1;
+      a_boolean               stage_2;
+
+      /* Copy the field (DeclField::home_scope - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      if (stage_1.sort == ifc_ds_decl_specialization) {
+        stage_2 = TRUE;
+      } else {
+        stage_2 = FALSE;
+      }  /* if */
+      if (stage_2) {
+        an_ifc_decl_index          stage_3_0;
+        an_ifc_decl_specialization stage_3_1;
+        an_ifc_decl_index_0_43     stage_3_2;
+        an_ifc_validation_trace    stage_3_2_trace =
+                                                {"decl", /*offset=*/4, parent};
+
+        stage_3_0 = stage_1;
+        if (stage_3_0.sort != ifc_ds_decl_specialization) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        /* Use the obtained index to retrieve the appropriate instance of
+           DeclSpecialization.  Then, retrieve and return the desired value
+           held by the field decl. */
+        construct_node_unchecked(&stage_3_1, stage_3_0);
+        /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+           version-specific storage. */
+        static_assert(sizeof(stage_3_2) == 4,
+                      "stage_3_2 is not properly sized storage!");
+        copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+                            &stage_3_2_trace)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
@@ -6688,7 +7860,56 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace =
+                                         {"home_scope", /*offset=*/16, parent};
+      an_ifc_decl_index       stage_1;
+      a_boolean               stage_2;
+
+      /* Copy the field (DeclFunction::home_scope - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      if (stage_1.sort == ifc_ds_decl_specialization) {
+        stage_2 = TRUE;
+      } else {
+        stage_2 = FALSE;
+      }  /* if */
+      if (stage_2) {
+        an_ifc_decl_index          stage_3_0;
+        an_ifc_decl_specialization stage_3_1;
+        an_ifc_decl_index_0_43     stage_3_2;
+        an_ifc_validation_trace    stage_3_2_trace =
+                                                {"decl", /*offset=*/4, parent};
+
+        stage_3_0 = stage_1;
+        if (stage_3_0.sort != ifc_ds_decl_specialization) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        /* Use the obtained index to retrieve the appropriate instance of
+           DeclSpecialization.  Then, retrieve and return the desired value
+           held by the field decl. */
+        construct_node_unchecked(&stage_3_1, stage_3_0);
+        /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+           version-specific storage. */
+        static_assert(sizeof(stage_3_2) == 4,
+                      "stage_3_2 is not properly sized storage!");
+        copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+                            &stage_3_2_trace)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
@@ -6833,7 +8054,21 @@ the representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_base_ctor(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace =
+                                          {"base_ctor", /*offset=*/28, parent};
+
+      /* Copy the field (DeclInheritedConstructor::base_ctor - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                           {"base_ctor", /*offset=*/28, parent};
@@ -6878,7 +8113,56 @@ the representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace =
+                                         {"home_scope", /*offset=*/16, parent};
+      an_ifc_decl_index       stage_1;
+      a_boolean               stage_2;
+
+      /* Copy the field (DeclInheritedConstructor::home_scope - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      if (stage_1.sort == ifc_ds_decl_specialization) {
+        stage_2 = TRUE;
+      } else {
+        stage_2 = FALSE;
+      }  /* if */
+      if (stage_2) {
+        an_ifc_decl_index          stage_3_0;
+        an_ifc_decl_specialization stage_3_1;
+        an_ifc_decl_index_0_43     stage_3_2;
+        an_ifc_validation_trace    stage_3_2_trace =
+                                                {"decl", /*offset=*/4, parent};
+
+        stage_3_0 = stage_1;
+        if (stage_3_0.sort != ifc_ds_decl_specialization) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        /* Use the obtained index to retrieve the appropriate instance of
+           DeclSpecialization.  Then, retrieve and return the desired value
+           held by the field decl. */
+        construct_node_unchecked(&stage_3_1, stage_3_0);
+        /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+           version-specific storage. */
+        static_assert(sizeof(stage_3_2) == 4,
+                      "stage_3_2 is not properly sized storage!");
+        copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+                            &stage_3_2_trace)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
@@ -7009,7 +8293,56 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace =
+                                         {"home_scope", /*offset=*/16, parent};
+      an_ifc_decl_index       stage_1;
+      a_boolean               stage_2;
+
+      /* Copy the field (DeclIntrinsic::home_scope - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      if (stage_1.sort == ifc_ds_decl_specialization) {
+        stage_2 = TRUE;
+      } else {
+        stage_2 = FALSE;
+      }  /* if */
+      if (stage_2) {
+        an_ifc_decl_index          stage_3_0;
+        an_ifc_decl_specialization stage_3_1;
+        an_ifc_decl_index_0_43     stage_3_2;
+        an_ifc_validation_trace    stage_3_2_trace =
+                                                {"decl", /*offset=*/4, parent};
+
+        stage_3_0 = stage_1;
+        if (stage_3_0.sort != ifc_ds_decl_specialization) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        /* Use the obtained index to retrieve the appropriate instance of
+           DeclSpecialization.  Then, retrieve and return the desired value
+           held by the field decl. */
+        construct_node_unchecked(&stage_3_1, stage_3_0);
+        /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+           version-specific storage. */
+        static_assert(sizeof(stage_3_2) == 4,
+                      "stage_3_2 is not properly sized storage!");
+        copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+                            &stage_3_2_trace)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
@@ -7154,7 +8487,56 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace =
+                                         {"home_scope", /*offset=*/16, parent};
+      an_ifc_decl_index       stage_1;
+      a_boolean               stage_2;
+
+      /* Copy the field (DeclMethod::home_scope - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      if (stage_1.sort == ifc_ds_decl_specialization) {
+        stage_2 = TRUE;
+      } else {
+        stage_2 = FALSE;
+      }  /* if */
+      if (stage_2) {
+        an_ifc_decl_index          stage_3_0;
+        an_ifc_decl_specialization stage_3_1;
+        an_ifc_decl_index_0_43     stage_3_2;
+        an_ifc_validation_trace    stage_3_2_trace =
+                                                {"decl", /*offset=*/4, parent};
+
+        stage_3_0 = stage_1;
+        if (stage_3_0.sort != ifc_ds_decl_specialization) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        /* Use the obtained index to retrieve the appropriate instance of
+           DeclSpecialization.  Then, retrieve and return the desired value
+           held by the field decl. */
+        construct_node_unchecked(&stage_3_1, stage_3_0);
+        /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+           version-specific storage. */
+        static_assert(sizeof(stage_3_2) == 4,
+                      "stage_3_2 is not properly sized storage!");
+        copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+                            &stage_3_2_trace)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
@@ -7477,7 +8859,51 @@ the representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_parameterized_entity_bytes stage_0;
+      an_ifc_validation_trace           stage_0_trace =
+                                             {"entity", /*offset=*/20, parent};
+      an_ifc_parameterized_entity       stage_1;
+      an_ifc_decl_index_0_43            stage_2;
+      an_ifc_validation_trace           stage_2_trace =
+                                        {"decl", /*offset=*/0, &stage_0_trace};
+      an_ifc_decl_index                 stage_3;
+
+#if USE_MMAP_FOR_MODULES
+      /* Update the universal storage pointer to the start of the field
+         (DeclPartialSpecialization::entity - ParameterizedEntity). */
+      stage_0 = (an_ifc_parameterized_entity_bytes)(
+                                              (*universal.get_storage()) + 20);
+#else /* !USE_MMAP_FOR_MODULES */
+      /* Copy the field (DeclPartialSpecialization::entity -
+         ParameterizedEntity) into universal storage. */
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                     /*size=*/16);
+#endif /* USE_MMAP_FOR_MODULES */
+      stage_1 = {universal.get_module(), stage_0};
+      if (!validate(stage_1, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      /* Copy the field (ParameterizedEntity::decl - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_2) == 4,
+                    "stage_2 is not properly sized storage!");
+      copy_ifc_field(&stage_2, stage_1.get_storage(), /*offset=*/0);
+      if (!validate_index(stage_1.get_module(), stage_2, &stage_2_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_3 = to_universal_index(stage_1.get_module(), stage_2);
+      if (!has_ifc_home_scope(stage_3)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      if (!validate(stage_3)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_parameterized_entity_bytes stage_0;
       an_ifc_validation_trace           stage_0_trace =
                                              {"entity", /*offset=*/20, parent};
@@ -7603,7 +9029,37 @@ the representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_primary_template(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_form_spec_index_0_33 stage_0;
+      an_ifc_validation_trace     stage_0_trace =
+                                               {"form", /*offset=*/36, parent};
+      an_ifc_form_spec_index      stage_1;
+      an_ifc_form_spec            stage_2;
+      an_ifc_decl_index_0_43      stage_3;
+      an_ifc_validation_trace     stage_3_trace =
+                            {"primary_template", /*offset=*/0, &stage_0_trace};
+
+      /* Copy the field (DeclPartialSpecialization::form - FormSpecIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36);
+      stage_1 = {universal.get_module(),
+                 (an_ifc_form_spec_index_storage)stage_0};
+      /* Use the obtained offset to retrieve the appropriate instance of
+         FormSpec.  Then, retrieve and return the desired value held by the
+         field primary_template. */
+      construct_node_unchecked(&stage_2, stage_1);
+      /* Copy the field (FormSpec::primary_template - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_3) == 4,
+                    "stage_3 is not properly sized storage!");
+      copy_ifc_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
+      if (!validate_index(stage_2.get_module(), stage_3, &stage_3_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_form_spec_index_0_33 stage_0;
       an_ifc_validation_trace     stage_0_trace =
                                                {"form", /*offset=*/36, parent};
@@ -7681,7 +9137,20 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_member(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"member", /*offset=*/0, parent};
+
+      /* Copy the field (DeclProperty::member - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"member", /*offset=*/0, parent};
 
@@ -7864,7 +9333,56 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace =
+                                         {"home_scope", /*offset=*/24, parent};
+      an_ifc_decl_index       stage_1;
+      a_boolean               stage_2;
+
+      /* Copy the field (DeclScope::home_scope - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      if (stage_1.sort == ifc_ds_decl_specialization) {
+        stage_2 = TRUE;
+      } else {
+        stage_2 = FALSE;
+      }  /* if */
+      if (stage_2) {
+        an_ifc_decl_index          stage_3_0;
+        an_ifc_decl_specialization stage_3_1;
+        an_ifc_decl_index_0_43     stage_3_2;
+        an_ifc_validation_trace    stage_3_2_trace =
+                                                {"decl", /*offset=*/4, parent};
+
+        stage_3_0 = stage_1;
+        if (stage_3_0.sort != ifc_ds_decl_specialization) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        /* Use the obtained index to retrieve the appropriate instance of
+           DeclSpecialization.  Then, retrieve and return the desired value
+           held by the field decl. */
+        construct_node_unchecked(&stage_3_1, stage_3_0);
+        /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+           version-specific storage. */
+        static_assert(sizeof(stage_3_2) == 4,
+                      "stage_3_2 is not properly sized storage!");
+        copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+                            &stage_3_2_trace)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/24, parent};
@@ -7995,65 +9513,130 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    an_ifc_decl_index_0_41  stage_0;
-    an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/4, parent};
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/4, parent};
 
-    /* Copy the field (DeclSpecialization::decl - DeclIndex) into
-       version-specific storage. */
-    static_assert(sizeof(stage_0) == 4,
-                  "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
-      result = FALSE;
-      goto done;
+      /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else {
+      an_ifc_decl_index_0_41  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/4, parent};
+
+      /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    an_ifc_decl_index_0_41  stage_0;
-    an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/4, parent};
-    an_ifc_decl_index       stage_1;
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/4, parent};
+      an_ifc_decl_index       stage_1;
 
-    /* Copy the field (DeclSpecialization::decl - DeclIndex) into
-       version-specific storage. */
-    static_assert(sizeof(stage_0) == 4,
-                  "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
-      result = FALSE;
-      goto done;
-    }  /* if */
-    stage_1 = to_universal_index(universal.get_module(), stage_0);
-    if (!has_ifc_home_scope(stage_1)) {
-      result = FALSE;
-      goto done;
-    }  /* if */
-    if (!validate(stage_1)) {
-      result = FALSE;
-      goto done;
+      /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      if (!has_ifc_home_scope(stage_1)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      if (!validate(stage_1)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else {
+      an_ifc_decl_index_0_41  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/4, parent};
+      an_ifc_decl_index       stage_1;
+
+      /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      if (!has_ifc_home_scope(stage_1)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      if (!validate(stage_1)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_locus(universal)) {
-    an_ifc_decl_index_0_41  stage_0;
-    an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/4, parent};
-    an_ifc_decl_index       stage_1;
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/4, parent};
+      an_ifc_decl_index       stage_1;
 
-    /* Copy the field (DeclSpecialization::decl - DeclIndex) into
-       version-specific storage. */
-    static_assert(sizeof(stage_0) == 4,
-                  "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
-      result = FALSE;
-      goto done;
-    }  /* if */
-    stage_1 = to_universal_index(universal.get_module(), stage_0);
-    if (!has_ifc_locus(stage_1)) {
-      result = FALSE;
-      goto done;
-    }  /* if */
-    if (!validate(stage_1)) {
-      result = FALSE;
-      goto done;
+      /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      if (!has_ifc_locus(stage_1)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      if (!validate(stage_1)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else {
+      an_ifc_decl_index_0_41  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/4, parent};
+      an_ifc_decl_index       stage_1;
+
+      /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      if (!has_ifc_locus(stage_1)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      if (!validate(stage_1)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_name(universal)) {
@@ -8070,33 +9653,66 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_primary_template(universal)) {
-    an_ifc_form_spec_index_0_33 stage_0;
-    an_ifc_validation_trace     stage_0_trace = {"form", /*offset=*/0, parent};
-    an_ifc_form_spec_index      stage_1;
-    an_ifc_form_spec            stage_2;
-    an_ifc_decl_index_0_41      stage_3;
-    an_ifc_validation_trace     stage_3_trace =
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_form_spec_index_0_33 stage_0;
+      an_ifc_validation_trace     stage_0_trace =
+                                                {"form", /*offset=*/0, parent};
+      an_ifc_form_spec_index      stage_1;
+      an_ifc_form_spec            stage_2;
+      an_ifc_decl_index_0_43      stage_3;
+      an_ifc_validation_trace     stage_3_trace =
                             {"primary_template", /*offset=*/0, &stage_0_trace};
 
-    /* Copy the field (DeclSpecialization::form - FormSpecIndex) into
-       version-specific storage. */
-    static_assert(sizeof(stage_0) == 4,
-                  "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    stage_1 = {universal.get_module(),
-               (an_ifc_form_spec_index_storage)stage_0};
-    /* Use the obtained offset to retrieve the appropriate instance of
-       FormSpec.  Then, retrieve and return the desired value held by the field
-       primary_template. */
-    construct_node_unchecked(&stage_2, stage_1);
-    /* Copy the field (FormSpec::primary_template - DeclIndex) into
-       version-specific storage. */
-    static_assert(sizeof(stage_3) == 4,
-                  "stage_3 is not properly sized storage!");
-    copy_ifc_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
-    if (!validate_index(stage_2.get_module(), stage_3, &stage_3_trace)) {
-      result = FALSE;
-      goto done;
+      /* Copy the field (DeclSpecialization::form - FormSpecIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+      stage_1 = {universal.get_module(),
+                 (an_ifc_form_spec_index_storage)stage_0};
+      /* Use the obtained offset to retrieve the appropriate instance of
+         FormSpec.  Then, retrieve and return the desired value held by the
+         field primary_template. */
+      construct_node_unchecked(&stage_2, stage_1);
+      /* Copy the field (FormSpec::primary_template - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_3) == 4,
+                    "stage_3 is not properly sized storage!");
+      copy_ifc_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
+      if (!validate_index(stage_2.get_module(), stage_3, &stage_3_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else {
+      an_ifc_form_spec_index_0_33 stage_0;
+      an_ifc_validation_trace     stage_0_trace =
+                                                {"form", /*offset=*/0, parent};
+      an_ifc_form_spec_index      stage_1;
+      an_ifc_form_spec            stage_2;
+      an_ifc_decl_index_0_41      stage_3;
+      an_ifc_validation_trace     stage_3_trace =
+                            {"primary_template", /*offset=*/0, &stage_0_trace};
+
+      /* Copy the field (DeclSpecialization::form - FormSpecIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+      stage_1 = {universal.get_module(),
+                 (an_ifc_form_spec_index_storage)stage_0};
+      /* Use the obtained offset to retrieve the appropriate instance of
+         FormSpec.  Then, retrieve and return the desired value held by the
+         field primary_template. */
+      construct_node_unchecked(&stage_2, stage_1);
+      /* Copy the field (FormSpec::primary_template - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_3) == 4,
+                    "stage_3 is not properly sized storage!");
+      copy_ifc_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
+      if (!validate_index(stage_2.get_module(), stage_3, &stage_3_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_sort(universal)) {
@@ -8181,7 +9797,56 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace =
+                                         {"home_scope", /*offset=*/12, parent};
+      an_ifc_decl_index       stage_1;
+      a_boolean               stage_2;
+
+      /* Copy the field (DeclTemplate::home_scope - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      if (stage_1.sort == ifc_ds_decl_specialization) {
+        stage_2 = TRUE;
+      } else {
+        stage_2 = FALSE;
+      }  /* if */
+      if (stage_2) {
+        an_ifc_decl_index          stage_3_0;
+        an_ifc_decl_specialization stage_3_1;
+        an_ifc_decl_index_0_43     stage_3_2;
+        an_ifc_validation_trace    stage_3_2_trace =
+                                                {"decl", /*offset=*/4, parent};
+
+        stage_3_0 = stage_1;
+        if (stage_3_0.sort != ifc_ds_decl_specialization) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        /* Use the obtained index to retrieve the appropriate instance of
+           DeclSpecialization.  Then, retrieve and return the desired value
+           held by the field decl. */
+        construct_node_unchecked(&stage_3_1, stage_3_0);
+        /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+           version-specific storage. */
+        static_assert(sizeof(stage_3_2) == 4,
+                      "stage_3_2 is not properly sized storage!");
+        copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+                            &stage_3_2_trace)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/12, parent};
@@ -8269,7 +9934,112 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_name(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_parameterized_entity_bytes stage_0;
+      an_ifc_validation_trace           stage_0_trace =
+                                             {"entity", /*offset=*/20, parent};
+      an_ifc_parameterized_entity       stage_1;
+      an_ifc_decl_index_0_43            stage_2;
+      an_ifc_validation_trace           stage_2_trace =
+                                        {"decl", /*offset=*/0, &stage_0_trace};
+      an_ifc_decl_index                 stage_3;
+      a_boolean                         stage_4;
+
+#if USE_MMAP_FOR_MODULES
+      /* Update the universal storage pointer to the start of the field
+         (DeclTemplate::entity - ParameterizedEntity). */
+      stage_0 = (an_ifc_parameterized_entity_bytes)(
+                                              (*universal.get_storage()) + 20);
+#else /* !USE_MMAP_FOR_MODULES */
+      /* Copy the field (DeclTemplate::entity - ParameterizedEntity) into
+         universal storage. */
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                     /*size=*/16);
+#endif /* USE_MMAP_FOR_MODULES */
+      stage_1 = {universal.get_module(), stage_0};
+      if (!validate(stage_1, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      /* Copy the field (ParameterizedEntity::decl - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_2) == 4,
+                    "stage_2 is not properly sized storage!");
+      copy_ifc_field(&stage_2, stage_1.get_storage(), /*offset=*/0);
+      if (!validate_index(stage_1.get_module(), stage_2, &stage_2_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_3 = to_universal_index(stage_1.get_module(), stage_2);
+      if (stage_3.sort == ifc_ds_decl_constructor) {
+        stage_4 = TRUE;
+      } else if (stage_3.sort == ifc_ds_decl_destructor) {
+        stage_4 = TRUE;
+      } else {
+        stage_4 = FALSE;
+      }  /* if */
+      if (stage_4) {
+        an_ifc_parameterized_entity_bytes stage_5_0;
+        an_ifc_validation_trace           stage_5_0_trace =
+                                             {"entity", /*offset=*/20, parent};
+        an_ifc_parameterized_entity       stage_5_1;
+        an_ifc_decl_index_0_43            stage_5_2;
+        an_ifc_validation_trace           stage_5_2_trace =
+                                      {"decl", /*offset=*/0, &stage_5_0_trace};
+        an_ifc_decl_index                 stage_5_3;
+
+#if USE_MMAP_FOR_MODULES
+        /* Update the universal storage pointer to the start of the field
+           (DeclTemplate::entity - ParameterizedEntity). */
+        stage_5_0 = (an_ifc_parameterized_entity_bytes)(
+                                              (*universal.get_storage()) + 20);
+#else /* !USE_MMAP_FOR_MODULES */
+        /* Copy the field (DeclTemplate::entity - ParameterizedEntity) into
+           universal storage. */
+        copy_ifc_field(&stage_5_0, universal.get_storage(), /*offset=*/20,
+                       /*size=*/16);
+#endif /* USE_MMAP_FOR_MODULES */
+        stage_5_1 = {universal.get_module(), stage_5_0};
+        if (!validate(stage_5_1, &stage_5_0_trace)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        /* Copy the field (ParameterizedEntity::decl - DeclIndex) into
+           version-specific storage. */
+        static_assert(sizeof(stage_5_2) == 4,
+                      "stage_5_2 is not properly sized storage!");
+        copy_ifc_field(&stage_5_2, stage_5_1.get_storage(), /*offset=*/0);
+        if (!validate_index(stage_5_1.get_module(), stage_5_2,
+                            &stage_5_2_trace)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        stage_5_3 = to_universal_index(stage_5_1.get_module(), stage_5_2);
+        if (!has_ifc_name(stage_5_3)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        if (!validate(stage_5_3)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      } else {
+        an_ifc_name_index_0_33  stage_5_0;
+        an_ifc_validation_trace stage_5_0_trace =
+                                                {"name", /*offset=*/0, parent};
+
+        /* Copy the field (DeclTemplate::name - NameIndex) into
+           version-specific storage. */
+        static_assert(sizeof(stage_5_0) == 4,
+                      "stage_5_0 is not properly sized storage!");
+        copy_ifc_field(&stage_5_0, universal.get_storage(), /*offset=*/0);
+        if (!validate_index(universal.get_module(), stage_5_0,
+                            &stage_5_0_trace)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_parameterized_entity_bytes stage_0;
       an_ifc_validation_trace           stage_0_trace =
                                              {"entity", /*offset=*/20, parent};
@@ -8591,7 +10361,56 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace =
+                                         {"home_scope", /*offset=*/12, parent};
+      an_ifc_decl_index       stage_1;
+      a_boolean               stage_2;
+
+      /* Copy the field (DeclUsingDeclaration::home_scope - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      if (stage_1.sort == ifc_ds_decl_specialization) {
+        stage_2 = TRUE;
+      } else {
+        stage_2 = FALSE;
+      }  /* if */
+      if (stage_2) {
+        an_ifc_decl_index          stage_3_0;
+        an_ifc_decl_specialization stage_3_1;
+        an_ifc_decl_index_0_43     stage_3_2;
+        an_ifc_validation_trace    stage_3_2_trace =
+                                                {"decl", /*offset=*/4, parent};
+
+        stage_3_0 = stage_1;
+        if (stage_3_0.sort != ifc_ds_decl_specialization) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        /* Use the obtained index to retrieve the appropriate instance of
+           DeclSpecialization.  Then, retrieve and return the desired value
+           held by the field decl. */
+        construct_node_unchecked(&stage_3_1, stage_3_0);
+        /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+           version-specific storage. */
+        static_assert(sizeof(stage_3_2) == 4,
+                      "stage_3_2 is not properly sized storage!");
+        copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+                            &stage_3_2_trace)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/12, parent};
@@ -8710,7 +10529,21 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_resolution(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace =
+                                         {"resolution", /*offset=*/16, parent};
+
+      /* Copy the field (DeclUsingDeclaration::resolution - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"resolution", /*offset=*/16, parent};
@@ -8801,7 +10634,56 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace =
+                                         {"home_scope", /*offset=*/16, parent};
+      an_ifc_decl_index       stage_1;
+      a_boolean               stage_2;
+
+      /* Copy the field (DeclVariable::home_scope - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      if (stage_1.sort == ifc_ds_decl_specialization) {
+        stage_2 = TRUE;
+      } else {
+        stage_2 = FALSE;
+      }  /* if */
+      if (stage_2) {
+        an_ifc_decl_index          stage_3_0;
+        an_ifc_decl_specialization stage_3_1;
+        an_ifc_decl_index_0_43     stage_3_2;
+        an_ifc_validation_trace    stage_3_2_trace =
+                                                {"decl", /*offset=*/4, parent};
+
+        stage_3_0 = stage_1;
+        if (stage_3_0.sort != ifc_ds_decl_specialization) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        /* Use the obtained index to retrieve the appropriate instance of
+           DeclSpecialization.  Then, retrieve and return the desired value
+           held by the field decl. */
+        construct_node_unchecked(&stage_3_1, stage_3_0);
+        /* Copy the field (DeclSpecialization::decl - DeclIndex) into
+           version-specific storage. */
+        static_assert(sizeof(stage_3_2) == 4,
+                      "stage_3_2 is not properly sized storage!");
+        copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+                            &stage_3_2_trace)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
@@ -9245,18 +11127,34 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_operation(universal)) {
-    an_ifc_dyadic_operator_sort_0_33 stage_0;
-    an_ifc_validation_trace          stage_0_trace =
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_dyadic_operator_sort_0_43 stage_0;
+      an_ifc_validation_trace          stage_0_trace =
                                           {"operation", /*offset=*/20, parent};
 
-    /* Copy the field (ExprBinaryFold::operation - DyadicOperatorSort) into
-       version-specific storage. */
-    static_assert(sizeof(stage_0) == 2,
-                  "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
-      result = FALSE;
-      goto done;
+      /* Copy the field (ExprBinaryFold::operation - DyadicOperatorSort) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 2,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else {
+      an_ifc_dyadic_operator_sort_0_33 stage_0;
+      an_ifc_validation_trace          stage_0_trace =
+                                          {"operation", /*offset=*/20, parent};
+
+      /* Copy the field (ExprBinaryFold::operation - DyadicOperatorSort) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 2,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_right(universal)) {
@@ -9453,18 +11351,34 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_op(universal)) {
-    an_ifc_dyadic_operator_sort_0_33 stage_0;
-    an_ifc_validation_trace          stage_0_trace =
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_dyadic_operator_sort_0_43 stage_0;
+      an_ifc_validation_trace          stage_0_trace =
                                                  {"op", /*offset=*/20, parent};
 
-    /* Copy the field (ExprCast::op - DyadicOperatorSort) into version-specific
-       storage. */
-    static_assert(sizeof(stage_0) == 2,
-                  "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
-      result = FALSE;
-      goto done;
+      /* Copy the field (ExprCast::op - DyadicOperatorSort) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 2,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else {
+      an_ifc_dyadic_operator_sort_0_33 stage_0;
+      an_ifc_validation_trace          stage_0_trace =
+                                                 {"op", /*offset=*/20, parent};
+
+      /* Copy the field (ExprCast::op - DyadicOperatorSort) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 2,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_source(universal)) {
@@ -9943,22 +11857,51 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_assoc(universal)) {
-    an_ifc_dyadic_operator_sort_0_33 stage_0;
-    an_ifc_validation_trace          stage_0_trace =
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_dyadic_operator_sort_0_43 stage_0;
+      an_ifc_validation_trace          stage_0_trace =
                                               {"assoc", /*offset=*/24, parent};
 
-    /* Copy the field (ExprDyad::assoc - DyadicOperatorSort) into
-       version-specific storage. */
-    static_assert(sizeof(stage_0) == 2,
-                  "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
-      result = FALSE;
-      goto done;
+      /* Copy the field (ExprDyad::assoc - DyadicOperatorSort) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 2,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else {
+      an_ifc_dyadic_operator_sort_0_33 stage_0;
+      an_ifc_validation_trace          stage_0_trace =
+                                              {"assoc", /*offset=*/24, parent};
+
+      /* Copy the field (ExprDyad::assoc - DyadicOperatorSort) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 2,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_impl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"impl", /*offset=*/12, parent};
+
+      /* Copy the field (ExprDyad::impl - DeclIndex) into version-specific
+         storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"impl", /*offset=*/12, parent};
 
@@ -10460,18 +12403,34 @@ the representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_op(universal)) {
-    an_ifc_dyadic_operator_sort_0_33 stage_0;
-    an_ifc_validation_trace          stage_0_trace =
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_dyadic_operator_sort_0_43 stage_0;
+      an_ifc_validation_trace          stage_0_trace =
                                                  {"op", /*offset=*/28, parent};
 
-    /* Copy the field (ExprHierarchyConversion::op - DyadicOperatorSort) into
-       version-specific storage. */
-    static_assert(sizeof(stage_0) == 2,
-                  "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
-      result = FALSE;
-      goto done;
+      /* Copy the field (ExprHierarchyConversion::op - DyadicOperatorSort) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 2,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else {
+      an_ifc_dyadic_operator_sort_0_33 stage_0;
+      an_ifc_validation_trace          stage_0_trace =
+                                                 {"op", /*offset=*/28, parent};
+
+      /* Copy the field (ExprHierarchyConversion::op - DyadicOperatorSort) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 2,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_override(universal)) {
@@ -11221,7 +13180,21 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_member(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace =
+                                             {"member", /*offset=*/12, parent};
+
+      /* Copy the field (ExprMemberInitializer::member - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                              {"member", /*offset=*/12, parent};
@@ -11312,22 +13285,51 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_assoc(universal)) {
-    an_ifc_monadic_operator_sort_0_33 stage_0;
-    an_ifc_validation_trace           stage_0_trace =
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_monadic_operator_sort_0_43 stage_0;
+      an_ifc_validation_trace           stage_0_trace =
                                               {"assoc", /*offset=*/20, parent};
 
-    /* Copy the field (ExprMonad::assoc - MonadicOperatorSort) into
-       version-specific storage. */
-    static_assert(sizeof(stage_0) == 2,
-                  "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
-      result = FALSE;
-      goto done;
+      /* Copy the field (ExprMonad::assoc - MonadicOperatorSort) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 2,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else {
+      an_ifc_monadic_operator_sort_0_33 stage_0;
+      an_ifc_validation_trace           stage_0_trace =
+                                              {"assoc", /*offset=*/20, parent};
+
+      /* Copy the field (ExprMonad::assoc - MonadicOperatorSort) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 2,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_impl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"impl", /*offset=*/12, parent};
+
+      /* Copy the field (ExprMonad::impl - DeclIndex) into version-specific
+         storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"impl", /*offset=*/12, parent};
 
@@ -11429,7 +13431,21 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_resolution(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace =
+                                         {"resolution", /*offset=*/12, parent};
+
+      /* Copy the field (ExprNamedDecl::resolution - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"resolution", /*offset=*/12, parent};
@@ -12698,7 +14714,21 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_variant(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace =
+                                            {"variant", /*offset=*/12, parent};
+
+      /* Copy the field (ExprSumTypeValue::variant - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                             {"variant", /*offset=*/12, parent};
@@ -12886,7 +14916,21 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_arguments(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_expr_index_0_42  stage_0;
+      an_ifc_validation_trace stage_0_trace =
+                                          {"arguments", /*offset=*/24, parent};
+
+      /* Copy the field (ExprTemplateReference::arguments - ExprIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                           {"arguments", /*offset=*/28, parent};
@@ -12938,6 +14982,20 @@ representation is valid; otherwise, return FALSE.
       goto done;
     }  /* if */
   }  /* if */
+  if (has_ifc_member(universal)) {
+    an_ifc_decl_index_0_43  stage_0;
+    an_ifc_validation_trace stage_0_trace = {"member", /*offset=*/12, parent};
+
+    /* Copy the field (ExprTemplateReference::member - DeclIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
   if (has_ifc_member_locus(universal)) {
     an_ifc_source_location_bytes stage_0;
     an_ifc_validation_trace      stage_0_trace =
@@ -12961,32 +15019,63 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_member_name(universal)) {
-    an_ifc_name_index_0_33  stage_0;
-    an_ifc_validation_trace stage_0_trace =
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_name_index_0_33  stage_0;
+      an_ifc_validation_trace stage_0_trace =
+                                        {"member_name", /*offset=*/16, parent};
+
+      /* Copy the field (ExprTemplateReference::member_name - NameIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else {
+      an_ifc_name_index_0_33  stage_0;
+      an_ifc_validation_trace stage_0_trace =
                                         {"member_name", /*offset=*/12, parent};
 
-    /* Copy the field (ExprTemplateReference::member_name - NameIndex) into
-       version-specific storage. */
-    static_assert(sizeof(stage_0) == 4,
-                  "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
-      result = FALSE;
-      goto done;
+      /* Copy the field (ExprTemplateReference::member_name - NameIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_scope(universal)) {
-    an_ifc_type_index_0_33  stage_0;
-    an_ifc_validation_trace stage_0_trace = {"scope", /*offset=*/24, parent};
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_type_index_0_33  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"scope", /*offset=*/20, parent};
 
-    /* Copy the field (ExprTemplateReference::scope - TypeIndex) into
-       version-specific storage. */
-    static_assert(sizeof(stage_0) == 4,
-                  "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
-      result = FALSE;
-      goto done;
+      /* Copy the field (ExprTemplateReference::scope - TypeIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else {
+      an_ifc_type_index_0_33  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"scope", /*offset=*/24, parent};
+
+      /* Copy the field (ExprTemplateReference::scope - TypeIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_type(universal)) {
@@ -13296,7 +15385,20 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_impl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"impl", /*offset=*/12, parent};
+
+      /* Copy the field (ExprTriad::impl - DeclIndex) into version-specific
+         storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"impl", /*offset=*/12, parent};
 
@@ -13508,7 +15610,22 @@ the representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_intrinsic(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_operator_category_0_43 stage_0;
+      an_ifc_validation_trace       stage_0_trace =
+                                          {"intrinsic", /*offset=*/16, parent};
+
+      /* Copy the field (ExprTypeTraitIntrinsic::intrinsic - OperatorCategory)
+         into version-specific storage. */
+      static_assert(sizeof(stage_0) == 2,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+      if (!validate_category(universal.get_module(), stage_0,
+                             &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 42)) {
       an_ifc_operator_category_0_42 stage_0;
       an_ifc_validation_trace       stage_0_trace =
                                           {"intrinsic", /*offset=*/16, parent};
@@ -13708,18 +15825,34 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_operation(universal)) {
-    an_ifc_dyadic_operator_sort_0_33 stage_0;
-    an_ifc_validation_trace          stage_0_trace =
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_dyadic_operator_sort_0_43 stage_0;
+      an_ifc_validation_trace          stage_0_trace =
                                           {"operation", /*offset=*/16, parent};
 
-    /* Copy the field (ExprUnaryFold::operation - DyadicOperatorSort) into
-       version-specific storage. */
-    static_assert(sizeof(stage_0) == 2,
-                  "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
-      result = FALSE;
-      goto done;
+      /* Copy the field (ExprUnaryFold::operation - DyadicOperatorSort) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 2,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else {
+      an_ifc_dyadic_operator_sort_0_33 stage_0;
+      an_ifc_validation_trace          stage_0_trace =
+                                          {"operation", /*offset=*/16, parent};
+
+      /* Copy the field (ExprUnaryFold::operation - DyadicOperatorSort) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 2,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_type(universal)) {
@@ -13935,7 +16068,21 @@ TRUE if the representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_function(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace =
+                                           {"function", /*offset=*/12, parent};
+
+      /* Copy the field (ExprVirtualFunctionConversion::function - DeclIndex)
+         into version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                            {"function", /*offset=*/12, parent};
@@ -14511,7 +16658,21 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_primary_template(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace =
+                                    {"primary_template", /*offset=*/0, parent};
+
+      /* Copy the field (FormSpec::primary_template - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                     {"primary_template", /*offset=*/0, parent};
@@ -14754,7 +16915,20 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_value(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"value", /*offset=*/0, parent};
+
+      /* Copy the field (HeapDecl::value - DeclIndex) into version-specific
+         storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"value", /*offset=*/0, parent};
 
@@ -15222,7 +17396,21 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_primary_template(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace =
+                                    {"primary_template", /*offset=*/0, parent};
+
+      /* Copy the field (NameGuide::primary_template - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                     {"primary_template", /*offset=*/0, parent};
@@ -15282,7 +17470,22 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_operator(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_operator_category_0_43 stage_0;
+      an_ifc_validation_trace       stage_0_trace =
+                                            {"operator", /*offset=*/4, parent};
+
+      /* Copy the field (NameOperator::operator - OperatorCategory) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 2,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+      if (!validate_category(universal.get_module(), stage_0,
+                             &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 42)) {
       an_ifc_operator_category_0_42 stage_0;
       an_ifc_validation_trace       stage_0_trace =
                                             {"operator", /*offset=*/4, parent};
@@ -15447,7 +17650,20 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_index(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"index", /*offset=*/0, parent};
+
+      /* Copy the field (ScopeMember::index - DeclIndex) into version-specific
+         storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"index", /*offset=*/0, parent};
 
@@ -15860,17 +18076,32 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    an_ifc_decl_index_0_41  stage_0;
-    an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/8, parent};
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/8, parent};
 
-    /* Copy the field (StmtDecl::decl - DeclIndex) into version-specific
-       storage. */
-    static_assert(sizeof(stage_0) == 4,
-                  "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
-      result = FALSE;
-      goto done;
+      /* Copy the field (StmtDecl::decl - DeclIndex) into version-specific
+         storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else {
+      an_ifc_decl_index_0_41  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/8, parent};
+
+      /* Copy the field (StmtDecl::decl - DeclIndex) into version-specific
+         storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_locus(universal)) {
@@ -16515,18 +18746,34 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_exception(universal)) {
-    an_ifc_decl_index_0_41  stage_0;
-    an_ifc_validation_trace stage_0_trace =
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace =
                                            {"exception", /*offset=*/8, parent};
 
-    /* Copy the field (StmtHandler::exception - DeclIndex) into
-       version-specific storage. */
-    static_assert(sizeof(stage_0) == 4,
-                  "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
-      result = FALSE;
-      goto done;
+      /* Copy the field (StmtHandler::exception - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else {
+      an_ifc_decl_index_0_41  stage_0;
+      an_ifc_validation_trace stage_0_trace =
+                                           {"exception", /*offset=*/8, parent};
+
+      /* Copy the field (StmtHandler::exception - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_locus(universal)) {
@@ -18729,18 +20976,34 @@ if the representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_dyad(universal)) {
-    an_ifc_dyadic_operator_sort_0_33 stage_0;
-    an_ifc_validation_trace          stage_0_trace =
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_dyadic_operator_sort_0_43 stage_0;
+      an_ifc_validation_trace          stage_0_trace =
                                                {"dyad", /*offset=*/12, parent};
 
-    /* Copy the field (SyntaxBinaryFoldExpression::dyad - DyadicOperatorSort)
-       into version-specific storage. */
-    static_assert(sizeof(stage_0) == 2,
-                  "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
-      result = FALSE;
-      goto done;
+      /* Copy the field (SyntaxBinaryFoldExpression::dyad - DyadicOperatorSort)
+         into version-specific storage. */
+      static_assert(sizeof(stage_0) == 2,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else {
+      an_ifc_dyadic_operator_sort_0_33 stage_0;
+      an_ifc_validation_trace          stage_0_trace =
+                                               {"dyad", /*offset=*/12, parent};
+
+      /* Copy the field (SyntaxBinaryFoldExpression::dyad - DyadicOperatorSort)
+         into version-specific storage. */
+      static_assert(sizeof(stage_0) == 2,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_ellipsis(universal)) {
@@ -26437,7 +28700,22 @@ the representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_intrinsic(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_operator_category_0_43 stage_0;
+      an_ifc_validation_trace       stage_0_trace =
+                                          {"intrinsic", /*offset=*/12, parent};
+
+      /* Copy the field (SyntaxTypeTraitIntrinsic::intrinsic -
+         OperatorCategory) into version-specific storage. */
+      static_assert(sizeof(stage_0) == 2,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+      if (!validate_category(universal.get_module(), stage_0,
+                             &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 42)) {
       an_ifc_operator_category_0_42 stage_0;
       an_ifc_validation_trace       stage_0_trace =
                                           {"intrinsic", /*offset=*/12, parent};
@@ -26522,18 +28800,34 @@ the representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_dyad(universal)) {
-    an_ifc_dyadic_operator_sort_0_33 stage_0;
-    an_ifc_validation_trace          stage_0_trace =
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_dyadic_operator_sort_0_43 stage_0;
+      an_ifc_validation_trace          stage_0_trace =
                                                 {"dyad", /*offset=*/8, parent};
 
-    /* Copy the field (SyntaxUnaryFoldExpression::dyad - DyadicOperatorSort)
-       into version-specific storage. */
-    static_assert(sizeof(stage_0) == 2,
-                  "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
-      result = FALSE;
-      goto done;
+      /* Copy the field (SyntaxUnaryFoldExpression::dyad - DyadicOperatorSort)
+         into version-specific storage. */
+      static_assert(sizeof(stage_0) == 2,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else {
+      an_ifc_dyadic_operator_sort_0_33 stage_0;
+      an_ifc_validation_trace          stage_0_trace =
+                                                {"dyad", /*offset=*/8, parent};
+
+      /* Copy the field (SyntaxUnaryFoldExpression::dyad - DyadicOperatorSort)
+         into version-specific storage. */
+      static_assert(sizeof(stage_0) == 2,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_ellipsis(universal)) {
@@ -27242,7 +29536,20 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
+
+      /* Copy the field (TraitAliasTemplate::decl - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -27300,7 +29607,20 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
+
+      /* Copy the field (TraitAttribute::decl - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -27358,7 +29678,20 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
+
+      /* Copy the field (TraitDeductionGuide::decl - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -27387,7 +29720,20 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_trait(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"trait", /*offset=*/4, parent};
+
+      /* Copy the field (TraitDeductionGuide::trait - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"trait", /*offset=*/4, parent};
 
@@ -27431,7 +29777,20 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
+
+      /* Copy the field (TraitDeprecated::decl - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -27475,7 +29834,20 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
+
+      /* Copy the field (TraitFriend::decl - DeclIndex) into version-specific
+         storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -27569,7 +29941,20 @@ the representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
+
+      /* Copy the field (TraitFunctionDefinition::decl - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -27659,7 +30044,20 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
+
+      /* Copy the field (TraitMsvcDeclAttrs::decl - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -27717,7 +30115,20 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
+
+      /* Copy the field (TraitMsvcFuncParams::decl - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -27775,7 +30186,20 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
+
+      /* Copy the field (TraitMsvcUuid::decl - DeclIndex) into version-specific
+         storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -27819,7 +30243,20 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
+
+      /* Copy the field (TraitMsvcVendorTrait::decl - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -27863,7 +30300,20 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
+
+      /* Copy the field (TraitRequires::decl - DeclIndex) into version-specific
+         storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -27921,7 +30371,20 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
+
+      /* Copy the field (TraitSpecialization::decl - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -28116,7 +30579,20 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_module(), 0, 43)) {
+      an_ifc_decl_index_0_43  stage_0;
+      an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
+
+      /* Copy the field (TypeDesignated::decl - DeclIndex) into
+         version-specific storage. */
+      static_assert(sizeof(stage_0) == 4,
+                    "stage_0 is not properly sized storage!");
+      copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    } else if (is_at_least(universal.get_module(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 

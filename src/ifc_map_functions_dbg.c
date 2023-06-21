@@ -2145,6 +2145,156 @@ textual representation.
 }  /* db_node */
 
 
+void db_node(const an_ifc_decl_default_argument &universal, unsigned indent)
+/*
+Given the universal representation of DeclDefaultArgument, print a diagnostic
+textual representation with the given indent.
+*/
+{
+  if (has_ifc_access(universal)) {
+    an_ifc_access_sort field = get_ifc_access(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "access: %s\n", str_for(field));
+  }  /* if */
+  if (has_ifc_home_scope(universal)) {
+    an_ifc_decl_index field = get_ifc_home_scope(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "home_scope:");
+    if (is_null_index(field)) {
+      fprintf(f_debug, " NULL\n");
+    } else {
+      fprintf(f_debug, "\n");
+      db_print_indent(indent);
+      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
+      db_print_indent(indent);
+      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
+    }  /* if */
+  }  /* if */
+  if (has_ifc_initializer(universal)) {
+    an_ifc_expr_index field = get_ifc_initializer(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "initializer:");
+    if (is_null_index(field)) {
+      fprintf(f_debug, " NULL\n");
+    } else {
+      fprintf(f_debug, "\n");
+      db_print_indent(indent);
+      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
+      db_print_indent(indent);
+      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
+    }  /* if */
+  }  /* if */
+  if (has_ifc_locus(universal)) {
+    an_ifc_source_location field = get_ifc_locus(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "locus:\n");
+    db_node(field, indent + 1);
+  }  /* if */
+  if (has_ifc_properties(universal)) {
+    an_ifc_reachable_properties_bitfield field = get_ifc_properties(universal);
+
+    fprintf(f_debug, "properties:\n");
+    ++indent;
+    if (test_bitmask<ifc_rpb_all>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- All\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_attributes>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- Attributes\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_default_arguments>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- DefaultArguments\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_initializer>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- Initializer\n");
+    }  /* if */
+    if (test_bitmask<ifc_rpb_none>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- None\n");
+    }  /* if */
+    --indent;
+  }  /* if */
+  if (has_ifc_specifiers(universal)) {
+    an_ifc_basic_specifiers_bitfield field = get_ifc_specifiers(universal);
+
+    fprintf(f_debug, "specifiers:\n");
+    ++indent;
+    if (test_bitmask<ifc_bsb_c>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- C\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_cxx>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- Cxx\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_deprecated>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- Deprecated\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_external>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- External\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_initialized_in_class>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- InitializedInClass\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_internal>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- Internal\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_is_member_of_global_module>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- IsMemberOfGlobalModule\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_non_exported>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- NonExported\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_vague>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- Vague\n");
+    }  /* if */
+    --indent;
+  }  /* if */
+  if (has_ifc_type(universal)) {
+    an_ifc_type_index field = get_ifc_type(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "type:");
+    if (is_null_index(field)) {
+      fprintf(f_debug, " NULL\n");
+    } else {
+      fprintf(f_debug, "\n");
+      db_print_indent(indent);
+      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
+      db_print_indent(indent);
+      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
+    }  /* if */
+  }  /* if */
+}  /* db_node */
+
+
+void db_node(const an_ifc_decl_default_argument &universal)
+/*
+Given the universal representation of DeclDefaultArgument, print a diagnostic
+textual representation.
+*/
+{
+  fprintf(f_debug, "============================= ");
+  fprintf(f_debug, "DeclDefaultArgument ");
+  fprintf(f_debug, "==============================\n");
+  db_node(universal, 0);
+}  /* db_node */
+
+
 void db_node(const an_ifc_decl_destructor &universal, unsigned indent)
 /*
 Given the universal representation of DeclDestructor, print a diagnostic
@@ -8183,6 +8333,21 @@ textual representation with the given indent.
     db_print_indent(indent);
     fprintf(f_debug, "locus:\n");
     db_node(field, indent + 1);
+  }  /* if */
+  if (has_ifc_member(universal)) {
+    an_ifc_decl_index field = get_ifc_member(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "member:");
+    if (is_null_index(field)) {
+      fprintf(f_debug, " NULL\n");
+    } else {
+      fprintf(f_debug, "\n");
+      db_print_indent(indent);
+      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
+      db_print_indent(indent);
+      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
+    }  /* if */
   }  /* if */
   if (has_ifc_member_locus(universal)) {
     an_ifc_source_location field = get_ifc_member_locus(universal);
@@ -21032,6 +21197,13 @@ associated node.
       break;
     case ifc_ds_decl_deduction_guide:
       { an_ifc_decl_deduction_guide universal;
+
+        construct_node_prechecked(&universal, idx);
+        db_node(universal);
+      }
+      break;
+    case ifc_ds_decl_default_argument:
+      { an_ifc_decl_default_argument universal;
 
         construct_node_prechecked(&universal, idx);
         db_node(universal);

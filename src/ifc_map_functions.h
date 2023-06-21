@@ -142,6 +142,14 @@ extern a_boolean validate_sort(an_ifc_module                 *mod,
 
 extern an_ifc_decl_sort to_universal_sort(an_ifc_decl_sort_0_41 versioned);
 
+extern a_boolean is_known_sort(an_ifc_decl_sort_0_43 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                 *mod,
+                               an_ifc_decl_sort_0_43         versioned,
+                               const an_ifc_validation_trace *parent);
+
+extern an_ifc_decl_sort to_universal_sort(an_ifc_decl_sort_0_43 versioned);
+
 /*
 Functions for interacting with IFC DelimiterSort sorts.
 */
@@ -179,6 +187,15 @@ extern a_boolean validate_sort(an_ifc_module                    *mod,
 
 extern an_ifc_dyadic_operator_sort to_universal_sort(
                                    an_ifc_dyadic_operator_sort_0_33 versioned);
+
+extern a_boolean is_known_sort(an_ifc_dyadic_operator_sort_0_43 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                    *mod,
+                               an_ifc_dyadic_operator_sort_0_43 versioned,
+                               const an_ifc_validation_trace    *parent);
+
+extern an_ifc_dyadic_operator_sort to_universal_sort(
+                                   an_ifc_dyadic_operator_sort_0_43 versioned);
 
 /*
 Functions for interacting with IFC ExpansionModeSort sorts.
@@ -366,6 +383,15 @@ extern a_boolean validate_sort(an_ifc_module                     *mod,
 
 extern an_ifc_monadic_operator_sort to_universal_sort(
                                   an_ifc_monadic_operator_sort_0_33 versioned);
+
+extern a_boolean is_known_sort(an_ifc_monadic_operator_sort_0_43 versioned);
+
+extern a_boolean validate_sort(an_ifc_module                     *mod,
+                               an_ifc_monadic_operator_sort_0_43 versioned,
+                               const an_ifc_validation_trace     *parent);
+
+extern an_ifc_monadic_operator_sort to_universal_sort(
+                                  an_ifc_monadic_operator_sort_0_43 versioned);
 
 /*
 Functions for interacting with IFC NameSort sorts.
@@ -965,6 +991,17 @@ extern a_boolean validate_index(an_ifc_module                 *mod,
 
 extern an_ifc_decl_index to_universal_index(an_ifc_module          *mod,
                                             an_ifc_decl_index_0_41 versioned);
+
+extern an_ifc_decl_sort_0_43 decl_sort(an_ifc_decl_index_0_43 versioned);
+
+extern uint32_t decl_value(an_ifc_decl_index_0_43 versioned);
+
+extern a_boolean validate_index(an_ifc_module                 *mod,
+                                an_ifc_decl_index_0_43        versioned,
+                                const an_ifc_validation_trace *parent);
+
+extern an_ifc_decl_index to_universal_index(an_ifc_module          *mod,
+                                            an_ifc_decl_index_0_43 versioned);
 
 extern an_ifc_encoded_decl_index to_encoded(an_ifc_module     *mod,
                                             an_ifc_decl_index universal);
@@ -1574,6 +1611,19 @@ extern an_ifc_operator_category to_universal_category(
                                       an_ifc_module                 *mod,
                                       an_ifc_operator_category_0_42 versioned);
 
+extern an_ifc_operator_sort_0_33 operator_sort(
+                                      an_ifc_operator_category_0_43 versioned);
+
+extern uint16_t operator_value(an_ifc_operator_category_0_43 versioned);
+
+extern a_boolean validate_category(an_ifc_module                 *mod,
+                                   an_ifc_operator_category_0_43 versioned,
+                                   const an_ifc_validation_trace *parent);
+
+extern an_ifc_operator_category to_universal_category(
+                                      an_ifc_module                 *mod,
+                                      an_ifc_operator_category_0_43 versioned);
+
 /*
 Functions for interacting with IFC SourceIdentifierCategory indexes.
 */
@@ -1786,6 +1836,16 @@ that allows resolution of the return type for DeclConstructor nodes.
 */
 template<>
 struct an_ifc_access_metadata<an_ifc_decl_constructor> {
+  using return_type = an_ifc_access_sort;
+};  /* an_ifc_access_metadata */
+
+
+/*
+The IFC access field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclDefaultArgument nodes.
+*/
+template<>
+struct an_ifc_access_metadata<an_ifc_decl_default_argument> {
   using return_type = an_ifc_access_sort;
 };  /* an_ifc_access_metadata */
 
@@ -3666,6 +3726,16 @@ struct an_ifc_initializer_metadata<an_ifc_decl_bitfield> {
 
 /*
 The IFC initializer field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclDefaultArgument nodes.
+*/
+template<>
+struct an_ifc_initializer_metadata<an_ifc_decl_default_argument> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_initializer_metadata */
+
+
+/*
+The IFC initializer field has multiple return types.  This type is a metadata
 type that allows resolution of the return type for DeclEnumeration nodes.
 */
 template<>
@@ -4219,6 +4289,16 @@ that allows resolution of the return type for DeclDeductionGuide nodes.
 */
 template<>
 struct an_ifc_locus_metadata<an_ifc_decl_deduction_guide> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclDefaultArgument nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_decl_default_argument> {
   using return_type = an_ifc_source_location;
 };  /* an_ifc_locus_metadata */
 
@@ -5842,6 +5922,16 @@ struct an_ifc_member_metadata<an_ifc_expr_path> {
 
 /*
 The IFC member field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for ExprTemplateReference nodes.
+*/
+template<>
+struct an_ifc_member_metadata<an_ifc_expr_template_reference> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_member_metadata */
+
+
+/*
+The IFC member field has multiple return types.  This type is a metadata type
 that allows resolution of the return type for SyntaxMemInitializer nodes.
 */
 template<>
@@ -7383,6 +7473,16 @@ struct an_ifc_specifiers_metadata<an_ifc_decl_deduction_guide> {
 
 /*
 The IFC specifiers field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclDefaultArgument nodes.
+*/
+template<>
+struct an_ifc_specifiers_metadata<an_ifc_decl_default_argument> {
+  using return_type = an_ifc_basic_specifiers_bitfield;
+};  /* an_ifc_specifiers_metadata */
+
+
+/*
+The IFC specifiers field has multiple return types.  This type is a metadata
 type that allows resolution of the return type for DeclDestructor nodes.
 */
 template<>
@@ -8159,6 +8259,16 @@ that allows resolution of the return type for DeclConstructor nodes.
 */
 template<>
 struct an_ifc_type_metadata<an_ifc_decl_constructor> {
+  using return_type = an_ifc_type_index;
+};  /* an_ifc_type_metadata */
+
+
+/*
+The IFC type field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclDefaultArgument nodes.
+*/
+template<>
+struct an_ifc_type_metadata<an_ifc_decl_default_argument> {
   using return_type = an_ifc_type_index;
 };  /* an_ifc_type_metadata */
 
@@ -13143,6 +13253,79 @@ template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_deduction_guide>();
 
 /*
+Functions for interacting with IFC DeclDefaultArgument nodes.
+*/
+
+template<>
+a_boolean has_ifc_access(const an_ifc_decl_default_argument &universal);
+
+template<>
+an_ifc_access_sort get_ifc_access(
+                                const an_ifc_decl_default_argument &universal);
+
+template<>
+a_boolean has_ifc_home_scope(const an_ifc_decl_default_argument &universal);
+
+template<>
+an_ifc_decl_index get_ifc_home_scope(
+                                const an_ifc_decl_default_argument &universal);
+
+template<>
+a_boolean has_ifc_initializer(const an_ifc_decl_default_argument &universal);
+
+template<>
+an_ifc_expr_index get_ifc_initializer(
+                                const an_ifc_decl_default_argument &universal);
+
+template<>
+a_boolean has_ifc_locus(const an_ifc_decl_default_argument &universal);
+
+template<>
+an_ifc_source_location get_ifc_locus(
+                                const an_ifc_decl_default_argument &universal);
+
+template<>
+a_boolean has_ifc_properties(const an_ifc_decl_default_argument &universal);
+
+template<>
+an_ifc_reachable_properties_bitfield get_ifc_properties(
+                                const an_ifc_decl_default_argument &universal);
+
+template<>
+a_boolean has_ifc_specifiers(const an_ifc_decl_default_argument &universal);
+
+template<>
+an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
+                                const an_ifc_decl_default_argument &universal);
+
+template<>
+a_boolean has_ifc_type(const an_ifc_decl_default_argument &universal);
+
+template<>
+an_ifc_type_index get_ifc_type(const an_ifc_decl_default_argument &universal);
+
+template<>
+a_boolean validate(const an_ifc_decl_default_argument &universal,
+                   const an_ifc_validation_trace      *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_decl_default_argument &universal,
+                    unsigned                           indent);
+
+extern void db_node(const an_ifc_decl_default_argument &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_decl_default_argument_storage*
+get<an_ifc_decl_default_argument_storage>(
+                            an_ifc_module                        *mod,
+                            an_ifc_decl_default_argument_storage *storage,
+                            a_boolean                            fill_storage);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_default_argument>();
+
+/*
 Functions for interacting with IFC DeclDestructor nodes.
 */
 
@@ -16863,6 +17046,13 @@ a_boolean has_ifc_locus(const an_ifc_expr_template_reference &universal);
 
 template<>
 an_ifc_source_location get_ifc_locus(
+                              const an_ifc_expr_template_reference &universal);
+
+template<>
+a_boolean has_ifc_member(const an_ifc_expr_template_reference &universal);
+
+template<>
+an_ifc_decl_index get_ifc_member(
                               const an_ifc_expr_template_reference &universal);
 
 template<>

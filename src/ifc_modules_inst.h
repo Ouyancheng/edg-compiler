@@ -177,6 +177,12 @@ INST_CONSTRUCT_NODE_ALL(an_ifc_decl_deduction_guide, an_ifc_decl_index)
 
 
 /*
+Explicit instantiations of functions for DeclDefaultArgument.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_decl_default_argument, an_ifc_decl_index)
+
+
+/*
 Explicit instantiations of functions for DeclDestructor.
 */
 INST_CONSTRUCT_NODE_ALL(an_ifc_decl_destructor, an_ifc_decl_index)

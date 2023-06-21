@@ -48,6 +48,7 @@ supported, otherwise return FALSE.
   switch (major_version) {
     case 0:
       switch (minor_version) {
+        case 43:
         case 42:
         case 41:
         case 33:
@@ -650,6 +651,9 @@ form of a c-string.
     case ifc_ds_decl_deduction_guide:
       result = "DeclSort::DeclDeductionGuide";
       break;
+    case ifc_ds_decl_default_argument:
+      result = "DeclSort::DeclDefaultArgument";
+      break;
     case ifc_ds_decl_destructor:
       result = "DeclSort::DeclDestructor";
       break;
@@ -749,7 +753,109 @@ return a reencoded sort value.
   using ue_ty = an_ifc_encoded_decl_sort_storage;
   an_ifc_encoded_decl_sort_storage result;
 
-  if (is_at_least(mod, 0, 41)) {
+  if (is_at_least(mod, 0, 43)) {
+    switch (universal) {
+      case ifc_ds_decl_vendor_extension:
+        result = (ue_ty)ifc_0_43_ds_decl_vendor_extension;
+        break;
+      case ifc_ds_decl_enumerator:
+        result = (ue_ty)ifc_0_43_ds_decl_enumerator;
+        break;
+      case ifc_ds_decl_variable:
+        result = (ue_ty)ifc_0_43_ds_decl_variable;
+        break;
+      case ifc_ds_decl_parameter:
+        result = (ue_ty)ifc_0_43_ds_decl_parameter;
+        break;
+      case ifc_ds_decl_field:
+        result = (ue_ty)ifc_0_43_ds_decl_field;
+        break;
+      case ifc_ds_decl_bitfield:
+        result = (ue_ty)ifc_0_43_ds_decl_bitfield;
+        break;
+      case ifc_ds_decl_scope:
+        result = (ue_ty)ifc_0_43_ds_decl_scope;
+        break;
+      case ifc_ds_decl_enumeration:
+        result = (ue_ty)ifc_0_43_ds_decl_enumeration;
+        break;
+      case ifc_ds_decl_alias:
+        result = (ue_ty)ifc_0_43_ds_decl_alias;
+        break;
+      case ifc_ds_decl_temploid:
+        result = (ue_ty)ifc_0_43_ds_decl_temploid;
+        break;
+      case ifc_ds_decl_template:
+        result = (ue_ty)ifc_0_43_ds_decl_template;
+        break;
+      case ifc_ds_decl_partial_specialization:
+        result = (ue_ty)ifc_0_43_ds_decl_partial_specialization;
+        break;
+      case ifc_ds_decl_specialization:
+        result = (ue_ty)ifc_0_43_ds_decl_specialization;
+        break;
+      case ifc_ds_decl_default_argument:
+        result = (ue_ty)ifc_0_43_ds_decl_default_argument;
+        break;
+      case ifc_ds_decl_concept:
+        result = (ue_ty)ifc_0_43_ds_decl_concept;
+        break;
+      case ifc_ds_decl_function:
+        result = (ue_ty)ifc_0_43_ds_decl_function;
+        break;
+      case ifc_ds_decl_method:
+        result = (ue_ty)ifc_0_43_ds_decl_method;
+        break;
+      case ifc_ds_decl_constructor:
+        result = (ue_ty)ifc_0_43_ds_decl_constructor;
+        break;
+      case ifc_ds_decl_inherited_constructor:
+        result = (ue_ty)ifc_0_43_ds_decl_inherited_constructor;
+        break;
+      case ifc_ds_decl_destructor:
+        result = (ue_ty)ifc_0_43_ds_decl_destructor;
+        break;
+      case ifc_ds_decl_reference:
+        result = (ue_ty)ifc_0_43_ds_decl_reference;
+        break;
+      case ifc_ds_decl_using_declaration:
+        result = (ue_ty)ifc_0_43_ds_decl_using_declaration;
+        break;
+      case ifc_ds_decl_using_directive:
+        result = (ue_ty)ifc_0_43_ds_decl_using_directive;
+        break;
+      case ifc_ds_decl_friend:
+        result = (ue_ty)ifc_0_43_ds_decl_friend;
+        break;
+      case ifc_ds_decl_expansion:
+        result = (ue_ty)ifc_0_43_ds_decl_expansion;
+        break;
+      case ifc_ds_decl_deduction_guide:
+        result = (ue_ty)ifc_0_43_ds_decl_deduction_guide;
+        break;
+      case ifc_ds_decl_barren:
+        result = (ue_ty)ifc_0_43_ds_decl_barren;
+        break;
+      case ifc_ds_decl_tuple:
+        result = (ue_ty)ifc_0_43_ds_decl_tuple;
+        break;
+      case ifc_ds_decl_syntax_tree:
+        result = (ue_ty)ifc_0_43_ds_decl_syntax_tree;
+        break;
+      case ifc_ds_decl_intrinsic:
+        result = (ue_ty)ifc_0_43_ds_decl_intrinsic;
+        break;
+      case ifc_ds_decl_property:
+        result = (ue_ty)ifc_0_43_ds_decl_property;
+        break;
+      case ifc_ds_decl_output_segment:
+        result = (ue_ty)ifc_0_43_ds_decl_output_segment;
+        break;
+      default:
+        unexpected_condition_str("Invalid value for a DeclSort.");
+        break;
+    }  /* switch */
+  } else if (is_at_least(mod, 0, 41)) {
     switch (universal) {
       case ifc_ds_decl_vendor_extension:
         result = (ue_ty)ifc_0_41_ds_decl_vendor_extension;
@@ -1178,6 +1284,119 @@ universal representation.
 }  /* to_universal_sort */
 
 
+an_ifc_decl_sort to_universal_sort(an_ifc_decl_sort_0_43 versioned)
+/*
+Given the versioned representation of DeclSort, return the corresponding
+universal representation.
+*/
+{
+  an_ifc_decl_sort result;
+
+  switch (versioned) {
+    case ifc_0_43_ds_decl_vendor_extension:
+      result = ifc_ds_decl_vendor_extension;
+      break;
+    case ifc_0_43_ds_decl_enumerator:
+      result = ifc_ds_decl_enumerator;
+      break;
+    case ifc_0_43_ds_decl_variable:
+      result = ifc_ds_decl_variable;
+      break;
+    case ifc_0_43_ds_decl_parameter:
+      result = ifc_ds_decl_parameter;
+      break;
+    case ifc_0_43_ds_decl_field:
+      result = ifc_ds_decl_field;
+      break;
+    case ifc_0_43_ds_decl_bitfield:
+      result = ifc_ds_decl_bitfield;
+      break;
+    case ifc_0_43_ds_decl_scope:
+      result = ifc_ds_decl_scope;
+      break;
+    case ifc_0_43_ds_decl_enumeration:
+      result = ifc_ds_decl_enumeration;
+      break;
+    case ifc_0_43_ds_decl_alias:
+      result = ifc_ds_decl_alias;
+      break;
+    case ifc_0_43_ds_decl_temploid:
+      result = ifc_ds_decl_temploid;
+      break;
+    case ifc_0_43_ds_decl_template:
+      result = ifc_ds_decl_template;
+      break;
+    case ifc_0_43_ds_decl_partial_specialization:
+      result = ifc_ds_decl_partial_specialization;
+      break;
+    case ifc_0_43_ds_decl_specialization:
+      result = ifc_ds_decl_specialization;
+      break;
+    case ifc_0_43_ds_decl_default_argument:
+      result = ifc_ds_decl_default_argument;
+      break;
+    case ifc_0_43_ds_decl_concept:
+      result = ifc_ds_decl_concept;
+      break;
+    case ifc_0_43_ds_decl_function:
+      result = ifc_ds_decl_function;
+      break;
+    case ifc_0_43_ds_decl_method:
+      result = ifc_ds_decl_method;
+      break;
+    case ifc_0_43_ds_decl_constructor:
+      result = ifc_ds_decl_constructor;
+      break;
+    case ifc_0_43_ds_decl_inherited_constructor:
+      result = ifc_ds_decl_inherited_constructor;
+      break;
+    case ifc_0_43_ds_decl_destructor:
+      result = ifc_ds_decl_destructor;
+      break;
+    case ifc_0_43_ds_decl_reference:
+      result = ifc_ds_decl_reference;
+      break;
+    case ifc_0_43_ds_decl_using_declaration:
+      result = ifc_ds_decl_using_declaration;
+      break;
+    case ifc_0_43_ds_decl_using_directive:
+      result = ifc_ds_decl_using_directive;
+      break;
+    case ifc_0_43_ds_decl_friend:
+      result = ifc_ds_decl_friend;
+      break;
+    case ifc_0_43_ds_decl_expansion:
+      result = ifc_ds_decl_expansion;
+      break;
+    case ifc_0_43_ds_decl_deduction_guide:
+      result = ifc_ds_decl_deduction_guide;
+      break;
+    case ifc_0_43_ds_decl_barren:
+      result = ifc_ds_decl_barren;
+      break;
+    case ifc_0_43_ds_decl_tuple:
+      result = ifc_ds_decl_tuple;
+      break;
+    case ifc_0_43_ds_decl_syntax_tree:
+      result = ifc_ds_decl_syntax_tree;
+      break;
+    case ifc_0_43_ds_decl_intrinsic:
+      result = ifc_ds_decl_intrinsic;
+      break;
+    case ifc_0_43_ds_decl_property:
+      result = ifc_ds_decl_property;
+      break;
+    case ifc_0_43_ds_decl_output_segment:
+      result = ifc_ds_decl_output_segment;
+      break;
+    default:
+      unexpected_condition_str("Invalid value for a DeclSort.");
+      break;
+  }  /* switch */
+  return result;
+}  /* to_universal_sort */
+
+
 /*
 Functions for interacting with IFC DelimiterSort sorts.
 */
@@ -1415,6 +1634,9 @@ name in the form of a c-string.
     case ifc_dos_msvc_bitfield_access:
       result = "DyadicOperatorSort::MsvcBitfieldAccess";
       break;
+    case ifc_dos_msvc_builtin_allocation_annotation:
+      result = "DyadicOperatorSort::MsvcBuiltinAllocationAnnotation";
+      break;
     case ifc_dos_msvc_builtin_bit_cast:
       result = "DyadicOperatorSort::MsvcBuiltinBitCast";
       break;
@@ -1562,277 +1784,554 @@ module, return a reencoded sort value.
   using ue_ty = an_ifc_encoded_dyadic_operator_sort_storage;
   an_ifc_encoded_dyadic_operator_sort_storage result;
 
-  switch (universal) {
-    case ifc_dos_unknown:
-      result = (ue_ty)ifc_0_33_dos_unknown;
-      break;
-    case ifc_dos_plus:
-      result = (ue_ty)ifc_0_33_dos_plus;
-      break;
-    case ifc_dos_minus:
-      result = (ue_ty)ifc_0_33_dos_minus;
-      break;
-    case ifc_dos_mult:
-      result = (ue_ty)ifc_0_33_dos_mult;
-      break;
-    case ifc_dos_slash:
-      result = (ue_ty)ifc_0_33_dos_slash;
-      break;
-    case ifc_dos_modulo:
-      result = (ue_ty)ifc_0_33_dos_modulo;
-      break;
-    case ifc_dos_remainder:
-      result = (ue_ty)ifc_0_33_dos_remainder;
-      break;
-    case ifc_dos_bitand:
-      result = (ue_ty)ifc_0_33_dos_bitand;
-      break;
-    case ifc_dos_bitor:
-      result = (ue_ty)ifc_0_33_dos_bitor;
-      break;
-    case ifc_dos_bitxor:
-      result = (ue_ty)ifc_0_33_dos_bitxor;
-      break;
-    case ifc_dos_lshift:
-      result = (ue_ty)ifc_0_33_dos_lshift;
-      break;
-    case ifc_dos_rshift:
-      result = (ue_ty)ifc_0_33_dos_rshift;
-      break;
-    case ifc_dos_equal:
-      result = (ue_ty)ifc_0_33_dos_equal;
-      break;
-    case ifc_dos_not_equal:
-      result = (ue_ty)ifc_0_33_dos_not_equal;
-      break;
-    case ifc_dos_less:
-      result = (ue_ty)ifc_0_33_dos_less;
-      break;
-    case ifc_dos_less_equal:
-      result = (ue_ty)ifc_0_33_dos_less_equal;
-      break;
-    case ifc_dos_greater:
-      result = (ue_ty)ifc_0_33_dos_greater;
-      break;
-    case ifc_dos_greater_equal:
-      result = (ue_ty)ifc_0_33_dos_greater_equal;
-      break;
-    case ifc_dos_compare:
-      result = (ue_ty)ifc_0_33_dos_compare;
-      break;
-    case ifc_dos_logic_and:
-      result = (ue_ty)ifc_0_33_dos_logic_and;
-      break;
-    case ifc_dos_logic_or:
-      result = (ue_ty)ifc_0_33_dos_logic_or;
-      break;
-    case ifc_dos_assign:
-      result = (ue_ty)ifc_0_33_dos_assign;
-      break;
-    case ifc_dos_plus_assign:
-      result = (ue_ty)ifc_0_33_dos_plus_assign;
-      break;
-    case ifc_dos_minus_assign:
-      result = (ue_ty)ifc_0_33_dos_minus_assign;
-      break;
-    case ifc_dos_mult_assign:
-      result = (ue_ty)ifc_0_33_dos_mult_assign;
-      break;
-    case ifc_dos_slash_assign:
-      result = (ue_ty)ifc_0_33_dos_slash_assign;
-      break;
-    case ifc_dos_modulo_assign:
-      result = (ue_ty)ifc_0_33_dos_modulo_assign;
-      break;
-    case ifc_dos_bitand_assign:
-      result = (ue_ty)ifc_0_33_dos_bitand_assign;
-      break;
-    case ifc_dos_bitor_assign:
-      result = (ue_ty)ifc_0_33_dos_bitor_assign;
-      break;
-    case ifc_dos_bitxor_assign:
-      result = (ue_ty)ifc_0_33_dos_bitxor_assign;
-      break;
-    case ifc_dos_lshift_assign:
-      result = (ue_ty)ifc_0_33_dos_lshift_assign;
-      break;
-    case ifc_dos_rshift_assign:
-      result = (ue_ty)ifc_0_33_dos_rshift_assign;
-      break;
-    case ifc_dos_comma:
-      result = (ue_ty)ifc_0_33_dos_comma;
-      break;
-    case ifc_dos_dot:
-      result = (ue_ty)ifc_0_33_dos_dot;
-      break;
-    case ifc_dos_arrow:
-      result = (ue_ty)ifc_0_33_dos_arrow;
-      break;
-    case ifc_dos_dot_star:
-      result = (ue_ty)ifc_0_33_dos_dot_star;
-      break;
-    case ifc_dos_arrow_star:
-      result = (ue_ty)ifc_0_33_dos_arrow_star;
-      break;
-    case ifc_dos_curry:
-      result = (ue_ty)ifc_0_33_dos_curry;
-      break;
-    case ifc_dos_apply:
-      result = (ue_ty)ifc_0_33_dos_apply;
-      break;
-    case ifc_dos_index:
-      result = (ue_ty)ifc_0_33_dos_index;
-      break;
-    case ifc_dos_default_at:
-      result = (ue_ty)ifc_0_33_dos_default_at;
-      break;
-    case ifc_dos_new:
-      result = (ue_ty)ifc_0_33_dos_new;
-      break;
-    case ifc_dos_new_array:
-      result = (ue_ty)ifc_0_33_dos_new_array;
-      break;
-    case ifc_dos_destruct:
-      result = (ue_ty)ifc_0_33_dos_destruct;
-      break;
-    case ifc_dos_destruct_at:
-      result = (ue_ty)ifc_0_33_dos_destruct_at;
-      break;
-    case ifc_dos_cleanup:
-      result = (ue_ty)ifc_0_33_dos_cleanup;
-      break;
-    case ifc_dos_qualification:
-      result = (ue_ty)ifc_0_33_dos_qualification;
-      break;
-    case ifc_dos_promote:
-      result = (ue_ty)ifc_0_33_dos_promote;
-      break;
-    case ifc_dos_demote:
-      result = (ue_ty)ifc_0_33_dos_demote;
-      break;
-    case ifc_dos_coerce:
-      result = (ue_ty)ifc_0_33_dos_coerce;
-      break;
-    case ifc_dos_rewrite:
-      result = (ue_ty)ifc_0_33_dos_rewrite;
-      break;
-    case ifc_dos_bless:
-      result = (ue_ty)ifc_0_33_dos_bless;
-      break;
-    case ifc_dos_cast:
-      result = (ue_ty)ifc_0_33_dos_cast;
-      break;
-    case ifc_dos_explicit_conversion:
-      result = (ue_ty)ifc_0_33_dos_explicit_conversion;
-      break;
-    case ifc_dos_reinterpret_cast:
-      result = (ue_ty)ifc_0_33_dos_reinterpret_cast;
-      break;
-    case ifc_dos_static_cast:
-      result = (ue_ty)ifc_0_33_dos_static_cast;
-      break;
-    case ifc_dos_const_cast:
-      result = (ue_ty)ifc_0_33_dos_const_cast;
-      break;
-    case ifc_dos_dynamic_cast:
-      result = (ue_ty)ifc_0_33_dos_dynamic_cast;
-      break;
-    case ifc_dos_narrow:
-      result = (ue_ty)ifc_0_33_dos_narrow;
-      break;
-    case ifc_dos_widen:
-      result = (ue_ty)ifc_0_33_dos_widen;
-      break;
-    case ifc_dos_pretend:
-      result = (ue_ty)ifc_0_33_dos_pretend;
-      break;
-    case ifc_dos_closure:
-      result = (ue_ty)ifc_0_33_dos_closure;
-      break;
-    case ifc_dos_zero_initialize:
-      result = (ue_ty)ifc_0_33_dos_zero_initialize;
-      break;
-    case ifc_dos_clear_storage:
-      result = (ue_ty)ifc_0_33_dos_clear_storage;
-      break;
-    case ifc_dos_select:
-      result = (ue_ty)ifc_0_33_dos_select;
-      break;
-    case ifc_dos_msvc:
-      result = (ue_ty)ifc_0_33_dos_msvc;
-      break;
-    case ifc_dos_msvc_try_cast:
-      result = (ue_ty)ifc_0_33_dos_msvc_try_cast;
-      break;
-    case ifc_dos_msvc_curry:
-      result = (ue_ty)ifc_0_33_dos_msvc_curry;
-      break;
-    case ifc_dos_msvc_virtual_curry:
-      result = (ue_ty)ifc_0_33_dos_msvc_virtual_curry;
-      break;
-    case ifc_dos_msvc_align:
-      result = (ue_ty)ifc_0_33_dos_msvc_align;
-      break;
-    case ifc_dos_msvc_bit_span:
-      result = (ue_ty)ifc_0_33_dos_msvc_bit_span;
-      break;
-    case ifc_dos_msvc_bitfield_access:
-      result = (ue_ty)ifc_0_33_dos_msvc_bitfield_access;
-      break;
-    case ifc_dos_msvc_obscure_bitfield_access:
-      result = (ue_ty)ifc_0_33_dos_msvc_obscure_bitfield_access;
-      break;
-    case ifc_dos_msvc_initialize:
-      result = (ue_ty)ifc_0_33_dos_msvc_initialize;
-      break;
-    case ifc_dos_msvc_builtin_offset_of:
-      result = (ue_ty)ifc_0_33_dos_msvc_builtin_offset_of;
-      break;
-    case ifc_dos_msvc_is_base_of:
-      result = (ue_ty)ifc_0_33_dos_msvc_is_base_of;
-      break;
-    case ifc_dos_msvc_is_convertible_to:
-      result = (ue_ty)ifc_0_33_dos_msvc_is_convertible_to;
-      break;
-    case ifc_dos_msvc_is_trivially_assignable:
-      result = (ue_ty)ifc_0_33_dos_msvc_is_trivially_assignable;
-      break;
-    case ifc_dos_msvc_is_nothrow_assignable:
-      result = (ue_ty)ifc_0_33_dos_msvc_is_nothrow_assignable;
-      break;
-    case ifc_dos_msvc_is_assignable:
-      result = (ue_ty)ifc_0_33_dos_msvc_is_assignable;
-      break;
-    case ifc_dos_msvc_is_assignable_nocheck:
-      result = (ue_ty)ifc_0_33_dos_msvc_is_assignable_nocheck;
-      break;
-    case ifc_dos_msvc_builtin_bit_cast:
-      result = (ue_ty)ifc_0_33_dos_msvc_builtin_bit_cast;
-      break;
-    case ifc_dos_msvc_builtin_is_layout_compatible:
-      result = (ue_ty)ifc_0_33_dos_msvc_builtin_is_layout_compatible;
-      break;
-    case ifc_dos_msvc_builtin_is_pointer_interconvertible_base_of:
-      result =
+  if (is_at_least(mod, 0, 43)) {
+    switch (universal) {
+      case ifc_dos_unknown:
+        result = (ue_ty)ifc_0_43_dos_unknown;
+        break;
+      case ifc_dos_plus:
+        result = (ue_ty)ifc_0_43_dos_plus;
+        break;
+      case ifc_dos_minus:
+        result = (ue_ty)ifc_0_43_dos_minus;
+        break;
+      case ifc_dos_mult:
+        result = (ue_ty)ifc_0_43_dos_mult;
+        break;
+      case ifc_dos_slash:
+        result = (ue_ty)ifc_0_43_dos_slash;
+        break;
+      case ifc_dos_modulo:
+        result = (ue_ty)ifc_0_43_dos_modulo;
+        break;
+      case ifc_dos_remainder:
+        result = (ue_ty)ifc_0_43_dos_remainder;
+        break;
+      case ifc_dos_bitand:
+        result = (ue_ty)ifc_0_43_dos_bitand;
+        break;
+      case ifc_dos_bitor:
+        result = (ue_ty)ifc_0_43_dos_bitor;
+        break;
+      case ifc_dos_bitxor:
+        result = (ue_ty)ifc_0_43_dos_bitxor;
+        break;
+      case ifc_dos_lshift:
+        result = (ue_ty)ifc_0_43_dos_lshift;
+        break;
+      case ifc_dos_rshift:
+        result = (ue_ty)ifc_0_43_dos_rshift;
+        break;
+      case ifc_dos_equal:
+        result = (ue_ty)ifc_0_43_dos_equal;
+        break;
+      case ifc_dos_not_equal:
+        result = (ue_ty)ifc_0_43_dos_not_equal;
+        break;
+      case ifc_dos_less:
+        result = (ue_ty)ifc_0_43_dos_less;
+        break;
+      case ifc_dos_less_equal:
+        result = (ue_ty)ifc_0_43_dos_less_equal;
+        break;
+      case ifc_dos_greater:
+        result = (ue_ty)ifc_0_43_dos_greater;
+        break;
+      case ifc_dos_greater_equal:
+        result = (ue_ty)ifc_0_43_dos_greater_equal;
+        break;
+      case ifc_dos_compare:
+        result = (ue_ty)ifc_0_43_dos_compare;
+        break;
+      case ifc_dos_logic_and:
+        result = (ue_ty)ifc_0_43_dos_logic_and;
+        break;
+      case ifc_dos_logic_or:
+        result = (ue_ty)ifc_0_43_dos_logic_or;
+        break;
+      case ifc_dos_assign:
+        result = (ue_ty)ifc_0_43_dos_assign;
+        break;
+      case ifc_dos_plus_assign:
+        result = (ue_ty)ifc_0_43_dos_plus_assign;
+        break;
+      case ifc_dos_minus_assign:
+        result = (ue_ty)ifc_0_43_dos_minus_assign;
+        break;
+      case ifc_dos_mult_assign:
+        result = (ue_ty)ifc_0_43_dos_mult_assign;
+        break;
+      case ifc_dos_slash_assign:
+        result = (ue_ty)ifc_0_43_dos_slash_assign;
+        break;
+      case ifc_dos_modulo_assign:
+        result = (ue_ty)ifc_0_43_dos_modulo_assign;
+        break;
+      case ifc_dos_bitand_assign:
+        result = (ue_ty)ifc_0_43_dos_bitand_assign;
+        break;
+      case ifc_dos_bitor_assign:
+        result = (ue_ty)ifc_0_43_dos_bitor_assign;
+        break;
+      case ifc_dos_bitxor_assign:
+        result = (ue_ty)ifc_0_43_dos_bitxor_assign;
+        break;
+      case ifc_dos_lshift_assign:
+        result = (ue_ty)ifc_0_43_dos_lshift_assign;
+        break;
+      case ifc_dos_rshift_assign:
+        result = (ue_ty)ifc_0_43_dos_rshift_assign;
+        break;
+      case ifc_dos_comma:
+        result = (ue_ty)ifc_0_43_dos_comma;
+        break;
+      case ifc_dos_dot:
+        result = (ue_ty)ifc_0_43_dos_dot;
+        break;
+      case ifc_dos_arrow:
+        result = (ue_ty)ifc_0_43_dos_arrow;
+        break;
+      case ifc_dos_dot_star:
+        result = (ue_ty)ifc_0_43_dos_dot_star;
+        break;
+      case ifc_dos_arrow_star:
+        result = (ue_ty)ifc_0_43_dos_arrow_star;
+        break;
+      case ifc_dos_curry:
+        result = (ue_ty)ifc_0_43_dos_curry;
+        break;
+      case ifc_dos_apply:
+        result = (ue_ty)ifc_0_43_dos_apply;
+        break;
+      case ifc_dos_index:
+        result = (ue_ty)ifc_0_43_dos_index;
+        break;
+      case ifc_dos_default_at:
+        result = (ue_ty)ifc_0_43_dos_default_at;
+        break;
+      case ifc_dos_new:
+        result = (ue_ty)ifc_0_43_dos_new;
+        break;
+      case ifc_dos_new_array:
+        result = (ue_ty)ifc_0_43_dos_new_array;
+        break;
+      case ifc_dos_destruct:
+        result = (ue_ty)ifc_0_43_dos_destruct;
+        break;
+      case ifc_dos_destruct_at:
+        result = (ue_ty)ifc_0_43_dos_destruct_at;
+        break;
+      case ifc_dos_cleanup:
+        result = (ue_ty)ifc_0_43_dos_cleanup;
+        break;
+      case ifc_dos_qualification:
+        result = (ue_ty)ifc_0_43_dos_qualification;
+        break;
+      case ifc_dos_promote:
+        result = (ue_ty)ifc_0_43_dos_promote;
+        break;
+      case ifc_dos_demote:
+        result = (ue_ty)ifc_0_43_dos_demote;
+        break;
+      case ifc_dos_coerce:
+        result = (ue_ty)ifc_0_43_dos_coerce;
+        break;
+      case ifc_dos_rewrite:
+        result = (ue_ty)ifc_0_43_dos_rewrite;
+        break;
+      case ifc_dos_bless:
+        result = (ue_ty)ifc_0_43_dos_bless;
+        break;
+      case ifc_dos_cast:
+        result = (ue_ty)ifc_0_43_dos_cast;
+        break;
+      case ifc_dos_explicit_conversion:
+        result = (ue_ty)ifc_0_43_dos_explicit_conversion;
+        break;
+      case ifc_dos_reinterpret_cast:
+        result = (ue_ty)ifc_0_43_dos_reinterpret_cast;
+        break;
+      case ifc_dos_static_cast:
+        result = (ue_ty)ifc_0_43_dos_static_cast;
+        break;
+      case ifc_dos_const_cast:
+        result = (ue_ty)ifc_0_43_dos_const_cast;
+        break;
+      case ifc_dos_dynamic_cast:
+        result = (ue_ty)ifc_0_43_dos_dynamic_cast;
+        break;
+      case ifc_dos_narrow:
+        result = (ue_ty)ifc_0_43_dos_narrow;
+        break;
+      case ifc_dos_widen:
+        result = (ue_ty)ifc_0_43_dos_widen;
+        break;
+      case ifc_dos_pretend:
+        result = (ue_ty)ifc_0_43_dos_pretend;
+        break;
+      case ifc_dos_closure:
+        result = (ue_ty)ifc_0_43_dos_closure;
+        break;
+      case ifc_dos_zero_initialize:
+        result = (ue_ty)ifc_0_43_dos_zero_initialize;
+        break;
+      case ifc_dos_clear_storage:
+        result = (ue_ty)ifc_0_43_dos_clear_storage;
+        break;
+      case ifc_dos_select:
+        result = (ue_ty)ifc_0_43_dos_select;
+        break;
+      case ifc_dos_msvc:
+        result = (ue_ty)ifc_0_43_dos_msvc;
+        break;
+      case ifc_dos_msvc_try_cast:
+        result = (ue_ty)ifc_0_43_dos_msvc_try_cast;
+        break;
+      case ifc_dos_msvc_curry:
+        result = (ue_ty)ifc_0_43_dos_msvc_curry;
+        break;
+      case ifc_dos_msvc_virtual_curry:
+        result = (ue_ty)ifc_0_43_dos_msvc_virtual_curry;
+        break;
+      case ifc_dos_msvc_align:
+        result = (ue_ty)ifc_0_43_dos_msvc_align;
+        break;
+      case ifc_dos_msvc_bit_span:
+        result = (ue_ty)ifc_0_43_dos_msvc_bit_span;
+        break;
+      case ifc_dos_msvc_bitfield_access:
+        result = (ue_ty)ifc_0_43_dos_msvc_bitfield_access;
+        break;
+      case ifc_dos_msvc_obscure_bitfield_access:
+        result = (ue_ty)ifc_0_43_dos_msvc_obscure_bitfield_access;
+        break;
+      case ifc_dos_msvc_initialize:
+        result = (ue_ty)ifc_0_43_dos_msvc_initialize;
+        break;
+      case ifc_dos_msvc_builtin_offset_of:
+        result = (ue_ty)ifc_0_43_dos_msvc_builtin_offset_of;
+        break;
+      case ifc_dos_msvc_is_base_of:
+        result = (ue_ty)ifc_0_43_dos_msvc_is_base_of;
+        break;
+      case ifc_dos_msvc_is_convertible_to:
+        result = (ue_ty)ifc_0_43_dos_msvc_is_convertible_to;
+        break;
+      case ifc_dos_msvc_is_trivially_assignable:
+        result = (ue_ty)ifc_0_43_dos_msvc_is_trivially_assignable;
+        break;
+      case ifc_dos_msvc_is_nothrow_assignable:
+        result = (ue_ty)ifc_0_43_dos_msvc_is_nothrow_assignable;
+        break;
+      case ifc_dos_msvc_is_assignable:
+        result = (ue_ty)ifc_0_43_dos_msvc_is_assignable;
+        break;
+      case ifc_dos_msvc_is_assignable_nocheck:
+        result = (ue_ty)ifc_0_43_dos_msvc_is_assignable_nocheck;
+        break;
+      case ifc_dos_msvc_builtin_bit_cast:
+        result = (ue_ty)ifc_0_43_dos_msvc_builtin_bit_cast;
+        break;
+      case ifc_dos_msvc_builtin_is_layout_compatible:
+        result = (ue_ty)ifc_0_43_dos_msvc_builtin_is_layout_compatible;
+        break;
+      case ifc_dos_msvc_builtin_is_pointer_interconvertible_base_of:
+        result =
+          (ue_ty)ifc_0_43_dos_msvc_builtin_is_pointer_interconvertible_base_of;
+        break;
+      case ifc_dos_msvc_builtin_is_pointer_interconvertible_with_class:
+        result =
+       (ue_ty)ifc_0_43_dos_msvc_builtin_is_pointer_interconvertible_with_class;
+        break;
+      case ifc_dos_msvc_builtin_is_corresponding_member:
+        result = (ue_ty)ifc_0_43_dos_msvc_builtin_is_corresponding_member;
+        break;
+      case ifc_dos_msvc_intrinsic:
+        result = (ue_ty)ifc_0_43_dos_msvc_intrinsic;
+        break;
+      case ifc_dos_msvc_saturated_arithmetic:
+        result = (ue_ty)ifc_0_43_dos_msvc_saturated_arithmetic;
+        break;
+      case ifc_dos_msvc_builtin_allocation_annotation:
+        result = (ue_ty)ifc_0_43_dos_msvc_builtin_allocation_annotation;
+        break;
+      default:
+        unexpected_condition_str("Invalid value for a DyadicOperatorSort.");
+        break;
+    }  /* switch */
+  } else {
+    switch (universal) {
+      case ifc_dos_unknown:
+        result = (ue_ty)ifc_0_33_dos_unknown;
+        break;
+      case ifc_dos_plus:
+        result = (ue_ty)ifc_0_33_dos_plus;
+        break;
+      case ifc_dos_minus:
+        result = (ue_ty)ifc_0_33_dos_minus;
+        break;
+      case ifc_dos_mult:
+        result = (ue_ty)ifc_0_33_dos_mult;
+        break;
+      case ifc_dos_slash:
+        result = (ue_ty)ifc_0_33_dos_slash;
+        break;
+      case ifc_dos_modulo:
+        result = (ue_ty)ifc_0_33_dos_modulo;
+        break;
+      case ifc_dos_remainder:
+        result = (ue_ty)ifc_0_33_dos_remainder;
+        break;
+      case ifc_dos_bitand:
+        result = (ue_ty)ifc_0_33_dos_bitand;
+        break;
+      case ifc_dos_bitor:
+        result = (ue_ty)ifc_0_33_dos_bitor;
+        break;
+      case ifc_dos_bitxor:
+        result = (ue_ty)ifc_0_33_dos_bitxor;
+        break;
+      case ifc_dos_lshift:
+        result = (ue_ty)ifc_0_33_dos_lshift;
+        break;
+      case ifc_dos_rshift:
+        result = (ue_ty)ifc_0_33_dos_rshift;
+        break;
+      case ifc_dos_equal:
+        result = (ue_ty)ifc_0_33_dos_equal;
+        break;
+      case ifc_dos_not_equal:
+        result = (ue_ty)ifc_0_33_dos_not_equal;
+        break;
+      case ifc_dos_less:
+        result = (ue_ty)ifc_0_33_dos_less;
+        break;
+      case ifc_dos_less_equal:
+        result = (ue_ty)ifc_0_33_dos_less_equal;
+        break;
+      case ifc_dos_greater:
+        result = (ue_ty)ifc_0_33_dos_greater;
+        break;
+      case ifc_dos_greater_equal:
+        result = (ue_ty)ifc_0_33_dos_greater_equal;
+        break;
+      case ifc_dos_compare:
+        result = (ue_ty)ifc_0_33_dos_compare;
+        break;
+      case ifc_dos_logic_and:
+        result = (ue_ty)ifc_0_33_dos_logic_and;
+        break;
+      case ifc_dos_logic_or:
+        result = (ue_ty)ifc_0_33_dos_logic_or;
+        break;
+      case ifc_dos_assign:
+        result = (ue_ty)ifc_0_33_dos_assign;
+        break;
+      case ifc_dos_plus_assign:
+        result = (ue_ty)ifc_0_33_dos_plus_assign;
+        break;
+      case ifc_dos_minus_assign:
+        result = (ue_ty)ifc_0_33_dos_minus_assign;
+        break;
+      case ifc_dos_mult_assign:
+        result = (ue_ty)ifc_0_33_dos_mult_assign;
+        break;
+      case ifc_dos_slash_assign:
+        result = (ue_ty)ifc_0_33_dos_slash_assign;
+        break;
+      case ifc_dos_modulo_assign:
+        result = (ue_ty)ifc_0_33_dos_modulo_assign;
+        break;
+      case ifc_dos_bitand_assign:
+        result = (ue_ty)ifc_0_33_dos_bitand_assign;
+        break;
+      case ifc_dos_bitor_assign:
+        result = (ue_ty)ifc_0_33_dos_bitor_assign;
+        break;
+      case ifc_dos_bitxor_assign:
+        result = (ue_ty)ifc_0_33_dos_bitxor_assign;
+        break;
+      case ifc_dos_lshift_assign:
+        result = (ue_ty)ifc_0_33_dos_lshift_assign;
+        break;
+      case ifc_dos_rshift_assign:
+        result = (ue_ty)ifc_0_33_dos_rshift_assign;
+        break;
+      case ifc_dos_comma:
+        result = (ue_ty)ifc_0_33_dos_comma;
+        break;
+      case ifc_dos_dot:
+        result = (ue_ty)ifc_0_33_dos_dot;
+        break;
+      case ifc_dos_arrow:
+        result = (ue_ty)ifc_0_33_dos_arrow;
+        break;
+      case ifc_dos_dot_star:
+        result = (ue_ty)ifc_0_33_dos_dot_star;
+        break;
+      case ifc_dos_arrow_star:
+        result = (ue_ty)ifc_0_33_dos_arrow_star;
+        break;
+      case ifc_dos_curry:
+        result = (ue_ty)ifc_0_33_dos_curry;
+        break;
+      case ifc_dos_apply:
+        result = (ue_ty)ifc_0_33_dos_apply;
+        break;
+      case ifc_dos_index:
+        result = (ue_ty)ifc_0_33_dos_index;
+        break;
+      case ifc_dos_default_at:
+        result = (ue_ty)ifc_0_33_dos_default_at;
+        break;
+      case ifc_dos_new:
+        result = (ue_ty)ifc_0_33_dos_new;
+        break;
+      case ifc_dos_new_array:
+        result = (ue_ty)ifc_0_33_dos_new_array;
+        break;
+      case ifc_dos_destruct:
+        result = (ue_ty)ifc_0_33_dos_destruct;
+        break;
+      case ifc_dos_destruct_at:
+        result = (ue_ty)ifc_0_33_dos_destruct_at;
+        break;
+      case ifc_dos_cleanup:
+        result = (ue_ty)ifc_0_33_dos_cleanup;
+        break;
+      case ifc_dos_qualification:
+        result = (ue_ty)ifc_0_33_dos_qualification;
+        break;
+      case ifc_dos_promote:
+        result = (ue_ty)ifc_0_33_dos_promote;
+        break;
+      case ifc_dos_demote:
+        result = (ue_ty)ifc_0_33_dos_demote;
+        break;
+      case ifc_dos_coerce:
+        result = (ue_ty)ifc_0_33_dos_coerce;
+        break;
+      case ifc_dos_rewrite:
+        result = (ue_ty)ifc_0_33_dos_rewrite;
+        break;
+      case ifc_dos_bless:
+        result = (ue_ty)ifc_0_33_dos_bless;
+        break;
+      case ifc_dos_cast:
+        result = (ue_ty)ifc_0_33_dos_cast;
+        break;
+      case ifc_dos_explicit_conversion:
+        result = (ue_ty)ifc_0_33_dos_explicit_conversion;
+        break;
+      case ifc_dos_reinterpret_cast:
+        result = (ue_ty)ifc_0_33_dos_reinterpret_cast;
+        break;
+      case ifc_dos_static_cast:
+        result = (ue_ty)ifc_0_33_dos_static_cast;
+        break;
+      case ifc_dos_const_cast:
+        result = (ue_ty)ifc_0_33_dos_const_cast;
+        break;
+      case ifc_dos_dynamic_cast:
+        result = (ue_ty)ifc_0_33_dos_dynamic_cast;
+        break;
+      case ifc_dos_narrow:
+        result = (ue_ty)ifc_0_33_dos_narrow;
+        break;
+      case ifc_dos_widen:
+        result = (ue_ty)ifc_0_33_dos_widen;
+        break;
+      case ifc_dos_pretend:
+        result = (ue_ty)ifc_0_33_dos_pretend;
+        break;
+      case ifc_dos_closure:
+        result = (ue_ty)ifc_0_33_dos_closure;
+        break;
+      case ifc_dos_zero_initialize:
+        result = (ue_ty)ifc_0_33_dos_zero_initialize;
+        break;
+      case ifc_dos_clear_storage:
+        result = (ue_ty)ifc_0_33_dos_clear_storage;
+        break;
+      case ifc_dos_select:
+        result = (ue_ty)ifc_0_33_dos_select;
+        break;
+      case ifc_dos_msvc:
+        result = (ue_ty)ifc_0_33_dos_msvc;
+        break;
+      case ifc_dos_msvc_try_cast:
+        result = (ue_ty)ifc_0_33_dos_msvc_try_cast;
+        break;
+      case ifc_dos_msvc_curry:
+        result = (ue_ty)ifc_0_33_dos_msvc_curry;
+        break;
+      case ifc_dos_msvc_virtual_curry:
+        result = (ue_ty)ifc_0_33_dos_msvc_virtual_curry;
+        break;
+      case ifc_dos_msvc_align:
+        result = (ue_ty)ifc_0_33_dos_msvc_align;
+        break;
+      case ifc_dos_msvc_bit_span:
+        result = (ue_ty)ifc_0_33_dos_msvc_bit_span;
+        break;
+      case ifc_dos_msvc_bitfield_access:
+        result = (ue_ty)ifc_0_33_dos_msvc_bitfield_access;
+        break;
+      case ifc_dos_msvc_obscure_bitfield_access:
+        result = (ue_ty)ifc_0_33_dos_msvc_obscure_bitfield_access;
+        break;
+      case ifc_dos_msvc_initialize:
+        result = (ue_ty)ifc_0_33_dos_msvc_initialize;
+        break;
+      case ifc_dos_msvc_builtin_offset_of:
+        result = (ue_ty)ifc_0_33_dos_msvc_builtin_offset_of;
+        break;
+      case ifc_dos_msvc_is_base_of:
+        result = (ue_ty)ifc_0_33_dos_msvc_is_base_of;
+        break;
+      case ifc_dos_msvc_is_convertible_to:
+        result = (ue_ty)ifc_0_33_dos_msvc_is_convertible_to;
+        break;
+      case ifc_dos_msvc_is_trivially_assignable:
+        result = (ue_ty)ifc_0_33_dos_msvc_is_trivially_assignable;
+        break;
+      case ifc_dos_msvc_is_nothrow_assignable:
+        result = (ue_ty)ifc_0_33_dos_msvc_is_nothrow_assignable;
+        break;
+      case ifc_dos_msvc_is_assignable:
+        result = (ue_ty)ifc_0_33_dos_msvc_is_assignable;
+        break;
+      case ifc_dos_msvc_is_assignable_nocheck:
+        result = (ue_ty)ifc_0_33_dos_msvc_is_assignable_nocheck;
+        break;
+      case ifc_dos_msvc_builtin_bit_cast:
+        result = (ue_ty)ifc_0_33_dos_msvc_builtin_bit_cast;
+        break;
+      case ifc_dos_msvc_builtin_is_layout_compatible:
+        result = (ue_ty)ifc_0_33_dos_msvc_builtin_is_layout_compatible;
+        break;
+      case ifc_dos_msvc_builtin_is_pointer_interconvertible_base_of:
+        result =
           (ue_ty)ifc_0_33_dos_msvc_builtin_is_pointer_interconvertible_base_of;
-      break;
-    case ifc_dos_msvc_builtin_is_pointer_interconvertible_with_class:
-      result =
+        break;
+      case ifc_dos_msvc_builtin_is_pointer_interconvertible_with_class:
+        result =
        (ue_ty)ifc_0_33_dos_msvc_builtin_is_pointer_interconvertible_with_class;
-      break;
-    case ifc_dos_msvc_builtin_is_corresponding_member:
-      result = (ue_ty)ifc_0_33_dos_msvc_builtin_is_corresponding_member;
-      break;
-    case ifc_dos_msvc_intrinsic:
-      result = (ue_ty)ifc_0_33_dos_msvc_intrinsic;
-      break;
-    case ifc_dos_msvc_saturated_arithmetic:
-      result = (ue_ty)ifc_0_33_dos_msvc_saturated_arithmetic;
-      break;
-    default:
-      unexpected_condition_str("Invalid value for a DyadicOperatorSort.");
-      break;
-  }  /* switch */
+        break;
+      case ifc_dos_msvc_builtin_is_corresponding_member:
+        result = (ue_ty)ifc_0_33_dos_msvc_builtin_is_corresponding_member;
+        break;
+      case ifc_dos_msvc_intrinsic:
+        result = (ue_ty)ifc_0_33_dos_msvc_intrinsic;
+        break;
+      case ifc_dos_msvc_saturated_arithmetic:
+        result = (ue_ty)ifc_0_33_dos_msvc_saturated_arithmetic;
+        break;
+      default:
+        unexpected_condition_str("Invalid value for a DyadicOperatorSort.");
+        break;
+    }  /* switch */
+  }  /* if */
   return an_ifc_encoded_dyadic_operator_sort{mod, result};
 }  /* to_encoded */
 
@@ -2110,6 +2609,291 @@ corresponding universal representation.
       break;
     case ifc_0_33_dos_msvc_saturated_arithmetic:
       result = ifc_dos_msvc_saturated_arithmetic;
+      break;
+    default:
+      unexpected_condition_str("Invalid value for a DyadicOperatorSort.");
+      break;
+  }  /* switch */
+  return result;
+}  /* to_universal_sort */
+
+
+an_ifc_dyadic_operator_sort to_universal_sort(
+                                    an_ifc_dyadic_operator_sort_0_43 versioned)
+/*
+Given the versioned representation of DyadicOperatorSort, return the
+corresponding universal representation.
+*/
+{
+  an_ifc_dyadic_operator_sort result;
+
+  switch (versioned) {
+    case ifc_0_43_dos_unknown:
+      result = ifc_dos_unknown;
+      break;
+    case ifc_0_43_dos_plus:
+      result = ifc_dos_plus;
+      break;
+    case ifc_0_43_dos_minus:
+      result = ifc_dos_minus;
+      break;
+    case ifc_0_43_dos_mult:
+      result = ifc_dos_mult;
+      break;
+    case ifc_0_43_dos_slash:
+      result = ifc_dos_slash;
+      break;
+    case ifc_0_43_dos_modulo:
+      result = ifc_dos_modulo;
+      break;
+    case ifc_0_43_dos_remainder:
+      result = ifc_dos_remainder;
+      break;
+    case ifc_0_43_dos_bitand:
+      result = ifc_dos_bitand;
+      break;
+    case ifc_0_43_dos_bitor:
+      result = ifc_dos_bitor;
+      break;
+    case ifc_0_43_dos_bitxor:
+      result = ifc_dos_bitxor;
+      break;
+    case ifc_0_43_dos_lshift:
+      result = ifc_dos_lshift;
+      break;
+    case ifc_0_43_dos_rshift:
+      result = ifc_dos_rshift;
+      break;
+    case ifc_0_43_dos_equal:
+      result = ifc_dos_equal;
+      break;
+    case ifc_0_43_dos_not_equal:
+      result = ifc_dos_not_equal;
+      break;
+    case ifc_0_43_dos_less:
+      result = ifc_dos_less;
+      break;
+    case ifc_0_43_dos_less_equal:
+      result = ifc_dos_less_equal;
+      break;
+    case ifc_0_43_dos_greater:
+      result = ifc_dos_greater;
+      break;
+    case ifc_0_43_dos_greater_equal:
+      result = ifc_dos_greater_equal;
+      break;
+    case ifc_0_43_dos_compare:
+      result = ifc_dos_compare;
+      break;
+    case ifc_0_43_dos_logic_and:
+      result = ifc_dos_logic_and;
+      break;
+    case ifc_0_43_dos_logic_or:
+      result = ifc_dos_logic_or;
+      break;
+    case ifc_0_43_dos_assign:
+      result = ifc_dos_assign;
+      break;
+    case ifc_0_43_dos_plus_assign:
+      result = ifc_dos_plus_assign;
+      break;
+    case ifc_0_43_dos_minus_assign:
+      result = ifc_dos_minus_assign;
+      break;
+    case ifc_0_43_dos_mult_assign:
+      result = ifc_dos_mult_assign;
+      break;
+    case ifc_0_43_dos_slash_assign:
+      result = ifc_dos_slash_assign;
+      break;
+    case ifc_0_43_dos_modulo_assign:
+      result = ifc_dos_modulo_assign;
+      break;
+    case ifc_0_43_dos_bitand_assign:
+      result = ifc_dos_bitand_assign;
+      break;
+    case ifc_0_43_dos_bitor_assign:
+      result = ifc_dos_bitor_assign;
+      break;
+    case ifc_0_43_dos_bitxor_assign:
+      result = ifc_dos_bitxor_assign;
+      break;
+    case ifc_0_43_dos_lshift_assign:
+      result = ifc_dos_lshift_assign;
+      break;
+    case ifc_0_43_dos_rshift_assign:
+      result = ifc_dos_rshift_assign;
+      break;
+    case ifc_0_43_dos_comma:
+      result = ifc_dos_comma;
+      break;
+    case ifc_0_43_dos_dot:
+      result = ifc_dos_dot;
+      break;
+    case ifc_0_43_dos_arrow:
+      result = ifc_dos_arrow;
+      break;
+    case ifc_0_43_dos_dot_star:
+      result = ifc_dos_dot_star;
+      break;
+    case ifc_0_43_dos_arrow_star:
+      result = ifc_dos_arrow_star;
+      break;
+    case ifc_0_43_dos_curry:
+      result = ifc_dos_curry;
+      break;
+    case ifc_0_43_dos_apply:
+      result = ifc_dos_apply;
+      break;
+    case ifc_0_43_dos_index:
+      result = ifc_dos_index;
+      break;
+    case ifc_0_43_dos_default_at:
+      result = ifc_dos_default_at;
+      break;
+    case ifc_0_43_dos_new:
+      result = ifc_dos_new;
+      break;
+    case ifc_0_43_dos_new_array:
+      result = ifc_dos_new_array;
+      break;
+    case ifc_0_43_dos_destruct:
+      result = ifc_dos_destruct;
+      break;
+    case ifc_0_43_dos_destruct_at:
+      result = ifc_dos_destruct_at;
+      break;
+    case ifc_0_43_dos_cleanup:
+      result = ifc_dos_cleanup;
+      break;
+    case ifc_0_43_dos_qualification:
+      result = ifc_dos_qualification;
+      break;
+    case ifc_0_43_dos_promote:
+      result = ifc_dos_promote;
+      break;
+    case ifc_0_43_dos_demote:
+      result = ifc_dos_demote;
+      break;
+    case ifc_0_43_dos_coerce:
+      result = ifc_dos_coerce;
+      break;
+    case ifc_0_43_dos_rewrite:
+      result = ifc_dos_rewrite;
+      break;
+    case ifc_0_43_dos_bless:
+      result = ifc_dos_bless;
+      break;
+    case ifc_0_43_dos_cast:
+      result = ifc_dos_cast;
+      break;
+    case ifc_0_43_dos_explicit_conversion:
+      result = ifc_dos_explicit_conversion;
+      break;
+    case ifc_0_43_dos_reinterpret_cast:
+      result = ifc_dos_reinterpret_cast;
+      break;
+    case ifc_0_43_dos_static_cast:
+      result = ifc_dos_static_cast;
+      break;
+    case ifc_0_43_dos_const_cast:
+      result = ifc_dos_const_cast;
+      break;
+    case ifc_0_43_dos_dynamic_cast:
+      result = ifc_dos_dynamic_cast;
+      break;
+    case ifc_0_43_dos_narrow:
+      result = ifc_dos_narrow;
+      break;
+    case ifc_0_43_dos_widen:
+      result = ifc_dos_widen;
+      break;
+    case ifc_0_43_dos_pretend:
+      result = ifc_dos_pretend;
+      break;
+    case ifc_0_43_dos_closure:
+      result = ifc_dos_closure;
+      break;
+    case ifc_0_43_dos_zero_initialize:
+      result = ifc_dos_zero_initialize;
+      break;
+    case ifc_0_43_dos_clear_storage:
+      result = ifc_dos_clear_storage;
+      break;
+    case ifc_0_43_dos_select:
+      result = ifc_dos_select;
+      break;
+    case ifc_0_43_dos_msvc:
+      result = ifc_dos_msvc;
+      break;
+    case ifc_0_43_dos_msvc_try_cast:
+      result = ifc_dos_msvc_try_cast;
+      break;
+    case ifc_0_43_dos_msvc_curry:
+      result = ifc_dos_msvc_curry;
+      break;
+    case ifc_0_43_dos_msvc_virtual_curry:
+      result = ifc_dos_msvc_virtual_curry;
+      break;
+    case ifc_0_43_dos_msvc_align:
+      result = ifc_dos_msvc_align;
+      break;
+    case ifc_0_43_dos_msvc_bit_span:
+      result = ifc_dos_msvc_bit_span;
+      break;
+    case ifc_0_43_dos_msvc_bitfield_access:
+      result = ifc_dos_msvc_bitfield_access;
+      break;
+    case ifc_0_43_dos_msvc_obscure_bitfield_access:
+      result = ifc_dos_msvc_obscure_bitfield_access;
+      break;
+    case ifc_0_43_dos_msvc_initialize:
+      result = ifc_dos_msvc_initialize;
+      break;
+    case ifc_0_43_dos_msvc_builtin_offset_of:
+      result = ifc_dos_msvc_builtin_offset_of;
+      break;
+    case ifc_0_43_dos_msvc_is_base_of:
+      result = ifc_dos_msvc_is_base_of;
+      break;
+    case ifc_0_43_dos_msvc_is_convertible_to:
+      result = ifc_dos_msvc_is_convertible_to;
+      break;
+    case ifc_0_43_dos_msvc_is_trivially_assignable:
+      result = ifc_dos_msvc_is_trivially_assignable;
+      break;
+    case ifc_0_43_dos_msvc_is_nothrow_assignable:
+      result = ifc_dos_msvc_is_nothrow_assignable;
+      break;
+    case ifc_0_43_dos_msvc_is_assignable:
+      result = ifc_dos_msvc_is_assignable;
+      break;
+    case ifc_0_43_dos_msvc_is_assignable_nocheck:
+      result = ifc_dos_msvc_is_assignable_nocheck;
+      break;
+    case ifc_0_43_dos_msvc_builtin_bit_cast:
+      result = ifc_dos_msvc_builtin_bit_cast;
+      break;
+    case ifc_0_43_dos_msvc_builtin_is_layout_compatible:
+      result = ifc_dos_msvc_builtin_is_layout_compatible;
+      break;
+    case ifc_0_43_dos_msvc_builtin_is_pointer_interconvertible_base_of:
+      result = ifc_dos_msvc_builtin_is_pointer_interconvertible_base_of;
+      break;
+    case ifc_0_43_dos_msvc_builtin_is_pointer_interconvertible_with_class:
+      result = ifc_dos_msvc_builtin_is_pointer_interconvertible_with_class;
+      break;
+    case ifc_0_43_dos_msvc_builtin_is_corresponding_member:
+      result = ifc_dos_msvc_builtin_is_corresponding_member;
+      break;
+    case ifc_0_43_dos_msvc_intrinsic:
+      result = ifc_dos_msvc_intrinsic;
+      break;
+    case ifc_0_43_dos_msvc_saturated_arithmetic:
+      result = ifc_dos_msvc_saturated_arithmetic;
+      break;
+    case ifc_0_43_dos_msvc_builtin_allocation_annotation:
+      result = ifc_dos_msvc_builtin_allocation_annotation;
       break;
     default:
       unexpected_condition_str("Invalid value for a DyadicOperatorSort.");
@@ -4059,8 +4843,17 @@ name in the form of a c-string.
     case ifc_mos_msvc_confused_dependent_sizeof:
       result = "MonadicOperatorSort::MsvcConfusedDependentSizeof";
       break;
+    case ifc_mos_msvc_confused_dtor_action:
+      result = "MonadicOperatorSort::MsvcConfusedDtorAction";
+      break;
     case ifc_mos_msvc_confused_expand:
       result = "MonadicOperatorSort::MsvcConfusedExpand";
+      break;
+    case ifc_mos_msvc_confused_pop_state:
+      result = "MonadicOperatorSort::MsvcConfusedPopState";
+      break;
+    case ifc_mos_msvc_confused_vtor_displacement:
+      result = "MonadicOperatorSort::MsvcConfusedVtorDisplacement";
       break;
     case ifc_mos_msvc_confusion:
       result = "MonadicOperatorSort::MsvcConfusion";
@@ -4255,251 +5048,508 @@ module, return a reencoded sort value.
   using ue_ty = an_ifc_encoded_monadic_operator_sort_storage;
   an_ifc_encoded_monadic_operator_sort_storage result;
 
-  switch (universal) {
-    case ifc_mos_unknown:
-      result = (ue_ty)ifc_0_33_mos_unknown;
-      break;
-    case ifc_mos_plus:
-      result = (ue_ty)ifc_0_33_mos_plus;
-      break;
-    case ifc_mos_negate:
-      result = (ue_ty)ifc_0_33_mos_negate;
-      break;
-    case ifc_mos_deref:
-      result = (ue_ty)ifc_0_33_mos_deref;
-      break;
-    case ifc_mos_address:
-      result = (ue_ty)ifc_0_33_mos_address;
-      break;
-    case ifc_mos_complement:
-      result = (ue_ty)ifc_0_33_mos_complement;
-      break;
-    case ifc_mos_not:
-      result = (ue_ty)ifc_0_33_mos_not;
-      break;
-    case ifc_mos_pre_increment:
-      result = (ue_ty)ifc_0_33_mos_pre_increment;
-      break;
-    case ifc_mos_pre_decrement:
-      result = (ue_ty)ifc_0_33_mos_pre_decrement;
-      break;
-    case ifc_mos_post_increment:
-      result = (ue_ty)ifc_0_33_mos_post_increment;
-      break;
-    case ifc_mos_post_decrement:
-      result = (ue_ty)ifc_0_33_mos_post_decrement;
-      break;
-    case ifc_mos_truncate:
-      result = (ue_ty)ifc_0_33_mos_truncate;
-      break;
-    case ifc_mos_ceil:
-      result = (ue_ty)ifc_0_33_mos_ceil;
-      break;
-    case ifc_mos_floor:
-      result = (ue_ty)ifc_0_33_mos_floor;
-      break;
-    case ifc_mos_paren:
-      result = (ue_ty)ifc_0_33_mos_paren;
-      break;
-    case ifc_mos_brace:
-      result = (ue_ty)ifc_0_33_mos_brace;
-      break;
-    case ifc_mos_alignas:
-      result = (ue_ty)ifc_0_33_mos_alignas;
-      break;
-    case ifc_mos_alignof:
-      result = (ue_ty)ifc_0_33_mos_alignof;
-      break;
-    case ifc_mos_sizeof:
-      result = (ue_ty)ifc_0_33_mos_sizeof;
-      break;
-    case ifc_mos_cardinality:
-      result = (ue_ty)ifc_0_33_mos_cardinality;
-      break;
-    case ifc_mos_typeid:
-      result = (ue_ty)ifc_0_33_mos_typeid;
-      break;
-    case ifc_mos_noexcept:
-      result = (ue_ty)ifc_0_33_mos_noexcept;
-      break;
-    case ifc_mos_requires:
-      result = (ue_ty)ifc_0_33_mos_requires;
-      break;
-    case ifc_mos_co_return:
-      result = (ue_ty)ifc_0_33_mos_co_return;
-      break;
-    case ifc_mos_await:
-      result = (ue_ty)ifc_0_33_mos_await;
-      break;
-    case ifc_mos_yield:
-      result = (ue_ty)ifc_0_33_mos_yield;
-      break;
-    case ifc_mos_throw:
-      result = (ue_ty)ifc_0_33_mos_throw;
-      break;
-    case ifc_mos_new:
-      result = (ue_ty)ifc_0_33_mos_new;
-      break;
-    case ifc_mos_delete:
-      result = (ue_ty)ifc_0_33_mos_delete;
-      break;
-    case ifc_mos_delete_array:
-      result = (ue_ty)ifc_0_33_mos_delete_array;
-      break;
-    case ifc_mos_expand:
-      result = (ue_ty)ifc_0_33_mos_expand;
-      break;
-    case ifc_mos_read:
-      result = (ue_ty)ifc_0_33_mos_read;
-      break;
-    case ifc_mos_materialize:
-      result = (ue_ty)ifc_0_33_mos_materialize;
-      break;
-    case ifc_mos_pseudo_dtor_call:
-      result = (ue_ty)ifc_0_33_mos_pseudo_dtor_call;
-      break;
-    case ifc_mos_lookup_globally:
-      result = (ue_ty)ifc_0_33_mos_lookup_globally;
-      break;
-    case ifc_mos_msvc:
-      result = (ue_ty)ifc_0_33_mos_msvc;
-      break;
-    case ifc_mos_msvc_assume:
-      result = (ue_ty)ifc_0_33_mos_msvc_assume;
-      break;
-    case ifc_mos_msvc_alignof:
-      result = (ue_ty)ifc_0_33_mos_msvc_alignof;
-      break;
-    case ifc_mos_msvc_uuidof:
-      result = (ue_ty)ifc_0_33_mos_msvc_uuidof;
-      break;
-    case ifc_mos_msvc_is_class:
-      result = (ue_ty)ifc_0_33_mos_msvc_is_class;
-      break;
-    case ifc_mos_msvc_is_union:
-      result = (ue_ty)ifc_0_33_mos_msvc_is_union;
-      break;
-    case ifc_mos_msvc_is_enum:
-      result = (ue_ty)ifc_0_33_mos_msvc_is_enum;
-      break;
-    case ifc_mos_msvc_is_polymorphic:
-      result = (ue_ty)ifc_0_33_mos_msvc_is_polymorphic;
-      break;
-    case ifc_mos_msvc_is_empty:
-      result = (ue_ty)ifc_0_33_mos_msvc_is_empty;
-      break;
-    case ifc_mos_msvc_is_trivially_copy_constructible:
-      result = (ue_ty)ifc_0_33_mos_msvc_is_trivially_copy_constructible;
-      break;
-    case ifc_mos_msvc_is_trivially_copy_assignable:
-      result = (ue_ty)ifc_0_33_mos_msvc_is_trivially_copy_assignable;
-      break;
-    case ifc_mos_msvc_is_trivially_destructible:
-      result = (ue_ty)ifc_0_33_mos_msvc_is_trivially_destructible;
-      break;
-    case ifc_mos_msvc_has_virtual_destructor:
-      result = (ue_ty)ifc_0_33_mos_msvc_has_virtual_destructor;
-      break;
-    case ifc_mos_msvc_is_nothrow_copy_constructible:
-      result = (ue_ty)ifc_0_33_mos_msvc_is_nothrow_copy_constructible;
-      break;
-    case ifc_mos_msvc_is_nothrow_copy_assignable:
-      result = (ue_ty)ifc_0_33_mos_msvc_is_nothrow_copy_assignable;
-      break;
-    case ifc_mos_msvc_is_pod:
-      result = (ue_ty)ifc_0_33_mos_msvc_is_pod;
-      break;
-    case ifc_mos_msvc_is_abstract:
-      result = (ue_ty)ifc_0_33_mos_msvc_is_abstract;
-      break;
-    case ifc_mos_msvc_is_trivial:
-      result = (ue_ty)ifc_0_33_mos_msvc_is_trivial;
-      break;
-    case ifc_mos_msvc_is_trivially_copyable:
-      result = (ue_ty)ifc_0_33_mos_msvc_is_trivially_copyable;
-      break;
-    case ifc_mos_msvc_is_standard_layout:
-      result = (ue_ty)ifc_0_33_mos_msvc_is_standard_layout;
-      break;
-    case ifc_mos_msvc_is_literal_type:
-      result = (ue_ty)ifc_0_33_mos_msvc_is_literal_type;
-      break;
-    case ifc_mos_msvc_is_trivially_move_constructible:
-      result = (ue_ty)ifc_0_33_mos_msvc_is_trivially_move_constructible;
-      break;
-    case ifc_mos_msvc_has_trivial_move_assign:
-      result = (ue_ty)ifc_0_33_mos_msvc_has_trivial_move_assign;
-      break;
-    case ifc_mos_msvc_is_trivially_move_assignable:
-      result = (ue_ty)ifc_0_33_mos_msvc_is_trivially_move_assignable;
-      break;
-    case ifc_mos_msvc_is_nothrow_move_assignable:
-      result = (ue_ty)ifc_0_33_mos_msvc_is_nothrow_move_assignable;
-      break;
-    case ifc_mos_msvc_underlying_type:
-      result = (ue_ty)ifc_0_33_mos_msvc_underlying_type;
-      break;
-    case ifc_mos_msvc_is_destructible:
-      result = (ue_ty)ifc_0_33_mos_msvc_is_destructible;
-      break;
-    case ifc_mos_msvc_is_nothrow_destructible:
-      result = (ue_ty)ifc_0_33_mos_msvc_is_nothrow_destructible;
-      break;
-    case ifc_mos_msvc_has_unique_object_representations:
-      result = (ue_ty)ifc_0_33_mos_msvc_has_unique_object_representations;
-      break;
-    case ifc_mos_msvc_is_aggregate:
-      result = (ue_ty)ifc_0_33_mos_msvc_is_aggregate;
-      break;
-    case ifc_mos_msvc_builtin_address_of:
-      result = (ue_ty)ifc_0_33_mos_msvc_builtin_address_of;
-      break;
-    case ifc_mos_msvc_is_ref_class:
-      result = (ue_ty)ifc_0_33_mos_msvc_is_ref_class;
-      break;
-    case ifc_mos_msvc_is_value_class:
-      result = (ue_ty)ifc_0_33_mos_msvc_is_value_class;
-      break;
-    case ifc_mos_msvc_is_simple_value_class:
-      result = (ue_ty)ifc_0_33_mos_msvc_is_simple_value_class;
-      break;
-    case ifc_mos_msvc_is_interface_class:
-      result = (ue_ty)ifc_0_33_mos_msvc_is_interface_class;
-      break;
-    case ifc_mos_msvc_is_delegate:
-      result = (ue_ty)ifc_0_33_mos_msvc_is_delegate;
-      break;
-    case ifc_mos_msvc_is_final:
-      result = (ue_ty)ifc_0_33_mos_msvc_is_final;
-      break;
-    case ifc_mos_msvc_is_sealed:
-      result = (ue_ty)ifc_0_33_mos_msvc_is_sealed;
-      break;
-    case ifc_mos_msvc_has_finalizer:
-      result = (ue_ty)ifc_0_33_mos_msvc_has_finalizer;
-      break;
-    case ifc_mos_msvc_has_copy:
-      result = (ue_ty)ifc_0_33_mos_msvc_has_copy;
-      break;
-    case ifc_mos_msvc_has_assign:
-      result = (ue_ty)ifc_0_33_mos_msvc_has_assign;
-      break;
-    case ifc_mos_msvc_has_user_destructor:
-      result = (ue_ty)ifc_0_33_mos_msvc_has_user_destructor;
-      break;
-    case ifc_mos_msvc_confusion:
-      result = (ue_ty)ifc_0_33_mos_msvc_confusion;
-      break;
-    case ifc_mos_msvc_confused_expand:
-      result = (ue_ty)ifc_0_33_mos_msvc_confused_expand;
-      break;
-    case ifc_mos_msvc_confused_dependent_sizeof:
-      result = (ue_ty)ifc_0_33_mos_msvc_confused_dependent_sizeof;
-      break;
-    default:
-      unexpected_condition_str("Invalid value for a MonadicOperatorSort.");
-      break;
-  }  /* switch */
+  if (is_at_least(mod, 0, 43)) {
+    switch (universal) {
+      case ifc_mos_unknown:
+        result = (ue_ty)ifc_0_43_mos_unknown;
+        break;
+      case ifc_mos_plus:
+        result = (ue_ty)ifc_0_43_mos_plus;
+        break;
+      case ifc_mos_negate:
+        result = (ue_ty)ifc_0_43_mos_negate;
+        break;
+      case ifc_mos_deref:
+        result = (ue_ty)ifc_0_43_mos_deref;
+        break;
+      case ifc_mos_address:
+        result = (ue_ty)ifc_0_43_mos_address;
+        break;
+      case ifc_mos_complement:
+        result = (ue_ty)ifc_0_43_mos_complement;
+        break;
+      case ifc_mos_not:
+        result = (ue_ty)ifc_0_43_mos_not;
+        break;
+      case ifc_mos_pre_increment:
+        result = (ue_ty)ifc_0_43_mos_pre_increment;
+        break;
+      case ifc_mos_pre_decrement:
+        result = (ue_ty)ifc_0_43_mos_pre_decrement;
+        break;
+      case ifc_mos_post_increment:
+        result = (ue_ty)ifc_0_43_mos_post_increment;
+        break;
+      case ifc_mos_post_decrement:
+        result = (ue_ty)ifc_0_43_mos_post_decrement;
+        break;
+      case ifc_mos_truncate:
+        result = (ue_ty)ifc_0_43_mos_truncate;
+        break;
+      case ifc_mos_ceil:
+        result = (ue_ty)ifc_0_43_mos_ceil;
+        break;
+      case ifc_mos_floor:
+        result = (ue_ty)ifc_0_43_mos_floor;
+        break;
+      case ifc_mos_paren:
+        result = (ue_ty)ifc_0_43_mos_paren;
+        break;
+      case ifc_mos_brace:
+        result = (ue_ty)ifc_0_43_mos_brace;
+        break;
+      case ifc_mos_alignas:
+        result = (ue_ty)ifc_0_43_mos_alignas;
+        break;
+      case ifc_mos_alignof:
+        result = (ue_ty)ifc_0_43_mos_alignof;
+        break;
+      case ifc_mos_sizeof:
+        result = (ue_ty)ifc_0_43_mos_sizeof;
+        break;
+      case ifc_mos_cardinality:
+        result = (ue_ty)ifc_0_43_mos_cardinality;
+        break;
+      case ifc_mos_typeid:
+        result = (ue_ty)ifc_0_43_mos_typeid;
+        break;
+      case ifc_mos_noexcept:
+        result = (ue_ty)ifc_0_43_mos_noexcept;
+        break;
+      case ifc_mos_requires:
+        result = (ue_ty)ifc_0_43_mos_requires;
+        break;
+      case ifc_mos_co_return:
+        result = (ue_ty)ifc_0_43_mos_co_return;
+        break;
+      case ifc_mos_await:
+        result = (ue_ty)ifc_0_43_mos_await;
+        break;
+      case ifc_mos_yield:
+        result = (ue_ty)ifc_0_43_mos_yield;
+        break;
+      case ifc_mos_throw:
+        result = (ue_ty)ifc_0_43_mos_throw;
+        break;
+      case ifc_mos_new:
+        result = (ue_ty)ifc_0_43_mos_new;
+        break;
+      case ifc_mos_delete:
+        result = (ue_ty)ifc_0_43_mos_delete;
+        break;
+      case ifc_mos_delete_array:
+        result = (ue_ty)ifc_0_43_mos_delete_array;
+        break;
+      case ifc_mos_expand:
+        result = (ue_ty)ifc_0_43_mos_expand;
+        break;
+      case ifc_mos_read:
+        result = (ue_ty)ifc_0_43_mos_read;
+        break;
+      case ifc_mos_materialize:
+        result = (ue_ty)ifc_0_43_mos_materialize;
+        break;
+      case ifc_mos_pseudo_dtor_call:
+        result = (ue_ty)ifc_0_43_mos_pseudo_dtor_call;
+        break;
+      case ifc_mos_lookup_globally:
+        result = (ue_ty)ifc_0_43_mos_lookup_globally;
+        break;
+      case ifc_mos_msvc:
+        result = (ue_ty)ifc_0_43_mos_msvc;
+        break;
+      case ifc_mos_msvc_assume:
+        result = (ue_ty)ifc_0_43_mos_msvc_assume;
+        break;
+      case ifc_mos_msvc_alignof:
+        result = (ue_ty)ifc_0_43_mos_msvc_alignof;
+        break;
+      case ifc_mos_msvc_uuidof:
+        result = (ue_ty)ifc_0_43_mos_msvc_uuidof;
+        break;
+      case ifc_mos_msvc_is_class:
+        result = (ue_ty)ifc_0_43_mos_msvc_is_class;
+        break;
+      case ifc_mos_msvc_is_union:
+        result = (ue_ty)ifc_0_43_mos_msvc_is_union;
+        break;
+      case ifc_mos_msvc_is_enum:
+        result = (ue_ty)ifc_0_43_mos_msvc_is_enum;
+        break;
+      case ifc_mos_msvc_is_polymorphic:
+        result = (ue_ty)ifc_0_43_mos_msvc_is_polymorphic;
+        break;
+      case ifc_mos_msvc_is_empty:
+        result = (ue_ty)ifc_0_43_mos_msvc_is_empty;
+        break;
+      case ifc_mos_msvc_is_trivially_copy_constructible:
+        result = (ue_ty)ifc_0_43_mos_msvc_is_trivially_copy_constructible;
+        break;
+      case ifc_mos_msvc_is_trivially_copy_assignable:
+        result = (ue_ty)ifc_0_43_mos_msvc_is_trivially_copy_assignable;
+        break;
+      case ifc_mos_msvc_is_trivially_destructible:
+        result = (ue_ty)ifc_0_43_mos_msvc_is_trivially_destructible;
+        break;
+      case ifc_mos_msvc_has_virtual_destructor:
+        result = (ue_ty)ifc_0_43_mos_msvc_has_virtual_destructor;
+        break;
+      case ifc_mos_msvc_is_nothrow_copy_constructible:
+        result = (ue_ty)ifc_0_43_mos_msvc_is_nothrow_copy_constructible;
+        break;
+      case ifc_mos_msvc_is_nothrow_copy_assignable:
+        result = (ue_ty)ifc_0_43_mos_msvc_is_nothrow_copy_assignable;
+        break;
+      case ifc_mos_msvc_is_pod:
+        result = (ue_ty)ifc_0_43_mos_msvc_is_pod;
+        break;
+      case ifc_mos_msvc_is_abstract:
+        result = (ue_ty)ifc_0_43_mos_msvc_is_abstract;
+        break;
+      case ifc_mos_msvc_is_trivial:
+        result = (ue_ty)ifc_0_43_mos_msvc_is_trivial;
+        break;
+      case ifc_mos_msvc_is_trivially_copyable:
+        result = (ue_ty)ifc_0_43_mos_msvc_is_trivially_copyable;
+        break;
+      case ifc_mos_msvc_is_standard_layout:
+        result = (ue_ty)ifc_0_43_mos_msvc_is_standard_layout;
+        break;
+      case ifc_mos_msvc_is_literal_type:
+        result = (ue_ty)ifc_0_43_mos_msvc_is_literal_type;
+        break;
+      case ifc_mos_msvc_is_trivially_move_constructible:
+        result = (ue_ty)ifc_0_43_mos_msvc_is_trivially_move_constructible;
+        break;
+      case ifc_mos_msvc_has_trivial_move_assign:
+        result = (ue_ty)ifc_0_43_mos_msvc_has_trivial_move_assign;
+        break;
+      case ifc_mos_msvc_is_trivially_move_assignable:
+        result = (ue_ty)ifc_0_43_mos_msvc_is_trivially_move_assignable;
+        break;
+      case ifc_mos_msvc_is_nothrow_move_assignable:
+        result = (ue_ty)ifc_0_43_mos_msvc_is_nothrow_move_assignable;
+        break;
+      case ifc_mos_msvc_underlying_type:
+        result = (ue_ty)ifc_0_43_mos_msvc_underlying_type;
+        break;
+      case ifc_mos_msvc_is_destructible:
+        result = (ue_ty)ifc_0_43_mos_msvc_is_destructible;
+        break;
+      case ifc_mos_msvc_is_nothrow_destructible:
+        result = (ue_ty)ifc_0_43_mos_msvc_is_nothrow_destructible;
+        break;
+      case ifc_mos_msvc_has_unique_object_representations:
+        result = (ue_ty)ifc_0_43_mos_msvc_has_unique_object_representations;
+        break;
+      case ifc_mos_msvc_is_aggregate:
+        result = (ue_ty)ifc_0_43_mos_msvc_is_aggregate;
+        break;
+      case ifc_mos_msvc_builtin_address_of:
+        result = (ue_ty)ifc_0_43_mos_msvc_builtin_address_of;
+        break;
+      case ifc_mos_msvc_is_ref_class:
+        result = (ue_ty)ifc_0_43_mos_msvc_is_ref_class;
+        break;
+      case ifc_mos_msvc_is_value_class:
+        result = (ue_ty)ifc_0_43_mos_msvc_is_value_class;
+        break;
+      case ifc_mos_msvc_is_simple_value_class:
+        result = (ue_ty)ifc_0_43_mos_msvc_is_simple_value_class;
+        break;
+      case ifc_mos_msvc_is_interface_class:
+        result = (ue_ty)ifc_0_43_mos_msvc_is_interface_class;
+        break;
+      case ifc_mos_msvc_is_delegate:
+        result = (ue_ty)ifc_0_43_mos_msvc_is_delegate;
+        break;
+      case ifc_mos_msvc_is_final:
+        result = (ue_ty)ifc_0_43_mos_msvc_is_final;
+        break;
+      case ifc_mos_msvc_is_sealed:
+        result = (ue_ty)ifc_0_43_mos_msvc_is_sealed;
+        break;
+      case ifc_mos_msvc_has_finalizer:
+        result = (ue_ty)ifc_0_43_mos_msvc_has_finalizer;
+        break;
+      case ifc_mos_msvc_has_copy:
+        result = (ue_ty)ifc_0_43_mos_msvc_has_copy;
+        break;
+      case ifc_mos_msvc_has_assign:
+        result = (ue_ty)ifc_0_43_mos_msvc_has_assign;
+        break;
+      case ifc_mos_msvc_has_user_destructor:
+        result = (ue_ty)ifc_0_43_mos_msvc_has_user_destructor;
+        break;
+      case ifc_mos_msvc_confusion:
+        result = (ue_ty)ifc_0_43_mos_msvc_confusion;
+        break;
+      case ifc_mos_msvc_confused_expand:
+        result = (ue_ty)ifc_0_43_mos_msvc_confused_expand;
+        break;
+      case ifc_mos_msvc_confused_dependent_sizeof:
+        result = (ue_ty)ifc_0_43_mos_msvc_confused_dependent_sizeof;
+        break;
+      case ifc_mos_msvc_confused_pop_state:
+        result = (ue_ty)ifc_0_43_mos_msvc_confused_pop_state;
+        break;
+      case ifc_mos_msvc_confused_dtor_action:
+        result = (ue_ty)ifc_0_43_mos_msvc_confused_dtor_action;
+        break;
+      case ifc_mos_msvc_confused_vtor_displacement:
+        result = (ue_ty)ifc_0_43_mos_msvc_confused_vtor_displacement;
+        break;
+      default:
+        unexpected_condition_str("Invalid value for a MonadicOperatorSort.");
+        break;
+    }  /* switch */
+  } else {
+    switch (universal) {
+      case ifc_mos_unknown:
+        result = (ue_ty)ifc_0_33_mos_unknown;
+        break;
+      case ifc_mos_plus:
+        result = (ue_ty)ifc_0_33_mos_plus;
+        break;
+      case ifc_mos_negate:
+        result = (ue_ty)ifc_0_33_mos_negate;
+        break;
+      case ifc_mos_deref:
+        result = (ue_ty)ifc_0_33_mos_deref;
+        break;
+      case ifc_mos_address:
+        result = (ue_ty)ifc_0_33_mos_address;
+        break;
+      case ifc_mos_complement:
+        result = (ue_ty)ifc_0_33_mos_complement;
+        break;
+      case ifc_mos_not:
+        result = (ue_ty)ifc_0_33_mos_not;
+        break;
+      case ifc_mos_pre_increment:
+        result = (ue_ty)ifc_0_33_mos_pre_increment;
+        break;
+      case ifc_mos_pre_decrement:
+        result = (ue_ty)ifc_0_33_mos_pre_decrement;
+        break;
+      case ifc_mos_post_increment:
+        result = (ue_ty)ifc_0_33_mos_post_increment;
+        break;
+      case ifc_mos_post_decrement:
+        result = (ue_ty)ifc_0_33_mos_post_decrement;
+        break;
+      case ifc_mos_truncate:
+        result = (ue_ty)ifc_0_33_mos_truncate;
+        break;
+      case ifc_mos_ceil:
+        result = (ue_ty)ifc_0_33_mos_ceil;
+        break;
+      case ifc_mos_floor:
+        result = (ue_ty)ifc_0_33_mos_floor;
+        break;
+      case ifc_mos_paren:
+        result = (ue_ty)ifc_0_33_mos_paren;
+        break;
+      case ifc_mos_brace:
+        result = (ue_ty)ifc_0_33_mos_brace;
+        break;
+      case ifc_mos_alignas:
+        result = (ue_ty)ifc_0_33_mos_alignas;
+        break;
+      case ifc_mos_alignof:
+        result = (ue_ty)ifc_0_33_mos_alignof;
+        break;
+      case ifc_mos_sizeof:
+        result = (ue_ty)ifc_0_33_mos_sizeof;
+        break;
+      case ifc_mos_cardinality:
+        result = (ue_ty)ifc_0_33_mos_cardinality;
+        break;
+      case ifc_mos_typeid:
+        result = (ue_ty)ifc_0_33_mos_typeid;
+        break;
+      case ifc_mos_noexcept:
+        result = (ue_ty)ifc_0_33_mos_noexcept;
+        break;
+      case ifc_mos_requires:
+        result = (ue_ty)ifc_0_33_mos_requires;
+        break;
+      case ifc_mos_co_return:
+        result = (ue_ty)ifc_0_33_mos_co_return;
+        break;
+      case ifc_mos_await:
+        result = (ue_ty)ifc_0_33_mos_await;
+        break;
+      case ifc_mos_yield:
+        result = (ue_ty)ifc_0_33_mos_yield;
+        break;
+      case ifc_mos_throw:
+        result = (ue_ty)ifc_0_33_mos_throw;
+        break;
+      case ifc_mos_new:
+        result = (ue_ty)ifc_0_33_mos_new;
+        break;
+      case ifc_mos_delete:
+        result = (ue_ty)ifc_0_33_mos_delete;
+        break;
+      case ifc_mos_delete_array:
+        result = (ue_ty)ifc_0_33_mos_delete_array;
+        break;
+      case ifc_mos_expand:
+        result = (ue_ty)ifc_0_33_mos_expand;
+        break;
+      case ifc_mos_read:
+        result = (ue_ty)ifc_0_33_mos_read;
+        break;
+      case ifc_mos_materialize:
+        result = (ue_ty)ifc_0_33_mos_materialize;
+        break;
+      case ifc_mos_pseudo_dtor_call:
+        result = (ue_ty)ifc_0_33_mos_pseudo_dtor_call;
+        break;
+      case ifc_mos_lookup_globally:
+        result = (ue_ty)ifc_0_33_mos_lookup_globally;
+        break;
+      case ifc_mos_msvc:
+        result = (ue_ty)ifc_0_33_mos_msvc;
+        break;
+      case ifc_mos_msvc_assume:
+        result = (ue_ty)ifc_0_33_mos_msvc_assume;
+        break;
+      case ifc_mos_msvc_alignof:
+        result = (ue_ty)ifc_0_33_mos_msvc_alignof;
+        break;
+      case ifc_mos_msvc_uuidof:
+        result = (ue_ty)ifc_0_33_mos_msvc_uuidof;
+        break;
+      case ifc_mos_msvc_is_class:
+        result = (ue_ty)ifc_0_33_mos_msvc_is_class;
+        break;
+      case ifc_mos_msvc_is_union:
+        result = (ue_ty)ifc_0_33_mos_msvc_is_union;
+        break;
+      case ifc_mos_msvc_is_enum:
+        result = (ue_ty)ifc_0_33_mos_msvc_is_enum;
+        break;
+      case ifc_mos_msvc_is_polymorphic:
+        result = (ue_ty)ifc_0_33_mos_msvc_is_polymorphic;
+        break;
+      case ifc_mos_msvc_is_empty:
+        result = (ue_ty)ifc_0_33_mos_msvc_is_empty;
+        break;
+      case ifc_mos_msvc_is_trivially_copy_constructible:
+        result = (ue_ty)ifc_0_33_mos_msvc_is_trivially_copy_constructible;
+        break;
+      case ifc_mos_msvc_is_trivially_copy_assignable:
+        result = (ue_ty)ifc_0_33_mos_msvc_is_trivially_copy_assignable;
+        break;
+      case ifc_mos_msvc_is_trivially_destructible:
+        result = (ue_ty)ifc_0_33_mos_msvc_is_trivially_destructible;
+        break;
+      case ifc_mos_msvc_has_virtual_destructor:
+        result = (ue_ty)ifc_0_33_mos_msvc_has_virtual_destructor;
+        break;
+      case ifc_mos_msvc_is_nothrow_copy_constructible:
+        result = (ue_ty)ifc_0_33_mos_msvc_is_nothrow_copy_constructible;
+        break;
+      case ifc_mos_msvc_is_nothrow_copy_assignable:
+        result = (ue_ty)ifc_0_33_mos_msvc_is_nothrow_copy_assignable;
+        break;
+      case ifc_mos_msvc_is_pod:
+        result = (ue_ty)ifc_0_33_mos_msvc_is_pod;
+        break;
+      case ifc_mos_msvc_is_abstract:
+        result = (ue_ty)ifc_0_33_mos_msvc_is_abstract;
+        break;
+      case ifc_mos_msvc_is_trivial:
+        result = (ue_ty)ifc_0_33_mos_msvc_is_trivial;
+        break;
+      case ifc_mos_msvc_is_trivially_copyable:
+        result = (ue_ty)ifc_0_33_mos_msvc_is_trivially_copyable;
+        break;
+      case ifc_mos_msvc_is_standard_layout:
+        result = (ue_ty)ifc_0_33_mos_msvc_is_standard_layout;
+        break;
+      case ifc_mos_msvc_is_literal_type:
+        result = (ue_ty)ifc_0_33_mos_msvc_is_literal_type;
+        break;
+      case ifc_mos_msvc_is_trivially_move_constructible:
+        result = (ue_ty)ifc_0_33_mos_msvc_is_trivially_move_constructible;
+        break;
+      case ifc_mos_msvc_has_trivial_move_assign:
+        result = (ue_ty)ifc_0_33_mos_msvc_has_trivial_move_assign;
+        break;
+      case ifc_mos_msvc_is_trivially_move_assignable:
+        result = (ue_ty)ifc_0_33_mos_msvc_is_trivially_move_assignable;
+        break;
+      case ifc_mos_msvc_is_nothrow_move_assignable:
+        result = (ue_ty)ifc_0_33_mos_msvc_is_nothrow_move_assignable;
+        break;
+      case ifc_mos_msvc_underlying_type:
+        result = (ue_ty)ifc_0_33_mos_msvc_underlying_type;
+        break;
+      case ifc_mos_msvc_is_destructible:
+        result = (ue_ty)ifc_0_33_mos_msvc_is_destructible;
+        break;
+      case ifc_mos_msvc_is_nothrow_destructible:
+        result = (ue_ty)ifc_0_33_mos_msvc_is_nothrow_destructible;
+        break;
+      case ifc_mos_msvc_has_unique_object_representations:
+        result = (ue_ty)ifc_0_33_mos_msvc_has_unique_object_representations;
+        break;
+      case ifc_mos_msvc_is_aggregate:
+        result = (ue_ty)ifc_0_33_mos_msvc_is_aggregate;
+        break;
+      case ifc_mos_msvc_builtin_address_of:
+        result = (ue_ty)ifc_0_33_mos_msvc_builtin_address_of;
+        break;
+      case ifc_mos_msvc_is_ref_class:
+        result = (ue_ty)ifc_0_33_mos_msvc_is_ref_class;
+        break;
+      case ifc_mos_msvc_is_value_class:
+        result = (ue_ty)ifc_0_33_mos_msvc_is_value_class;
+        break;
+      case ifc_mos_msvc_is_simple_value_class:
+        result = (ue_ty)ifc_0_33_mos_msvc_is_simple_value_class;
+        break;
+      case ifc_mos_msvc_is_interface_class:
+        result = (ue_ty)ifc_0_33_mos_msvc_is_interface_class;
+        break;
+      case ifc_mos_msvc_is_delegate:
+        result = (ue_ty)ifc_0_33_mos_msvc_is_delegate;
+        break;
+      case ifc_mos_msvc_is_final:
+        result = (ue_ty)ifc_0_33_mos_msvc_is_final;
+        break;
+      case ifc_mos_msvc_is_sealed:
+        result = (ue_ty)ifc_0_33_mos_msvc_is_sealed;
+        break;
+      case ifc_mos_msvc_has_finalizer:
+        result = (ue_ty)ifc_0_33_mos_msvc_has_finalizer;
+        break;
+      case ifc_mos_msvc_has_copy:
+        result = (ue_ty)ifc_0_33_mos_msvc_has_copy;
+        break;
+      case ifc_mos_msvc_has_assign:
+        result = (ue_ty)ifc_0_33_mos_msvc_has_assign;
+        break;
+      case ifc_mos_msvc_has_user_destructor:
+        result = (ue_ty)ifc_0_33_mos_msvc_has_user_destructor;
+        break;
+      case ifc_mos_msvc_confusion:
+        result = (ue_ty)ifc_0_33_mos_msvc_confusion;
+        break;
+      case ifc_mos_msvc_confused_expand:
+        result = (ue_ty)ifc_0_33_mos_msvc_confused_expand;
+        break;
+      case ifc_mos_msvc_confused_dependent_sizeof:
+        result = (ue_ty)ifc_0_33_mos_msvc_confused_dependent_sizeof;
+        break;
+      default:
+        unexpected_condition_str("Invalid value for a MonadicOperatorSort.");
+        break;
+    }  /* switch */
+  }  /* if */
   return an_ifc_encoded_monadic_operator_sort{mod, result};
 }  /* to_encoded */
 
@@ -4753,6 +5803,273 @@ corresponding universal representation.
       break;
     case ifc_0_33_mos_msvc_confused_dependent_sizeof:
       result = ifc_mos_msvc_confused_dependent_sizeof;
+      break;
+    default:
+      unexpected_condition_str("Invalid value for a MonadicOperatorSort.");
+      break;
+  }  /* switch */
+  return result;
+}  /* to_universal_sort */
+
+
+an_ifc_monadic_operator_sort to_universal_sort(
+                                   an_ifc_monadic_operator_sort_0_43 versioned)
+/*
+Given the versioned representation of MonadicOperatorSort, return the
+corresponding universal representation.
+*/
+{
+  an_ifc_monadic_operator_sort result;
+
+  switch (versioned) {
+    case ifc_0_43_mos_unknown:
+      result = ifc_mos_unknown;
+      break;
+    case ifc_0_43_mos_plus:
+      result = ifc_mos_plus;
+      break;
+    case ifc_0_43_mos_negate:
+      result = ifc_mos_negate;
+      break;
+    case ifc_0_43_mos_deref:
+      result = ifc_mos_deref;
+      break;
+    case ifc_0_43_mos_address:
+      result = ifc_mos_address;
+      break;
+    case ifc_0_43_mos_complement:
+      result = ifc_mos_complement;
+      break;
+    case ifc_0_43_mos_not:
+      result = ifc_mos_not;
+      break;
+    case ifc_0_43_mos_pre_increment:
+      result = ifc_mos_pre_increment;
+      break;
+    case ifc_0_43_mos_pre_decrement:
+      result = ifc_mos_pre_decrement;
+      break;
+    case ifc_0_43_mos_post_increment:
+      result = ifc_mos_post_increment;
+      break;
+    case ifc_0_43_mos_post_decrement:
+      result = ifc_mos_post_decrement;
+      break;
+    case ifc_0_43_mos_truncate:
+      result = ifc_mos_truncate;
+      break;
+    case ifc_0_43_mos_ceil:
+      result = ifc_mos_ceil;
+      break;
+    case ifc_0_43_mos_floor:
+      result = ifc_mos_floor;
+      break;
+    case ifc_0_43_mos_paren:
+      result = ifc_mos_paren;
+      break;
+    case ifc_0_43_mos_brace:
+      result = ifc_mos_brace;
+      break;
+    case ifc_0_43_mos_alignas:
+      result = ifc_mos_alignas;
+      break;
+    case ifc_0_43_mos_alignof:
+      result = ifc_mos_alignof;
+      break;
+    case ifc_0_43_mos_sizeof:
+      result = ifc_mos_sizeof;
+      break;
+    case ifc_0_43_mos_cardinality:
+      result = ifc_mos_cardinality;
+      break;
+    case ifc_0_43_mos_typeid:
+      result = ifc_mos_typeid;
+      break;
+    case ifc_0_43_mos_noexcept:
+      result = ifc_mos_noexcept;
+      break;
+    case ifc_0_43_mos_requires:
+      result = ifc_mos_requires;
+      break;
+    case ifc_0_43_mos_co_return:
+      result = ifc_mos_co_return;
+      break;
+    case ifc_0_43_mos_await:
+      result = ifc_mos_await;
+      break;
+    case ifc_0_43_mos_yield:
+      result = ifc_mos_yield;
+      break;
+    case ifc_0_43_mos_throw:
+      result = ifc_mos_throw;
+      break;
+    case ifc_0_43_mos_new:
+      result = ifc_mos_new;
+      break;
+    case ifc_0_43_mos_delete:
+      result = ifc_mos_delete;
+      break;
+    case ifc_0_43_mos_delete_array:
+      result = ifc_mos_delete_array;
+      break;
+    case ifc_0_43_mos_expand:
+      result = ifc_mos_expand;
+      break;
+    case ifc_0_43_mos_read:
+      result = ifc_mos_read;
+      break;
+    case ifc_0_43_mos_materialize:
+      result = ifc_mos_materialize;
+      break;
+    case ifc_0_43_mos_pseudo_dtor_call:
+      result = ifc_mos_pseudo_dtor_call;
+      break;
+    case ifc_0_43_mos_lookup_globally:
+      result = ifc_mos_lookup_globally;
+      break;
+    case ifc_0_43_mos_msvc:
+      result = ifc_mos_msvc;
+      break;
+    case ifc_0_43_mos_msvc_assume:
+      result = ifc_mos_msvc_assume;
+      break;
+    case ifc_0_43_mos_msvc_alignof:
+      result = ifc_mos_msvc_alignof;
+      break;
+    case ifc_0_43_mos_msvc_uuidof:
+      result = ifc_mos_msvc_uuidof;
+      break;
+    case ifc_0_43_mos_msvc_is_class:
+      result = ifc_mos_msvc_is_class;
+      break;
+    case ifc_0_43_mos_msvc_is_union:
+      result = ifc_mos_msvc_is_union;
+      break;
+    case ifc_0_43_mos_msvc_is_enum:
+      result = ifc_mos_msvc_is_enum;
+      break;
+    case ifc_0_43_mos_msvc_is_polymorphic:
+      result = ifc_mos_msvc_is_polymorphic;
+      break;
+    case ifc_0_43_mos_msvc_is_empty:
+      result = ifc_mos_msvc_is_empty;
+      break;
+    case ifc_0_43_mos_msvc_is_trivially_copy_constructible:
+      result = ifc_mos_msvc_is_trivially_copy_constructible;
+      break;
+    case ifc_0_43_mos_msvc_is_trivially_copy_assignable:
+      result = ifc_mos_msvc_is_trivially_copy_assignable;
+      break;
+    case ifc_0_43_mos_msvc_is_trivially_destructible:
+      result = ifc_mos_msvc_is_trivially_destructible;
+      break;
+    case ifc_0_43_mos_msvc_has_virtual_destructor:
+      result = ifc_mos_msvc_has_virtual_destructor;
+      break;
+    case ifc_0_43_mos_msvc_is_nothrow_copy_constructible:
+      result = ifc_mos_msvc_is_nothrow_copy_constructible;
+      break;
+    case ifc_0_43_mos_msvc_is_nothrow_copy_assignable:
+      result = ifc_mos_msvc_is_nothrow_copy_assignable;
+      break;
+    case ifc_0_43_mos_msvc_is_pod:
+      result = ifc_mos_msvc_is_pod;
+      break;
+    case ifc_0_43_mos_msvc_is_abstract:
+      result = ifc_mos_msvc_is_abstract;
+      break;
+    case ifc_0_43_mos_msvc_is_trivial:
+      result = ifc_mos_msvc_is_trivial;
+      break;
+    case ifc_0_43_mos_msvc_is_trivially_copyable:
+      result = ifc_mos_msvc_is_trivially_copyable;
+      break;
+    case ifc_0_43_mos_msvc_is_standard_layout:
+      result = ifc_mos_msvc_is_standard_layout;
+      break;
+    case ifc_0_43_mos_msvc_is_literal_type:
+      result = ifc_mos_msvc_is_literal_type;
+      break;
+    case ifc_0_43_mos_msvc_is_trivially_move_constructible:
+      result = ifc_mos_msvc_is_trivially_move_constructible;
+      break;
+    case ifc_0_43_mos_msvc_has_trivial_move_assign:
+      result = ifc_mos_msvc_has_trivial_move_assign;
+      break;
+    case ifc_0_43_mos_msvc_is_trivially_move_assignable:
+      result = ifc_mos_msvc_is_trivially_move_assignable;
+      break;
+    case ifc_0_43_mos_msvc_is_nothrow_move_assignable:
+      result = ifc_mos_msvc_is_nothrow_move_assignable;
+      break;
+    case ifc_0_43_mos_msvc_underlying_type:
+      result = ifc_mos_msvc_underlying_type;
+      break;
+    case ifc_0_43_mos_msvc_is_destructible:
+      result = ifc_mos_msvc_is_destructible;
+      break;
+    case ifc_0_43_mos_msvc_is_nothrow_destructible:
+      result = ifc_mos_msvc_is_nothrow_destructible;
+      break;
+    case ifc_0_43_mos_msvc_has_unique_object_representations:
+      result = ifc_mos_msvc_has_unique_object_representations;
+      break;
+    case ifc_0_43_mos_msvc_is_aggregate:
+      result = ifc_mos_msvc_is_aggregate;
+      break;
+    case ifc_0_43_mos_msvc_builtin_address_of:
+      result = ifc_mos_msvc_builtin_address_of;
+      break;
+    case ifc_0_43_mos_msvc_is_ref_class:
+      result = ifc_mos_msvc_is_ref_class;
+      break;
+    case ifc_0_43_mos_msvc_is_value_class:
+      result = ifc_mos_msvc_is_value_class;
+      break;
+    case ifc_0_43_mos_msvc_is_simple_value_class:
+      result = ifc_mos_msvc_is_simple_value_class;
+      break;
+    case ifc_0_43_mos_msvc_is_interface_class:
+      result = ifc_mos_msvc_is_interface_class;
+      break;
+    case ifc_0_43_mos_msvc_is_delegate:
+      result = ifc_mos_msvc_is_delegate;
+      break;
+    case ifc_0_43_mos_msvc_is_final:
+      result = ifc_mos_msvc_is_final;
+      break;
+    case ifc_0_43_mos_msvc_is_sealed:
+      result = ifc_mos_msvc_is_sealed;
+      break;
+    case ifc_0_43_mos_msvc_has_finalizer:
+      result = ifc_mos_msvc_has_finalizer;
+      break;
+    case ifc_0_43_mos_msvc_has_copy:
+      result = ifc_mos_msvc_has_copy;
+      break;
+    case ifc_0_43_mos_msvc_has_assign:
+      result = ifc_mos_msvc_has_assign;
+      break;
+    case ifc_0_43_mos_msvc_has_user_destructor:
+      result = ifc_mos_msvc_has_user_destructor;
+      break;
+    case ifc_0_43_mos_msvc_confusion:
+      result = ifc_mos_msvc_confusion;
+      break;
+    case ifc_0_43_mos_msvc_confused_expand:
+      result = ifc_mos_msvc_confused_expand;
+      break;
+    case ifc_0_43_mos_msvc_confused_dependent_sizeof:
+      result = ifc_mos_msvc_confused_dependent_sizeof;
+      break;
+    case ifc_0_43_mos_msvc_confused_pop_state:
+      result = ifc_mos_msvc_confused_pop_state;
+      break;
+    case ifc_0_43_mos_msvc_confused_dtor_action:
+      result = ifc_mos_msvc_confused_dtor_action;
+      break;
+    case ifc_0_43_mos_msvc_confused_vtor_displacement:
+      result = ifc_mos_msvc_confused_vtor_displacement;
       break;
     default:
       unexpected_condition_str("Invalid value for a MonadicOperatorSort.");
@@ -12198,6 +13515,40 @@ return the corresponding universal representation.
 }  /* to_universal_index */
 
 
+an_ifc_decl_sort_0_43 decl_sort(an_ifc_decl_index_0_43 versioned)
+/*
+Given the versioned representation of DeclIndex, return the extracted versioned
+representation of DeclSort.
+*/
+{
+  return (an_ifc_decl_sort_0_43)(0x1f & (uint32_t)versioned);
+
+}  /* decl_sort */
+
+
+uint32_t decl_value(an_ifc_decl_index_0_43 versioned)
+/*
+Given the versioned representation of DeclIndex, return the extracted value.
+*/
+{
+  return versioned >> 5;
+}  /* decl_value */
+
+
+an_ifc_decl_index to_universal_index(an_ifc_module          *mod,
+                                     an_ifc_decl_index_0_43 versioned)
+/*
+Given the versioned representation of DeclIndex and the associated module,
+return the corresponding universal representation.
+*/
+{
+  an_ifc_decl_sort sort = to_universal_sort(decl_sort(versioned));
+  uint32_t         index = decl_value(versioned);
+
+  return an_ifc_decl_index{mod, sort, index};
+}  /* to_universal_index */
+
+
 an_ifc_encoded_decl_index to_encoded(an_ifc_module     *mod,
                                      an_ifc_decl_index universal)
 /*
@@ -13117,7 +14468,11 @@ return the corresponding universal representation.
 {
   an_ifc_decl_index result;
 
-  if (is_at_least(mod, 0, 41)) {
+  if (is_at_least(mod, 0, 43)) {
+    an_ifc_decl_index_0_43 versioned_index = (an_ifc_decl_index_0_43)versioned;
+
+    result = to_universal_index(mod, versioned_index);
+  } else if (is_at_least(mod, 0, 41)) {
     an_ifc_decl_index_0_41 versioned_index = (an_ifc_decl_index_0_41)versioned;
 
     result = to_universal_index(mod, versioned_index);
@@ -13770,6 +15125,102 @@ corresponding universal representation.
     case ifc_0_33_os_monadic_operator:
       { an_ifc_monadic_operator_sort_0_33 versioned_value =
                                   (an_ifc_monadic_operator_sort_0_33)raw_value;
+        an_ifc_monadic_operator_sort      universal_value;
+
+        universal_value = to_universal_sort(versioned_value);
+        result.variant.monadic_operator = universal_value;
+      }
+      break;
+    case ifc_0_33_os_niladic_operator:
+      { an_ifc_niladic_operator_sort_0_33 versioned_value =
+                                  (an_ifc_niladic_operator_sort_0_33)raw_value;
+        an_ifc_niladic_operator_sort      universal_value;
+
+        universal_value = to_universal_sort(versioned_value);
+        result.variant.niladic_operator = universal_value;
+      }
+      break;
+    case ifc_0_33_os_storage_instruction_operator:
+      { an_ifc_storage_instruction_operator_sort_0_33 versioned_value =
+                      (an_ifc_storage_instruction_operator_sort_0_33)raw_value;
+        an_ifc_storage_instruction_operator_sort      universal_value;
+
+        universal_value = to_universal_sort(versioned_value);
+        result.variant.storage_instruction_operator = universal_value;
+      }
+      break;
+    case ifc_0_33_os_triadic_operator:
+      { an_ifc_triadic_operator_sort_0_42 versioned_value =
+                                  (an_ifc_triadic_operator_sort_0_42)raw_value;
+        an_ifc_triadic_operator_sort      universal_value;
+
+        universal_value = to_universal_sort(versioned_value);
+        result.variant.triadic_operator = universal_value;
+      }
+      break;
+    case ifc_0_33_os_variadic_operator:
+      { an_ifc_variadic_operator_sort_0_33 versioned_value =
+                                 (an_ifc_variadic_operator_sort_0_33)raw_value;
+        an_ifc_variadic_operator_sort      universal_value;
+
+        universal_value = to_universal_sort(versioned_value);
+        result.variant.variadic_operator = universal_value;
+      }
+      break;
+    default_is_unexpected();
+  }  /* switch */
+  return result;
+}  /* to_universal_category */
+
+
+an_ifc_operator_sort_0_33 operator_sort(
+                                       an_ifc_operator_category_0_43 versioned)
+/*
+Given the versioned representation of OperatorCategory, return the extracted
+versioned representation of OperatorSort.
+*/
+{
+  return (an_ifc_operator_sort_0_33)(0xf & (uint16_t)versioned);
+
+}  /* operator_sort */
+
+
+uint16_t operator_value(an_ifc_operator_category_0_43 versioned)
+/*
+Given the versioned representation of OperatorCategory, return the extracted
+value.
+*/
+{
+  return versioned >> 4;
+}  /* operator_value */
+
+
+an_ifc_operator_category to_universal_category(
+                                       an_ifc_module                 *mod,
+                                       an_ifc_operator_category_0_43 versioned)
+/*
+Given the versioned representation of OperatorCategory, return the
+corresponding universal representation.
+*/
+{
+  an_ifc_operator_sort_0_33 versioned_sort = operator_sort(versioned);
+  an_ifc_operator_sort      sort = to_universal_sort(versioned_sort);
+  uint16_t                  raw_value = operator_value(versioned);
+  an_ifc_operator_category  result = {sort, {}};
+
+  switch (versioned_sort) {
+    case ifc_0_33_os_dyadic_operator:
+      { an_ifc_dyadic_operator_sort_0_43 versioned_value =
+                                   (an_ifc_dyadic_operator_sort_0_43)raw_value;
+        an_ifc_dyadic_operator_sort      universal_value;
+
+        universal_value = to_universal_sort(versioned_value);
+        result.variant.dyadic_operator = universal_value;
+      }
+      break;
+    case ifc_0_33_os_monadic_operator:
+      { an_ifc_monadic_operator_sort_0_43 versioned_value =
+                                  (an_ifc_monadic_operator_sort_0_43)raw_value;
         an_ifc_monadic_operator_sort      universal_value;
 
         universal_value = to_universal_sort(versioned_value);
@@ -15641,6 +17092,73 @@ Return the corresponding partition kind for DeclDeductionGuide.
 */
 {
   return ifc_pk_decl_deduction_guide;
+}  /* get_ifc_partition_kind */
+
+
+template<>
+an_ifc_decl_default_argument_storage*
+get<an_ifc_decl_default_argument_storage>(
+                             an_ifc_module                        *mod,
+                             an_ifc_decl_default_argument_storage *storage,
+                             a_boolean                            fill_storage)
+/*
+Retrieve an instance of DeclDefaultArgument from the IFC module file associated
+with mod.
+
+If memory mapping is used and both the host and the target have the same
+endianness, then the file layout and the alignment/padding of the host must
+have exactly the same characteristics.  In this case, simply return a pointer
+to a suitably-cast byte_buffer and increment it as appropriate (the storage
+argument is unused in this scenario).
+
+Otherwise, the storage passed in to the function is used to store copies of
+each field of the structure and each field is individually copied (and
+byte-swapped if necessary).
+
+If fill_storage is TRUE, always copy the data into the passed storage (i.e.,
+the storage specified by the storage argument).
+*/
+{
+#if USE_MMAP_FOR_MODULES
+  using storage_type = an_ifc_decl_default_argument_storage;
+  if (has_matching_endianness(mod)) {
+    if (fill_storage) {
+      memcpy(*storage, mod->byte_buffer, /*size=*/23);
+    } else {
+      storage = (storage_type*)(mod->byte_buffer);
+    }  /* if */
+  } else
+#endif /* USE_MMAP_FOR_MODULES */
+  /* Do not put code here. */
+  {
+    /* locus.line */
+    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* locus.column */
+    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* type */
+    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* home_scope */
+    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* initializer */
+    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* specifiers */
+    get_bytes(mod, (*storage) + 20, /*num_bytes=*/1, /*from_header=*/FALSE);
+    /* access */
+    get_bytes(mod, (*storage) + 21, /*num_bytes=*/1, /*from_header=*/FALSE);
+    /* properties */
+    get_bytes(mod, (*storage) + 22, /*num_bytes=*/1, /*from_header=*/FALSE);
+  }  /* if */
+  return storage;
+}  /* get<an_ifc_decl_default_argument_storage> */
+
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_default_argument>()
+/*
+Return the corresponding partition kind for DeclDefaultArgument.
+*/
+{
+  return ifc_pk_decl_default_arg;
 }  /* get_ifc_partition_kind */
 
 
@@ -19928,7 +21446,11 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_template_reference_storage;
   if (has_matching_endianness(mod)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/32);
+      if (is_at_least(mod, 0, 43)) {
+        memcpy(*storage, mod->byte_buffer, /*size=*/28);
+      } else {
+        memcpy(*storage, mod->byte_buffer, /*size=*/32);
+      }  /* if */
     } else {
       storage = (storage_type*)(mod->byte_buffer);
     }  /* if */
@@ -19936,22 +21458,39 @@ the storage specified by the storage argument).
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
-    /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* member_name */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* member_locus.line */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* member_locus.column */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* scope */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* arguments */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    if (is_at_least(mod, 0, 43)) {
+      /* locus.line */
+      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* locus.column */
+      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* type */
+      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* member */
+      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* member_name */
+      get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* scope */
+      get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* arguments */
+      get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    } else {
+      /* locus.line */
+      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* locus.column */
+      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* type */
+      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* member_name */
+      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* member_locus.line */
+      get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* member_locus.column */
+      get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* scope */
+      get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* arguments */
+      get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    }  /* if */
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_template_reference_storage> */
@@ -32997,6 +34536,9 @@ expected partition element size.
     case ifc_pk_decl_deduction_guide:
       result = 28;
       break;
+    case ifc_pk_decl_default_arg:
+      result = 23;
+      break;
     case ifc_pk_decl_destructor:
       result = 32;
       break;
@@ -33205,7 +34747,11 @@ expected partition element size.
       result = 20;
       break;
     case ifc_pk_expr_template_reference:
-      result = 32;
+      if (is_at_least(mod, 0, 43)) {
+        result = 28;
+      } else {
+        result = 32;
+      }  /* if */
       break;
     case ifc_pk_expr_temporary:
       result = 16;
@@ -33992,6 +35538,7 @@ representation of DeclSort; otherwise, return FALSE.
     case ifc_pk_decl_concept:
     case ifc_pk_decl_constructor:
     case ifc_pk_decl_deduction_guide:
+    case ifc_pk_decl_default_arg:
     case ifc_pk_decl_destructor:
     case ifc_pk_decl_enum:
     case ifc_pk_decl_enumerator:
@@ -34049,6 +35596,9 @@ DeclSort.  If no corresponding sort kind exists for DeclSort, abort.
       break;
     case ifc_pk_decl_deduction_guide:
       result = ifc_ds_decl_deduction_guide;
+      break;
+    case ifc_pk_decl_default_arg:
+      result = ifc_ds_decl_default_argument;
       break;
     case ifc_pk_decl_destructor:
       result = ifc_ds_decl_destructor;
@@ -35445,6 +36995,7 @@ corresponding partition kind; otherwise, return FALSE.
     case ifc_ds_decl_concept:
     case ifc_ds_decl_constructor:
     case ifc_ds_decl_deduction_guide:
+    case ifc_ds_decl_default_argument:
     case ifc_ds_decl_destructor:
     case ifc_ds_decl_enumeration:
     case ifc_ds_decl_enumerator:
@@ -35502,6 +37053,9 @@ partition kind.  If no corresponding partition kind exists, abort.
       break;
     case ifc_ds_decl_deduction_guide:
       result = ifc_pk_decl_deduction_guide;
+      break;
+    case ifc_ds_decl_default_argument:
+      result = ifc_pk_decl_default_arg;
       break;
     case ifc_ds_decl_destructor:
       result = ifc_pk_decl_destructor;
@@ -36811,6 +38365,13 @@ representation is valid; otherwise, return FALSE.
       break;
     case ifc_ds_decl_deduction_guide:
       { Opt<an_ifc_decl_deduction_guide> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ds_decl_default_argument:
+      { Opt<an_ifc_decl_default_argument> opt_universal;
 
         construct_node(&opt_universal, idx);
         result = opt_universal.has_value();
@@ -38553,6 +40114,11 @@ Return TRUE if the node has the field "access"; otherwise, return FALSE.
         result = TRUE;
       }  /* if */
       break;
+    case ifc_ds_decl_default_argument:
+      if (is_at_least(mod, 0, 43)) {
+        result = TRUE;
+      }  /* if */
+      break;
     case ifc_ds_decl_destructor:
       if (is_at_least(mod, 0, 33)) {
         result = TRUE;
@@ -38671,6 +40237,13 @@ node's "access" field value.
       break;
     case ifc_ds_decl_constructor:
       { an_ifc_decl_constructor universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_access(universal);
+      }
+      break;
+    case ifc_ds_decl_default_argument:
+      { an_ifc_decl_default_argument universal;
 
         construct_node_prechecked(&universal, idx);
         result = get_ifc_access(universal);
@@ -38825,6 +40398,11 @@ return FALSE.
         result = TRUE;
       }  /* if */
       break;
+    case ifc_ds_decl_default_argument:
+      if (is_at_least(mod, 0, 43)) {
+        result = TRUE;
+      }  /* if */
+      break;
     case ifc_ds_decl_destructor:
       if (is_at_least(mod, 0, 33)) {
         result = TRUE;
@@ -38955,6 +40533,13 @@ node's "home_scope" field value.
       break;
     case ifc_ds_decl_deduction_guide:
       { an_ifc_decl_deduction_guide universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_home_scope(universal);
+      }
+      break;
+    case ifc_ds_decl_default_argument:
+      { an_ifc_decl_default_argument universal;
 
         construct_node_prechecked(&universal, idx);
         result = get_ifc_home_scope(universal);
@@ -39115,6 +40700,11 @@ Return TRUE if the node has the field "locus"; otherwise, return FALSE.
         result = TRUE;
       }  /* if */
       break;
+    case ifc_ds_decl_default_argument:
+      if (is_at_least(mod, 0, 43)) {
+        result = TRUE;
+      }  /* if */
+      break;
     case ifc_ds_decl_destructor:
       if (is_at_least(mod, 0, 33)) {
         result = TRUE;
@@ -39255,6 +40845,13 @@ node's "locus" field value.
       break;
     case ifc_ds_decl_deduction_guide:
       { an_ifc_decl_deduction_guide universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_locus(universal);
+      }
+      break;
+    case ifc_ds_decl_default_argument:
+      { an_ifc_decl_default_argument universal;
 
         construct_node_prechecked(&universal, idx);
         result = get_ifc_locus(universal);
