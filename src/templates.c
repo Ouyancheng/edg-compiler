@@ -27334,7 +27334,7 @@ the resulting constant is stored in the pointer pointed to by "constant".
       check_assertion(*constant != NULL);
     }  /* if */
     if (is_auto_template_param_type(skip_typerefs(constant_type))) {
-      (void)check_placeholder_type_constraint(constant_type,
+      (void)check_placeholder_type_constraint(skip_typerefs(constant_type),
                                               (*constant)->type);
     }  /* if */
   }  /* if */
