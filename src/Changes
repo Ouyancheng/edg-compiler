@@ -1,5 +1,25 @@
 Version 6.5, June 21, 2023
 
+6/21/23  [EDGcpfe/26262]
+C++-generating back end: crash with non-public name as template argument
+
+In C++-generating back end configurations, the front end sometimes entered
+an unbounded recursion when attempting to put out a template-id in which a
+template argument refers to a non-public class member.  This is now fixed.
+For example, with --c++17:
+
+  template <typename T> struct A { using type = T; };
+  template <typename T> using B = typename A<T>::type;
+  template <int> struct S {};
+  class C {
+    static constexpr int I = 0;
+    using SI = S<I>;
+    void f() {
+      B<SI> {};   // Previously crashed with unbounded recursion
+    }
+  };
+
+
 6/19/23  [EDGcpfe/26437]
 Constexpr static data members
 

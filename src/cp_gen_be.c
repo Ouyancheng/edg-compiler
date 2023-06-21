@@ -2752,8 +2752,20 @@ names is not public, set *for_all_scopes to FALSE.
                                                  &tap);
         for (; is_accessible && tap != NULL;
              advance_to_next_template_arg_simple(&tap)) {
-          if (!template_arg_is_accessible(tap, ignore_context,
-                                          &local_for_all_scopes)) {
+          if (tap->kind == tak_nontype &&
+              !tap->is_array_bound_of_unknown_type &&
+              tap->variant.constant != NULL &&
+              !has_name_before_mangling(tap->variant.constant)) {
+            /* form_constant will use the value of the constant instead of
+               the backing expression if the backing expression is
+               inaccessible or otherwise unusable, so we shouldn't check
+               for accessibility here.  (This isn't just for efficiency;
+               marking the name as inaccessible can result in attempting to
+               find an accessible typedef for a template-id referring to an
+               inaccessible name, which in some cases can result in
+               unbounded recursion.) */
+          } else if (!template_arg_is_accessible(tap, ignore_context,
+                                                 &local_for_all_scopes)) {
             is_accessible = FALSE;
           }  /* if */
         }  /* for */
