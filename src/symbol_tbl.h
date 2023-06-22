@@ -4369,7 +4369,7 @@ typedef struct a_symbol_header {
 			   this header.  This is used to suppress warnings
 			   about unused static functions in some cases. */
 #if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
-  a_bit_field	id_added_to_map;
+  a_bit_field	id_added_to_map:1;
 			/* Initially FALSE; set to TRUE when the identifier
 			   has been added to the id_representation_map (see
 			   lexical.c for details) in order to avoid the
