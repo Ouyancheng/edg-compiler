@@ -8290,7 +8290,8 @@ a_boolean equiv_templates_and_arg_lists(
 		an_equiv_templ_arg_options_set	eta_options,
 		a_boolean			error_matches_anything,
 		a_boolean			exact_templ_arg_match_required,
-		a_boolean			exact_decltype_exprs_required)
+		a_boolean			exact_decltype_exprs_required,
+		a_boolean			exact_nesting_depths_required)
 /*
 Determine whether template_sym_1 and template_sym2 refer to the same
 template, and if so, whether tap_1 and tap_2 are equivalent argument lists.
@@ -8299,7 +8300,8 @@ used when they are members of nonreal classes to check for equivalence.
 eta_options is an option set to be included with whatever options this
 routine determines are needed when comparing the argument lists.  See
 equiv_class_types for descriptions of exact_templ_arg_match_required,
-exact_decltype_exprs_required, and error_matches_anything.
+exact_decltype_exprs_required, exact_nesting_depths_required, and
+error_matches_anything.
 
 Return TRUE if the templates and argument lists match.  FALSE otherwise.
 */
@@ -8342,6 +8344,9 @@ Return TRUE if the templates and argument lists match.  FALSE otherwise.
     }  /* if */
     if (exact_decltype_exprs_required) {
       eta_options |= ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
+    }  /* if */
+    if (!exact_nesting_depths_required) {
+      eta_options |= ETA_ALLOW_EQUIV_NESTING_DEPTHS;
     }  /* if */
     if (equiv_template_arg_lists(tap_1, tap_2, eta_options)) {
       equiv = TRUE;

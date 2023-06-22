@@ -6226,7 +6226,8 @@ a_boolean equiv_class_types(
                            a_boolean            error_matches_anything,
                            a_boolean            exact_templ_arg_match_required,
                            ARG_UNUSED a_boolean contextual_generic_parameters,
-                           a_boolean            exact_decltype_exprs_required)
+                           a_boolean            exact_decltype_exprs_required,
+                           a_boolean            exact_nesting_depths_required)
 /*
 type_1 and type_2 are class/struct/union types.  Return TRUE if they are
 equivalent types.  In general, classes, structs, and unions that aren't
@@ -6245,7 +6246,10 @@ in which they are declared (see flags ITF_CONTEXTUAL_GENERIC_PARAMETERS and
 TCF_CONTEXTUAL_GENERIC_PARAMETERS).  If exact_decltype_exprs_required is TRUE,
 dependent decltype constructs must have matching operands (see also the flags
 ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED, TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED,
-and ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED).
+and ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED).  If exact_nesting_depths_required
+is TRUE, if the nesting depths of template parameters must match exactly (in
+that case, constraints on template parameters must match too; see also the
+flags ITF_EXACT_NESTING_DEPTHS_REQUIRED and ETA_ALLOW_EQUIV_NESTING_DEPTHS).
 */
 {
   a_boolean  equiv = FALSE;
@@ -6302,6 +6306,9 @@ and ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED).
       if (exact_decltype_exprs_required) {
         itf_flags |= ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
       }  /* if */
+      if (exact_nesting_depths_required) {
+        itf_flags |= ITF_EXACT_NESTING_DEPTHS_REQUIRED;
+      }  /* if */
       if (class_type_supp(type_1)->proxy_of_type != NULL &&
           class_type_supp(type_2)->proxy_of_type != NULL) {
         /* Both types are proxy classes for template parameters.  See if the
@@ -6326,7 +6333,8 @@ and ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED).
                                 ETA_NO_OPTIONS,
                                 error_matches_anything,
                                 exact_templ_arg_match_required,
-                                exact_decltype_exprs_required)) {
+                                exact_decltype_exprs_required,
+                                exact_nesting_depths_required)) {
           equiv = TRUE;
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -7205,7 +7213,8 @@ check_typerefs:
                      type_1, type_2, /*error_matches_anything=*/FALSE,
                      (flags & ITF_EXACT_EQUIVALENCE) != 0,
                      (flags & ITF_CONTEXTUAL_GENERIC_PARAMETERS) != 0,
-                     (flags & ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) != 0)) {
+                     (flags & ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) != 0,
+                     (flags & ITF_EXACT_NESTING_DEPTHS_REQUIRED) != 0)) {
             identical = TRUE;
           }  /* if */
         }  /* if */
@@ -8169,7 +8178,8 @@ check_typerefs:
                      type_1, type_2, error_matches_anything,
                      /*exact_templ_arg_match_required=*/FALSE,
                      (flags & TCF_CONTEXTUAL_GENERIC_PARAMETERS) != 0,
-                     (flags & TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) != 0)) {
+                     (flags & TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) != 0,
+                     /*exact_nesting_depths_required=*/TRUE)) {
             compat = TRUE;
           }  /* if */
           break;

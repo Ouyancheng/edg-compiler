@@ -1177,7 +1177,8 @@ extern a_boolean equiv_class_types(a_type_ptr type_1,
                                    a_boolean  error_matches_anything,
                                    a_boolean  exact_templ_arg_match_required,
                                    a_boolean  contextual_generic_parameters,
-                                   a_boolean  exact_decltype_exprs_required);
+                                   a_boolean  exact_decltype_exprs_required,
+                                   a_boolean  exact_nesting_depths_required);
 
 
 extern a_boolean is_address_of_string_constant(a_constant *constant);

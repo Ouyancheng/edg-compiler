@@ -1040,7 +1040,8 @@ extern a_boolean equiv_templates_and_arg_lists(
 		an_equiv_templ_arg_options_set	eta_options,
 		a_boolean			error_matches_anything,
 		a_boolean			exact_templ_arg_match_required,
-		a_boolean			exact_decltype_exprs_required);
+		a_boolean			exact_decltype_exprs_required,
+		a_boolean			exact_nesting_depths_required);
 
 extern a_boolean template_template_arg_is_compatible_with_param(
 				a_template_ptr		arg_template,

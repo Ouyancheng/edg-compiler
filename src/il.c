@@ -7545,6 +7545,7 @@ argument lists and return TRUE if they match.  Otherwise, return FALSE
     a_symbol_ptr			template_sym2;
     a_boolean				exact_templ_arg_match_required;
     a_boolean				exact_decltype_exprs_required;
+    a_boolean				exact_nesting_depths_required;
     template_sym1 = symbol_for(vtip1->assoc_template);
     template_sym2 = symbol_for(vtip2->assoc_template);
     check_assertion(template_sym1 != NULL && template_sym2 != NULL);
@@ -7552,7 +7553,9 @@ argument lists and return TRUE if they match.  Otherwise, return FALSE
     exact_templ_arg_match_required =
                                  (eta_options & ETA_EXACT_MATCH_REQUIRED) != 0;
     exact_decltype_exprs_required =
-                   (eta_options = ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) != 0;
+                   (eta_options & ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) != 0;
+    exact_nesting_depths_required =
+                               !(eta_options & ETA_ALLOW_EQUIV_NESTING_DEPTHS);
     if (equiv_templates_and_arg_lists(
                                     template_sym1,
                                     template_sym2,
@@ -7562,7 +7565,8 @@ argument lists and return TRUE if they match.  Otherwise, return FALSE
                                     eta_options,
                                     /*error_matches_anything=*/FALSE,
                                     exact_templ_arg_match_required,
-                                    exact_decltype_exprs_required)) {
+                                    exact_decltype_exprs_required,
+                                    exact_nesting_depths_required)) {
       result = TRUE;
     }  /* if */
   }  /* if */
