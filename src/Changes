@@ -47,10 +47,10 @@ For example, with --c++17:
   template <typename T> using B = typename A<T>::type;
   template <int> struct S {};
   class C {
-    static constexpr int I = 0;
+    static constexpr int I = 0;   // private
     using SI = S<I>;
     void f() {
-      B<SI> {};   // Previously crashed with unbounded recursion
+      B<SI>{};                    // resulted in crash with unbounded recursion
     }
   };
 
