@@ -1,4 +1,4 @@
-Version 6.5, June 21, 2023
+Version 6.6
 
 6/21/23  [EDGcpfe/26403]
 C++-generating back end: global-scope variable as bit-field width
@@ -54,6 +54,9 @@ For example, with --c++17:
     }
   };
 
+
+-------------------------------------------------------------------------------
+Version 6.5, June 21, 2023
 
 6/19/23  [EDGcpfe/26437]
 Constexpr static data members
