@@ -10410,8 +10410,10 @@ declaration following this one is such a continuation.
                                      GDO_NO_OPTIONS,
                                      (a_name_reference_ptr)NULL);
   if (field->is_bit_field) {
-    /* A bit field.  Put out the size. */
-    write_tok_ch(':');
+    /* A bit field.  Put out the size.  Add a trailing space to avoid
+       problems if the bit-field width begins with a global-scope
+       qualifier, e.g., "int i: ::width;". */
+    write_tok_str(": ");
     if (field->bit_size_constant != NULL) {
       a_boolean need_closing_paren;
       if (field->has_initializer && field->initializer != NULL &&

@@ -1,5 +1,23 @@
 Version 6.5, June 21, 2023
 
+6/21/23  [EDGcpfe/26403]
+C++-generating back end: global-scope variable as bit-field width
+
+When the width of a bit-field begins with a global-scope qualifier, the
+C++-generating back end failed to insert a space between the colon
+delimiting the width expression and the global-scope qualifier.  This is
+now fixed.  For example, with --c++11:
+
+  constexpr int x = 1;
+  void f() {
+    int x;
+    struct S {
+      unsigned i : ::x;   // Previously generated as "i:::x", which is
+                          // incorrect, equivalent to "i :: : x"
+    };
+  }
+
+
 6/21/23  [EDGcpfe/26251]
 C++-generating back end: lambda as initializer in range-based for
 
