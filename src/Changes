@@ -19,13 +19,13 @@ now fixed.  For example, with --c++11:
 
 
 6/21/23  [EDGcpfe/26251]
-C++-generating back end: lambda as initializer in range-based for
+C++-generating back end: lambda as initializer in init-statement
 
-Given a statement in which the initializer for an init-statement is a
-lambda expression, the C++-generated back end previously put out a typedef
-declaration giving the closure type a temporary name (of the form
-__T12345678).  Such a declaration is not permitted by the syntax of C++ and
-is now suppressed.  For example, with --c++17:
+Given an init-statement in which the initializer is a lambda expression,
+the C++-generating back end previously put out a typedef declaration
+following the init-statement giving the closure type a temporary name (of
+the form __T12345678).  Such a declaration is not permitted by the syntax
+of C++ and is now suppressed.  For example, with --c++17:
 
   void f() {
     // Previously included "typedef decltype(l) __T1234578;" in the
