@@ -5022,7 +5022,7 @@ Return the statement for the try/catch.
                          (an_object_lifetime_kind)olk_try_block);
   } else {
     try_catch_stmt = func_body;
-    push_object_lifetime(iek_block, (char*)func_body,
+    push_object_lifetime(iek_block, (char*)func_body->variant.block.extra_info,
                          (an_object_lifetime_kind)olk_block);
   }  /* if */
   transfer_coroutine_lifetime(sp->lifetime);
