@@ -1769,9 +1769,12 @@ Map an IFC MonadicOperator to an_opname_kind.
   an_opname_kind op;
 
   switch (monadic_op) {
-    case ifc_mos_unknown:
     case ifc_mos_msvc:
+    case ifc_mos_msvc_confused_dtor_action:
+    case ifc_mos_msvc_confused_pop_state:
+    case ifc_mos_msvc_confused_vtor_displacement:
     case ifc_mos_msvc_confusion:
+    case ifc_mos_unknown:
       pos_st_diagnostic(es_discretionary_error,
                         ec_ifc_no_corresponding_operator, &error_position,
                         str_for(monadic_op));
@@ -1874,10 +1877,11 @@ Map an IFC DyadicOperator to an_opname_kind.
   an_opname_kind op;
 
   switch (dyadic_op) {
-    case ifc_dos_unknown:
     case ifc_dos_msvc:
+    case ifc_dos_msvc_builtin_allocation_annotation:
     case ifc_dos_msvc_saturated_arithmetic:
     case ifc_dos_select:
+    case ifc_dos_unknown:
       pos_st_diagnostic(es_discretionary_error,
                         ec_ifc_no_corresponding_operator, &error_position,
                         str_for(dyadic_op));
@@ -2152,9 +2156,12 @@ Return the kind of operator described by op in the context of the given module.
   an_operator_kind kind = opkind_error;
 
   switch (op) {
-    case ifc_mos_unknown:
     case ifc_mos_msvc:
+    case ifc_mos_msvc_confused_dtor_action:
+    case ifc_mos_msvc_confused_pop_state:
+    case ifc_mos_msvc_confused_vtor_displacement:
     case ifc_mos_msvc_confusion:
+    case ifc_mos_unknown:
       { a_string err_msg(str_for(op), " is not a supported MonadicOperator");
 
         ifc_unexpected(mod, err_msg);
@@ -2262,10 +2269,11 @@ Return the kind of operator described by op in the context of the given module.
   an_operator_kind kind = opkind_error;
 
   switch (op) {
-    case ifc_dos_unknown:
-    case ifc_dos_select:
     case ifc_dos_msvc:
+    case ifc_dos_msvc_builtin_allocation_annotation:
     case ifc_dos_msvc_saturated_arithmetic:
+    case ifc_dos_select:
+    case ifc_dos_unknown:
       { a_string err_msg(str_for(op), " is not a supported DyadicOperator");
 
         ifc_unexpected(mod, err_msg);
@@ -8982,6 +8990,7 @@ class_struct_union_case:
          node reporting and module entity invalidation logic. */
       FALLTHROUGH
     case ifc_ds_decl_barren:
+    case ifc_ds_decl_default_argument:
     case ifc_ds_decl_syntax_tree:
     case ifc_ds_decl_using_directive:
     case ifc_ds_decl_vendor_extension:
@@ -12141,9 +12150,10 @@ anonymous), or an empty optional if the name was present but invalid.
   Opt<an_ifc_type_index> gmf_decl_type;
 
   switch (decl_idx.sort) {
-    case ifc_ds_decl_vendor_extension:
+    case ifc_ds_decl_default_argument:
     case ifc_ds_decl_explicit_instantiation:
     case ifc_ds_decl_explicit_specialization:
+    case ifc_ds_decl_vendor_extension:
       issue_unsupported_construct_error(decl_idx.mod, str_for(decl_idx.sort),
                                         &error_position);
       goto invalid;
@@ -17947,9 +17957,12 @@ Add the tokens corresponding to the given Monadic Operator to cache.
 */
 {
   switch (op) {
-    case ifc_mos_unknown:
     case ifc_mos_msvc:
+    case ifc_mos_msvc_confused_dtor_action:
+    case ifc_mos_msvc_confused_pop_state:
+    case ifc_mos_msvc_confused_vtor_displacement:
     case ifc_mos_msvc_confusion:
+    case ifc_mos_unknown:
       { a_string err_msg("Unexpected ", str_for(op));
 
         ifc_unexpected(this, err_msg);
@@ -18231,10 +18244,11 @@ Add the tokens corresponding to the given Dyadic Operator to cache.
 */
 {
   switch (op) {
-    case ifc_dos_unknown:
-    case ifc_dos_select:
     case ifc_dos_msvc:
+    case ifc_dos_msvc_builtin_allocation_annotation:
     case ifc_dos_msvc_saturated_arithmetic:
+    case ifc_dos_select:
+    case ifc_dos_unknown:
       { a_string err_msg("Unexpected ", str_for(op));
 
         ifc_unexpected(this, err_msg);
@@ -19382,9 +19396,10 @@ about what to cache.
     }  /* if */
   }  /* if */
   switch (decl.sort) {
-    case ifc_ds_decl_vendor_extension:
+    case ifc_ds_decl_default_argument:
     case ifc_ds_decl_explicit_instantiation:
     case ifc_ds_decl_explicit_specialization:
+    case ifc_ds_decl_vendor_extension:
       issue_unsupported_construct_error(this, str_for(decl.sort),
                                         &error_position);
       goto invalid;
