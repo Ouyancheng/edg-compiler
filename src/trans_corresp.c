@@ -472,6 +472,7 @@ The given entity should have a source correspondence.
         }  /* if */
         if (routine->is_specialized ||
             (routine->is_prototype_instantiation &&
+             routine->special_kind != sfk_deduction_guide &&
              assoc_sym_defined(routine->assoc_template))) {
           /* For "real" instances, prefer explicit specializations.  For
              prototype instantiations, prefer those associated with a
@@ -4249,12 +4250,11 @@ is in fact valid.
           ((is_class_template_symbol(templ_sym) &&
             tssp->variant.class_template.is_alias_template !=
                     corresp_tssp->variant.class_template.is_alias_template) ||
-           !equiv_template_param_lists(
-                                    corresp_tssp->cache.decl_info->parameters,
-                                    tssp->cache.decl_info->parameters,
-                                    /*issue_errors=*/FALSE,
-                                    ETP_NO_OPTIONS,
-                                    &templ_sym->decl_position, es_error) ||
+           !equiv_template_param_lists(templ_params_of(corresp_sym),
+                                       templ_params_of(templ_sym),
+                                       /*issue_errors=*/FALSE,
+                                       ETP_NO_OPTIONS,
+                                       &templ_sym->decl_position, es_error) ||
            /* Check if a (member) class template was specialized in one
               translation unit, but generated in the other.  To avoid
               duplicate diagnostics, this is only done for the canonical
@@ -6492,8 +6492,8 @@ symbols when looking up a correspondence: if none is found, return NULL.
     if (sub_sym->kind != (a_symbol_kind)sk_function_template) continue;
     corresp_tssp = template_supplement_for_symbol(sub_sym);
     corresp_routine = corresp_tssp->variant.function.routine;
-    if (equiv_template_param_lists(corresp_tssp->cache.decl_info->parameters,
-                                   tssp->cache.decl_info->parameters,
+    if (equiv_template_param_lists(templ_params_of(sub_sym),
+                                   templ_params_of(templ_sym),
                                    /*issue_errors=*/FALSE,
                                    ETP_NO_OPTIONS,
                                    &templ_sym->decl_position, es_error) &&
@@ -6502,13 +6502,174 @@ symbols when looking up a correspondence: if none is found, return NULL.
         equiv_template_arg_lists(routine->template_arg_list,
                                  corresp_routine->template_arg_list,
                                  ETA_NO_OPTIONS)) {
-      
       corresp_templ = corresp_tssp->il_template_entry;
       break;
     }  /* if */
   }  /* for */
   return corresp_templ;
 }  /* find_corresp_function_template */
+
+
+static inline
+a_boolean is_possible_template_corresp_sym(a_symbol_ptr sym,
+                                           a_symbol_ptr templ_sym,
+                                           a_boolean    parent_found)
+/*
+Return TRUE if the given symbol could possibly have a correspondence with the
+given template symbol; otherwise, return FALSE.  When parent_found is TRUE,
+this procedure should not attempt to seek correspondences for parent entities.
+*/
+{
+  a_boolean              result = TRUE;
+  a_translation_unit_ptr trans_unit = trans_unit_for_symbol(templ_sym);
+
+  if (sym->decl_scope == NO_SCOPE_NUMBER) {
+    result = FALSE;
+  } else if (trans_unit_for_symbol(sym) == trans_unit) {
+    result = FALSE;
+  } else if (!may_have_correspondence(sym)) {
+    result = FALSE;
+  } else if (parent_found ? !known_same_parents(sym, templ_sym)
+                          : !same_parents(sym, templ_sym)) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* is_possible_template_corresp_sym */
+
+
+static a_template_ptr find_corresp_deduction_guide(a_template_ptr  templ,
+                                                   a_symbol_ptr    sym)
+/*
+Find a template deduction guide from another translation unit corresponding to
+the given template deduction guide templ.  However, only consider sym and its
+subordinate symbols when looking up a correspondence: if none is found, return
+NULL.
+*/
+{
+  check_assertion(sym->kind != sk_overloaded_function);
+  a_template_ptr  corresp_templ = NULL;
+  a_symbol_ptr    templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
+  a_template_symbol_supplement_ptr
+                  tssp = template_supplement_for_symbol(templ_sym);
+  a_template_symbol_supplement_ptr
+                  corresp_tssp = template_supplement_for_symbol(sym);
+  a_routine_ptr   routine = tssp->variant.function.routine;
+  a_routine_ptr   corresp_routine = corresp_tssp->variant.function.routine;
+
+  if (equiv_template_param_lists(templ_params_of(sym),
+                                 templ_params_of(templ_sym),
+                                 /*issue_errors=*/FALSE,
+                                 ETP_NO_OPTIONS,
+                                 &templ_sym->decl_position, es_error) &&
+      identical_types_full(routine->type, corresp_routine->type,
+                           ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) &&
+      equiv_template_arg_lists(routine->template_arg_list,
+                               corresp_routine->template_arg_list,
+                               ETA_NO_OPTIONS)) {
+    corresp_templ = corresp_tssp->il_template_entry;
+  }  /* if */
+  return corresp_templ;
+}  /* find_corresp_deduction_guide */
+
+
+static a_boolean is_template_corresp_conflict(a_symbol_ptr    *matching_sym,
+                                              a_template_ptr  templ,
+                                              a_boolean       parent_found)
+/*
+Check for any entity that matches with the given template in another TU.  When
+parent_found is TRUE, this procedure should not attempt to seek correspondences
+for parent entities.  Set the matching entity (if any) to *matching_sym.
+Return TRUE if the matching entity is a conflicting entity that should be
+diagnosed; otherwise, the entity is the corresponding entity and FALSE is
+returned.
+*/
+{
+  a_boolean     result = FALSE;
+  a_symbol_ptr  templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
+
+  if (is_deduction_guide_symbol(templ_sym)) {
+    a_routine_ptr  routine = il_entry_for_symbol<a_template>(templ_sym)->
+                                               prototype_instantiation.routine;
+    a_template_ptr class_templ = routine->variant.class_template;
+    a_symbol_ptr   class_templ_sym = symbol_for(class_templ);
+    a_template_ptr class_templ_corresp;
+
+    /* Find the corresponding class template. */
+    for (a_symbol_ptr sym = corresp_symbol_list(class_templ_sym); sym != NULL;
+         sym = sym->next) {
+      if (!is_possible_template_corresp_sym(sym, class_templ_sym,
+                                            parent_found)) {
+        continue;
+      }  /* if */
+      if (is_class_template_symbol(sym)) {
+         class_templ_corresp = find_corresp_class_template(class_templ, sym);
+         if (class_templ_corresp != NULL) {
+           break;
+         }  /* if */
+      }  /* if */
+    }  /* for */
+    /* If a corresponding class template was found, check for a corresponding
+       deduction guide. */
+    if (class_templ_corresp != NULL) {
+      a_template_symbol_supplement_ptr tssp =
+                         template_supplement_for_template(class_templ_corresp);
+
+      for (a_symbol_ptr sym = tssp->variant.class_template.deduction_guides;
+           sym != NULL; sym = sym->next) {
+        a_template_ptr candidate = find_corresp_deduction_guide(templ, sym);
+
+        if (candidate == NULL) {
+          /* Continue searching for a match. */
+        } else {
+          *matching_sym = symbol_for(candidate);
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  } else {
+    a_boolean    class_template = is_class_template_symbol(templ_sym);
+    a_boolean    var_template = symbol_is(templ_sym, sk_variable_template);
+    a_symbol_ptr sym = corresp_symbol_list(templ_sym);
+
+    for (; sym != NULL; sym = sym->next) {
+      if (!is_possible_template_corresp_sym(sym, templ_sym, parent_found)) {
+        continue;
+      }  /* if */
+      /* Two different declarations in the same namespace and with the same
+         name: they should probably match up. */
+      if ((is_template_symbol(sym) &&
+           is_class_template_symbol(sym) == class_template &&
+           symbol_is(sym, sk_variable_template) == var_template) ||
+          (symbol_is(sym, sk_overloaded_function) &&
+           !class_template && !var_template)) {
+        a_template_ptr  candidate;
+
+        if (class_template) {
+          candidate = find_corresp_class_template(templ, sym);
+        } else if (var_template) {
+          candidate = find_corresp_var_template(templ, sym);
+        } else {
+          candidate = find_corresp_function_template(templ, sym);
+        }  /* if */
+        if (candidate == NULL) {
+          /* Continue searching for a match. */
+        } else {
+          *matching_sym = symbol_for(candidate);
+          break;
+        }  /* if */
+      } else if (!class_template && !var_template && is_function_symbol(sym)) {
+        /* A function template can always be overloaded with a non-template
+           function: no conflict. */
+      } else {
+        /* An error if the conflicting entity has external linkage. */
+        result = TRUE;
+        *matching_sym = sym;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* is_template_corresp_conflict */
 
 
 static void find_template_correspondence(a_template_ptr  templ,
@@ -6520,9 +6681,7 @@ this procedure should not attempt to seek correspondences for parent
 entities.
 */
 {
-  a_boolean     conflict = FALSE;
   a_symbol_ptr  templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
-  a_symbol_ptr  sym;
 
   check_assertion(templ_sym != NULL);
   if (!is_template_symbol(templ_sym) || templ_sym->is_template_param ||
@@ -6547,53 +6706,22 @@ entities.
     /* Function templates marked "static" do not correspond to their
        homonyms in other translation units. */
   } else {
-    a_template_ptr  corresp_templ = NULL, candidate;
-    a_boolean       class_template = is_class_template_symbol(templ_sym);
-    a_boolean       var_template = symbol_is(templ_sym, sk_variable_template);
-    a_translation_unit_ptr
-                    trans_unit = trans_unit_for_symbol(templ_sym);
-    sym = corresp_symbol_list(templ_sym);
-    for (; sym != NULL; sym = sym->next) {
-      if (sym->decl_scope != NO_SCOPE_NUMBER &&
-          trans_unit_for_symbol(sym) != trans_unit &&
-          may_have_correspondence(sym) &&
-          (parent_found ? known_same_parents(sym, templ_sym)
-                        : same_parents(sym, templ_sym))) {
-        /* Two different declarations in the same namespace and with the same
-           name: they should probably match up. */
-        if ((is_template_symbol(sym) &&
-             is_class_template_symbol(sym) == class_template &&
-             symbol_is(sym, sk_variable_template) == var_template) ||
-             (symbol_is(sym, sk_overloaded_function) &&
-              !class_template && !var_template)) {
-          if (class_template) {
-            candidate = find_corresp_class_template(templ, sym);
-          } else if (var_template) {
-            candidate = find_corresp_var_template(templ, sym);
-          } else {
-            candidate = find_corresp_function_template(templ, sym);
-          }  /* if */
-          if (candidate == NULL) {
-            /* Continue searching for a match. */
-          } else {
-            corresp_templ = candidate;
-            break;
-          }  /* if */
-        } else if (!class_template && !var_template &&
-                   is_function_symbol(sym)) {
-          /* A function template can always be overloaded with a nontemplate
-             function: no conflict. */
-        } else {
-          /* An error if the conflicting entity has external linkage. */
-          conflict = TRUE;
-          break;
-        }  /* if */
-      }  /* if */
-    }  /* for */
+    a_symbol_ptr  matching_sym = NULL;
+    a_boolean     conflict = is_template_corresp_conflict(&matching_sym,
+                                                          templ,
+                                                          parent_found);
     if (conflict) {
-      f_report_bad_trans_unit_corresp((char*)templ, &sym->decl_position);
-    } else if (corresp_templ != NULL) {
+      f_report_bad_trans_unit_corresp((char*)templ,
+                                      &matching_sym->decl_position);
+    } else if (matching_sym != NULL) {
+      /* The matching symbol should be null, a template symbol, or it should've
+         been considered a conflict.  If this assertion fails, a non-template
+         symbol was returned as a matching (but not conflicting) symbol. */
+      check_assertion(is_template_symbol(matching_sym));
+
       /* Record the correspondence. */
+      a_template_ptr corresp_templ =
+                                 il_entry_for_symbol<a_template>(matching_sym);
       set_trans_unit_corresp(iek_template, templ, corresp_templ);
       establish_instantiation_correspondences(templ, corresp_templ);
     } else {

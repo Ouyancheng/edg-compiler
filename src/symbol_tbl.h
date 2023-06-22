@@ -6905,11 +6905,20 @@ extern a_type_ptr underlying_function_type(a_symbol_ptr  sym);
   is_special_function_symbol(sym,                                     \
                              (a_special_function_kind)sfk_constructor)
 
+
+inline a_boolean is_deduction_guide_symbol(a_symbol_ptr sym)
+/*
+Return TRUE if the given symbol is a deduction guide; otherwise, return FALSE.
+*/
+{
+  return is_special_function_symbol(sym, sfk_deduction_guide);
+}  /* is_deduction_guide_symbol */
+
+
 #define is_ctor_or_deduction_guide(sym)                                      \
   (is_special_function_symbol(sym,                                           \
                               (a_special_function_kind)sfk_constructor) ||   \
-   is_special_function_symbol(sym,                                           \
-                              (a_special_function_kind)sfk_deduction_guide))
+   is_deduction_guide_symbol(sym))
 
 /* Return TRUE if the class has a trivial default constructor (implicitly
    declared or defaulted), and no nontrivial default constructor.  (Note
