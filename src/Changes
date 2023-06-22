@@ -1,5 +1,30 @@
 Version 6.6
 
+6/22/23  [EDGcpfe/26390]
+Implicit instantiation of coroutine promise_type constructor
+
+Consider, with --c++20:
+
+  #include <coroutine>
+  template<typename T>
+  struct my_task {
+    struct promise_type {
+      promise_type(int) { }
+      my_task get_return_object() { return { }; }
+      std::suspend_never initial_suspend() { return { }; }
+      std::suspend_never final_suspend() noexcept { return { }; }
+      void return_void() { }
+      void unhandled_exception() { }
+    };
+  };
+  my_task<int> f(int) { co_return; }
+
+Here, the front end finds a viable promise_type constructor for an argument
+list of "int" and selects that constructor for constructing the promise object
+of the coroutine.  However, it previously did not mark the selected function as
+referenced and thus did not instantiate the function.  That is now fixed.
+
+
 6/22/23  [EDGcpfe/25849,EDGcpfe/26229,EDGcpfe/26377]
 Nested template arguments with associated constraints in subsumption checking
 

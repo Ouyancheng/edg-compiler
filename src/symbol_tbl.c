@@ -9483,7 +9483,7 @@ member functions), or the default constructor.
 */
 {
   an_arg_list_elem_ptr alep = NULL;
-  a_symbol_ptr         ctor_sym = NULL, dtor_sym = NULL;
+  a_symbol_ptr         ctor_sym = NULL;
   a_source_position    *pos = &promise->source_corresp.decl_position;
   a_dynamic_init_ptr   dip = NULL;
   an_expr_stack_entry  expr_stack_entry, *saved_expr_stack = expr_stack;
@@ -9493,7 +9493,6 @@ member functions), or the default constructor.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   ctor_sym = symbol_supplement_for_class(promise->type)->constructor;
-  dtor_sym = symbol_supplement_for_class(promise->type)->destructor;
   if (ctor_sym != NULL) {
     saved_suppress_diagnostics = expr_stack->suppress_diagnostics;
     expr_stack->suppress_diagnostics = TRUE;
@@ -9501,7 +9500,7 @@ member functions), or the default constructor.
     scan_ctor_arguments(ctor_sym, pos,
                         /*object_class_type=*/NULL,
                         /*dest_type=*/NULL,
-                        /*fill_in_dtor=*/TRUE,
+                        /*fill_in_dtor=*/FALSE,
                         /*elision_allowed=*/FALSE,
                         /*is_custom_ms_attr_arg_list=*/FALSE,
                         CCO_INITIALIZING_VARIABLE,
@@ -9521,6 +9520,10 @@ member functions), or the default constructor.
     expr_stack->suppress_diagnostics = saved_suppress_diagnostics;
     if (expr_stack->any_suppressed_error) {
       dip = NULL;
+    } else if (dip != NULL && dip->kind == dik_constructor) {
+      /* Mark the constructor as referenced as scan_ctor_arguments does not do
+         that when suppressing diagnostics. */
+      mark_routine_referenced(dip->variant.constructor.ptr);
     }  /* if */
   }  /* if */
   if (dip == NULL) {
@@ -9547,10 +9550,8 @@ member functions), or the default constructor.
     } else {
       dip = alloc_expr_dynamic_init((a_dynamic_init_kind)dik_none);
     }  /* if */
-    if (dtor_sym != NULL) {
-      dip->destructor = dtor_sym->variant.routine.ptr;
-    }  /* if */
-  }
+  }  /* if */
+  add_dtor_to_dynamic_init(dip, promise->type, promise->type, pos);
   dip->variable = promise;
   promise->init_kind = (an_init_kind)initk_dynamic;
   promise->initializer.dynamic = dip;
