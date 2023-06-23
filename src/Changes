@@ -1,5 +1,24 @@
 Version 6.6
 
+6/23/23  [EDGcpfe/26425]
+Missing diagnostic on defining a type in a range-for-declaration
+
+The front end previously accepted the following example in C++11 mode and the
+C++ generating back end would then segfault on the type definition in the
+range-for-declaration:
+
+  struct R {
+    const int *begin(), *end();
+  };
+  void f(R r) {
+    for (struct S { S(int) { } } s : r) { } // Previously accepted.
+                                            // Now an error.
+  }
+
+The standard, however, does not allow a type to be defined in a
+range-for-declaration.  This is now fixed: A diagnostic is issued.
+
+
 6/22/23  [EDGcpfe/26288]
 Abort on coroutine with non-trivially destructible automatic variables with
 exceptions disabled

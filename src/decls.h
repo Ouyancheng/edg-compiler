@@ -1880,6 +1880,8 @@ extern void for_each_iterator_declaration(a_statement_ptr sp);
 
 extern a_variable_ptr check_condition_declaration(a_decl_parse_state  *dps);
 
+extern void check_for_range_declaration(a_decl_parse_state  *dps);
+
 extern void static_assert_declaration(a_boolean  leave_semicolon);
 
 extern void add_to_inline_namespace_list(a_scope_stack_entry_ptr	ssep,

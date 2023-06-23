@@ -14980,6 +14980,35 @@ done_with_checks:
 }  /* check_condition_declaration */
 
 
+void check_for_range_declaration(a_decl_parse_state  *dps)
+/*
+A for-range-declaration was just scanned with *dps representing the state at
+the end of that processing.  Check that the constraints for such a declaration
+are satisfied and issue diagnostics accordingly.  E.g.:
+
+    for (static int i : { 1 }) {}
+
+Here the constraint that no storage class specifiers be provided is violated,
+and this routine issues an error in that case.
+*/
+{
+  if (dps->sym != NULL &&
+      symbol_is(dps->sym, sk_variable) &&
+      dps->sym->variant.variable.ptr->is_thread_local) {
+    /* Only "constexpr" and a type-specifier are allowed in the
+       decl-specifier. */
+    pos_error(ec_thread_local_not_allowed, &dps->storage_class_pos);
+  } else if (dps->declared_storage_class != (a_storage_class)sc_unspecified) {
+    /* A storage class is not allowed on a for-range-declaration. */
+    pos_error(ec_storage_class_not_allowed, &dps->storage_class_pos);
+  }  /* if */
+  if (dps->dso_flags & DSO_DEFINES_SOMETHING) {
+    /* The specifiers contain a class or enum definition. */
+    pos_error(ec_type_definition_not_allowed, &dps->specifiers_pos);
+  }  /* if */
+}  /* check_for_range_declaration */
+
+
 static void make_static_assert_string_for_output(a_constant_ptr error_string)
 /*
 Create a character string from the string constant entry associated with
