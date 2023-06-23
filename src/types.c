@@ -6247,9 +6247,9 @@ TCF_CONTEXTUAL_GENERIC_PARAMETERS).  If exact_decltype_exprs_required is TRUE,
 dependent decltype constructs must have matching operands (see also the flags
 ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED, TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED,
 and ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED).  If exact_nesting_depths_required
-is TRUE, if the nesting depths of template parameters must match exactly (in
-that case, constraints on template parameters must match too; see also the
-flags ITF_EXACT_NESTING_DEPTHS_REQUIRED and ETA_ALLOW_EQUIV_NESTING_DEPTHS).
+is TRUE, the nesting depths of template parameters must match exactly (in that
+case, constraints on template parameters must match too; see also the flags
+ITF_EXACT_NESTING_DEPTHS_REQUIRED and ETA_ALLOW_EQUIV_NESTING_DEPTHS).
 */
 {
   a_boolean  equiv = FALSE;
