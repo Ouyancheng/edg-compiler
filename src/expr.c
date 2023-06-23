@@ -6794,12 +6794,9 @@ are expected to be NULL in that case.
                                             operand->type;
     class_type = skip_typerefs(class_type);
     check_assertion(!operand->bound_function);
-    if ((class_type->variant.class_struct_union.is_nonreal_class &&
-         !(type_is_lambda_closure(class_type) &&
-           lambda_closure_has_nondependent_call_type(class_type))) ||
-        (class_type->incomplete &&
-         (gpp_mode || clang_mode || microsoft_mode) &&
-         is_prototype_instantiation_context())) {
+    if (class_type->variant.class_struct_union.is_nonreal_class &&
+        !(type_is_lambda_closure(class_type) &&
+          lambda_closure_has_nondependent_call_type(class_type))) {
       /* A call of an object of a nonreal class type in a prototype
          instantiation cannot be resolved.  (Closure types in template-
          dependent contexts are marked as nonreal because their definitions
@@ -6810,11 +6807,6 @@ are expected to be NULL in that case.
       routine_type = NULL;
       prep_generic_operand(operand);
       unknown_dependent_function = TRUE;
-      if (!class_type->variant.class_struct_union.is_nonreal_class &&
-          !class_type->variant.class_struct_union.is_template_class) {
-        pos_ty_warning(ec_call_through_incomplete_class_type,
-                       &call_position, class_type);
-      }  /* if */
     } else {
       /* If the class is a template class make sure it is instantiated so its
          operator() functions are visible. */
