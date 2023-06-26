@@ -5728,6 +5728,157 @@ extern char *il_entry_for_symbol_null_okay(a_symbol_ptr      sym,
 extern char *il_entry_for_symbol(a_symbol_ptr      sym,
                                  an_il_entry_kind  *kind);
 
+template<typename an_Il_type>
+inline an_Il_type *il_entry_for_symbol(a_symbol_ptr sym) DELETED_FN_DEF
+
+#if RECORD_MACROS_IN_IL
+
+template<>
+inline a_macro_def *il_entry_for_symbol(a_symbol_ptr sym)
+/*
+Given a symbol known to reference a macro def, return the macro def.
+*/
+{
+  check_assertion(sym->kind == sk_macro);
+  return sym->variant.macro_def->macro;
+}  /* il_entry_for_symbol */
+
+#endif /* RECORD_MACROS_IN_IL */
+
+template<>
+inline a_constant *il_entry_for_symbol(a_symbol_ptr sym)
+/*
+Given a symbol known to reference a constant, return the constant.
+*/
+{
+  check_assertion(sym->kind == sk_constant);
+  return sym->variant.constant;
+}  /* il_entry_for_symbol */
+
+
+template<>
+inline a_type *il_entry_for_symbol(a_symbol_ptr sym)
+/*
+Given a symbol known to reference a type, return the type.
+*/
+{
+  a_type_ptr result = NULL;
+
+  switch (sym->kind) {
+    case sk_type:
+      result = sym->variant.type.ptr;
+      break;
+    case sk_enum_tag:
+      result = sym->variant.enumeration.type;
+      break;
+    case sk_class_or_struct_tag:
+    case sk_union_tag:
+      result = sym->variant.class_struct_union.type;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return result;
+}  /* il_entry_for_symbol */
+
+
+template<>
+inline a_variable *il_entry_for_symbol(a_symbol_ptr sym)
+/*
+Given a symbol known to reference a variable, return the variable.
+*/
+{
+  a_variable_ptr result = NULL;
+
+  switch (sym->kind) {
+    case sk_variable:
+      result = sym->variant.variable.ptr;
+      break;
+    case sk_static_data_member:
+      result = sym->variant.static_data_member.variable;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return result;
+}  /* il_entry_for_symbol */
+
+
+template<>
+inline a_field *il_entry_for_symbol(a_symbol_ptr sym)
+/*
+Given a symbol known to reference a field, return the field.
+*/
+{
+  check_assertion(sym->kind == sk_field);
+  return sym->variant.field.ptr;
+}  /* il_entry_for_symbol */
+
+
+template<>
+inline a_routine *il_entry_for_symbol(a_symbol_ptr sym)
+/*
+Given a symbol known to reference a routine, return the routine.
+*/
+{
+  a_routine_ptr result = NULL;
+
+  switch (sym->kind) {
+    case sk_routine:
+    case sk_member_function:
+      result = sym->variant.routine.ptr;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return result;
+}  /* il_entry_for_symbol */
+
+
+template<>
+inline a_label *il_entry_for_symbol(a_symbol_ptr sym)
+/*
+Given a symbol known to reference a label, return the label.
+*/
+{
+  check_assertion(sym->kind == sk_label);
+  return sym->variant.label.ptr;
+}  /* il_entry_for_symbol */
+
+
+template<>
+inline a_namespace *il_entry_for_symbol(a_symbol_ptr sym)
+/*
+Given a symbol known to reference a namespace, return the namespace.
+*/
+{
+  check_assertion(sym->kind == sk_namespace);
+  return sym->variant.namespace_info.ptr;
+}  /* il_entry_for_symbol */
+
+
+template<>
+inline a_template *il_entry_for_symbol(a_symbol_ptr sym)
+/*
+Given a symbol known to reference a template, return the template.
+*/
+{
+  a_template_ptr result = NULL;
+
+  switch (sym->kind) {
+    case sk_function_template:
+    case sk_class_template:
+    case sk_variable_template:
+    case sk_concept_template:
+      result = sym->variant.template_info->il_template_entry;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return result;
+}  /* il_entry_for_symbol */
+
+
 extern a_source_correspondence *source_corresp_entry_for_symbol(
                                                          a_symbol_ptr sym_ptr);
 

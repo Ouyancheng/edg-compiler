@@ -12379,57 +12379,48 @@ set to iek_none.
   switch (sym->kind) {
     case sk_macro:
 #if RECORD_MACROS_IN_IL
-      entry_ptr = (char *)sym->variant.macro_def->macro;
+      entry_ptr = (char *)il_entry_for_symbol<a_macro_def>(sym);
       lkind = iek_macro;
 #endif /* RECORD_MACROS_IN_IL */
       break;
     case sk_constant:
-      entry_ptr = (char *)sym->variant.constant;
+      entry_ptr = (char *)il_entry_for_symbol<a_constant>(sym);
       lkind = iek_constant;
       break;
     case sk_type:
-      entry_ptr = (char *)sym->variant.type.ptr;
-      lkind = iek_type;
-      break;
     case sk_enum_tag:
-      entry_ptr = (char *)sym->variant.enumeration.type;
-      lkind = iek_type;
-      break;
     case sk_class_or_struct_tag:
     case sk_union_tag:
-      entry_ptr = (char *)sym->variant.class_struct_union.type;
+      entry_ptr = (char *)il_entry_for_symbol<a_type>(sym);
       lkind = iek_type;
       break;
     case sk_variable:
-      entry_ptr = (char *)sym->variant.variable.ptr;
-      lkind = iek_variable;
-      break;
     case sk_static_data_member:
-      entry_ptr = (char *)sym->variant.static_data_member.variable;
+      entry_ptr = (char *)il_entry_for_symbol<a_variable>(sym);
       lkind = iek_variable;
       break;
     case sk_field:
-      entry_ptr = (char *)sym->variant.field.ptr;
+      entry_ptr = (char *)il_entry_for_symbol<a_field>(sym);
       lkind = iek_field;
       break;
     case sk_routine:
     case sk_member_function:
-      entry_ptr = (char *)sym->variant.routine.ptr;
+      entry_ptr = (char *)il_entry_for_symbol<a_routine>(sym);
       lkind = iek_routine;
       break;
     case sk_label:
-      entry_ptr = (char *)sym->variant.label.ptr;
+      entry_ptr = (char *)il_entry_for_symbol<a_label>(sym);
       lkind = iek_label;
       break;
     case sk_namespace:
-      entry_ptr = (char *)sym->variant.namespace_info.ptr;
+      entry_ptr = (char *)il_entry_for_symbol<a_namespace>(sym);
       lkind = iek_namespace;
       break;
     case sk_function_template:
     case sk_class_template:
     case sk_variable_template:
     case sk_concept_template:
-      entry_ptr = (char *)sym->variant.template_info->il_template_entry;
+      entry_ptr = (char *)il_entry_for_symbol<a_template>(sym);
       lkind = iek_template;
       break;
     default:;
