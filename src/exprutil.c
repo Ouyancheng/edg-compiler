@@ -7061,8 +7061,7 @@ information is prioritized as follows:
       }  /* if */
     }  /* if */
 #else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-    start_pos = &operand->position;
-    end_pos = &operand->end_position;
+    start_pos = end_pos = &operand->position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     set_expr_position(expr, start_pos, end_pos, op_pos);
   }  /* if */
