@@ -3787,30 +3787,29 @@ elements in the list.
 
 
 template<typename an_Integer_type>
-inline constexpr an_Integer_type max_uint_value_of() /* = delete; */
-#if HOST_SUPPORTS_DELETED_FUNCTION_TEMPLATES
-  = delete;
-#else  /* !HOST_SUPPORTS_DELETED_FUNCTION_TEMPLATES */
-  { return 0; }
-#endif /* HOST_SUPPORTS_DELETED_FUNCTION_TEMPLATES */
-
-
-template<>
-inline constexpr uint32_t max_uint_value_of()
+inline constexpr
+Enable_if<sizeof(an_Integer_type) == sizeof(uint32_t), uint32_t>
+max_uint_value_of()
 /*
 Return the maximum value of a 32-bit unsigned integer.
 */
 {
+  static_assert(!(an_Integer_type(-1) < an_Integer_type(0)),
+                "integer type must be unsigned");
   return UINT32_MAX;
 }  /* max_uint_value_of */
 
 
-template<>
-inline constexpr uint64_t max_uint_value_of()
+template<typename an_Integer_type>
+inline constexpr
+Enable_if<sizeof(an_Integer_type) == sizeof(uint64_t), uint64_t>
+max_uint_value_of()
 /*
 Return the maximum value of a 64-bit unsigned integer.
 */
 {
+  static_assert(!(an_Integer_type(-1) < an_Integer_type(0)),
+                "integer type must be unsigned");
   return UINT64_MAX;
 }  /* max_uint_value_of */
 
