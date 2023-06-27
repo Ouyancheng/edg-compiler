@@ -3439,14 +3439,11 @@ values.
 }  /* clear_operand */
 
 
-void set_operand_expr_position_if_expr(an_operand        *operand,
-                                       a_source_position *operator_pos)
+static an_expr_node_ptr maybe_get_operand_expr_with_pos(an_operand *operand)
 /*
-If operand is an expression operand (or has an associated expression, such as
-a backing expression for a constant operand), set the source positions in the
-underlying expression from the positions already in the operand.  If
-operator_position is non-NULL, use that position as the operator position
-if setting the positions in the underlying expression.
+If the given operand is not an expression or is a compiler generated
+expression, return NULL; otherwise, return the underlying expression node
+containing the position information to be queried or updated.
 */
 {
   an_expr_node_ptr expr = expr_node_from_operand(operand);
@@ -3458,17 +3455,36 @@ if setting the positions in the underlying expression.
     }  /* if */
     /* Don't set the position on a compiler-generated operation unless it is
        an operator-notation call node. */
-    if (!is_operation_node(expr) || !expr->compiler_generated ||
-        expr->variant.operation.call_uses_operator_syntax) {
-      /* Set the position on the expression. */
-      if (operator_pos == NULL && expr->position.seq != 0) {
-        /* If no operator position is provided, but one was already recorded
-           in the node, preserve the recorded position. */
-        operator_pos = &expr->position;
-      }  /* if */
-      set_expr_position(expr, &operand->position, &operand->end_position,
-                        operator_pos);
+    if (is_operation_node(expr) && expr->compiler_generated &&
+        !expr->variant.operation.call_uses_operator_syntax) {
+      expr = NULL;
     }  /* if */
+  }  /* if */
+  return expr;
+}  /* maybe_get_operand_expr_with_pos */
+
+
+void set_operand_expr_position_if_expr(an_operand        *operand,
+                                       a_source_position *operator_pos)
+/*
+If operand is an expression operand (or has an associated expression, such as
+a backing expression for a constant operand), set the source positions in the
+underlying expression from the positions already in the operand.  If
+operator_position is non-NULL, use that position as the operator position
+if setting the positions in the underlying expression.
+*/
+{
+  an_expr_node_ptr expr = maybe_get_operand_expr_with_pos(operand);
+
+  if (expr != NULL) {
+    /* Set the position on the expression. */
+    if (operator_pos == NULL && expr->position.seq != 0) {
+      /* If no operator position is provided, but one was already recorded
+         in the node, preserve the recorded position. */
+      operator_pos = &expr->position;
+    }  /* if */
+    set_expr_position(expr, &operand->position, &operand->end_position,
+                      operator_pos);
   }  /* if */
 }  /* set_operand_expr_position_if_expr */
 
@@ -6994,6 +7010,65 @@ forms.
 }  /* operand_allows_is_operand_of_address_of */
 
 
+static void restore_operand_expr_position_if_expr(an_operand *operand,
+                                                  an_operand *orig_operand)
+/*
+This function is used to apply position information to a new operand expression
+while considering information from the original operand state.  The position
+information is prioritized as follows:
+
+  1. The current position information (if present)
+  2. The original operand's expression's position information (if present)
+  3. The new operator's position information
+*/
+{
+  an_expr_node *expr = maybe_get_operand_expr_with_pos(operand);
+
+  if (expr != NULL) {
+    an_expr_node      *orig_expr =
+                           maybe_get_operand_expr_with_pos(orig_operand);
+    a_source_position *op_pos;
+    a_source_position *start_pos;
+    a_source_position *end_pos;
+
+    /* Use the original expression's range information if present. */
+    if (expr->position.seq != 0) {
+      op_pos = &expr->position;
+    } else {
+      if (orig_expr != NULL && orig_expr->position.seq != 0) {
+        op_pos = &orig_expr->position;
+      } else {
+        op_pos = &operand->position;
+      }  /* if */
+    }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    if (expr->expr_range.start.seq != 0) {
+      start_pos = &expr->expr_range.start;
+    } else {
+      if (orig_expr != NULL && orig_expr->expr_range.start.seq != 0) {
+        start_pos = &orig_expr->expr_range.start;
+      } else {
+        start_pos = &operand->position;
+      }  /* if */
+    }  /* if */
+    if (expr->expr_range.end.seq != 0) {
+      end_pos = &expr->expr_range.end;
+    } else {
+      if (orig_expr != NULL && orig_expr->expr_range.end.seq != 0) {
+        end_pos = &orig_expr->expr_range.end;
+      } else {
+        end_pos = &operand->end_position;
+      }  /* if */
+    }  /* if */
+#else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
+    start_pos = &operand->position;
+    end_pos = &operand->end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    set_expr_position(expr, start_pos, end_pos, op_pos);
+  }  /* if */
+}  /* restore_operand_expr_position_if_expr */
+
+
 void restore_operand_details(an_operand *operand,
                              an_operand *orig_operand)
 /*
@@ -7021,7 +7096,7 @@ destroyed its source position, etc.  Restore such things from
                                              operand->variant.constant.expr) {
     /* Same for a case where an expression was recorded for a constant. */
   } else {
-    set_operand_expr_position_if_expr(operand, (a_source_position *)NULL);
+    restore_operand_expr_position_if_expr(operand, orig_operand);
   }  /* if */
 #if OPTIMIZE_VIRTUAL_FUNCTION_CALLS
   operand->orig_routine_type = orig_operand->orig_routine_type;
