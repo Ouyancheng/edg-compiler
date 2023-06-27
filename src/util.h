@@ -3786,8 +3786,8 @@ elements in the list.
 }  /* count_list_elements */
 
 
-template<typename an_integer_type>
-inline constexpr an_integer_type max_uint_value_of() /* = delete; */
+template<typename an_Integer_type>
+inline constexpr an_Integer_type max_uint_value_of() /* = delete; */
 #if HOST_SUPPORTS_DELETED_FUNCTION_TEMPLATES
   = delete;
 #else  /* !HOST_SUPPORTS_DELETED_FUNCTION_TEMPLATES */
@@ -3815,8 +3815,8 @@ Return the maximum value of a 64-bit unsigned integer.
 }  /* max_uint_value_of */
 
 
-template<typename an_integer_type>
-inline a_boolean checked_addition(an_integer_type *output,
+template<typename an_Integer_type>
+inline a_boolean checked_addition(an_Integer_type *output,
                                   uint64_t        a,
                                   uint64_t        b)
 /*
@@ -3825,7 +3825,7 @@ been set and overflow did not occur; otherwise, return FALSE.
 */
 {
   a_boolean      result;
-  constexpr auto max_value = max_uint_value_of<an_integer_type>();
+  constexpr auto max_value = max_uint_value_of<an_Integer_type>();
   uint64_t       diff = max_value - a;
 
   /* This exploits that "a + b > c" if and only if "b > c - a".  Thus, by using
@@ -3834,14 +3834,14 @@ been set and overflow did not occur; otherwise, return FALSE.
     result = FALSE;
   } else {
     result = TRUE;
-    *output = (an_integer_type)(a + b);
+    *output = (an_Integer_type)(a + b);
   }  /* if */
   return result;
 }  /* checked_addition */
 
 
-template<typename an_integer_type>
-inline a_boolean checked_multiplication(an_integer_type *output,
+template<typename an_Integer_type>
+inline a_boolean checked_multiplication(an_Integer_type *output,
                                         uint64_t        a,
                                         uint64_t        b)
 /*
@@ -3850,7 +3850,7 @@ has been set and overflow did not occur; otherwise, return FALSE.
 */
 {
   a_boolean      result;
-  constexpr auto max_value = max_uint_value_of<an_integer_type>();
+  constexpr auto max_value = max_uint_value_of<an_Integer_type>();
 
   /* This exploits that "a * b > c" if and only if "a > c / b".  Thus, by using
      c = UINTX_MAX, overflow of a * b can be detected.  b != 0 is additionally
@@ -3859,7 +3859,7 @@ has been set and overflow did not occur; otherwise, return FALSE.
     result = FALSE;
   } else {
     result = TRUE;
-    *output = (an_integer_type)(a * b);
+    *output = (an_Integer_type)(a * b);
   }  /* if */
   return result;
 }  /* checked_multiplication */
