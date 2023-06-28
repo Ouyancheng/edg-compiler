@@ -58,7 +58,7 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_access_sort_0_33       versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -69,7 +69,7 @@ represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -100,7 +100,7 @@ value represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_architecture_sort_0_33 versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -111,7 +111,7 @@ value represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -145,7 +145,7 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_attr_sort_0_33         versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -156,7 +156,7 @@ represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -188,7 +188,7 @@ value represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                       *mod,
+a_boolean validate_sort(an_ifc_module_file                  *file,
                         an_ifc_calling_convention_sort_0_33 versioned,
                         const an_ifc_validation_trace       *parent)
 /*
@@ -199,7 +199,7 @@ value represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -227,7 +227,7 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_chart_sort_0_33        versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -238,7 +238,7 @@ represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -295,7 +295,7 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_decl_sort_0_33         versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -306,7 +306,7 @@ represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -362,7 +362,7 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_decl_sort_0_41         versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -373,7 +373,7 @@ represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -430,7 +430,7 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_decl_sort_0_43         versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -441,7 +441,7 @@ represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -469,7 +469,7 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_delimiter_sort_0_33    versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -480,7 +480,7 @@ represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -593,7 +593,7 @@ value represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                    *mod,
+a_boolean validate_sort(an_ifc_module_file               *file,
                         an_ifc_dyadic_operator_sort_0_33 versioned,
                         const an_ifc_validation_trace    *parent)
 /*
@@ -604,7 +604,7 @@ value represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -718,7 +718,7 @@ value represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                    *mod,
+a_boolean validate_sort(an_ifc_module_file               *file,
                         an_ifc_dyadic_operator_sort_0_43 versioned,
                         const an_ifc_validation_trace    *parent)
 /*
@@ -729,7 +729,7 @@ value represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -756,7 +756,7 @@ value represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                   *mod,
+a_boolean validate_sort(an_ifc_module_file              *file,
                         an_ifc_expansion_mode_sort_0_33 versioned,
                         const an_ifc_validation_trace   *parent)
 /*
@@ -767,7 +767,7 @@ value represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -853,7 +853,7 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_expr_sort_0_33         versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -864,7 +864,7 @@ represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -948,7 +948,7 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_expr_sort_0_42         versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -959,7 +959,7 @@ represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -987,7 +987,7 @@ value represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                   *mod,
+a_boolean validate_sort(an_ifc_module_file              *file,
                         an_ifc_fold_direction_sort_0_33 versioned,
                         const an_ifc_validation_trace   *parent)
 /*
@@ -998,7 +998,7 @@ value represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -1038,7 +1038,7 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_form_sort_0_33         versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -1049,7 +1049,7 @@ represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -1077,7 +1077,7 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_initializer_sort_0_33  versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -1088,7 +1088,7 @@ represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -1126,7 +1126,7 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_keyword_sort_0_33      versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -1137,7 +1137,7 @@ represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -1166,7 +1166,7 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_label_sort_0_33        versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -1177,7 +1177,7 @@ represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -1205,7 +1205,7 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_lit_sort_0_33          versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -1216,7 +1216,7 @@ represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -1243,7 +1243,7 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_macro_sort_0_33        versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -1254,7 +1254,7 @@ represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -1359,7 +1359,7 @@ value represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                     *mod,
+a_boolean validate_sort(an_ifc_module_file                *file,
                         an_ifc_monadic_operator_sort_0_33 versioned,
                         const an_ifc_validation_trace     *parent)
 /*
@@ -1370,7 +1370,7 @@ value represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -1478,7 +1478,7 @@ value represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                     *mod,
+a_boolean validate_sort(an_ifc_module_file                *file,
                         an_ifc_monadic_operator_sort_0_43 versioned,
                         const an_ifc_validation_trace     *parent)
 /*
@@ -1489,7 +1489,7 @@ value represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -1522,7 +1522,7 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_name_sort_0_33         versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -1533,7 +1533,7 @@ represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -1565,7 +1565,7 @@ value represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                     *mod,
+a_boolean validate_sort(an_ifc_module_file                *file,
                         an_ifc_niladic_operator_sort_0_33 versioned,
                         const an_ifc_validation_trace     *parent)
 /*
@@ -1576,7 +1576,7 @@ value represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -1607,7 +1607,7 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_noexcept_sort_0_33     versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -1618,7 +1618,7 @@ represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -1649,7 +1649,7 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_operator_sort_0_33     versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -1660,7 +1660,7 @@ represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -1689,7 +1689,7 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_parameter_sort_0_33    versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -1700,7 +1700,7 @@ represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -1730,7 +1730,7 @@ value represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                       *mod,
+a_boolean validate_sort(an_ifc_module_file                  *file,
                         an_ifc_pointer_declarator_sort_0_33 versioned,
                         const an_ifc_validation_trace       *parent)
 /*
@@ -1741,7 +1741,7 @@ value represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -1767,7 +1767,7 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_pragma_sort_0_33       versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -1778,7 +1778,7 @@ represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -1808,7 +1808,7 @@ value represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                    *mod,
+a_boolean validate_sort(an_ifc_module_file               *file,
                         an_ifc_read_conversion_sort_0_33 versioned,
                         const an_ifc_validation_trace    *parent)
 /*
@@ -1819,7 +1819,7 @@ value represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -1846,7 +1846,7 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_return_sort_0_33       versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -1857,7 +1857,7 @@ represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -1940,7 +1940,7 @@ value represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                     *mod,
+a_boolean validate_sort(an_ifc_module_file                *file,
                         an_ifc_source_directive_sort_0_33 versioned,
                         const an_ifc_validation_trace     *parent)
 /*
@@ -1951,7 +1951,7 @@ value represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -1984,7 +1984,7 @@ value represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                      *mod,
+a_boolean validate_sort(an_ifc_module_file                 *file,
                         an_ifc_source_identifier_sort_0_33 versioned,
                         const an_ifc_validation_trace      *parent)
 /*
@@ -1995,7 +1995,7 @@ value represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -2207,7 +2207,7 @@ value represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                   *mod,
+a_boolean validate_sort(an_ifc_module_file              *file,
                         an_ifc_source_keyword_sort_0_33 versioned,
                         const an_ifc_validation_trace   *parent)
 /*
@@ -2218,7 +2218,7 @@ value represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -2254,7 +2254,7 @@ value represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                   *mod,
+a_boolean validate_sort(an_ifc_module_file              *file,
                         an_ifc_source_literal_sort_0_33 versioned,
                         const an_ifc_validation_trace   *parent)
 /*
@@ -2265,7 +2265,7 @@ value represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -2331,7 +2331,7 @@ value represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                    *mod,
+a_boolean validate_sort(an_ifc_module_file               *file,
                         an_ifc_source_operator_sort_0_33 versioned,
                         const an_ifc_validation_trace    *parent)
 /*
@@ -2342,7 +2342,7 @@ value represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -2386,7 +2386,7 @@ value represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                      *mod,
+a_boolean validate_sort(an_ifc_module_file                 *file,
                         an_ifc_source_punctuator_sort_0_33 versioned,
                         const an_ifc_validation_trace      *parent)
 /*
@@ -2397,7 +2397,7 @@ value represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -2425,7 +2425,7 @@ value represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                   *mod,
+a_boolean validate_sort(an_ifc_module_file              *file,
                         an_ifc_specialization_sort_0_41 versioned,
                         const an_ifc_validation_trace   *parent)
 /*
@@ -2436,7 +2436,7 @@ value represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -2478,7 +2478,7 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_stmt_sort_0_33         versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -2489,7 +2489,7 @@ represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -2533,7 +2533,7 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_stmt_sort_0_42         versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -2544,7 +2544,7 @@ represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -2577,7 +2577,7 @@ TRUE if the value represents a valid sort value; otherwise, return FALSE.
 
 
 a_boolean validate_sort(
-                       an_ifc_module                                 *mod,
+                       an_ifc_module_file                            *file,
                        an_ifc_storage_instruction_operator_sort_0_33 versioned,
                        const an_ifc_validation_trace                 *parent)
 /*
@@ -2588,7 +2588,7 @@ TRUE if the value represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -2618,7 +2618,7 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_string_sort_0_33       versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -2629,7 +2629,7 @@ represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -2764,7 +2764,7 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_syntax_sort_0_33       versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -2775,7 +2775,7 @@ represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -2805,7 +2805,7 @@ value represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                     *mod,
+a_boolean validate_sort(an_ifc_module_file                *file,
                         an_ifc_triadic_operator_sort_0_33 versioned,
                         const an_ifc_validation_trace     *parent)
 /*
@@ -2816,7 +2816,7 @@ value represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -2849,7 +2849,7 @@ value represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                     *mod,
+a_boolean validate_sort(an_ifc_module_file                *file,
                         an_ifc_triadic_operator_sort_0_42 versioned,
                         const an_ifc_validation_trace     *parent)
 /*
@@ -2860,7 +2860,7 @@ value represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -2909,7 +2909,7 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_type_basis_sort_0_33   versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -2920,7 +2920,7 @@ represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -2953,7 +2953,7 @@ value represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                   *mod,
+a_boolean validate_sort(an_ifc_module_file              *file,
                         an_ifc_type_precision_sort_0_33 versioned,
                         const an_ifc_validation_trace   *parent)
 /*
@@ -2964,7 +2964,7 @@ value represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -2992,7 +2992,7 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_type_sign_sort_0_33    versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -3003,7 +3003,7 @@ represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -3050,7 +3050,7 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_type_sort_0_33         versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -3061,7 +3061,7 @@ represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -3091,7 +3091,7 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_unit_sort_0_33         versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -3102,7 +3102,7 @@ represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -3135,7 +3135,7 @@ value represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                      *mod,
+a_boolean validate_sort(an_ifc_module_file                 *file,
                         an_ifc_variadic_operator_sort_0_33 versioned,
                         const an_ifc_validation_trace      *parent)
 /*
@@ -3146,7 +3146,7 @@ value represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
@@ -3178,7 +3178,7 @@ represents a valid sort value; otherwise, return FALSE.
 }  /* is_known_sort */
 
 
-a_boolean validate_sort(an_ifc_module                 *mod,
+a_boolean validate_sort(an_ifc_module_file            *file,
                         an_ifc_word_sort_0_33         versioned,
                         const an_ifc_validation_trace *parent)
 /*
@@ -3189,18 +3189,18 @@ represents a valid sort value; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (!is_known_sort(versioned)) {
-    invalid_sort(mod, parent);
+    invalid_sort(file, parent);
     result = FALSE;
   }  /* if */
   return result;
 }  /* validate_sort */
 
 
-a_boolean validate_index(an_ifc_module                 *mod,
+a_boolean validate_index(an_ifc_module_file            *file,
                          an_ifc_attr_index_0_33        versioned,
                          const an_ifc_validation_trace *parent)
 /*
-Given the versioned representation of AttrIndex and the associated module,
+Given the versioned representation of AttrIndex and the associated module file,
 return TRUE if the value represents a valid index position; otherwise, return
 FALSE.
 */
@@ -3209,7 +3209,7 @@ FALSE.
   an_ifc_attr_sort_0_33 sort = attr_sort(versioned);
 
   if (!is_known_sort(sort)) {
-    invalid_partition(mod, parent);
+    invalid_partition(file, parent);
     result = FALSE;
   } else {
     an_ifc_attr_sort univ_sort = to_universal_sort(sort);
@@ -3218,7 +3218,7 @@ FALSE.
       an_ifc_partition_kind kind = to_partition_kind(univ_sort);
       uint32_t              value = attr_value(versioned);
 
-      if (!validate_element_exists(mod, kind, value, parent)) {
+      if (!validate_element_exists(file, kind, value, parent)) {
         result = FALSE;
       }  /* if */
     }  /* if */
@@ -3227,20 +3227,20 @@ FALSE.
 }  /* validate_index */
 
 
-a_boolean validate_index(an_ifc_module                 *mod,
+a_boolean validate_index(an_ifc_module_file            *file,
                          an_ifc_chart_index_0_33       versioned,
                          const an_ifc_validation_trace *parent)
 /*
-Given the versioned representation of ChartIndex and the associated module,
-return TRUE if the value represents a valid index position; otherwise, return
-FALSE.
+Given the versioned representation of ChartIndex and the associated module
+file, return TRUE if the value represents a valid index position; otherwise,
+return FALSE.
 */
 {
   a_boolean              result = TRUE;
   an_ifc_chart_sort_0_33 sort = chart_sort(versioned);
 
   if (!is_known_sort(sort)) {
-    invalid_partition(mod, parent);
+    invalid_partition(file, parent);
     result = FALSE;
   } else {
     an_ifc_chart_sort univ_sort = to_universal_sort(sort);
@@ -3249,7 +3249,7 @@ FALSE.
       an_ifc_partition_kind kind = to_partition_kind(univ_sort);
       uint32_t              value = chart_value(versioned);
 
-      if (!validate_element_exists(mod, kind, value, parent)) {
+      if (!validate_element_exists(file, kind, value, parent)) {
         result = FALSE;
       }  /* if */
     }  /* if */
@@ -3258,11 +3258,11 @@ FALSE.
 }  /* validate_index */
 
 
-a_boolean validate_index(an_ifc_module                 *mod,
+a_boolean validate_index(an_ifc_module_file            *file,
                          an_ifc_decl_index_0_33        versioned,
                          const an_ifc_validation_trace *parent)
 /*
-Given the versioned representation of DeclIndex and the associated module,
+Given the versioned representation of DeclIndex and the associated module file,
 return TRUE if the value represents a valid index position; otherwise, return
 FALSE.
 */
@@ -3271,7 +3271,7 @@ FALSE.
   an_ifc_decl_sort_0_33 sort = decl_sort(versioned);
 
   if (!is_known_sort(sort)) {
-    invalid_partition(mod, parent);
+    invalid_partition(file, parent);
     result = FALSE;
   } else {
     an_ifc_decl_sort univ_sort = to_universal_sort(sort);
@@ -3280,7 +3280,7 @@ FALSE.
       an_ifc_partition_kind kind = to_partition_kind(univ_sort);
       uint32_t              value = decl_value(versioned);
 
-      if (!validate_element_exists(mod, kind, value, parent)) {
+      if (!validate_element_exists(file, kind, value, parent)) {
         result = FALSE;
       }  /* if */
     }  /* if */
@@ -3289,11 +3289,11 @@ FALSE.
 }  /* validate_index */
 
 
-a_boolean validate_index(an_ifc_module                 *mod,
+a_boolean validate_index(an_ifc_module_file            *file,
                          an_ifc_decl_index_0_41        versioned,
                          const an_ifc_validation_trace *parent)
 /*
-Given the versioned representation of DeclIndex and the associated module,
+Given the versioned representation of DeclIndex and the associated module file,
 return TRUE if the value represents a valid index position; otherwise, return
 FALSE.
 */
@@ -3302,7 +3302,7 @@ FALSE.
   an_ifc_decl_sort_0_41 sort = decl_sort(versioned);
 
   if (!is_known_sort(sort)) {
-    invalid_partition(mod, parent);
+    invalid_partition(file, parent);
     result = FALSE;
   } else {
     an_ifc_decl_sort univ_sort = to_universal_sort(sort);
@@ -3311,7 +3311,7 @@ FALSE.
       an_ifc_partition_kind kind = to_partition_kind(univ_sort);
       uint32_t              value = decl_value(versioned);
 
-      if (!validate_element_exists(mod, kind, value, parent)) {
+      if (!validate_element_exists(file, kind, value, parent)) {
         result = FALSE;
       }  /* if */
     }  /* if */
@@ -3320,11 +3320,11 @@ FALSE.
 }  /* validate_index */
 
 
-a_boolean validate_index(an_ifc_module                 *mod,
+a_boolean validate_index(an_ifc_module_file            *file,
                          an_ifc_decl_index_0_43        versioned,
                          const an_ifc_validation_trace *parent)
 /*
-Given the versioned representation of DeclIndex and the associated module,
+Given the versioned representation of DeclIndex and the associated module file,
 return TRUE if the value represents a valid index position; otherwise, return
 FALSE.
 */
@@ -3333,7 +3333,7 @@ FALSE.
   an_ifc_decl_sort_0_43 sort = decl_sort(versioned);
 
   if (!is_known_sort(sort)) {
-    invalid_partition(mod, parent);
+    invalid_partition(file, parent);
     result = FALSE;
   } else {
     an_ifc_decl_sort univ_sort = to_universal_sort(sort);
@@ -3342,7 +3342,7 @@ FALSE.
       an_ifc_partition_kind kind = to_partition_kind(univ_sort);
       uint32_t              value = decl_value(versioned);
 
-      if (!validate_element_exists(mod, kind, value, parent)) {
+      if (!validate_element_exists(file, kind, value, parent)) {
         result = FALSE;
       }  /* if */
     }  /* if */
@@ -3351,11 +3351,11 @@ FALSE.
 }  /* validate_index */
 
 
-a_boolean validate_index(an_ifc_module                 *mod,
+a_boolean validate_index(an_ifc_module_file            *file,
                          an_ifc_expr_index_0_33        versioned,
                          const an_ifc_validation_trace *parent)
 /*
-Given the versioned representation of ExprIndex and the associated module,
+Given the versioned representation of ExprIndex and the associated module file,
 return TRUE if the value represents a valid index position; otherwise, return
 FALSE.
 */
@@ -3364,7 +3364,7 @@ FALSE.
   an_ifc_expr_sort_0_33 sort = expr_sort(versioned);
 
   if (!is_known_sort(sort)) {
-    invalid_partition(mod, parent);
+    invalid_partition(file, parent);
     result = FALSE;
   } else {
     an_ifc_expr_sort univ_sort = to_universal_sort(sort);
@@ -3373,7 +3373,7 @@ FALSE.
       an_ifc_partition_kind kind = to_partition_kind(univ_sort);
       uint32_t              value = expr_value(versioned);
 
-      if (!validate_element_exists(mod, kind, value, parent)) {
+      if (!validate_element_exists(file, kind, value, parent)) {
         result = FALSE;
       }  /* if */
     }  /* if */
@@ -3382,11 +3382,11 @@ FALSE.
 }  /* validate_index */
 
 
-a_boolean validate_index(an_ifc_module                 *mod,
+a_boolean validate_index(an_ifc_module_file            *file,
                          an_ifc_expr_index_0_42        versioned,
                          const an_ifc_validation_trace *parent)
 /*
-Given the versioned representation of ExprIndex and the associated module,
+Given the versioned representation of ExprIndex and the associated module file,
 return TRUE if the value represents a valid index position; otherwise, return
 FALSE.
 */
@@ -3395,7 +3395,7 @@ FALSE.
   an_ifc_expr_sort_0_42 sort = expr_sort(versioned);
 
   if (!is_known_sort(sort)) {
-    invalid_partition(mod, parent);
+    invalid_partition(file, parent);
     result = FALSE;
   } else {
     an_ifc_expr_sort univ_sort = to_universal_sort(sort);
@@ -3404,7 +3404,7 @@ FALSE.
       an_ifc_partition_kind kind = to_partition_kind(univ_sort);
       uint32_t              value = expr_value(versioned);
 
-      if (!validate_element_exists(mod, kind, value, parent)) {
+      if (!validate_element_exists(file, kind, value, parent)) {
         result = FALSE;
       }  /* if */
     }  /* if */
@@ -3413,11 +3413,11 @@ FALSE.
 }  /* validate_index */
 
 
-a_boolean validate_index(an_ifc_module                 *mod,
+a_boolean validate_index(an_ifc_module_file            *file,
                          an_ifc_form_index_0_33        versioned,
                          const an_ifc_validation_trace *parent)
 /*
-Given the versioned representation of FormIndex and the associated module,
+Given the versioned representation of FormIndex and the associated module file,
 return TRUE if the value represents a valid index position; otherwise, return
 FALSE.
 */
@@ -3426,7 +3426,7 @@ FALSE.
   an_ifc_form_sort_0_33 sort = form_sort(versioned);
 
   if (!is_known_sort(sort)) {
-    invalid_partition(mod, parent);
+    invalid_partition(file, parent);
     result = FALSE;
   } else {
     an_ifc_form_sort univ_sort = to_universal_sort(sort);
@@ -3435,7 +3435,7 @@ FALSE.
       an_ifc_partition_kind kind = to_partition_kind(univ_sort);
       uint32_t              value = form_value(versioned);
 
-      if (!validate_element_exists(mod, kind, value, parent)) {
+      if (!validate_element_exists(file, kind, value, parent)) {
         result = FALSE;
       }  /* if */
     }  /* if */
@@ -3444,11 +3444,11 @@ FALSE.
 }  /* validate_index */
 
 
-a_boolean validate_index(an_ifc_module                 *mod,
+a_boolean validate_index(an_ifc_module_file            *file,
                          an_ifc_lit_index_0_33         versioned,
                          const an_ifc_validation_trace *parent)
 /*
-Given the versioned representation of LitIndex and the associated module,
+Given the versioned representation of LitIndex and the associated module file,
 return TRUE if the value represents a valid index position; otherwise, return
 FALSE.
 */
@@ -3457,27 +3457,27 @@ FALSE.
   an_ifc_lit_sort_0_33 sort = lit_sort(versioned);
 
   if (!is_known_sort(sort)) {
-    invalid_partition(mod, parent);
+    invalid_partition(file, parent);
     result = FALSE;
   }  /* if */
   return result;
 }  /* validate_index */
 
 
-a_boolean validate_index(an_ifc_module                 *mod,
+a_boolean validate_index(an_ifc_module_file            *file,
                          an_ifc_macro_index_0_33       versioned,
                          const an_ifc_validation_trace *parent)
 /*
-Given the versioned representation of MacroIndex and the associated module,
-return TRUE if the value represents a valid index position; otherwise, return
-FALSE.
+Given the versioned representation of MacroIndex and the associated module
+file, return TRUE if the value represents a valid index position; otherwise,
+return FALSE.
 */
 {
   a_boolean              result = TRUE;
   an_ifc_macro_sort_0_33 sort = macro_sort(versioned);
 
   if (!is_known_sort(sort)) {
-    invalid_partition(mod, parent);
+    invalid_partition(file, parent);
     result = FALSE;
   } else {
     an_ifc_macro_sort univ_sort = to_universal_sort(sort);
@@ -3486,7 +3486,7 @@ FALSE.
       an_ifc_partition_kind kind = to_partition_kind(univ_sort);
       uint32_t              value = macro_value(versioned);
 
-      if (!validate_element_exists(mod, kind, value, parent)) {
+      if (!validate_element_exists(file, kind, value, parent)) {
         result = FALSE;
       }  /* if */
     }  /* if */
@@ -3495,11 +3495,11 @@ FALSE.
 }  /* validate_index */
 
 
-a_boolean validate_index(an_ifc_module                 *mod,
+a_boolean validate_index(an_ifc_module_file            *file,
                          an_ifc_name_index_0_33        versioned,
                          const an_ifc_validation_trace *parent)
 /*
-Given the versioned representation of NameIndex and the associated module,
+Given the versioned representation of NameIndex and the associated module file,
 return TRUE if the value represents a valid index position; otherwise, return
 FALSE.
 */
@@ -3508,7 +3508,7 @@ FALSE.
   an_ifc_name_sort_0_33 sort = name_sort(versioned);
 
   if (!is_known_sort(sort)) {
-    invalid_partition(mod, parent);
+    invalid_partition(file, parent);
     result = FALSE;
   } else {
     an_ifc_name_sort univ_sort = to_universal_sort(sort);
@@ -3517,7 +3517,7 @@ FALSE.
       an_ifc_partition_kind kind = to_partition_kind(univ_sort);
       uint32_t              value = name_value(versioned);
 
-      if (!validate_element_exists(mod, kind, value, parent)) {
+      if (!validate_element_exists(file, kind, value, parent)) {
         result = FALSE;
       }  /* if */
     }  /* if */
@@ -3526,31 +3526,31 @@ FALSE.
 }  /* validate_index */
 
 
-a_boolean validate_index(an_ifc_module                 *mod,
+a_boolean validate_index(an_ifc_module_file            *file,
                          an_ifc_pragma_index_0_33      versioned,
                          const an_ifc_validation_trace *parent)
 /*
-Given the versioned representation of PragmaIndex and the associated module,
-return TRUE if the value represents a valid index position; otherwise, return
-FALSE.
+Given the versioned representation of PragmaIndex and the associated module
+file, return TRUE if the value represents a valid index position; otherwise,
+return FALSE.
 */
 {
   a_boolean               result = TRUE;
   an_ifc_pragma_sort_0_33 sort = pragma_sort(versioned);
 
   if (!is_known_sort(sort)) {
-    invalid_partition(mod, parent);
+    invalid_partition(file, parent);
     result = FALSE;
   }  /* if */
   return result;
 }  /* validate_index */
 
 
-a_boolean validate_index(an_ifc_module                 *mod,
+a_boolean validate_index(an_ifc_module_file            *file,
                          an_ifc_stmt_index_0_33        versioned,
                          const an_ifc_validation_trace *parent)
 /*
-Given the versioned representation of StmtIndex and the associated module,
+Given the versioned representation of StmtIndex and the associated module file,
 return TRUE if the value represents a valid index position; otherwise, return
 FALSE.
 */
@@ -3559,7 +3559,7 @@ FALSE.
   an_ifc_stmt_sort_0_33 sort = stmt_sort(versioned);
 
   if (!is_known_sort(sort)) {
-    invalid_partition(mod, parent);
+    invalid_partition(file, parent);
     result = FALSE;
   } else {
     an_ifc_stmt_sort univ_sort = to_universal_sort(sort);
@@ -3568,7 +3568,7 @@ FALSE.
       an_ifc_partition_kind kind = to_partition_kind(univ_sort);
       uint32_t              value = stmt_value(versioned);
 
-      if (!validate_element_exists(mod, kind, value, parent)) {
+      if (!validate_element_exists(file, kind, value, parent)) {
         result = FALSE;
       }  /* if */
     }  /* if */
@@ -3577,11 +3577,11 @@ FALSE.
 }  /* validate_index */
 
 
-a_boolean validate_index(an_ifc_module                 *mod,
+a_boolean validate_index(an_ifc_module_file            *file,
                          an_ifc_stmt_index_0_42        versioned,
                          const an_ifc_validation_trace *parent)
 /*
-Given the versioned representation of StmtIndex and the associated module,
+Given the versioned representation of StmtIndex and the associated module file,
 return TRUE if the value represents a valid index position; otherwise, return
 FALSE.
 */
@@ -3590,7 +3590,7 @@ FALSE.
   an_ifc_stmt_sort_0_42 sort = stmt_sort(versioned);
 
   if (!is_known_sort(sort)) {
-    invalid_partition(mod, parent);
+    invalid_partition(file, parent);
     result = FALSE;
   } else {
     an_ifc_stmt_sort univ_sort = to_universal_sort(sort);
@@ -3599,7 +3599,7 @@ FALSE.
       an_ifc_partition_kind kind = to_partition_kind(univ_sort);
       uint32_t              value = stmt_value(versioned);
 
-      if (!validate_element_exists(mod, kind, value, parent)) {
+      if (!validate_element_exists(file, kind, value, parent)) {
         result = FALSE;
       }  /* if */
     }  /* if */
@@ -3608,40 +3608,40 @@ FALSE.
 }  /* validate_index */
 
 
-a_boolean validate_index(an_ifc_module                 *mod,
+a_boolean validate_index(an_ifc_module_file            *file,
                          an_ifc_string_index_0_33      versioned,
                          const an_ifc_validation_trace *parent)
 /*
-Given the versioned representation of StringIndex and the associated module,
-return TRUE if the value represents a valid index position; otherwise, return
-FALSE.
+Given the versioned representation of StringIndex and the associated module
+file, return TRUE if the value represents a valid index position; otherwise,
+return FALSE.
 */
 {
   a_boolean               result = TRUE;
   an_ifc_string_sort_0_33 sort = string_sort(versioned);
 
   if (!is_known_sort(sort)) {
-    invalid_partition(mod, parent);
+    invalid_partition(file, parent);
     result = FALSE;
   }  /* if */
   return result;
 }  /* validate_index */
 
 
-a_boolean validate_index(an_ifc_module                 *mod,
+a_boolean validate_index(an_ifc_module_file            *file,
                          an_ifc_syntax_index_0_33      versioned,
                          const an_ifc_validation_trace *parent)
 /*
-Given the versioned representation of SyntaxIndex and the associated module,
-return TRUE if the value represents a valid index position; otherwise, return
-FALSE.
+Given the versioned representation of SyntaxIndex and the associated module
+file, return TRUE if the value represents a valid index position; otherwise,
+return FALSE.
 */
 {
   a_boolean               result = TRUE;
   an_ifc_syntax_sort_0_33 sort = syntax_sort(versioned);
 
   if (!is_known_sort(sort)) {
-    invalid_partition(mod, parent);
+    invalid_partition(file, parent);
     result = FALSE;
   } else {
     an_ifc_syntax_sort univ_sort = to_universal_sort(sort);
@@ -3650,7 +3650,7 @@ FALSE.
       an_ifc_partition_kind kind = to_partition_kind(univ_sort);
       uint32_t              value = syntax_value(versioned);
 
-      if (!validate_element_exists(mod, kind, value, parent)) {
+      if (!validate_element_exists(file, kind, value, parent)) {
         result = FALSE;
       }  /* if */
     }  /* if */
@@ -3659,11 +3659,11 @@ FALSE.
 }  /* validate_index */
 
 
-a_boolean validate_index(an_ifc_module                 *mod,
+a_boolean validate_index(an_ifc_module_file            *file,
                          an_ifc_type_index_0_33        versioned,
                          const an_ifc_validation_trace *parent)
 /*
-Given the versioned representation of TypeIndex and the associated module,
+Given the versioned representation of TypeIndex and the associated module file,
 return TRUE if the value represents a valid index position; otherwise, return
 FALSE.
 */
@@ -3672,7 +3672,7 @@ FALSE.
   an_ifc_type_sort_0_33 sort = type_sort(versioned);
 
   if (!is_known_sort(sort)) {
-    invalid_partition(mod, parent);
+    invalid_partition(file, parent);
     result = FALSE;
   } else {
     an_ifc_type_sort univ_sort = to_universal_sort(sort);
@@ -3681,7 +3681,7 @@ FALSE.
       an_ifc_partition_kind kind = to_partition_kind(univ_sort);
       uint32_t              value = type_value(versioned);
 
-      if (!validate_element_exists(mod, kind, value, parent)) {
+      if (!validate_element_exists(file, kind, value, parent)) {
         result = FALSE;
       }  /* if */
     }  /* if */
@@ -3690,11 +3690,11 @@ FALSE.
 }  /* validate_index */
 
 
-a_boolean validate_index(an_ifc_module                 *mod,
+a_boolean validate_index(an_ifc_module_file            *file,
                          an_ifc_unit_index_0_33        versioned,
                          const an_ifc_validation_trace *parent)
 /*
-Given the versioned representation of UnitIndex and the associated module,
+Given the versioned representation of UnitIndex and the associated module file,
 return TRUE if the value represents a valid index position; otherwise, return
 FALSE.
 */
@@ -3703,49 +3703,49 @@ FALSE.
   an_ifc_unit_sort_0_33 sort = unit_sort(versioned);
 
   if (!is_known_sort(sort)) {
-    invalid_partition(mod, parent);
+    invalid_partition(file, parent);
     result = FALSE;
   }  /* if */
   return result;
 }  /* validate_index */
 
 
-a_boolean validate_index(an_ifc_module                  *mod,
+a_boolean validate_index(an_ifc_module_file             *file,
                          an_ifc_decl_foreign_index_0_33 versioned,
                          const an_ifc_validation_trace  *parent)
 /*
 Given the versioned representation of DeclForeignIndex and the associated
-module where the indexed value is stored, return TRUE if the index value
+module file where the indexed value is stored, return TRUE if the index value
 represents a valid index position; otherwise, return FALSE.
 */
 {
   a_boolean result = TRUE;
 
-  if (is_at_least(mod, 0, 43)) {
+  if (is_at_least(file, 0, 43)) {
     an_ifc_decl_index_0_43 versioned_index = (an_ifc_decl_index_0_43)versioned;
 
-    result = validate_index(mod, versioned_index, parent);
-  } else if (is_at_least(mod, 0, 41)) {
+    result = validate_index(file, versioned_index, parent);
+  } else if (is_at_least(file, 0, 41)) {
     an_ifc_decl_index_0_41 versioned_index = (an_ifc_decl_index_0_41)versioned;
 
-    result = validate_index(mod, versioned_index, parent);
+    result = validate_index(file, versioned_index, parent);
   } else {
     an_ifc_decl_index_0_33 versioned_index = (an_ifc_decl_index_0_33)versioned;
 
-    result = validate_index(mod, versioned_index, parent);
+    result = validate_index(file, versioned_index, parent);
   }  /* if */
   return result;
 }  /* validate_index */
 
 
-a_boolean validate_index(an_ifc_module                 *foreign_mod,
+a_boolean validate_index(an_ifc_module_file            *foreign_file,
                          an_ifc_decl_foreign_index     universal,
                          const an_ifc_validation_trace *parent)
 /*
 Given the universal foreign representation of DeclForeignIndex and the foreign
-module (which owns the interpretation of the foreign representation), return
-TRUE if the index value represents a valid index position; otherwise, return
-FALSE.
+module file (which owns the interpretation of the foreign representation),
+return TRUE if the index value represents a valid index position; otherwise,
+return FALSE.
 */
 {
   a_boolean result = TRUE;
@@ -3753,12 +3753,12 @@ FALSE.
   an_ifc_decl_foreign_index_0_33 versioned_index =
                                (an_ifc_decl_foreign_index_0_33)universal.value;
 
-  result = validate_index(foreign_mod, versioned_index, parent);
+  result = validate_index(foreign_file, versioned_index, parent);
   return result;
 }  /* validate_index */
 
 
-a_boolean validate_category(an_ifc_module                 *mod,
+a_boolean validate_category(an_ifc_module_file            *file,
                             an_ifc_operator_category_0_33 versioned,
                             const an_ifc_validation_trace *parent)
 /*
@@ -3770,7 +3770,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
   an_ifc_operator_sort_0_33 sort = operator_sort(versioned);
   uint16_t                  raw_value = operator_value(versioned);
 
-  if (!validate_sort(mod, sort, parent)) {
+  if (!validate_sort(file, sort, parent)) {
     result = FALSE;
     goto done;
   }  /* if */
@@ -3779,7 +3779,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_dyadic_operator_sort_0_33 versioned_value =
                                    (an_ifc_dyadic_operator_sort_0_33)raw_value;
 
-        if (!validate_sort(mod, versioned_value, parent)) {
+        if (!validate_sort(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -3789,7 +3789,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_monadic_operator_sort_0_33 versioned_value =
                                   (an_ifc_monadic_operator_sort_0_33)raw_value;
 
-        if (!validate_sort(mod, versioned_value, parent)) {
+        if (!validate_sort(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -3799,7 +3799,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_niladic_operator_sort_0_33 versioned_value =
                                   (an_ifc_niladic_operator_sort_0_33)raw_value;
 
-        if (!validate_sort(mod, versioned_value, parent)) {
+        if (!validate_sort(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -3809,7 +3809,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_storage_instruction_operator_sort_0_33 versioned_value =
                       (an_ifc_storage_instruction_operator_sort_0_33)raw_value;
 
-        if (!validate_sort(mod, versioned_value, parent)) {
+        if (!validate_sort(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -3819,7 +3819,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_triadic_operator_sort_0_33 versioned_value =
                                   (an_ifc_triadic_operator_sort_0_33)raw_value;
 
-        if (!validate_sort(mod, versioned_value, parent)) {
+        if (!validate_sort(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -3829,7 +3829,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_variadic_operator_sort_0_33 versioned_value =
                                  (an_ifc_variadic_operator_sort_0_33)raw_value;
 
-        if (!validate_sort(mod, versioned_value, parent)) {
+        if (!validate_sort(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -3843,7 +3843,7 @@ done:
 }  /* validate_category */
 
 
-a_boolean validate_category(an_ifc_module                 *mod,
+a_boolean validate_category(an_ifc_module_file            *file,
                             an_ifc_operator_category_0_42 versioned,
                             const an_ifc_validation_trace *parent)
 /*
@@ -3855,7 +3855,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
   an_ifc_operator_sort_0_33 sort = operator_sort(versioned);
   uint16_t                  raw_value = operator_value(versioned);
 
-  if (!validate_sort(mod, sort, parent)) {
+  if (!validate_sort(file, sort, parent)) {
     result = FALSE;
     goto done;
   }  /* if */
@@ -3864,7 +3864,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_dyadic_operator_sort_0_33 versioned_value =
                                    (an_ifc_dyadic_operator_sort_0_33)raw_value;
 
-        if (!validate_sort(mod, versioned_value, parent)) {
+        if (!validate_sort(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -3874,7 +3874,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_monadic_operator_sort_0_33 versioned_value =
                                   (an_ifc_monadic_operator_sort_0_33)raw_value;
 
-        if (!validate_sort(mod, versioned_value, parent)) {
+        if (!validate_sort(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -3884,7 +3884,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_niladic_operator_sort_0_33 versioned_value =
                                   (an_ifc_niladic_operator_sort_0_33)raw_value;
 
-        if (!validate_sort(mod, versioned_value, parent)) {
+        if (!validate_sort(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -3894,7 +3894,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_storage_instruction_operator_sort_0_33 versioned_value =
                       (an_ifc_storage_instruction_operator_sort_0_33)raw_value;
 
-        if (!validate_sort(mod, versioned_value, parent)) {
+        if (!validate_sort(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -3904,7 +3904,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_triadic_operator_sort_0_42 versioned_value =
                                   (an_ifc_triadic_operator_sort_0_42)raw_value;
 
-        if (!validate_sort(mod, versioned_value, parent)) {
+        if (!validate_sort(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -3914,7 +3914,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_variadic_operator_sort_0_33 versioned_value =
                                  (an_ifc_variadic_operator_sort_0_33)raw_value;
 
-        if (!validate_sort(mod, versioned_value, parent)) {
+        if (!validate_sort(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -3928,7 +3928,7 @@ done:
 }  /* validate_category */
 
 
-a_boolean validate_category(an_ifc_module                 *mod,
+a_boolean validate_category(an_ifc_module_file            *file,
                             an_ifc_operator_category_0_43 versioned,
                             const an_ifc_validation_trace *parent)
 /*
@@ -3940,7 +3940,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
   an_ifc_operator_sort_0_33 sort = operator_sort(versioned);
   uint16_t                  raw_value = operator_value(versioned);
 
-  if (!validate_sort(mod, sort, parent)) {
+  if (!validate_sort(file, sort, parent)) {
     result = FALSE;
     goto done;
   }  /* if */
@@ -3949,7 +3949,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_dyadic_operator_sort_0_43 versioned_value =
                                    (an_ifc_dyadic_operator_sort_0_43)raw_value;
 
-        if (!validate_sort(mod, versioned_value, parent)) {
+        if (!validate_sort(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -3959,7 +3959,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_monadic_operator_sort_0_43 versioned_value =
                                   (an_ifc_monadic_operator_sort_0_43)raw_value;
 
-        if (!validate_sort(mod, versioned_value, parent)) {
+        if (!validate_sort(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -3969,7 +3969,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_niladic_operator_sort_0_33 versioned_value =
                                   (an_ifc_niladic_operator_sort_0_33)raw_value;
 
-        if (!validate_sort(mod, versioned_value, parent)) {
+        if (!validate_sort(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -3979,7 +3979,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_storage_instruction_operator_sort_0_33 versioned_value =
                       (an_ifc_storage_instruction_operator_sort_0_33)raw_value;
 
-        if (!validate_sort(mod, versioned_value, parent)) {
+        if (!validate_sort(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -3989,7 +3989,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_triadic_operator_sort_0_42 versioned_value =
                                   (an_ifc_triadic_operator_sort_0_42)raw_value;
 
-        if (!validate_sort(mod, versioned_value, parent)) {
+        if (!validate_sort(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -3999,7 +3999,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_variadic_operator_sort_0_33 versioned_value =
                                  (an_ifc_variadic_operator_sort_0_33)raw_value;
 
-        if (!validate_sort(mod, versioned_value, parent)) {
+        if (!validate_sort(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -4013,7 +4013,7 @@ done:
 }  /* validate_category */
 
 
-a_boolean validate_category(an_ifc_module                          *mod,
+a_boolean validate_category(an_ifc_module_file                     *file,
                             an_ifc_source_identifier_category_0_33 versioned,
                             const an_ifc_validation_trace          *parent)
 /*
@@ -4024,7 +4024,7 @@ the value represents a valid categorized sort; otherwise, return FALSE.
   a_boolean                          result = TRUE;
   an_ifc_source_identifier_sort_0_33 sort = source_identifier_sort(versioned);
 
-  if (!validate_sort(mod, sort, parent)) {
+  if (!validate_sort(file, sort, parent)) {
     result = FALSE;
     goto done;
   }  /* if */
@@ -4033,7 +4033,7 @@ done:
 }  /* validate_category */
 
 
-a_boolean validate_category(an_ifc_module                       *mod,
+a_boolean validate_category(an_ifc_module_file                  *file,
                             an_ifc_source_literal_category_0_33 versioned,
                             const an_ifc_validation_trace       *parent)
 /*
@@ -4045,7 +4045,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
   an_ifc_source_literal_sort_0_33 sort = source_literal_sort(versioned);
   uint64_t                        raw_value = source_literal_value(versioned);
 
-  if (!validate_sort(mod, sort, parent)) {
+  if (!validate_sort(file, sort, parent)) {
     result = FALSE;
     goto done;
   }  /* if */
@@ -4054,7 +4054,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_string_index_0_33 versioned_value =
                                            (an_ifc_string_index_0_33)raw_value;
 
-        if (!validate_index(mod, versioned_value, parent)) {
+        if (!validate_index(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -4064,7 +4064,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_expr_index_0_33 versioned_value =
                                              (an_ifc_expr_index_0_33)raw_value;
 
-        if (!validate_index(mod, versioned_value, parent)) {
+        if (!validate_index(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -4074,7 +4074,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_type_index_0_33 versioned_value =
                                              (an_ifc_type_index_0_33)raw_value;
 
-        if (!validate_index(mod, versioned_value, parent)) {
+        if (!validate_index(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -4084,7 +4084,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_expr_index_0_33 versioned_value =
                                              (an_ifc_expr_index_0_33)raw_value;
 
-        if (!validate_index(mod, versioned_value, parent)) {
+        if (!validate_index(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -4094,7 +4094,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_type_index_0_33 versioned_value =
                                              (an_ifc_type_index_0_33)raw_value;
 
-        if (!validate_index(mod, versioned_value, parent)) {
+        if (!validate_index(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -4104,7 +4104,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_expr_index_0_33 versioned_value =
                                              (an_ifc_expr_index_0_33)raw_value;
 
-        if (!validate_index(mod, versioned_value, parent)) {
+        if (!validate_index(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -4114,7 +4114,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_string_index_0_33 versioned_value =
                                            (an_ifc_string_index_0_33)raw_value;
 
-        if (!validate_index(mod, versioned_value, parent)) {
+        if (!validate_index(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -4128,7 +4128,7 @@ done:
 }  /* validate_category */
 
 
-a_boolean validate_category(an_ifc_module                       *mod,
+a_boolean validate_category(an_ifc_module_file                  *file,
                             an_ifc_source_literal_category_0_42 versioned,
                             const an_ifc_validation_trace       *parent)
 /*
@@ -4140,7 +4140,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
   an_ifc_source_literal_sort_0_33 sort = source_literal_sort(versioned);
   uint64_t                        raw_value = source_literal_value(versioned);
 
-  if (!validate_sort(mod, sort, parent)) {
+  if (!validate_sort(file, sort, parent)) {
     result = FALSE;
     goto done;
   }  /* if */
@@ -4149,7 +4149,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_string_index_0_33 versioned_value =
                                            (an_ifc_string_index_0_33)raw_value;
 
-        if (!validate_index(mod, versioned_value, parent)) {
+        if (!validate_index(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -4159,7 +4159,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_expr_index_0_42 versioned_value =
                                              (an_ifc_expr_index_0_42)raw_value;
 
-        if (!validate_index(mod, versioned_value, parent)) {
+        if (!validate_index(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -4169,7 +4169,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_type_index_0_33 versioned_value =
                                              (an_ifc_type_index_0_33)raw_value;
 
-        if (!validate_index(mod, versioned_value, parent)) {
+        if (!validate_index(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -4179,7 +4179,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_expr_index_0_42 versioned_value =
                                              (an_ifc_expr_index_0_42)raw_value;
 
-        if (!validate_index(mod, versioned_value, parent)) {
+        if (!validate_index(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -4189,7 +4189,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_type_index_0_33 versioned_value =
                                              (an_ifc_type_index_0_33)raw_value;
 
-        if (!validate_index(mod, versioned_value, parent)) {
+        if (!validate_index(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -4199,7 +4199,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_expr_index_0_42 versioned_value =
                                              (an_ifc_expr_index_0_42)raw_value;
 
-        if (!validate_index(mod, versioned_value, parent)) {
+        if (!validate_index(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -4209,7 +4209,7 @@ value represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_string_index_0_33 versioned_value =
                                            (an_ifc_string_index_0_33)raw_value;
 
-        if (!validate_index(mod, versioned_value, parent)) {
+        if (!validate_index(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -4223,7 +4223,7 @@ done:
 }  /* validate_category */
 
 
-a_boolean validate_category(an_ifc_module                 *mod,
+a_boolean validate_category(an_ifc_module_file            *file,
                             an_ifc_word_category_0_33     versioned,
                             const an_ifc_validation_trace *parent)
 /*
@@ -4235,7 +4235,7 @@ represents a valid categorized sort; otherwise, return FALSE.
   an_ifc_word_sort_0_33 sort = word_sort(versioned);
   uint64_t              raw_value = word_value(versioned);
 
-  if (!validate_sort(mod, sort, parent)) {
+  if (!validate_sort(file, sort, parent)) {
     result = FALSE;
     goto done;
   }  /* if */
@@ -4244,7 +4244,7 @@ represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_source_directive_sort_0_33 versioned_value =
                                   (an_ifc_source_directive_sort_0_33)raw_value;
 
-        if (!validate_sort(mod, versioned_value, parent)) {
+        if (!validate_sort(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -4254,7 +4254,7 @@ represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_source_identifier_category_0_33 versioned_value =
                              (an_ifc_source_identifier_category_0_33)raw_value;
 
-        if (!validate_category(mod, versioned_value, parent)) {
+        if (!validate_category(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -4264,7 +4264,7 @@ represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_source_keyword_sort_0_33 versioned_value =
                                     (an_ifc_source_keyword_sort_0_33)raw_value;
 
-        if (!validate_sort(mod, versioned_value, parent)) {
+        if (!validate_sort(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -4274,7 +4274,7 @@ represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_source_literal_category_0_33 versioned_value =
                                 (an_ifc_source_literal_category_0_33)raw_value;
 
-        if (!validate_category(mod, versioned_value, parent)) {
+        if (!validate_category(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -4284,7 +4284,7 @@ represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_source_operator_sort_0_33 versioned_value =
                                    (an_ifc_source_operator_sort_0_33)raw_value;
 
-        if (!validate_sort(mod, versioned_value, parent)) {
+        if (!validate_sort(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -4294,7 +4294,7 @@ represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_source_punctuator_sort_0_33 versioned_value =
                                  (an_ifc_source_punctuator_sort_0_33)raw_value;
 
-        if (!validate_sort(mod, versioned_value, parent)) {
+        if (!validate_sort(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -4308,7 +4308,7 @@ done:
 }  /* validate_category */
 
 
-a_boolean validate_category(an_ifc_module                 *mod,
+a_boolean validate_category(an_ifc_module_file            *file,
                             an_ifc_word_category_0_42     versioned,
                             const an_ifc_validation_trace *parent)
 /*
@@ -4320,7 +4320,7 @@ represents a valid categorized sort; otherwise, return FALSE.
   an_ifc_word_sort_0_33 sort = word_sort(versioned);
   uint64_t              raw_value = word_value(versioned);
 
-  if (!validate_sort(mod, sort, parent)) {
+  if (!validate_sort(file, sort, parent)) {
     result = FALSE;
     goto done;
   }  /* if */
@@ -4329,7 +4329,7 @@ represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_source_directive_sort_0_33 versioned_value =
                                   (an_ifc_source_directive_sort_0_33)raw_value;
 
-        if (!validate_sort(mod, versioned_value, parent)) {
+        if (!validate_sort(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -4339,7 +4339,7 @@ represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_source_identifier_category_0_33 versioned_value =
                              (an_ifc_source_identifier_category_0_33)raw_value;
 
-        if (!validate_category(mod, versioned_value, parent)) {
+        if (!validate_category(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -4349,7 +4349,7 @@ represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_source_keyword_sort_0_33 versioned_value =
                                     (an_ifc_source_keyword_sort_0_33)raw_value;
 
-        if (!validate_sort(mod, versioned_value, parent)) {
+        if (!validate_sort(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -4359,7 +4359,7 @@ represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_source_literal_category_0_42 versioned_value =
                                 (an_ifc_source_literal_category_0_42)raw_value;
 
-        if (!validate_category(mod, versioned_value, parent)) {
+        if (!validate_category(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -4369,7 +4369,7 @@ represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_source_operator_sort_0_33 versioned_value =
                                    (an_ifc_source_operator_sort_0_33)raw_value;
 
-        if (!validate_sort(mod, versioned_value, parent)) {
+        if (!validate_sort(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -4379,7 +4379,7 @@ represents a valid categorized sort; otherwise, return FALSE.
       { an_ifc_source_punctuator_sort_0_33 versioned_value =
                                  (an_ifc_source_punctuator_sort_0_33)raw_value;
 
-        if (!validate_sort(mod, versioned_value, parent)) {
+        if (!validate_sort(file, versioned_value, parent)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -4419,7 +4419,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -4434,7 +4434,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -4469,7 +4469,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_category(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_index_0_33         stage_0;
       an_ifc_u16_0_33           stage_1;
       an_ifc_word_sort_0_33     stage_2;
@@ -4501,7 +4501,7 @@ representation is valid; otherwise, return FALSE.
       stage_3 <<= 8;
       stage_3 |= stage_2;
       stage_4 = (an_ifc_word_category_0_42)stage_3;
-      if (!validate_category(universal.get_module(), stage_4, parent)) {
+      if (!validate_category(universal.get_file(), stage_4, parent)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -4537,7 +4537,7 @@ representation is valid; otherwise, return FALSE.
       stage_3 <<= 8;
       stage_3 |= stage_2;
       stage_4 = (an_ifc_word_category_0_33)stage_3;
-      if (!validate_category(universal.get_module(), stage_4, parent)) {
+      if (!validate_category(universal.get_file(), stage_4, parent)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -4559,7 +4559,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -4574,7 +4574,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/14);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -4603,7 +4603,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -4624,7 +4624,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -4633,11 +4633,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -4646,7 +4646,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -4659,7 +4659,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -4718,7 +4718,7 @@ if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -4748,7 +4748,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/35);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -4762,7 +4762,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/48);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -4811,7 +4811,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -4842,7 +4842,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -4856,7 +4856,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -4877,7 +4877,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_expression(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                           {"expression", /*offset=*/0, parent};
@@ -4887,7 +4887,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -4901,7 +4901,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -4931,7 +4931,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -4967,7 +4967,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -4982,7 +4982,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -5012,7 +5012,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -5032,7 +5032,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -5069,7 +5069,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
                    /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -5090,7 +5090,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -5140,7 +5140,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_constraint(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                           {"constraint", /*offset=*/8, parent};
@@ -5150,7 +5150,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -5164,7 +5164,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -5236,7 +5236,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/25);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -5250,13 +5250,13 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
@@ -5268,11 +5268,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -5299,13 +5299,13 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
         }  /* if */
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
@@ -5317,11 +5317,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -5348,7 +5348,7 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
@@ -5364,7 +5364,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -5386,7 +5386,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -5401,7 +5401,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -5430,13 +5430,13 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/30);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
@@ -5448,11 +5448,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -5479,13 +5479,13 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
         }  /* if */
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
@@ -5497,11 +5497,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -5528,7 +5528,7 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
@@ -5544,14 +5544,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_initializer(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                         {"initializer", /*offset=*/24, parent};
@@ -5561,7 +5561,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -5575,7 +5575,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -5597,7 +5597,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -5612,13 +5612,13 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_width(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"width", /*offset=*/20, parent};
 
@@ -5627,7 +5627,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -5640,7 +5640,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -5670,7 +5670,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/29);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -5684,13 +5684,13 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_constraint(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"constraint", /*offset=*/24, parent};
@@ -5700,7 +5700,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -5714,14 +5714,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/12, parent};
@@ -5733,11 +5733,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -5764,13 +5764,13 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
         }  /* if */
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/12, parent};
@@ -5782,11 +5782,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -5813,7 +5813,7 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
@@ -5829,7 +5829,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -5851,7 +5851,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -5866,7 +5866,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -5895,7 +5895,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/27);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -5909,13 +5909,13 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
@@ -5927,11 +5927,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -5958,13 +5958,13 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
         }  /* if */
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
@@ -5976,11 +5976,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -6007,7 +6007,7 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
@@ -6023,7 +6023,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -6045,14 +6045,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_name(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
@@ -6064,11 +6064,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -6085,12 +6085,12 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_0) == 4,
                       "stage_3_0 is not properly sized storage!");
         copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/16);
-        if (!validate_index(universal.get_module(), stage_3_0,
+        if (!validate_index(universal.get_file(), stage_3_0,
                             &stage_3_0_trace)) {
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_1 = to_universal_index(universal.get_module(), stage_3_0);
+        stage_3_1 = to_universal_index(universal.get_file(), stage_3_0);
         if (!has_ifc_name(stage_3_1)) {
           result = FALSE;
           goto done;
@@ -6112,7 +6112,7 @@ representation is valid; otherwise, return FALSE.
           goto done;
         }  /* if */
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
@@ -6124,11 +6124,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -6145,12 +6145,12 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_0) == 4,
                       "stage_3_0 is not properly sized storage!");
         copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/16);
-        if (!validate_index(universal.get_module(), stage_3_0,
+        if (!validate_index(universal.get_file(), stage_3_0,
                             &stage_3_0_trace)) {
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_1 = to_universal_index(universal.get_module(), stage_3_0);
+        stage_3_1 = to_universal_index(universal.get_file(), stage_3_0);
         if (!has_ifc_name(stage_3_1)) {
           result = FALSE;
           goto done;
@@ -6195,7 +6195,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -6216,7 +6216,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/12, parent};
@@ -6228,11 +6228,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -6259,13 +6259,13 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
         }  /* if */
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/12, parent};
@@ -6277,11 +6277,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -6308,7 +6308,7 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
@@ -6324,7 +6324,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -6346,7 +6346,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -6361,13 +6361,13 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_target(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                              {"target", /*offset=*/20, parent};
@@ -6377,7 +6377,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -6391,7 +6391,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -6421,7 +6421,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/21);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -6438,11 +6438,11 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
-    stage_1 = to_universal_index(universal.get_module(), stage_0);
+    stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
     } else {
@@ -6469,7 +6469,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
       copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-      if (!validate_index(stage_3_1.get_module(), stage_3_2,
+      if (!validate_index(stage_3_1.get_file(), stage_3_2,
                           &stage_3_2_trace)) {
         result = FALSE;
         goto done;
@@ -6486,7 +6486,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -6507,7 +6507,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -6522,7 +6522,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -6551,7 +6551,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/27);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -6566,7 +6566,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -6588,14 +6588,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/12, parent};
@@ -6607,11 +6607,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -6638,13 +6638,13 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
         }  /* if */
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/12, parent};
@@ -6656,11 +6656,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -6687,7 +6687,7 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
@@ -6703,7 +6703,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -6725,14 +6725,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_name(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/12, parent};
@@ -6744,11 +6744,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -6765,12 +6765,12 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_0) == 4,
                       "stage_3_0 is not properly sized storage!");
         copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/12);
-        if (!validate_index(universal.get_module(), stage_3_0,
+        if (!validate_index(universal.get_file(), stage_3_0,
                             &stage_3_0_trace)) {
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_1 = to_universal_index(universal.get_module(), stage_3_0);
+        stage_3_1 = to_universal_index(universal.get_file(), stage_3_0);
         if (!has_ifc_name(stage_3_1)) {
           result = FALSE;
           goto done;
@@ -6792,7 +6792,7 @@ representation is valid; otherwise, return FALSE.
           goto done;
         }  /* if */
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/12, parent};
@@ -6804,11 +6804,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -6825,12 +6825,12 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_0) == 4,
                       "stage_3_0 is not properly sized storage!");
         copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/12);
-        if (!validate_index(universal.get_module(), stage_3_0,
+        if (!validate_index(universal.get_file(), stage_3_0,
                             &stage_3_0_trace)) {
           result = FALSE;
           goto done;
         }  /* if */
-        stage_3_1 = to_universal_index(universal.get_module(), stage_3_0);
+        stage_3_1 = to_universal_index(universal.get_file(), stage_3_0);
         if (!has_ifc_name(stage_3_1)) {
           result = FALSE;
           goto done;
@@ -6890,13 +6890,13 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/37);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_alignment(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                           {"alignment", /*offset=*/32, parent};
@@ -6906,7 +6906,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -6920,7 +6920,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -6935,13 +6935,13 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/28, parent};
@@ -6953,11 +6953,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -6984,13 +6984,13 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
         }  /* if */
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/28, parent};
@@ -7002,11 +7002,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -7033,7 +7033,7 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
@@ -7049,7 +7049,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -7071,7 +7071,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -7093,7 +7093,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -7108,7 +7108,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -7137,13 +7137,13 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/21);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_type_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/12, parent};
       an_ifc_type_index       stage_1;
@@ -7159,11 +7159,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort != ifc_ts_type_designated) {
         result = FALSE;
         goto done;
@@ -7177,11 +7177,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_3) == 4,
                     "stage_3 is not properly sized storage!");
       copy_ifc_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
-      if (!validate_index(stage_2.get_module(), stage_3, &stage_3_trace)) {
+      if (!validate_index(stage_2.get_file(), stage_3, &stage_3_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_4 = to_universal_index(stage_2.get_module(), stage_3);
+      stage_4 = to_universal_index(stage_2.get_file(), stage_3);
       if (stage_4.sort == ifc_ds_decl_specialization) {
         stage_5 = TRUE;
       } else {
@@ -7208,13 +7208,13 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_6_2) == 4,
                       "stage_6_2 is not properly sized storage!");
         copy_ifc_field(&stage_6_2, stage_6_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_6_1.get_module(), stage_6_2,
+        if (!validate_index(stage_6_1.get_file(), stage_6_2,
                             &stage_6_2_trace)) {
           result = FALSE;
           goto done;
         }  /* if */
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_type_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/12, parent};
       an_ifc_type_index       stage_1;
@@ -7230,11 +7230,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort != ifc_ts_type_designated) {
         result = FALSE;
         goto done;
@@ -7248,11 +7248,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_3) == 4,
                     "stage_3 is not properly sized storage!");
       copy_ifc_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
-      if (!validate_index(stage_2.get_module(), stage_3, &stage_3_trace)) {
+      if (!validate_index(stage_2.get_file(), stage_3, &stage_3_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_4 = to_universal_index(stage_2.get_module(), stage_3);
+      stage_4 = to_universal_index(stage_2.get_file(), stage_3);
       if (stage_4.sort == ifc_ds_decl_specialization) {
         stage_5 = TRUE;
       } else {
@@ -7279,7 +7279,7 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_6_2) == 4,
                       "stage_6_2 is not properly sized storage!");
         copy_ifc_field(&stage_6_2, stage_6_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_6_1.get_module(), stage_6_2,
+        if (!validate_index(stage_6_1.get_file(), stage_6_2,
                             &stage_6_2_trace)) {
           result = FALSE;
           goto done;
@@ -7299,11 +7299,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort != ifc_ts_type_designated) {
         result = FALSE;
         goto done;
@@ -7317,14 +7317,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_3) == 4,
                     "stage_3 is not properly sized storage!");
       copy_ifc_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
-      if (!validate_index(stage_2.get_module(), stage_3, &stage_3_trace)) {
+      if (!validate_index(stage_2.get_file(), stage_3, &stage_3_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_initializer(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                         {"initializer", /*offset=*/16, parent};
@@ -7334,7 +7334,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -7348,7 +7348,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -7370,7 +7370,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -7385,7 +7385,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -7421,14 +7421,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_operand(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                              {"operand", /*offset=*/0, parent};
@@ -7438,11 +7438,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                              {"operand", /*offset=*/0, parent};
@@ -7452,7 +7452,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -7466,7 +7466,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -7496,7 +7496,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -7525,7 +7525,7 @@ if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -7554,13 +7554,13 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/30);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_alignment(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                           {"alignment", /*offset=*/24, parent};
@@ -7570,7 +7570,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -7584,14 +7584,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
@@ -7603,11 +7603,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -7634,13 +7634,13 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
         }  /* if */
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
@@ -7652,11 +7652,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -7683,7 +7683,7 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
@@ -7699,14 +7699,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_initializer(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                         {"initializer", /*offset=*/20, parent};
@@ -7716,7 +7716,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -7730,7 +7730,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -7752,7 +7752,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -7767,7 +7767,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -7788,7 +7788,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_entity(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"entity", /*offset=*/0, parent};
 
@@ -7797,7 +7797,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -7810,7 +7810,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -7840,7 +7840,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/27);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -7854,13 +7854,13 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
@@ -7872,11 +7872,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -7903,13 +7903,13 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
         }  /* if */
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
@@ -7921,11 +7921,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -7952,7 +7952,7 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
@@ -7968,7 +7968,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -7990,7 +7990,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -8005,7 +8005,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -8019,7 +8019,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -8048,13 +8048,13 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/27);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_base_ctor(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                           {"base_ctor", /*offset=*/28, parent};
@@ -8064,11 +8064,11 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                           {"base_ctor", /*offset=*/28, parent};
@@ -8078,7 +8078,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -8092,7 +8092,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -8107,13 +8107,13 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
@@ -8125,11 +8125,11 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -8156,13 +8156,13 @@ the representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
         }  /* if */
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
@@ -8174,11 +8174,11 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -8205,7 +8205,7 @@ the representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
@@ -8221,7 +8221,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -8243,7 +8243,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -8258,7 +8258,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -8287,13 +8287,13 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/21);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
@@ -8305,11 +8305,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -8336,13 +8336,13 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
         }  /* if */
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
@@ -8354,11 +8354,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -8385,7 +8385,7 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
@@ -8401,7 +8401,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -8423,7 +8423,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -8438,7 +8438,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -8467,7 +8467,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/27);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -8481,13 +8481,13 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
@@ -8499,11 +8499,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -8530,13 +8530,13 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
         }  /* if */
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
@@ -8548,11 +8548,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -8579,7 +8579,7 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
@@ -8595,7 +8595,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -8617,7 +8617,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -8632,7 +8632,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -8646,7 +8646,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -8681,7 +8681,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_constraint(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"constraint", /*offset=*/16, parent};
@@ -8691,7 +8691,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -8705,14 +8705,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_initializer(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                         {"initializer", /*offset=*/20, parent};
@@ -8722,7 +8722,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -8736,7 +8736,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -8758,7 +8758,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -8773,7 +8773,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -8787,7 +8787,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -8816,7 +8816,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/41);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -8830,7 +8830,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -8852,14 +8852,14 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
                    /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_parameterized_entity_bytes stage_0;
       an_ifc_validation_trace           stage_0_trace =
                                              {"entity", /*offset=*/20, parent};
@@ -8880,7 +8880,7 @@ the representation is valid; otherwise, return FALSE.
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
                      /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
-      stage_1 = {universal.get_module(), stage_0};
+      stage_1 = {universal.get_file(), stage_0};
       if (!validate(stage_1, &stage_0_trace)) {
         result = FALSE;
         goto done;
@@ -8890,11 +8890,11 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_2) == 4,
                     "stage_2 is not properly sized storage!");
       copy_ifc_field(&stage_2, stage_1.get_storage(), /*offset=*/0);
-      if (!validate_index(stage_1.get_module(), stage_2, &stage_2_trace)) {
+      if (!validate_index(stage_1.get_file(), stage_2, &stage_2_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_3 = to_universal_index(stage_1.get_module(), stage_2);
+      stage_3 = to_universal_index(stage_1.get_file(), stage_2);
       if (!has_ifc_home_scope(stage_3)) {
         result = FALSE;
         goto done;
@@ -8903,7 +8903,7 @@ the representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_parameterized_entity_bytes stage_0;
       an_ifc_validation_trace           stage_0_trace =
                                              {"entity", /*offset=*/20, parent};
@@ -8924,7 +8924,7 @@ the representation is valid; otherwise, return FALSE.
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
                      /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
-      stage_1 = {universal.get_module(), stage_0};
+      stage_1 = {universal.get_file(), stage_0};
       if (!validate(stage_1, &stage_0_trace)) {
         result = FALSE;
         goto done;
@@ -8934,11 +8934,11 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_2) == 4,
                     "stage_2 is not properly sized storage!");
       copy_ifc_field(&stage_2, stage_1.get_storage(), /*offset=*/0);
-      if (!validate_index(stage_1.get_module(), stage_2, &stage_2_trace)) {
+      if (!validate_index(stage_1.get_file(), stage_2, &stage_2_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_3 = to_universal_index(stage_1.get_module(), stage_2);
+      stage_3 = to_universal_index(stage_1.get_file(), stage_2);
       if (!has_ifc_home_scope(stage_3)) {
         result = FALSE;
         goto done;
@@ -8968,7 +8968,7 @@ the representation is valid; otherwise, return FALSE.
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
                      /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
-      stage_1 = {universal.get_module(), stage_0};
+      stage_1 = {universal.get_file(), stage_0};
       if (!validate(stage_1, &stage_0_trace)) {
         result = FALSE;
         goto done;
@@ -8978,11 +8978,11 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_2) == 4,
                     "stage_2 is not properly sized storage!");
       copy_ifc_field(&stage_2, stage_1.get_storage(), /*offset=*/0);
-      if (!validate_index(stage_1.get_module(), stage_2, &stage_2_trace)) {
+      if (!validate_index(stage_1.get_file(), stage_2, &stage_2_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_3 = to_universal_index(stage_1.get_module(), stage_2);
+      stage_3 = to_universal_index(stage_1.get_file(), stage_2);
       if (!has_ifc_home_scope(stage_3)) {
         result = FALSE;
         goto done;
@@ -9009,7 +9009,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -9029,7 +9029,7 @@ the representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_primary_template(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_form_spec_index_0_33 stage_0;
       an_ifc_validation_trace     stage_0_trace =
                                                {"form", /*offset=*/36, parent};
@@ -9044,7 +9044,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36);
-      stage_1 = {universal.get_module(),
+      stage_1 = {universal.get_file(),
                  (an_ifc_form_spec_index_storage)stage_0};
       /* Use the obtained offset to retrieve the appropriate instance of
          FormSpec.  Then, retrieve and return the desired value held by the
@@ -9055,11 +9055,11 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_3) == 4,
                     "stage_3 is not properly sized storage!");
       copy_ifc_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
-      if (!validate_index(stage_2.get_module(), stage_3, &stage_3_trace)) {
+      if (!validate_index(stage_2.get_file(), stage_3, &stage_3_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_form_spec_index_0_33 stage_0;
       an_ifc_validation_trace     stage_0_trace =
                                                {"form", /*offset=*/36, parent};
@@ -9074,7 +9074,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36);
-      stage_1 = {universal.get_module(),
+      stage_1 = {universal.get_file(),
                  (an_ifc_form_spec_index_storage)stage_0};
       /* Use the obtained offset to retrieve the appropriate instance of
          FormSpec.  Then, retrieve and return the desired value held by the
@@ -9085,7 +9085,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_3) == 4,
                     "stage_3 is not properly sized storage!");
       copy_ifc_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
-      if (!validate_index(stage_2.get_module(), stage_3, &stage_3_trace)) {
+      if (!validate_index(stage_2.get_file(), stage_3, &stage_3_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -9104,7 +9104,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36);
-      stage_1 = {universal.get_module(),
+      stage_1 = {universal.get_file(),
                  (an_ifc_form_spec_index_storage)stage_0};
       /* Use the obtained offset to retrieve the appropriate instance of
          FormSpec.  Then, retrieve and return the desired value held by the
@@ -9115,7 +9115,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_3) == 4,
                     "stage_3 is not properly sized storage!");
       copy_ifc_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
-      if (!validate_index(stage_2.get_module(), stage_3, &stage_3_trace)) {
+      if (!validate_index(stage_2.get_file(), stage_3, &stage_3_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -9137,7 +9137,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_member(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace = {"member", /*offset=*/0, parent};
 
@@ -9146,11 +9146,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"member", /*offset=*/0, parent};
 
@@ -9159,7 +9159,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -9172,7 +9172,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -9198,7 +9198,7 @@ representation is valid; otherwise, return FALSE.
     an_ifc_validation_trace        stage_0_trace =
                                                 {"unit", /*offset=*/0, parent};
     an_ifc_module_reference        stage_1;
-    an_ifc_module                  *stage_2;
+    an_ifc_module_file             *stage_2;
     an_ifc_decl_foreign_index_0_33 stage_3;
     an_ifc_validation_trace        stage_3_trace =
                                          {"local_index", /*offset=*/8, parent};
@@ -9214,7 +9214,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -9229,7 +9229,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_3) == 4,
                   "stage_3 is not properly sized storage!");
     copy_ifc_field(&stage_3, universal.get_storage(), /*offset=*/8);
-    stage_4 = {universal.get_module(),
+    stage_4 = {universal.get_file(),
                (an_ifc_decl_foreign_index_storage)stage_3};
     if (!validate_index(stage_2, stage_4, &stage_3_trace)) {
       result = FALSE;
@@ -9252,7 +9252,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -9282,13 +9282,13 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_alignment(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                           {"alignment", /*offset=*/28, parent};
@@ -9298,7 +9298,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -9312,7 +9312,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -9327,13 +9327,13 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/24, parent};
@@ -9345,11 +9345,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -9376,13 +9376,13 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
         }  /* if */
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/24, parent};
@@ -9394,11 +9394,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -9425,7 +9425,7 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
@@ -9441,7 +9441,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -9463,7 +9463,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -9478,7 +9478,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -9492,7 +9492,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -9513,7 +9513,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/4, parent};
 
@@ -9522,7 +9522,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -9535,14 +9535,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/4, parent};
       an_ifc_decl_index       stage_1;
@@ -9552,11 +9552,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (!has_ifc_home_scope(stage_1)) {
         result = FALSE;
         goto done;
@@ -9575,11 +9575,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (!has_ifc_home_scope(stage_1)) {
         result = FALSE;
         goto done;
@@ -9591,7 +9591,7 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_locus(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/4, parent};
       an_ifc_decl_index       stage_1;
@@ -9601,11 +9601,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (!has_ifc_locus(stage_1)) {
         result = FALSE;
         goto done;
@@ -9624,11 +9624,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (!has_ifc_locus(stage_1)) {
         result = FALSE;
         goto done;
@@ -9653,7 +9653,7 @@ representation is valid; otherwise, return FALSE.
     }  /* if */
   }  /* if */
   if (has_ifc_primary_template(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_form_spec_index_0_33 stage_0;
       an_ifc_validation_trace     stage_0_trace =
                                                 {"form", /*offset=*/0, parent};
@@ -9668,7 +9668,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      stage_1 = {universal.get_module(),
+      stage_1 = {universal.get_file(),
                  (an_ifc_form_spec_index_storage)stage_0};
       /* Use the obtained offset to retrieve the appropriate instance of
          FormSpec.  Then, retrieve and return the desired value held by the
@@ -9679,7 +9679,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_3) == 4,
                     "stage_3 is not properly sized storage!");
       copy_ifc_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
-      if (!validate_index(stage_2.get_module(), stage_3, &stage_3_trace)) {
+      if (!validate_index(stage_2.get_file(), stage_3, &stage_3_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -9698,7 +9698,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      stage_1 = {universal.get_module(),
+      stage_1 = {universal.get_file(),
                  (an_ifc_form_spec_index_storage)stage_0};
       /* Use the obtained offset to retrieve the appropriate instance of
          FormSpec.  Then, retrieve and return the desired value held by the
@@ -9709,7 +9709,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_3) == 4,
                     "stage_3 is not properly sized storage!");
       copy_ifc_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
-      if (!validate_index(stage_2.get_module(), stage_3, &stage_3_trace)) {
+      if (!validate_index(stage_2.get_file(), stage_3, &stage_3_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -9725,7 +9725,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -9754,7 +9754,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/41);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -9768,7 +9768,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -9790,14 +9790,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
                    /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/12, parent};
@@ -9809,11 +9809,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -9840,13 +9840,13 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
         }  /* if */
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/12, parent};
@@ -9858,11 +9858,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -9889,7 +9889,7 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
@@ -9905,7 +9905,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -9927,14 +9927,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_name(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_parameterized_entity_bytes stage_0;
       an_ifc_validation_trace           stage_0_trace =
                                              {"entity", /*offset=*/20, parent};
@@ -9956,7 +9956,7 @@ representation is valid; otherwise, return FALSE.
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
                      /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
-      stage_1 = {universal.get_module(), stage_0};
+      stage_1 = {universal.get_file(), stage_0};
       if (!validate(stage_1, &stage_0_trace)) {
         result = FALSE;
         goto done;
@@ -9966,11 +9966,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_2) == 4,
                     "stage_2 is not properly sized storage!");
       copy_ifc_field(&stage_2, stage_1.get_storage(), /*offset=*/0);
-      if (!validate_index(stage_1.get_module(), stage_2, &stage_2_trace)) {
+      if (!validate_index(stage_1.get_file(), stage_2, &stage_2_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_3 = to_universal_index(stage_1.get_module(), stage_2);
+      stage_3 = to_universal_index(stage_1.get_file(), stage_2);
       if (stage_3.sort == ifc_ds_decl_constructor) {
         stage_4 = TRUE;
       } else if (stage_3.sort == ifc_ds_decl_destructor) {
@@ -9999,7 +9999,7 @@ representation is valid; otherwise, return FALSE.
         copy_ifc_field(&stage_5_0, universal.get_storage(), /*offset=*/20,
                        /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
-        stage_5_1 = {universal.get_module(), stage_5_0};
+        stage_5_1 = {universal.get_file(), stage_5_0};
         if (!validate(stage_5_1, &stage_5_0_trace)) {
           result = FALSE;
           goto done;
@@ -10009,12 +10009,12 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_5_2) == 4,
                       "stage_5_2 is not properly sized storage!");
         copy_ifc_field(&stage_5_2, stage_5_1.get_storage(), /*offset=*/0);
-        if (!validate_index(stage_5_1.get_module(), stage_5_2,
+        if (!validate_index(stage_5_1.get_file(), stage_5_2,
                             &stage_5_2_trace)) {
           result = FALSE;
           goto done;
         }  /* if */
-        stage_5_3 = to_universal_index(stage_5_1.get_module(), stage_5_2);
+        stage_5_3 = to_universal_index(stage_5_1.get_file(), stage_5_2);
         if (!has_ifc_name(stage_5_3)) {
           result = FALSE;
           goto done;
@@ -10033,13 +10033,13 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_5_0) == 4,
                       "stage_5_0 is not properly sized storage!");
         copy_ifc_field(&stage_5_0, universal.get_storage(), /*offset=*/0);
-        if (!validate_index(universal.get_module(), stage_5_0,
+        if (!validate_index(universal.get_file(), stage_5_0,
                             &stage_5_0_trace)) {
           result = FALSE;
           goto done;
         }  /* if */
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_parameterized_entity_bytes stage_0;
       an_ifc_validation_trace           stage_0_trace =
                                              {"entity", /*offset=*/20, parent};
@@ -10061,7 +10061,7 @@ representation is valid; otherwise, return FALSE.
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
                      /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
-      stage_1 = {universal.get_module(), stage_0};
+      stage_1 = {universal.get_file(), stage_0};
       if (!validate(stage_1, &stage_0_trace)) {
         result = FALSE;
         goto done;
@@ -10071,11 +10071,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_2) == 4,
                     "stage_2 is not properly sized storage!");
       copy_ifc_field(&stage_2, stage_1.get_storage(), /*offset=*/0);
-      if (!validate_index(stage_1.get_module(), stage_2, &stage_2_trace)) {
+      if (!validate_index(stage_1.get_file(), stage_2, &stage_2_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_3 = to_universal_index(stage_1.get_module(), stage_2);
+      stage_3 = to_universal_index(stage_1.get_file(), stage_2);
       if (stage_3.sort == ifc_ds_decl_constructor) {
         stage_4 = TRUE;
       } else if (stage_3.sort == ifc_ds_decl_destructor) {
@@ -10104,7 +10104,7 @@ representation is valid; otherwise, return FALSE.
         copy_ifc_field(&stage_5_0, universal.get_storage(), /*offset=*/20,
                        /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
-        stage_5_1 = {universal.get_module(), stage_5_0};
+        stage_5_1 = {universal.get_file(), stage_5_0};
         if (!validate(stage_5_1, &stage_5_0_trace)) {
           result = FALSE;
           goto done;
@@ -10114,12 +10114,12 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_5_2) == 4,
                       "stage_5_2 is not properly sized storage!");
         copy_ifc_field(&stage_5_2, stage_5_1.get_storage(), /*offset=*/0);
-        if (!validate_index(stage_5_1.get_module(), stage_5_2,
+        if (!validate_index(stage_5_1.get_file(), stage_5_2,
                             &stage_5_2_trace)) {
           result = FALSE;
           goto done;
         }  /* if */
-        stage_5_3 = to_universal_index(stage_5_1.get_module(), stage_5_2);
+        stage_5_3 = to_universal_index(stage_5_1.get_file(), stage_5_2);
         if (!has_ifc_name(stage_5_3)) {
           result = FALSE;
           goto done;
@@ -10138,7 +10138,7 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_5_0) == 4,
                       "stage_5_0 is not properly sized storage!");
         copy_ifc_field(&stage_5_0, universal.get_storage(), /*offset=*/0);
-        if (!validate_index(universal.get_module(), stage_5_0,
+        if (!validate_index(universal.get_file(), stage_5_0,
                             &stage_5_0_trace)) {
           result = FALSE;
           goto done;
@@ -10166,7 +10166,7 @@ representation is valid; otherwise, return FALSE.
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
                      /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
-      stage_1 = {universal.get_module(), stage_0};
+      stage_1 = {universal.get_file(), stage_0};
       if (!validate(stage_1, &stage_0_trace)) {
         result = FALSE;
         goto done;
@@ -10176,11 +10176,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_2) == 4,
                     "stage_2 is not properly sized storage!");
       copy_ifc_field(&stage_2, stage_1.get_storage(), /*offset=*/0);
-      if (!validate_index(stage_1.get_module(), stage_2, &stage_2_trace)) {
+      if (!validate_index(stage_1.get_file(), stage_2, &stage_2_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_3 = to_universal_index(stage_1.get_module(), stage_2);
+      stage_3 = to_universal_index(stage_1.get_file(), stage_2);
       if (stage_3.sort == ifc_ds_decl_constructor) {
         stage_4 = TRUE;
       } else if (stage_3.sort == ifc_ds_decl_destructor) {
@@ -10209,7 +10209,7 @@ representation is valid; otherwise, return FALSE.
         copy_ifc_field(&stage_5_0, universal.get_storage(), /*offset=*/20,
                        /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
-        stage_5_1 = {universal.get_module(), stage_5_0};
+        stage_5_1 = {universal.get_file(), stage_5_0};
         if (!validate(stage_5_1, &stage_5_0_trace)) {
           result = FALSE;
           goto done;
@@ -10219,12 +10219,12 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_5_2) == 4,
                       "stage_5_2 is not properly sized storage!");
         copy_ifc_field(&stage_5_2, stage_5_1.get_storage(), /*offset=*/0);
-        if (!validate_index(stage_5_1.get_module(), stage_5_2,
+        if (!validate_index(stage_5_1.get_file(), stage_5_2,
                             &stage_5_2_trace)) {
           result = FALSE;
           goto done;
         }  /* if */
-        stage_5_3 = to_universal_index(stage_5_1.get_module(), stage_5_2);
+        stage_5_3 = to_universal_index(stage_5_1.get_file(), stage_5_2);
         if (!has_ifc_name(stage_5_3)) {
           result = FALSE;
           goto done;
@@ -10243,7 +10243,7 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_5_0) == 4,
                       "stage_5_0 is not properly sized storage!");
         copy_ifc_field(&stage_5_0, universal.get_storage(), /*offset=*/0);
-        if (!validate_index(universal.get_module(), stage_5_0,
+        if (!validate_index(universal.get_file(), stage_5_0,
                             &stage_5_0_trace)) {
           result = FALSE;
           goto done;
@@ -10260,7 +10260,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -10289,7 +10289,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -10311,7 +10311,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -10355,13 +10355,13 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/29);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/12, parent};
@@ -10373,11 +10373,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -10404,13 +10404,13 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
         }  /* if */
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/12, parent};
@@ -10422,11 +10422,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -10453,7 +10453,7 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
@@ -10469,7 +10469,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -10491,14 +10491,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_parent(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                              {"parent", /*offset=*/20, parent};
@@ -10508,7 +10508,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -10522,14 +10522,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_resolution(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"resolution", /*offset=*/16, parent};
@@ -10539,11 +10539,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"resolution", /*offset=*/16, parent};
@@ -10553,7 +10553,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -10567,7 +10567,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -10597,13 +10597,13 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/30);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_alignment(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                           {"alignment", /*offset=*/24, parent};
@@ -10613,7 +10613,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -10627,14 +10627,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
@@ -10646,11 +10646,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -10677,13 +10677,13 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
         }  /* if */
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"home_scope", /*offset=*/16, parent};
@@ -10695,11 +10695,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-      stage_1 = to_universal_index(universal.get_module(), stage_0);
+      stage_1 = to_universal_index(universal.get_file(), stage_0);
       if (stage_1.sort == ifc_ds_decl_specialization) {
         stage_2 = TRUE;
       } else {
@@ -10726,7 +10726,7 @@ representation is valid; otherwise, return FALSE.
         static_assert(sizeof(stage_3_2) == 4,
                       "stage_3_2 is not properly sized storage!");
         copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
-        if (!validate_index(stage_3_1.get_module(), stage_3_2,
+        if (!validate_index(stage_3_1.get_file(), stage_3_2,
                             &stage_3_2_trace)) {
           result = FALSE;
           goto done;
@@ -10742,14 +10742,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_initializer(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                         {"initializer", /*offset=*/20, parent};
@@ -10759,7 +10759,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -10773,7 +10773,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -10795,7 +10795,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -10810,7 +10810,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -10824,7 +10824,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -10860,7 +10860,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -10876,7 +10876,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -10890,7 +10890,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -10920,13 +10920,13 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_elements(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                            {"elements", /*offset=*/12, parent};
@@ -10936,7 +10936,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -10950,7 +10950,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -10972,7 +10972,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -10987,7 +10987,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -11023,14 +11023,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_initializer(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"initializer", /*offset=*/8, parent};
@@ -11040,7 +11040,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -11054,7 +11054,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -11076,7 +11076,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_left(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"left", /*offset=*/12, parent};
 
@@ -11085,7 +11085,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -11098,7 +11098,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -11120,14 +11120,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_operation(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_dyadic_operator_sort_0_43 stage_0;
       an_ifc_validation_trace          stage_0_trace =
                                           {"operation", /*offset=*/20, parent};
@@ -11137,7 +11137,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 2,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -11151,14 +11151,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 2,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_right(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"right", /*offset=*/16, parent};
 
@@ -11167,7 +11167,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -11180,7 +11180,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -11195,7 +11195,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -11216,7 +11216,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_arguments(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                           {"arguments", /*offset=*/16, parent};
@@ -11226,7 +11226,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -11240,7 +11240,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -11262,14 +11262,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_operation(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                           {"operation", /*offset=*/12, parent};
@@ -11279,7 +11279,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -11293,7 +11293,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -11308,7 +11308,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -11344,14 +11344,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_op(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_dyadic_operator_sort_0_43 stage_0;
       an_ifc_validation_trace          stage_0_trace =
                                                  {"op", /*offset=*/20, parent};
@@ -11361,7 +11361,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 2,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -11375,14 +11375,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 2,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_source(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                              {"source", /*offset=*/12, parent};
@@ -11392,7 +11392,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -11406,7 +11406,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -11421,7 +11421,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -11435,7 +11435,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -11471,14 +11471,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_string(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                              {"string", /*offset=*/16, parent};
@@ -11488,7 +11488,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -11502,7 +11502,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -11517,7 +11517,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -11538,7 +11538,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_expr(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"expr", /*offset=*/12, parent};
 
@@ -11547,7 +11547,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -11560,7 +11560,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -11582,7 +11582,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -11597,7 +11597,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -11618,7 +11618,7 @@ the representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_initializer(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                         {"initializer", /*offset=*/16, parent};
@@ -11628,7 +11628,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -11642,7 +11642,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -11664,7 +11664,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -11679,7 +11679,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -11709,7 +11709,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -11730,14 +11730,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_name(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"name", /*offset=*/12, parent};
 
@@ -11746,7 +11746,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -11759,7 +11759,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -11774,7 +11774,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -11795,7 +11795,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_argument_0(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"argument_0", /*offset=*/16, parent};
@@ -11805,7 +11805,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -11819,14 +11819,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_argument_1(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"argument_1", /*offset=*/20, parent};
@@ -11836,7 +11836,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -11850,14 +11850,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_assoc(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_dyadic_operator_sort_0_43 stage_0;
       an_ifc_validation_trace          stage_0_trace =
                                               {"assoc", /*offset=*/24, parent};
@@ -11867,7 +11867,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 2,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -11881,14 +11881,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 2,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_impl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace = {"impl", /*offset=*/12, parent};
 
@@ -11897,11 +11897,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"impl", /*offset=*/12, parent};
 
@@ -11910,7 +11910,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -11923,7 +11923,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -11945,7 +11945,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -11960,7 +11960,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -11996,14 +11996,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_pivot(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"pivot", /*offset=*/12, parent};
 
@@ -12012,7 +12012,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -12025,7 +12025,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -12040,7 +12040,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -12076,7 +12076,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -12091,7 +12091,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -12127,14 +12127,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_operand(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                             {"operand", /*offset=*/12, parent};
@@ -12144,7 +12144,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -12158,7 +12158,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -12173,7 +12173,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -12194,7 +12194,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_contents(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                            {"contents", /*offset=*/16, parent};
@@ -12204,7 +12204,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -12218,7 +12218,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -12234,7 +12234,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -12255,7 +12255,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -12277,7 +12277,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -12314,7 +12314,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -12329,7 +12329,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -12350,7 +12350,7 @@ the representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_inheritance(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                         {"inheritance", /*offset=*/20, parent};
@@ -12360,7 +12360,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -12374,7 +12374,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -12396,14 +12396,14 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_op(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_dyadic_operator_sort_0_43 stage_0;
       an_ifc_validation_trace          stage_0_trace =
                                                  {"op", /*offset=*/28, parent};
@@ -12413,7 +12413,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 2,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
-      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -12427,14 +12427,14 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 2,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
-      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_override(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                            {"override", /*offset=*/24, parent};
@@ -12444,7 +12444,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -12458,14 +12458,14 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_source(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                              {"source", /*offset=*/12, parent};
@@ -12475,7 +12475,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -12489,7 +12489,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -12504,7 +12504,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -12518,7 +12518,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -12554,14 +12554,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_path(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"path", /*offset=*/12, parent};
 
@@ -12570,7 +12570,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -12583,7 +12583,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -12598,7 +12598,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -12619,7 +12619,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_expr(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"expr", /*offset=*/12, parent};
 
@@ -12628,7 +12628,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -12641,7 +12641,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -12663,7 +12663,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -12679,7 +12679,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -12693,7 +12693,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -12714,7 +12714,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_elements(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                            {"elements", /*offset=*/12, parent};
@@ -12724,7 +12724,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -12738,7 +12738,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -12760,7 +12760,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -12775,7 +12775,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -12805,7 +12805,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -12826,7 +12826,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -12841,7 +12841,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -12870,7 +12870,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -12885,7 +12885,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -12900,7 +12900,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -12915,7 +12915,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -12930,7 +12930,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -12966,7 +12966,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -12981,7 +12981,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -12995,7 +12995,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -13025,7 +13025,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -13046,14 +13046,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_offset(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                              {"offset", /*offset=*/12, parent};
@@ -13063,7 +13063,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -13077,7 +13077,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -13092,7 +13092,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -13121,13 +13121,13 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_initializer(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                         {"initializer", /*offset=*/20, parent};
@@ -13137,7 +13137,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -13151,7 +13151,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -13173,14 +13173,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_member(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                              {"member", /*offset=*/12, parent};
@@ -13190,11 +13190,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                              {"member", /*offset=*/12, parent};
@@ -13204,7 +13204,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -13218,7 +13218,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -13233,7 +13233,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -13254,7 +13254,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_argument(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                            {"argument", /*offset=*/16, parent};
@@ -13264,7 +13264,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -13278,14 +13278,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_assoc(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_monadic_operator_sort_0_43 stage_0;
       an_ifc_validation_trace           stage_0_trace =
                                               {"assoc", /*offset=*/20, parent};
@@ -13295,7 +13295,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 2,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -13309,14 +13309,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 2,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_impl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace = {"impl", /*offset=*/12, parent};
 
@@ -13325,11 +13325,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"impl", /*offset=*/12, parent};
 
@@ -13338,7 +13338,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -13351,7 +13351,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -13373,7 +13373,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -13388,7 +13388,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -13424,14 +13424,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_resolution(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"resolution", /*offset=*/12, parent};
@@ -13441,11 +13441,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"resolution", /*offset=*/12, parent};
@@ -13455,7 +13455,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -13469,7 +13469,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -13484,7 +13484,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -13520,7 +13520,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -13535,7 +13535,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -13556,7 +13556,7 @@ if the representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_arguments(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                           {"arguments", /*offset=*/12, parent};
@@ -13566,7 +13566,7 @@ if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -13580,7 +13580,7 @@ if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -13602,7 +13602,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -13617,7 +13617,7 @@ if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -13653,14 +13653,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_member(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                              {"member", /*offset=*/16, parent};
@@ -13670,7 +13670,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -13684,14 +13684,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"scope", /*offset=*/12, parent};
 
@@ -13700,7 +13700,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -13713,7 +13713,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -13728,7 +13728,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -13764,7 +13764,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -13779,7 +13779,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -13815,7 +13815,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -13837,7 +13837,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_base_subobjects(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                     {"base_subobjects", /*offset=*/20, parent};
@@ -13847,7 +13847,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -13861,7 +13861,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -13877,7 +13877,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -13898,14 +13898,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_members(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                             {"members", /*offset=*/16, parent};
@@ -13915,7 +13915,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -13929,7 +13929,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -13944,7 +13944,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -13974,7 +13974,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -13989,7 +13989,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -14010,7 +14010,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -14025,7 +14025,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -14046,7 +14046,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_elements(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                            {"elements", /*offset=*/12, parent};
@@ -14056,7 +14056,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -14070,7 +14070,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -14092,7 +14092,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -14107,7 +14107,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -14128,7 +14128,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -14150,7 +14150,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_address(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                             {"address", /*offset=*/12, parent};
@@ -14160,7 +14160,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -14174,7 +14174,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -14196,7 +14196,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -14212,7 +14212,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -14226,7 +14226,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -14255,7 +14255,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -14276,7 +14276,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -14292,7 +14292,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -14306,7 +14306,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -14342,7 +14342,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -14357,7 +14357,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -14371,7 +14371,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -14407,7 +14407,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -14422,7 +14422,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -14436,7 +14436,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -14472,7 +14472,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -14488,7 +14488,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -14502,7 +14502,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -14538,14 +14538,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_strings(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                             {"strings", /*offset=*/12, parent};
@@ -14555,7 +14555,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -14569,7 +14569,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -14584,7 +14584,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -14605,7 +14605,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_value(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"value", /*offset=*/0, parent};
 
@@ -14614,7 +14614,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -14627,7 +14627,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -14664,7 +14664,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -14679,13 +14679,13 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_value(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"value", /*offset=*/20, parent};
 
@@ -14694,7 +14694,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -14707,14 +14707,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_variant(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                             {"variant", /*offset=*/12, parent};
@@ -14724,11 +14724,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                             {"variant", /*offset=*/12, parent};
@@ -14738,7 +14738,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -14752,7 +14752,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -14782,7 +14782,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -14803,7 +14803,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_arguments(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                           {"arguments", /*offset=*/16, parent};
@@ -14813,7 +14813,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -14827,7 +14827,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -14849,14 +14849,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_primary(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                             {"primary", /*offset=*/12, parent};
@@ -14866,7 +14866,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -14880,7 +14880,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -14895,7 +14895,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -14916,7 +14916,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_arguments(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                           {"arguments", /*offset=*/24, parent};
@@ -14926,11 +14926,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 42)) {
+    } else if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                           {"arguments", /*offset=*/28, parent};
@@ -14940,7 +14940,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -14954,7 +14954,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -14976,7 +14976,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -14991,7 +14991,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -15012,14 +15012,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_member_name(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_name_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                         {"member_name", /*offset=*/16, parent};
@@ -15029,7 +15029,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -15043,14 +15043,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_type_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace = {"scope", /*offset=*/20, parent};
 
@@ -15059,7 +15059,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -15072,7 +15072,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -15087,7 +15087,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -15123,7 +15123,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -15138,7 +15138,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -15174,7 +15174,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -15189,7 +15189,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -15225,7 +15225,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -15240,7 +15240,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -15261,7 +15261,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_argument_0(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"argument_0", /*offset=*/16, parent};
@@ -15271,7 +15271,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -15285,14 +15285,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_argument_1(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"argument_1", /*offset=*/20, parent};
@@ -15302,7 +15302,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -15316,14 +15316,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_argument_2(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"argument_2", /*offset=*/24, parent};
@@ -15333,7 +15333,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -15347,14 +15347,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_assoc(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_triadic_operator_sort_0_42 stage_0;
       an_ifc_validation_trace           stage_0_trace =
                                               {"assoc", /*offset=*/28, parent};
@@ -15364,7 +15364,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 2,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
-      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -15378,14 +15378,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 2,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
-      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_impl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace = {"impl", /*offset=*/12, parent};
 
@@ -15394,11 +15394,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"impl", /*offset=*/12, parent};
 
@@ -15407,7 +15407,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -15420,7 +15420,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -15442,7 +15442,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -15457,7 +15457,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -15493,7 +15493,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -15508,7 +15508,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -15538,7 +15538,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -15559,7 +15559,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -15574,7 +15574,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -15604,13 +15604,13 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_intrinsic(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_operator_category_0_43 stage_0;
       an_ifc_validation_trace       stage_0_trace =
                                           {"intrinsic", /*offset=*/16, parent};
@@ -15620,12 +15620,11 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 2,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_category(universal.get_module(), stage_0,
-                             &stage_0_trace)) {
+      if (!validate_category(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 42)) {
+    } else if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_operator_category_0_42 stage_0;
       an_ifc_validation_trace       stage_0_trace =
                                           {"intrinsic", /*offset=*/16, parent};
@@ -15635,8 +15634,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 2,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_category(universal.get_module(), stage_0,
-                             &stage_0_trace)) {
+      if (!validate_category(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -15650,8 +15648,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 2,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_category(universal.get_module(), stage_0,
-                             &stage_0_trace)) {
+      if (!validate_category(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -15673,7 +15670,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -15688,7 +15685,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -15724,7 +15721,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -15739,7 +15736,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -15753,7 +15750,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -15774,7 +15771,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_expr(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"expr", /*offset=*/12, parent};
 
@@ -15783,7 +15780,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -15796,7 +15793,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -15818,14 +15815,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_operation(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_dyadic_operator_sort_0_43 stage_0;
       an_ifc_validation_trace          stage_0_trace =
                                           {"operation", /*offset=*/16, parent};
@@ -15835,7 +15832,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 2,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -15849,7 +15846,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 2,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -15864,7 +15861,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -15900,7 +15897,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -15915,13 +15912,13 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_resolution(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"resolution", /*offset=*/16, parent};
@@ -15931,7 +15928,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -15945,7 +15942,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -15967,7 +15964,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -15982,7 +15979,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -16018,7 +16015,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -16033,7 +16030,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -16047,7 +16044,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -16068,7 +16065,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_function(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                            {"function", /*offset=*/12, parent};
@@ -16078,11 +16075,11 @@ TRUE if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                            {"function", /*offset=*/12, parent};
@@ -16092,7 +16089,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -16106,7 +16103,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -16128,7 +16125,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -16143,7 +16140,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -16172,7 +16169,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -16193,7 +16190,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -16208,7 +16205,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -16244,7 +16241,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -16281,7 +16278,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -16318,7 +16315,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -16355,7 +16352,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -16392,7 +16389,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -16429,7 +16426,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -16466,7 +16463,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -16503,7 +16500,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -16540,7 +16537,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -16555,7 +16552,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -16591,7 +16588,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -16606,7 +16603,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -16627,7 +16624,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_arguments(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                            {"arguments", /*offset=*/4, parent};
@@ -16637,7 +16634,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -16651,14 +16648,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_primary_template(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                     {"primary_template", /*offset=*/0, parent};
@@ -16668,11 +16665,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                     {"primary_template", /*offset=*/0, parent};
@@ -16682,7 +16679,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -16696,7 +16693,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -16733,7 +16730,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -16770,7 +16767,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -16785,7 +16782,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -16835,7 +16832,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -16865,7 +16862,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -16894,7 +16891,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -16915,7 +16912,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_value(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace = {"value", /*offset=*/0, parent};
 
@@ -16924,11 +16921,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"value", /*offset=*/0, parent};
 
@@ -16937,7 +16934,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -16950,7 +16947,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -16972,7 +16969,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_value(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"value", /*offset=*/0, parent};
 
@@ -16981,7 +16978,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -16994,7 +16991,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -17024,7 +17021,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -17053,7 +17050,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -17074,7 +17071,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_value(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_stmt_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"value", /*offset=*/0, parent};
 
@@ -17083,7 +17080,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -17096,7 +17093,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -17126,7 +17123,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -17155,7 +17152,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -17184,7 +17181,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -17205,7 +17202,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -17221,7 +17218,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -17250,7 +17247,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -17271,7 +17268,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -17308,7 +17305,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -17345,7 +17342,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -17375,7 +17372,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -17396,7 +17393,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_primary_template(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                     {"primary_template", /*offset=*/0, parent};
@@ -17406,11 +17403,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                     {"primary_template", /*offset=*/0, parent};
@@ -17420,7 +17417,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -17434,7 +17431,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -17470,7 +17467,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_operator(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_operator_category_0_43 stage_0;
       an_ifc_validation_trace       stage_0_trace =
                                             {"operator", /*offset=*/4, parent};
@@ -17480,12 +17477,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 2,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_category(universal.get_module(), stage_0,
-                             &stage_0_trace)) {
+      if (!validate_category(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 42)) {
+    } else if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_operator_category_0_42 stage_0;
       an_ifc_validation_trace       stage_0_trace =
                                             {"operator", /*offset=*/4, parent};
@@ -17495,8 +17491,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 2,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_category(universal.get_module(), stage_0,
-                             &stage_0_trace)) {
+      if (!validate_category(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -17510,8 +17505,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 2,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_category(universal.get_module(), stage_0,
-                             &stage_0_trace)) {
+      if (!validate_category(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -17547,7 +17541,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_arguments(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                            {"arguments", /*offset=*/4, parent};
@@ -17557,7 +17551,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -17571,7 +17565,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -17586,7 +17580,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -17615,7 +17609,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -17650,7 +17644,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_index(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace = {"index", /*offset=*/0, parent};
 
@@ -17659,11 +17653,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"index", /*offset=*/0, parent};
 
@@ -17672,7 +17666,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -17685,7 +17679,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -17715,7 +17709,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -17751,7 +17745,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -17773,7 +17767,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_category(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_index_0_33         stage_0;
       an_ifc_u16_0_33           stage_1;
       an_ifc_word_sort_0_33     stage_2;
@@ -17805,7 +17799,7 @@ representation is valid; otherwise, return FALSE.
       stage_3 <<= 8;
       stage_3 |= stage_2;
       stage_4 = (an_ifc_word_category_0_42)stage_3;
-      if (!validate_category(universal.get_module(), stage_4, parent)) {
+      if (!validate_category(universal.get_file(), stage_4, parent)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -17841,7 +17835,7 @@ representation is valid; otherwise, return FALSE.
       stage_3 <<= 8;
       stage_3 |= stage_2;
       stage_4 = (an_ifc_word_category_0_33)stage_3;
-      if (!validate_category(universal.get_module(), stage_4, parent)) {
+      if (!validate_category(universal.get_file(), stage_4, parent)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -17863,7 +17857,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -17878,7 +17872,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/14);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -17914,7 +17908,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -17951,7 +17945,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -17973,7 +17967,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_expr(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"expr", /*offset=*/0, parent};
 
@@ -17982,7 +17976,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -17995,7 +17989,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -18017,7 +18011,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -18054,7 +18048,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -18076,7 +18070,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/8, parent};
 
@@ -18085,7 +18079,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -18098,7 +18092,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -18120,7 +18114,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -18157,7 +18151,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -18179,7 +18173,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_body(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_stmt_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"body", /*offset=*/12, parent};
 
@@ -18188,7 +18182,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -18201,14 +18195,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_condition(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_stmt_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                            {"condition", /*offset=*/8, parent};
@@ -18218,7 +18212,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -18232,14 +18226,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_locus(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_source_location_bytes stage_0;
       an_ifc_validation_trace      stage_0_trace =
                                                {"locus", /*offset=*/0, parent};
@@ -18256,7 +18250,7 @@ representation is valid; otherwise, return FALSE.
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                      /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-      stage_1 = {universal.get_module(), stage_0};
+      stage_1 = {universal.get_file(), stage_0};
       if (!validate(stage_1, &stage_0_trace)) {
         result = FALSE;
         goto done;
@@ -18278,7 +18272,7 @@ representation is valid; otherwise, return FALSE.
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                      /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-      stage_1 = {universal.get_module(), stage_0};
+      stage_1 = {universal.get_file(), stage_0};
       if (!validate(stage_1, &stage_0_trace)) {
         result = FALSE;
         goto done;
@@ -18316,7 +18310,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -18353,14 +18347,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_operand(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_stmt_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                              {"operand", /*offset=*/8, parent};
@@ -18370,7 +18364,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -18384,7 +18378,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -18406,7 +18400,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_expr(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"expr", /*offset=*/8, parent};
 
@@ -18415,7 +18409,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -18428,14 +18422,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_locus(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_source_location_bytes stage_0;
       an_ifc_validation_trace      stage_0_trace =
                                                {"locus", /*offset=*/0, parent};
@@ -18452,7 +18446,7 @@ representation is valid; otherwise, return FALSE.
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                      /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-      stage_1 = {universal.get_module(), stage_0};
+      stage_1 = {universal.get_file(), stage_0};
       if (!validate(stage_1, &stage_0_trace)) {
         result = FALSE;
         goto done;
@@ -18474,7 +18468,7 @@ representation is valid; otherwise, return FALSE.
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                      /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-      stage_1 = {universal.get_module(), stage_0};
+      stage_1 = {universal.get_file(), stage_0};
       if (!validate(stage_1, &stage_0_trace)) {
         result = FALSE;
         goto done;
@@ -18497,7 +18491,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_body(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_stmt_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"body", /*offset=*/20, parent};
 
@@ -18506,7 +18500,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -18519,14 +18513,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_condition(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_stmt_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                           {"condition", /*offset=*/12, parent};
@@ -18536,7 +18530,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -18550,14 +18544,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_continuation(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_stmt_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                        {"continuation", /*offset=*/16, parent};
@@ -18567,7 +18561,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -18581,14 +18575,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_initialization(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_stmt_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                       {"initialization", /*offset=*/8, parent};
@@ -18598,7 +18592,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -18612,14 +18606,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_locus(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_source_location_bytes stage_0;
       an_ifc_validation_trace      stage_0_trace =
                                                {"locus", /*offset=*/0, parent};
@@ -18636,7 +18630,7 @@ representation is valid; otherwise, return FALSE.
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                      /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-      stage_1 = {universal.get_module(), stage_0};
+      stage_1 = {universal.get_file(), stage_0};
       if (!validate(stage_1, &stage_0_trace)) {
         result = FALSE;
         goto done;
@@ -18658,7 +18652,7 @@ representation is valid; otherwise, return FALSE.
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
                      /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-      stage_1 = {universal.get_module(), stage_0};
+      stage_1 = {universal.get_file(), stage_0};
       if (!validate(stage_1, &stage_0_trace)) {
         result = FALSE;
         goto done;
@@ -18696,7 +18690,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -18711,7 +18705,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -18740,13 +18734,13 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_exception(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                            {"exception", /*offset=*/8, parent};
@@ -18756,7 +18750,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -18770,7 +18764,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -18792,7 +18786,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -18814,7 +18808,7 @@ is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_alternative(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_stmt_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                         {"alternative", /*offset=*/20, parent};
@@ -18824,7 +18818,7 @@ is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -18838,14 +18832,14 @@ is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_condition(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_stmt_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                           {"condition", /*offset=*/12, parent};
@@ -18855,7 +18849,7 @@ is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -18869,14 +18863,14 @@ is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_consequence(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_stmt_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                         {"consequence", /*offset=*/16, parent};
@@ -18886,7 +18880,7 @@ is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -18900,14 +18894,14 @@ is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_initialization(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_stmt_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                       {"initialization", /*offset=*/8, parent};
@@ -18917,7 +18911,7 @@ is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -18931,14 +18925,14 @@ is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_locus(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_source_location_bytes stage_0;
       an_ifc_validation_trace      stage_0_trace =
                                                {"locus", /*offset=*/0, parent};
@@ -18955,7 +18949,7 @@ is valid; otherwise, return FALSE.
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                      /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-      stage_1 = {universal.get_module(), stage_0};
+      stage_1 = {universal.get_file(), stage_0};
       if (!validate(stage_1, &stage_0_trace)) {
         result = FALSE;
         goto done;
@@ -18977,7 +18971,7 @@ is valid; otherwise, return FALSE.
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
                      /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-      stage_1 = {universal.get_module(), stage_0};
+      stage_1 = {universal.get_file(), stage_0};
       if (!validate(stage_1, &stage_0_trace)) {
         result = FALSE;
         goto done;
@@ -19008,7 +19002,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -19029,7 +19023,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -19044,7 +19038,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -19058,7 +19052,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -19079,7 +19073,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_expr(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"expr", /*offset=*/12, parent};
 
@@ -19088,7 +19082,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -19101,14 +19095,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_function_type(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_type_index_0_33  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                       {"function_type", /*offset=*/16, parent};
@@ -19118,7 +19112,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -19132,14 +19126,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_locus(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_source_location_bytes stage_0;
       an_ifc_validation_trace      stage_0_trace =
                                                {"locus", /*offset=*/0, parent};
@@ -19156,7 +19150,7 @@ representation is valid; otherwise, return FALSE.
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                      /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-      stage_1 = {universal.get_module(), stage_0};
+      stage_1 = {universal.get_file(), stage_0};
       if (!validate(stage_1, &stage_0_trace)) {
         result = FALSE;
         goto done;
@@ -19178,7 +19172,7 @@ representation is valid; otherwise, return FALSE.
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                      /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-      stage_1 = {universal.get_module(), stage_0};
+      stage_1 = {universal.get_file(), stage_0};
       if (!validate(stage_1, &stage_0_trace)) {
         result = FALSE;
         goto done;
@@ -19194,7 +19188,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -19215,7 +19209,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_body(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_stmt_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"body", /*offset=*/16, parent};
 
@@ -19224,7 +19218,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -19237,14 +19231,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_condition(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                           {"condition", /*offset=*/12, parent};
@@ -19254,7 +19248,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -19268,14 +19262,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_initialization(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_stmt_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                       {"initialization", /*offset=*/8, parent};
@@ -19285,7 +19279,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -19299,14 +19293,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_locus(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_source_location_bytes stage_0;
       an_ifc_validation_trace      stage_0_trace =
                                                {"locus", /*offset=*/0, parent};
@@ -19323,7 +19317,7 @@ representation is valid; otherwise, return FALSE.
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                      /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-      stage_1 = {universal.get_module(), stage_0};
+      stage_1 = {universal.get_file(), stage_0};
       if (!validate(stage_1, &stage_0_trace)) {
         result = FALSE;
         goto done;
@@ -19345,7 +19339,7 @@ representation is valid; otherwise, return FALSE.
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                      /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-      stage_1 = {universal.get_module(), stage_0};
+      stage_1 = {universal.get_file(), stage_0};
       if (!validate(stage_1, &stage_0_trace)) {
         result = FALSE;
         goto done;
@@ -19377,7 +19371,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -19398,7 +19392,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -19435,7 +19429,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -19457,7 +19451,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 41)) {
+    if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -19466,7 +19460,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -19479,7 +19473,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -19501,7 +19495,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -19523,7 +19517,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_body(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_stmt_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"body", /*offset=*/12, parent};
 
@@ -19532,7 +19526,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -19545,14 +19539,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_condition(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_stmt_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                            {"condition", /*offset=*/8, parent};
@@ -19562,7 +19556,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -19576,14 +19570,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_locus(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_source_location_bytes stage_0;
       an_ifc_validation_trace      stage_0_trace =
                                                {"locus", /*offset=*/0, parent};
@@ -19600,7 +19594,7 @@ representation is valid; otherwise, return FALSE.
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                      /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-      stage_1 = {universal.get_module(), stage_0};
+      stage_1 = {universal.get_file(), stage_0};
       if (!validate(stage_1, &stage_0_trace)) {
         result = FALSE;
         goto done;
@@ -19622,7 +19616,7 @@ representation is valid; otherwise, return FALSE.
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                      /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-      stage_1 = {universal.get_module(), stage_0};
+      stage_1 = {universal.get_file(), stage_0};
       if (!validate(stage_1, &stage_0_trace)) {
         result = FALSE;
         goto done;
@@ -19660,7 +19654,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/12);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -19682,14 +19676,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/40,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_designator(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                           {"designator", /*offset=*/0, parent};
@@ -19699,7 +19693,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -19713,7 +19707,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -19735,7 +19729,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -19757,7 +19751,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -19779,7 +19773,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -19809,7 +19803,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -19830,7 +19824,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -19852,14 +19846,14 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_name(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"name", /*offset=*/0, parent};
 
@@ -19868,7 +19862,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -19881,7 +19875,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -19903,7 +19897,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -19940,7 +19934,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -19962,7 +19956,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -19977,7 +19971,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -19998,7 +19992,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -20020,7 +20014,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_bound(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"bound", /*offset=*/0, parent};
 
@@ -20029,7 +20023,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -20042,7 +20036,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -20064,7 +20058,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -20086,7 +20080,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -20108,7 +20102,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_array(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"array", /*offset=*/0, parent};
 
@@ -20117,7 +20111,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -20130,14 +20124,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_index(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"index", /*offset=*/4, parent};
 
@@ -20146,7 +20140,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -20159,7 +20153,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -20181,7 +20175,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -20203,7 +20197,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -20234,7 +20228,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -20248,7 +20242,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -20284,7 +20278,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -20315,7 +20309,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -20336,7 +20330,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -20358,7 +20352,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -20380,14 +20374,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_name(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"name", /*offset=*/0, parent};
 
@@ -20396,7 +20390,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -20409,14 +20403,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_scope(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"scope", /*offset=*/4, parent};
 
@@ -20425,7 +20419,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -20438,7 +20432,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -20475,7 +20469,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -20497,7 +20491,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -20528,7 +20522,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -20549,7 +20543,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -20571,7 +20565,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -20586,7 +20580,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -20607,7 +20601,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -20629,7 +20623,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -20660,7 +20654,7 @@ if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -20696,7 +20690,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -20718,7 +20712,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -20749,7 +20743,7 @@ if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -20763,7 +20757,7 @@ if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -20784,7 +20778,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -20815,7 +20809,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -20829,7 +20823,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -20865,7 +20859,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/12);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -20887,7 +20881,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -20918,7 +20912,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -20939,7 +20933,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -20970,13 +20964,13 @@ if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_dyad(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_dyadic_operator_sort_0_43 stage_0;
       an_ifc_validation_trace          stage_0_trace =
                                                {"dyad", /*offset=*/12, parent};
@@ -20986,7 +20980,7 @@ if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 2,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -21000,7 +20994,7 @@ if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 2,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -21022,7 +21016,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/22,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -21044,7 +21038,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/30,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -21066,7 +21060,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/38,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -21088,14 +21082,14 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/14,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_operand_1(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                            {"operand_1", /*offset=*/4, parent};
@@ -21105,7 +21099,7 @@ if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -21119,14 +21113,14 @@ if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_operand_2(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                            {"operand_2", /*offset=*/8, parent};
@@ -21136,7 +21130,7 @@ if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -21150,7 +21144,7 @@ if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -21172,7 +21166,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/46,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -21209,7 +21203,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -21231,7 +21225,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -21268,7 +21262,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -21290,7 +21284,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -21320,7 +21314,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -21341,7 +21335,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/12);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -21357,7 +21351,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -21372,13 +21366,13 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_name(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"name", /*offset=*/0, parent};
 
@@ -21387,7 +21381,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -21400,7 +21394,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -21416,7 +21410,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -21437,7 +21431,7 @@ the representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_condition(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                            {"condition", /*offset=*/0, parent};
@@ -21447,7 +21441,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -21461,14 +21455,14 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_constraint(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                           {"constraint", /*offset=*/4, parent};
@@ -21478,7 +21472,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -21492,7 +21486,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -21514,7 +21508,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -21536,7 +21530,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -21558,7 +21552,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -21595,7 +21589,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -21617,7 +21611,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -21632,7 +21626,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -21668,7 +21662,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -21690,14 +21684,14 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_initializer(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                         {"initializer", /*offset=*/16, parent};
@@ -21707,7 +21701,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -21721,7 +21715,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -21743,7 +21737,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -21759,7 +21753,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -21780,7 +21774,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -21811,7 +21805,7 @@ if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -21826,7 +21820,7 @@ if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -21847,7 +21841,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -21884,7 +21878,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -21906,7 +21900,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -21943,7 +21937,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -21959,7 +21953,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -21989,7 +21983,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -22010,7 +22004,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -22025,7 +22019,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -22040,7 +22034,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -22069,7 +22063,7 @@ if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -22099,7 +22093,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -22114,7 +22108,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/41);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -22135,7 +22129,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -22157,14 +22151,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_name(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"name", /*offset=*/20, parent};
 
@@ -22173,7 +22167,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -22186,7 +22180,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -22202,7 +22196,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -22216,7 +22210,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -22231,7 +22225,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -22246,7 +22240,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -22282,14 +22276,14 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_expr(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"expr", /*offset=*/0, parent};
 
@@ -22298,7 +22292,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -22311,7 +22305,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -22333,7 +22327,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -22355,7 +22349,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -22385,13 +22379,13 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_condition(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                            {"condition", /*offset=*/4, parent};
@@ -22401,7 +22395,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -22415,7 +22409,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -22436,7 +22430,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -22458,7 +22452,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -22480,7 +22474,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -22517,7 +22511,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -22539,7 +22533,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -22561,7 +22555,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -22583,7 +22577,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -22599,7 +22593,7 @@ if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -22635,7 +22629,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -22665,7 +22659,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -22686,7 +22680,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/12);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -22708,7 +22702,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -22724,7 +22718,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -22745,7 +22739,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/40,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -22767,14 +22761,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_name(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"name", /*offset=*/0, parent};
 
@@ -22783,7 +22777,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -22796,7 +22790,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -22818,7 +22812,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/48,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -22855,7 +22849,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -22877,14 +22871,14 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_initializer(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"initializer", /*offset=*/4, parent};
@@ -22894,7 +22888,7 @@ if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -22908,7 +22902,7 @@ if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -22930,7 +22924,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -22961,7 +22955,7 @@ if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -22982,7 +22976,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -23004,7 +22998,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -23020,7 +23014,7 @@ if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -23041,7 +23035,7 @@ the representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_condition(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                            {"condition", /*offset=*/0, parent};
@@ -23051,7 +23045,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -23065,7 +23059,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -23087,7 +23081,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -23109,7 +23103,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -23131,7 +23125,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -23153,7 +23147,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_expression(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                           {"expression", /*offset=*/0, parent};
@@ -23163,7 +23157,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -23177,7 +23171,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -23199,7 +23193,7 @@ the representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_expr(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"expr", /*offset=*/4, parent};
 
@@ -23208,7 +23202,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -23221,7 +23215,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -23243,7 +23237,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -23274,7 +23268,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -23289,7 +23283,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -23318,13 +23312,13 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_condition(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                            {"condition", /*offset=*/8, parent};
@@ -23334,7 +23328,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -23348,14 +23342,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_continuation(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                        {"continuation", /*offset=*/12, parent};
@@ -23365,7 +23359,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -23379,7 +23373,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -23401,7 +23395,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -23417,7 +23411,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -23438,7 +23432,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -23460,7 +23454,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -23482,7 +23476,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/44,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -23519,7 +23513,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -23541,7 +23535,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/12);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -23557,7 +23551,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -23578,7 +23572,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -23593,7 +23587,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -23608,7 +23602,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -23637,7 +23631,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -23658,7 +23652,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -23680,7 +23674,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -23696,7 +23690,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -23717,7 +23711,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -23739,7 +23733,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -23776,7 +23770,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -23792,7 +23786,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -23813,7 +23807,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -23828,7 +23822,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -23849,7 +23843,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/12);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -23865,7 +23859,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -23894,7 +23888,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -23909,7 +23903,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -23924,7 +23918,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -23960,7 +23954,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -23982,7 +23976,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -24004,7 +23998,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -24034,7 +24028,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -24055,7 +24049,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -24071,7 +24065,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -24092,7 +24086,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -24114,7 +24108,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -24145,7 +24139,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -24175,7 +24169,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -24190,7 +24184,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -24211,7 +24205,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -24233,7 +24227,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -24254,7 +24248,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -24270,7 +24264,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -24306,7 +24300,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -24328,7 +24322,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -24350,14 +24344,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_initializer(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"initializer", /*offset=*/4, parent};
@@ -24367,7 +24361,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -24381,14 +24375,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_name(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"name", /*offset=*/0, parent};
 
@@ -24397,7 +24391,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -24410,7 +24404,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -24447,7 +24441,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -24463,7 +24457,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -24478,13 +24472,13 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_initializer(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"initializer", /*offset=*/8, parent};
@@ -24494,7 +24488,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -24508,7 +24502,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -24538,7 +24532,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -24559,7 +24553,7 @@ the representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_label(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"label", /*offset=*/4, parent};
 
@@ -24568,7 +24562,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -24581,7 +24575,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -24596,7 +24590,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -24610,7 +24604,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -24624,7 +24618,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -24653,7 +24647,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -24674,7 +24668,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -24696,7 +24690,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -24712,7 +24706,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -24727,7 +24721,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -24748,7 +24742,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -24764,7 +24758,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -24794,7 +24788,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -24815,7 +24809,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -24837,7 +24831,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -24874,7 +24868,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -24896,14 +24890,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_initializer(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                          {"initializer", /*offset=*/4, parent};
@@ -24913,7 +24907,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -24927,14 +24921,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_member(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"member", /*offset=*/0, parent};
 
@@ -24943,7 +24937,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -24956,7 +24950,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -24987,7 +24981,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -25002,7 +24996,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -25023,7 +25017,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -25045,7 +25039,7 @@ the representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_bitwidth(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                             {"bitwidth", /*offset=*/8, parent};
@@ -25055,7 +25049,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -25069,7 +25063,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -25091,7 +25085,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -25113,7 +25107,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -25129,7 +25123,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -25144,13 +25138,13 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_initializer(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                         {"initializer", /*offset=*/12, parent};
@@ -25160,7 +25154,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -25174,7 +25168,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -25196,7 +25190,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -25227,7 +25221,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -25257,7 +25251,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -25293,14 +25287,14 @@ TRUE if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_name(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"name", /*offset=*/0, parent};
 
@@ -25309,7 +25303,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -25322,7 +25316,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -25344,7 +25338,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -25366,14 +25360,14 @@ TRUE if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_target(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"target", /*offset=*/4, parent};
 
@@ -25382,7 +25376,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -25395,7 +25389,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -25417,7 +25411,7 @@ the representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_condition(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                            {"condition", /*offset=*/0, parent};
@@ -25427,7 +25421,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -25441,7 +25435,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -25463,7 +25457,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -25494,7 +25488,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -25523,7 +25517,7 @@ if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -25544,7 +25538,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -25566,7 +25560,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -25588,7 +25582,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -25610,7 +25604,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_argument(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                             {"argument", /*offset=*/0, parent};
@@ -25620,7 +25614,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -25634,7 +25628,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -25656,7 +25650,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -25678,7 +25672,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -25709,7 +25703,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -25724,13 +25718,13 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_default_expr(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                         {"default_expr", /*offset=*/8, parent};
@@ -25740,7 +25734,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -25754,7 +25748,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -25776,7 +25770,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -25791,7 +25785,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -25821,13 +25815,13 @@ TRUE if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_constraint(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                           {"constraint", /*offset=*/0, parent};
@@ -25837,7 +25831,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -25851,7 +25845,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -25873,7 +25867,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/5,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -25895,7 +25889,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/13,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -25926,7 +25920,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/18);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -25947,7 +25941,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -25962,7 +25956,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -25977,7 +25971,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -25991,7 +25985,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -26020,7 +26014,7 @@ if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -26041,7 +26035,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/44,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -26056,7 +26050,7 @@ if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -26077,7 +26071,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -26092,7 +26086,7 @@ if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -26107,7 +26101,7 @@ if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -26128,7 +26122,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -26150,7 +26144,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -26187,7 +26181,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -26203,7 +26197,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -26224,7 +26218,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -26246,7 +26240,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_condition(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                            {"condition", /*offset=*/0, parent};
@@ -26256,7 +26250,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -26270,7 +26264,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -26292,7 +26286,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -26314,7 +26308,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_expr(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"expr", /*offset=*/4, parent};
 
@@ -26323,7 +26317,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -26336,7 +26330,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -26358,7 +26352,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/9,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -26380,7 +26374,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/17,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -26395,7 +26389,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -26424,13 +26418,13 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_condition(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                            {"condition", /*offset=*/0, parent};
@@ -26440,7 +26434,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -26454,7 +26448,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -26476,7 +26470,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -26498,7 +26492,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -26520,7 +26514,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -26550,7 +26544,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -26571,7 +26565,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -26608,7 +26602,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -26630,7 +26624,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -26660,7 +26654,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -26674,7 +26668,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -26695,7 +26689,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -26732,7 +26726,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -26754,7 +26748,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -26776,14 +26770,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_name(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"name", /*offset=*/0, parent};
 
@@ -26792,7 +26786,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -26805,7 +26799,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -26836,7 +26830,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -26851,7 +26845,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -26872,7 +26866,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -26894,7 +26888,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -26916,7 +26910,7 @@ the representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_condition(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                            {"condition", /*offset=*/0, parent};
@@ -26926,7 +26920,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -26940,7 +26934,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -26962,7 +26956,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -26984,7 +26978,7 @@ the representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_expr(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"expr", /*offset=*/4, parent};
 
@@ -26993,7 +26987,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -27006,7 +27000,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -27028,7 +27022,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -27043,7 +27037,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -27072,7 +27066,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -27108,14 +27102,14 @@ TRUE if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/40,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_condition(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                            {"condition", /*offset=*/0, parent};
@@ -27125,7 +27119,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -27139,7 +27133,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -27161,7 +27155,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -27183,14 +27177,14 @@ TRUE if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_message(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                              {"message", /*offset=*/4, parent};
@@ -27200,7 +27194,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -27214,7 +27208,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -27236,7 +27230,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -27258,7 +27252,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -27281,7 +27275,7 @@ return TRUE if the representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_initializer(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                         {"initializer", /*offset=*/24, parent};
@@ -27291,7 +27285,7 @@ return TRUE if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -27305,7 +27299,7 @@ return TRUE if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -27327,7 +27321,7 @@ return TRUE if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -27342,7 +27336,7 @@ return TRUE if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -27362,7 +27356,7 @@ return TRUE if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -27378,7 +27372,7 @@ return TRUE if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -27415,14 +27409,14 @@ TRUE if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_name(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"name", /*offset=*/0, parent};
 
@@ -27431,7 +27425,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -27444,7 +27438,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -27481,7 +27475,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -27511,7 +27505,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -27526,7 +27520,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -27540,7 +27534,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -27561,7 +27555,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -27592,7 +27586,7 @@ if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -27613,7 +27607,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -27635,7 +27629,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -27672,7 +27666,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -27688,7 +27682,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -27702,7 +27696,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -27732,7 +27726,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -27753,7 +27747,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -27768,13 +27762,13 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_symbol(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"symbol", /*offset=*/4, parent};
 
@@ -27783,7 +27777,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -27796,7 +27790,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -27818,7 +27812,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -27848,7 +27842,7 @@ if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -27869,7 +27863,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -27885,7 +27879,7 @@ if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -27906,7 +27900,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -27937,7 +27931,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -27958,7 +27952,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -27980,7 +27974,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -28001,7 +27995,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36,
                    /*size=*/12);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -28023,7 +28017,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -28039,7 +28033,7 @@ TRUE if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -28075,7 +28069,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -28097,7 +28091,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -28119,7 +28113,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -28156,7 +28150,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -28171,7 +28165,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -28200,7 +28194,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -28215,7 +28209,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -28236,7 +28230,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -28281,7 +28275,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -28302,7 +28296,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -28318,7 +28312,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -28354,7 +28348,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -28369,7 +28363,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -28405,14 +28399,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_type(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/0, parent};
 
@@ -28421,7 +28415,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -28434,7 +28428,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -28471,7 +28465,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -28486,7 +28480,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -28501,7 +28495,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -28531,7 +28525,7 @@ if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -28552,7 +28546,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -28574,7 +28568,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -28605,7 +28599,7 @@ if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -28620,7 +28614,7 @@ if the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -28641,7 +28635,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -28663,7 +28657,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -28694,13 +28688,13 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_intrinsic(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_operator_category_0_43 stage_0;
       an_ifc_validation_trace       stage_0_trace =
                                           {"intrinsic", /*offset=*/12, parent};
@@ -28710,12 +28704,11 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 2,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_category(universal.get_module(), stage_0,
-                             &stage_0_trace)) {
+      if (!validate_category(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 42)) {
+    } else if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_operator_category_0_42 stage_0;
       an_ifc_validation_trace       stage_0_trace =
                                           {"intrinsic", /*offset=*/12, parent};
@@ -28725,8 +28718,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 2,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_category(universal.get_module(), stage_0,
-                             &stage_0_trace)) {
+      if (!validate_category(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -28740,8 +28732,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 2,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_category(universal.get_module(), stage_0,
-                             &stage_0_trace)) {
+      if (!validate_category(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -28763,7 +28754,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -28794,13 +28785,13 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_dyad(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_dyadic_operator_sort_0_43 stage_0;
       an_ifc_validation_trace          stage_0_trace =
                                                 {"dyad", /*offset=*/8, parent};
@@ -28810,7 +28801,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 2,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -28824,7 +28815,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 2,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -28846,7 +28837,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/18,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -28868,7 +28859,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/26,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -28890,14 +28881,14 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/10,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_operand(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                              {"operand", /*offset=*/4, parent};
@@ -28907,7 +28898,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -28921,7 +28912,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -28943,7 +28934,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/34,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -28974,7 +28965,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -28995,7 +28986,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -29017,7 +29008,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -29054,7 +29045,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -29076,14 +29067,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_qualified_name(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                       {"qualified_name", /*offset=*/0, parent};
@@ -29093,7 +29084,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -29107,7 +29098,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -29129,7 +29120,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -29166,14 +29157,14 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_qualified_name(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                       {"qualified_name", /*offset=*/0, parent};
@@ -29183,7 +29174,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -29197,7 +29188,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -29219,7 +29210,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -29241,7 +29232,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -29278,14 +29269,14 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_name(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"name", /*offset=*/0, parent};
 
@@ -29294,7 +29285,7 @@ if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -29307,7 +29298,7 @@ if the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -29329,7 +29320,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -29351,7 +29342,7 @@ if the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -29388,7 +29379,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -29410,7 +29401,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -29432,7 +29423,7 @@ the representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -29462,13 +29453,13 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_condition(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                            {"condition", /*offset=*/4, parent};
@@ -29478,7 +29469,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -29492,7 +29483,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -29514,7 +29505,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -29536,7 +29527,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -29545,11 +29536,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -29558,7 +29549,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -29571,7 +29562,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -29586,7 +29577,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -29607,7 +29598,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -29616,11 +29607,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -29629,7 +29620,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -29642,7 +29633,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -29657,7 +29648,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -29678,7 +29669,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -29687,11 +29678,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -29700,7 +29691,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -29713,14 +29704,14 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_trait(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace = {"trait", /*offset=*/4, parent};
 
@@ -29729,11 +29720,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"trait", /*offset=*/4, parent};
 
@@ -29742,7 +29733,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -29755,7 +29746,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -29777,7 +29768,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -29786,11 +29777,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -29799,7 +29790,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -29812,7 +29803,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -29834,7 +29825,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -29843,11 +29834,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -29856,7 +29847,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -29869,7 +29860,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -29890,7 +29881,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -29912,7 +29903,7 @@ the representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_body(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_stmt_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"body", /*offset=*/12, parent};
 
@@ -29921,7 +29912,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -29934,14 +29925,14 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -29950,11 +29941,11 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -29963,7 +29954,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -29976,14 +29967,14 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
     }  /* if */
   }  /* if */
   if (has_ifc_initializers(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                         {"initializers", /*offset=*/8, parent};
@@ -29993,7 +29984,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -30007,7 +29998,7 @@ the representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -30023,7 +30014,7 @@ the representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -30044,7 +30035,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -30053,11 +30044,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -30066,7 +30057,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -30079,7 +30070,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -30094,7 +30085,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -30115,7 +30106,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -30124,11 +30115,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -30137,7 +30128,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -30150,7 +30141,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -30165,7 +30156,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -30186,7 +30177,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -30195,11 +30186,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -30208,7 +30199,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -30221,7 +30212,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -30243,7 +30234,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -30252,11 +30243,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -30265,7 +30256,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -30278,7 +30269,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -30300,7 +30291,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -30309,11 +30300,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -30322,7 +30313,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -30335,7 +30326,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -30350,7 +30341,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -30371,7 +30362,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -30380,11 +30371,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -30393,7 +30384,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -30406,7 +30397,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -30427,7 +30418,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -30457,13 +30448,13 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_extent(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"extent", /*offset=*/4, parent};
 
@@ -30472,7 +30463,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -30485,7 +30476,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -30515,7 +30506,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -30529,7 +30520,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -30558,7 +30549,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -30579,7 +30570,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_decl(universal)) {
-    if (is_at_least(universal.get_module(), 0, 43)) {
+    if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_decl_index_0_43  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -30588,11 +30579,11 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
-    } else if (is_at_least(universal.get_module(), 0, 41)) {
+    } else if (is_at_least(universal.get_file(), 0, 41)) {
       an_ifc_decl_index_0_41  stage_0;
       an_ifc_validation_trace stage_0_trace = {"decl", /*offset=*/0, parent};
 
@@ -30601,7 +30592,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -30614,7 +30605,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -30645,7 +30636,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -30659,7 +30650,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -30688,7 +30679,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -30702,7 +30693,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -30732,7 +30723,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -30754,7 +30745,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -30769,7 +30760,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -30783,7 +30774,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -30813,7 +30804,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -30828,7 +30819,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/1);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -30842,7 +30833,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/2);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -30871,7 +30862,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -30901,7 +30892,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -30923,7 +30914,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -30938,7 +30929,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -30952,7 +30943,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -30966,7 +30957,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -31006,7 +30997,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/4);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -31016,13 +31007,13 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_2) == 1,
                   "stage_2 is not properly sized storage!");
     copy_ifc_field(&stage_2, stage_1.get_storage(), /*offset=*/0);
-    if (!validate_sort(stage_1.get_module(), stage_2, &stage_2_trace)) {
+    if (!validate_sort(stage_1.get_file(), stage_2, &stage_2_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_constraint(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace =
                                           {"constraint", /*offset=*/0, parent};
@@ -31032,7 +31023,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -31046,7 +31037,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -31062,7 +31053,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -31091,7 +31082,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -31120,7 +31111,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -31134,7 +31125,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -31164,7 +31155,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -31193,7 +31184,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -31214,7 +31205,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_expr(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"expr", /*offset=*/0, parent};
 
@@ -31223,7 +31214,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -31236,7 +31227,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -31266,7 +31257,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -31296,7 +31287,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 1,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
-    if (!validate_sort(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -31318,7 +31309,7 @@ representation is valid; otherwise, return FALSE.
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
                    /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
-    stage_1 = {universal.get_module(), stage_0};
+    stage_1 = {universal.get_file(), stage_0};
     if (!validate(stage_1, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -31333,7 +31324,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -31368,7 +31359,7 @@ representation is valid; otherwise, return FALSE.
   a_boolean result = TRUE;
 
   if (has_ifc_path(universal)) {
-    if (is_at_least(universal.get_module(), 0, 42)) {
+    if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
       an_ifc_validation_trace stage_0_trace = {"path", /*offset=*/0, parent};
 
@@ -31377,7 +31368,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -31390,7 +31381,7 @@ representation is valid; otherwise, return FALSE.
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+      if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
         result = FALSE;
         goto done;
       }  /* if */
@@ -31420,7 +31411,7 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    if (!validate_index(universal.get_module(), stage_0, &stage_0_trace)) {
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */

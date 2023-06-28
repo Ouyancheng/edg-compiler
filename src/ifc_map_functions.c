@@ -99,7 +99,7 @@ the form of a c-string.
 }  /* str_for */
 
 
-an_ifc_encoded_access_sort to_encoded(an_ifc_module      *mod,
+an_ifc_encoded_access_sort to_encoded(an_ifc_module_file *file,
                                       an_ifc_access_sort universal)
 /*
 Given the universal representation of AccessSort and the destination module,
@@ -126,7 +126,7 @@ return a reencoded sort value.
       unexpected_condition_str("Invalid value for a AccessSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_access_sort{mod, result};
+  return an_ifc_encoded_access_sort{file, result};
 }  /* to_encoded */
 
 
@@ -199,7 +199,7 @@ in the form of a c-string.
 }  /* str_for */
 
 
-an_ifc_encoded_architecture_sort to_encoded(an_ifc_module            *mod,
+an_ifc_encoded_architecture_sort to_encoded(an_ifc_module_file       *file,
                                             an_ifc_architecture_sort universal)
 /*
 Given the universal representation of ArchitectureSort and the destination
@@ -232,7 +232,7 @@ module, return a reencoded sort value.
       unexpected_condition_str("Invalid value for a ArchitectureSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_architecture_sort{mod, result};
+  return an_ifc_encoded_architecture_sort{file, result};
 }  /* to_encoded */
 
 
@@ -321,8 +321,8 @@ form of a c-string.
 }  /* str_for */
 
 
-an_ifc_encoded_attr_sort to_encoded(an_ifc_module    *mod,
-                                    an_ifc_attr_sort universal)
+an_ifc_encoded_attr_sort to_encoded(an_ifc_module_file *file,
+                                    an_ifc_attr_sort   universal)
 /*
 Given the universal representation of AttrSort and the destination module,
 return a reencoded sort value.
@@ -363,7 +363,7 @@ return a reencoded sort value.
       unexpected_condition_str("Invalid value for a AttrSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_attr_sort{mod, result};
+  return an_ifc_encoded_attr_sort{file, result};
 }  /* to_encoded */
 
 
@@ -455,7 +455,7 @@ name in the form of a c-string.
 
 
 an_ifc_encoded_calling_convention_sort to_encoded(
-                                      an_ifc_module                  *mod,
+                                      an_ifc_module_file             *file,
                                       an_ifc_calling_convention_sort universal)
 /*
 Given the universal representation of CallingConventionSort and the destination
@@ -491,7 +491,7 @@ module, return a reencoded sort value.
       unexpected_condition_str("Invalid value for a CallingConventionSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_calling_convention_sort{mod, result};
+  return an_ifc_encoded_calling_convention_sort{file, result};
 }  /* to_encoded */
 
 
@@ -565,8 +565,8 @@ form of a c-string.
 }  /* str_for */
 
 
-an_ifc_encoded_chart_sort to_encoded(an_ifc_module     *mod,
-                                     an_ifc_chart_sort universal)
+an_ifc_encoded_chart_sort to_encoded(an_ifc_module_file *file,
+                                     an_ifc_chart_sort  universal)
 /*
 Given the universal representation of ChartSort and the destination module,
 return a reencoded sort value.
@@ -589,7 +589,7 @@ return a reencoded sort value.
       unexpected_condition_str("Invalid value for a ChartSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_chart_sort{mod, result};
+  return an_ifc_encoded_chart_sort{file, result};
 }  /* to_encoded */
 
 
@@ -743,8 +743,8 @@ form of a c-string.
 }  /* str_for */
 
 
-an_ifc_encoded_decl_sort to_encoded(an_ifc_module    *mod,
-                                    an_ifc_decl_sort universal)
+an_ifc_encoded_decl_sort to_encoded(an_ifc_module_file *file,
+                                    an_ifc_decl_sort   universal)
 /*
 Given the universal representation of DeclSort and the destination module,
 return a reencoded sort value.
@@ -753,7 +753,7 @@ return a reencoded sort value.
   using ue_ty = an_ifc_encoded_decl_sort_storage;
   an_ifc_encoded_decl_sort_storage result;
 
-  if (is_at_least(mod, 0, 43)) {
+  if (is_at_least(file, 0, 43)) {
     switch (universal) {
       case ifc_ds_decl_vendor_extension:
         result = (ue_ty)ifc_0_43_ds_decl_vendor_extension;
@@ -855,7 +855,7 @@ return a reencoded sort value.
         unexpected_condition_str("Invalid value for a DeclSort.");
         break;
     }  /* switch */
-  } else if (is_at_least(mod, 0, 41)) {
+  } else if (is_at_least(file, 0, 41)) {
     switch (universal) {
       case ifc_ds_decl_vendor_extension:
         result = (ue_ty)ifc_0_41_ds_decl_vendor_extension;
@@ -1057,7 +1057,7 @@ return a reencoded sort value.
         break;
     }  /* switch */
   }  /* if */
-  return an_ifc_encoded_decl_sort{mod, result};
+  return an_ifc_encoded_decl_sort{file, result};
 }  /* to_encoded */
 
 
@@ -1428,7 +1428,7 @@ the form of a c-string.
 }  /* str_for */
 
 
-an_ifc_encoded_delimiter_sort to_encoded(an_ifc_module         *mod,
+an_ifc_encoded_delimiter_sort to_encoded(an_ifc_module_file    *file,
                                          an_ifc_delimiter_sort universal)
 /*
 Given the universal representation of DelimiterSort and the destination module,
@@ -1452,7 +1452,7 @@ return a reencoded sort value.
       unexpected_condition_str("Invalid value for a DelimiterSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_delimiter_sort{mod, result};
+  return an_ifc_encoded_delimiter_sort{file, result};
 }  /* to_encoded */
 
 
@@ -1774,7 +1774,7 @@ name in the form of a c-string.
 
 
 an_ifc_encoded_dyadic_operator_sort to_encoded(
-                                         an_ifc_module               *mod,
+                                         an_ifc_module_file          *file,
                                          an_ifc_dyadic_operator_sort universal)
 /*
 Given the universal representation of DyadicOperatorSort and the destination
@@ -1784,7 +1784,7 @@ module, return a reencoded sort value.
   using ue_ty = an_ifc_encoded_dyadic_operator_sort_storage;
   an_ifc_encoded_dyadic_operator_sort_storage result;
 
-  if (is_at_least(mod, 0, 43)) {
+  if (is_at_least(file, 0, 43)) {
     switch (universal) {
       case ifc_dos_unknown:
         result = (ue_ty)ifc_0_43_dos_unknown;
@@ -2332,7 +2332,7 @@ module, return a reencoded sort value.
         break;
     }  /* switch */
   }  /* if */
-  return an_ifc_encoded_dyadic_operator_sort{mod, result};
+  return an_ifc_encoded_dyadic_operator_sort{file, result};
 }  /* to_encoded */
 
 
@@ -2932,7 +2932,7 @@ name in the form of a c-string.
 
 
 an_ifc_encoded_expansion_mode_sort to_encoded(
-                                          an_ifc_module              *mod,
+                                          an_ifc_module_file         *file,
                                           an_ifc_expansion_mode_sort universal)
 /*
 Given the universal representation of ExpansionModeSort and the destination
@@ -2953,7 +2953,7 @@ module, return a reencoded sort value.
       unexpected_condition_str("Invalid value for a ExpansionModeSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_expansion_mode_sort{mod, result};
+  return an_ifc_encoded_expansion_mode_sort{file, result};
 }  /* to_encoded */
 
 
@@ -3189,8 +3189,8 @@ form of a c-string.
 }  /* str_for */
 
 
-an_ifc_encoded_expr_sort to_encoded(an_ifc_module    *mod,
-                                    an_ifc_expr_sort universal)
+an_ifc_encoded_expr_sort to_encoded(an_ifc_module_file *file,
+                                    an_ifc_expr_sort   universal)
 /*
 Given the universal representation of ExprSort and the destination module,
 return a reencoded sort value.
@@ -3199,7 +3199,7 @@ return a reencoded sort value.
   using ue_ty = an_ifc_encoded_expr_sort_storage;
   an_ifc_encoded_expr_sort_storage result;
 
-  if (is_at_least(mod, 0, 42)) {
+  if (is_at_least(file, 0, 42)) {
     switch (universal) {
       case ifc_es_expr_vendor_extension:
         result = (ue_ty)ifc_0_42_es_expr_vendor_extension;
@@ -3572,7 +3572,7 @@ return a reencoded sort value.
         break;
     }  /* switch */
   }  /* if */
-  return an_ifc_encoded_expr_sort{mod, result};
+  return an_ifc_encoded_expr_sort{file, result};
 }  /* to_encoded */
 
 
@@ -4002,7 +4002,7 @@ name in the form of a c-string.
 
 
 an_ifc_encoded_fold_direction_sort to_encoded(
-                                          an_ifc_module              *mod,
+                                          an_ifc_module_file         *file,
                                           an_ifc_fold_direction_sort universal)
 /*
 Given the universal representation of FoldDirectionSort and the destination
@@ -4026,7 +4026,7 @@ module, return a reencoded sort value.
       unexpected_condition_str("Invalid value for a FoldDirectionSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_fold_direction_sort{mod, result};
+  return an_ifc_encoded_fold_direction_sort{file, result};
 }  /* to_encoded */
 
 
@@ -4124,8 +4124,8 @@ form of a c-string.
 }  /* str_for */
 
 
-an_ifc_encoded_form_sort to_encoded(an_ifc_module    *mod,
-                                    an_ifc_form_sort universal)
+an_ifc_encoded_form_sort to_encoded(an_ifc_module_file *file,
+                                    an_ifc_form_sort   universal)
 /*
 Given the universal representation of FormSort and the destination module,
 return a reencoded sort value.
@@ -4184,7 +4184,7 @@ return a reencoded sort value.
       unexpected_condition_str("Invalid value for a FormSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_form_sort{mod, result};
+  return an_ifc_encoded_form_sort{file, result};
 }  /* to_encoded */
 
 
@@ -4281,7 +4281,7 @@ in the form of a c-string.
 }  /* str_for */
 
 
-an_ifc_encoded_initializer_sort to_encoded(an_ifc_module           *mod,
+an_ifc_encoded_initializer_sort to_encoded(an_ifc_module_file      *file,
                                            an_ifc_initializer_sort universal)
 /*
 Given the universal representation of InitializerSort and the destination
@@ -4305,7 +4305,7 @@ module, return a reencoded sort value.
       unexpected_condition_str("Invalid value for a InitializerSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_initializer_sort{mod, result};
+  return an_ifc_encoded_initializer_sort{file, result};
 }  /* to_encoded */
 
 
@@ -4397,7 +4397,7 @@ the form of a c-string.
 }  /* str_for */
 
 
-an_ifc_encoded_keyword_sort to_encoded(an_ifc_module       *mod,
+an_ifc_encoded_keyword_sort to_encoded(an_ifc_module_file  *file,
                                        an_ifc_keyword_sort universal)
 /*
 Given the universal representation of KeywordSort and the destination module,
@@ -4451,7 +4451,7 @@ return a reencoded sort value.
       unexpected_condition_str("Invalid value for a KeywordSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_keyword_sort{mod, result};
+  return an_ifc_encoded_keyword_sort{file, result};
 }  /* to_encoded */
 
 
@@ -4545,8 +4545,8 @@ form of a c-string.
 }  /* str_for */
 
 
-an_ifc_encoded_label_sort to_encoded(an_ifc_module     *mod,
-                                     an_ifc_label_sort universal)
+an_ifc_encoded_label_sort to_encoded(an_ifc_module_file *file,
+                                     an_ifc_label_sort  universal)
 /*
 Given the universal representation of LabelSort and the destination module,
 return a reencoded sort value.
@@ -4572,7 +4572,7 @@ return a reencoded sort value.
       unexpected_condition_str("Invalid value for a LabelSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_label_sort{mod, result};
+  return an_ifc_encoded_label_sort{file, result};
 }  /* to_encoded */
 
 
@@ -4636,8 +4636,8 @@ form of a c-string.
 }  /* str_for */
 
 
-an_ifc_encoded_lit_sort to_encoded(an_ifc_module   *mod,
-                                   an_ifc_lit_sort universal)
+an_ifc_encoded_lit_sort to_encoded(an_ifc_module_file *file,
+                                   an_ifc_lit_sort    universal)
 /*
 Given the universal representation of LitSort and the destination module,
 return a reencoded sort value.
@@ -4660,7 +4660,7 @@ return a reencoded sort value.
       unexpected_condition_str("Invalid value for a LitSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_lit_sort{mod, result};
+  return an_ifc_encoded_lit_sort{file, result};
 }  /* to_encoded */
 
 
@@ -4718,8 +4718,8 @@ form of a c-string.
 }  /* str_for */
 
 
-an_ifc_encoded_macro_sort to_encoded(an_ifc_module     *mod,
-                                     an_ifc_macro_sort universal)
+an_ifc_encoded_macro_sort to_encoded(an_ifc_module_file *file,
+                                     an_ifc_macro_sort  universal)
 /*
 Given the universal representation of MacroSort and the destination module,
 return a reencoded sort value.
@@ -4739,7 +4739,7 @@ return a reencoded sort value.
       unexpected_condition_str("Invalid value for a MacroSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_macro_sort{mod, result};
+  return an_ifc_encoded_macro_sort{file, result};
 }  /* to_encoded */
 
 
@@ -5038,7 +5038,7 @@ name in the form of a c-string.
 
 
 an_ifc_encoded_monadic_operator_sort to_encoded(
-                                        an_ifc_module                *mod,
+                                        an_ifc_module_file           *file,
                                         an_ifc_monadic_operator_sort universal)
 /*
 Given the universal representation of MonadicOperatorSort and the destination
@@ -5048,7 +5048,7 @@ module, return a reencoded sort value.
   using ue_ty = an_ifc_encoded_monadic_operator_sort_storage;
   an_ifc_encoded_monadic_operator_sort_storage result;
 
-  if (is_at_least(mod, 0, 43)) {
+  if (is_at_least(file, 0, 43)) {
     switch (universal) {
       case ifc_mos_unknown:
         result = (ue_ty)ifc_0_43_mos_unknown;
@@ -5550,7 +5550,7 @@ module, return a reencoded sort value.
         break;
     }  /* switch */
   }  /* if */
-  return an_ifc_encoded_monadic_operator_sort{mod, result};
+  return an_ifc_encoded_monadic_operator_sort{file, result};
 }  /* to_encoded */
 
 
@@ -6125,8 +6125,8 @@ form of a c-string.
 }  /* str_for */
 
 
-an_ifc_encoded_name_sort to_encoded(an_ifc_module    *mod,
-                                    an_ifc_name_sort universal)
+an_ifc_encoded_name_sort to_encoded(an_ifc_module_file *file,
+                                    an_ifc_name_sort   universal)
 /*
 Given the universal representation of NameSort and the destination module,
 return a reencoded sort value.
@@ -6164,7 +6164,7 @@ return a reencoded sort value.
       unexpected_condition_str("Invalid value for a NameSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_name_sort{mod, result};
+  return an_ifc_encoded_name_sort{file, result};
 }  /* to_encoded */
 
 
@@ -6253,7 +6253,7 @@ name in the form of a c-string.
 
 
 an_ifc_encoded_niladic_operator_sort to_encoded(
-                                        an_ifc_module                *mod,
+                                        an_ifc_module_file           *file,
                                         an_ifc_niladic_operator_sort universal)
 /*
 Given the universal representation of NiladicOperatorSort and the destination
@@ -6289,7 +6289,7 @@ module, return a reencoded sort value.
       unexpected_condition_str("Invalid value for a NiladicOperatorSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_niladic_operator_sort{mod, result};
+  return an_ifc_encoded_niladic_operator_sort{file, result};
 }  /* to_encoded */
 
 
@@ -6372,7 +6372,7 @@ the form of a c-string.
 }  /* str_for */
 
 
-an_ifc_encoded_noexcept_sort to_encoded(an_ifc_module        *mod,
+an_ifc_encoded_noexcept_sort to_encoded(an_ifc_module_file   *file,
                                         an_ifc_noexcept_sort universal)
 /*
 Given the universal representation of NoexceptSort and the destination module,
@@ -6405,7 +6405,7 @@ return a reencoded sort value.
       unexpected_condition_str("Invalid value for a NoexceptSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_noexcept_sort{mod, result};
+  return an_ifc_encoded_noexcept_sort{file, result};
 }  /* to_encoded */
 
 
@@ -6484,7 +6484,7 @@ the form of a c-string.
 }  /* str_for */
 
 
-an_ifc_encoded_operator_sort to_encoded(an_ifc_module        *mod,
+an_ifc_encoded_operator_sort to_encoded(an_ifc_module_file   *file,
                                         an_ifc_operator_sort universal)
 /*
 Given the universal representation of OperatorSort and the destination module,
@@ -6517,7 +6517,7 @@ return a reencoded sort value.
       unexpected_condition_str("Invalid value for a OperatorSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_operator_sort{mod, result};
+  return an_ifc_encoded_operator_sort{file, result};
 }  /* to_encoded */
 
 
@@ -6590,7 +6590,7 @@ the form of a c-string.
 }  /* str_for */
 
 
-an_ifc_encoded_parameter_sort to_encoded(an_ifc_module         *mod,
+an_ifc_encoded_parameter_sort to_encoded(an_ifc_module_file    *file,
                                          an_ifc_parameter_sort universal)
 /*
 Given the universal representation of ParameterSort and the destination module,
@@ -6617,7 +6617,7 @@ return a reencoded sort value.
       unexpected_condition_str("Invalid value for a ParameterSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_parameter_sort{mod, result};
+  return an_ifc_encoded_parameter_sort{file, result};
 }  /* to_encoded */
 
 
@@ -6688,7 +6688,7 @@ name in the form of a c-string.
 
 
 an_ifc_encoded_pointer_declarator_sort to_encoded(
-                                      an_ifc_module                  *mod,
+                                      an_ifc_module_file             *file,
                                       an_ifc_pointer_declarator_sort universal)
 /*
 Given the universal representation of PointerDeclaratorSort and the destination
@@ -6718,7 +6718,7 @@ module, return a reencoded sort value.
       unexpected_condition_str("Invalid value for a PointerDeclaratorSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_pointer_declarator_sort{mod, result};
+  return an_ifc_encoded_pointer_declarator_sort{file, result};
 }  /* to_encoded */
 
 
@@ -6780,7 +6780,7 @@ the form of a c-string.
 }  /* str_for */
 
 
-an_ifc_encoded_pragma_sort to_encoded(an_ifc_module      *mod,
+an_ifc_encoded_pragma_sort to_encoded(an_ifc_module_file *file,
                                       an_ifc_pragma_sort universal)
 /*
 Given the universal representation of PragmaSort and the destination module,
@@ -6798,7 +6798,7 @@ return a reencoded sort value.
       unexpected_condition_str("Invalid value for a PragmaSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_pragma_sort{mod, result};
+  return an_ifc_encoded_pragma_sort{file, result};
 }  /* to_encoded */
 
 
@@ -6860,7 +6860,7 @@ name in the form of a c-string.
 
 
 an_ifc_encoded_read_conversion_sort to_encoded(
-                                         an_ifc_module               *mod,
+                                         an_ifc_module_file          *file,
                                          an_ifc_read_conversion_sort universal)
 /*
 Given the universal representation of ReadConversionSort and the destination
@@ -6890,7 +6890,7 @@ module, return a reencoded sort value.
       unexpected_condition_str("Invalid value for a ReadConversionSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_read_conversion_sort{mod, result};
+  return an_ifc_encoded_read_conversion_sort{file, result};
 }  /* to_encoded */
 
 
@@ -6955,7 +6955,7 @@ the form of a c-string.
 }  /* str_for */
 
 
-an_ifc_encoded_return_sort to_encoded(an_ifc_module      *mod,
+an_ifc_encoded_return_sort to_encoded(an_ifc_module_file *file,
                                       an_ifc_return_sort universal)
 /*
 Given the universal representation of ReturnSort and the destination module,
@@ -6976,7 +6976,7 @@ return a reencoded sort value.
       unexpected_condition_str("Invalid value for a ReturnSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_return_sort{mod, result};
+  return an_ifc_encoded_return_sort{file, result};
 }  /* to_encoded */
 
 
@@ -7200,7 +7200,7 @@ name in the form of a c-string.
 
 
 an_ifc_encoded_source_directive_sort to_encoded(
-                                        an_ifc_module                *mod,
+                                        an_ifc_module_file           *file,
                                         an_ifc_source_directive_sort universal)
 /*
 Given the universal representation of SourceDirectiveSort and the destination
@@ -7389,7 +7389,7 @@ module, return a reencoded sort value.
       unexpected_condition_str("Invalid value for a SourceDirectiveSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_source_directive_sort{mod, result};
+  return an_ifc_encoded_source_directive_sort{file, result};
 }  /* to_encoded */
 
 
@@ -7632,7 +7632,7 @@ name in the form of a c-string.
 
 
 an_ifc_encoded_source_identifier_sort to_encoded(
-                                       an_ifc_module                 *mod,
+                                       an_ifc_module_file            *file,
                                        an_ifc_source_identifier_sort universal)
 /*
 Given the universal representation of SourceIdentifierSort and the destination
@@ -7671,7 +7671,7 @@ module, return a reencoded sort value.
       unexpected_condition_str("Invalid value for a SourceIdentifierSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_source_identifier_sort{mod, result};
+  return an_ifc_encoded_source_identifier_sort{file, result};
 }  /* to_encoded */
 
 
@@ -8302,7 +8302,7 @@ name in the form of a c-string.
 
 
 an_ifc_encoded_source_keyword_sort to_encoded(
-                                          an_ifc_module              *mod,
+                                          an_ifc_module_file         *file,
                                           an_ifc_source_keyword_sort universal)
 /*
 Given the universal representation of SourceKeywordSort and the destination
@@ -8880,7 +8880,7 @@ module, return a reencoded sort value.
       unexpected_condition_str("Invalid value for a SourceKeywordSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_source_keyword_sort{mod, result};
+  return an_ifc_encoded_source_keyword_sort{file, result};
 }  /* to_encoded */
 
 
@@ -9519,7 +9519,7 @@ name in the form of a c-string.
 
 
 an_ifc_encoded_source_literal_sort to_encoded(
-                                          an_ifc_module              *mod,
+                                          an_ifc_module_file         *file,
                                           an_ifc_source_literal_sort universal)
 /*
 Given the universal representation of SourceLiteralSort and the destination
@@ -9567,7 +9567,7 @@ module, return a reencoded sort value.
       unexpected_condition_str("Invalid value for a SourceLiteralSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_source_literal_sort{mod, result};
+  return an_ifc_encoded_source_literal_sort{file, result};
 }  /* to_encoded */
 
 
@@ -9768,7 +9768,7 @@ name in the form of a c-string.
 
 
 an_ifc_encoded_source_operator_sort to_encoded(
-                                         an_ifc_module               *mod,
+                                         an_ifc_module_file          *file,
                                          an_ifc_source_operator_sort universal)
 /*
 Given the universal representation of SourceOperatorSort and the destination
@@ -9906,7 +9906,7 @@ module, return a reencoded sort value.
       unexpected_condition_str("Invalid value for a SourceOperatorSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_source_operator_sort{mod, result};
+  return an_ifc_encoded_source_operator_sort{file, result};
 }  /* to_encoded */
 
 
@@ -10131,7 +10131,7 @@ name in the form of a c-string.
 
 
 an_ifc_encoded_source_punctuator_sort to_encoded(
-                                       an_ifc_module                 *mod,
+                                       an_ifc_module_file            *file,
                                        an_ifc_source_punctuator_sort universal)
 /*
 Given the universal representation of SourcePunctuatorSort and the destination
@@ -10203,7 +10203,7 @@ module, return a reencoded sort value.
       unexpected_condition_str("Invalid value for a SourcePunctuatorSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_source_punctuator_sort{mod, result};
+  return an_ifc_encoded_source_punctuator_sort{file, result};
 }  /* to_encoded */
 
 
@@ -10314,7 +10314,7 @@ name in the form of a c-string.
 
 
 an_ifc_encoded_specialization_sort to_encoded(
-                                          an_ifc_module              *mod,
+                                          an_ifc_module_file         *file,
                                           an_ifc_specialization_sort universal)
 /*
 Given the universal representation of SpecializationSort and the destination
@@ -10338,7 +10338,7 @@ module, return a reencoded sort value.
       unexpected_condition_str("Invalid value for a SpecializationSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_specialization_sort{mod, result};
+  return an_ifc_encoded_specialization_sort{file, result};
 }  /* to_encoded */
 
 
@@ -10460,8 +10460,8 @@ form of a c-string.
 }  /* str_for */
 
 
-an_ifc_encoded_stmt_sort to_encoded(an_ifc_module    *mod,
-                                    an_ifc_stmt_sort universal)
+an_ifc_encoded_stmt_sort to_encoded(an_ifc_module_file *file,
+                                    an_ifc_stmt_sort   universal)
 /*
 Given the universal representation of StmtSort and the destination module,
 return a reencoded sort value.
@@ -10470,7 +10470,7 @@ return a reencoded sort value.
   using ue_ty = an_ifc_encoded_stmt_sort_storage;
   an_ifc_encoded_stmt_sort_storage result;
 
-  if (is_at_least(mod, 0, 42)) {
+  if (is_at_least(file, 0, 42)) {
     switch (universal) {
       case ifc_ss_stmt_vendor_extension:
         result = (ue_ty)ifc_0_42_ss_stmt_vendor_extension;
@@ -10591,7 +10591,7 @@ return a reencoded sort value.
         break;
     }  /* switch */
   }  /* if */
-  return an_ifc_encoded_stmt_sort{mod, result};
+  return an_ifc_encoded_stmt_sort{file, result};
 }  /* to_encoded */
 
 
@@ -10779,7 +10779,7 @@ the textual name in the form of a c-string.
 
 
 an_ifc_encoded_storage_instruction_operator_sort to_encoded(
-                            an_ifc_module                            *mod,
+                            an_ifc_module_file                       *file,
                             an_ifc_storage_instruction_operator_sort universal)
 /*
 Given the universal representation of StorageInstructionOperatorSort and the
@@ -10813,7 +10813,7 @@ destination module, return a reencoded sort value.
                         "Invalid value for a StorageInstructionOperatorSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_storage_instruction_operator_sort{mod, result};
+  return an_ifc_encoded_storage_instruction_operator_sort{file, result};
 }  /* to_encoded */
 
 
@@ -10891,7 +10891,7 @@ the form of a c-string.
 }  /* str_for */
 
 
-an_ifc_encoded_string_sort to_encoded(an_ifc_module      *mod,
+an_ifc_encoded_string_sort to_encoded(an_ifc_module_file *file,
                                       an_ifc_string_sort universal)
 /*
 Given the universal representation of StringSort and the destination module,
@@ -10921,7 +10921,7 @@ return a reencoded sort value.
       unexpected_condition_str("Invalid value for a StringSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_string_sort{mod, result};
+  return an_ifc_encoded_string_sort{file, result};
 }  /* to_encoded */
 
 
@@ -11309,7 +11309,7 @@ the form of a c-string.
 }  /* str_for */
 
 
-an_ifc_encoded_syntax_sort to_encoded(an_ifc_module      *mod,
+an_ifc_encoded_syntax_sort to_encoded(an_ifc_module_file *file,
                                       an_ifc_syntax_sort universal)
 /*
 Given the universal representation of SyntaxSort and the destination module,
@@ -11654,7 +11654,7 @@ return a reencoded sort value.
       unexpected_condition_str("Invalid value for a SyntaxSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_syntax_sort{mod, result};
+  return an_ifc_encoded_syntax_sort{file, result};
 }  /* to_encoded */
 
 
@@ -12052,7 +12052,7 @@ name in the form of a c-string.
 
 
 an_ifc_encoded_triadic_operator_sort to_encoded(
-                                        an_ifc_module                *mod,
+                                        an_ifc_module_file           *file,
                                         an_ifc_triadic_operator_sort universal)
 /*
 Given the universal representation of TriadicOperatorSort and the destination
@@ -12062,7 +12062,7 @@ module, return a reencoded sort value.
   using ue_ty = an_ifc_encoded_triadic_operator_sort_storage;
   an_ifc_encoded_triadic_operator_sort_storage result;
 
-  if (is_at_least(mod, 0, 42)) {
+  if (is_at_least(file, 0, 42)) {
     switch (universal) {
       case ifc_tos_unknown:
         result = (ue_ty)ifc_0_42_tos_unknown;
@@ -12114,7 +12114,7 @@ module, return a reencoded sort value.
         break;
     }  /* switch */
   }  /* if */
-  return an_ifc_encoded_triadic_operator_sort{mod, result};
+  return an_ifc_encoded_triadic_operator_sort{file, result};
 }  /* to_encoded */
 
 
@@ -12287,7 +12287,7 @@ the form of a c-string.
 }  /* str_for */
 
 
-an_ifc_encoded_type_basis_sort to_encoded(an_ifc_module          *mod,
+an_ifc_encoded_type_basis_sort to_encoded(an_ifc_module_file     *file,
                                           an_ifc_type_basis_sort universal)
 /*
 Given the universal representation of TypeBasisSort and the destination module,
@@ -12374,7 +12374,7 @@ return a reencoded sort value.
       unexpected_condition_str("Invalid value for a TypeBasisSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_type_basis_sort{mod, result};
+  return an_ifc_encoded_type_basis_sort{file, result};
 }  /* to_encoded */
 
 
@@ -12514,7 +12514,7 @@ name in the form of a c-string.
 
 
 an_ifc_encoded_type_precision_sort to_encoded(
-                                          an_ifc_module              *mod,
+                                          an_ifc_module_file         *file,
                                           an_ifc_type_precision_sort universal)
 /*
 Given the universal representation of TypePrecisionSort and the destination
@@ -12553,7 +12553,7 @@ module, return a reencoded sort value.
       unexpected_condition_str("Invalid value for a TypePrecisionSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_type_precision_sort{mod, result};
+  return an_ifc_encoded_type_precision_sort{file, result};
 }  /* to_encoded */
 
 
@@ -12630,7 +12630,7 @@ the form of a c-string.
 }  /* str_for */
 
 
-an_ifc_encoded_type_sign_sort to_encoded(an_ifc_module         *mod,
+an_ifc_encoded_type_sign_sort to_encoded(an_ifc_module_file    *file,
                                          an_ifc_type_sign_sort universal)
 /*
 Given the universal representation of TypeSignSort and the destination module,
@@ -12654,7 +12654,7 @@ return a reencoded sort value.
       unexpected_condition_str("Invalid value for a TypeSignSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_type_sign_sort{mod, result};
+  return an_ifc_encoded_type_sign_sort{file, result};
 }  /* to_encoded */
 
 
@@ -12772,8 +12772,8 @@ form of a c-string.
 }  /* str_for */
 
 
-an_ifc_encoded_type_sort to_encoded(an_ifc_module    *mod,
-                                    an_ifc_type_sort universal)
+an_ifc_encoded_type_sort to_encoded(an_ifc_module_file *file,
+                                    an_ifc_type_sort   universal)
 /*
 Given the universal representation of TypeSort and the destination module,
 return a reencoded sort value.
@@ -12853,7 +12853,7 @@ return a reencoded sort value.
       unexpected_condition_str("Invalid value for a TypeSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_type_sort{mod, result};
+  return an_ifc_encoded_type_sort{file, result};
 }  /* to_encoded */
 
 
@@ -12977,8 +12977,8 @@ form of a c-string.
 }  /* str_for */
 
 
-an_ifc_encoded_unit_sort to_encoded(an_ifc_module    *mod,
-                                    an_ifc_unit_sort universal)
+an_ifc_encoded_unit_sort to_encoded(an_ifc_module_file *file,
+                                    an_ifc_unit_sort   universal)
 /*
 Given the universal representation of UnitSort and the destination module,
 return a reencoded sort value.
@@ -13007,7 +13007,7 @@ return a reencoded sort value.
       unexpected_condition_str("Invalid value for a UnitSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_unit_sort{mod, result};
+  return an_ifc_encoded_unit_sort{file, result};
 }  /* to_encoded */
 
 
@@ -13090,7 +13090,7 @@ name in the form of a c-string.
 
 
 an_ifc_encoded_variadic_operator_sort to_encoded(
-                                       an_ifc_module                 *mod,
+                                       an_ifc_module_file            *file,
                                        an_ifc_variadic_operator_sort universal)
 /*
 Given the universal representation of VariadicOperatorSort and the destination
@@ -13129,7 +13129,7 @@ module, return a reencoded sort value.
       unexpected_condition_str("Invalid value for a VariadicOperatorSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_variadic_operator_sort{mod, result};
+  return an_ifc_encoded_variadic_operator_sort{file, result};
 }  /* to_encoded */
 
 
@@ -13218,8 +13218,8 @@ form of a c-string.
 }  /* str_for */
 
 
-an_ifc_encoded_word_sort to_encoded(an_ifc_module    *mod,
-                                    an_ifc_word_sort universal)
+an_ifc_encoded_word_sort to_encoded(an_ifc_module_file *file,
+                                    an_ifc_word_sort   universal)
 /*
 Given the universal representation of WordSort and the destination module,
 return a reencoded sort value.
@@ -13254,7 +13254,7 @@ return a reencoded sort value.
       unexpected_condition_str("Invalid value for a WordSort.");
       break;
   }  /* switch */
-  return an_ifc_encoded_word_sort{mod, result};
+  return an_ifc_encoded_word_sort{file, result};
 }  /* to_encoded */
 
 
@@ -13321,7 +13321,7 @@ Given the versioned representation of AttrIndex, return the extracted value.
 }  /* attr_value */
 
 
-an_ifc_attr_index to_universal_index(an_ifc_module          *mod,
+an_ifc_attr_index to_universal_index(an_ifc_module_file     *file,
                                      an_ifc_attr_index_0_33 versioned)
 /*
 Given the versioned representation of AttrIndex and the associated module,
@@ -13331,19 +13331,19 @@ return the corresponding universal representation.
   an_ifc_attr_sort sort = to_universal_sort(attr_sort(versioned));
   uint32_t         index = attr_value(versioned);
 
-  return an_ifc_attr_index{mod, sort, index};
+  return an_ifc_attr_index{file, sort, index};
 }  /* to_universal_index */
 
 
-an_ifc_encoded_attr_index to_encoded(an_ifc_module     *mod,
-                                     an_ifc_attr_index universal)
+an_ifc_encoded_attr_index to_encoded(an_ifc_module_file *file,
+                                     an_ifc_attr_index  universal)
 /*
-Given the universal representation of AttrIndex and the destination module,
-return a reencoded index value.
+Given the universal representation of AttrIndex and the destination module
+file, return a reencoded index value.
 */
 {
-  an_ifc_encoded_attr_sort  encoded_sort = to_encoded(mod, universal.sort);
-  an_ifc_encoded_attr_index result = {mod, universal.value};
+  an_ifc_encoded_attr_sort  encoded_sort = to_encoded(file, universal.sort);
+  an_ifc_encoded_attr_index result = {file, universal.value};
 
   result.value <<= 4;
   result.value |= encoded_sort;
@@ -13357,13 +13357,13 @@ Given the universal representation of AttrIndex, return TRUE if the given index
 is considered a NULL index; otherwise, return FALSE.
 */
 {
-  a_boolean     result = FALSE;
-  an_ifc_module *mod = universal.mod;
+  a_boolean          result = FALSE;
+  an_ifc_module_file *file = universal.file;
 
-  if (mod == NULL) {
+  if (file == NULL) {
     result = TRUE;
   } else {
-    result = 0 == to_encoded(mod, universal);
+    result = 0 == to_encoded(file, universal);
   }  /* if */
   return result;
 }  /* is_null_index */
@@ -13394,7 +13394,7 @@ Given the versioned representation of ChartIndex, return the extracted value.
 }  /* chart_value */
 
 
-an_ifc_chart_index to_universal_index(an_ifc_module           *mod,
+an_ifc_chart_index to_universal_index(an_ifc_module_file      *file,
                                       an_ifc_chart_index_0_33 versioned)
 /*
 Given the versioned representation of ChartIndex and the associated module,
@@ -13404,19 +13404,19 @@ return the corresponding universal representation.
   an_ifc_chart_sort sort = to_universal_sort(chart_sort(versioned));
   uint32_t          index = chart_value(versioned);
 
-  return an_ifc_chart_index{mod, sort, index};
+  return an_ifc_chart_index{file, sort, index};
 }  /* to_universal_index */
 
 
-an_ifc_encoded_chart_index to_encoded(an_ifc_module      *mod,
+an_ifc_encoded_chart_index to_encoded(an_ifc_module_file *file,
                                       an_ifc_chart_index universal)
 /*
-Given the universal representation of ChartIndex and the destination module,
-return a reencoded index value.
+Given the universal representation of ChartIndex and the destination module
+file, return a reencoded index value.
 */
 {
-  an_ifc_encoded_chart_sort  encoded_sort = to_encoded(mod, universal.sort);
-  an_ifc_encoded_chart_index result = {mod, universal.value};
+  an_ifc_encoded_chart_sort  encoded_sort = to_encoded(file, universal.sort);
+  an_ifc_encoded_chart_index result = {file, universal.value};
 
   result.value <<= 2;
   result.value |= encoded_sort;
@@ -13430,13 +13430,13 @@ Given the universal representation of ChartIndex, return TRUE if the given
 index is considered a NULL index; otherwise, return FALSE.
 */
 {
-  a_boolean     result = FALSE;
-  an_ifc_module *mod = universal.mod;
+  a_boolean          result = FALSE;
+  an_ifc_module_file *file = universal.file;
 
-  if (mod == NULL) {
+  if (file == NULL) {
     result = TRUE;
   } else {
-    result = 0 == to_encoded(mod, universal);
+    result = 0 == to_encoded(file, universal);
   }  /* if */
   return result;
 }  /* is_null_index */
@@ -13467,7 +13467,7 @@ Given the versioned representation of DeclIndex, return the extracted value.
 }  /* decl_value */
 
 
-an_ifc_decl_index to_universal_index(an_ifc_module          *mod,
+an_ifc_decl_index to_universal_index(an_ifc_module_file     *file,
                                      an_ifc_decl_index_0_33 versioned)
 /*
 Given the versioned representation of DeclIndex and the associated module,
@@ -13477,7 +13477,7 @@ return the corresponding universal representation.
   an_ifc_decl_sort sort = to_universal_sort(decl_sort(versioned));
   uint32_t         index = decl_value(versioned);
 
-  return an_ifc_decl_index{mod, sort, index};
+  return an_ifc_decl_index{file, sort, index};
 }  /* to_universal_index */
 
 
@@ -13501,7 +13501,7 @@ Given the versioned representation of DeclIndex, return the extracted value.
 }  /* decl_value */
 
 
-an_ifc_decl_index to_universal_index(an_ifc_module          *mod,
+an_ifc_decl_index to_universal_index(an_ifc_module_file     *file,
                                      an_ifc_decl_index_0_41 versioned)
 /*
 Given the versioned representation of DeclIndex and the associated module,
@@ -13511,7 +13511,7 @@ return the corresponding universal representation.
   an_ifc_decl_sort sort = to_universal_sort(decl_sort(versioned));
   uint32_t         index = decl_value(versioned);
 
-  return an_ifc_decl_index{mod, sort, index};
+  return an_ifc_decl_index{file, sort, index};
 }  /* to_universal_index */
 
 
@@ -13535,7 +13535,7 @@ Given the versioned representation of DeclIndex, return the extracted value.
 }  /* decl_value */
 
 
-an_ifc_decl_index to_universal_index(an_ifc_module          *mod,
+an_ifc_decl_index to_universal_index(an_ifc_module_file     *file,
                                      an_ifc_decl_index_0_43 versioned)
 /*
 Given the versioned representation of DeclIndex and the associated module,
@@ -13545,19 +13545,19 @@ return the corresponding universal representation.
   an_ifc_decl_sort sort = to_universal_sort(decl_sort(versioned));
   uint32_t         index = decl_value(versioned);
 
-  return an_ifc_decl_index{mod, sort, index};
+  return an_ifc_decl_index{file, sort, index};
 }  /* to_universal_index */
 
 
-an_ifc_encoded_decl_index to_encoded(an_ifc_module     *mod,
-                                     an_ifc_decl_index universal)
+an_ifc_encoded_decl_index to_encoded(an_ifc_module_file *file,
+                                     an_ifc_decl_index  universal)
 /*
-Given the universal representation of DeclIndex and the destination module,
-return a reencoded index value.
+Given the universal representation of DeclIndex and the destination module
+file, return a reencoded index value.
 */
 {
-  an_ifc_encoded_decl_sort  encoded_sort = to_encoded(mod, universal.sort);
-  an_ifc_encoded_decl_index result = {mod, universal.value};
+  an_ifc_encoded_decl_sort  encoded_sort = to_encoded(file, universal.sort);
+  an_ifc_encoded_decl_index result = {file, universal.value};
 
   result.value <<= 5;
   result.value |= encoded_sort;
@@ -13571,13 +13571,13 @@ Given the universal representation of DeclIndex, return TRUE if the given index
 is considered a NULL index; otherwise, return FALSE.
 */
 {
-  a_boolean     result = FALSE;
-  an_ifc_module *mod = universal.mod;
+  a_boolean          result = FALSE;
+  an_ifc_module_file *file = universal.file;
 
-  if (mod == NULL) {
+  if (file == NULL) {
     result = TRUE;
   } else {
-    result = 0 == to_encoded(mod, universal);
+    result = 0 == to_encoded(file, universal);
   }  /* if */
   return result;
 }  /* is_null_index */
@@ -13608,7 +13608,7 @@ Given the versioned representation of ExprIndex, return the extracted value.
 }  /* expr_value */
 
 
-an_ifc_expr_index to_universal_index(an_ifc_module          *mod,
+an_ifc_expr_index to_universal_index(an_ifc_module_file     *file,
                                      an_ifc_expr_index_0_33 versioned)
 /*
 Given the versioned representation of ExprIndex and the associated module,
@@ -13618,7 +13618,7 @@ return the corresponding universal representation.
   an_ifc_expr_sort sort = to_universal_sort(expr_sort(versioned));
   uint32_t         index = expr_value(versioned);
 
-  return an_ifc_expr_index{mod, sort, index};
+  return an_ifc_expr_index{file, sort, index};
 }  /* to_universal_index */
 
 
@@ -13642,7 +13642,7 @@ Given the versioned representation of ExprIndex, return the extracted value.
 }  /* expr_value */
 
 
-an_ifc_expr_index to_universal_index(an_ifc_module          *mod,
+an_ifc_expr_index to_universal_index(an_ifc_module_file     *file,
                                      an_ifc_expr_index_0_42 versioned)
 /*
 Given the versioned representation of ExprIndex and the associated module,
@@ -13652,19 +13652,19 @@ return the corresponding universal representation.
   an_ifc_expr_sort sort = to_universal_sort(expr_sort(versioned));
   uint32_t         index = expr_value(versioned);
 
-  return an_ifc_expr_index{mod, sort, index};
+  return an_ifc_expr_index{file, sort, index};
 }  /* to_universal_index */
 
 
-an_ifc_encoded_expr_index to_encoded(an_ifc_module     *mod,
-                                     an_ifc_expr_index universal)
+an_ifc_encoded_expr_index to_encoded(an_ifc_module_file *file,
+                                     an_ifc_expr_index  universal)
 /*
-Given the universal representation of ExprIndex and the destination module,
-return a reencoded index value.
+Given the universal representation of ExprIndex and the destination module
+file, return a reencoded index value.
 */
 {
-  an_ifc_encoded_expr_sort  encoded_sort = to_encoded(mod, universal.sort);
-  an_ifc_encoded_expr_index result = {mod, universal.value};
+  an_ifc_encoded_expr_sort  encoded_sort = to_encoded(file, universal.sort);
+  an_ifc_encoded_expr_index result = {file, universal.value};
 
   result.value <<= 6;
   result.value |= encoded_sort;
@@ -13678,13 +13678,13 @@ Given the universal representation of ExprIndex, return TRUE if the given index
 is considered a NULL index; otherwise, return FALSE.
 */
 {
-  a_boolean     result = FALSE;
-  an_ifc_module *mod = universal.mod;
+  a_boolean          result = FALSE;
+  an_ifc_module_file *file = universal.file;
 
-  if (mod == NULL) {
+  if (file == NULL) {
     result = TRUE;
   } else {
-    result = 0 == to_encoded(mod, universal);
+    result = 0 == to_encoded(file, universal);
   }  /* if */
   return result;
 }  /* is_null_index */
@@ -13715,7 +13715,7 @@ Given the versioned representation of FormIndex, return the extracted value.
 }  /* form_value */
 
 
-an_ifc_form_index to_universal_index(an_ifc_module          *mod,
+an_ifc_form_index to_universal_index(an_ifc_module_file     *file,
                                      an_ifc_form_index_0_33 versioned)
 /*
 Given the versioned representation of FormIndex and the associated module,
@@ -13725,19 +13725,19 @@ return the corresponding universal representation.
   an_ifc_form_sort sort = to_universal_sort(form_sort(versioned));
   uint32_t         index = form_value(versioned);
 
-  return an_ifc_form_index{mod, sort, index};
+  return an_ifc_form_index{file, sort, index};
 }  /* to_universal_index */
 
 
-an_ifc_encoded_form_index to_encoded(an_ifc_module     *mod,
-                                     an_ifc_form_index universal)
+an_ifc_encoded_form_index to_encoded(an_ifc_module_file *file,
+                                     an_ifc_form_index  universal)
 /*
-Given the universal representation of FormIndex and the destination module,
-return a reencoded index value.
+Given the universal representation of FormIndex and the destination module
+file, return a reencoded index value.
 */
 {
-  an_ifc_encoded_form_sort  encoded_sort = to_encoded(mod, universal.sort);
-  an_ifc_encoded_form_index result = {mod, universal.value};
+  an_ifc_encoded_form_sort  encoded_sort = to_encoded(file, universal.sort);
+  an_ifc_encoded_form_index result = {file, universal.value};
 
   result.value <<= 4;
   result.value |= encoded_sort;
@@ -13751,13 +13751,13 @@ Given the universal representation of FormIndex, return TRUE if the given index
 is considered a NULL index; otherwise, return FALSE.
 */
 {
-  a_boolean     result = FALSE;
-  an_ifc_module *mod = universal.mod;
+  a_boolean          result = FALSE;
+  an_ifc_module_file *file = universal.file;
 
-  if (mod == NULL) {
+  if (file == NULL) {
     result = TRUE;
   } else {
-    result = 0 == to_encoded(mod, universal);
+    result = 0 == to_encoded(file, universal);
   }  /* if */
   return result;
 }  /* is_null_index */
@@ -13788,7 +13788,7 @@ Given the versioned representation of LitIndex, return the extracted value.
 }  /* lit_value */
 
 
-an_ifc_lit_index to_universal_index(an_ifc_module         *mod,
+an_ifc_lit_index to_universal_index(an_ifc_module_file    *file,
                                     an_ifc_lit_index_0_33 versioned)
 /*
 Given the versioned representation of LitIndex and the associated module,
@@ -13798,19 +13798,19 @@ return the corresponding universal representation.
   an_ifc_lit_sort sort = to_universal_sort(lit_sort(versioned));
   uint32_t        index = lit_value(versioned);
 
-  return an_ifc_lit_index{mod, sort, index};
+  return an_ifc_lit_index{file, sort, index};
 }  /* to_universal_index */
 
 
-an_ifc_encoded_lit_index to_encoded(an_ifc_module    *mod,
-                                    an_ifc_lit_index universal)
+an_ifc_encoded_lit_index to_encoded(an_ifc_module_file *file,
+                                    an_ifc_lit_index   universal)
 /*
-Given the universal representation of LitIndex and the destination module,
+Given the universal representation of LitIndex and the destination module file,
 return a reencoded index value.
 */
 {
-  an_ifc_encoded_lit_sort  encoded_sort = to_encoded(mod, universal.sort);
-  an_ifc_encoded_lit_index result = {mod, universal.value};
+  an_ifc_encoded_lit_sort  encoded_sort = to_encoded(file, universal.sort);
+  an_ifc_encoded_lit_index result = {file, universal.value};
 
   result.value <<= 2;
   result.value |= encoded_sort;
@@ -13824,13 +13824,13 @@ Given the universal representation of LitIndex, return TRUE if the given index
 is considered a NULL index; otherwise, return FALSE.
 */
 {
-  a_boolean     result = FALSE;
-  an_ifc_module *mod = universal.mod;
+  a_boolean          result = FALSE;
+  an_ifc_module_file *file = universal.file;
 
-  if (mod == NULL) {
+  if (file == NULL) {
     result = TRUE;
   } else {
-    result = 0 == to_encoded(mod, universal);
+    result = 0 == to_encoded(file, universal);
   }  /* if */
   return result;
 }  /* is_null_index */
@@ -13861,7 +13861,7 @@ Given the versioned representation of MacroIndex, return the extracted value.
 }  /* macro_value */
 
 
-an_ifc_macro_index to_universal_index(an_ifc_module           *mod,
+an_ifc_macro_index to_universal_index(an_ifc_module_file      *file,
                                       an_ifc_macro_index_0_33 versioned)
 /*
 Given the versioned representation of MacroIndex and the associated module,
@@ -13871,19 +13871,19 @@ return the corresponding universal representation.
   an_ifc_macro_sort sort = to_universal_sort(macro_sort(versioned));
   uint32_t          index = macro_value(versioned);
 
-  return an_ifc_macro_index{mod, sort, index};
+  return an_ifc_macro_index{file, sort, index};
 }  /* to_universal_index */
 
 
-an_ifc_encoded_macro_index to_encoded(an_ifc_module      *mod,
+an_ifc_encoded_macro_index to_encoded(an_ifc_module_file *file,
                                       an_ifc_macro_index universal)
 /*
-Given the universal representation of MacroIndex and the destination module,
-return a reencoded index value.
+Given the universal representation of MacroIndex and the destination module
+file, return a reencoded index value.
 */
 {
-  an_ifc_encoded_macro_sort  encoded_sort = to_encoded(mod, universal.sort);
-  an_ifc_encoded_macro_index result = {mod, universal.value};
+  an_ifc_encoded_macro_sort  encoded_sort = to_encoded(file, universal.sort);
+  an_ifc_encoded_macro_index result = {file, universal.value};
 
   result.value <<= 1;
   result.value |= encoded_sort;
@@ -13897,13 +13897,13 @@ Given the universal representation of MacroIndex, return TRUE if the given
 index is considered a NULL index; otherwise, return FALSE.
 */
 {
-  a_boolean     result = FALSE;
-  an_ifc_module *mod = universal.mod;
+  a_boolean          result = FALSE;
+  an_ifc_module_file *file = universal.file;
 
-  if (mod == NULL) {
+  if (file == NULL) {
     result = TRUE;
   } else {
-    result = 0 == to_encoded(mod, universal);
+    result = 0 == to_encoded(file, universal);
   }  /* if */
   return result;
 }  /* is_null_index */
@@ -13934,7 +13934,7 @@ Given the versioned representation of NameIndex, return the extracted value.
 }  /* name_value */
 
 
-an_ifc_name_index to_universal_index(an_ifc_module          *mod,
+an_ifc_name_index to_universal_index(an_ifc_module_file     *file,
                                      an_ifc_name_index_0_33 versioned)
 /*
 Given the versioned representation of NameIndex and the associated module,
@@ -13944,19 +13944,19 @@ return the corresponding universal representation.
   an_ifc_name_sort sort = to_universal_sort(name_sort(versioned));
   uint32_t         index = name_value(versioned);
 
-  return an_ifc_name_index{mod, sort, index};
+  return an_ifc_name_index{file, sort, index};
 }  /* to_universal_index */
 
 
-an_ifc_encoded_name_index to_encoded(an_ifc_module     *mod,
-                                     an_ifc_name_index universal)
+an_ifc_encoded_name_index to_encoded(an_ifc_module_file *file,
+                                     an_ifc_name_index  universal)
 /*
-Given the universal representation of NameIndex and the destination module,
-return a reencoded index value.
+Given the universal representation of NameIndex and the destination module
+file, return a reencoded index value.
 */
 {
-  an_ifc_encoded_name_sort  encoded_sort = to_encoded(mod, universal.sort);
-  an_ifc_encoded_name_index result = {mod, universal.value};
+  an_ifc_encoded_name_sort  encoded_sort = to_encoded(file, universal.sort);
+  an_ifc_encoded_name_index result = {file, universal.value};
 
   result.value <<= 3;
   result.value |= encoded_sort;
@@ -13970,13 +13970,13 @@ Given the universal representation of NameIndex, return TRUE if the given index
 is considered a NULL index; otherwise, return FALSE.
 */
 {
-  a_boolean     result = FALSE;
-  an_ifc_module *mod = universal.mod;
+  a_boolean          result = FALSE;
+  an_ifc_module_file *file = universal.file;
 
-  if (mod == NULL) {
+  if (file == NULL) {
     result = TRUE;
   } else {
-    result = 0 == to_encoded(mod, universal);
+    result = 0 == to_encoded(file, universal);
   }  /* if */
   return result;
 }  /* is_null_index */
@@ -14007,7 +14007,7 @@ Given the versioned representation of PragmaIndex, return the extracted value.
 }  /* pragma_value */
 
 
-an_ifc_pragma_index to_universal_index(an_ifc_module            *mod,
+an_ifc_pragma_index to_universal_index(an_ifc_module_file       *file,
                                        an_ifc_pragma_index_0_33 versioned)
 /*
 Given the versioned representation of PragmaIndex and the associated module,
@@ -14017,19 +14017,19 @@ return the corresponding universal representation.
   an_ifc_pragma_sort sort = to_universal_sort(pragma_sort(versioned));
   uint32_t           index = pragma_value(versioned);
 
-  return an_ifc_pragma_index{mod, sort, index};
+  return an_ifc_pragma_index{file, sort, index};
 }  /* to_universal_index */
 
 
-an_ifc_encoded_pragma_index to_encoded(an_ifc_module       *mod,
+an_ifc_encoded_pragma_index to_encoded(an_ifc_module_file  *file,
                                        an_ifc_pragma_index universal)
 /*
-Given the universal representation of PragmaIndex and the destination module,
-return a reencoded index value.
+Given the universal representation of PragmaIndex and the destination module
+file, return a reencoded index value.
 */
 {
-  an_ifc_encoded_pragma_sort  encoded_sort = to_encoded(mod, universal.sort);
-  an_ifc_encoded_pragma_index result = {mod, universal.value};
+  an_ifc_encoded_pragma_sort  encoded_sort = to_encoded(file, universal.sort);
+  an_ifc_encoded_pragma_index result = {file, universal.value};
 
   result.value <<= 1;
   result.value |= encoded_sort;
@@ -14043,13 +14043,13 @@ Given the universal representation of PragmaIndex, return TRUE if the given
 index is considered a NULL index; otherwise, return FALSE.
 */
 {
-  a_boolean     result = FALSE;
-  an_ifc_module *mod = universal.mod;
+  a_boolean          result = FALSE;
+  an_ifc_module_file *file = universal.file;
 
-  if (mod == NULL) {
+  if (file == NULL) {
     result = TRUE;
   } else {
-    result = 0 == to_encoded(mod, universal);
+    result = 0 == to_encoded(file, universal);
   }  /* if */
   return result;
 }  /* is_null_index */
@@ -14080,7 +14080,7 @@ Given the versioned representation of StmtIndex, return the extracted value.
 }  /* stmt_value */
 
 
-an_ifc_stmt_index to_universal_index(an_ifc_module          *mod,
+an_ifc_stmt_index to_universal_index(an_ifc_module_file     *file,
                                      an_ifc_stmt_index_0_33 versioned)
 /*
 Given the versioned representation of StmtIndex and the associated module,
@@ -14090,7 +14090,7 @@ return the corresponding universal representation.
   an_ifc_stmt_sort sort = to_universal_sort(stmt_sort(versioned));
   uint32_t         index = stmt_value(versioned);
 
-  return an_ifc_stmt_index{mod, sort, index};
+  return an_ifc_stmt_index{file, sort, index};
 }  /* to_universal_index */
 
 
@@ -14114,7 +14114,7 @@ Given the versioned representation of StmtIndex, return the extracted value.
 }  /* stmt_value */
 
 
-an_ifc_stmt_index to_universal_index(an_ifc_module          *mod,
+an_ifc_stmt_index to_universal_index(an_ifc_module_file     *file,
                                      an_ifc_stmt_index_0_42 versioned)
 /*
 Given the versioned representation of StmtIndex and the associated module,
@@ -14124,19 +14124,19 @@ return the corresponding universal representation.
   an_ifc_stmt_sort sort = to_universal_sort(stmt_sort(versioned));
   uint32_t         index = stmt_value(versioned);
 
-  return an_ifc_stmt_index{mod, sort, index};
+  return an_ifc_stmt_index{file, sort, index};
 }  /* to_universal_index */
 
 
-an_ifc_encoded_stmt_index to_encoded(an_ifc_module     *mod,
-                                     an_ifc_stmt_index universal)
+an_ifc_encoded_stmt_index to_encoded(an_ifc_module_file *file,
+                                     an_ifc_stmt_index  universal)
 /*
-Given the universal representation of StmtIndex and the destination module,
-return a reencoded index value.
+Given the universal representation of StmtIndex and the destination module
+file, return a reencoded index value.
 */
 {
-  an_ifc_encoded_stmt_sort  encoded_sort = to_encoded(mod, universal.sort);
-  an_ifc_encoded_stmt_index result = {mod, universal.value};
+  an_ifc_encoded_stmt_sort  encoded_sort = to_encoded(file, universal.sort);
+  an_ifc_encoded_stmt_index result = {file, universal.value};
 
   result.value <<= 5;
   result.value |= encoded_sort;
@@ -14150,13 +14150,13 @@ Given the universal representation of StmtIndex, return TRUE if the given index
 is considered a NULL index; otherwise, return FALSE.
 */
 {
-  a_boolean     result = FALSE;
-  an_ifc_module *mod = universal.mod;
+  a_boolean          result = FALSE;
+  an_ifc_module_file *file = universal.file;
 
-  if (mod == NULL) {
+  if (file == NULL) {
     result = TRUE;
   } else {
-    result = 0 == to_encoded(mod, universal);
+    result = 0 == to_encoded(file, universal);
   }  /* if */
   return result;
 }  /* is_null_index */
@@ -14187,7 +14187,7 @@ Given the versioned representation of StringIndex, return the extracted value.
 }  /* string_value */
 
 
-an_ifc_string_index to_universal_index(an_ifc_module            *mod,
+an_ifc_string_index to_universal_index(an_ifc_module_file       *file,
                                        an_ifc_string_index_0_33 versioned)
 /*
 Given the versioned representation of StringIndex and the associated module,
@@ -14197,19 +14197,19 @@ return the corresponding universal representation.
   an_ifc_string_sort sort = to_universal_sort(string_sort(versioned));
   uint32_t           index = string_value(versioned);
 
-  return an_ifc_string_index{mod, sort, index};
+  return an_ifc_string_index{file, sort, index};
 }  /* to_universal_index */
 
 
-an_ifc_encoded_string_index to_encoded(an_ifc_module       *mod,
+an_ifc_encoded_string_index to_encoded(an_ifc_module_file  *file,
                                        an_ifc_string_index universal)
 /*
-Given the universal representation of StringIndex and the destination module,
-return a reencoded index value.
+Given the universal representation of StringIndex and the destination module
+file, return a reencoded index value.
 */
 {
-  an_ifc_encoded_string_sort  encoded_sort = to_encoded(mod, universal.sort);
-  an_ifc_encoded_string_index result = {mod, universal.value};
+  an_ifc_encoded_string_sort  encoded_sort = to_encoded(file, universal.sort);
+  an_ifc_encoded_string_index result = {file, universal.value};
 
   result.value <<= 3;
   result.value |= encoded_sort;
@@ -14223,13 +14223,13 @@ Given the universal representation of StringIndex, return TRUE if the given
 index is considered a NULL index; otherwise, return FALSE.
 */
 {
-  a_boolean     result = FALSE;
-  an_ifc_module *mod = universal.mod;
+  a_boolean          result = FALSE;
+  an_ifc_module_file *file = universal.file;
 
-  if (mod == NULL) {
+  if (file == NULL) {
     result = TRUE;
   } else {
-    result = 0 == to_encoded(mod, universal);
+    result = 0 == to_encoded(file, universal);
   }  /* if */
   return result;
 }  /* is_null_index */
@@ -14260,7 +14260,7 @@ Given the versioned representation of SyntaxIndex, return the extracted value.
 }  /* syntax_value */
 
 
-an_ifc_syntax_index to_universal_index(an_ifc_module            *mod,
+an_ifc_syntax_index to_universal_index(an_ifc_module_file       *file,
                                        an_ifc_syntax_index_0_33 versioned)
 /*
 Given the versioned representation of SyntaxIndex and the associated module,
@@ -14270,19 +14270,19 @@ return the corresponding universal representation.
   an_ifc_syntax_sort sort = to_universal_sort(syntax_sort(versioned));
   uint32_t           index = syntax_value(versioned);
 
-  return an_ifc_syntax_index{mod, sort, index};
+  return an_ifc_syntax_index{file, sort, index};
 }  /* to_universal_index */
 
 
-an_ifc_encoded_syntax_index to_encoded(an_ifc_module       *mod,
+an_ifc_encoded_syntax_index to_encoded(an_ifc_module_file  *file,
                                        an_ifc_syntax_index universal)
 /*
-Given the universal representation of SyntaxIndex and the destination module,
-return a reencoded index value.
+Given the universal representation of SyntaxIndex and the destination module
+file, return a reencoded index value.
 */
 {
-  an_ifc_encoded_syntax_sort  encoded_sort = to_encoded(mod, universal.sort);
-  an_ifc_encoded_syntax_index result = {mod, universal.value};
+  an_ifc_encoded_syntax_sort  encoded_sort = to_encoded(file, universal.sort);
+  an_ifc_encoded_syntax_index result = {file, universal.value};
 
   result.value <<= 7;
   result.value |= encoded_sort;
@@ -14296,13 +14296,13 @@ Given the universal representation of SyntaxIndex, return TRUE if the given
 index is considered a NULL index; otherwise, return FALSE.
 */
 {
-  a_boolean     result = FALSE;
-  an_ifc_module *mod = universal.mod;
+  a_boolean          result = FALSE;
+  an_ifc_module_file *file = universal.file;
 
-  if (mod == NULL) {
+  if (file == NULL) {
     result = TRUE;
   } else {
-    result = 0 == to_encoded(mod, universal);
+    result = 0 == to_encoded(file, universal);
   }  /* if */
   return result;
 }  /* is_null_index */
@@ -14333,7 +14333,7 @@ Given the versioned representation of TypeIndex, return the extracted value.
 }  /* type_value */
 
 
-an_ifc_type_index to_universal_index(an_ifc_module          *mod,
+an_ifc_type_index to_universal_index(an_ifc_module_file     *file,
                                      an_ifc_type_index_0_33 versioned)
 /*
 Given the versioned representation of TypeIndex and the associated module,
@@ -14343,19 +14343,19 @@ return the corresponding universal representation.
   an_ifc_type_sort sort = to_universal_sort(type_sort(versioned));
   uint32_t         index = type_value(versioned);
 
-  return an_ifc_type_index{mod, sort, index};
+  return an_ifc_type_index{file, sort, index};
 }  /* to_universal_index */
 
 
-an_ifc_encoded_type_index to_encoded(an_ifc_module     *mod,
-                                     an_ifc_type_index universal)
+an_ifc_encoded_type_index to_encoded(an_ifc_module_file *file,
+                                     an_ifc_type_index  universal)
 /*
-Given the universal representation of TypeIndex and the destination module,
-return a reencoded index value.
+Given the universal representation of TypeIndex and the destination module
+file, return a reencoded index value.
 */
 {
-  an_ifc_encoded_type_sort  encoded_sort = to_encoded(mod, universal.sort);
-  an_ifc_encoded_type_index result = {mod, universal.value};
+  an_ifc_encoded_type_sort  encoded_sort = to_encoded(file, universal.sort);
+  an_ifc_encoded_type_index result = {file, universal.value};
 
   result.value <<= 5;
   result.value |= encoded_sort;
@@ -14369,13 +14369,13 @@ Given the universal representation of TypeIndex, return TRUE if the given index
 is considered a NULL index; otherwise, return FALSE.
 */
 {
-  a_boolean     result = FALSE;
-  an_ifc_module *mod = universal.mod;
+  a_boolean          result = FALSE;
+  an_ifc_module_file *file = universal.file;
 
-  if (mod == NULL) {
+  if (file == NULL) {
     result = TRUE;
   } else {
-    result = 0 == to_encoded(mod, universal);
+    result = 0 == to_encoded(file, universal);
   }  /* if */
   return result;
 }  /* is_null_index */
@@ -14406,7 +14406,7 @@ Given the versioned representation of UnitIndex, return the extracted value.
 }  /* unit_value */
 
 
-an_ifc_unit_index to_universal_index(an_ifc_module          *mod,
+an_ifc_unit_index to_universal_index(an_ifc_module_file     *file,
                                      an_ifc_unit_index_0_33 versioned)
 /*
 Given the versioned representation of UnitIndex and the associated module,
@@ -14416,19 +14416,19 @@ return the corresponding universal representation.
   an_ifc_unit_sort sort = to_universal_sort(unit_sort(versioned));
   uint32_t         index = unit_value(versioned);
 
-  return an_ifc_unit_index{mod, sort, index};
+  return an_ifc_unit_index{file, sort, index};
 }  /* to_universal_index */
 
 
-an_ifc_encoded_unit_index to_encoded(an_ifc_module     *mod,
-                                     an_ifc_unit_index universal)
+an_ifc_encoded_unit_index to_encoded(an_ifc_module_file *file,
+                                     an_ifc_unit_index  universal)
 /*
-Given the universal representation of UnitIndex and the destination module,
-return a reencoded index value.
+Given the universal representation of UnitIndex and the destination module
+file, return a reencoded index value.
 */
 {
-  an_ifc_encoded_unit_sort  encoded_sort = to_encoded(mod, universal.sort);
-  an_ifc_encoded_unit_index result = {mod, universal.value};
+  an_ifc_encoded_unit_sort  encoded_sort = to_encoded(file, universal.sort);
+  an_ifc_encoded_unit_index result = {file, universal.value};
 
   result.value <<= 3;
   result.value |= encoded_sort;
@@ -14442,13 +14442,13 @@ Given the universal representation of UnitIndex, return TRUE if the given index
 is considered a NULL index; otherwise, return FALSE.
 */
 {
-  a_boolean     result = FALSE;
-  an_ifc_module *mod = universal.mod;
+  a_boolean          result = FALSE;
+  an_ifc_module_file *file = universal.file;
 
-  if (mod == NULL) {
+  if (file == NULL) {
     result = TRUE;
   } else {
-    result = 0 == to_encoded(mod, universal);
+    result = 0 == to_encoded(file, universal);
   }  /* if */
   return result;
 }  /* is_null_index */
@@ -14459,38 +14459,38 @@ Functions for interacting with IFC DeclForeignIndex indexes.
 */
 
 
-an_ifc_decl_index to_universal_index(an_ifc_module                  *mod,
+an_ifc_decl_index to_universal_index(an_ifc_module_file             *file,
                                      an_ifc_decl_foreign_index_0_33 versioned)
 /*
-Given the foreign representation of DeclForeignIndex and the associated module,
-return the corresponding universal representation.
+Given the foreign representation of DeclForeignIndex and the associated module
+file, return the corresponding universal representation.
 */
 {
   an_ifc_decl_index result;
 
-  if (is_at_least(mod, 0, 43)) {
+  if (is_at_least(file, 0, 43)) {
     an_ifc_decl_index_0_43 versioned_index = (an_ifc_decl_index_0_43)versioned;
 
-    result = to_universal_index(mod, versioned_index);
-  } else if (is_at_least(mod, 0, 41)) {
+    result = to_universal_index(file, versioned_index);
+  } else if (is_at_least(file, 0, 41)) {
     an_ifc_decl_index_0_41 versioned_index = (an_ifc_decl_index_0_41)versioned;
 
-    result = to_universal_index(mod, versioned_index);
+    result = to_universal_index(file, versioned_index);
   } else {
     an_ifc_decl_index_0_33 versioned_index = (an_ifc_decl_index_0_33)versioned;
 
-    result = to_universal_index(mod, versioned_index);
+    result = to_universal_index(file, versioned_index);
   }  /* if */
   return result;
 }  /* to_universal_index */
 
 
-an_ifc_decl_index to_universal_index(an_ifc_module             *foreign_mod,
+an_ifc_decl_index to_universal_index(an_ifc_module_file        *foreign_file,
                                      an_ifc_decl_foreign_index universal)
 /*
 Given the universal foreign representation of DeclForeignIndex and the foreign
-module (which owns the interpretation of the foreign representation), return
-the corresponding universal representation of the index.
+module file (which owns the interpretation of the foreign representation),
+return the corresponding universal representation of the index.
 */
 {
   an_ifc_decl_index result;
@@ -14498,7 +14498,7 @@ the corresponding universal representation of the index.
   an_ifc_decl_foreign_index_0_33 versioned_index =
                                (an_ifc_decl_foreign_index_0_33)universal.value;
 
-  result = to_universal_index(foreign_mod, versioned_index);
+  result = to_universal_index(foreign_file, versioned_index);
   return result;
 }  /* to_universal_index */
 
@@ -14516,7 +14516,7 @@ the given bitfield is considered a NULL index; otherwise, return FALSE.
 {
   a_boolean result = FALSE;
 
-  if (universal.mod == NULL || universal.value == 0) {
+  if (universal.file == NULL || universal.value == 0) {
     result = TRUE;
   }  /* if */
   return result;
@@ -14577,7 +14577,7 @@ the given bitfield is considered a NULL index; otherwise, return FALSE.
 {
   a_boolean result = FALSE;
 
-  if (universal.mod == NULL || universal.value == 0) {
+  if (universal.file == NULL || universal.value == 0) {
     result = TRUE;
   }  /* if */
   return result;
@@ -14647,7 +14647,7 @@ if the given bitfield is considered a NULL index; otherwise, return FALSE.
 {
   a_boolean result = FALSE;
 
-  if (universal.mod == NULL || universal.value == 0) {
+  if (universal.file == NULL || universal.value == 0) {
     result = TRUE;
   }  /* if */
   return result;
@@ -14696,7 +14696,7 @@ given bitfield is considered a NULL index; otherwise, return FALSE.
 {
   a_boolean result = FALSE;
 
-  if (universal.mod == NULL || universal.value == 0) {
+  if (universal.file == NULL || universal.value == 0) {
     result = TRUE;
   }  /* if */
   return result;
@@ -14784,7 +14784,7 @@ given bitfield is considered a NULL index; otherwise, return FALSE.
 {
   a_boolean result = FALSE;
 
-  if (universal.mod == NULL || universal.value == 0) {
+  if (universal.file == NULL || universal.value == 0) {
     result = TRUE;
   }  /* if */
   return result;
@@ -14839,7 +14839,7 @@ given bitfield is considered a NULL index; otherwise, return FALSE.
 {
   a_boolean result = FALSE;
 
-  if (universal.mod == NULL || universal.value == 0) {
+  if (universal.file == NULL || universal.value == 0) {
     result = TRUE;
   }  /* if */
   return result;
@@ -14885,7 +14885,7 @@ if the given bitfield is considered a NULL index; otherwise, return FALSE.
 {
   a_boolean result = FALSE;
 
-  if (universal.mod == NULL || universal.value == 0) {
+  if (universal.file == NULL || universal.value == 0) {
     result = TRUE;
   }  /* if */
   return result;
@@ -14934,7 +14934,7 @@ given bitfield is considered a NULL index; otherwise, return FALSE.
 {
   a_boolean result = FALSE;
 
-  if (universal.mod == NULL || universal.value == 0) {
+  if (universal.file == NULL || universal.value == 0) {
     result = TRUE;
   }  /* if */
   return result;
@@ -15004,7 +15004,7 @@ value.
 
 
 an_ifc_operator_category to_universal_category(
-                                       an_ifc_module                 *mod,
+                                       an_ifc_module_file            *file,
                                        an_ifc_operator_category_0_33 versioned)
 /*
 Given the versioned representation of OperatorCategory, return the
@@ -15100,7 +15100,7 @@ value.
 
 
 an_ifc_operator_category to_universal_category(
-                                       an_ifc_module                 *mod,
+                                       an_ifc_module_file            *file,
                                        an_ifc_operator_category_0_42 versioned)
 /*
 Given the versioned representation of OperatorCategory, return the
@@ -15196,7 +15196,7 @@ value.
 
 
 an_ifc_operator_category to_universal_category(
-                                       an_ifc_module                 *mod,
+                                       an_ifc_module_file            *file,
                                        an_ifc_operator_category_0_43 versioned)
 /*
 Given the versioned representation of OperatorCategory, return the
@@ -15298,7 +15298,7 @@ extracted value.
 
 
 an_ifc_source_identifier_category to_universal_category(
-                              an_ifc_module                          *mod,
+                              an_ifc_module_file                     *file,
                               an_ifc_source_identifier_category_0_33 versioned)
 /*
 Given the versioned representation of SourceIdentifierCategory, return the
@@ -15318,7 +15318,7 @@ corresponding universal representation.
                               (an_ifc_source_unknown_identifier_0_33)raw_value;
         an_ifc_source_unknown_identifier      universal_value;
 
-        universal_value = {mod,
+        universal_value = {file,
                     (an_ifc_source_unknown_identifier_storage)versioned_value};
         result.variant.msvc = universal_value;
       }
@@ -15328,7 +15328,7 @@ corresponding universal representation.
                               (an_ifc_source_unknown_identifier_0_33)raw_value;
         an_ifc_source_unknown_identifier      universal_value;
 
-        universal_value = {mod,
+        universal_value = {file,
                     (an_ifc_source_unknown_identifier_storage)versioned_value};
         result.variant.msvc_builtin_huge_val = universal_value;
       }
@@ -15338,7 +15338,7 @@ corresponding universal representation.
                               (an_ifc_source_unknown_identifier_0_33)raw_value;
         an_ifc_source_unknown_identifier      universal_value;
 
-        universal_value = {mod,
+        universal_value = {file,
                     (an_ifc_source_unknown_identifier_storage)versioned_value};
         result.variant.msvc_builtin_huge_valf = universal_value;
       }
@@ -15348,7 +15348,7 @@ corresponding universal representation.
                               (an_ifc_source_unknown_identifier_0_33)raw_value;
         an_ifc_source_unknown_identifier      universal_value;
 
-        universal_value = {mod,
+        universal_value = {file,
                     (an_ifc_source_unknown_identifier_storage)versioned_value};
         result.variant.msvc_builtin_nan = universal_value;
       }
@@ -15358,7 +15358,7 @@ corresponding universal representation.
                               (an_ifc_source_unknown_identifier_0_33)raw_value;
         an_ifc_source_unknown_identifier      universal_value;
 
-        universal_value = {mod,
+        universal_value = {file,
                     (an_ifc_source_unknown_identifier_storage)versioned_value};
         result.variant.msvc_builtin_nanf = universal_value;
       }
@@ -15368,7 +15368,7 @@ corresponding universal representation.
                               (an_ifc_source_unknown_identifier_0_33)raw_value;
         an_ifc_source_unknown_identifier      universal_value;
 
-        universal_value = {mod,
+        universal_value = {file,
                     (an_ifc_source_unknown_identifier_storage)versioned_value};
         result.variant.msvc_builtin_nans = universal_value;
       }
@@ -15378,7 +15378,7 @@ corresponding universal representation.
                               (an_ifc_source_unknown_identifier_0_33)raw_value;
         an_ifc_source_unknown_identifier      universal_value;
 
-        universal_value = {mod,
+        universal_value = {file,
                     (an_ifc_source_unknown_identifier_storage)versioned_value};
         result.variant.msvc_builtin_nansf = universal_value;
       }
@@ -15388,7 +15388,7 @@ corresponding universal representation.
                                             (an_ifc_text_offset_0_33)raw_value;
         an_ifc_text_offset      universal_value;
 
-        universal_value = {mod, (an_ifc_text_offset_storage)versioned_value};
+        universal_value = {file, (an_ifc_text_offset_storage)versioned_value};
         result.variant.plain = universal_value;
       }
       break;
@@ -15426,7 +15426,7 @@ extracted value.
 
 
 an_ifc_source_literal_category to_universal_category(
-                                 an_ifc_module                       *mod,
+                                 an_ifc_module_file                  *file,
                                  an_ifc_source_literal_category_0_33 versioned)
 /*
 Given the versioned representation of SourceLiteralCategory, return the
@@ -15445,7 +15445,7 @@ corresponding universal representation.
                                            (an_ifc_string_index_0_33)raw_value;
         an_ifc_string_index      universal_value;
 
-        universal_value = to_universal_index(mod, versioned_value);
+        universal_value = to_universal_index(file, versioned_value);
         result.variant.defined_string = universal_value;
       }
       break;
@@ -15454,7 +15454,7 @@ corresponding universal representation.
                                  (an_ifc_source_unknown_literal_0_33)raw_value;
         an_ifc_source_unknown_literal      universal_value;
 
-        universal_value = {mod,
+        universal_value = {file,
                        (an_ifc_source_unknown_literal_storage)versioned_value};
         result.variant.msvc = universal_value;
       }
@@ -15464,7 +15464,7 @@ corresponding universal representation.
                                              (an_ifc_expr_index_0_33)raw_value;
         an_ifc_expr_index      universal_value;
 
-        universal_value = to_universal_index(mod, versioned_value);
+        universal_value = to_universal_index(file, versioned_value);
         result.variant.msvc_binding = universal_value;
       }
       break;
@@ -15473,7 +15473,7 @@ corresponding universal representation.
                                              (an_ifc_type_index_0_33)raw_value;
         an_ifc_type_index      universal_value;
 
-        universal_value = to_universal_index(mod, versioned_value);
+        universal_value = to_universal_index(file, versioned_value);
         result.variant.msvc_cast_target_type = universal_value;
       }
       break;
@@ -15482,7 +15482,7 @@ corresponding universal representation.
                                              (an_ifc_expr_index_0_33)raw_value;
         an_ifc_expr_index      universal_value;
 
-        universal_value = to_universal_index(mod, versioned_value);
+        universal_value = to_universal_index(file, versioned_value);
         result.variant.msvc_defined_constant = universal_value;
       }
       break;
@@ -15491,7 +15491,7 @@ corresponding universal representation.
                                             (an_ifc_text_offset_0_33)raw_value;
         an_ifc_text_offset      universal_value;
 
-        universal_value = {mod, (an_ifc_text_offset_storage)versioned_value};
+        universal_value = {file, (an_ifc_text_offset_storage)versioned_value};
         result.variant.msvc_function_name_macro = universal_value;
       }
       break;
@@ -15500,7 +15500,7 @@ corresponding universal representation.
                                              (an_ifc_type_index_0_33)raw_value;
         an_ifc_type_index      universal_value;
 
-        universal_value = to_universal_index(mod, versioned_value);
+        universal_value = to_universal_index(file, versioned_value);
         result.variant.msvc_resolved_type = universal_value;
       }
       break;
@@ -15509,7 +15509,7 @@ corresponding universal representation.
                                             (an_ifc_text_offset_0_33)raw_value;
         an_ifc_text_offset      universal_value;
 
-        universal_value = {mod, (an_ifc_text_offset_storage)versioned_value};
+        universal_value = {file, (an_ifc_text_offset_storage)versioned_value};
         result.variant.msvc_string_prefix_macro = universal_value;
       }
       break;
@@ -15518,7 +15518,7 @@ corresponding universal representation.
                                              (an_ifc_expr_index_0_33)raw_value;
         an_ifc_expr_index      universal_value;
 
-        universal_value = to_universal_index(mod, versioned_value);
+        universal_value = to_universal_index(file, versioned_value);
         result.variant.scalar = universal_value;
       }
       break;
@@ -15527,7 +15527,7 @@ corresponding universal representation.
                                            (an_ifc_string_index_0_33)raw_value;
         an_ifc_string_index      universal_value;
 
-        universal_value = to_universal_index(mod, versioned_value);
+        universal_value = to_universal_index(file, versioned_value);
         result.variant.string = universal_value;
       }
       break;
@@ -15536,7 +15536,7 @@ corresponding universal representation.
                                  (an_ifc_source_unknown_literal_0_33)raw_value;
         an_ifc_source_unknown_literal      universal_value;
 
-        universal_value = {mod,
+        universal_value = {file,
                        (an_ifc_source_unknown_literal_storage)versioned_value};
         result.variant.unknown = universal_value;
       }
@@ -15570,7 +15570,7 @@ extracted value.
 
 
 an_ifc_source_literal_category to_universal_category(
-                                 an_ifc_module                       *mod,
+                                 an_ifc_module_file                  *file,
                                  an_ifc_source_literal_category_0_42 versioned)
 /*
 Given the versioned representation of SourceLiteralCategory, return the
@@ -15589,7 +15589,7 @@ corresponding universal representation.
                                            (an_ifc_string_index_0_33)raw_value;
         an_ifc_string_index      universal_value;
 
-        universal_value = to_universal_index(mod, versioned_value);
+        universal_value = to_universal_index(file, versioned_value);
         result.variant.defined_string = universal_value;
       }
       break;
@@ -15598,7 +15598,7 @@ corresponding universal representation.
                                  (an_ifc_source_unknown_literal_0_33)raw_value;
         an_ifc_source_unknown_literal      universal_value;
 
-        universal_value = {mod,
+        universal_value = {file,
                        (an_ifc_source_unknown_literal_storage)versioned_value};
         result.variant.msvc = universal_value;
       }
@@ -15608,7 +15608,7 @@ corresponding universal representation.
                                              (an_ifc_expr_index_0_42)raw_value;
         an_ifc_expr_index      universal_value;
 
-        universal_value = to_universal_index(mod, versioned_value);
+        universal_value = to_universal_index(file, versioned_value);
         result.variant.msvc_binding = universal_value;
       }
       break;
@@ -15617,7 +15617,7 @@ corresponding universal representation.
                                              (an_ifc_type_index_0_33)raw_value;
         an_ifc_type_index      universal_value;
 
-        universal_value = to_universal_index(mod, versioned_value);
+        universal_value = to_universal_index(file, versioned_value);
         result.variant.msvc_cast_target_type = universal_value;
       }
       break;
@@ -15626,7 +15626,7 @@ corresponding universal representation.
                                              (an_ifc_expr_index_0_42)raw_value;
         an_ifc_expr_index      universal_value;
 
-        universal_value = to_universal_index(mod, versioned_value);
+        universal_value = to_universal_index(file, versioned_value);
         result.variant.msvc_defined_constant = universal_value;
       }
       break;
@@ -15635,7 +15635,7 @@ corresponding universal representation.
                                             (an_ifc_text_offset_0_33)raw_value;
         an_ifc_text_offset      universal_value;
 
-        universal_value = {mod, (an_ifc_text_offset_storage)versioned_value};
+        universal_value = {file, (an_ifc_text_offset_storage)versioned_value};
         result.variant.msvc_function_name_macro = universal_value;
       }
       break;
@@ -15644,7 +15644,7 @@ corresponding universal representation.
                                              (an_ifc_type_index_0_33)raw_value;
         an_ifc_type_index      universal_value;
 
-        universal_value = to_universal_index(mod, versioned_value);
+        universal_value = to_universal_index(file, versioned_value);
         result.variant.msvc_resolved_type = universal_value;
       }
       break;
@@ -15653,7 +15653,7 @@ corresponding universal representation.
                                             (an_ifc_text_offset_0_33)raw_value;
         an_ifc_text_offset      universal_value;
 
-        universal_value = {mod, (an_ifc_text_offset_storage)versioned_value};
+        universal_value = {file, (an_ifc_text_offset_storage)versioned_value};
         result.variant.msvc_string_prefix_macro = universal_value;
       }
       break;
@@ -15662,7 +15662,7 @@ corresponding universal representation.
                                              (an_ifc_expr_index_0_42)raw_value;
         an_ifc_expr_index      universal_value;
 
-        universal_value = to_universal_index(mod, versioned_value);
+        universal_value = to_universal_index(file, versioned_value);
         result.variant.scalar = universal_value;
       }
       break;
@@ -15671,7 +15671,7 @@ corresponding universal representation.
                                            (an_ifc_string_index_0_33)raw_value;
         an_ifc_string_index      universal_value;
 
-        universal_value = to_universal_index(mod, versioned_value);
+        universal_value = to_universal_index(file, versioned_value);
         result.variant.string = universal_value;
       }
       break;
@@ -15680,7 +15680,7 @@ corresponding universal representation.
                                  (an_ifc_source_unknown_literal_0_33)raw_value;
         an_ifc_source_unknown_literal      universal_value;
 
-        universal_value = {mod,
+        universal_value = {file,
                        (an_ifc_source_unknown_literal_storage)versioned_value};
         result.variant.unknown = universal_value;
       }
@@ -15716,7 +15716,7 @@ Given the versioned representation of WordCategory, return the extracted value.
 }  /* word_value */
 
 
-an_ifc_word_category to_universal_category(an_ifc_module             *mod,
+an_ifc_word_category to_universal_category(an_ifc_module_file        *file,
                                            an_ifc_word_category_0_33 versioned)
 /*
 Given the versioned representation of WordCategory, return the corresponding
@@ -15743,7 +15743,7 @@ universal representation.
                              (an_ifc_source_identifier_category_0_33)raw_value;
         an_ifc_source_identifier_category      universal_value;
 
-        universal_value = to_universal_category(mod, versioned_value);
+        universal_value = to_universal_category(file, versioned_value);
         result.variant.source_identifier = universal_value;
       }
       break;
@@ -15761,7 +15761,7 @@ universal representation.
                                 (an_ifc_source_literal_category_0_33)raw_value;
         an_ifc_source_literal_category      universal_value;
 
-        universal_value = to_universal_category(mod, versioned_value);
+        universal_value = to_universal_category(file, versioned_value);
         result.variant.source_literal = universal_value;
       }
       break;
@@ -15788,7 +15788,7 @@ universal representation.
                                     (an_ifc_source_unknown_word_0_33)raw_value;
         an_ifc_source_unknown_word      universal_value;
 
-        universal_value = {mod,
+        universal_value = {file,
                           (an_ifc_source_unknown_word_storage)versioned_value};
         result.variant.unknown = universal_value;
       }
@@ -15819,7 +15819,7 @@ Given the versioned representation of WordCategory, return the extracted value.
 }  /* word_value */
 
 
-an_ifc_word_category to_universal_category(an_ifc_module             *mod,
+an_ifc_word_category to_universal_category(an_ifc_module_file        *file,
                                            an_ifc_word_category_0_42 versioned)
 /*
 Given the versioned representation of WordCategory, return the corresponding
@@ -15846,7 +15846,7 @@ universal representation.
                              (an_ifc_source_identifier_category_0_33)raw_value;
         an_ifc_source_identifier_category      universal_value;
 
-        universal_value = to_universal_category(mod, versioned_value);
+        universal_value = to_universal_category(file, versioned_value);
         result.variant.source_identifier = universal_value;
       }
       break;
@@ -15864,7 +15864,7 @@ universal representation.
                                 (an_ifc_source_literal_category_0_42)raw_value;
         an_ifc_source_literal_category      universal_value;
 
-        universal_value = to_universal_category(mod, versioned_value);
+        universal_value = to_universal_category(file, versioned_value);
         result.variant.source_literal = universal_value;
       }
       break;
@@ -15891,7 +15891,7 @@ universal representation.
                                     (an_ifc_source_unknown_word_0_33)raw_value;
         an_ifc_source_unknown_word      universal_value;
 
-        universal_value = {mod,
+        universal_value = {file,
                           (an_ifc_source_unknown_word_storage)versioned_value};
         result.variant.unknown = universal_value;
       }
@@ -15904,12 +15904,11 @@ universal representation.
 
 template<>
 an_ifc_file_header_storage* get<an_ifc_file_header_storage>(
-                                       an_ifc_module              *mod,
+                                       an_ifc_module_file         *file,
                                        an_ifc_file_header_storage *storage,
                                        a_boolean                  fill_storage)
 /*
-Retrieve an instance of FileHeader from the IFC module file associated with
-mod.
+Retrieve an instance of FileHeader from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -15929,42 +15928,42 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_file_header_storage;
   if (host_little_endian) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/69);
+      memcpy(*storage, file->byte_buffer, /*size=*/69);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* checksum */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/32, /*from_header=*/TRUE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/32, /*from_header=*/TRUE);
     /* major_version */
-    get_bytes(mod, (*storage) + 32, /*num_bytes=*/1, /*from_header=*/TRUE);
+    get_bytes(file, (*storage) + 32, /*num_bytes=*/1, /*from_header=*/TRUE);
     /* minor_version */
-    get_bytes(mod, (*storage) + 33, /*num_bytes=*/1, /*from_header=*/TRUE);
+    get_bytes(file, (*storage) + 33, /*num_bytes=*/1, /*from_header=*/TRUE);
     /* abi */
-    get_bytes(mod, (*storage) + 34, /*num_bytes=*/1, /*from_header=*/TRUE);
+    get_bytes(file, (*storage) + 34, /*num_bytes=*/1, /*from_header=*/TRUE);
     /* arch */
-    get_bytes(mod, (*storage) + 35, /*num_bytes=*/1, /*from_header=*/TRUE);
+    get_bytes(file, (*storage) + 35, /*num_bytes=*/1, /*from_header=*/TRUE);
     /* dialect */
-    get_bytes(mod, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/TRUE);
+    get_bytes(file, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/TRUE);
     /* string_table_bytes */
-    get_bytes(mod, (*storage) + 40, /*num_bytes=*/4, /*from_header=*/TRUE);
+    get_bytes(file, (*storage) + 40, /*num_bytes=*/4, /*from_header=*/TRUE);
     /* string_table_size */
-    get_bytes(mod, (*storage) + 44, /*num_bytes=*/4, /*from_header=*/TRUE);
+    get_bytes(file, (*storage) + 44, /*num_bytes=*/4, /*from_header=*/TRUE);
     /* unit */
-    get_bytes(mod, (*storage) + 48, /*num_bytes=*/4, /*from_header=*/TRUE);
+    get_bytes(file, (*storage) + 48, /*num_bytes=*/4, /*from_header=*/TRUE);
     /* src_path */
-    get_bytes(mod, (*storage) + 52, /*num_bytes=*/4, /*from_header=*/TRUE);
+    get_bytes(file, (*storage) + 52, /*num_bytes=*/4, /*from_header=*/TRUE);
     /* global_scope */
-    get_bytes(mod, (*storage) + 56, /*num_bytes=*/4, /*from_header=*/TRUE);
+    get_bytes(file, (*storage) + 56, /*num_bytes=*/4, /*from_header=*/TRUE);
     /* toc */
-    get_bytes(mod, (*storage) + 60, /*num_bytes=*/4, /*from_header=*/TRUE);
+    get_bytes(file, (*storage) + 60, /*num_bytes=*/4, /*from_header=*/TRUE);
     /* partition_count */
-    get_bytes(mod, (*storage) + 64, /*num_bytes=*/4, /*from_header=*/TRUE);
+    get_bytes(file, (*storage) + 64, /*num_bytes=*/4, /*from_header=*/TRUE);
     /* internal */
-    get_bytes(mod, (*storage) + 68, /*num_bytes=*/1, /*from_header=*/TRUE);
+    get_bytes(file, (*storage) + 68, /*num_bytes=*/1, /*from_header=*/TRUE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_file_header_storage> */
@@ -15972,11 +15971,11 @@ the storage specified by the storage argument).
 
 template<>
 an_ifc_partition_storage* get<an_ifc_partition_storage>(
-                                         an_ifc_module            *mod,
+                                         an_ifc_module_file       *file,
                                          an_ifc_partition_storage *storage,
                                          a_boolean                fill_storage)
 /*
-Retrieve an instance of Partition from the IFC module file associated with mod.
+Retrieve an instance of Partition from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -15996,22 +15995,22 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_partition_storage;
   if (host_little_endian) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/TRUE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/TRUE);
     /* offset */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/TRUE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/TRUE);
     /* cardinality */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/TRUE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/TRUE);
     /* entry_size */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/TRUE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/TRUE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_partition_storage> */
@@ -16019,11 +16018,11 @@ the storage specified by the storage argument).
 
 template<>
 an_ifc_attr_basic_storage* get<an_ifc_attr_basic_storage>(
-                                        an_ifc_module             *mod,
+                                        an_ifc_module_file        *file,
                                         an_ifc_attr_basic_storage *storage,
                                         a_boolean                 fill_storage)
 /*
-Retrieve an instance of AttrBasic from the IFC module file associated with mod.
+Retrieve an instance of AttrBasic from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -16041,26 +16040,26 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_attr_basic_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* word.locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* word.locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* word.index */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* word.value */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/2, /*from_header=*/FALSE);
     /* word.sort */
-    get_bytes(mod, (*storage) + 14, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 14, /*num_bytes=*/2, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_attr_basic_storage> */
@@ -16078,12 +16077,11 @@ Return the corresponding partition kind for AttrBasic.
 
 template<>
 an_ifc_attr_called_storage* get<an_ifc_attr_called_storage>(
-                                       an_ifc_module              *mod,
+                                       an_ifc_module_file         *file,
                                        an_ifc_attr_called_storage *storage,
                                        a_boolean                  fill_storage)
 /*
-Retrieve an instance of AttrCalled from the IFC module file associated with
-mod.
+Retrieve an instance of AttrCalled from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -16101,20 +16099,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_attr_called_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* function */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* arguments */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_attr_called_storage> */
@@ -16132,12 +16130,11 @@ Return the corresponding partition kind for AttrCalled.
 
 template<>
 an_ifc_attr_elaborated_storage* get<an_ifc_attr_elaborated_storage>(
-                                   an_ifc_module                  *mod,
+                                   an_ifc_module_file             *file,
                                    an_ifc_attr_elaborated_storage *storage,
                                    a_boolean                      fill_storage)
 /*
-Retrieve an instance of AttrElaborated from the IFC module file associated with
-mod.
+Retrieve an instance of AttrElaborated from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -16155,18 +16152,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_attr_elaborated_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* expression */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_attr_elaborated_storage> */
@@ -16184,12 +16181,11 @@ Return the corresponding partition kind for AttrElaborated.
 
 template<>
 an_ifc_attr_expanded_storage* get<an_ifc_attr_expanded_storage>(
-                                     an_ifc_module                *mod,
+                                     an_ifc_module_file           *file,
                                      an_ifc_attr_expanded_storage *storage,
                                      a_boolean                    fill_storage)
 /*
-Retrieve an instance of AttrExpanded from the IFC module file associated with
-mod.
+Retrieve an instance of AttrExpanded from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -16207,18 +16203,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_attr_expanded_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* operand */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_attr_expanded_storage> */
@@ -16236,12 +16232,11 @@ Return the corresponding partition kind for AttrExpanded.
 
 template<>
 an_ifc_attr_factored_storage* get<an_ifc_attr_factored_storage>(
-                                     an_ifc_module                *mod,
+                                     an_ifc_module_file           *file,
                                      an_ifc_attr_factored_storage *storage,
                                      a_boolean                    fill_storage)
 /*
-Retrieve an instance of AttrFactored from the IFC module file associated with
-mod.
+Retrieve an instance of AttrFactored from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -16259,28 +16254,28 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_attr_factored_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* factor.locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* factor.locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* factor.index */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* factor.value */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/2, /*from_header=*/FALSE);
     /* factor.sort */
-    get_bytes(mod, (*storage) + 14, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 14, /*num_bytes=*/2, /*from_header=*/FALSE);
     /* terms */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_attr_factored_storage> */
@@ -16298,12 +16293,11 @@ Return the corresponding partition kind for AttrFactored.
 
 template<>
 an_ifc_attr_labeled_storage* get<an_ifc_attr_labeled_storage>(
-                                      an_ifc_module               *mod,
+                                      an_ifc_module_file          *file,
                                       an_ifc_attr_labeled_storage *storage,
                                       a_boolean                   fill_storage)
 /*
-Retrieve an instance of AttrLabeled from the IFC module file associated with
-mod.
+Retrieve an instance of AttrLabeled from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -16321,28 +16315,28 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_attr_labeled_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* label.locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* label.locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* label.index */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* label.value */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/2, /*from_header=*/FALSE);
     /* label.sort */
-    get_bytes(mod, (*storage) + 14, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 14, /*num_bytes=*/2, /*from_header=*/FALSE);
     /* attribute */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_attr_labeled_storage> */
@@ -16360,12 +16354,11 @@ Return the corresponding partition kind for AttrLabeled.
 
 template<>
 an_ifc_attr_scoped_storage* get<an_ifc_attr_scoped_storage>(
-                                       an_ifc_module              *mod,
+                                       an_ifc_module_file         *file,
                                        an_ifc_attr_scoped_storage *storage,
                                        a_boolean                  fill_storage)
 /*
-Retrieve an instance of AttrScoped from the IFC module file associated with
-mod.
+Retrieve an instance of AttrScoped from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -16383,36 +16376,36 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_attr_scoped_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/32);
+      memcpy(*storage, file->byte_buffer, /*size=*/32);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* scope.locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* scope.locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* scope.index */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* scope.value */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/2, /*from_header=*/FALSE);
     /* scope.sort */
-    get_bytes(mod, (*storage) + 14, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 14, /*num_bytes=*/2, /*from_header=*/FALSE);
     /* member.locus.line */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* member.locus.column */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* member.index */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* member.value */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/2, /*from_header=*/FALSE);
     /* member.sort */
-    get_bytes(mod, (*storage) + 30, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 30, /*num_bytes=*/2, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_attr_scoped_storage> */
@@ -16430,11 +16423,11 @@ Return the corresponding partition kind for AttrScoped.
 
 template<>
 an_ifc_attr_tuple_storage* get<an_ifc_attr_tuple_storage>(
-                                        an_ifc_module             *mod,
+                                        an_ifc_module_file        *file,
                                         an_ifc_attr_tuple_storage *storage,
                                         a_boolean                 fill_storage)
 /*
-Retrieve an instance of AttrTuple from the IFC module file associated with mod.
+Retrieve an instance of AttrTuple from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -16452,20 +16445,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_attr_tuple_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* start */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* cardinality */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_attr_tuple_storage> */
@@ -16483,12 +16476,11 @@ Return the corresponding partition kind for AttrTuple.
 
 template<>
 an_ifc_chart_multilevel_storage* get<an_ifc_chart_multilevel_storage>(
-                                  an_ifc_module                   *mod,
+                                  an_ifc_module_file              *file,
                                   an_ifc_chart_multilevel_storage *storage,
                                   a_boolean                       fill_storage)
 /*
-Retrieve an instance of ChartMultilevel from the IFC module file associated
-with mod.
+Retrieve an instance of ChartMultilevel from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -16506,20 +16498,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_chart_multilevel_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* start */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* cardinality */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_chart_multilevel_storage> */
@@ -16537,12 +16529,11 @@ Return the corresponding partition kind for ChartMultilevel.
 
 template<>
 an_ifc_chart_unilevel_storage* get<an_ifc_chart_unilevel_storage>(
-                                    an_ifc_module                 *mod,
+                                    an_ifc_module_file            *file,
                                     an_ifc_chart_unilevel_storage *storage,
                                     a_boolean                     fill_storage)
 /*
-Retrieve an instance of ChartUnilevel from the IFC module file associated with
-mod.
+Retrieve an instance of ChartUnilevel from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -16560,22 +16551,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_chart_unilevel_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* start */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* cardinality */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* constraint */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_chart_unilevel_storage> */
@@ -16593,11 +16584,11 @@ Return the corresponding partition kind for ChartUnilevel.
 
 template<>
 an_ifc_const_f64_storage* get<an_ifc_const_f64_storage>(
-                                         an_ifc_module            *mod,
+                                         an_ifc_module_file       *file,
                                          an_ifc_const_f64_storage *storage,
                                          a_boolean                fill_storage)
 /*
-Retrieve an instance of ConstF64 from the IFC module file associated with mod.
+Retrieve an instance of ConstF64 from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -16615,18 +16606,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_const_f64_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* value */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/12, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/12, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_const_f64_storage> */
@@ -16644,11 +16635,11 @@ Return the corresponding partition kind for ConstF64.
 
 template<>
 an_ifc_const_i64_storage* get<an_ifc_const_i64_storage>(
-                                         an_ifc_module            *mod,
+                                         an_ifc_module_file       *file,
                                          an_ifc_const_i64_storage *storage,
                                          a_boolean                fill_storage)
 /*
-Retrieve an instance of ConstI64 from the IFC module file associated with mod.
+Retrieve an instance of ConstI64 from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -16666,18 +16657,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_const_i64_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* value */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/8, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/8, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_const_i64_storage> */
@@ -16695,11 +16686,11 @@ Return the corresponding partition kind for ConstI64.
 
 template<>
 an_ifc_const_str_storage* get<an_ifc_const_str_storage>(
-                                         an_ifc_module            *mod,
+                                         an_ifc_module_file       *file,
                                          an_ifc_const_str_storage *storage,
                                          a_boolean                fill_storage)
 /*
-Retrieve an instance of ConstStr from the IFC module file associated with mod.
+Retrieve an instance of ConstStr from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -16717,22 +16708,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_const_str_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* start */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* length */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* suffix */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_const_str_storage> */
@@ -16750,11 +16741,11 @@ Return the corresponding partition kind for ConstStr.
 
 template<>
 an_ifc_decl_alias_storage* get<an_ifc_decl_alias_storage>(
-                                        an_ifc_module             *mod,
+                                        an_ifc_module_file        *file,
                                         an_ifc_decl_alias_storage *storage,
                                         a_boolean                 fill_storage)
 /*
-Retrieve an instance of DeclAlias from the IFC module file associated with mod.
+Retrieve an instance of DeclAlias from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -16772,32 +16763,32 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_decl_alias_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/28);
+      memcpy(*storage, file->byte_buffer, /*size=*/28);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* home_scope */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* aliasee */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* specifiers */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* access */
-    get_bytes(mod, (*storage) + 25, /*num_bytes=*/3, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 25, /*num_bytes=*/3, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_alias_storage> */
@@ -16815,12 +16806,11 @@ Return the corresponding partition kind for DeclAlias.
 
 template<>
 an_ifc_decl_bitfield_storage* get<an_ifc_decl_bitfield_storage>(
-                                     an_ifc_module                *mod,
+                                     an_ifc_module_file           *file,
                                      an_ifc_decl_bitfield_storage *storage,
                                      a_boolean                    fill_storage)
 /*
-Retrieve an instance of DeclBitfield from the IFC module file associated with
-mod.
+Retrieve an instance of DeclBitfield from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -16838,38 +16828,38 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_decl_bitfield_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/32);
+      memcpy(*storage, file->byte_buffer, /*size=*/32);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* home_scope */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* width */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* initializer */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* traits */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* specifiers */
-    get_bytes(mod, (*storage) + 29, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 29, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* access */
-    get_bytes(mod, (*storage) + 30, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 30, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* properties */
-    get_bytes(mod, (*storage) + 31, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 31, /*num_bytes=*/1, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_bitfield_storage> */
@@ -16887,12 +16877,11 @@ Return the corresponding partition kind for DeclBitfield.
 
 template<>
 an_ifc_decl_concept_storage* get<an_ifc_decl_concept_storage>(
-                                      an_ifc_module               *mod,
+                                      an_ifc_module_file          *file,
                                       an_ifc_decl_concept_storage *storage,
                                       a_boolean                   fill_storage)
 /*
-Retrieve an instance of DeclConcept from the IFC module file associated with
-mod.
+Retrieve an instance of DeclConcept from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -16910,40 +16899,40 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_decl_concept_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/40);
+      memcpy(*storage, file->byte_buffer, /*size=*/40);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* home_scope */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* chart */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* constraint */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* specifiers */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* access */
-    get_bytes(mod, (*storage) + 29, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 29, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* unknown */
-    get_bytes(mod, (*storage) + 30, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 30, /*num_bytes=*/2, /*from_header=*/FALSE);
     /* head */
-    get_bytes(mod, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* body */
-    get_bytes(mod, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_concept_storage> */
@@ -16961,12 +16950,11 @@ Return the corresponding partition kind for DeclConcept.
 
 template<>
 an_ifc_decl_constructor_storage* get<an_ifc_decl_constructor_storage>(
-                                  an_ifc_module                   *mod,
+                                  an_ifc_module_file              *file,
                                   an_ifc_decl_constructor_storage *storage,
                                   a_boolean                       fill_storage)
 /*
-Retrieve an instance of DeclConstructor from the IFC module file associated
-with mod.
+Retrieve an instance of DeclConstructor from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -16984,36 +16972,36 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_decl_constructor_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/32);
+      memcpy(*storage, file->byte_buffer, /*size=*/32);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* home_scope */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* chart */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* traits */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/2, /*from_header=*/FALSE);
     /* specifiers */
-    get_bytes(mod, (*storage) + 26, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 26, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* access */
-    get_bytes(mod, (*storage) + 27, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 27, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* properties */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_constructor_storage> */
@@ -17031,12 +17019,11 @@ Return the corresponding partition kind for DeclConstructor.
 
 template<>
 an_ifc_decl_deduction_guide_storage* get<an_ifc_decl_deduction_guide_storage>(
-                              an_ifc_module                       *mod,
+                              an_ifc_module_file                  *file,
                               an_ifc_decl_deduction_guide_storage *storage,
                               a_boolean                           fill_storage)
 /*
-Retrieve an instance of DeclDeductionGuide from the IFC module file associated
-with mod.
+Retrieve an instance of DeclDeductionGuide from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -17054,32 +17041,32 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_decl_deduction_guide_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/28);
+      memcpy(*storage, file->byte_buffer, /*size=*/28);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* home_scope */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* source */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* target */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* traits */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* specifiers */
-    get_bytes(mod, (*storage) + 25, /*num_bytes=*/3, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 25, /*num_bytes=*/3, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_deduction_guide_storage> */
@@ -17098,12 +17085,11 @@ Return the corresponding partition kind for DeclDeductionGuide.
 template<>
 an_ifc_decl_default_argument_storage*
 get<an_ifc_decl_default_argument_storage>(
-                             an_ifc_module                        *mod,
+                             an_ifc_module_file                   *file,
                              an_ifc_decl_default_argument_storage *storage,
                              a_boolean                            fill_storage)
 /*
-Retrieve an instance of DeclDefaultArgument from the IFC module file associated
-with mod.
+Retrieve an instance of DeclDefaultArgument from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -17121,32 +17107,32 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_decl_default_argument_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/23);
+      memcpy(*storage, file->byte_buffer, /*size=*/23);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* home_scope */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* initializer */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* specifiers */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* access */
-    get_bytes(mod, (*storage) + 21, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 21, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* properties */
-    get_bytes(mod, (*storage) + 22, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 22, /*num_bytes=*/1, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_default_argument_storage> */
@@ -17164,12 +17150,11 @@ Return the corresponding partition kind for DeclDefaultArgument.
 
 template<>
 an_ifc_decl_destructor_storage* get<an_ifc_decl_destructor_storage>(
-                                   an_ifc_module                  *mod,
+                                   an_ifc_module_file             *file,
                                    an_ifc_decl_destructor_storage *storage,
                                    a_boolean                      fill_storage)
 /*
-Retrieve an instance of DeclDestructor from the IFC module file associated with
-mod.
+Retrieve an instance of DeclDestructor from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -17187,38 +17172,38 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_decl_destructor_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/32);
+      memcpy(*storage, file->byte_buffer, /*size=*/32);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* home_scope */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* eh_spec.words */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* eh_spec.sort */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* traits */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/2, /*from_header=*/FALSE);
     /* specifiers */
-    get_bytes(mod, (*storage) + 26, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 26, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* access */
-    get_bytes(mod, (*storage) + 27, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 27, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* convention */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* properties */
-    get_bytes(mod, (*storage) + 29, /*num_bytes=*/3, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 29, /*num_bytes=*/3, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_destructor_storage> */
@@ -17236,12 +17221,11 @@ Return the corresponding partition kind for DeclDestructor.
 
 template<>
 an_ifc_decl_enumeration_storage* get<an_ifc_decl_enumeration_storage>(
-                                  an_ifc_module                   *mod,
+                                  an_ifc_module_file              *file,
                                   an_ifc_decl_enumeration_storage *storage,
                                   a_boolean                       fill_storage)
 /*
-Retrieve an instance of DeclEnumeration from the IFC module file associated
-with mod.
+Retrieve an instance of DeclEnumeration from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -17259,40 +17243,40 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_decl_enumeration_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/40);
+      memcpy(*storage, file->byte_buffer, /*size=*/40);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* base */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* initializer.start */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* initializer.cardinality */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* home_scope */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* alignment */
-    get_bytes(mod, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* specifiers */
-    get_bytes(mod, (*storage) + 36, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 36, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* access */
-    get_bytes(mod, (*storage) + 37, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 37, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* properties */
-    get_bytes(mod, (*storage) + 38, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 38, /*num_bytes=*/2, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_enumeration_storage> */
@@ -17310,12 +17294,11 @@ Return the corresponding partition kind for DeclEnumeration.
 
 template<>
 an_ifc_decl_enumerator_storage* get<an_ifc_decl_enumerator_storage>(
-                                   an_ifc_module                  *mod,
+                                   an_ifc_module_file             *file,
                                    an_ifc_decl_enumerator_storage *storage,
                                    a_boolean                      fill_storage)
 /*
-Retrieve an instance of DeclEnumerator from the IFC module file associated with
-mod.
+Retrieve an instance of DeclEnumerator from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -17333,30 +17316,30 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_decl_enumerator_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/24);
+      memcpy(*storage, file->byte_buffer, /*size=*/24);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* initializer */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* specifiers */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* access */
-    get_bytes(mod, (*storage) + 21, /*num_bytes=*/3, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 21, /*num_bytes=*/3, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_enumerator_storage> */
@@ -17374,12 +17357,11 @@ Return the corresponding partition kind for DeclEnumerator.
 
 template<>
 an_ifc_decl_expansion_storage* get<an_ifc_decl_expansion_storage>(
-                                    an_ifc_module                 *mod,
+                                    an_ifc_module_file            *file,
                                     an_ifc_decl_expansion_storage *storage,
                                     a_boolean                     fill_storage)
 /*
-Retrieve an instance of DeclExpansion from the IFC module file associated with
-mod.
+Retrieve an instance of DeclExpansion from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -17397,22 +17379,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_decl_expansion_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* operand */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_expansion_storage> */
@@ -17431,12 +17413,11 @@ Return the corresponding partition kind for DeclExpansion.
 template<>
 an_ifc_decl_explicit_instantiation_storage*
 get<an_ifc_decl_explicit_instantiation_storage>(
-                       an_ifc_module                              *mod,
+                       an_ifc_module_file                         *file,
                        an_ifc_decl_explicit_instantiation_storage *storage,
                        a_boolean                                  fill_storage)
 /*
-Retrieve an instance of DeclExplicitInstantiation from the IFC module file
-associated with mod.
+Retrieve an instance of DeclExplicitInstantiation from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -17454,20 +17435,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_decl_explicit_instantiation_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* form */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* decl */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_explicit_instantiation_storage> */
@@ -17487,12 +17468,11 @@ Return the corresponding partition kind for DeclExplicitInstantiation.
 template<>
 an_ifc_decl_explicit_specialization_storage*
 get<an_ifc_decl_explicit_specialization_storage>(
-                      an_ifc_module                               *mod,
+                      an_ifc_module_file                          *file,
                       an_ifc_decl_explicit_specialization_storage *storage,
                       a_boolean                                   fill_storage)
 /*
-Retrieve an instance of DeclExplicitSpecialization from the IFC module file
-associated with mod.
+Retrieve an instance of DeclExplicitSpecialization from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -17510,20 +17490,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_decl_explicit_specialization_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* form */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* decl */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_explicit_specialization_storage> */
@@ -17542,11 +17522,11 @@ Return the corresponding partition kind for DeclExplicitSpecialization.
 
 template<>
 an_ifc_decl_field_storage* get<an_ifc_decl_field_storage>(
-                                        an_ifc_module             *mod,
+                                        an_ifc_module_file        *file,
                                         an_ifc_decl_field_storage *storage,
                                         a_boolean                 fill_storage)
 /*
-Retrieve an instance of DeclField from the IFC module file associated with mod.
+Retrieve an instance of DeclField from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -17564,38 +17544,38 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_decl_field_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/32);
+      memcpy(*storage, file->byte_buffer, /*size=*/32);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* home_scope */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* initializer */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* alignment */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* traits */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* specifiers */
-    get_bytes(mod, (*storage) + 29, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 29, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* access */
-    get_bytes(mod, (*storage) + 30, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 30, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* properties */
-    get_bytes(mod, (*storage) + 31, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 31, /*num_bytes=*/1, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_field_storage> */
@@ -17613,12 +17593,11 @@ Return the corresponding partition kind for DeclField.
 
 template<>
 an_ifc_decl_friend_storage* get<an_ifc_decl_friend_storage>(
-                                       an_ifc_module              *mod,
+                                       an_ifc_module_file         *file,
                                        an_ifc_decl_friend_storage *storage,
                                        a_boolean                  fill_storage)
 /*
-Retrieve an instance of DeclFriend from the IFC module file associated with
-mod.
+Retrieve an instance of DeclFriend from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -17636,18 +17615,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_decl_friend_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* entity */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_friend_storage> */
@@ -17665,12 +17644,11 @@ Return the corresponding partition kind for DeclFriend.
 
 template<>
 an_ifc_decl_function_storage* get<an_ifc_decl_function_storage>(
-                                     an_ifc_module                *mod,
+                                     an_ifc_module_file           *file,
                                      an_ifc_decl_function_storage *storage,
                                      a_boolean                    fill_storage)
 /*
-Retrieve an instance of DeclFunction from the IFC module file associated with
-mod.
+Retrieve an instance of DeclFunction from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -17688,36 +17666,36 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_decl_function_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/32);
+      memcpy(*storage, file->byte_buffer, /*size=*/32);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* home_scope */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* chart */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* traits */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/2, /*from_header=*/FALSE);
     /* specifiers */
-    get_bytes(mod, (*storage) + 26, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 26, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* access */
-    get_bytes(mod, (*storage) + 27, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 27, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* properties */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_function_storage> */
@@ -17736,12 +17714,11 @@ Return the corresponding partition kind for DeclFunction.
 template<>
 an_ifc_decl_inherited_constructor_storage*
 get<an_ifc_decl_inherited_constructor_storage>(
-                        an_ifc_module                             *mod,
+                        an_ifc_module_file                        *file,
                         an_ifc_decl_inherited_constructor_storage *storage,
                         a_boolean                                 fill_storage)
 /*
-Retrieve an instance of DeclInheritedConstructor from the IFC module file
-associated with mod.
+Retrieve an instance of DeclInheritedConstructor from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -17759,36 +17736,36 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_decl_inherited_constructor_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/32);
+      memcpy(*storage, file->byte_buffer, /*size=*/32);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* home_scope */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* chart */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* traits */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/2, /*from_header=*/FALSE);
     /* specifiers */
-    get_bytes(mod, (*storage) + 26, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 26, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* access */
-    get_bytes(mod, (*storage) + 27, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 27, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* base_ctor */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_inherited_constructor_storage> */
@@ -17807,12 +17784,11 @@ Return the corresponding partition kind for DeclInheritedConstructor.
 
 template<>
 an_ifc_decl_intrinsic_storage* get<an_ifc_decl_intrinsic_storage>(
-                                    an_ifc_module                 *mod,
+                                    an_ifc_module_file            *file,
                                     an_ifc_decl_intrinsic_storage *storage,
                                     a_boolean                     fill_storage)
 /*
-Retrieve an instance of DeclIntrinsic from the IFC module file associated with
-mod.
+Retrieve an instance of DeclIntrinsic from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -17830,30 +17806,30 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_decl_intrinsic_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/24);
+      memcpy(*storage, file->byte_buffer, /*size=*/24);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* home_scope */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* specifiers */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* access */
-    get_bytes(mod, (*storage) + 21, /*num_bytes=*/3, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 21, /*num_bytes=*/3, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_intrinsic_storage> */
@@ -17871,12 +17847,11 @@ Return the corresponding partition kind for DeclIntrinsic.
 
 template<>
 an_ifc_decl_method_storage* get<an_ifc_decl_method_storage>(
-                                       an_ifc_module              *mod,
+                                       an_ifc_module_file         *file,
                                        an_ifc_decl_method_storage *storage,
                                        a_boolean                  fill_storage)
 /*
-Retrieve an instance of DeclMethod from the IFC module file associated with
-mod.
+Retrieve an instance of DeclMethod from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -17894,36 +17869,36 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_decl_method_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/32);
+      memcpy(*storage, file->byte_buffer, /*size=*/32);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* home_scope */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* chart */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* traits */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/2, /*from_header=*/FALSE);
     /* specifiers */
-    get_bytes(mod, (*storage) + 26, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 26, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* access */
-    get_bytes(mod, (*storage) + 27, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 27, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* properties */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_method_storage> */
@@ -17941,12 +17916,11 @@ Return the corresponding partition kind for DeclMethod.
 
 template<>
 an_ifc_decl_output_segment_storage* get<an_ifc_decl_output_segment_storage>(
-                               an_ifc_module                      *mod,
+                               an_ifc_module_file                 *file,
                                an_ifc_decl_output_segment_storage *storage,
                                a_boolean                          fill_storage)
 /*
-Retrieve an instance of DeclOutputSegment from the IFC module file associated
-with mod.
+Retrieve an instance of DeclOutputSegment from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -17964,24 +17938,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_decl_output_segment_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* ID */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* traits */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_output_segment_storage> */
@@ -17999,12 +17973,11 @@ Return the corresponding partition kind for DeclOutputSegment.
 
 template<>
 an_ifc_decl_parameter_storage* get<an_ifc_decl_parameter_storage>(
-                                    an_ifc_module                 *mod,
+                                    an_ifc_module_file            *file,
                                     an_ifc_decl_parameter_storage *storage,
                                     a_boolean                     fill_storage)
 /*
-Retrieve an instance of DeclParameter from the IFC module file associated with
-mod.
+Retrieve an instance of DeclParameter from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -18022,60 +17995,75 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_decl_parameter_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/36);
+      memcpy(*storage, file->byte_buffer, /*size=*/36);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
-    if (is_at_least(mod, 0, 41)) {
+    if (is_at_least(file, 0, 41)) {
       /* name */
-      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* locus.line */
-      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* locus.column */
-      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* type */
-      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 12, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
       /* constraint */
-      get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 16, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
       /* initializer */
-      get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 20, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
       /* level */
-      get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 24, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
       /* position */
-      get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 28, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
       /* sort */
-      get_bytes(mod, (*storage) + 32, /*num_bytes=*/1, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 32, /*num_bytes=*/1,
+                /*from_header=*/FALSE);
       /* properties */
-      get_bytes(mod, (*storage) + 33, /*num_bytes=*/3, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 33, /*num_bytes=*/3,
+                /*from_header=*/FALSE);
     } else {
       /* name */
-      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* locus.line */
-      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* locus.column */
-      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* type */
-      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 12, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
       /* constraint */
-      get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 16, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
       /* initializer */
-      get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 20, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
       /* level */
-      get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 24, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
       /* position */
-      get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 28, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
       /* sort */
-      get_bytes(mod, (*storage) + 32, /*num_bytes=*/1, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 32, /*num_bytes=*/1,
+                /*from_header=*/FALSE);
       /* properties */
-      get_bytes(mod, (*storage) + 33, /*num_bytes=*/1, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 33, /*num_bytes=*/1,
+                /*from_header=*/FALSE);
       /* pack */
-      get_bytes(mod, (*storage) + 34, /*num_bytes=*/2, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 34, /*num_bytes=*/2,
+                /*from_header=*/FALSE);
     }  /* if */
   }  /* if */
   return storage;
@@ -18095,12 +18083,11 @@ Return the corresponding partition kind for DeclParameter.
 template<>
 an_ifc_decl_partial_specialization_storage*
 get<an_ifc_decl_partial_specialization_storage>(
-                       an_ifc_module                              *mod,
+                       an_ifc_module_file                         *file,
                        an_ifc_decl_partial_specialization_storage *storage,
                        a_boolean                                  fill_storage)
 /*
-Retrieve an instance of DeclPartialSpecialization from the IFC module file
-associated with mod.
+Retrieve an instance of DeclPartialSpecialization from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -18118,42 +18105,42 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_decl_partial_specialization_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/44);
+      memcpy(*storage, file->byte_buffer, /*size=*/44);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* home_scope */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* chart */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* entity.decl */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* entity.head */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* entity.body */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* entity.attributes */
-    get_bytes(mod, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* form */
-    get_bytes(mod, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* specifiers */
-    get_bytes(mod, (*storage) + 40, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 40, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* access */
-    get_bytes(mod, (*storage) + 41, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 41, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* properties */
-    get_bytes(mod, (*storage) + 42, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 42, /*num_bytes=*/2, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_partial_specialization_storage> */
@@ -18172,12 +18159,11 @@ Return the corresponding partition kind for DeclPartialSpecialization.
 
 template<>
 an_ifc_decl_property_storage* get<an_ifc_decl_property_storage>(
-                                     an_ifc_module                *mod,
+                                     an_ifc_module_file           *file,
                                      an_ifc_decl_property_storage *storage,
                                      a_boolean                    fill_storage)
 /*
-Retrieve an instance of DeclProperty from the IFC module file associated with
-mod.
+Retrieve an instance of DeclProperty from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -18195,22 +18181,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_decl_property_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* member */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* getter */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* setter */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_property_storage> */
@@ -18228,12 +18214,11 @@ Return the corresponding partition kind for DeclProperty.
 
 template<>
 an_ifc_decl_reference_storage* get<an_ifc_decl_reference_storage>(
-                                    an_ifc_module                 *mod,
+                                    an_ifc_module_file            *file,
                                     an_ifc_decl_reference_storage *storage,
                                     a_boolean                     fill_storage)
 /*
-Retrieve an instance of DeclReference from the IFC module file associated with
-mod.
+Retrieve an instance of DeclReference from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -18251,22 +18236,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_decl_reference_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* unit.owner */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* unit.partition */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* local_index */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_reference_storage> */
@@ -18284,11 +18269,11 @@ Return the corresponding partition kind for DeclReference.
 
 template<>
 an_ifc_decl_scope_storage* get<an_ifc_decl_scope_storage>(
-                                        an_ifc_module             *mod,
+                                        an_ifc_module_file        *file,
                                         an_ifc_decl_scope_storage *storage,
                                         a_boolean                 fill_storage)
 /*
-Retrieve an instance of DeclScope from the IFC module file associated with mod.
+Retrieve an instance of DeclScope from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -18306,42 +18291,42 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_decl_scope_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/40);
+      memcpy(*storage, file->byte_buffer, /*size=*/40);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* base */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* initializer */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* home_scope */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* alignment */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* pack_size */
-    get_bytes(mod, (*storage) + 32, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 32, /*num_bytes=*/2, /*from_header=*/FALSE);
     /* specifiers */
-    get_bytes(mod, (*storage) + 34, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 34, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* traits */
-    get_bytes(mod, (*storage) + 35, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 35, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* access */
-    get_bytes(mod, (*storage) + 36, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 36, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* properties */
-    get_bytes(mod, (*storage) + 37, /*num_bytes=*/3, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 37, /*num_bytes=*/3, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_scope_storage> */
@@ -18359,12 +18344,11 @@ Return the corresponding partition kind for DeclScope.
 
 template<>
 an_ifc_decl_specialization_storage* get<an_ifc_decl_specialization_storage>(
-                               an_ifc_module                      *mod,
+                               an_ifc_module_file                 *file,
                                an_ifc_decl_specialization_storage *storage,
                                a_boolean                          fill_storage)
 /*
-Retrieve an instance of DeclSpecialization from the IFC module file associated
-with mod.
+Retrieve an instance of DeclSpecialization from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -18382,22 +18366,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_decl_specialization_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* form */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* decl */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* sort */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_specialization_storage> */
@@ -18415,12 +18399,11 @@ Return the corresponding partition kind for DeclSpecialization.
 
 template<>
 an_ifc_decl_template_storage* get<an_ifc_decl_template_storage>(
-                                     an_ifc_module                *mod,
+                                     an_ifc_module_file           *file,
                                      an_ifc_decl_template_storage *storage,
                                      a_boolean                    fill_storage)
 /*
-Retrieve an instance of DeclTemplate from the IFC module file associated with
-mod.
+Retrieve an instance of DeclTemplate from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -18438,42 +18421,42 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_decl_template_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/44);
+      memcpy(*storage, file->byte_buffer, /*size=*/44);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* home_scope */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* chart */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* entity.decl */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* entity.head */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* entity.body */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* entity.attributes */
-    get_bytes(mod, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* specifiers */
-    get_bytes(mod, (*storage) + 40, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 40, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* access */
-    get_bytes(mod, (*storage) + 41, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 41, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* properties */
-    get_bytes(mod, (*storage) + 42, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 42, /*num_bytes=*/2, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_template_storage> */
@@ -18491,12 +18474,11 @@ Return the corresponding partition kind for DeclTemplate.
 
 template<>
 an_ifc_decl_temploid_storage* get<an_ifc_decl_temploid_storage>(
-                                     an_ifc_module                *mod,
+                                     an_ifc_module_file           *file,
                                      an_ifc_decl_temploid_storage *storage,
                                      a_boolean                    fill_storage)
 /*
-Retrieve an instance of DeclTemploid from the IFC module file associated with
-mod.
+Retrieve an instance of DeclTemploid from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -18514,28 +18496,28 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_decl_temploid_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/24);
+      memcpy(*storage, file->byte_buffer, /*size=*/24);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* entity.decl */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* entity.head */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* entity.body */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* entity.attributes */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* chart */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* properties */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_temploid_storage> */
@@ -18553,11 +18535,11 @@ Return the corresponding partition kind for DeclTemploid.
 
 template<>
 an_ifc_decl_tuple_storage* get<an_ifc_decl_tuple_storage>(
-                                        an_ifc_module             *mod,
+                                        an_ifc_module_file        *file,
                                         an_ifc_decl_tuple_storage *storage,
                                         a_boolean                 fill_storage)
 /*
-Retrieve an instance of DeclTuple from the IFC module file associated with mod.
+Retrieve an instance of DeclTuple from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -18575,20 +18557,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_decl_tuple_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* start */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* cardinality */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_tuple_storage> */
@@ -18607,12 +18589,11 @@ Return the corresponding partition kind for DeclTuple.
 template<>
 an_ifc_decl_using_declaration_storage*
 get<an_ifc_decl_using_declaration_storage>(
-                            an_ifc_module                         *mod,
+                            an_ifc_module_file                    *file,
                             an_ifc_decl_using_declaration_storage *storage,
                             a_boolean                             fill_storage)
 /*
-Retrieve an instance of DeclUsingDeclaration from the IFC module file
-associated with mod.
+Retrieve an instance of DeclUsingDeclaration from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -18630,36 +18611,36 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_decl_using_declaration_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/32);
+      memcpy(*storage, file->byte_buffer, /*size=*/32);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* home_scope */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* resolution */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* parent */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* name2 */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* specifiers */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* access */
-    get_bytes(mod, (*storage) + 29, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 29, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* hidden */
-    get_bytes(mod, (*storage) + 30, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 30, /*num_bytes=*/2, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_using_declaration_storage> */
@@ -18677,12 +18658,11 @@ Return the corresponding partition kind for DeclUsingDeclaration.
 
 template<>
 an_ifc_decl_variable_storage* get<an_ifc_decl_variable_storage>(
-                                     an_ifc_module                *mod,
+                                     an_ifc_module_file           *file,
                                      an_ifc_decl_variable_storage *storage,
                                      a_boolean                    fill_storage)
 /*
-Retrieve an instance of DeclVariable from the IFC module file associated with
-mod.
+Retrieve an instance of DeclVariable from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -18700,38 +18680,38 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_decl_variable_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/32);
+      memcpy(*storage, file->byte_buffer, /*size=*/32);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* home_scope */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* initializer */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* alignment */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* traits */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* specifiers */
-    get_bytes(mod, (*storage) + 29, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 29, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* access */
-    get_bytes(mod, (*storage) + 30, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 30, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* properties */
-    get_bytes(mod, (*storage) + 31, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 31, /*num_bytes=*/1, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_variable_storage> */
@@ -18749,12 +18729,11 @@ Return the corresponding partition kind for DeclVariable.
 
 template<>
 an_ifc_expr_alignof_storage* get<an_ifc_expr_alignof_storage>(
-                                      an_ifc_module               *mod,
+                                      an_ifc_module_file          *file,
                                       an_ifc_expr_alignof_storage *storage,
                                       a_boolean                   fill_storage)
 /*
-Retrieve an instance of ExprAlignof from the IFC module file associated with
-mod.
+Retrieve an instance of ExprAlignof from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -18772,24 +18751,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_alignof_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* operand */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_alignof_storage> */
@@ -18807,12 +18786,11 @@ Return the corresponding partition kind for ExprAlignof.
 
 template<>
 an_ifc_expr_array_value_storage* get<an_ifc_expr_array_value_storage>(
-                                  an_ifc_module                   *mod,
+                                  an_ifc_module_file              *file,
                                   an_ifc_expr_array_value_storage *storage,
                                   a_boolean                       fill_storage)
 /*
-Retrieve an instance of ExprArrayValue from the IFC module file associated with
-mod.
+Retrieve an instance of ExprArrayValue from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -18830,26 +18808,26 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_array_value_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* elements */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* element_type */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_array_value_storage> */
@@ -18868,12 +18846,11 @@ Return the corresponding partition kind for ExprArrayValue.
 template<>
 an_ifc_expr_assign_initializer_storage*
 get<an_ifc_expr_assign_initializer_storage>(
-                           an_ifc_module                          *mod,
+                           an_ifc_module_file                     *file,
                            an_ifc_expr_assign_initializer_storage *storage,
                            a_boolean                              fill_storage)
 /*
-Retrieve an instance of ExprAssignInitializer from the IFC module file
-associated with mod.
+Retrieve an instance of ExprAssignInitializer from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -18891,22 +18868,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_assign_initializer_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* equal.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* equal.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* initializer */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_assign_initializer_storage> */
@@ -18924,12 +18901,11 @@ Return the corresponding partition kind for ExprAssignInitializer.
 
 template<>
 an_ifc_expr_binary_fold_storage* get<an_ifc_expr_binary_fold_storage>(
-                                  an_ifc_module                   *mod,
+                                  an_ifc_module_file              *file,
                                   an_ifc_expr_binary_fold_storage *storage,
                                   a_boolean                       fill_storage)
 /*
-Retrieve an instance of ExprBinaryFold from the IFC module file associated with
-mod.
+Retrieve an instance of ExprBinaryFold from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -18947,30 +18923,30 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_binary_fold_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/23);
+      memcpy(*storage, file->byte_buffer, /*size=*/23);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* operation */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/2, /*from_header=*/FALSE);
     /* associativity */
-    get_bytes(mod, (*storage) + 22, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 22, /*num_bytes=*/1, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_binary_fold_storage> */
@@ -18988,11 +18964,11 @@ Return the corresponding partition kind for ExprBinaryFold.
 
 template<>
 an_ifc_expr_call_storage* get<an_ifc_expr_call_storage>(
-                                         an_ifc_module            *mod,
+                                         an_ifc_module_file       *file,
                                          an_ifc_expr_call_storage *storage,
                                          a_boolean                fill_storage)
 /*
-Retrieve an instance of ExprCall from the IFC module file associated with mod.
+Retrieve an instance of ExprCall from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -19010,26 +18986,26 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_call_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* operation */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* arguments */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_call_storage> */
@@ -19047,11 +19023,11 @@ Return the corresponding partition kind for ExprCall.
 
 template<>
 an_ifc_expr_cast_storage* get<an_ifc_expr_cast_storage>(
-                                         an_ifc_module            *mod,
+                                         an_ifc_module_file       *file,
                                          an_ifc_expr_cast_storage *storage,
                                          a_boolean                fill_storage)
 /*
-Retrieve an instance of ExprCast from the IFC module file associated with mod.
+Retrieve an instance of ExprCast from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -19069,28 +19045,28 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_cast_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/24);
+      memcpy(*storage, file->byte_buffer, /*size=*/24);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* source */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* target */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* op */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_cast_storage> */
@@ -19108,12 +19084,11 @@ Return the corresponding partition kind for ExprCast.
 
 template<>
 an_ifc_expr_compound_string_storage* get<an_ifc_expr_compound_string_storage>(
-                              an_ifc_module                       *mod,
+                              an_ifc_module_file                  *file,
                               an_ifc_expr_compound_string_storage *storage,
                               a_boolean                           fill_storage)
 /*
-Retrieve an instance of ExprCompoundString from the IFC module file associated
-with mod.
+Retrieve an instance of ExprCompoundString from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -19131,26 +19106,26 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_compound_string_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* prefix */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* string */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_compound_string_storage> */
@@ -19168,12 +19143,11 @@ Return the corresponding partition kind for ExprCompoundString.
 
 template<>
 an_ifc_expr_condition_storage* get<an_ifc_expr_condition_storage>(
-                                    an_ifc_module                 *mod,
+                                    an_ifc_module_file            *file,
                                     an_ifc_expr_condition_storage *storage,
                                     a_boolean                     fill_storage)
 /*
-Retrieve an instance of ExprCondition from the IFC module file associated with
-mod.
+Retrieve an instance of ExprCondition from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -19191,24 +19165,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_condition_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* expr */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_condition_storage> */
@@ -19227,12 +19201,11 @@ Return the corresponding partition kind for ExprCondition.
 template<>
 an_ifc_expr_designated_initializer_storage*
 get<an_ifc_expr_designated_initializer_storage>(
-                       an_ifc_module                              *mod,
+                       an_ifc_module_file                         *file,
                        an_ifc_expr_designated_initializer_storage *storage,
                        a_boolean                                  fill_storage)
 /*
-Retrieve an instance of ExprDesignatedInitializer from the IFC module file
-associated with mod.
+Retrieve an instance of ExprDesignatedInitializer from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -19250,26 +19223,26 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_designated_initializer_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* member */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* initializer */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_designated_initializer_storage> */
@@ -19288,12 +19261,11 @@ Return the corresponding partition kind for ExprDesignatedInitializer.
 
 template<>
 an_ifc_expr_destructor_call_storage* get<an_ifc_expr_destructor_call_storage>(
-                              an_ifc_module                       *mod,
+                              an_ifc_module_file                  *file,
                               an_ifc_expr_destructor_call_storage *storage,
                               a_boolean                           fill_storage)
 /*
-Retrieve an instance of ExprDestructorCall from the IFC module file associated
-with mod.
+Retrieve an instance of ExprDestructorCall from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -19311,28 +19283,28 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_destructor_call_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/21);
+      memcpy(*storage, file->byte_buffer, /*size=*/21);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* name */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* decltype_specifier */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* cleanup */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/1, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_destructor_call_storage> */
@@ -19350,11 +19322,11 @@ Return the corresponding partition kind for ExprDestructorCall.
 
 template<>
 an_ifc_expr_dyad_storage* get<an_ifc_expr_dyad_storage>(
-                                         an_ifc_module            *mod,
+                                         an_ifc_module_file       *file,
                                          an_ifc_expr_dyad_storage *storage,
                                          a_boolean                fill_storage)
 /*
-Retrieve an instance of ExprDyad from the IFC module file associated with mod.
+Retrieve an instance of ExprDyad from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -19372,30 +19344,30 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_dyad_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/28);
+      memcpy(*storage, file->byte_buffer, /*size=*/28);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* impl */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* argument_0 */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* argument_1 */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* assoc */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_dyad_storage> */
@@ -19414,12 +19386,11 @@ Return the corresponding partition kind for ExprDyad.
 template<>
 an_ifc_expr_dynamic_dispatch_storage*
 get<an_ifc_expr_dynamic_dispatch_storage>(
-                             an_ifc_module                        *mod,
+                             an_ifc_module_file                   *file,
                              an_ifc_expr_dynamic_dispatch_storage *storage,
                              a_boolean                            fill_storage)
 /*
-Retrieve an instance of ExprDynamicDispatch from the IFC module file associated
-with mod.
+Retrieve an instance of ExprDynamicDispatch from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -19437,24 +19408,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_dynamic_dispatch_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* pivot */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_dynamic_dispatch_storage> */
@@ -19472,11 +19443,11 @@ Return the corresponding partition kind for ExprDynamicDispatch.
 
 template<>
 an_ifc_expr_empty_storage* get<an_ifc_expr_empty_storage>(
-                                        an_ifc_module             *mod,
+                                        an_ifc_module_file        *file,
                                         an_ifc_expr_empty_storage *storage,
                                         a_boolean                 fill_storage)
 /*
-Retrieve an instance of ExprEmpty from the IFC module file associated with mod.
+Retrieve an instance of ExprEmpty from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -19494,22 +19465,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_empty_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_empty_storage> */
@@ -19527,12 +19498,11 @@ Return the corresponding partition kind for ExprEmpty.
 
 template<>
 an_ifc_expr_expansion_storage* get<an_ifc_expr_expansion_storage>(
-                                    an_ifc_module                 *mod,
+                                    an_ifc_module_file            *file,
                                     an_ifc_expr_expansion_storage *storage,
                                     a_boolean                     fill_storage)
 /*
-Retrieve an instance of ExprExpansion from the IFC module file associated with
-mod.
+Retrieve an instance of ExprExpansion from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -19550,24 +19520,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_expansion_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* operand */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_expansion_storage> */
@@ -19585,12 +19555,11 @@ Return the corresponding partition kind for ExprExpansion.
 
 template<>
 an_ifc_expr_expression_list_storage* get<an_ifc_expr_expression_list_storage>(
-                              an_ifc_module                       *mod,
+                              an_ifc_module_file                  *file,
                               an_ifc_expr_expression_list_storage *storage,
                               a_boolean                           fill_storage)
 /*
-Retrieve an instance of ExprExpressionList from the IFC module file associated
-with mod.
+Retrieve an instance of ExprExpressionList from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -19608,28 +19577,28 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_expression_list_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/24);
+      memcpy(*storage, file->byte_buffer, /*size=*/24);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* left.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* contents */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* delimiter */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_expression_list_storage> */
@@ -19647,12 +19616,11 @@ Return the corresponding partition kind for ExprExpressionList.
 
 template<>
 an_ifc_expr_function_string_storage* get<an_ifc_expr_function_string_storage>(
-                              an_ifc_module                       *mod,
+                              an_ifc_module_file                  *file,
                               an_ifc_expr_function_string_storage *storage,
                               a_boolean                           fill_storage)
 /*
-Retrieve an instance of ExprFunctionString from the IFC module file associated
-with mod.
+Retrieve an instance of ExprFunctionString from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -19670,24 +19638,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_function_string_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* macro */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_function_string_storage> */
@@ -19706,12 +19674,11 @@ Return the corresponding partition kind for ExprFunctionString.
 template<>
 an_ifc_expr_hierarchy_conversion_storage*
 get<an_ifc_expr_hierarchy_conversion_storage>(
-                         an_ifc_module                            *mod,
+                         an_ifc_module_file                       *file,
                          an_ifc_expr_hierarchy_conversion_storage *storage,
                          a_boolean                                fill_storage)
 /*
-Retrieve an instance of ExprHierarchyConversion from the IFC module file
-associated with mod.
+Retrieve an instance of ExprHierarchyConversion from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -19729,32 +19696,32 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_hierarchy_conversion_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/32);
+      memcpy(*storage, file->byte_buffer, /*size=*/32);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* source */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* target */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* inheritance */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* override */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* op */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_hierarchy_conversion_storage> */
@@ -19774,12 +19741,11 @@ Return the corresponding partition kind for ExprHierarchyConversion.
 template<>
 an_ifc_expr_inheritance_path_storage*
 get<an_ifc_expr_inheritance_path_storage>(
-                             an_ifc_module                        *mod,
+                             an_ifc_module_file                   *file,
                              an_ifc_expr_inheritance_path_storage *storage,
                              a_boolean                            fill_storage)
 /*
-Retrieve an instance of ExprInheritancePath from the IFC module file associated
-with mod.
+Retrieve an instance of ExprInheritancePath from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -19797,24 +19763,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_inheritance_path_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* path */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_inheritance_path_storage> */
@@ -19832,12 +19798,11 @@ Return the corresponding partition kind for ExprInheritancePath.
 
 template<>
 an_ifc_expr_initializer_storage* get<an_ifc_expr_initializer_storage>(
-                                  an_ifc_module                   *mod,
+                                  an_ifc_module_file              *file,
                                   an_ifc_expr_initializer_storage *storage,
                                   a_boolean                       fill_storage)
 /*
-Retrieve an instance of ExprInitializer from the IFC module file associated
-with mod.
+Retrieve an instance of ExprInitializer from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -19855,26 +19820,26 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_initializer_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/17);
+      memcpy(*storage, file->byte_buffer, /*size=*/17);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* expr */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* sort */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/1, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_initializer_storage> */
@@ -19893,12 +19858,11 @@ Return the corresponding partition kind for ExprInitializer.
 template<>
 an_ifc_expr_initializer_list_storage*
 get<an_ifc_expr_initializer_list_storage>(
-                             an_ifc_module                        *mod,
+                             an_ifc_module_file                   *file,
                              an_ifc_expr_initializer_list_storage *storage,
                              a_boolean                            fill_storage)
 /*
-Retrieve an instance of ExprInitializerList from the IFC module file associated
-with mod.
+Retrieve an instance of ExprInitializerList from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -19916,24 +19880,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_initializer_list_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* elements */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_initializer_list_storage> */
@@ -19951,11 +19915,11 @@ Return the corresponding partition kind for ExprInitializerList.
 
 template<>
 an_ifc_expr_label_storage* get<an_ifc_expr_label_storage>(
-                                        an_ifc_module             *mod,
+                                        an_ifc_module_file        *file,
                                         an_ifc_expr_label_storage *storage,
                                         a_boolean                 fill_storage)
 /*
-Retrieve an instance of ExprLabel from the IFC module file associated with mod.
+Retrieve an instance of ExprLabel from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -19973,24 +19937,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_label_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* designator */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_label_storage> */
@@ -20008,12 +19972,11 @@ Return the corresponding partition kind for ExprLabel.
 
 template<>
 an_ifc_expr_lambda_storage* get<an_ifc_expr_lambda_storage>(
-                                       an_ifc_module              *mod,
+                                       an_ifc_module_file         *file,
                                        an_ifc_expr_lambda_storage *storage,
                                        a_boolean                  fill_storage)
 /*
-Retrieve an instance of ExprLambda from the IFC module file associated with
-mod.
+Retrieve an instance of ExprLambda from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -20031,26 +19994,26 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_lambda_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* introducer */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* template_parameters */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* declarator */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* constraint */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* body */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_lambda_storage> */
@@ -20068,12 +20031,11 @@ Return the corresponding partition kind for ExprLambda.
 
 template<>
 an_ifc_expr_literal_storage* get<an_ifc_expr_literal_storage>(
-                                      an_ifc_module               *mod,
+                                      an_ifc_module_file          *file,
                                       an_ifc_expr_literal_storage *storage,
                                       a_boolean                   fill_storage)
 /*
-Retrieve an instance of ExprLiteral from the IFC module file associated with
-mod.
+Retrieve an instance of ExprLiteral from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -20091,24 +20053,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_literal_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* value */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_literal_storage> */
@@ -20126,12 +20088,11 @@ Return the corresponding partition kind for ExprLiteral.
 
 template<>
 an_ifc_expr_member_access_storage* get<an_ifc_expr_member_access_storage>(
-                                an_ifc_module                     *mod,
+                                an_ifc_module_file                *file,
                                 an_ifc_expr_member_access_storage *storage,
                                 a_boolean                         fill_storage)
 /*
-Retrieve an instance of ExprMemberAccess from the IFC module file associated
-with mod.
+Retrieve an instance of ExprMemberAccess from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -20149,28 +20110,28 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_member_access_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/24);
+      memcpy(*storage, file->byte_buffer, /*size=*/24);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* offset */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* enclosing */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* name */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_member_access_storage> */
@@ -20189,12 +20150,11 @@ Return the corresponding partition kind for ExprMemberAccess.
 template<>
 an_ifc_expr_member_initializer_storage*
 get<an_ifc_expr_member_initializer_storage>(
-                           an_ifc_module                          *mod,
+                           an_ifc_module_file                     *file,
                            an_ifc_expr_member_initializer_storage *storage,
                            a_boolean                              fill_storage)
 /*
-Retrieve an instance of ExprMemberInitializer from the IFC module file
-associated with mod.
+Retrieve an instance of ExprMemberInitializer from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -20212,28 +20172,28 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_member_initializer_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/24);
+      memcpy(*storage, file->byte_buffer, /*size=*/24);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* member */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* base */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* initializer */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_member_initializer_storage> */
@@ -20251,11 +20211,11 @@ Return the corresponding partition kind for ExprMemberInitializer.
 
 template<>
 an_ifc_expr_monad_storage* get<an_ifc_expr_monad_storage>(
-                                        an_ifc_module             *mod,
+                                        an_ifc_module_file        *file,
                                         an_ifc_expr_monad_storage *storage,
                                         a_boolean                 fill_storage)
 /*
-Retrieve an instance of ExprMonad from the IFC module file associated with mod.
+Retrieve an instance of ExprMonad from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -20273,28 +20233,28 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_monad_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/24);
+      memcpy(*storage, file->byte_buffer, /*size=*/24);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* impl */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* argument */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* assoc */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_monad_storage> */
@@ -20312,12 +20272,11 @@ Return the corresponding partition kind for ExprMonad.
 
 template<>
 an_ifc_expr_named_decl_storage* get<an_ifc_expr_named_decl_storage>(
-                                   an_ifc_module                  *mod,
+                                   an_ifc_module_file             *file,
                                    an_ifc_expr_named_decl_storage *storage,
                                    a_boolean                      fill_storage)
 /*
-Retrieve an instance of ExprNamedDecl from the IFC module file associated with
-mod.
+Retrieve an instance of ExprNamedDecl from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -20335,24 +20294,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_named_decl_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* resolution */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_named_decl_storage> */
@@ -20370,12 +20329,11 @@ Return the corresponding partition kind for ExprNamedDecl.
 
 template<>
 an_ifc_expr_nullptr_storage* get<an_ifc_expr_nullptr_storage>(
-                                      an_ifc_module               *mod,
+                                      an_ifc_module_file          *file,
                                       an_ifc_expr_nullptr_storage *storage,
                                       a_boolean                   fill_storage)
 /*
-Retrieve an instance of ExprNullptr from the IFC module file associated with
-mod.
+Retrieve an instance of ExprNullptr from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -20393,22 +20351,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_nullptr_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_nullptr_storage> */
@@ -20427,12 +20385,11 @@ Return the corresponding partition kind for ExprNullptr.
 template<>
 an_ifc_expr_packed_template_arguments_storage*
 get<an_ifc_expr_packed_template_arguments_storage>(
-                    an_ifc_module                                 *mod,
+                    an_ifc_module_file                            *file,
                     an_ifc_expr_packed_template_arguments_storage *storage,
                     a_boolean                                     fill_storage)
 /*
-Retrieve an instance of ExprPackedTemplateArguments from the IFC module file
-associated with mod.
+Retrieve an instance of ExprPackedTemplateArguments from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -20450,24 +20407,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_packed_template_arguments_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* arguments */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_packed_template_arguments_storage> */
@@ -20486,11 +20443,11 @@ Return the corresponding partition kind for ExprPackedTemplateArguments.
 
 template<>
 an_ifc_expr_path_storage* get<an_ifc_expr_path_storage>(
-                                         an_ifc_module            *mod,
+                                         an_ifc_module_file       *file,
                                          an_ifc_expr_path_storage *storage,
                                          a_boolean                fill_storage)
 /*
-Retrieve an instance of ExprPath from the IFC module file associated with mod.
+Retrieve an instance of ExprPath from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -20508,26 +20465,26 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_path_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* scope */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* member */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_path_storage> */
@@ -20545,12 +20502,11 @@ Return the corresponding partition kind for ExprPath.
 
 template<>
 an_ifc_expr_placeholder_storage* get<an_ifc_expr_placeholder_storage>(
-                                  an_ifc_module                   *mod,
+                                  an_ifc_module_file              *file,
                                   an_ifc_expr_placeholder_storage *storage,
                                   a_boolean                       fill_storage)
 /*
-Retrieve an instance of ExprPlaceholder from the IFC module file associated
-with mod.
+Retrieve an instance of ExprPlaceholder from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -20568,22 +20524,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_placeholder_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_placeholder_storage> */
@@ -20601,12 +20557,11 @@ Return the corresponding partition kind for ExprPlaceholder.
 
 template<>
 an_ifc_expr_pointer_storage* get<an_ifc_expr_pointer_storage>(
-                                      an_ifc_module               *mod,
+                                      an_ifc_module_file          *file,
                                       an_ifc_expr_pointer_storage *storage,
                                       a_boolean                   fill_storage)
 /*
-Retrieve an instance of ExprPointer from the IFC module file associated with
-mod.
+Retrieve an instance of ExprPointer from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -20624,20 +20579,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_pointer_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_pointer_storage> */
@@ -20656,12 +20611,11 @@ Return the corresponding partition kind for ExprPointer.
 template<>
 an_ifc_expr_product_type_value_storage*
 get<an_ifc_expr_product_type_value_storage>(
-                           an_ifc_module                          *mod,
+                           an_ifc_module_file                     *file,
                            an_ifc_expr_product_type_value_storage *storage,
                            a_boolean                              fill_storage)
 /*
-Retrieve an instance of ExprProductTypeValue from the IFC module file
-associated with mod.
+Retrieve an instance of ExprProductTypeValue from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -20679,28 +20633,28 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_product_type_value_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/24);
+      memcpy(*storage, file->byte_buffer, /*size=*/24);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* class_decl */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* members */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* base_subobjects */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_product_type_value_storage> */
@@ -20718,12 +20672,11 @@ Return the corresponding partition kind for ExprProductTypeValue.
 
 template<>
 an_ifc_expr_push_state_storage* get<an_ifc_expr_push_state_storage>(
-                                   an_ifc_module                  *mod,
+                                   an_ifc_module_file             *file,
                                    an_ifc_expr_push_state_storage *storage,
                                    a_boolean                      fill_storage)
 /*
-Retrieve an instance of ExprPushState from the IFC module file associated with
-mod.
+Retrieve an instance of ExprPushState from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -20741,28 +20694,28 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_push_state_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/22);
+      memcpy(*storage, file->byte_buffer, /*size=*/22);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* ctor_call */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* dtor_call */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* flags */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/2, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_push_state_storage> */
@@ -20780,12 +20733,11 @@ Return the corresponding partition kind for ExprPushState.
 
 template<>
 an_ifc_expr_qualified_name_storage* get<an_ifc_expr_qualified_name_storage>(
-                               an_ifc_module                      *mod,
+                               an_ifc_module_file                 *file,
                                an_ifc_expr_qualified_name_storage *storage,
                                a_boolean                          fill_storage)
 /*
-Retrieve an instance of ExprQualifiedName from the IFC module file associated
-with mod.
+Retrieve an instance of ExprQualifiedName from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -20803,28 +20755,28 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_qualified_name_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/24);
+      memcpy(*storage, file->byte_buffer, /*size=*/24);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* elements */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* typename_keyword.line */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* typename_keyword.column */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_qualified_name_storage> */
@@ -20842,11 +20794,11 @@ Return the corresponding partition kind for ExprQualifiedName.
 
 template<>
 an_ifc_expr_read_storage* get<an_ifc_expr_read_storage>(
-                                         an_ifc_module            *mod,
+                                         an_ifc_module_file       *file,
                                          an_ifc_expr_read_storage *storage,
                                          a_boolean                fill_storage)
 /*
-Retrieve an instance of ExprRead from the IFC module file associated with mod.
+Retrieve an instance of ExprRead from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -20864,26 +20816,26 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_read_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* address */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* sort */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_read_storage> */
@@ -20901,12 +20853,11 @@ Return the corresponding partition kind for ExprRead.
 
 template<>
 an_ifc_expr_requires_storage* get<an_ifc_expr_requires_storage>(
-                                     an_ifc_module                *mod,
+                                     an_ifc_module_file           *file,
                                      an_ifc_expr_requires_storage *storage,
                                      a_boolean                    fill_storage)
 /*
-Retrieve an instance of ExprRequires from the IFC module file associated with
-mod.
+Retrieve an instance of ExprRequires from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -20924,26 +20875,26 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_requires_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* parameters */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* body */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_requires_storage> */
@@ -20962,12 +20913,11 @@ Return the corresponding partition kind for ExprRequires.
 template<>
 an_ifc_expr_simple_identifier_storage*
 get<an_ifc_expr_simple_identifier_storage>(
-                            an_ifc_module                         *mod,
+                            an_ifc_module_file                    *file,
                             an_ifc_expr_simple_identifier_storage *storage,
                             a_boolean                             fill_storage)
 /*
-Retrieve an instance of ExprSimpleIdentifier from the IFC module file
-associated with mod.
+Retrieve an instance of ExprSimpleIdentifier from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -20985,24 +20935,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_simple_identifier_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* name */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_simple_identifier_storage> */
@@ -21020,12 +20970,11 @@ Return the corresponding partition kind for ExprSimpleIdentifier.
 
 template<>
 an_ifc_expr_sizeof_type_storage* get<an_ifc_expr_sizeof_type_storage>(
-                                  an_ifc_module                   *mod,
+                                  an_ifc_module_file              *file,
                                   an_ifc_expr_sizeof_type_storage *storage,
                                   a_boolean                       fill_storage)
 /*
-Retrieve an instance of ExprSizeofType from the IFC module file associated with
-mod.
+Retrieve an instance of ExprSizeofType from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -21043,24 +20992,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_sizeof_type_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* operand */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_sizeof_type_storage> */
@@ -21078,12 +21027,11 @@ Return the corresponding partition kind for ExprSizeofType.
 
 template<>
 an_ifc_expr_string_storage* get<an_ifc_expr_string_storage>(
-                                       an_ifc_module              *mod,
+                                       an_ifc_module_file         *file,
                                        an_ifc_expr_string_storage *storage,
                                        a_boolean                  fill_storage)
 /*
-Retrieve an instance of ExprString from the IFC module file associated with
-mod.
+Retrieve an instance of ExprString from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -21101,24 +21049,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_string_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* string_index */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_string_storage> */
@@ -21136,12 +21084,11 @@ Return the corresponding partition kind for ExprString.
 
 template<>
 an_ifc_expr_string_sequence_storage* get<an_ifc_expr_string_sequence_storage>(
-                              an_ifc_module                       *mod,
+                              an_ifc_module_file                  *file,
                               an_ifc_expr_string_sequence_storage *storage,
                               a_boolean                           fill_storage)
 /*
-Retrieve an instance of ExprStringSequence from the IFC module file associated
-with mod.
+Retrieve an instance of ExprStringSequence from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -21159,24 +21106,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_string_sequence_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* strings */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_string_sequence_storage> */
@@ -21194,12 +21141,11 @@ Return the corresponding partition kind for ExprStringSequence.
 
 template<>
 an_ifc_expr_subobject_value_storage* get<an_ifc_expr_subobject_value_storage>(
-                              an_ifc_module                       *mod,
+                              an_ifc_module_file                  *file,
                               an_ifc_expr_subobject_value_storage *storage,
                               a_boolean                           fill_storage)
 /*
-Retrieve an instance of ExprSubobjectValue from the IFC module file associated
-with mod.
+Retrieve an instance of ExprSubobjectValue from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -21217,18 +21163,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_subobject_value_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* value */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_subobject_value_storage> */
@@ -21246,12 +21192,11 @@ Return the corresponding partition kind for ExprSubobjectValue.
 
 template<>
 an_ifc_expr_sum_type_value_storage* get<an_ifc_expr_sum_type_value_storage>(
-                               an_ifc_module                      *mod,
+                               an_ifc_module_file                 *file,
                                an_ifc_expr_sum_type_value_storage *storage,
                                a_boolean                          fill_storage)
 /*
-Retrieve an instance of ExprSumTypeValue from the IFC module file associated
-with mod.
+Retrieve an instance of ExprSumTypeValue from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -21269,28 +21214,28 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_sum_type_value_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/24);
+      memcpy(*storage, file->byte_buffer, /*size=*/24);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* variant */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* discriminant */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* value */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_sum_type_value_storage> */
@@ -21308,12 +21253,11 @@ Return the corresponding partition kind for ExprSumTypeValue.
 
 template<>
 an_ifc_expr_syntax_tree_storage* get<an_ifc_expr_syntax_tree_storage>(
-                                  an_ifc_module                   *mod,
+                                  an_ifc_module_file              *file,
                                   an_ifc_expr_syntax_tree_storage *storage,
                                   a_boolean                       fill_storage)
 /*
-Retrieve an instance of ExprSyntaxTree from the IFC module file associated with
-mod.
+Retrieve an instance of ExprSyntaxTree from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -21331,18 +21275,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_syntax_tree_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* syntax */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_syntax_tree_storage> */
@@ -21360,12 +21304,11 @@ Return the corresponding partition kind for ExprSyntaxTree.
 
 template<>
 an_ifc_expr_template_id_storage* get<an_ifc_expr_template_id_storage>(
-                                  an_ifc_module                   *mod,
+                                  an_ifc_module_file              *file,
                                   an_ifc_expr_template_id_storage *storage,
                                   a_boolean                       fill_storage)
 /*
-Retrieve an instance of ExprTemplateId from the IFC module file associated with
-mod.
+Retrieve an instance of ExprTemplateId from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -21383,26 +21326,26 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_template_id_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* primary */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* arguments */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_template_id_storage> */
@@ -21421,12 +21364,11 @@ Return the corresponding partition kind for ExprTemplateId.
 template<>
 an_ifc_expr_template_reference_storage*
 get<an_ifc_expr_template_reference_storage>(
-                           an_ifc_module                          *mod,
+                           an_ifc_module_file                     *file,
                            an_ifc_expr_template_reference_storage *storage,
                            a_boolean                              fill_storage)
 /*
-Retrieve an instance of ExprTemplateReference from the IFC module file
-associated with mod.
+Retrieve an instance of ExprTemplateReference from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -21444,52 +21386,61 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_template_reference_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      if (is_at_least(mod, 0, 43)) {
-        memcpy(*storage, mod->byte_buffer, /*size=*/28);
+      if (is_at_least(file, 0, 43)) {
+        memcpy(*storage, file->byte_buffer, /*size=*/28);
       } else {
-        memcpy(*storage, mod->byte_buffer, /*size=*/32);
+        memcpy(*storage, file->byte_buffer, /*size=*/32);
       }  /* if */
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
-    if (is_at_least(mod, 0, 43)) {
+    if (is_at_least(file, 0, 43)) {
       /* locus.line */
-      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* locus.column */
-      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* type */
-      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* member */
-      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 12, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
       /* member_name */
-      get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 16, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
       /* scope */
-      get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 20, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
       /* arguments */
-      get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 24, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
     } else {
       /* locus.line */
-      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* locus.column */
-      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* type */
-      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* member_name */
-      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 12, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
       /* member_locus.line */
-      get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 16, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
       /* member_locus.column */
-      get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 20, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
       /* scope */
-      get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 24, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
       /* arguments */
-      get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 28, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
     }  /* if */
   }  /* if */
   return storage;
@@ -21508,12 +21459,11 @@ Return the corresponding partition kind for ExprTemplateReference.
 
 template<>
 an_ifc_expr_temporary_storage* get<an_ifc_expr_temporary_storage>(
-                                    an_ifc_module                 *mod,
+                                    an_ifc_module_file            *file,
                                     an_ifc_expr_temporary_storage *storage,
                                     a_boolean                     fill_storage)
 /*
-Retrieve an instance of ExprTemporary from the IFC module file associated with
-mod.
+Retrieve an instance of ExprTemporary from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -21531,24 +21481,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_temporary_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* id */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_temporary_storage> */
@@ -21566,11 +21516,11 @@ Return the corresponding partition kind for ExprTemporary.
 
 template<>
 an_ifc_expr_this_storage* get<an_ifc_expr_this_storage>(
-                                         an_ifc_module            *mod,
+                                         an_ifc_module_file       *file,
                                          an_ifc_expr_this_storage *storage,
                                          a_boolean                fill_storage)
 /*
-Retrieve an instance of ExprThis from the IFC module file associated with mod.
+Retrieve an instance of ExprThis from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -21588,22 +21538,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_this_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_this_storage> */
@@ -21621,12 +21571,11 @@ Return the corresponding partition kind for ExprThis.
 
 template<>
 an_ifc_expr_tokens_storage* get<an_ifc_expr_tokens_storage>(
-                                       an_ifc_module              *mod,
+                                       an_ifc_module_file         *file,
                                        an_ifc_expr_tokens_storage *storage,
                                        a_boolean                  fill_storage)
 /*
-Retrieve an instance of ExprTokens from the IFC module file associated with
-mod.
+Retrieve an instance of ExprTokens from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -21644,24 +21593,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_tokens_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* words */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_tokens_storage> */
@@ -21679,11 +21628,11 @@ Return the corresponding partition kind for ExprTokens.
 
 template<>
 an_ifc_expr_triad_storage* get<an_ifc_expr_triad_storage>(
-                                        an_ifc_module             *mod,
+                                        an_ifc_module_file        *file,
                                         an_ifc_expr_triad_storage *storage,
                                         a_boolean                 fill_storage)
 /*
-Retrieve an instance of ExprTriad from the IFC module file associated with mod.
+Retrieve an instance of ExprTriad from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -21701,32 +21650,32 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_triad_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/32);
+      memcpy(*storage, file->byte_buffer, /*size=*/32);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* impl */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* argument_0 */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* argument_1 */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* argument_2 */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* assoc */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_triad_storage> */
@@ -21744,11 +21693,11 @@ Return the corresponding partition kind for ExprTriad.
 
 template<>
 an_ifc_expr_tuple_storage* get<an_ifc_expr_tuple_storage>(
-                                        an_ifc_module             *mod,
+                                        an_ifc_module_file        *file,
                                         an_ifc_expr_tuple_storage *storage,
                                         a_boolean                 fill_storage)
 /*
-Retrieve an instance of ExprTuple from the IFC module file associated with mod.
+Retrieve an instance of ExprTuple from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -21766,26 +21715,26 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_tuple_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* start */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* cardinality */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_tuple_storage> */
@@ -21803,11 +21752,11 @@ Return the corresponding partition kind for ExprTuple.
 
 template<>
 an_ifc_expr_type_storage* get<an_ifc_expr_type_storage>(
-                                         an_ifc_module            *mod,
+                                         an_ifc_module_file       *file,
                                          an_ifc_expr_type_storage *storage,
                                          a_boolean                fill_storage)
 /*
-Retrieve an instance of ExprType from the IFC module file associated with mod.
+Retrieve an instance of ExprType from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -21825,24 +21774,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_type_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* denotation */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_type_storage> */
@@ -21861,12 +21810,11 @@ Return the corresponding partition kind for ExprType.
 template<>
 an_ifc_expr_type_trait_intrinsic_storage*
 get<an_ifc_expr_type_trait_intrinsic_storage>(
-                         an_ifc_module                            *mod,
+                         an_ifc_module_file                       *file,
                          an_ifc_expr_type_trait_intrinsic_storage *storage,
                          a_boolean                                fill_storage)
 /*
-Retrieve an instance of ExprTypeTraitIntrinsic from the IFC module file
-associated with mod.
+Retrieve an instance of ExprTypeTraitIntrinsic from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -21884,26 +21832,26 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_type_trait_intrinsic_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* arguments */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* intrinsic */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_type_trait_intrinsic_storage> */
@@ -21922,12 +21870,11 @@ Return the corresponding partition kind for ExprTypeTraitIntrinsic.
 
 template<>
 an_ifc_expr_typeid_storage* get<an_ifc_expr_typeid_storage>(
-                                       an_ifc_module              *mod,
+                                       an_ifc_module_file         *file,
                                        an_ifc_expr_typeid_storage *storage,
                                        a_boolean                  fill_storage)
 /*
-Retrieve an instance of ExprTypeid from the IFC module file associated with
-mod.
+Retrieve an instance of ExprTypeid from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -21945,24 +21892,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_typeid_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* operand */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_typeid_storage> */
@@ -21980,12 +21927,11 @@ Return the corresponding partition kind for ExprTypeid.
 
 template<>
 an_ifc_expr_unary_fold_storage* get<an_ifc_expr_unary_fold_storage>(
-                                   an_ifc_module                  *mod,
+                                   an_ifc_module_file             *file,
                                    an_ifc_expr_unary_fold_storage *storage,
                                    a_boolean                      fill_storage)
 /*
-Retrieve an instance of ExprUnaryFold from the IFC module file associated with
-mod.
+Retrieve an instance of ExprUnaryFold from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -22003,28 +21949,28 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_unary_fold_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* expr */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* operation */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/2, /*from_header=*/FALSE);
     /* associativity */
-    get_bytes(mod, (*storage) + 18, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 18, /*num_bytes=*/2, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_unary_fold_storage> */
@@ -22042,12 +21988,11 @@ Return the corresponding partition kind for ExprUnaryFold.
 
 template<>
 an_ifc_expr_unqualified_id_storage* get<an_ifc_expr_unqualified_id_storage>(
-                               an_ifc_module                      *mod,
+                               an_ifc_module_file                 *file,
                                an_ifc_expr_unqualified_id_storage *storage,
                                a_boolean                          fill_storage)
 /*
-Retrieve an instance of ExprUnqualifiedId from the IFC module file associated
-with mod.
+Retrieve an instance of ExprUnqualifiedId from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -22065,30 +22010,30 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_unqualified_id_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/28);
+      memcpy(*storage, file->byte_buffer, /*size=*/28);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* name */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* resolution */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* template_keyword.line */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* template_keyword.column */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_unqualified_id_storage> */
@@ -22106,12 +22051,11 @@ Return the corresponding partition kind for ExprUnqualifiedId.
 
 template<>
 an_ifc_expr_unresolved_id_storage* get<an_ifc_expr_unresolved_id_storage>(
-                                an_ifc_module                     *mod,
+                                an_ifc_module_file                *file,
                                 an_ifc_expr_unresolved_id_storage *storage,
                                 a_boolean                         fill_storage)
 /*
-Retrieve an instance of ExprUnresolvedId from the IFC module file associated
-with mod.
+Retrieve an instance of ExprUnresolvedId from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -22129,24 +22073,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_unresolved_id_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* name */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_unresolved_id_storage> */
@@ -22165,12 +22109,11 @@ Return the corresponding partition kind for ExprUnresolvedId.
 template<>
 an_ifc_expr_virtual_function_conversion_storage*
 get<an_ifc_expr_virtual_function_conversion_storage>(
-                  an_ifc_module                                   *mod,
+                  an_ifc_module_file                              *file,
                   an_ifc_expr_virtual_function_conversion_storage *storage,
                   a_boolean                                       fill_storage)
 /*
-Retrieve an instance of ExprVirtualFunctionConversion from the IFC module file
-associated with mod.
+Retrieve an instance of ExprVirtualFunctionConversion from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -22188,24 +22131,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_expr_virtual_function_conversion_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* function */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_expr_virtual_function_conversion_storage> */
@@ -22224,12 +22167,11 @@ Return the corresponding partition kind for ExprVirtualFunctionConversion.
 
 template<>
 an_ifc_form_catenate_storage* get<an_ifc_form_catenate_storage>(
-                                     an_ifc_module                *mod,
+                                     an_ifc_module_file           *file,
                                      an_ifc_form_catenate_storage *storage,
                                      a_boolean                    fill_storage)
 /*
-Retrieve an instance of FormCatenate from the IFC module file associated with
-mod.
+Retrieve an instance of FormCatenate from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -22247,24 +22189,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_form_catenate_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* first */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* second */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_form_catenate_storage> */
@@ -22282,12 +22224,11 @@ Return the corresponding partition kind for FormCatenate.
 
 template<>
 an_ifc_form_character_storage* get<an_ifc_form_character_storage>(
-                                    an_ifc_module                 *mod,
+                                    an_ifc_module_file            *file,
                                     an_ifc_form_character_storage *storage,
                                     a_boolean                     fill_storage)
 /*
-Retrieve an instance of FormCharacter from the IFC module file associated with
-mod.
+Retrieve an instance of FormCharacter from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -22305,22 +22246,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_form_character_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* spelling */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_form_character_storage> */
@@ -22338,12 +22279,11 @@ Return the corresponding partition kind for FormCharacter.
 
 template<>
 an_ifc_form_header_storage* get<an_ifc_form_header_storage>(
-                                       an_ifc_module              *mod,
+                                       an_ifc_module_file         *file,
                                        an_ifc_form_header_storage *storage,
                                        a_boolean                  fill_storage)
 /*
-Retrieve an instance of FormHeader from the IFC module file associated with
-mod.
+Retrieve an instance of FormHeader from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -22361,22 +22301,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_form_header_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* spelling */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_form_header_storage> */
@@ -22394,12 +22334,11 @@ Return the corresponding partition kind for FormHeader.
 
 template<>
 an_ifc_form_identifier_storage* get<an_ifc_form_identifier_storage>(
-                                   an_ifc_module                  *mod,
+                                   an_ifc_module_file             *file,
                                    an_ifc_form_identifier_storage *storage,
                                    a_boolean                      fill_storage)
 /*
-Retrieve an instance of FormIdentifier from the IFC module file associated with
-mod.
+Retrieve an instance of FormIdentifier from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -22417,22 +22356,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_form_identifier_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* spelling */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_form_identifier_storage> */
@@ -22450,11 +22389,11 @@ Return the corresponding partition kind for FormIdentifier.
 
 template<>
 an_ifc_form_junk_storage* get<an_ifc_form_junk_storage>(
-                                         an_ifc_module            *mod,
+                                         an_ifc_module_file       *file,
                                          an_ifc_form_junk_storage *storage,
                                          a_boolean                fill_storage)
 /*
-Retrieve an instance of FormJunk from the IFC module file associated with mod.
+Retrieve an instance of FormJunk from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -22472,22 +22411,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_form_junk_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* spelling */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_form_junk_storage> */
@@ -22505,12 +22444,11 @@ Return the corresponding partition kind for FormJunk.
 
 template<>
 an_ifc_form_keyword_storage* get<an_ifc_form_keyword_storage>(
-                                      an_ifc_module               *mod,
+                                      an_ifc_module_file          *file,
                                       an_ifc_form_keyword_storage *storage,
                                       a_boolean                   fill_storage)
 /*
-Retrieve an instance of FormKeyword from the IFC module file associated with
-mod.
+Retrieve an instance of FormKeyword from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -22528,22 +22466,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_form_keyword_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* spelling */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_form_keyword_storage> */
@@ -22561,12 +22499,11 @@ Return the corresponding partition kind for FormKeyword.
 
 template<>
 an_ifc_form_number_storage* get<an_ifc_form_number_storage>(
-                                       an_ifc_module              *mod,
+                                       an_ifc_module_file         *file,
                                        an_ifc_form_number_storage *storage,
                                        a_boolean                  fill_storage)
 /*
-Retrieve an instance of FormNumber from the IFC module file associated with
-mod.
+Retrieve an instance of FormNumber from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -22584,22 +22521,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_form_number_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* spelling */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_form_number_storage> */
@@ -22617,12 +22554,11 @@ Return the corresponding partition kind for FormNumber.
 
 template<>
 an_ifc_form_operator_storage* get<an_ifc_form_operator_storage>(
-                                     an_ifc_module                *mod,
+                                     an_ifc_module_file           *file,
                                      an_ifc_form_operator_storage *storage,
                                      a_boolean                    fill_storage)
 /*
-Retrieve an instance of FormOperator from the IFC module file associated with
-mod.
+Retrieve an instance of FormOperator from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -22640,24 +22576,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_form_operator_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* spelling */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* op */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_form_operator_storage> */
@@ -22675,12 +22611,11 @@ Return the corresponding partition kind for FormOperator.
 
 template<>
 an_ifc_form_parameter_storage* get<an_ifc_form_parameter_storage>(
-                                    an_ifc_module                 *mod,
+                                    an_ifc_module_file            *file,
                                     an_ifc_form_parameter_storage *storage,
                                     a_boolean                     fill_storage)
 /*
-Retrieve an instance of FormParameter from the IFC module file associated with
-mod.
+Retrieve an instance of FormParameter from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -22698,22 +22633,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_form_parameter_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* spelling */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_form_parameter_storage> */
@@ -22731,12 +22666,11 @@ Return the corresponding partition kind for FormParameter.
 
 template<>
 an_ifc_form_parenthesized_storage* get<an_ifc_form_parenthesized_storage>(
-                                an_ifc_module                     *mod,
+                                an_ifc_module_file                *file,
                                 an_ifc_form_parenthesized_storage *storage,
                                 a_boolean                         fill_storage)
 /*
-Retrieve an instance of FormParenthesized from the IFC module file associated
-with mod.
+Retrieve an instance of FormParenthesized from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -22754,22 +22688,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_form_parenthesized_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* operand */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_form_parenthesized_storage> */
@@ -22787,12 +22721,11 @@ Return the corresponding partition kind for FormParenthesized.
 
 template<>
 an_ifc_form_pragma_storage* get<an_ifc_form_pragma_storage>(
-                                       an_ifc_module              *mod,
+                                       an_ifc_module_file         *file,
                                        an_ifc_form_pragma_storage *storage,
                                        a_boolean                  fill_storage)
 /*
-Retrieve an instance of FormPragma from the IFC module file associated with
-mod.
+Retrieve an instance of FormPragma from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -22810,22 +22743,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_form_pragma_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* operand */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_form_pragma_storage> */
@@ -22843,11 +22776,11 @@ Return the corresponding partition kind for FormPragma.
 
 template<>
 an_ifc_form_spec_storage* get<an_ifc_form_spec_storage>(
-                                         an_ifc_module            *mod,
+                                         an_ifc_module_file       *file,
                                          an_ifc_form_spec_storage *storage,
                                          a_boolean                fill_storage)
 /*
-Retrieve an instance of FormSpec from the IFC module file associated with mod.
+Retrieve an instance of FormSpec from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -22865,20 +22798,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_form_spec_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* primary_template */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* arguments */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_form_spec_storage> */
@@ -22896,12 +22829,11 @@ Return the corresponding partition kind for FormSpec.
 
 template<>
 an_ifc_form_string_storage* get<an_ifc_form_string_storage>(
-                                       an_ifc_module              *mod,
+                                       an_ifc_module_file         *file,
                                        an_ifc_form_string_storage *storage,
                                        a_boolean                  fill_storage)
 /*
-Retrieve an instance of FormString from the IFC module file associated with
-mod.
+Retrieve an instance of FormString from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -22919,22 +22851,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_form_string_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* spelling */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_form_string_storage> */
@@ -22952,12 +22884,11 @@ Return the corresponding partition kind for FormString.
 
 template<>
 an_ifc_form_stringize_storage* get<an_ifc_form_stringize_storage>(
-                                    an_ifc_module                 *mod,
+                                    an_ifc_module_file            *file,
                                     an_ifc_form_stringize_storage *storage,
                                     a_boolean                     fill_storage)
 /*
-Retrieve an instance of FormStringize from the IFC module file associated with
-mod.
+Retrieve an instance of FormStringize from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -22975,22 +22906,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_form_stringize_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* operand */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_form_stringize_storage> */
@@ -23008,11 +22939,11 @@ Return the corresponding partition kind for FormStringize.
 
 template<>
 an_ifc_form_tuple_storage* get<an_ifc_form_tuple_storage>(
-                                        an_ifc_module             *mod,
+                                        an_ifc_module_file        *file,
                                         an_ifc_form_tuple_storage *storage,
                                         a_boolean                 fill_storage)
 /*
-Retrieve an instance of FormTuple from the IFC module file associated with mod.
+Retrieve an instance of FormTuple from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -23030,20 +22961,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_form_tuple_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* start */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* cardinality */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_form_tuple_storage> */
@@ -23061,12 +22992,11 @@ Return the corresponding partition kind for FormTuple.
 
 template<>
 an_ifc_form_whitespace_storage* get<an_ifc_form_whitespace_storage>(
-                                   an_ifc_module                  *mod,
+                                   an_ifc_module_file             *file,
                                    an_ifc_form_whitespace_storage *storage,
                                    a_boolean                      fill_storage)
 /*
-Retrieve an instance of FormWhitespace from the IFC module file associated with
-mod.
+Retrieve an instance of FormWhitespace from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -23084,20 +23014,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_form_whitespace_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_form_whitespace_storage> */
@@ -23115,11 +23045,11 @@ Return the corresponding partition kind for FormWhitespace.
 
 template<>
 an_ifc_heap_attr_storage* get<an_ifc_heap_attr_storage>(
-                                         an_ifc_module            *mod,
+                                         an_ifc_module_file       *file,
                                          an_ifc_heap_attr_storage *storage,
                                          a_boolean                fill_storage)
 /*
-Retrieve an instance of HeapAttr from the IFC module file associated with mod.
+Retrieve an instance of HeapAttr from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -23137,18 +23067,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_heap_attr_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* value */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_heap_attr_storage> */
@@ -23166,11 +23096,11 @@ Return the corresponding partition kind for HeapAttr.
 
 template<>
 an_ifc_heap_chart_storage* get<an_ifc_heap_chart_storage>(
-                                        an_ifc_module             *mod,
+                                        an_ifc_module_file        *file,
                                         an_ifc_heap_chart_storage *storage,
                                         a_boolean                 fill_storage)
 /*
-Retrieve an instance of HeapChart from the IFC module file associated with mod.
+Retrieve an instance of HeapChart from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -23188,18 +23118,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_heap_chart_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* value */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_heap_chart_storage> */
@@ -23217,11 +23147,11 @@ Return the corresponding partition kind for HeapChart.
 
 template<>
 an_ifc_heap_decl_storage* get<an_ifc_heap_decl_storage>(
-                                         an_ifc_module            *mod,
+                                         an_ifc_module_file       *file,
                                          an_ifc_heap_decl_storage *storage,
                                          a_boolean                fill_storage)
 /*
-Retrieve an instance of HeapDecl from the IFC module file associated with mod.
+Retrieve an instance of HeapDecl from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -23239,18 +23169,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_heap_decl_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* value */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_heap_decl_storage> */
@@ -23268,11 +23198,11 @@ Return the corresponding partition kind for HeapDecl.
 
 template<>
 an_ifc_heap_expr_storage* get<an_ifc_heap_expr_storage>(
-                                         an_ifc_module            *mod,
+                                         an_ifc_module_file       *file,
                                          an_ifc_heap_expr_storage *storage,
                                          a_boolean                fill_storage)
 /*
-Retrieve an instance of HeapExpr from the IFC module file associated with mod.
+Retrieve an instance of HeapExpr from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -23290,18 +23220,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_heap_expr_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* value */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_heap_expr_storage> */
@@ -23319,11 +23249,11 @@ Return the corresponding partition kind for HeapExpr.
 
 template<>
 an_ifc_heap_form_storage* get<an_ifc_heap_form_storage>(
-                                         an_ifc_module            *mod,
+                                         an_ifc_module_file       *file,
                                          an_ifc_heap_form_storage *storage,
                                          a_boolean                fill_storage)
 /*
-Retrieve an instance of HeapForm from the IFC module file associated with mod.
+Retrieve an instance of HeapForm from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -23341,18 +23271,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_heap_form_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* value */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_heap_form_storage> */
@@ -23370,12 +23300,11 @@ Return the corresponding partition kind for HeapForm.
 
 template<>
 an_ifc_heap_pp_form_storage* get<an_ifc_heap_pp_form_storage>(
-                                      an_ifc_module               *mod,
+                                      an_ifc_module_file          *file,
                                       an_ifc_heap_pp_form_storage *storage,
                                       a_boolean                   fill_storage)
 /*
-Retrieve an instance of HeapPPForm from the IFC module file associated with
-mod.
+Retrieve an instance of HeapPPForm from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -23393,18 +23322,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_heap_pp_form_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* value */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_heap_pp_form_storage> */
@@ -23422,11 +23351,11 @@ Return the corresponding partition kind for HeapPPForm.
 
 template<>
 an_ifc_heap_stmt_storage* get<an_ifc_heap_stmt_storage>(
-                                         an_ifc_module            *mod,
+                                         an_ifc_module_file       *file,
                                          an_ifc_heap_stmt_storage *storage,
                                          a_boolean                fill_storage)
 /*
-Retrieve an instance of HeapStmt from the IFC module file associated with mod.
+Retrieve an instance of HeapStmt from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -23444,18 +23373,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_heap_stmt_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* value */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_heap_stmt_storage> */
@@ -23473,12 +23402,11 @@ Return the corresponding partition kind for HeapStmt.
 
 template<>
 an_ifc_heap_syntax_storage* get<an_ifc_heap_syntax_storage>(
-                                       an_ifc_module              *mod,
+                                       an_ifc_module_file         *file,
                                        an_ifc_heap_syntax_storage *storage,
                                        a_boolean                  fill_storage)
 /*
-Retrieve an instance of HeapSyntax from the IFC module file associated with
-mod.
+Retrieve an instance of HeapSyntax from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -23496,18 +23424,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_heap_syntax_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* value */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_heap_syntax_storage> */
@@ -23525,11 +23453,11 @@ Return the corresponding partition kind for HeapSyntax.
 
 template<>
 an_ifc_heap_type_storage* get<an_ifc_heap_type_storage>(
-                                         an_ifc_module            *mod,
+                                         an_ifc_module_file       *file,
                                          an_ifc_heap_type_storage *storage,
                                          a_boolean                fill_storage)
 /*
-Retrieve an instance of HeapType from the IFC module file associated with mod.
+Retrieve an instance of HeapType from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -23547,18 +23475,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_heap_type_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* value */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_heap_type_storage> */
@@ -23576,12 +23504,11 @@ Return the corresponding partition kind for HeapType.
 
 template<>
 an_ifc_macro_function_like_storage* get<an_ifc_macro_function_like_storage>(
-                               an_ifc_module                      *mod,
+                               an_ifc_module_file                 *file,
                                an_ifc_macro_function_like_storage *storage,
                                a_boolean                          fill_storage)
 /*
-Retrieve an instance of MacroFunctionLike from the IFC module file associated
-with mod.
+Retrieve an instance of MacroFunctionLike from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -23599,28 +23526,28 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_macro_function_like_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/24);
+      memcpy(*storage, file->byte_buffer, /*size=*/24);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* name */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* parameters */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* body */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* arity_variadic */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_macro_function_like_storage> */
@@ -23638,12 +23565,11 @@ Return the corresponding partition kind for MacroFunctionLike.
 
 template<>
 an_ifc_macro_object_like_storage* get<an_ifc_macro_object_like_storage>(
-                                 an_ifc_module                    *mod,
+                                 an_ifc_module_file               *file,
                                  an_ifc_macro_object_like_storage *storage,
                                  a_boolean                        fill_storage)
 /*
-Retrieve an instance of MacroObjectLike from the IFC module file associated
-with mod.
+Retrieve an instance of MacroObjectLike from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -23661,24 +23587,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_macro_object_like_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* name */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* body */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_macro_object_like_storage> */
@@ -23697,12 +23623,11 @@ Return the corresponding partition kind for MacroObjectLike.
 template<>
 an_ifc_module_export_reference_storage*
 get<an_ifc_module_export_reference_storage>(
-                           an_ifc_module                          *mod,
+                           an_ifc_module_file                     *file,
                            an_ifc_module_export_reference_storage *storage,
                            a_boolean                              fill_storage)
 /*
-Retrieve an instance of ModuleExportReference from the IFC module file
-associated with mod.
+Retrieve an instance of ModuleExportReference from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -23720,20 +23645,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_module_export_reference_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* reference.owner */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* reference.partition */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_module_export_reference_storage> */
@@ -23752,12 +23677,11 @@ Return the corresponding partition kind for ModuleExportReference.
 template<>
 an_ifc_module_import_reference_storage*
 get<an_ifc_module_import_reference_storage>(
-                           an_ifc_module                          *mod,
+                           an_ifc_module_file                     *file,
                            an_ifc_module_import_reference_storage *storage,
                            a_boolean                              fill_storage)
 /*
-Retrieve an instance of ModuleImportReference from the IFC module file
-associated with mod.
+Retrieve an instance of ModuleImportReference from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -23775,20 +23699,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_module_import_reference_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* reference.owner */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* reference.partition */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_module_import_reference_storage> */
@@ -23806,12 +23730,11 @@ Return the corresponding partition kind for ModuleImportReference.
 
 template<>
 an_ifc_name_conversion_storage* get<an_ifc_name_conversion_storage>(
-                                   an_ifc_module                  *mod,
+                                   an_ifc_module_file             *file,
                                    an_ifc_name_conversion_storage *storage,
                                    a_boolean                      fill_storage)
 /*
-Retrieve an instance of NameConversion from the IFC module file associated with
-mod.
+Retrieve an instance of NameConversion from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -23829,20 +23752,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_name_conversion_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* target */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* encoded */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_name_conversion_storage> */
@@ -23860,11 +23783,11 @@ Return the corresponding partition kind for NameConversion.
 
 template<>
 an_ifc_name_guide_storage* get<an_ifc_name_guide_storage>(
-                                        an_ifc_module             *mod,
+                                        an_ifc_module_file        *file,
                                         an_ifc_name_guide_storage *storage,
                                         a_boolean                 fill_storage)
 /*
-Retrieve an instance of NameGuide from the IFC module file associated with mod.
+Retrieve an instance of NameGuide from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -23882,18 +23805,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_name_guide_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* primary_template */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_name_guide_storage> */
@@ -23911,12 +23834,11 @@ Return the corresponding partition kind for NameGuide.
 
 template<>
 an_ifc_name_literal_storage* get<an_ifc_name_literal_storage>(
-                                      an_ifc_module               *mod,
+                                      an_ifc_module_file          *file,
                                       an_ifc_name_literal_storage *storage,
                                       a_boolean                   fill_storage)
 /*
-Retrieve an instance of NameLiteral from the IFC module file associated with
-mod.
+Retrieve an instance of NameLiteral from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -23934,18 +23856,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_name_literal_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* encoded */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_name_literal_storage> */
@@ -23963,12 +23885,11 @@ Return the corresponding partition kind for NameLiteral.
 
 template<>
 an_ifc_name_operator_storage* get<an_ifc_name_operator_storage>(
-                                     an_ifc_module                *mod,
+                                     an_ifc_module_file           *file,
                                      an_ifc_name_operator_storage *storage,
                                      a_boolean                    fill_storage)
 /*
-Retrieve an instance of NameOperator from the IFC module file associated with
-mod.
+Retrieve an instance of NameOperator from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -23986,20 +23907,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_name_operator_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* encoded */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* operator */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_name_operator_storage> */
@@ -24017,12 +23938,11 @@ Return the corresponding partition kind for NameOperator.
 
 template<>
 an_ifc_name_source_file_storage* get<an_ifc_name_source_file_storage>(
-                                  an_ifc_module                   *mod,
+                                  an_ifc_module_file              *file,
                                   an_ifc_name_source_file_storage *storage,
                                   a_boolean                       fill_storage)
 /*
-Retrieve an instance of NameSourceFile from the IFC module file associated with
-mod.
+Retrieve an instance of NameSourceFile from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -24040,20 +23960,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_name_source_file_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* path */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* guard */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_name_source_file_storage> */
@@ -24071,12 +23991,11 @@ Return the corresponding partition kind for NameSourceFile.
 
 template<>
 an_ifc_name_specialization_storage* get<an_ifc_name_specialization_storage>(
-                               an_ifc_module                      *mod,
+                               an_ifc_module_file                 *file,
                                an_ifc_name_specialization_storage *storage,
                                a_boolean                          fill_storage)
 /*
-Retrieve an instance of NameSpecialization from the IFC module file associated
-with mod.
+Retrieve an instance of NameSpecialization from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -24094,20 +24013,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_name_specialization_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* primary */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* arguments */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_name_specialization_storage> */
@@ -24125,12 +24044,11 @@ Return the corresponding partition kind for NameSpecialization.
 
 template<>
 an_ifc_name_template_storage* get<an_ifc_name_template_storage>(
-                                     an_ifc_module                *mod,
+                                     an_ifc_module_file           *file,
                                      an_ifc_name_template_storage *storage,
                                      a_boolean                    fill_storage)
 /*
-Retrieve an instance of NameTemplate from the IFC module file associated with
-mod.
+Retrieve an instance of NameTemplate from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -24148,18 +24066,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_name_template_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_name_template_storage> */
@@ -24177,12 +24095,11 @@ Return the corresponding partition kind for NameTemplate.
 
 template<>
 an_ifc_scope_descriptor_storage* get<an_ifc_scope_descriptor_storage>(
-                                  an_ifc_module                   *mod,
+                                  an_ifc_module_file              *file,
                                   an_ifc_scope_descriptor_storage *storage,
                                   a_boolean                       fill_storage)
 /*
-Retrieve an instance of ScopeDescriptor from the IFC module file associated
-with mod.
+Retrieve an instance of ScopeDescriptor from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -24200,20 +24117,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_scope_descriptor_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* start */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* cardinality */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_scope_descriptor_storage> */
@@ -24231,12 +24148,11 @@ Return the corresponding partition kind for ScopeDescriptor.
 
 template<>
 an_ifc_scope_member_storage* get<an_ifc_scope_member_storage>(
-                                      an_ifc_module               *mod,
+                                      an_ifc_module_file          *file,
                                       an_ifc_scope_member_storage *storage,
                                       a_boolean                   fill_storage)
 /*
-Retrieve an instance of ScopeMember from the IFC module file associated with
-mod.
+Retrieve an instance of ScopeMember from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -24254,18 +24170,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_scope_member_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* index */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_scope_member_storage> */
@@ -24283,12 +24199,11 @@ Return the corresponding partition kind for ScopeMember.
 
 template<>
 an_ifc_source_line_storage* get<an_ifc_source_line_storage>(
-                                       an_ifc_module              *mod,
+                                       an_ifc_module_file         *file,
                                        an_ifc_source_line_storage *storage,
                                        a_boolean                  fill_storage)
 /*
-Retrieve an instance of SourceLine from the IFC module file associated with
-mod.
+Retrieve an instance of SourceLine from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -24306,20 +24221,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_source_line_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* file */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_source_line_storage> */
@@ -24337,12 +24252,11 @@ Return the corresponding partition kind for SourceLine.
 
 template<>
 an_ifc_source_sentence_storage* get<an_ifc_source_sentence_storage>(
-                                   an_ifc_module                  *mod,
+                                   an_ifc_module_file             *file,
                                    an_ifc_source_sentence_storage *storage,
                                    a_boolean                      fill_storage)
 /*
-Retrieve an instance of SourceSentence from the IFC module file associated with
-mod.
+Retrieve an instance of SourceSentence from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -24360,24 +24274,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_source_sentence_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* start */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* cardinality */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_source_sentence_storage> */
@@ -24395,12 +24309,11 @@ Return the corresponding partition kind for SourceSentence.
 
 template<>
 an_ifc_source_word_storage* get<an_ifc_source_word_storage>(
-                                       an_ifc_module              *mod,
+                                       an_ifc_module_file         *file,
                                        an_ifc_source_word_storage *storage,
                                        a_boolean                  fill_storage)
 /*
-Retrieve an instance of SourceWord from the IFC module file associated with
-mod.
+Retrieve an instance of SourceWord from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -24418,26 +24331,26 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_source_word_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* index */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* value */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/2, /*from_header=*/FALSE);
     /* sort */
-    get_bytes(mod, (*storage) + 14, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 14, /*num_bytes=*/2, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_source_word_storage> */
@@ -24455,11 +24368,11 @@ Return the corresponding partition kind for SourceWord.
 
 template<>
 an_ifc_stmt_block_storage* get<an_ifc_stmt_block_storage>(
-                                        an_ifc_module             *mod,
+                                        an_ifc_module_file        *file,
                                         an_ifc_stmt_block_storage *storage,
                                         a_boolean                 fill_storage)
 /*
-Retrieve an instance of StmtBlock from the IFC module file associated with mod.
+Retrieve an instance of StmtBlock from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -24477,34 +24390,35 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_stmt_block_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      if (is_at_least(mod, 0, 42)) {
-        memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      if (is_at_least(file, 0, 42)) {
+        memcpy(*storage, file->byte_buffer, /*size=*/16);
       } else {
-        memcpy(*storage, mod->byte_buffer, /*size=*/8);
+        memcpy(*storage, file->byte_buffer, /*size=*/8);
       }  /* if */
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
-    if (is_at_least(mod, 0, 42)) {
+    if (is_at_least(file, 0, 42)) {
       /* locus.line */
-      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* locus.column */
-      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* start */
-      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* cardinality */
-      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 12, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
     } else {
       /* start */
-      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* cardinality */
-      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     }  /* if */
   }  /* if */
   return storage;
@@ -24523,11 +24437,11 @@ Return the corresponding partition kind for StmtBlock.
 
 template<>
 an_ifc_stmt_break_storage* get<an_ifc_stmt_break_storage>(
-                                        an_ifc_module             *mod,
+                                        an_ifc_module_file        *file,
                                         an_ifc_stmt_break_storage *storage,
                                         a_boolean                 fill_storage)
 /*
-Retrieve an instance of StmtBreak from the IFC module file associated with mod.
+Retrieve an instance of StmtBreak from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -24545,20 +24459,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_stmt_break_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_stmt_break_storage> */
@@ -24576,11 +24490,11 @@ Return the corresponding partition kind for StmtBreak.
 
 template<>
 an_ifc_stmt_case_storage* get<an_ifc_stmt_case_storage>(
-                                         an_ifc_module            *mod,
+                                         an_ifc_module_file       *file,
                                          an_ifc_stmt_case_storage *storage,
                                          a_boolean                fill_storage)
 /*
-Retrieve an instance of StmtCase from the IFC module file associated with mod.
+Retrieve an instance of StmtCase from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -24598,22 +24512,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_stmt_case_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* expr */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_stmt_case_storage> */
@@ -24631,12 +24545,11 @@ Return the corresponding partition kind for StmtCase.
 
 template<>
 an_ifc_stmt_continue_storage* get<an_ifc_stmt_continue_storage>(
-                                     an_ifc_module                *mod,
+                                     an_ifc_module_file           *file,
                                      an_ifc_stmt_continue_storage *storage,
                                      a_boolean                    fill_storage)
 /*
-Retrieve an instance of StmtContinue from the IFC module file associated with
-mod.
+Retrieve an instance of StmtContinue from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -24654,20 +24567,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_stmt_continue_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_stmt_continue_storage> */
@@ -24685,11 +24598,11 @@ Return the corresponding partition kind for StmtContinue.
 
 template<>
 an_ifc_stmt_decl_storage* get<an_ifc_stmt_decl_storage>(
-                                         an_ifc_module            *mod,
+                                         an_ifc_module_file       *file,
                                          an_ifc_stmt_decl_storage *storage,
                                          a_boolean                fill_storage)
 /*
-Retrieve an instance of StmtDecl from the IFC module file associated with mod.
+Retrieve an instance of StmtDecl from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -24707,22 +24620,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_stmt_decl_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* decl */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_stmt_decl_storage> */
@@ -24740,12 +24653,11 @@ Return the corresponding partition kind for StmtDecl.
 
 template<>
 an_ifc_stmt_default_storage* get<an_ifc_stmt_default_storage>(
-                                      an_ifc_module               *mod,
+                                      an_ifc_module_file          *file,
                                       an_ifc_stmt_default_storage *storage,
                                       a_boolean                   fill_storage)
 /*
-Retrieve an instance of StmtDefault from the IFC module file associated with
-mod.
+Retrieve an instance of StmtDefault from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -24763,20 +24675,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_stmt_default_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_stmt_default_storage> */
@@ -24794,12 +24706,11 @@ Return the corresponding partition kind for StmtDefault.
 
 template<>
 an_ifc_stmt_do_while_storage* get<an_ifc_stmt_do_while_storage>(
-                                     an_ifc_module                *mod,
+                                     an_ifc_module_file           *file,
                                      an_ifc_stmt_do_while_storage *storage,
                                      a_boolean                    fill_storage)
 /*
-Retrieve an instance of StmtDoWhile from the IFC module file associated with
-mod.
+Retrieve an instance of StmtDoWhile from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -24817,34 +24728,36 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_stmt_do_while_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
-    if (is_at_least(mod, 0, 42)) {
+    if (is_at_least(file, 0, 42)) {
       /* locus.line */
-      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* locus.column */
-      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* condition */
-      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* body */
-      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 12, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
     } else {
       /* condition */
-      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* body */
-      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* locus.line */
-      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* locus.column */
-      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 12, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
     }  /* if */
   }  /* if */
   return storage;
@@ -24863,11 +24776,11 @@ Return the corresponding partition kind for StmtDoWhile.
 
 template<>
 an_ifc_stmt_empty_storage* get<an_ifc_stmt_empty_storage>(
-                                        an_ifc_module             *mod,
+                                        an_ifc_module_file        *file,
                                         an_ifc_stmt_empty_storage *storage,
                                         a_boolean                 fill_storage)
 /*
-Retrieve an instance of StmtEmpty from the IFC module file associated with mod.
+Retrieve an instance of StmtEmpty from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -24885,20 +24798,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_stmt_empty_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_stmt_empty_storage> */
@@ -24916,12 +24829,11 @@ Return the corresponding partition kind for StmtEmpty.
 
 template<>
 an_ifc_stmt_expansion_storage* get<an_ifc_stmt_expansion_storage>(
-                                    an_ifc_module                 *mod,
+                                    an_ifc_module_file            *file,
                                     an_ifc_stmt_expansion_storage *storage,
                                     a_boolean                     fill_storage)
 /*
-Retrieve an instance of StmtExpansion from the IFC module file associated with
-mod.
+Retrieve an instance of StmtExpansion from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -24939,30 +24851,30 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_stmt_expansion_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      if (is_at_least(mod, 0, 42)) {
-        memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      if (is_at_least(file, 0, 42)) {
+        memcpy(*storage, file->byte_buffer, /*size=*/12);
       } else {
-        memcpy(*storage, mod->byte_buffer, /*size=*/4);
+        memcpy(*storage, file->byte_buffer, /*size=*/4);
       }  /* if */
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
-    if (is_at_least(mod, 0, 42)) {
+    if (is_at_least(file, 0, 42)) {
       /* locus.line */
-      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* locus.column */
-      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* operand */
-      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     } else {
       /* operand */
-      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     }  /* if */
   }  /* if */
   return storage;
@@ -24981,12 +24893,11 @@ Return the corresponding partition kind for StmtExpansion.
 
 template<>
 an_ifc_stmt_expression_storage* get<an_ifc_stmt_expression_storage>(
-                                   an_ifc_module                  *mod,
+                                   an_ifc_module_file             *file,
                                    an_ifc_stmt_expression_storage *storage,
                                    a_boolean                      fill_storage)
 /*
-Retrieve an instance of StmtExpression from the IFC module file associated with
-mod.
+Retrieve an instance of StmtExpression from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -25004,30 +24915,30 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_stmt_expression_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
-    if (is_at_least(mod, 0, 42)) {
+    if (is_at_least(file, 0, 42)) {
       /* locus.line */
-      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* locus.column */
-      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* expr */
-      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     } else {
       /* expr */
-      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* locus.line */
-      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* locus.column */
-      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     }  /* if */
   }  /* if */
   return storage;
@@ -25046,11 +24957,11 @@ Return the corresponding partition kind for StmtExpression.
 
 template<>
 an_ifc_stmt_for_storage* get<an_ifc_stmt_for_storage>(
-                                          an_ifc_module           *mod,
+                                          an_ifc_module_file      *file,
                                           an_ifc_stmt_for_storage *storage,
                                           a_boolean               fill_storage)
 /*
-Retrieve an instance of StmtFor from the IFC module file associated with mod.
+Retrieve an instance of StmtFor from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -25068,42 +24979,48 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_stmt_for_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/24);
+      memcpy(*storage, file->byte_buffer, /*size=*/24);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
-    if (is_at_least(mod, 0, 42)) {
+    if (is_at_least(file, 0, 42)) {
       /* locus.line */
-      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* locus.column */
-      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* initialization */
-      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* condition */
-      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 12, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
       /* continuation */
-      get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 16, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
       /* body */
-      get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 20, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
     } else {
       /* initialization */
-      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* condition */
-      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* continuation */
-      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* body */
-      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 12, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
       /* locus.line */
-      get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 16, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
       /* locus.column */
-      get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 20, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
     }  /* if */
   }  /* if */
   return storage;
@@ -25122,11 +25039,11 @@ Return the corresponding partition kind for StmtFor.
 
 template<>
 an_ifc_stmt_goto_storage* get<an_ifc_stmt_goto_storage>(
-                                         an_ifc_module            *mod,
+                                         an_ifc_module_file       *file,
                                          an_ifc_stmt_goto_storage *storage,
                                          a_boolean                fill_storage)
 /*
-Retrieve an instance of StmtGoto from the IFC module file associated with mod.
+Retrieve an instance of StmtGoto from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -25144,22 +25061,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_stmt_goto_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* target */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_stmt_goto_storage> */
@@ -25177,12 +25094,11 @@ Return the corresponding partition kind for StmtGoto.
 
 template<>
 an_ifc_stmt_handler_storage* get<an_ifc_stmt_handler_storage>(
-                                      an_ifc_module               *mod,
+                                      an_ifc_module_file          *file,
                                       an_ifc_stmt_handler_storage *storage,
                                       a_boolean                   fill_storage)
 /*
-Retrieve an instance of StmtHandler from the IFC module file associated with
-mod.
+Retrieve an instance of StmtHandler from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -25200,24 +25116,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_stmt_handler_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* exception */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* body */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_stmt_handler_storage> */
@@ -25235,11 +25151,11 @@ Return the corresponding partition kind for StmtHandler.
 
 template<>
 an_ifc_stmt_if_storage* get<an_ifc_stmt_if_storage>(
-                                           an_ifc_module          *mod,
+                                           an_ifc_module_file     *file,
                                            an_ifc_stmt_if_storage *storage,
                                            a_boolean              fill_storage)
 /*
-Retrieve an instance of StmtIf from the IFC module file associated with mod.
+Retrieve an instance of StmtIf from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -25257,42 +25173,48 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_stmt_if_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/24);
+      memcpy(*storage, file->byte_buffer, /*size=*/24);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
-    if (is_at_least(mod, 0, 42)) {
+    if (is_at_least(file, 0, 42)) {
       /* locus.line */
-      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* locus.column */
-      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* initialization */
-      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* condition */
-      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 12, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
       /* consequence */
-      get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 16, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
       /* alternative */
-      get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 20, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
     } else {
       /* initialization */
-      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* condition */
-      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* consequence */
-      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* alternative */
-      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 12, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
       /* locus.line */
-      get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 16, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
       /* locus.column */
-      get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 20, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
     }  /* if */
   }  /* if */
   return storage;
@@ -25311,12 +25233,11 @@ Return the corresponding partition kind for StmtIf.
 
 template<>
 an_ifc_stmt_labeled_storage* get<an_ifc_stmt_labeled_storage>(
-                                      an_ifc_module               *mod,
+                                      an_ifc_module_file          *file,
                                       an_ifc_stmt_labeled_storage *storage,
                                       a_boolean                   fill_storage)
 /*
-Retrieve an instance of StmtLabeled from the IFC module file associated with
-mod.
+Retrieve an instance of StmtLabeled from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -25334,26 +25255,26 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_stmt_labeled_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* label */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* stmt */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_stmt_labeled_storage> */
@@ -25371,12 +25292,11 @@ Return the corresponding partition kind for StmtLabeled.
 
 template<>
 an_ifc_stmt_return_storage* get<an_ifc_stmt_return_storage>(
-                                       an_ifc_module              *mod,
+                                       an_ifc_module_file         *file,
                                        an_ifc_stmt_return_storage *storage,
                                        a_boolean                  fill_storage)
 /*
-Retrieve an instance of StmtReturn from the IFC module file associated with
-mod.
+Retrieve an instance of StmtReturn from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -25394,38 +25314,42 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_stmt_return_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
-    if (is_at_least(mod, 0, 42)) {
+    if (is_at_least(file, 0, 42)) {
       /* locus.line */
-      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* locus.column */
-      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* type */
-      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* expr */
-      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 12, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
       /* function_type */
-      get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 16, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
     } else {
       /* expr */
-      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* function_type */
-      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* type */
-      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* locus.line */
-      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 12, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
       /* locus.column */
-      get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 16, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
     }  /* if */
   }  /* if */
   return storage;
@@ -25444,12 +25368,11 @@ Return the corresponding partition kind for StmtReturn.
 
 template<>
 an_ifc_stmt_switch_storage* get<an_ifc_stmt_switch_storage>(
-                                       an_ifc_module              *mod,
+                                       an_ifc_module_file         *file,
                                        an_ifc_stmt_switch_storage *storage,
                                        a_boolean                  fill_storage)
 /*
-Retrieve an instance of StmtSwitch from the IFC module file associated with
-mod.
+Retrieve an instance of StmtSwitch from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -25467,38 +25390,42 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_stmt_switch_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
-    if (is_at_least(mod, 0, 42)) {
+    if (is_at_least(file, 0, 42)) {
       /* locus.line */
-      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* locus.column */
-      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* initialization */
-      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* condition */
-      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 12, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
       /* body */
-      get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 16, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
     } else {
       /* initialization */
-      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* condition */
-      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* body */
-      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* locus.line */
-      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 12, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
       /* locus.column */
-      get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 16, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
     }  /* if */
   }  /* if */
   return storage;
@@ -25517,11 +25444,11 @@ Return the corresponding partition kind for StmtSwitch.
 
 template<>
 an_ifc_stmt_try_storage* get<an_ifc_stmt_try_storage>(
-                                          an_ifc_module           *mod,
+                                          an_ifc_module_file      *file,
                                           an_ifc_stmt_try_storage *storage,
                                           a_boolean               fill_storage)
 /*
-Retrieve an instance of StmtTry from the IFC module file associated with mod.
+Retrieve an instance of StmtTry from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -25539,26 +25466,26 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_stmt_try_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* start */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* cardinality */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* handlers */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_stmt_try_storage> */
@@ -25576,11 +25503,11 @@ Return the corresponding partition kind for StmtTry.
 
 template<>
 an_ifc_stmt_tuple_storage* get<an_ifc_stmt_tuple_storage>(
-                                        an_ifc_module             *mod,
+                                        an_ifc_module_file        *file,
                                         an_ifc_stmt_tuple_storage *storage,
                                         a_boolean                 fill_storage)
 /*
-Retrieve an instance of StmtTuple from the IFC module file associated with mod.
+Retrieve an instance of StmtTuple from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -25598,24 +25525,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_stmt_tuple_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* start */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* cardinality */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/8, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/8, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_stmt_tuple_storage> */
@@ -25633,12 +25560,11 @@ Return the corresponding partition kind for StmtTuple.
 
 template<>
 an_ifc_stmt_variable_decl_storage* get<an_ifc_stmt_variable_decl_storage>(
-                                an_ifc_module                     *mod,
+                                an_ifc_module_file                *file,
                                 an_ifc_stmt_variable_decl_storage *storage,
                                 a_boolean                         fill_storage)
 /*
-Retrieve an instance of StmtVariableDecl from the IFC module file associated
-with mod.
+Retrieve an instance of StmtVariableDecl from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -25656,22 +25582,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_stmt_variable_decl_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* decl */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_stmt_variable_decl_storage> */
@@ -25689,11 +25615,11 @@ Return the corresponding partition kind for StmtVariableDecl.
 
 template<>
 an_ifc_stmt_while_storage* get<an_ifc_stmt_while_storage>(
-                                        an_ifc_module             *mod,
+                                        an_ifc_module_file        *file,
                                         an_ifc_stmt_while_storage *storage,
                                         a_boolean                 fill_storage)
 /*
-Retrieve an instance of StmtWhile from the IFC module file associated with mod.
+Retrieve an instance of StmtWhile from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -25711,34 +25637,36 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_stmt_while_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
-    if (is_at_least(mod, 0, 42)) {
+    if (is_at_least(file, 0, 42)) {
       /* locus.line */
-      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* locus.column */
-      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* condition */
-      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* body */
-      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 12, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
     } else {
       /* condition */
-      get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* body */
-      get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* locus.line */
-      get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
       /* locus.column */
-      get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+      get_bytes(file, (*storage) + 12, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
     }  /* if */
   }  /* if */
   return storage;
@@ -25758,12 +25686,11 @@ Return the corresponding partition kind for StmtWhile.
 template<>
 an_ifc_syntax_access_specifier_storage*
 get<an_ifc_syntax_access_specifier_storage>(
-                           an_ifc_module                          *mod,
+                           an_ifc_module_file                     *file,
                            an_ifc_syntax_access_specifier_storage *storage,
                            a_boolean                              fill_storage)
 /*
-Retrieve an instance of SyntaxAccessSpecifier from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxAccessSpecifier from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -25781,40 +25708,40 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_access_specifier_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/48);
+      memcpy(*storage, file->byte_buffer, /*size=*/48);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* designator */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* access.locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* access.locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* access.value */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* virtual_kw.line */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* virtual_kw.column */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* virtual_kw2.line */
-    get_bytes(mod, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* virtual_kw2.column */
-    get_bytes(mod, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.line */
-    get_bytes(mod, (*storage) + 40, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 40, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.column */
-    get_bytes(mod, (*storage) + 44, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 44, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_access_specifier_storage> */
@@ -25833,12 +25760,11 @@ Return the corresponding partition kind for SyntaxAccessSpecifier.
 template<>
 an_ifc_syntax_alias_declaration_storage*
 get<an_ifc_syntax_alias_declaration_storage>(
-                          an_ifc_module                           *mod,
+                          an_ifc_module_file                      *file,
                           an_ifc_syntax_alias_declaration_storage *storage,
                           a_boolean                               fill_storage)
 /*
-Retrieve an instance of SyntaxAliasDeclaration from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxAliasDeclaration from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -25856,32 +25782,32 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_alias_declaration_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/32);
+      memcpy(*storage, file->byte_buffer, /*size=*/32);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* aliasee */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* equal.line */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* equal.column */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.line */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.column */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_alias_declaration_storage> */
@@ -25899,12 +25825,11 @@ Return the corresponding partition kind for SyntaxAliasDeclaration.
 
 template<>
 an_ifc_syntax_alignas_storage* get<an_ifc_syntax_alignas_storage>(
-                                    an_ifc_module                 *mod,
+                                    an_ifc_module_file            *file,
                                     an_ifc_syntax_alignas_storage *storage,
                                     a_boolean                     fill_storage)
 /*
-Retrieve an instance of SyntaxAlignas from the IFC module file associated with
-mod.
+Retrieve an instance of SyntaxAlignas from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -25922,30 +25847,30 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_alignas_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/28);
+      memcpy(*storage, file->byte_buffer, /*size=*/28);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* operand */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.line */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.column */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_alignas_storage> */
@@ -25964,12 +25889,11 @@ Return the corresponding partition kind for SyntaxAlignas.
 template<>
 an_ifc_syntax_array_declarator_storage*
 get<an_ifc_syntax_array_declarator_storage>(
-                           an_ifc_module                          *mod,
+                           an_ifc_module_file                     *file,
                            an_ifc_syntax_array_declarator_storage *storage,
                            a_boolean                              fill_storage)
 /*
-Retrieve an instance of SyntaxArrayDeclarator from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxArrayDeclarator from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -25987,26 +25911,26 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_array_declarator_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* bound */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_bracket.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_bracket.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_bracket.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_bracket.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_array_declarator_storage> */
@@ -26024,12 +25948,11 @@ Return the corresponding partition kind for SyntaxArrayDeclarator.
 
 template<>
 an_ifc_syntax_array_index_storage* get<an_ifc_syntax_array_index_storage>(
-                                an_ifc_module                     *mod,
+                                an_ifc_module_file                *file,
                                 an_ifc_syntax_array_index_storage *storage,
                                 a_boolean                         fill_storage)
 /*
-Retrieve an instance of SyntaxArrayIndex from the IFC module file associated
-with mod.
+Retrieve an instance of SyntaxArrayIndex from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -26047,28 +25970,28 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_array_index_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/24);
+      memcpy(*storage, file->byte_buffer, /*size=*/24);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* array */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* index */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_bracket.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_bracket.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_bracket.line */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_bracket.column */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_array_index_storage> */
@@ -26087,12 +26010,12 @@ Return the corresponding partition kind for SyntaxArrayIndex.
 template<>
 an_ifc_syntax_array_or_function_declarator_storage*
 get<an_ifc_syntax_array_or_function_declarator_storage>(
-               an_ifc_module                                      *mod,
+               an_ifc_module_file                                 *file,
                an_ifc_syntax_array_or_function_declarator_storage *storage,
                a_boolean                                          fill_storage)
 /*
 Retrieve an instance of SyntaxArrayOrFunctionDeclarator from the IFC module
-file associated with mod.
+file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -26110,20 +26033,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_array_or_function_declarator_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* declarator */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* next */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_array_or_function_declarator_storage> */
@@ -26142,12 +26065,11 @@ Return the corresponding partition kind for SyntaxArrayOrFunctionDeclarator.
 
 template<>
 an_ifc_syntax_asm_statement_storage* get<an_ifc_syntax_asm_statement_storage>(
-                              an_ifc_module                       *mod,
+                              an_ifc_module_file                  *file,
                               an_ifc_syntax_asm_statement_storage *storage,
                               a_boolean                           fill_storage)
 /*
-Retrieve an instance of SyntaxAsmStatement from the IFC module file associated
-with mod.
+Retrieve an instance of SyntaxAsmStatement from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -26165,22 +26087,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_asm_statement_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* tokens */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_asm_statement_storage> */
@@ -26198,12 +26120,11 @@ Return the corresponding partition kind for SyntaxAsmStatement.
 
 template<>
 an_ifc_syntax_attribute_storage* get<an_ifc_syntax_attribute_storage>(
-                                  an_ifc_module                   *mod,
+                                  an_ifc_module_file              *file,
                                   an_ifc_syntax_attribute_storage *storage,
                                   a_boolean                       fill_storage)
 /*
-Retrieve an instance of SyntaxAttribute from the IFC module file associated
-with mod.
+Retrieve an instance of SyntaxAttribute from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -26221,34 +26142,34 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_attribute_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/36);
+      memcpy(*storage, file->byte_buffer, /*size=*/36);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* scope */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* argument_clause */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* colons.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* colons.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* expander.line */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* expander.column */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.line */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.column */
-    get_bytes(mod, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_attribute_storage> */
@@ -26267,12 +26188,11 @@ Return the corresponding partition kind for SyntaxAttribute.
 template<>
 an_ifc_syntax_attribute_argument_clause_storage*
 get<an_ifc_syntax_attribute_argument_clause_storage>(
-                  an_ifc_module                                   *mod,
+                  an_ifc_module_file                              *file,
                   an_ifc_syntax_attribute_argument_clause_storage *storage,
                   a_boolean                                       fill_storage)
 /*
-Retrieve an instance of SyntaxAttributeArgumentClause from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxAttributeArgumentClause from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -26290,26 +26210,26 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_attribute_argument_clause_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* tokens */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_attribute_argument_clause_storage> */
@@ -26329,12 +26249,11 @@ Return the corresponding partition kind for SyntaxAttributeArgumentClause.
 template<>
 an_ifc_syntax_attribute_specifier_storage*
 get<an_ifc_syntax_attribute_specifier_storage>(
-                        an_ifc_module                             *mod,
+                        an_ifc_module_file                        *file,
                         an_ifc_syntax_attribute_specifier_storage *storage,
                         a_boolean                                 fill_storage)
 /*
-Retrieve an instance of SyntaxAttributeSpecifier from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxAttributeSpecifier from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -26352,36 +26271,36 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_attribute_specifier_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/40);
+      memcpy(*storage, file->byte_buffer, /*size=*/40);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* prefix */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* attributes */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren_1.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren_1.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren_2.line */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren_2.column */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren_1.line */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren_1.column */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren_2.line */
-    get_bytes(mod, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren_2.column */
-    get_bytes(mod, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_attribute_specifier_storage> */
@@ -26401,12 +26320,11 @@ Return the corresponding partition kind for SyntaxAttributeSpecifier.
 template<>
 an_ifc_syntax_attribute_specifier_seq_storage*
 get<an_ifc_syntax_attribute_specifier_seq_storage>(
-                    an_ifc_module                                 *mod,
+                    an_ifc_module_file                            *file,
                     an_ifc_syntax_attribute_specifier_seq_storage *storage,
                     a_boolean                                     fill_storage)
 /*
-Retrieve an instance of SyntaxAttributeSpecifierSeq from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxAttributeSpecifierSeq from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -26424,18 +26342,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_attribute_specifier_seq_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* attributes */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_attribute_specifier_seq_storage> */
@@ -26455,12 +26373,11 @@ Return the corresponding partition kind for SyntaxAttributeSpecifierSeq.
 template<>
 an_ifc_syntax_attribute_using_prefix_storage*
 get<an_ifc_syntax_attribute_using_prefix_storage>(
-                     an_ifc_module                                *mod,
+                     an_ifc_module_file                           *file,
                      an_ifc_syntax_attribute_using_prefix_storage *storage,
                      a_boolean                                    fill_storage)
 /*
-Retrieve an instance of SyntaxAttributeUsingPrefix from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxAttributeUsingPrefix from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -26478,24 +26395,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_attribute_using_prefix_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* scope.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* scope.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_attribute_using_prefix_storage> */
@@ -26515,12 +26432,11 @@ Return the corresponding partition kind for SyntaxAttributeUsingPrefix.
 template<>
 an_ifc_syntax_attributed_declaration_storage*
 get<an_ifc_syntax_attributed_declaration_storage>(
-                     an_ifc_module                                *mod,
+                     an_ifc_module_file                           *file,
                      an_ifc_syntax_attributed_declaration_storage *storage,
                      a_boolean                                    fill_storage)
 /*
-Retrieve an instance of SyntaxAttributedDeclaration from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxAttributedDeclaration from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -26538,24 +26454,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_attributed_declaration_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* decl */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* attributes */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_attributed_declaration_storage> */
@@ -26575,12 +26491,11 @@ Return the corresponding partition kind for SyntaxAttributedDeclaration.
 template<>
 an_ifc_syntax_attributed_statement_storage*
 get<an_ifc_syntax_attributed_statement_storage>(
-                       an_ifc_module                              *mod,
+                       an_ifc_module_file                         *file,
                        an_ifc_syntax_attributed_statement_storage *storage,
                        a_boolean                                  fill_storage)
 /*
-Retrieve an instance of SyntaxAttributedStatement from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxAttributedStatement from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -26598,22 +26513,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_attributed_statement_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* pragma */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* stmt */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* attributes */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_attributed_statement_storage> */
@@ -26633,12 +26548,11 @@ Return the corresponding partition kind for SyntaxAttributedStatement.
 template<>
 an_ifc_syntax_base_specifier_storage*
 get<an_ifc_syntax_base_specifier_storage>(
-                             an_ifc_module                        *mod,
+                             an_ifc_module_file                   *file,
                              an_ifc_syntax_base_specifier_storage *storage,
                              a_boolean                            fill_storage)
 /*
-Retrieve an instance of SyntaxBaseSpecifier from the IFC module file associated
-with mod.
+Retrieve an instance of SyntaxBaseSpecifier from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -26656,26 +26570,26 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_base_specifier_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* access.locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* access.locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* access.value */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* colon.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* colon.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_base_specifier_storage> */
@@ -26694,12 +26608,11 @@ Return the corresponding partition kind for SyntaxBaseSpecifier.
 template<>
 an_ifc_syntax_base_specifier_list_storage*
 get<an_ifc_syntax_base_specifier_list_storage>(
-                        an_ifc_module                             *mod,
+                        an_ifc_module_file                        *file,
                         an_ifc_syntax_base_specifier_list_storage *storage,
                         a_boolean                                 fill_storage)
 /*
-Retrieve an instance of SyntaxBaseSpecifierList from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxBaseSpecifierList from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -26717,22 +26630,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_base_specifier_list_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* base_specifiers */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* colon.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* colon.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_base_specifier_list_storage> */
@@ -26752,12 +26665,11 @@ Return the corresponding partition kind for SyntaxBaseSpecifierList.
 template<>
 an_ifc_syntax_binary_fold_expression_storage*
 get<an_ifc_syntax_binary_fold_expression_storage>(
-                     an_ifc_module                                *mod,
+                     an_ifc_module_file                           *file,
                      an_ifc_syntax_binary_fold_expression_storage *storage,
                      a_boolean                                    fill_storage)
 /*
-Retrieve an instance of SyntaxBinaryFoldExpression from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxBinaryFoldExpression from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -26775,44 +26687,44 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_binary_fold_expression_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/54);
+      memcpy(*storage, file->byte_buffer, /*size=*/54);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* direction */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* operand_1 */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* operand_2 */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* dyad */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/2, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 14, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 14, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 18, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 18, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* ellipsis.line */
-    get_bytes(mod, (*storage) + 22, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 22, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* ellipsis.column */
-    get_bytes(mod, (*storage) + 26, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 26, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* glyph_loci_1.line */
-    get_bytes(mod, (*storage) + 30, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 30, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* glyph_loci_1.column */
-    get_bytes(mod, (*storage) + 34, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 34, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* glyph_loci_2.line */
-    get_bytes(mod, (*storage) + 38, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 38, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* glyph_loci_2.column */
-    get_bytes(mod, (*storage) + 42, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 42, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.line */
-    get_bytes(mod, (*storage) + 46, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 46, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.column */
-    get_bytes(mod, (*storage) + 50, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 50, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_binary_fold_expression_storage> */
@@ -26832,12 +26744,11 @@ Return the corresponding partition kind for SyntaxBinaryFoldExpression.
 template<>
 an_ifc_syntax_break_statement_storage*
 get<an_ifc_syntax_break_statement_storage>(
-                            an_ifc_module                         *mod,
+                            an_ifc_module_file                    *file,
                             an_ifc_syntax_break_statement_storage *storage,
                             a_boolean                             fill_storage)
 /*
-Retrieve an instance of SyntaxBreakStatement from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxBreakStatement from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -26855,24 +26766,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_break_statement_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* break.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* break.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_break_statement_storage> */
@@ -26891,12 +26802,11 @@ Return the corresponding partition kind for SyntaxBreakStatement.
 template<>
 an_ifc_syntax_capture_default_storage*
 get<an_ifc_syntax_capture_default_storage>(
-                            an_ifc_module                         *mod,
+                            an_ifc_module_file                    *file,
                             an_ifc_syntax_capture_default_storage *storage,
                             a_boolean                             fill_storage)
 /*
-Retrieve an instance of SyntaxCaptureDefault from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxCaptureDefault from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -26914,26 +26824,26 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_capture_default_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/17);
+      memcpy(*storage, file->byte_buffer, /*size=*/17);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* by_ref */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/1, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_capture_default_storage> */
@@ -26952,12 +26862,11 @@ Return the corresponding partition kind for SyntaxCaptureDefault.
 template<>
 an_ifc_syntax_class_specifier_storage*
 get<an_ifc_syntax_class_specifier_storage>(
-                            an_ifc_module                         *mod,
+                            an_ifc_module_file                    *file,
                             an_ifc_syntax_class_specifier_storage *storage,
                             a_boolean                             fill_storage)
 /*
-Retrieve an instance of SyntaxClassSpecifier from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxClassSpecifier from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -26975,32 +26884,32 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_class_specifier_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/32);
+      memcpy(*storage, file->byte_buffer, /*size=*/32);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* class_key.locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* class_key.locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* class_key.value */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* bases */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* members */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_class_specifier_storage> */
@@ -27019,12 +26928,11 @@ Return the corresponding partition kind for SyntaxClassSpecifier.
 template<>
 an_ifc_syntax_compound_requirement_storage*
 get<an_ifc_syntax_compound_requirement_storage>(
-                       an_ifc_module                              *mod,
+                       an_ifc_module_file                         *file,
                        an_ifc_syntax_compound_requirement_storage *storage,
                        a_boolean                                  fill_storage)
 /*
-Retrieve an instance of SyntaxCompoundRequirement from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxCompoundRequirement from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -27042,32 +26950,32 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_compound_requirement_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/32);
+      memcpy(*storage, file->byte_buffer, /*size=*/32);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* condition */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* constraint */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_curly.line */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_curly.column */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* noexcept_loc.line */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* noexcept_loc.column */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_compound_requirement_storage> */
@@ -27087,12 +26995,11 @@ Return the corresponding partition kind for SyntaxCompoundRequirement.
 template<>
 an_ifc_syntax_compound_statement_storage*
 get<an_ifc_syntax_compound_statement_storage>(
-                         an_ifc_module                            *mod,
+                         an_ifc_module_file                       *file,
                          an_ifc_syntax_compound_statement_storage *storage,
                          a_boolean                                fill_storage)
 /*
-Retrieve an instance of SyntaxCompoundStatement from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxCompoundStatement from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -27110,28 +27017,28 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_compound_statement_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/24);
+      memcpy(*storage, file->byte_buffer, /*size=*/24);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* pragam */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* stmts */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_curly.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_curly.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_curly.line */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_curly.column */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_compound_statement_storage> */
@@ -27151,12 +27058,11 @@ Return the corresponding partition kind for SyntaxCompoundStatement.
 template<>
 an_ifc_syntax_concept_definition_storage*
 get<an_ifc_syntax_concept_definition_storage>(
-                         an_ifc_module                            *mod,
+                         an_ifc_module_file                       *file,
                          an_ifc_syntax_concept_definition_storage *storage,
                          a_boolean                                fill_storage)
 /*
-Retrieve an instance of SyntaxConceptDefinition from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxConceptDefinition from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -27174,38 +27080,38 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_concept_definition_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/44);
+      memcpy(*storage, file->byte_buffer, /*size=*/44);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* parameters */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* name */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* initializer */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* concept_keyword.line */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* concept_keyword.column */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* equal.line */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* equal.column */
-    get_bytes(mod, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.line */
-    get_bytes(mod, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.column */
-    get_bytes(mod, (*storage) + 40, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 40, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_concept_definition_storage> */
@@ -27225,12 +27131,11 @@ Return the corresponding partition kind for SyntaxConceptDefinition.
 template<>
 an_ifc_syntax_condition_declaration_storage*
 get<an_ifc_syntax_condition_declaration_storage>(
-                      an_ifc_module                               *mod,
+                      an_ifc_module_file                          *file,
                       an_ifc_syntax_condition_declaration_storage *storage,
                       a_boolean                                   fill_storage)
 /*
-Retrieve an instance of SyntaxConditionDeclaration from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxConditionDeclaration from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -27248,24 +27153,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_condition_declaration_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* decl_specifier */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* initializaerion */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_condition_declaration_storage> */
@@ -27285,12 +27190,11 @@ Return the corresponding partition kind for SyntaxConditionDeclaration.
 template<>
 an_ifc_syntax_continue_statement_storage*
 get<an_ifc_syntax_continue_statement_storage>(
-                         an_ifc_module                            *mod,
+                         an_ifc_module_file                       *file,
                          an_ifc_syntax_continue_statement_storage *storage,
                          a_boolean                                fill_storage)
 /*
-Retrieve an instance of SyntaxContinueStatement from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxContinueStatement from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -27308,24 +27212,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_continue_statement_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* continue.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* continue.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_continue_statement_storage> */
@@ -27345,12 +27249,11 @@ Return the corresponding partition kind for SyntaxContinueStatement.
 template<>
 an_ifc_syntax_ctor_initializer_storage*
 get<an_ifc_syntax_ctor_initializer_storage>(
-                           an_ifc_module                          *mod,
+                           an_ifc_module_file                     *file,
                            an_ifc_syntax_ctor_initializer_storage *storage,
                            a_boolean                              fill_storage)
 /*
-Retrieve an instance of SyntaxCtorInitializer from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxCtorInitializer from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -27368,22 +27271,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_ctor_initializer_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* initializers */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* colon.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* colon.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_ctor_initializer_storage> */
@@ -27402,12 +27305,11 @@ Return the corresponding partition kind for SyntaxCtorInitializer.
 template<>
 an_ifc_syntax_decl_specifier_seq_storage*
 get<an_ifc_syntax_decl_specifier_seq_storage>(
-                         an_ifc_module                            *mod,
+                         an_ifc_module_file                       *file,
                          an_ifc_syntax_decl_specifier_seq_storage *storage,
                          a_boolean                                fill_storage)
 /*
-Retrieve an instance of SyntaxDeclSpecifierSeq from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxDeclSpecifierSeq from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -27425,32 +27327,32 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_decl_specifier_seq_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/32);
+      memcpy(*storage, file->byte_buffer, /*size=*/32);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* type */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type_name */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* storage_class */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* declspec */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* explicit_kw */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* qualifiers */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_decl_specifier_seq_storage> */
@@ -27470,12 +27372,11 @@ Return the corresponding partition kind for SyntaxDeclSpecifierSeq.
 template<>
 an_ifc_syntax_declaration_statement_storage*
 get<an_ifc_syntax_declaration_statement_storage>(
-                      an_ifc_module                               *mod,
+                      an_ifc_module_file                          *file,
                       an_ifc_syntax_declaration_statement_storage *storage,
                       a_boolean                                   fill_storage)
 /*
-Retrieve an instance of SyntaxDeclarationStatement from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxDeclarationStatement from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -27493,20 +27394,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_declaration_statement_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* pragma */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* decl */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_declaration_statement_storage> */
@@ -27525,12 +27426,11 @@ Return the corresponding partition kind for SyntaxDeclarationStatement.
 
 template<>
 an_ifc_syntax_declarator_storage* get<an_ifc_syntax_declarator_storage>(
-                                 an_ifc_module                    *mod,
+                                 an_ifc_module_file               *file,
                                  an_ifc_syntax_declarator_storage *storage,
                                  a_boolean                        fill_storage)
 /*
-Retrieve an instance of SyntaxDeclarator from the IFC module file associated
-with mod.
+Retrieve an instance of SyntaxDeclarator from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -27548,42 +27448,42 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_declarator_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/44);
+      memcpy(*storage, file->byte_buffer, /*size=*/44);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* pointer */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* parenthesized */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* array_or_function */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* trailing_target */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* virtual_specifiers */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* name */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* ellipsis.line */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* ellipsis.column */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* qualifiers */
-    get_bytes(mod, (*storage) + 40, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 40, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* convention */
-    get_bytes(mod, (*storage) + 41, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 41, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* callable */
-    get_bytes(mod, (*storage) + 42, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 42, /*num_bytes=*/2, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_declarator_storage> */
@@ -27602,12 +27502,11 @@ Return the corresponding partition kind for SyntaxDeclarator.
 template<>
 an_ifc_syntax_decltype_specifier_storage*
 get<an_ifc_syntax_decltype_specifier_storage>(
-                         an_ifc_module                            *mod,
+                         an_ifc_module_file                       *file,
                          an_ifc_syntax_decltype_specifier_storage *storage,
                          a_boolean                                fill_storage)
 /*
-Retrieve an instance of SyntaxDecltypeSpecifier from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxDecltypeSpecifier from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -27625,30 +27524,30 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_decltype_specifier_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/28);
+      memcpy(*storage, file->byte_buffer, /*size=*/28);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* expr */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* decltype_keyword.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* decltype_keyword.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.line */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.column */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_decltype_specifier_storage> */
@@ -27668,12 +27567,11 @@ Return the corresponding partition kind for SyntaxDecltypeSpecifier.
 template<>
 an_ifc_syntax_do_while_statement_storage*
 get<an_ifc_syntax_do_while_statement_storage>(
-                         an_ifc_module                            *mod,
+                         an_ifc_module_file                       *file,
                          an_ifc_syntax_do_while_statement_storage *storage,
                          a_boolean                                fill_storage)
 /*
-Retrieve an instance of SyntaxDoWhileStatement from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxDoWhileStatement from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -27691,34 +27589,34 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_do_while_statement_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/36);
+      memcpy(*storage, file->byte_buffer, /*size=*/36);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* pragma */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* condition */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* body */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* do.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* do.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* while.line */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* while.column */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.line */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.column */
-    get_bytes(mod, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_do_while_statement_storage> */
@@ -27738,12 +27636,11 @@ Return the corresponding partition kind for SyntaxDoWhileStatement.
 template<>
 an_ifc_syntax_dynamic_exception_spec_storage*
 get<an_ifc_syntax_dynamic_exception_spec_storage>(
-                     an_ifc_module                                *mod,
+                     an_ifc_module_file                           *file,
                      an_ifc_syntax_dynamic_exception_spec_storage *storage,
                      a_boolean                                    fill_storage)
 /*
-Retrieve an instance of SyntaxDynamicExceptionSpec from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxDynamicExceptionSpec from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -27761,34 +27658,34 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_dynamic_exception_spec_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/36);
+      memcpy(*storage, file->byte_buffer, /*size=*/36);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* type_list */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* throw.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* throw.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* expander.line */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* expander.column */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.line */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.column */
-    get_bytes(mod, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_dynamic_exception_spec_storage> */
@@ -27808,12 +27705,11 @@ Return the corresponding partition kind for SyntaxDynamicExceptionSpec.
 template<>
 an_ifc_syntax_empty_statement_storage*
 get<an_ifc_syntax_empty_statement_storage>(
-                            an_ifc_module                         *mod,
+                            an_ifc_module_file                    *file,
                             an_ifc_syntax_empty_statement_storage *storage,
                             a_boolean                             fill_storage)
 /*
-Retrieve an instance of SyntaxEmptyStatement from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxEmptyStatement from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -27831,20 +27727,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_empty_statement_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_empty_statement_storage> */
@@ -27863,12 +27759,11 @@ Return the corresponding partition kind for SyntaxEmptyStatement.
 template<>
 an_ifc_syntax_enum_specifier_storage*
 get<an_ifc_syntax_enum_specifier_storage>(
-                             an_ifc_module                        *mod,
+                             an_ifc_module_file                   *file,
                              an_ifc_syntax_enum_specifier_storage *storage,
                              a_boolean                            fill_storage)
 /*
-Retrieve an instance of SyntaxEnumSpecifier from the IFC module file associated
-with mod.
+Retrieve an instance of SyntaxEnumSpecifier from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -27886,44 +27781,44 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_enum_specifier_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/56);
+      memcpy(*storage, file->byte_buffer, /*size=*/56);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* class_key.locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* class_key.locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* class_key.value */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* enumerators */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* base */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* colon.line */
-    get_bytes(mod, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* colon.column */
-    get_bytes(mod, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_brace.line */
-    get_bytes(mod, (*storage) + 40, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 40, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_brace.column */
-    get_bytes(mod, (*storage) + 44, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 44, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_brace.line */
-    get_bytes(mod, (*storage) + 48, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 48, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_brace.column */
-    get_bytes(mod, (*storage) + 52, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 52, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_enum_specifier_storage> */
@@ -27942,12 +27837,11 @@ Return the corresponding partition kind for SyntaxEnumSpecifier.
 template<>
 an_ifc_syntax_enumerator_definition_storage*
 get<an_ifc_syntax_enumerator_definition_storage>(
-                      an_ifc_module                               *mod,
+                      an_ifc_module_file                          *file,
                       an_ifc_syntax_enumerator_definition_storage *storage,
                       a_boolean                                   fill_storage)
 /*
-Retrieve an instance of SyntaxEnumeratorDefinition from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxEnumeratorDefinition from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -27965,32 +27859,32 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_enumerator_definition_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/32);
+      memcpy(*storage, file->byte_buffer, /*size=*/32);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* initializer */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* equal.line */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* equal.column */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.line */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.column */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_enumerator_definition_storage> */
@@ -28010,12 +27904,11 @@ Return the corresponding partition kind for SyntaxEnumeratorDefinition.
 template<>
 an_ifc_syntax_exception_declaration_storage*
 get<an_ifc_syntax_exception_declaration_storage>(
-                      an_ifc_module                               *mod,
+                      an_ifc_module_file                          *file,
                       an_ifc_syntax_exception_declaration_storage *storage,
                       a_boolean                                   fill_storage)
 /*
-Retrieve an instance of SyntaxExceptionDeclaration from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxExceptionDeclaration from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -28033,28 +27926,28 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_exception_declaration_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/24);
+      memcpy(*storage, file->byte_buffer, /*size=*/24);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* type_specifiers */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* declarator */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* ellipsis.line */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* ellipsis.column */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_exception_declaration_storage> */
@@ -28074,12 +27967,11 @@ Return the corresponding partition kind for SyntaxExceptionDeclaration.
 template<>
 an_ifc_syntax_explicit_specifier_storage*
 get<an_ifc_syntax_explicit_specifier_storage>(
-                         an_ifc_module                            *mod,
+                         an_ifc_module_file                       *file,
                          an_ifc_syntax_explicit_specifier_storage *storage,
                          a_boolean                                fill_storage)
 /*
-Retrieve an instance of SyntaxExplicitSpecifier from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxExplicitSpecifier from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -28097,30 +27989,30 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_explicit_specifier_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/28);
+      memcpy(*storage, file->byte_buffer, /*size=*/28);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* condition */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.line */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.column */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_explicit_specifier_storage> */
@@ -28139,12 +28031,11 @@ Return the corresponding partition kind for SyntaxExplicitSpecifier.
 
 template<>
 an_ifc_syntax_expression_storage* get<an_ifc_syntax_expression_storage>(
-                                 an_ifc_module                    *mod,
+                                 an_ifc_module_file               *file,
                                  an_ifc_syntax_expression_storage *storage,
                                  a_boolean                        fill_storage)
 /*
-Retrieve an instance of SyntaxExpression from the IFC module file associated
-with mod.
+Retrieve an instance of SyntaxExpression from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -28162,18 +28053,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_expression_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* expression */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_expression_storage> */
@@ -28192,12 +28083,11 @@ Return the corresponding partition kind for SyntaxExpression.
 template<>
 an_ifc_syntax_expression_statement_storage*
 get<an_ifc_syntax_expression_statement_storage>(
-                       an_ifc_module                              *mod,
+                       an_ifc_module_file                         *file,
                        an_ifc_syntax_expression_statement_storage *storage,
                        a_boolean                                  fill_storage)
 /*
-Retrieve an instance of SyntaxExpressionStatement from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxExpressionStatement from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -28215,24 +28105,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_expression_statement_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* pragma */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* expr */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_expression_statement_storage> */
@@ -28252,12 +28142,11 @@ Return the corresponding partition kind for SyntaxExpressionStatement.
 template<>
 an_ifc_syntax_for_range_declaration_storage*
 get<an_ifc_syntax_for_range_declaration_storage>(
-                      an_ifc_module                               *mod,
+                      an_ifc_module_file                          *file,
                       an_ifc_syntax_for_range_declaration_storage *storage,
                       a_boolean                                   fill_storage)
 /*
-Retrieve an instance of SyntaxForRangeDeclaration from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxForRangeDeclaration from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -28275,20 +28164,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_for_range_declaration_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* specifiers */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* declarator */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_for_range_declaration_storage> */
@@ -28307,12 +28196,11 @@ Return the corresponding partition kind for SyntaxForRangeDeclaration.
 
 template<>
 an_ifc_syntax_for_statement_storage* get<an_ifc_syntax_for_statement_storage>(
-                              an_ifc_module                       *mod,
+                              an_ifc_module_file                  *file,
                               an_ifc_syntax_for_statement_storage *storage,
                               a_boolean                           fill_storage)
 /*
-Retrieve an instance of SyntaxForStatement from the IFC module file associated
-with mod.
+Retrieve an instance of SyntaxForStatement from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -28330,42 +28218,42 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_for_statement_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/52);
+      memcpy(*storage, file->byte_buffer, /*size=*/52);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* pragma */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* initialization */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* condition */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* continuation */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* body */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* for.line */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* for.column */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren.line */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren.column */
-    get_bytes(mod, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.line */
-    get_bytes(mod, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.column */
-    get_bytes(mod, (*storage) + 40, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 40, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.line */
-    get_bytes(mod, (*storage) + 44, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 44, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.column */
-    get_bytes(mod, (*storage) + 48, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 48, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_for_statement_storage> */
@@ -28383,12 +28271,11 @@ Return the corresponding partition kind for SyntaxForStatement.
 
 template<>
 an_ifc_syntax_function_body_storage* get<an_ifc_syntax_function_body_storage>(
-                              an_ifc_module                       *mod,
+                              an_ifc_module_file                  *file,
                               an_ifc_syntax_function_body_storage *storage,
                               a_boolean                           fill_storage)
 /*
-Retrieve an instance of SyntaxFunctionBody from the IFC module file associated
-with mod.
+Retrieve an instance of SyntaxFunctionBody from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -28406,36 +28293,36 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_function_body_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/40);
+      memcpy(*storage, file->byte_buffer, /*size=*/40);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* stmts */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* try_block */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* initializers */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* generate.locus.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* generate.locus.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* generate.value */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* assign.line */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* assign.column */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.line */
-    get_bytes(mod, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.column */
-    get_bytes(mod, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_function_body_storage> */
@@ -28454,12 +28341,11 @@ Return the corresponding partition kind for SyntaxFunctionBody.
 template<>
 an_ifc_syntax_function_declarator_storage*
 get<an_ifc_syntax_function_declarator_storage>(
-                        an_ifc_module                             *mod,
+                        an_ifc_module_file                        *file,
                         an_ifc_syntax_function_declarator_storage *storage,
                         a_boolean                                 fill_storage)
 /*
-Retrieve an instance of SyntaxFunctionDeclarator from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxFunctionDeclarator from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -28477,38 +28363,38 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_function_declarator_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/44);
+      memcpy(*storage, file->byte_buffer, /*size=*/44);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* parameters */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* eh_spec */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.line */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.column */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* ellipsis.line */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* ellipsis.column */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* ref.line */
-    get_bytes(mod, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* ref.column */
-    get_bytes(mod, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* traits */
-    get_bytes(mod, (*storage) + 40, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 40, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_function_declarator_storage> */
@@ -28528,12 +28414,11 @@ Return the corresponding partition kind for SyntaxFunctionDeclarator.
 template<>
 an_ifc_syntax_function_definition_storage*
 get<an_ifc_syntax_function_definition_storage>(
-                        an_ifc_module                             *mod,
+                        an_ifc_module_file                        *file,
                         an_ifc_syntax_function_definition_storage *storage,
                         a_boolean                                 fill_storage)
 /*
-Retrieve an instance of SyntaxFunctionDefinition from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxFunctionDefinition from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -28551,36 +28436,36 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_function_definition_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/40);
+      memcpy(*storage, file->byte_buffer, /*size=*/40);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* stmts */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* try_block */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* initializers */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* synthesis.locus.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* synthesis.locus.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* synthesis.value */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* assign.line */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* assign.column */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.line */
-    get_bytes(mod, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.column */
-    get_bytes(mod, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_function_definition_storage> */
@@ -28600,12 +28485,11 @@ Return the corresponding partition kind for SyntaxFunctionDefinition.
 template<>
 an_ifc_syntax_function_try_block_storage*
 get<an_ifc_syntax_function_try_block_storage>(
-                         an_ifc_module                            *mod,
+                         an_ifc_module_file                       *file,
                          an_ifc_syntax_function_try_block_storage *storage,
                          a_boolean                                fill_storage)
 /*
-Retrieve an instance of SyntaxFunctionTryBlock from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxFunctionTryBlock from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -28623,22 +28507,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_function_try_block_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* body */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* handlers */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* initializers */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_function_try_block_storage> */
@@ -28658,12 +28542,11 @@ Return the corresponding partition kind for SyntaxFunctionTryBlock.
 template<>
 an_ifc_syntax_goto_statement_storage*
 get<an_ifc_syntax_goto_statement_storage>(
-                             an_ifc_module                        *mod,
+                             an_ifc_module_file                   *file,
                              an_ifc_syntax_goto_statement_storage *storage,
                              a_boolean                            fill_storage)
 /*
-Retrieve an instance of SyntaxGotoStatement from the IFC module file associated
-with mod.
+Retrieve an instance of SyntaxGotoStatement from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -28681,32 +28564,32 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_goto_statement_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/32);
+      memcpy(*storage, file->byte_buffer, /*size=*/32);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* pragma */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* target */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* label.line */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* label.column */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.line */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.column */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_goto_statement_storage> */
@@ -28724,12 +28607,11 @@ Return the corresponding partition kind for SyntaxGotoStatement.
 
 template<>
 an_ifc_syntax_handler_storage* get<an_ifc_syntax_handler_storage>(
-                                    an_ifc_module                 *mod,
+                                    an_ifc_module_file            *file,
                                     an_ifc_syntax_handler_storage *storage,
                                     a_boolean                     fill_storage)
 /*
-Retrieve an instance of SyntaxHandler from the IFC module file associated with
-mod.
+Retrieve an instance of SyntaxHandler from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -28747,34 +28629,34 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_handler_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/36);
+      memcpy(*storage, file->byte_buffer, /*size=*/36);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* pragma */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* exception */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* body */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* catch.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* catch.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren.line */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren.column */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.line */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.column */
-    get_bytes(mod, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_handler_storage> */
@@ -28792,12 +28674,11 @@ Return the corresponding partition kind for SyntaxHandler.
 
 template<>
 an_ifc_syntax_handler_seq_storage* get<an_ifc_syntax_handler_seq_storage>(
-                                an_ifc_module                     *mod,
+                                an_ifc_module_file                *file,
                                 an_ifc_syntax_handler_seq_storage *storage,
                                 a_boolean                         fill_storage)
 /*
-Retrieve an instance of SyntaxHandlerSeq from the IFC module file associated
-with mod.
+Retrieve an instance of SyntaxHandlerSeq from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -28815,18 +28696,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_handler_seq_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* handlers */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_handler_seq_storage> */
@@ -28844,12 +28725,11 @@ Return the corresponding partition kind for SyntaxHandlerSeq.
 
 template<>
 an_ifc_syntax_if_statement_storage* get<an_ifc_syntax_if_statement_storage>(
-                               an_ifc_module                      *mod,
+                               an_ifc_module_file                 *file,
                                an_ifc_syntax_if_statement_storage *storage,
                                a_boolean                          fill_storage)
 /*
-Retrieve an instance of SyntaxIfStatement from the IFC module file associated
-with mod.
+Retrieve an instance of SyntaxIfStatement from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -28867,38 +28747,38 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_if_statement_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/44);
+      memcpy(*storage, file->byte_buffer, /*size=*/44);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* pragma */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* initialization */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* condition */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* consequence */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* alternative */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* if.line */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* if.column */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* constexpr.line */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* constexpr.column */
-    get_bytes(mod, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* else.line */
-    get_bytes(mod, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* else.column */
-    get_bytes(mod, (*storage) + 40, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 40, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_if_statement_storage> */
@@ -28916,12 +28796,11 @@ Return the corresponding partition kind for SyntaxIfStatement.
 
 template<>
 an_ifc_syntax_init_capture_storage* get<an_ifc_syntax_init_capture_storage>(
-                               an_ifc_module                      *mod,
+                               an_ifc_module_file                 *file,
                                an_ifc_syntax_init_capture_storage *storage,
                                a_boolean                          fill_storage)
 /*
-Retrieve an instance of SyntaxInitCapture from the IFC module file associated
-with mod.
+Retrieve an instance of SyntaxInitCapture from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -28939,32 +28818,32 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_init_capture_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/32);
+      memcpy(*storage, file->byte_buffer, /*size=*/32);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* initializer */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* expander.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* expander.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* ampersand.line */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* ampersand.column */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.line */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.column */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_init_capture_storage> */
@@ -28983,12 +28862,11 @@ Return the corresponding partition kind for SyntaxInitCapture.
 template<>
 an_ifc_syntax_init_declarator_storage*
 get<an_ifc_syntax_init_declarator_storage>(
-                            an_ifc_module                         *mod,
+                            an_ifc_module_file                    *file,
                             an_ifc_syntax_init_declarator_storage *storage,
                             a_boolean                             fill_storage)
 /*
-Retrieve an instance of SyntaxInitDeclarator from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxInitDeclarator from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -29006,26 +28884,26 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_init_declarator_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* declarator */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* constraint */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* initializer */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_init_declarator_storage> */
@@ -29044,12 +28922,11 @@ Return the corresponding partition kind for SyntaxInitDeclarator.
 template<>
 an_ifc_syntax_init_statement_storage*
 get<an_ifc_syntax_init_statement_storage>(
-                             an_ifc_module                        *mod,
+                             an_ifc_module_file                   *file,
                              an_ifc_syntax_init_statement_storage *storage,
                              a_boolean                            fill_storage)
 /*
-Retrieve an instance of SyntaxInitStatement from the IFC module file associated
-with mod.
+Retrieve an instance of SyntaxInitStatement from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -29067,20 +28944,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_init_statement_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* pragma */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* init */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_init_statement_storage> */
@@ -29099,12 +28976,11 @@ Return the corresponding partition kind for SyntaxInitStatement.
 template<>
 an_ifc_syntax_labeled_statement_storage*
 get<an_ifc_syntax_labeled_statement_storage>(
-                          an_ifc_module                           *mod,
+                          an_ifc_module_file                      *file,
                           an_ifc_syntax_labeled_statement_storage *storage,
                           a_boolean                               fill_storage)
 /*
-Retrieve an instance of SyntaxLabeledStatement from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxLabeledStatement from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -29122,26 +28998,26 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_labeled_statement_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* pragma */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* label */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* stmt */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* sort */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_labeled_statement_storage> */
@@ -29160,12 +29036,11 @@ Return the corresponding partition kind for SyntaxLabeledStatement.
 template<>
 an_ifc_syntax_lambda_declarator_storage*
 get<an_ifc_syntax_lambda_declarator_storage>(
-                          an_ifc_module                           *mod,
+                          an_ifc_module_file                      *file,
                           an_ifc_syntax_lambda_declarator_storage *storage,
                           a_boolean                               fill_storage)
 /*
-Retrieve an instance of SyntaxLambdaDeclarator from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxLambdaDeclarator from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -29183,36 +29058,36 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_lambda_declarator_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/48);
+      memcpy(*storage, file->byte_buffer, /*size=*/48);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* parameters */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* eh_spec */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* trailing_target */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* modifier */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren.line */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren.column */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.line */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.column */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* expander.line */
-    get_bytes(mod, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* expander.column */
-    get_bytes(mod, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_lambda_declarator_storage> */
@@ -29231,12 +29106,11 @@ Return the corresponding partition kind for SyntaxLambdaDeclarator.
 template<>
 an_ifc_syntax_lambda_introducer_storage*
 get<an_ifc_syntax_lambda_introducer_storage>(
-                          an_ifc_module                           *mod,
+                          an_ifc_module_file                      *file,
                           an_ifc_syntax_lambda_introducer_storage *storage,
                           a_boolean                               fill_storage)
 /*
-Retrieve an instance of SyntaxLambdaIntroducer from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxLambdaIntroducer from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -29254,26 +29128,26 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_lambda_introducer_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* captures */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_bracket.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_bracket.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_bracket.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_bracket.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_lambda_introducer_storage> */
@@ -29292,12 +29166,11 @@ Return the corresponding partition kind for SyntaxLambdaIntroducer.
 template<>
 an_ifc_syntax_mem_initializer_storage*
 get<an_ifc_syntax_mem_initializer_storage>(
-                            an_ifc_module                         *mod,
+                            an_ifc_module_file                    *file,
                             an_ifc_syntax_mem_initializer_storage *storage,
                             a_boolean                             fill_storage)
 /*
-Retrieve an instance of SyntaxMemInitializer from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxMemInitializer from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -29315,28 +29188,28 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_mem_initializer_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/24);
+      memcpy(*storage, file->byte_buffer, /*size=*/24);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* member */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* initializer */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* expander.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* expander.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.line */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.column */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_mem_initializer_storage> */
@@ -29355,12 +29228,11 @@ Return the corresponding partition kind for SyntaxMemInitializer.
 template<>
 an_ifc_syntax_member_declaration_storage*
 get<an_ifc_syntax_member_declaration_storage>(
-                         an_ifc_module                            *mod,
+                         an_ifc_module_file                       *file,
                          an_ifc_syntax_member_declaration_storage *storage,
                          a_boolean                                fill_storage)
 /*
-Retrieve an instance of SyntaxMemberDeclaration from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxMemberDeclaration from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -29378,24 +29250,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_member_declaration_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* decl_specifiers */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* declarations */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_member_declaration_storage> */
@@ -29415,12 +29287,11 @@ Return the corresponding partition kind for SyntaxMemberDeclaration.
 template<>
 an_ifc_syntax_member_declarator_storage*
 get<an_ifc_syntax_member_declarator_storage>(
-                          an_ifc_module                           *mod,
+                          an_ifc_module_file                      *file,
                           an_ifc_syntax_member_declarator_storage *storage,
                           a_boolean                               fill_storage)
 /*
-Retrieve an instance of SyntaxMemberDeclarator from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxMemberDeclarator from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -29438,36 +29309,36 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_member_declarator_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/40);
+      memcpy(*storage, file->byte_buffer, /*size=*/40);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* declarator */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* constraint */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* bitwidth */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* initializer */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* colon.line */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* colon.column */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.line */
-    get_bytes(mod, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.column */
-    get_bytes(mod, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_member_declarator_storage> */
@@ -29486,12 +29357,12 @@ Return the corresponding partition kind for SyntaxMemberDeclarator.
 template<>
 an_ifc_syntax_member_function_declaration_storage*
 get<an_ifc_syntax_member_function_declaration_storage>(
-                an_ifc_module                                     *mod,
+                an_ifc_module_file                                *file,
                 an_ifc_syntax_member_function_declaration_storage *storage,
                 a_boolean                                         fill_storage)
 /*
 Retrieve an instance of SyntaxMemberFunctionDeclaration from the IFC module
-file associated with mod.
+file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -29509,18 +29380,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_member_function_declaration_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* definition */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_member_function_declaration_storage> */
@@ -29540,12 +29411,11 @@ Return the corresponding partition kind for SyntaxMemberFunctionDeclaration.
 template<>
 an_ifc_syntax_member_specification_storage*
 get<an_ifc_syntax_member_specification_storage>(
-                       an_ifc_module                              *mod,
+                       an_ifc_module_file                         *file,
                        an_ifc_syntax_member_specification_storage *storage,
                        a_boolean                                  fill_storage)
 /*
-Retrieve an instance of SyntaxMemberSpecification from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxMemberSpecification from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -29563,18 +29433,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_member_specification_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* member_declarations */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_member_specification_storage> */
@@ -29594,12 +29464,12 @@ Return the corresponding partition kind for SyntaxMemberSpecification.
 template<>
 an_ifc_syntax_namespace_alias_definition_storage*
 get<an_ifc_syntax_namespace_alias_definition_storage>(
-                 an_ifc_module                                    *mod,
+                 an_ifc_module_file                               *file,
                  an_ifc_syntax_namespace_alias_definition_storage *storage,
                  a_boolean                                        fill_storage)
 /*
-Retrieve an instance of SyntaxNamespaceAliasDefinition from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxNamespaceAliasDefinition from the IFC module
+file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -29617,32 +29487,32 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_namespace_alias_definition_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/32);
+      memcpy(*storage, file->byte_buffer, /*size=*/32);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* target */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* namespace_kw.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* namespace_kw.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* assign.line */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* assign.column */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.line */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.column */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_namespace_alias_definition_storage> */
@@ -29662,12 +29532,11 @@ Return the corresponding partition kind for SyntaxNamespaceAliasDefinition.
 template<>
 an_ifc_syntax_nested_requirement_storage*
 get<an_ifc_syntax_nested_requirement_storage>(
-                         an_ifc_module                            *mod,
+                         an_ifc_module_file                       *file,
                          an_ifc_syntax_nested_requirement_storage *storage,
                          a_boolean                                fill_storage)
 /*
-Retrieve an instance of SyntaxNestedRequirement from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxNestedRequirement from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -29685,22 +29554,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_nested_requirement_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* condition */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_nested_requirement_storage> */
@@ -29720,12 +29589,11 @@ Return the corresponding partition kind for SyntaxNestedRequirement.
 template<>
 an_ifc_syntax_new_declarator_storage*
 get<an_ifc_syntax_new_declarator_storage>(
-                             an_ifc_module                        *mod,
+                             an_ifc_module_file                   *file,
                              an_ifc_syntax_new_declarator_storage *storage,
                              a_boolean                            fill_storage)
 /*
-Retrieve an instance of SyntaxNewDeclarator from the IFC module file associated
-with mod.
+Retrieve an instance of SyntaxNewDeclarator from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -29743,18 +29611,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_new_declarator_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* declarator */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_new_declarator_storage> */
@@ -29773,12 +29641,11 @@ Return the corresponding partition kind for SyntaxNewDeclarator.
 template<>
 an_ifc_syntax_noexcept_specification_storage*
 get<an_ifc_syntax_noexcept_specification_storage>(
-                     an_ifc_module                                *mod,
+                     an_ifc_module_file                           *file,
                      an_ifc_syntax_noexcept_specification_storage *storage,
                      a_boolean                                    fill_storage)
 /*
-Retrieve an instance of SyntaxNoexceptSpecification from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxNoexceptSpecification from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -29796,30 +29663,30 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_noexcept_specification_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/28);
+      memcpy(*storage, file->byte_buffer, /*size=*/28);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* expr */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.line */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.column */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_noexcept_specification_storage> */
@@ -29839,12 +29706,11 @@ Return the corresponding partition kind for SyntaxNoexceptSpecification.
 template<>
 an_ifc_syntax_non_type_template_argument_storage*
 get<an_ifc_syntax_non_type_template_argument_storage>(
-                 an_ifc_module                                    *mod,
+                 an_ifc_module_file                               *file,
                  an_ifc_syntax_non_type_template_argument_storage *storage,
                  a_boolean                                        fill_storage)
 /*
-Retrieve an instance of SyntaxNonTypeTemplateArgument from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxNonTypeTemplateArgument from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -29862,26 +29728,26 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_non_type_template_argument_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* argument */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* ellipsis.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* ellipsis.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_non_type_template_argument_storage> */
@@ -29901,12 +29767,11 @@ Return the corresponding partition kind for SyntaxNonTypeTemplateArgument.
 template<>
 an_ifc_syntax_parameter_declarator_storage*
 get<an_ifc_syntax_parameter_declarator_storage>(
-                       an_ifc_module                              *mod,
+                       an_ifc_module_file                         *file,
                        an_ifc_syntax_parameter_declarator_storage *storage,
                        a_boolean                                  fill_storage)
 /*
-Retrieve an instance of SyntaxParameterDeclarator from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxParameterDeclarator from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -29924,28 +29789,28 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_parameter_declarator_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/24);
+      memcpy(*storage, file->byte_buffer, /*size=*/24);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* decl_specifiers */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* declarator */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* default_expr */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* sort */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_parameter_declarator_storage> */
@@ -29965,12 +29830,12 @@ Return the corresponding partition kind for SyntaxParameterDeclarator.
 template<>
 an_ifc_syntax_placeholder_type_specifier_storage*
 get<an_ifc_syntax_placeholder_type_specifier_storage>(
-                 an_ifc_module                                    *mod,
+                 an_ifc_module_file                               *file,
                  an_ifc_syntax_placeholder_type_specifier_storage *storage,
                  a_boolean                                        fill_storage)
 /*
-Retrieve an instance of SyntaxPlaceholderTypeSpecifier from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxPlaceholderTypeSpecifier from the IFC module
+file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -29988,28 +29853,28 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_placeholder_type_specifier_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/21);
+      memcpy(*storage, file->byte_buffer, /*size=*/21);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* constraint */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* basis */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* keyword.line */
-    get_bytes(mod, (*storage) + 5, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 5, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* keyword.column */
-    get_bytes(mod, (*storage) + 9, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 9, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 13, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 13, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 17, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 17, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_placeholder_type_specifier_storage> */
@@ -30029,12 +29894,11 @@ Return the corresponding partition kind for SyntaxPlaceholderTypeSpecifier.
 template<>
 an_ifc_syntax_pointer_declarator_storage*
 get<an_ifc_syntax_pointer_declarator_storage>(
-                         an_ifc_module                            *mod,
+                         an_ifc_module_file                       *file,
                          an_ifc_syntax_pointer_declarator_storage *storage,
                          a_boolean                                fill_storage)
 /*
-Retrieve an instance of SyntaxPointerDeclarator from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxPointerDeclarator from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -30052,32 +29916,32 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_pointer_declarator_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* whole */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* next */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* sort */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* qualifiers */
-    get_bytes(mod, (*storage) + 17, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 17, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* convention */
-    get_bytes(mod, (*storage) + 18, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 18, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* callable */
-    get_bytes(mod, (*storage) + 19, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 19, /*num_bytes=*/1, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_pointer_declarator_storage> */
@@ -30097,12 +29961,11 @@ Return the corresponding partition kind for SyntaxPointerDeclarator.
 template<>
 an_ifc_syntax_range_based_for_statement_storage*
 get<an_ifc_syntax_range_based_for_statement_storage>(
-                  an_ifc_module                                   *mod,
+                  an_ifc_module_file                              *file,
                   an_ifc_syntax_range_based_for_statement_storage *storage,
                   a_boolean                                       fill_storage)
 /*
-Retrieve an instance of SyntaxRangeBasedForStatement from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxRangeBasedForStatement from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -30120,42 +29983,42 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_range_based_for_statement_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/52);
+      memcpy(*storage, file->byte_buffer, /*size=*/52);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* pragma */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* init */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* decl */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* initializer */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* body */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* for.line */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* for.column */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren.line */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren.column */
-    get_bytes(mod, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.line */
-    get_bytes(mod, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.column */
-    get_bytes(mod, (*storage) + 40, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 40, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* colon.line */
-    get_bytes(mod, (*storage) + 44, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 44, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* colon.column */
-    get_bytes(mod, (*storage) + 48, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 48, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_range_based_for_statement_storage> */
@@ -30175,12 +30038,11 @@ Return the corresponding partition kind for SyntaxRangeBasedForStatement.
 template<>
 an_ifc_syntax_requirement_body_storage*
 get<an_ifc_syntax_requirement_body_storage>(
-                           an_ifc_module                          *mod,
+                           an_ifc_module_file                     *file,
                            an_ifc_syntax_requirement_body_storage *storage,
                            a_boolean                              fill_storage)
 /*
-Retrieve an instance of SyntaxRequirementBody from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxRequirementBody from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -30198,26 +30060,26 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_requirement_body_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* requirements */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_curly.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_curly.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_requirement_body_storage> */
@@ -30236,12 +30098,11 @@ Return the corresponding partition kind for SyntaxRequirementBody.
 template<>
 an_ifc_syntax_requires_clause_storage*
 get<an_ifc_syntax_requires_clause_storage>(
-                            an_ifc_module                         *mod,
+                            an_ifc_module_file                    *file,
                             an_ifc_syntax_requires_clause_storage *storage,
                             a_boolean                             fill_storage)
 /*
-Retrieve an instance of SyntaxRequiresClause from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxRequiresClause from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -30259,22 +30120,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_requires_clause_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* condition */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_requires_clause_storage> */
@@ -30293,12 +30154,11 @@ Return the corresponding partition kind for SyntaxRequiresClause.
 template<>
 an_ifc_syntax_return_statement_storage*
 get<an_ifc_syntax_return_statement_storage>(
-                           an_ifc_module                          *mod,
+                           an_ifc_module_file                     *file,
                            an_ifc_syntax_return_statement_storage *storage,
                            a_boolean                              fill_storage)
 /*
-Retrieve an instance of SyntaxReturnStatement from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxReturnStatement from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -30316,30 +30176,30 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_return_statement_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/28);
+      memcpy(*storage, file->byte_buffer, /*size=*/28);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* pragma */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* expr */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* sort */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* return.line */
-    get_bytes(mod, (*storage) + 9, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 9, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* return.column */
-    get_bytes(mod, (*storage) + 13, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 13, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.line */
-    get_bytes(mod, (*storage) + 17, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 17, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.column */
-    get_bytes(mod, (*storage) + 21, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 21, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_return_statement_storage> */
@@ -30357,12 +30217,11 @@ Return the corresponding partition kind for SyntaxReturnStatement.
 
 template<>
 an_ifc_syntax_seh_except_storage* get<an_ifc_syntax_seh_except_storage>(
-                                 an_ifc_module                    *mod,
+                                 an_ifc_module_file               *file,
                                  an_ifc_syntax_seh_except_storage *storage,
                                  a_boolean                        fill_storage)
 /*
-Retrieve an instance of SyntaxSEHExcept from the IFC module file associated
-with mod.
+Retrieve an instance of SyntaxSEHExcept from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -30380,32 +30239,32 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_seh_except_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/32);
+      memcpy(*storage, file->byte_buffer, /*size=*/32);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* condition */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* body */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* except_kw.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* except_kw.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren.line */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren.column */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.line */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.column */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_seh_except_storage> */
@@ -30423,12 +30282,11 @@ Return the corresponding partition kind for SyntaxSEHExcept.
 
 template<>
 an_ifc_syntax_seh_finally_storage* get<an_ifc_syntax_seh_finally_storage>(
-                                an_ifc_module                     *mod,
+                                an_ifc_module_file                *file,
                                 an_ifc_syntax_seh_finally_storage *storage,
                                 a_boolean                         fill_storage)
 /*
-Retrieve an instance of SyntaxSEHFinally from the IFC module file associated
-with mod.
+Retrieve an instance of SyntaxSEHFinally from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -30446,22 +30304,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_seh_finally_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* body */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* finally_kw.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* finally_kw.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_seh_finally_storage> */
@@ -30479,12 +30337,11 @@ Return the corresponding partition kind for SyntaxSEHFinally.
 
 template<>
 an_ifc_syntax_seh_leave_storage* get<an_ifc_syntax_seh_leave_storage>(
-                                  an_ifc_module                   *mod,
+                                  an_ifc_module_file              *file,
                                   an_ifc_syntax_seh_leave_storage *storage,
                                   a_boolean                       fill_storage)
 /*
-Retrieve an instance of SyntaxSEHLeave from the IFC module file associated with
-mod.
+Retrieve an instance of SyntaxSEHLeave from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -30502,24 +30359,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_seh_leave_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* leave_kw.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* leave_kw.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_seh_leave_storage> */
@@ -30537,12 +30394,11 @@ Return the corresponding partition kind for SyntaxSEHLeave.
 
 template<>
 an_ifc_syntax_seh_try_storage* get<an_ifc_syntax_seh_try_storage>(
-                                    an_ifc_module                 *mod,
+                                    an_ifc_module_file            *file,
                                     an_ifc_syntax_seh_try_storage *storage,
                                     a_boolean                     fill_storage)
 /*
-Retrieve an instance of SyntaxSEHTry from the IFC module file associated with
-mod.
+Retrieve an instance of SyntaxSEHTry from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -30560,24 +30416,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_seh_try_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* body */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* handler */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* try_kw.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* try_kw.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_seh_try_storage> */
@@ -30596,12 +30452,11 @@ Return the corresponding partition kind for SyntaxSEHTry.
 template<>
 an_ifc_syntax_simple_capture_storage*
 get<an_ifc_syntax_simple_capture_storage>(
-                             an_ifc_module                        *mod,
+                             an_ifc_module_file                   *file,
                              an_ifc_syntax_simple_capture_storage *storage,
                              a_boolean                            fill_storage)
 /*
-Retrieve an instance of SyntaxSimpleCapture from the IFC module file associated
-with mod.
+Retrieve an instance of SyntaxSimpleCapture from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -30619,30 +30474,30 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_simple_capture_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/28);
+      memcpy(*storage, file->byte_buffer, /*size=*/28);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* ampersand.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* ampersand.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* expander.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* expander.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.line */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.column */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_simple_capture_storage> */
@@ -30661,12 +30516,11 @@ Return the corresponding partition kind for SyntaxSimpleCapture.
 template<>
 an_ifc_syntax_simple_declaration_storage*
 get<an_ifc_syntax_simple_declaration_storage>(
-                         an_ifc_module                            *mod,
+                         an_ifc_module_file                       *file,
                          an_ifc_syntax_simple_declaration_storage *storage,
                          a_boolean                                fill_storage)
 /*
-Retrieve an instance of SyntaxSimpleDeclaration from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxSimpleDeclaration from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -30684,28 +30538,28 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_simple_declaration_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/24);
+      memcpy(*storage, file->byte_buffer, /*size=*/24);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* decl_specifiers */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* declarators */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.line */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.column */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_simple_declaration_storage> */
@@ -30725,12 +30579,11 @@ Return the corresponding partition kind for SyntaxSimpleDeclaration.
 template<>
 an_ifc_syntax_simple_requirement_storage*
 get<an_ifc_syntax_simple_requirement_storage>(
-                         an_ifc_module                            *mod,
+                         an_ifc_module_file                       *file,
                          an_ifc_syntax_simple_requirement_storage *storage,
                          a_boolean                                fill_storage)
 /*
-Retrieve an instance of SyntaxSimpleRequirement from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxSimpleRequirement from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -30748,22 +30601,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_simple_requirement_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* condition */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_simple_requirement_storage> */
@@ -30783,12 +30636,11 @@ Return the corresponding partition kind for SyntaxSimpleRequirement.
 template<>
 an_ifc_syntax_simple_type_specifier_storage*
 get<an_ifc_syntax_simple_type_specifier_storage>(
-                      an_ifc_module                               *mod,
+                      an_ifc_module_file                          *file,
                       an_ifc_syntax_simple_type_specifier_storage *storage,
                       a_boolean                                   fill_storage)
 /*
-Retrieve an instance of SyntaxSimpleTypeSpecifier from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxSimpleTypeSpecifier from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -30806,24 +30658,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_simple_type_specifier_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* type */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* expr */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_simple_type_specifier_storage> */
@@ -30842,12 +30694,11 @@ Return the corresponding partition kind for SyntaxSimpleTypeSpecifier.
 
 template<>
 an_ifc_syntax_statement_seq_storage* get<an_ifc_syntax_statement_seq_storage>(
-                              an_ifc_module                       *mod,
+                              an_ifc_module_file                  *file,
                               an_ifc_syntax_statement_seq_storage *storage,
                               a_boolean                           fill_storage)
 /*
-Retrieve an instance of SyntaxStatementSeq from the IFC module file associated
-with mod.
+Retrieve an instance of SyntaxStatementSeq from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -30865,18 +30716,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_statement_seq_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* stmts */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_statement_seq_storage> */
@@ -30895,12 +30746,11 @@ Return the corresponding partition kind for SyntaxStatementSeq.
 template<>
 an_ifc_syntax_static_assert_declaration_storage*
 get<an_ifc_syntax_static_assert_declaration_storage>(
-                  an_ifc_module                                   *mod,
+                  an_ifc_module_file                              *file,
                   an_ifc_syntax_static_assert_declaration_storage *storage,
                   a_boolean                                       fill_storage)
 /*
-Retrieve an instance of SyntaxStaticAssertDeclaration from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxStaticAssertDeclaration from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -30918,40 +30768,40 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_static_assert_declaration_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/48);
+      memcpy(*storage, file->byte_buffer, /*size=*/48);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* condition */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* message */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren.line */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_paren.column */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.line */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.column */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.line */
-    get_bytes(mod, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.column */
-    get_bytes(mod, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.line */
-    get_bytes(mod, (*storage) + 40, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 40, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.column */
-    get_bytes(mod, (*storage) + 44, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 44, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_static_assert_declaration_storage> */
@@ -30971,12 +30821,12 @@ Return the corresponding partition kind for SyntaxStaticAssertDeclaration.
 template<>
 an_ifc_syntax_structured_binding_declaration_storage*
 get<an_ifc_syntax_structured_binding_declaration_storage>(
-             an_ifc_module                                        *mod,
+             an_ifc_module_file                                   *file,
              an_ifc_syntax_structured_binding_declaration_storage *storage,
              a_boolean                                            fill_storage)
 /*
 Retrieve an instance of SyntaxStructuredBindingDeclaration from the IFC module
-file associated with mod.
+file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -30994,30 +30844,30 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_structured_binding_declaration_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/28);
+      memcpy(*storage, file->byte_buffer, /*size=*/28);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* ref.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* ref.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* specifiers */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* names */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* initializer */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_structured_binding_declaration_storage> */
@@ -31037,12 +30887,12 @@ Return the corresponding partition kind for SyntaxStructuredBindingDeclaration.
 template<>
 an_ifc_syntax_structured_binding_identifier_storage*
 get<an_ifc_syntax_structured_binding_identifier_storage>(
-              an_ifc_module                                       *mod,
+              an_ifc_module_file                                  *file,
               an_ifc_syntax_structured_binding_identifier_storage *storage,
               a_boolean                                           fill_storage)
 /*
 Retrieve an instance of SyntaxStructuredBindingIdentifier from the IFC module
-file associated with mod.
+file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -31060,22 +30910,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_structured_binding_identifier_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_structured_binding_identifier_storage> */
@@ -31094,12 +30944,11 @@ Return the corresponding partition kind for SyntaxStructuredBindingIdentifier.
 
 template<>
 an_ifc_syntax_super_storage* get<an_ifc_syntax_super_storage>(
-                                      an_ifc_module               *mod,
+                                      an_ifc_module_file          *file,
                                       an_ifc_syntax_super_storage *storage,
                                       a_boolean                   fill_storage)
 /*
-Retrieve an instance of SyntaxSuper from the IFC module file associated with
-mod.
+Retrieve an instance of SyntaxSuper from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -31117,20 +30966,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_super_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_super_storage> */
@@ -31149,12 +30998,11 @@ Return the corresponding partition kind for SyntaxSuper.
 template<>
 an_ifc_syntax_switch_statement_storage*
 get<an_ifc_syntax_switch_statement_storage>(
-                           an_ifc_module                          *mod,
+                           an_ifc_module_file                     *file,
                            an_ifc_syntax_switch_statement_storage *storage,
                            a_boolean                              fill_storage)
 /*
-Retrieve an instance of SyntaxSwitchStatement from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxSwitchStatement from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -31172,28 +31020,28 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_switch_statement_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/24);
+      memcpy(*storage, file->byte_buffer, /*size=*/24);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* pragma */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* init */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* condition */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* body */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* switch.line */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* switch.column */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_switch_statement_storage> */
@@ -31212,12 +31060,11 @@ Return the corresponding partition kind for SyntaxSwitchStatement.
 template<>
 an_ifc_syntax_template_argument_list_storage*
 get<an_ifc_syntax_template_argument_list_storage>(
-                     an_ifc_module                                *mod,
+                     an_ifc_module_file                           *file,
                      an_ifc_syntax_template_argument_list_storage *storage,
                      a_boolean                                    fill_storage)
 /*
-Retrieve an instance of SyntaxTemplateArgumentList from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxTemplateArgumentList from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -31235,26 +31082,26 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_template_argument_list_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* arguments */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_angle.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_angle.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_angle.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_angle.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_template_argument_list_storage> */
@@ -31274,12 +31121,11 @@ Return the corresponding partition kind for SyntaxTemplateArgumentList.
 template<>
 an_ifc_syntax_template_declaration_storage*
 get<an_ifc_syntax_template_declaration_storage>(
-                       an_ifc_module                              *mod,
+                       an_ifc_module_file                         *file,
                        an_ifc_syntax_template_declaration_storage *storage,
                        a_boolean                                  fill_storage)
 /*
-Retrieve an instance of SyntaxTemplateDeclaration from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxTemplateDeclaration from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -31297,24 +31143,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_template_declaration_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* parameters */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* subject */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_template_declaration_storage> */
@@ -31333,12 +31179,11 @@ Return the corresponding partition kind for SyntaxTemplateDeclaration.
 
 template<>
 an_ifc_syntax_template_id_storage* get<an_ifc_syntax_template_id_storage>(
-                                an_ifc_module                     *mod,
+                                an_ifc_module_file                *file,
                                 an_ifc_syntax_template_id_storage *storage,
                                 a_boolean                         fill_storage)
 /*
-Retrieve an instance of SyntaxTemplateId from the IFC module file associated
-with mod.
+Retrieve an instance of SyntaxTemplateId from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -31356,30 +31201,30 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_template_id_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/28);
+      memcpy(*storage, file->byte_buffer, /*size=*/28);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* symbol */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* arguments */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* template_kw.line */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* template_kw.column */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_template_id_storage> */
@@ -31398,12 +31243,11 @@ Return the corresponding partition kind for SyntaxTemplateId.
 template<>
 an_ifc_syntax_template_parameter_list_storage*
 get<an_ifc_syntax_template_parameter_list_storage>(
-                    an_ifc_module                                 *mod,
+                    an_ifc_module_file                            *file,
                     an_ifc_syntax_template_parameter_list_storage *storage,
                     a_boolean                                     fill_storage)
 /*
-Retrieve an instance of SyntaxTemplateParameterList from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxTemplateParameterList from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -31421,28 +31265,28 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_template_parameter_list_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/24);
+      memcpy(*storage, file->byte_buffer, /*size=*/24);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* parameters */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* clause */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_angle.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* left_angle.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_angle.line */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_angle.column */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_template_parameter_list_storage> */
@@ -31462,12 +31306,12 @@ Return the corresponding partition kind for SyntaxTemplateParameterList.
 template<>
 an_ifc_syntax_template_template_parameter_storage*
 get<an_ifc_syntax_template_template_parameter_storage>(
-                an_ifc_module                                     *mod,
+                an_ifc_module_file                                *file,
                 an_ifc_syntax_template_template_parameter_storage *storage,
                 a_boolean                                         fill_storage)
 /*
 Retrieve an instance of SyntaxTemplateTemplateParameter from the IFC module
-file associated with mod.
+file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -31485,40 +31329,40 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_template_template_parameter_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/48);
+      memcpy(*storage, file->byte_buffer, /*size=*/48);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* argument */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* parameters */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* ellipsis.line */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* ellipsis.column */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.line */
-    get_bytes(mod, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 28, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.column */
-    get_bytes(mod, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 32, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* key.locus.line */
-    get_bytes(mod, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 36, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* key.locus.column */
-    get_bytes(mod, (*storage) + 40, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 40, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* key.value */
-    get_bytes(mod, (*storage) + 44, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 44, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_template_template_parameter_storage> */
@@ -31537,12 +31381,11 @@ Return the corresponding partition kind for SyntaxTemplateTemplateParameter.
 
 template<>
 an_ifc_syntax_this_capture_storage* get<an_ifc_syntax_this_capture_storage>(
-                               an_ifc_module                      *mod,
+                               an_ifc_module_file                 *file,
                                an_ifc_syntax_this_capture_storage *storage,
                                a_boolean                          fill_storage)
 /*
-Retrieve an instance of SyntaxThisCapture from the IFC module file associated
-with mod.
+Retrieve an instance of SyntaxThisCapture from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -31560,28 +31403,28 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_this_capture_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/24);
+      memcpy(*storage, file->byte_buffer, /*size=*/24);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* asterisk.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* asterisk.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.line */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.column */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_this_capture_storage> */
@@ -31600,12 +31443,11 @@ Return the corresponding partition kind for SyntaxThisCapture.
 template<>
 an_ifc_syntax_trailing_return_type_storage*
 get<an_ifc_syntax_trailing_return_type_storage>(
-                       an_ifc_module                              *mod,
+                       an_ifc_module_file                         *file,
                        an_ifc_syntax_trailing_return_type_storage *storage,
                        a_boolean                                  fill_storage)
 /*
-Retrieve an instance of SyntaxTrailingReturnType from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxTrailingReturnType from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -31623,22 +31465,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_trailing_return_type_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* target */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* arrow.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* arrow.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_trailing_return_type_storage> */
@@ -31657,12 +31499,11 @@ Return the corresponding partition kind for SyntaxTrailingReturnType.
 
 template<>
 an_ifc_syntax_try_block_storage* get<an_ifc_syntax_try_block_storage>(
-                                  an_ifc_module                   *mod,
+                                  an_ifc_module_file              *file,
                                   an_ifc_syntax_try_block_storage *storage,
                                   a_boolean                       fill_storage)
 /*
-Retrieve an instance of SyntaxTryBlock from the IFC module file associated with
-mod.
+Retrieve an instance of SyntaxTryBlock from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -31680,26 +31521,26 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_try_block_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* pragma */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* body */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* handlers */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* try.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* try.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_try_block_storage> */
@@ -31717,12 +31558,11 @@ Return the corresponding partition kind for SyntaxTryBlock.
 
 template<>
 an_ifc_syntax_tuple_storage* get<an_ifc_syntax_tuple_storage>(
-                                      an_ifc_module               *mod,
+                                      an_ifc_module_file          *file,
                                       an_ifc_syntax_tuple_storage *storage,
                                       a_boolean                   fill_storage)
 /*
-Retrieve an instance of SyntaxTuple from the IFC module file associated with
-mod.
+Retrieve an instance of SyntaxTuple from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -31740,20 +31580,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_tuple_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* start */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* cardinality */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_tuple_storage> */
@@ -31771,12 +31611,11 @@ Return the corresponding partition kind for SyntaxTuple.
 
 template<>
 an_ifc_syntax_type_id_storage* get<an_ifc_syntax_type_id_storage>(
-                                    an_ifc_module                 *mod,
+                                    an_ifc_module_file            *file,
                                     an_ifc_syntax_type_id_storage *storage,
                                     a_boolean                     fill_storage)
 /*
-Retrieve an instance of SyntaxTypeId from the IFC module file associated with
-mod.
+Retrieve an instance of SyntaxTypeId from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -31794,24 +31633,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_type_id_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* type_specifier */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* abstract_declarator */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_type_id_storage> */
@@ -31830,12 +31669,11 @@ Return the corresponding partition kind for SyntaxTypeId.
 template<>
 an_ifc_syntax_type_id_list_element_storage*
 get<an_ifc_syntax_type_id_list_element_storage>(
-                       an_ifc_module                              *mod,
+                       an_ifc_module_file                         *file,
                        an_ifc_syntax_type_id_list_element_storage *storage,
                        a_boolean                                  fill_storage)
 /*
-Retrieve an instance of SyntaxTypeIdListElement from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxTypeIdListElement from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -31853,22 +31691,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_type_id_list_element_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* type_id */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* ellipsis.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* ellipsis.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_type_id_list_element_storage> */
@@ -31888,12 +31726,11 @@ Return the corresponding partition kind for SyntaxTypeIdListElement.
 template<>
 an_ifc_syntax_type_requirement_storage*
 get<an_ifc_syntax_type_requirement_storage>(
-                           an_ifc_module                          *mod,
+                           an_ifc_module_file                     *file,
                            an_ifc_syntax_type_requirement_storage *storage,
                            a_boolean                              fill_storage)
 /*
-Retrieve an instance of SyntaxTypeRequirement from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxTypeRequirement from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -31911,22 +31748,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_type_requirement_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* type */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_type_requirement_storage> */
@@ -31945,12 +31782,11 @@ Return the corresponding partition kind for SyntaxTypeRequirement.
 template<>
 an_ifc_syntax_type_specifier_seq_storage*
 get<an_ifc_syntax_type_specifier_seq_storage>(
-                         an_ifc_module                            *mod,
+                         an_ifc_module_file                       *file,
                          an_ifc_syntax_type_specifier_seq_storage *storage,
                          a_boolean                                fill_storage)
 /*
-Retrieve an instance of SyntaxTypeSpecifierSeq from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxTypeSpecifierSeq from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -31968,28 +31804,28 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_type_specifier_seq_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* type_name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* type */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* qualifiers */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* unhashed */
-    get_bytes(mod, (*storage) + 17, /*num_bytes=*/3, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 17, /*num_bytes=*/3, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_type_specifier_seq_storage> */
@@ -32009,12 +31845,11 @@ Return the corresponding partition kind for SyntaxTypeSpecifierSeq.
 template<>
 an_ifc_syntax_type_template_argument_storage*
 get<an_ifc_syntax_type_template_argument_storage>(
-                     an_ifc_module                                *mod,
+                     an_ifc_module_file                           *file,
                      an_ifc_syntax_type_template_argument_storage *storage,
                      a_boolean                                    fill_storage)
 /*
-Retrieve an instance of SyntaxTypeTemplateArgument from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxTypeTemplateArgument from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -32032,26 +31867,26 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_type_template_argument_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* argument */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* ellipsis.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* ellipsis.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_type_template_argument_storage> */
@@ -32071,12 +31906,11 @@ Return the corresponding partition kind for SyntaxTypeTemplateArgument.
 template<>
 an_ifc_syntax_type_template_parameter_storage*
 get<an_ifc_syntax_type_template_parameter_storage>(
-                    an_ifc_module                                 *mod,
+                    an_ifc_module_file                            *file,
                     an_ifc_syntax_type_template_parameter_storage *storage,
                     a_boolean                                     fill_storage)
 /*
-Retrieve an instance of SyntaxTypeTemplateParameter from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxTypeTemplateParameter from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -32094,30 +31928,30 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_type_template_parameter_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/28);
+      memcpy(*storage, file->byte_buffer, /*size=*/28);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* constraint */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* argument */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* ellipsis.line */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* ellipsis.column */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_type_template_parameter_storage> */
@@ -32137,12 +31971,11 @@ Return the corresponding partition kind for SyntaxTypeTemplateParameter.
 template<>
 an_ifc_syntax_type_trait_intrinsic_storage*
 get<an_ifc_syntax_type_trait_intrinsic_storage>(
-                       an_ifc_module                              *mod,
+                       an_ifc_module_file                         *file,
                        an_ifc_syntax_type_trait_intrinsic_storage *storage,
                        a_boolean                                  fill_storage)
 /*
-Retrieve an instance of SyntaxTypeTraitIntrinsic from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxTypeTraitIntrinsic from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -32160,24 +31993,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_type_trait_intrinsic_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* arguments */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* intrinsic */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_type_trait_intrinsic_storage> */
@@ -32197,12 +32030,11 @@ Return the corresponding partition kind for SyntaxTypeTraitIntrinsic.
 template<>
 an_ifc_syntax_unary_fold_expression_storage*
 get<an_ifc_syntax_unary_fold_expression_storage>(
-                      an_ifc_module                               *mod,
+                      an_ifc_module_file                          *file,
                       an_ifc_syntax_unary_fold_expression_storage *storage,
                       a_boolean                                   fill_storage)
 /*
-Retrieve an instance of SyntaxUnaryFoldExpression from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxUnaryFoldExpression from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -32220,38 +32052,38 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_unary_fold_expression_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/44);
+      memcpy(*storage, file->byte_buffer, /*size=*/44);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* direction */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* operand */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* dyad */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/2, /*from_header=*/FALSE);
     /* locus.line */
-    get_bytes(mod, (*storage) + 10, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 10, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 14, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 14, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* ellipsis.line */
-    get_bytes(mod, (*storage) + 18, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 18, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* ellipsis.column */
-    get_bytes(mod, (*storage) + 22, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 22, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* glyph_locus.line */
-    get_bytes(mod, (*storage) + 26, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 26, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* glyph_locus.column */
-    get_bytes(mod, (*storage) + 30, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 30, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.line */
-    get_bytes(mod, (*storage) + 34, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 34, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* right_paren.column */
-    get_bytes(mod, (*storage) + 38, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 38, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_unary_fold_expression_storage> */
@@ -32271,12 +32103,11 @@ Return the corresponding partition kind for SyntaxUnaryFoldExpression.
 template<>
 an_ifc_syntax_using_declaration_storage*
 get<an_ifc_syntax_using_declaration_storage>(
-                          an_ifc_module                           *mod,
+                          an_ifc_module_file                      *file,
                           an_ifc_syntax_using_declaration_storage *storage,
                           a_boolean                               fill_storage)
 /*
-Retrieve an instance of SyntaxUsingDeclaration from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxUsingDeclaration from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -32294,26 +32125,26 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_using_declaration_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* declarators */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* keyword.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* keyword.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_using_declaration_storage> */
@@ -32332,12 +32163,11 @@ Return the corresponding partition kind for SyntaxUsingDeclaration.
 template<>
 an_ifc_syntax_using_declarator_storage*
 get<an_ifc_syntax_using_declarator_storage>(
-                           an_ifc_module                          *mod,
+                           an_ifc_module_file                     *file,
                            an_ifc_syntax_using_declarator_storage *storage,
                            a_boolean                              fill_storage)
 /*
-Retrieve an instance of SyntaxUsingDeclarator from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxUsingDeclarator from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -32355,30 +32185,30 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_using_declarator_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/28);
+      memcpy(*storage, file->byte_buffer, /*size=*/28);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* qualified_name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* typename_kw.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* typename_kw.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* expander.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* expander.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.line */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* comma.column */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_using_declarator_storage> */
@@ -32397,12 +32227,11 @@ Return the corresponding partition kind for SyntaxUsingDeclarator.
 template<>
 an_ifc_syntax_using_directive_storage*
 get<an_ifc_syntax_using_directive_storage>(
-                            an_ifc_module                         *mod,
+                            an_ifc_module_file                    *file,
                             an_ifc_syntax_using_directive_storage *storage,
                             a_boolean                             fill_storage)
 /*
-Retrieve an instance of SyntaxUsingDirective from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxUsingDirective from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -32420,30 +32249,30 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_using_directive_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/28);
+      memcpy(*storage, file->byte_buffer, /*size=*/28);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* qualified_name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* using_kw.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* using_kw.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* namespace_kw.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* namespace_kw.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.line */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.column */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_using_directive_storage> */
@@ -32462,12 +32291,11 @@ Return the corresponding partition kind for SyntaxUsingDirective.
 template<>
 an_ifc_syntax_using_enum_declaration_storage*
 get<an_ifc_syntax_using_enum_declaration_storage>(
-                     an_ifc_module                                *mod,
+                     an_ifc_module_file                           *file,
                      an_ifc_syntax_using_enum_declaration_storage *storage,
                      a_boolean                                    fill_storage)
 /*
-Retrieve an instance of SyntaxUsingEnumDeclaration from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxUsingEnumDeclaration from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -32485,30 +32313,30 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_using_enum_declaration_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/28);
+      memcpy(*storage, file->byte_buffer, /*size=*/28);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* name */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* using_kw.line */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* using_kw.column */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* enum_kw.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* enum_kw.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.line */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* semicolon.column */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_using_enum_declaration_storage> */
@@ -32528,12 +32356,11 @@ Return the corresponding partition kind for SyntaxUsingEnumDeclaration.
 template<>
 an_ifc_syntax_virtual_specifier_seq_storage*
 get<an_ifc_syntax_virtual_specifier_seq_storage>(
-                      an_ifc_module                               *mod,
+                      an_ifc_module_file                          *file,
                       an_ifc_syntax_virtual_specifier_seq_storage *storage,
                       a_boolean                                   fill_storage)
 /*
-Retrieve an instance of SyntaxVirtualSpecifierSeq from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxVirtualSpecifierSeq from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -32551,30 +32378,30 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_virtual_specifier_seq_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/25);
+      memcpy(*storage, file->byte_buffer, /*size=*/25);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* locus.line */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* locus.column */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* final_kw.line */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* final_kw.column */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* override_kw.line */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* override_kw.column */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* pure */
-    get_bytes(mod, (*storage) + 24, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 24, /*num_bytes=*/1, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_virtual_specifier_seq_storage> */
@@ -32594,12 +32421,11 @@ Return the corresponding partition kind for SyntaxVirtualSpecifierSeq.
 template<>
 an_ifc_syntax_while_statement_storage*
 get<an_ifc_syntax_while_statement_storage>(
-                            an_ifc_module                         *mod,
+                            an_ifc_module_file                    *file,
                             an_ifc_syntax_while_statement_storage *storage,
                             a_boolean                             fill_storage)
 /*
-Retrieve an instance of SyntaxWhileStatement from the IFC module file
-associated with mod.
+Retrieve an instance of SyntaxWhileStatement from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -32617,26 +32443,26 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_syntax_while_statement_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* pragma */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* condition */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* body */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* while.line */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* while.column */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_while_statement_storage> */
@@ -32654,12 +32480,11 @@ Return the corresponding partition kind for SyntaxWhileStatement.
 
 template<>
 an_ifc_trait_alias_template_storage* get<an_ifc_trait_alias_template_storage>(
-                              an_ifc_module                       *mod,
+                              an_ifc_module_file                  *file,
                               an_ifc_trait_alias_template_storage *storage,
                               a_boolean                           fill_storage)
 /*
-Retrieve an instance of TraitAliasTemplate from the IFC module file associated
-with mod.
+Retrieve an instance of TraitAliasTemplate from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -32677,20 +32502,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_trait_alias_template_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* decl */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* trait */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_trait_alias_template_storage> */
@@ -32708,12 +32533,11 @@ Return the corresponding partition kind for TraitAliasTemplate.
 
 template<>
 an_ifc_trait_attribute_storage* get<an_ifc_trait_attribute_storage>(
-                                   an_ifc_module                  *mod,
+                                   an_ifc_module_file             *file,
                                    an_ifc_trait_attribute_storage *storage,
                                    a_boolean                      fill_storage)
 /*
-Retrieve an instance of TraitAttribute from the IFC module file associated with
-mod.
+Retrieve an instance of TraitAttribute from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -32731,20 +32555,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_trait_attribute_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* decl */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* trait */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_trait_attribute_storage> */
@@ -32763,12 +32587,11 @@ Return the corresponding partition kind for TraitAttribute.
 template<>
 an_ifc_trait_deduction_guide_storage*
 get<an_ifc_trait_deduction_guide_storage>(
-                             an_ifc_module                        *mod,
+                             an_ifc_module_file                   *file,
                              an_ifc_trait_deduction_guide_storage *storage,
                              a_boolean                            fill_storage)
 /*
-Retrieve an instance of TraitDeductionGuide from the IFC module file associated
-with mod.
+Retrieve an instance of TraitDeductionGuide from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -32786,20 +32609,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_trait_deduction_guide_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* decl */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* trait */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_trait_deduction_guide_storage> */
@@ -32817,12 +32640,11 @@ Return the corresponding partition kind for TraitDeductionGuide.
 
 template<>
 an_ifc_trait_deprecated_storage* get<an_ifc_trait_deprecated_storage>(
-                                  an_ifc_module                   *mod,
+                                  an_ifc_module_file              *file,
                                   an_ifc_trait_deprecated_storage *storage,
                                   a_boolean                       fill_storage)
 /*
-Retrieve an instance of TraitDeprecated from the IFC module file associated
-with mod.
+Retrieve an instance of TraitDeprecated from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -32840,20 +32662,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_trait_deprecated_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* decl */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* trait */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_trait_deprecated_storage> */
@@ -32871,12 +32693,11 @@ Return the corresponding partition kind for TraitDeprecated.
 
 template<>
 an_ifc_trait_friend_storage* get<an_ifc_trait_friend_storage>(
-                                      an_ifc_module               *mod,
+                                      an_ifc_module_file          *file,
                                       an_ifc_trait_friend_storage *storage,
                                       a_boolean                   fill_storage)
 /*
-Retrieve an instance of TraitFriend from the IFC module file associated with
-mod.
+Retrieve an instance of TraitFriend from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -32894,22 +32715,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_trait_friend_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* decl */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* trait.start */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* trait.cardinality */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_trait_friend_storage> */
@@ -32928,12 +32749,11 @@ Return the corresponding partition kind for TraitFriend.
 template<>
 an_ifc_trait_function_definition_storage*
 get<an_ifc_trait_function_definition_storage>(
-                         an_ifc_module                            *mod,
+                         an_ifc_module_file                       *file,
                          an_ifc_trait_function_definition_storage *storage,
                          a_boolean                                fill_storage)
 /*
-Retrieve an instance of TraitFunctionDefinition from the IFC module file
-associated with mod.
+Retrieve an instance of TraitFunctionDefinition from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -32951,24 +32771,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_trait_function_definition_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* decl */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* parameters */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* initializers */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* body */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_trait_function_definition_storage> */
@@ -32988,12 +32808,11 @@ Return the corresponding partition kind for TraitFunctionDefinition.
 template<>
 an_ifc_trait_msvc_decl_attrs_storage*
 get<an_ifc_trait_msvc_decl_attrs_storage>(
-                             an_ifc_module                        *mod,
+                             an_ifc_module_file                   *file,
                              an_ifc_trait_msvc_decl_attrs_storage *storage,
                              a_boolean                            fill_storage)
 /*
-Retrieve an instance of TraitMsvcDeclAttrs from the IFC module file associated
-with mod.
+Retrieve an instance of TraitMsvcDeclAttrs from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -33011,20 +32830,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_trait_msvc_decl_attrs_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* decl */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* trait */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_trait_msvc_decl_attrs_storage> */
@@ -33043,12 +32862,11 @@ Return the corresponding partition kind for TraitMsvcDeclAttrs.
 template<>
 an_ifc_trait_msvc_func_params_storage*
 get<an_ifc_trait_msvc_func_params_storage>(
-                            an_ifc_module                         *mod,
+                            an_ifc_module_file                    *file,
                             an_ifc_trait_msvc_func_params_storage *storage,
                             a_boolean                             fill_storage)
 /*
-Retrieve an instance of TraitMsvcFuncParams from the IFC module file associated
-with mod.
+Retrieve an instance of TraitMsvcFuncParams from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -33066,20 +32884,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_trait_msvc_func_params_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* decl */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* params */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_trait_msvc_func_params_storage> */
@@ -33097,12 +32915,11 @@ Return the corresponding partition kind for TraitMsvcFuncParams.
 
 template<>
 an_ifc_trait_msvc_uuid_storage* get<an_ifc_trait_msvc_uuid_storage>(
-                                   an_ifc_module                  *mod,
+                                   an_ifc_module_file             *file,
                                    an_ifc_trait_msvc_uuid_storage *storage,
                                    a_boolean                      fill_storage)
 /*
-Retrieve an instance of TraitMsvcUuid from the IFC module file associated with
-mod.
+Retrieve an instance of TraitMsvcUuid from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -33120,20 +32937,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_trait_msvc_uuid_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* decl */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* uuid */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_trait_msvc_uuid_storage> */
@@ -33152,12 +32969,11 @@ Return the corresponding partition kind for TraitMsvcUuid.
 template<>
 an_ifc_trait_msvc_vendor_trait_storage*
 get<an_ifc_trait_msvc_vendor_trait_storage>(
-                           an_ifc_module                          *mod,
+                           an_ifc_module_file                     *file,
                            an_ifc_trait_msvc_vendor_trait_storage *storage,
                            a_boolean                              fill_storage)
 /*
-Retrieve an instance of TraitMsvcVendorTrait from the IFC module file
-associated with mod.
+Retrieve an instance of TraitMsvcVendorTrait from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -33175,20 +32991,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_trait_msvc_vendor_trait_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* decl */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* trait */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_trait_msvc_vendor_trait_storage> */
@@ -33206,12 +33022,11 @@ Return the corresponding partition kind for TraitMsvcVendorTrait.
 
 template<>
 an_ifc_trait_requires_storage* get<an_ifc_trait_requires_storage>(
-                                    an_ifc_module                 *mod,
+                                    an_ifc_module_file            *file,
                                     an_ifc_trait_requires_storage *storage,
                                     a_boolean                     fill_storage)
 /*
-Retrieve an instance of TraitRequires from the IFC module file associated with
-mod.
+Retrieve an instance of TraitRequires from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -33229,20 +33044,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_trait_requires_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* decl */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* trait */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_trait_requires_storage> */
@@ -33260,12 +33075,11 @@ Return the corresponding partition kind for TraitRequires.
 
 template<>
 an_ifc_trait_specialization_storage* get<an_ifc_trait_specialization_storage>(
-                              an_ifc_module                       *mod,
+                              an_ifc_module_file                  *file,
                               an_ifc_trait_specialization_storage *storage,
                               a_boolean                           fill_storage)
 /*
-Retrieve an instance of TraitSpecialization from the IFC module file associated
-with mod.
+Retrieve an instance of TraitSpecialization from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -33283,22 +33097,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_trait_specialization_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* decl */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* trait.start */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* trait.cardinality */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_trait_specialization_storage> */
@@ -33316,11 +33130,11 @@ Return the corresponding partition kind for TraitSpecialization.
 
 template<>
 an_ifc_type_array_storage* get<an_ifc_type_array_storage>(
-                                        an_ifc_module             *mod,
+                                        an_ifc_module_file        *file,
                                         an_ifc_type_array_storage *storage,
                                         a_boolean                 fill_storage)
 /*
-Retrieve an instance of TypeArray from the IFC module file associated with mod.
+Retrieve an instance of TypeArray from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -33338,20 +33152,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_type_array_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* element */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* extent */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_array_storage> */
@@ -33369,11 +33183,11 @@ Return the corresponding partition kind for TypeArray.
 
 template<>
 an_ifc_type_base_storage* get<an_ifc_type_base_storage>(
-                                         an_ifc_module            *mod,
+                                         an_ifc_module_file       *file,
                                          an_ifc_type_base_storage *storage,
                                          a_boolean                fill_storage)
 /*
-Retrieve an instance of TypeBase from the IFC module file associated with mod.
+Retrieve an instance of TypeBase from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -33391,24 +33205,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_type_base_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* type */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* access */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* shared */
-    get_bytes(mod, (*storage) + 5, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 5, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* pack_expanded */
-    get_bytes(mod, (*storage) + 6, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 6, /*num_bytes=*/2, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_base_storage> */
@@ -33426,12 +33240,11 @@ Return the corresponding partition kind for TypeBase.
 
 template<>
 an_ifc_type_decltype_storage* get<an_ifc_type_decltype_storage>(
-                                     an_ifc_module                *mod,
+                                     an_ifc_module_file           *file,
                                      an_ifc_type_decltype_storage *storage,
                                      a_boolean                    fill_storage)
 /*
-Retrieve an instance of TypeDecltype from the IFC module file associated with
-mod.
+Retrieve an instance of TypeDecltype from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -33449,18 +33262,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_type_decltype_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* expr */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_decltype_storage> */
@@ -33478,12 +33291,11 @@ Return the corresponding partition kind for TypeDecltype.
 
 template<>
 an_ifc_type_designated_storage* get<an_ifc_type_designated_storage>(
-                                   an_ifc_module                  *mod,
+                                   an_ifc_module_file             *file,
                                    an_ifc_type_designated_storage *storage,
                                    a_boolean                      fill_storage)
 /*
-Retrieve an instance of TypeDesignated from the IFC module file associated with
-mod.
+Retrieve an instance of TypeDesignated from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -33501,18 +33313,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_type_designated_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* decl */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_designated_storage> */
@@ -33530,12 +33342,11 @@ Return the corresponding partition kind for TypeDesignated.
 
 template<>
 an_ifc_type_expansion_storage* get<an_ifc_type_expansion_storage>(
-                                    an_ifc_module                 *mod,
+                                    an_ifc_module_file            *file,
                                     an_ifc_type_expansion_storage *storage,
                                     a_boolean                     fill_storage)
 /*
-Retrieve an instance of TypeExpansion from the IFC module file associated with
-mod.
+Retrieve an instance of TypeExpansion from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -33553,20 +33364,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_type_expansion_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* pack */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* mode */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_expansion_storage> */
@@ -33584,12 +33395,11 @@ Return the corresponding partition kind for TypeExpansion.
 
 template<>
 an_ifc_type_forall_storage* get<an_ifc_type_forall_storage>(
-                                       an_ifc_module              *mod,
+                                       an_ifc_module_file         *file,
                                        an_ifc_type_forall_storage *storage,
                                        a_boolean                  fill_storage)
 /*
-Retrieve an instance of TypeForall from the IFC module file associated with
-mod.
+Retrieve an instance of TypeForall from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -33607,20 +33417,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_type_forall_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* chart */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* subject */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_forall_storage> */
@@ -33638,12 +33448,11 @@ Return the corresponding partition kind for TypeForall.
 
 template<>
 an_ifc_type_function_storage* get<an_ifc_type_function_storage>(
-                                     an_ifc_module                *mod,
+                                     an_ifc_module_file           *file,
                                      an_ifc_type_function_storage *storage,
                                      a_boolean                    fill_storage)
 /*
-Retrieve an instance of TypeFunction from the IFC module file associated with
-mod.
+Retrieve an instance of TypeFunction from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -33661,28 +33470,28 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_type_function_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/20);
+      memcpy(*storage, file->byte_buffer, /*size=*/20);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* target */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* source */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* eh_spec.words */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* eh_spec.sort */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* convention */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* traits */
-    get_bytes(mod, (*storage) + 17, /*num_bytes=*/3, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 17, /*num_bytes=*/3, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_function_storage> */
@@ -33700,12 +33509,11 @@ Return the corresponding partition kind for TypeFunction.
 
 template<>
 an_ifc_type_fundamental_storage* get<an_ifc_type_fundamental_storage>(
-                                  an_ifc_module                   *mod,
+                                  an_ifc_module_file              *file,
                                   an_ifc_type_fundamental_storage *storage,
                                   a_boolean                       fill_storage)
 /*
-Retrieve an instance of TypeFundamental from the IFC module file associated
-with mod.
+Retrieve an instance of TypeFundamental from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -33723,22 +33531,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_type_fundamental_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* basis */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* precision */
-    get_bytes(mod, (*storage) + 1, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 1, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* sign */
-    get_bytes(mod, (*storage) + 2, /*num_bytes=*/2, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 2, /*num_bytes=*/2, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_fundamental_storage> */
@@ -33757,12 +33565,11 @@ Return the corresponding partition kind for TypeFundamental.
 template<>
 an_ifc_type_lvalue_reference_storage*
 get<an_ifc_type_lvalue_reference_storage>(
-                             an_ifc_module                        *mod,
+                             an_ifc_module_file                   *file,
                              an_ifc_type_lvalue_reference_storage *storage,
                              a_boolean                            fill_storage)
 /*
-Retrieve an instance of TypeLvalueReference from the IFC module file associated
-with mod.
+Retrieve an instance of TypeLvalueReference from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -33780,18 +33587,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_type_lvalue_reference_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* referee */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_lvalue_reference_storage> */
@@ -33809,12 +33616,11 @@ Return the corresponding partition kind for TypeLvalueReference.
 
 template<>
 an_ifc_type_method_storage* get<an_ifc_type_method_storage>(
-                                       an_ifc_module              *mod,
+                                       an_ifc_module_file         *file,
                                        an_ifc_type_method_storage *storage,
                                        a_boolean                  fill_storage)
 /*
-Retrieve an instance of TypeMethod from the IFC module file associated with
-mod.
+Retrieve an instance of TypeMethod from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -33832,30 +33638,30 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_type_method_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/24);
+      memcpy(*storage, file->byte_buffer, /*size=*/24);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* target */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* source */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* scope */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* eh_spec.words */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* eh_spec.sort */
-    get_bytes(mod, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 16, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* convention */
-    get_bytes(mod, (*storage) + 20, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 20, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* traits */
-    get_bytes(mod, (*storage) + 21, /*num_bytes=*/3, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 21, /*num_bytes=*/3, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_method_storage> */
@@ -33873,12 +33679,11 @@ Return the corresponding partition kind for TypeMethod.
 
 template<>
 an_ifc_type_placeholder_storage* get<an_ifc_type_placeholder_storage>(
-                                  an_ifc_module                   *mod,
+                                  an_ifc_module_file              *file,
                                   an_ifc_type_placeholder_storage *storage,
                                   a_boolean                       fill_storage)
 /*
-Retrieve an instance of TypePlaceholder from the IFC module file associated
-with mod.
+Retrieve an instance of TypePlaceholder from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -33896,22 +33701,22 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_type_placeholder_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/12);
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* constraint */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* basis.value */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* elaboration */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_placeholder_storage> */
@@ -33929,12 +33734,11 @@ Return the corresponding partition kind for TypePlaceholder.
 
 template<>
 an_ifc_type_pointer_storage* get<an_ifc_type_pointer_storage>(
-                                      an_ifc_module               *mod,
+                                      an_ifc_module_file          *file,
                                       an_ifc_type_pointer_storage *storage,
                                       a_boolean                   fill_storage)
 /*
-Retrieve an instance of TypePointer from the IFC module file associated with
-mod.
+Retrieve an instance of TypePointer from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -33952,18 +33756,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_type_pointer_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* pointee */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_pointer_storage> */
@@ -33982,12 +33786,11 @@ Return the corresponding partition kind for TypePointer.
 template<>
 an_ifc_type_pointer_to_member_storage*
 get<an_ifc_type_pointer_to_member_storage>(
-                            an_ifc_module                         *mod,
+                            an_ifc_module_file                    *file,
                             an_ifc_type_pointer_to_member_storage *storage,
                             a_boolean                             fill_storage)
 /*
-Retrieve an instance of TypePointerToMember from the IFC module file associated
-with mod.
+Retrieve an instance of TypePointerToMember from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -34005,20 +33808,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_type_pointer_to_member_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* scope */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* member */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_pointer_to_member_storage> */
@@ -34036,12 +33839,11 @@ Return the corresponding partition kind for TypePointerToMember.
 
 template<>
 an_ifc_type_qualified_storage* get<an_ifc_type_qualified_storage>(
-                                    an_ifc_module                 *mod,
+                                    an_ifc_module_file            *file,
                                     an_ifc_type_qualified_storage *storage,
                                     a_boolean                     fill_storage)
 /*
-Retrieve an instance of TypeQualified from the IFC module file associated with
-mod.
+Retrieve an instance of TypeQualified from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -34059,20 +33861,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_type_qualified_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* unqualified */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* qualifiers */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_qualified_storage> */
@@ -34091,12 +33893,11 @@ Return the corresponding partition kind for TypeQualified.
 template<>
 an_ifc_type_rvalue_reference_storage*
 get<an_ifc_type_rvalue_reference_storage>(
-                             an_ifc_module                        *mod,
+                             an_ifc_module_file                   *file,
                              an_ifc_type_rvalue_reference_storage *storage,
                              a_boolean                            fill_storage)
 /*
-Retrieve an instance of TypeRvalueReference from the IFC module file associated
-with mod.
+Retrieve an instance of TypeRvalueReference from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -34114,18 +33915,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_type_rvalue_reference_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* referee */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_rvalue_reference_storage> */
@@ -34143,12 +33944,11 @@ Return the corresponding partition kind for TypeRvalueReference.
 
 template<>
 an_ifc_type_syntactic_storage* get<an_ifc_type_syntactic_storage>(
-                                    an_ifc_module                 *mod,
+                                    an_ifc_module_file            *file,
                                     an_ifc_type_syntactic_storage *storage,
                                     a_boolean                     fill_storage)
 /*
-Retrieve an instance of TypeSyntactic from the IFC module file associated with
-mod.
+Retrieve an instance of TypeSyntactic from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -34166,18 +33966,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_type_syntactic_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* expr */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_syntactic_storage> */
@@ -34195,12 +33995,11 @@ Return the corresponding partition kind for TypeSyntactic.
 
 template<>
 an_ifc_type_syntax_tree_storage* get<an_ifc_type_syntax_tree_storage>(
-                                  an_ifc_module                   *mod,
+                                  an_ifc_module_file              *file,
                                   an_ifc_type_syntax_tree_storage *storage,
                                   a_boolean                       fill_storage)
 /*
-Retrieve an instance of TypeSyntaxTree from the IFC module file associated with
-mod.
+Retrieve an instance of TypeSyntaxTree from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -34218,18 +34017,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_type_syntax_tree_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* syntax */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_syntax_tree_storage> */
@@ -34247,11 +34046,11 @@ Return the corresponding partition kind for TypeSyntaxTree.
 
 template<>
 an_ifc_type_tor_storage* get<an_ifc_type_tor_storage>(
-                                          an_ifc_module           *mod,
+                                          an_ifc_module_file      *file,
                                           an_ifc_type_tor_storage *storage,
                                           a_boolean               fill_storage)
 /*
-Retrieve an instance of TypeTor from the IFC module file associated with mod.
+Retrieve an instance of TypeTor from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -34269,24 +34068,24 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_type_tor_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/16);
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* source */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* eh_spec.words */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* eh_spec.sort */
-    get_bytes(mod, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* convention */
-    get_bytes(mod, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_tor_storage> */
@@ -34304,11 +34103,11 @@ Return the corresponding partition kind for TypeTor.
 
 template<>
 an_ifc_type_tuple_storage* get<an_ifc_type_tuple_storage>(
-                                        an_ifc_module             *mod,
+                                        an_ifc_module_file        *file,
                                         an_ifc_type_tuple_storage *storage,
                                         a_boolean                 fill_storage)
 /*
-Retrieve an instance of TypeTuple from the IFC module file associated with mod.
+Retrieve an instance of TypeTuple from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -34326,20 +34125,20 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_type_tuple_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/8);
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* start */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
     /* cardinality */
-    get_bytes(mod, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_tuple_storage> */
@@ -34357,12 +34156,11 @@ Return the corresponding partition kind for TypeTuple.
 
 template<>
 an_ifc_type_typename_storage* get<an_ifc_type_typename_storage>(
-                                     an_ifc_module                *mod,
+                                     an_ifc_module_file           *file,
                                      an_ifc_type_typename_storage *storage,
                                      a_boolean                    fill_storage)
 /*
-Retrieve an instance of TypeTypename from the IFC module file associated with
-mod.
+Retrieve an instance of TypeTypename from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -34380,18 +34178,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_type_typename_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* path */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_typename_storage> */
@@ -34409,12 +34207,11 @@ Return the corresponding partition kind for TypeTypename.
 
 template<>
 an_ifc_type_unaligned_storage* get<an_ifc_type_unaligned_storage>(
-                                    an_ifc_module                 *mod,
+                                    an_ifc_module_file            *file,
                                     an_ifc_type_unaligned_storage *storage,
                                     a_boolean                     fill_storage)
 /*
-Retrieve an instance of TypeUnaligned from the IFC module file associated with
-mod.
+Retrieve an instance of TypeUnaligned from the IFC module file.
 
 If memory mapping is used and both the host and the target have the same
 endianness, then the file layout and the alignment/padding of the host must
@@ -34432,18 +34229,18 @@ the storage specified by the storage argument).
 {
 #if USE_MMAP_FOR_MODULES
   using storage_type = an_ifc_type_unaligned_storage;
-  if (has_matching_endianness(mod)) {
+  if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, mod->byte_buffer, /*size=*/4);
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
     } else {
-      storage = (storage_type*)(mod->byte_buffer);
+      storage = (storage_type*)(file->byte_buffer);
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
     /* type */
-    get_bytes(mod, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_type_unaligned_storage> */
@@ -34460,11 +34257,11 @@ Return the corresponding partition kind for TypeUnaligned.
 
 
 an_ifc_entity_size_storage get_ifc_partition_element_size(
-                                                    an_ifc_module         *mod,
-                                                    an_ifc_partition_kind kind)
+                                                   an_ifc_module_file    *file,
+                                                   an_ifc_partition_kind kind)
 /*
-Given the partition kind and the associated module, return the corresponding
-expected partition element size.
+Given the partition kind and the associated module file, return the
+corresponding expected partition element size.
 */
 {
   an_ifc_entity_size_storage result;
@@ -34747,7 +34544,7 @@ expected partition element size.
       result = 20;
       break;
     case ifc_pk_expr_template_reference:
-      if (is_at_least(mod, 0, 43)) {
+      if (is_at_least(file, 0, 43)) {
         result = 28;
       } else {
         result = 32;
@@ -34913,7 +34710,7 @@ expected partition element size.
       result = 16;
       break;
     case ifc_pk_stmt_block:
-      if (is_at_least(mod, 0, 42)) {
+      if (is_at_least(file, 0, 42)) {
         result = 16;
       } else {
         result = 8;
@@ -34941,7 +34738,7 @@ expected partition element size.
       result = 8;
       break;
     case ifc_pk_stmt_expansion:
-      if (is_at_least(mod, 0, 42)) {
+      if (is_at_least(file, 0, 42)) {
         result = 12;
       } else {
         result = 4;
@@ -40090,97 +39887,97 @@ Given the DeclIndex, test whether the associated node has the field "access".
 Return TRUE if the node has the field "access"; otherwise, return FALSE.
 */
 {
-  an_ifc_module *mod = idx.mod;
-  a_boolean     result = get_fallback_presence_value(mod);
+  an_ifc_module_file *file = idx.file;
+  a_boolean          result = get_fallback_presence_value(file);
 
   switch (idx.sort) {
     case ifc_ds_decl_alias:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_bitfield:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_concept:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_constructor:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_default_argument:
-      if (is_at_least(mod, 0, 43)) {
+      if (is_at_least(file, 0, 43)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_destructor:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_enumeration:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_enumerator:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_field:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_function:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_inherited_constructor:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_intrinsic:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_method:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_partial_specialization:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_scope:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_template:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_using_declaration:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_variable:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
@@ -40369,107 +40166,107 @@ Given the DeclIndex, test whether the associated node has the field
 return FALSE.
 */
 {
-  an_ifc_module *mod = idx.mod;
-  a_boolean     result = get_fallback_presence_value(mod);
+  an_ifc_module_file *file = idx.file;
+  a_boolean          result = get_fallback_presence_value(file);
 
   switch (idx.sort) {
     case ifc_ds_decl_alias:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_bitfield:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_concept:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_constructor:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_deduction_guide:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_default_argument:
-      if (is_at_least(mod, 0, 43)) {
+      if (is_at_least(file, 0, 43)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_destructor:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_enumeration:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_enumerator:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_field:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_function:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_inherited_constructor:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_intrinsic:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_method:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_partial_specialization:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_scope:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_specialization:
-      if (is_at_least(mod, 0, 41)) {
+      if (is_at_least(file, 0, 41)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_template:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_using_declaration:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_variable:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
@@ -40671,117 +40468,117 @@ Given the DeclIndex, test whether the associated node has the field "locus".
 Return TRUE if the node has the field "locus"; otherwise, return FALSE.
 */
 {
-  an_ifc_module *mod = idx.mod;
-  a_boolean     result = get_fallback_presence_value(mod);
+  an_ifc_module_file *file = idx.file;
+  a_boolean          result = get_fallback_presence_value(file);
 
   switch (idx.sort) {
     case ifc_ds_decl_alias:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_bitfield:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_concept:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_constructor:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_deduction_guide:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_default_argument:
-      if (is_at_least(mod, 0, 43)) {
+      if (is_at_least(file, 0, 43)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_destructor:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_enumeration:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_enumerator:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_expansion:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_field:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_function:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_inherited_constructor:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_intrinsic:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_method:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_parameter:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_partial_specialization:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_scope:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_specialization:
-      if (is_at_least(mod, 0, 41)) {
+      if (is_at_least(file, 0, 41)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_template:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_using_declaration:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_variable:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
@@ -40997,112 +40794,112 @@ Given the DeclIndex, test whether the associated node has the field "name".
 Return TRUE if the node has the field "name"; otherwise, return FALSE.
 */
 {
-  an_ifc_module *mod = idx.mod;
-  a_boolean     result = get_fallback_presence_value(mod);
+  an_ifc_module_file *file = idx.file;
+  a_boolean          result = get_fallback_presence_value(file);
 
   switch (idx.sort) {
     case ifc_ds_decl_alias:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_bitfield:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_concept:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_constructor:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_deduction_guide:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_destructor:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_enumeration:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_enumerator:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_field:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_function:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_inherited_constructor:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_intrinsic:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_method:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_output_segment:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_parameter:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_partial_specialization:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_scope:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_specialization:
-      if (is_at_least(mod, 0, 41)) {
+      if (is_at_least(file, 0, 41)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_template:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_using_declaration:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ds_decl_variable:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
@@ -41142,7 +40939,7 @@ node's "name" field value.
 
         construct_node_prechecked(&universal, idx);
         raw_result = get_ifc_name(universal);
-        result = an_ifc_name_index{raw_result.mod, ifc_ns_text_offset,
+        result = an_ifc_name_index{raw_result.file, ifc_ns_text_offset,
                                    raw_result.value};
       }
       break;
@@ -41152,7 +40949,7 @@ node's "name" field value.
 
         construct_node_prechecked(&universal, idx);
         raw_result = get_ifc_name(universal);
-        result = an_ifc_name_index{raw_result.mod, ifc_ns_text_offset,
+        result = an_ifc_name_index{raw_result.file, ifc_ns_text_offset,
                                    raw_result.value};
       }
       break;
@@ -41162,7 +40959,7 @@ node's "name" field value.
 
         construct_node_prechecked(&universal, idx);
         raw_result = get_ifc_name(universal);
-        result = an_ifc_name_index{raw_result.mod, ifc_ns_text_offset,
+        result = an_ifc_name_index{raw_result.file, ifc_ns_text_offset,
                                    raw_result.value};
       }
       break;
@@ -41179,7 +40976,7 @@ node's "name" field value.
 
         construct_node_prechecked(&universal, idx);
         raw_result = get_ifc_name(universal);
-        result = an_ifc_name_index{raw_result.mod, ifc_ns_text_offset,
+        result = an_ifc_name_index{raw_result.file, ifc_ns_text_offset,
                                    raw_result.value};
       }
       break;
@@ -41196,7 +40993,7 @@ node's "name" field value.
 
         construct_node_prechecked(&universal, idx);
         raw_result = get_ifc_name(universal);
-        result = an_ifc_name_index{raw_result.mod, ifc_ns_text_offset,
+        result = an_ifc_name_index{raw_result.file, ifc_ns_text_offset,
                                    raw_result.value};
       }
       break;
@@ -41206,7 +41003,7 @@ node's "name" field value.
 
         construct_node_prechecked(&universal, idx);
         raw_result = get_ifc_name(universal);
-        result = an_ifc_name_index{raw_result.mod, ifc_ns_text_offset,
+        result = an_ifc_name_index{raw_result.file, ifc_ns_text_offset,
                                    raw_result.value};
       }
       break;
@@ -41216,7 +41013,7 @@ node's "name" field value.
 
         construct_node_prechecked(&universal, idx);
         raw_result = get_ifc_name(universal);
-        result = an_ifc_name_index{raw_result.mod, ifc_ns_text_offset,
+        result = an_ifc_name_index{raw_result.file, ifc_ns_text_offset,
                                    raw_result.value};
       }
       break;
@@ -41233,7 +41030,7 @@ node's "name" field value.
 
         construct_node_prechecked(&universal, idx);
         raw_result = get_ifc_name(universal);
-        result = an_ifc_name_index{raw_result.mod, ifc_ns_text_offset,
+        result = an_ifc_name_index{raw_result.file, ifc_ns_text_offset,
                                    raw_result.value};
       }
       break;
@@ -41243,7 +41040,7 @@ node's "name" field value.
 
         construct_node_prechecked(&universal, idx);
         raw_result = get_ifc_name(universal);
-        result = an_ifc_name_index{raw_result.mod, ifc_ns_text_offset,
+        result = an_ifc_name_index{raw_result.file, ifc_ns_text_offset,
                                    raw_result.value};
       }
       break;
@@ -41260,7 +41057,7 @@ node's "name" field value.
 
         construct_node_prechecked(&universal, idx);
         raw_result = get_ifc_name(universal);
-        result = an_ifc_name_index{raw_result.mod, ifc_ns_text_offset,
+        result = an_ifc_name_index{raw_result.file, ifc_ns_text_offset,
                                    raw_result.value};
       }
       break;
@@ -41270,7 +41067,7 @@ node's "name" field value.
 
         construct_node_prechecked(&universal, idx);
         raw_result = get_ifc_name(universal);
-        result = an_ifc_name_index{raw_result.mod, ifc_ns_text_offset,
+        result = an_ifc_name_index{raw_result.file, ifc_ns_text_offset,
                                    raw_result.value};
       }
       break;
@@ -41308,7 +41105,7 @@ node's "name" field value.
 
         construct_node_prechecked(&universal, idx);
         raw_result = get_ifc_name(universal);
-        result = an_ifc_name_index{raw_result.mod, ifc_ns_text_offset,
+        result = an_ifc_name_index{raw_result.file, ifc_ns_text_offset,
                                    raw_result.value};
       }
       break;
@@ -41347,274 +41144,274 @@ Given the ExprIndex, test whether the associated node has the field "locus".
 Return TRUE if the node has the field "locus"; otherwise, return FALSE.
 */
 {
-  an_ifc_module *mod = idx.mod;
-  a_boolean     result = get_fallback_presence_value(mod);
+  an_ifc_module_file *file = idx.file;
+  a_boolean          result = get_fallback_presence_value(file);
 
   switch (idx.sort) {
     case ifc_es_expr_alignof:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_array_value:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_binary_fold:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_call:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_cast:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_compound_string:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_condition:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_designated_initializer:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_destructor_call:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_dyad:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_dynamic_dispatch:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_empty:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_expansion:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_function_string:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_hierarchy_conversion:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_inheritance_path:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_initializer:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_initializer_list:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_label:
-      if (is_at_least(mod, 0, 42)) {
+      if (is_at_least(file, 0, 42)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_literal:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_member_access:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_member_initializer:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_monad:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_named_decl:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_nullptr:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_packed_template_arguments:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_path:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_placeholder:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_pointer:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_product_type_value:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_push_state:
-      if (is_at_least(mod, 0, 42)) {
+      if (is_at_least(file, 0, 42)) {
         result = FALSE;
-      } else if (is_at_least(mod, 0, 33)) {
+      } else if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_qualified_name:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_read:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_requires:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_simple_identifier:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_sizeof_type:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_string:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_string_sequence:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_sum_type_value:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_template_id:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_template_reference:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_temporary:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_this:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_tokens:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_triad:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_tuple:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_type:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_type_trait_intrinsic:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_typeid:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_unary_fold:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_unqualified_id:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_unresolved_id:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_es_expr_virtual_function_conversion:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
@@ -42025,77 +41822,77 @@ Given the FormIndex, test whether the associated node has the field "locus".
 Return TRUE if the node has the field "locus"; otherwise, return FALSE.
 */
 {
-  an_ifc_module *mod = idx.mod;
-  a_boolean     result = get_fallback_presence_value(mod);
+  an_ifc_module_file *file = idx.file;
+  a_boolean          result = get_fallback_presence_value(file);
 
   switch (idx.sort) {
     case ifc_fs_form_catenate:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_fs_form_character:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_fs_form_header:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_fs_form_identifier:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_fs_form_junk:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_fs_form_keyword:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_fs_form_number:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_fs_form_operator:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_fs_form_parameter:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_fs_form_parenthesized:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_fs_form_pragma:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_fs_form_string:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_fs_form_stringize:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_fs_form_whitespace:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
@@ -42233,17 +42030,17 @@ Given the MacroIndex, test whether the associated node has the field "locus".
 Return TRUE if the node has the field "locus"; otherwise, return FALSE.
 */
 {
-  an_ifc_module *mod = idx.mod;
-  a_boolean     result = get_fallback_presence_value(mod);
+  an_ifc_module_file *file = idx.file;
+  a_boolean          result = get_fallback_presence_value(file);
 
   switch (idx.sort) {
     case ifc_ms_macro_function_like:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ms_macro_object_like:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
@@ -42297,118 +42094,118 @@ Given the StmtIndex, test whether the associated node has the field "locus".
 Return TRUE if the node has the field "locus"; otherwise, return FALSE.
 */
 {
-  an_ifc_module *mod = idx.mod;
-  a_boolean     result = get_fallback_presence_value(mod);
+  an_ifc_module_file *file = idx.file;
+  a_boolean          result = get_fallback_presence_value(file);
 
   switch (idx.sort) {
     case ifc_ss_stmt_block:
-      if (is_at_least(mod, 0, 42)) {
+      if (is_at_least(file, 0, 42)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_stmt_break:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_stmt_case:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_stmt_continue:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_stmt_decl:
-      if (is_at_least(mod, 0, 42)) {
+      if (is_at_least(file, 0, 42)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_stmt_default:
-      if (is_at_least(mod, 0, 42)) {
+      if (is_at_least(file, 0, 42)) {
         result = FALSE;
-      } else if (is_at_least(mod, 0, 33)) {
+      } else if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_stmt_do_while:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_stmt_empty:
-      if (is_at_least(mod, 0, 42)) {
+      if (is_at_least(file, 0, 42)) {
         result = FALSE;
-      } else if (is_at_least(mod, 0, 33)) {
+      } else if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_stmt_expansion:
-      if (is_at_least(mod, 0, 42)) {
+      if (is_at_least(file, 0, 42)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_stmt_expression:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_stmt_for:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_stmt_goto:
-      if (is_at_least(mod, 0, 42)) {
+      if (is_at_least(file, 0, 42)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_stmt_handler:
-      if (is_at_least(mod, 0, 42)) {
+      if (is_at_least(file, 0, 42)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_stmt_if:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_stmt_labeled:
-      if (is_at_least(mod, 0, 42)) {
+      if (is_at_least(file, 0, 42)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_stmt_return:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_stmt_switch:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_stmt_try:
-      if (is_at_least(mod, 0, 42)) {
+      if (is_at_least(file, 0, 42)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_stmt_tuple:
-      if (is_at_least(mod, 0, 42)) {
+      if (is_at_least(file, 0, 42)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_stmt_variable_decl:
-      if (is_at_least(mod, 0, 42)) {
+      if (is_at_least(file, 0, 42)) {
         result = FALSE;
-      } else if (is_at_least(mod, 0, 33)) {
+      } else if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_stmt_while:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
@@ -42595,227 +42392,227 @@ Given the SyntaxIndex, test whether the associated node has the field "locus".
 Return TRUE if the node has the field "locus"; otherwise, return FALSE.
 */
 {
-  an_ifc_module *mod = idx.mod;
-  a_boolean     result = get_fallback_presence_value(mod);
+  an_ifc_module_file *file = idx.file;
+  a_boolean          result = get_fallback_presence_value(file);
 
   switch (idx.sort) {
     case ifc_ss_syntax_access_specifier:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_alias_declaration:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_alignas:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_asm_statement:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_attribute_using_prefix:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_attributed_declaration:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_binary_fold_expression:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_capture_default:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_compound_requirement:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_concept_definition:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_condition_declaration:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_decl_specifier_seq:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_declarator:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_empty_statement:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_enum_specifier:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_enumerator_definition:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_exception_declaration:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_explicit_specifier:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_goto_statement:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_member_declarator:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_nested_requirement:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_noexcept_specification:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_parameter_declarator:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_placeholder_type_specifier:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_pointer_declarator:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_requirement_body:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_requires_clause:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_simple_declaration:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_simple_requirement:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_simple_type_specifier:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_static_assert_declaration:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_structured_binding_declaration:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_super:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_template_declaration:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_template_id:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_template_template_parameter:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_this_capture:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_type_id:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_type_requirement:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_type_specifier_seq:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_type_template_parameter:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_type_trait_intrinsic:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_unary_fold_expression:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;
     case ifc_ss_syntax_virtual_specifier_seq:
-      if (is_at_least(mod, 0, 33)) {
+      if (is_at_least(file, 0, 33)) {
         result = TRUE;
       }  /* if */
       break;

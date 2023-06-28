@@ -34,12 +34,12 @@ Functions for interacting with IFC AccessSort sorts.
 
 extern a_const_char* str_for(an_ifc_access_sort universal);
 
-extern an_ifc_encoded_access_sort to_encoded(an_ifc_module      *mod,
+extern an_ifc_encoded_access_sort to_encoded(an_ifc_module_file *file,
                                              an_ifc_access_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_access_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_access_sort_0_33       versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -52,12 +52,12 @@ Functions for interacting with IFC ArchitectureSort sorts.
 extern a_const_char* str_for(an_ifc_architecture_sort universal);
 
 extern an_ifc_encoded_architecture_sort to_encoded(
-                                           an_ifc_module            *mod,
+                                           an_ifc_module_file       *file,
                                            an_ifc_architecture_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_architecture_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_architecture_sort_0_33 versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -70,12 +70,12 @@ Functions for interacting with IFC AttrSort sorts.
 
 extern a_const_char* str_for(an_ifc_attr_sort universal);
 
-extern an_ifc_encoded_attr_sort to_encoded(an_ifc_module    *mod,
-                                           an_ifc_attr_sort universal);
+extern an_ifc_encoded_attr_sort to_encoded(an_ifc_module_file *file,
+                                           an_ifc_attr_sort   universal);
 
 extern a_boolean is_known_sort(an_ifc_attr_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_attr_sort_0_33         versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -88,12 +88,12 @@ Functions for interacting with IFC CallingConventionSort sorts.
 extern a_const_char* str_for(an_ifc_calling_convention_sort universal);
 
 extern an_ifc_encoded_calling_convention_sort to_encoded(
-                                     an_ifc_module                  *mod,
+                                     an_ifc_module_file             *file,
                                      an_ifc_calling_convention_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_calling_convention_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                       *mod,
+extern a_boolean validate_sort(an_ifc_module_file                  *file,
                                an_ifc_calling_convention_sort_0_33 versioned,
                                const an_ifc_validation_trace       *parent);
 
@@ -106,12 +106,12 @@ Functions for interacting with IFC ChartSort sorts.
 
 extern a_const_char* str_for(an_ifc_chart_sort universal);
 
-extern an_ifc_encoded_chart_sort to_encoded(an_ifc_module     *mod,
-                                            an_ifc_chart_sort universal);
+extern an_ifc_encoded_chart_sort to_encoded(an_ifc_module_file *file,
+                                            an_ifc_chart_sort  universal);
 
 extern a_boolean is_known_sort(an_ifc_chart_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_chart_sort_0_33        versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -123,12 +123,12 @@ Functions for interacting with IFC DeclSort sorts.
 
 extern a_const_char* str_for(an_ifc_decl_sort universal);
 
-extern an_ifc_encoded_decl_sort to_encoded(an_ifc_module    *mod,
-                                           an_ifc_decl_sort universal);
+extern an_ifc_encoded_decl_sort to_encoded(an_ifc_module_file *file,
+                                           an_ifc_decl_sort   universal);
 
 extern a_boolean is_known_sort(an_ifc_decl_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_decl_sort_0_33         versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -136,7 +136,7 @@ extern an_ifc_decl_sort to_universal_sort(an_ifc_decl_sort_0_33 versioned);
 
 extern a_boolean is_known_sort(an_ifc_decl_sort_0_41 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_decl_sort_0_41         versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -144,7 +144,7 @@ extern an_ifc_decl_sort to_universal_sort(an_ifc_decl_sort_0_41 versioned);
 
 extern a_boolean is_known_sort(an_ifc_decl_sort_0_43 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_decl_sort_0_43         versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -157,12 +157,12 @@ Functions for interacting with IFC DelimiterSort sorts.
 extern a_const_char* str_for(an_ifc_delimiter_sort universal);
 
 extern an_ifc_encoded_delimiter_sort to_encoded(
-                                              an_ifc_module         *mod,
+                                              an_ifc_module_file    *file,
                                               an_ifc_delimiter_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_delimiter_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_delimiter_sort_0_33    versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -176,12 +176,12 @@ Functions for interacting with IFC DyadicOperatorSort sorts.
 extern a_const_char* str_for(an_ifc_dyadic_operator_sort universal);
 
 extern an_ifc_encoded_dyadic_operator_sort to_encoded(
-                                        an_ifc_module               *mod,
+                                        an_ifc_module_file          *file,
                                         an_ifc_dyadic_operator_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_dyadic_operator_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                    *mod,
+extern a_boolean validate_sort(an_ifc_module_file               *file,
                                an_ifc_dyadic_operator_sort_0_33 versioned,
                                const an_ifc_validation_trace    *parent);
 
@@ -190,7 +190,7 @@ extern an_ifc_dyadic_operator_sort to_universal_sort(
 
 extern a_boolean is_known_sort(an_ifc_dyadic_operator_sort_0_43 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                    *mod,
+extern a_boolean validate_sort(an_ifc_module_file               *file,
                                an_ifc_dyadic_operator_sort_0_43 versioned,
                                const an_ifc_validation_trace    *parent);
 
@@ -204,12 +204,12 @@ Functions for interacting with IFC ExpansionModeSort sorts.
 extern a_const_char* str_for(an_ifc_expansion_mode_sort universal);
 
 extern an_ifc_encoded_expansion_mode_sort to_encoded(
-                                         an_ifc_module              *mod,
+                                         an_ifc_module_file         *file,
                                          an_ifc_expansion_mode_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_expansion_mode_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                   *mod,
+extern a_boolean validate_sort(an_ifc_module_file              *file,
                                an_ifc_expansion_mode_sort_0_33 versioned,
                                const an_ifc_validation_trace   *parent);
 
@@ -222,12 +222,12 @@ Functions for interacting with IFC ExprSort sorts.
 
 extern a_const_char* str_for(an_ifc_expr_sort universal);
 
-extern an_ifc_encoded_expr_sort to_encoded(an_ifc_module    *mod,
-                                           an_ifc_expr_sort universal);
+extern an_ifc_encoded_expr_sort to_encoded(an_ifc_module_file *file,
+                                           an_ifc_expr_sort   universal);
 
 extern a_boolean is_known_sort(an_ifc_expr_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_expr_sort_0_33         versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -235,7 +235,7 @@ extern an_ifc_expr_sort to_universal_sort(an_ifc_expr_sort_0_33 versioned);
 
 extern a_boolean is_known_sort(an_ifc_expr_sort_0_42 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_expr_sort_0_42         versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -248,12 +248,12 @@ Functions for interacting with IFC FoldDirectionSort sorts.
 extern a_const_char* str_for(an_ifc_fold_direction_sort universal);
 
 extern an_ifc_encoded_fold_direction_sort to_encoded(
-                                         an_ifc_module              *mod,
+                                         an_ifc_module_file         *file,
                                          an_ifc_fold_direction_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_fold_direction_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                   *mod,
+extern a_boolean validate_sort(an_ifc_module_file              *file,
                                an_ifc_fold_direction_sort_0_33 versioned,
                                const an_ifc_validation_trace   *parent);
 
@@ -266,12 +266,12 @@ Functions for interacting with IFC FormSort sorts.
 
 extern a_const_char* str_for(an_ifc_form_sort universal);
 
-extern an_ifc_encoded_form_sort to_encoded(an_ifc_module    *mod,
-                                           an_ifc_form_sort universal);
+extern an_ifc_encoded_form_sort to_encoded(an_ifc_module_file *file,
+                                           an_ifc_form_sort   universal);
 
 extern a_boolean is_known_sort(an_ifc_form_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_form_sort_0_33         versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -284,12 +284,12 @@ Functions for interacting with IFC InitializerSort sorts.
 extern a_const_char* str_for(an_ifc_initializer_sort universal);
 
 extern an_ifc_encoded_initializer_sort to_encoded(
-                                            an_ifc_module           *mod,
+                                            an_ifc_module_file      *file,
                                             an_ifc_initializer_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_initializer_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_initializer_sort_0_33  versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -302,12 +302,12 @@ Functions for interacting with IFC KeywordSort sorts.
 
 extern a_const_char* str_for(an_ifc_keyword_sort universal);
 
-extern an_ifc_encoded_keyword_sort to_encoded(an_ifc_module       *mod,
+extern an_ifc_encoded_keyword_sort to_encoded(an_ifc_module_file  *file,
                                               an_ifc_keyword_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_keyword_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_keyword_sort_0_33      versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -320,12 +320,12 @@ Functions for interacting with IFC LabelSort sorts.
 
 extern a_const_char* str_for(an_ifc_label_sort universal);
 
-extern an_ifc_encoded_label_sort to_encoded(an_ifc_module     *mod,
-                                            an_ifc_label_sort universal);
+extern an_ifc_encoded_label_sort to_encoded(an_ifc_module_file *file,
+                                            an_ifc_label_sort  universal);
 
 extern a_boolean is_known_sort(an_ifc_label_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_label_sort_0_33        versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -337,12 +337,12 @@ Functions for interacting with IFC LitSort sorts.
 
 extern a_const_char* str_for(an_ifc_lit_sort universal);
 
-extern an_ifc_encoded_lit_sort to_encoded(an_ifc_module   *mod,
-                                          an_ifc_lit_sort universal);
+extern an_ifc_encoded_lit_sort to_encoded(an_ifc_module_file *file,
+                                          an_ifc_lit_sort    universal);
 
 extern a_boolean is_known_sort(an_ifc_lit_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_lit_sort_0_33          versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -354,12 +354,12 @@ Functions for interacting with IFC MacroSort sorts.
 
 extern a_const_char* str_for(an_ifc_macro_sort universal);
 
-extern an_ifc_encoded_macro_sort to_encoded(an_ifc_module     *mod,
-                                            an_ifc_macro_sort universal);
+extern an_ifc_encoded_macro_sort to_encoded(an_ifc_module_file *file,
+                                            an_ifc_macro_sort  universal);
 
 extern a_boolean is_known_sort(an_ifc_macro_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_macro_sort_0_33        versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -372,12 +372,12 @@ Functions for interacting with IFC MonadicOperatorSort sorts.
 extern a_const_char* str_for(an_ifc_monadic_operator_sort universal);
 
 extern an_ifc_encoded_monadic_operator_sort to_encoded(
-                                       an_ifc_module                *mod,
+                                       an_ifc_module_file           *file,
                                        an_ifc_monadic_operator_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_monadic_operator_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                     *mod,
+extern a_boolean validate_sort(an_ifc_module_file                *file,
                                an_ifc_monadic_operator_sort_0_33 versioned,
                                const an_ifc_validation_trace     *parent);
 
@@ -386,7 +386,7 @@ extern an_ifc_monadic_operator_sort to_universal_sort(
 
 extern a_boolean is_known_sort(an_ifc_monadic_operator_sort_0_43 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                     *mod,
+extern a_boolean validate_sort(an_ifc_module_file                *file,
                                an_ifc_monadic_operator_sort_0_43 versioned,
                                const an_ifc_validation_trace     *parent);
 
@@ -399,12 +399,12 @@ Functions for interacting with IFC NameSort sorts.
 
 extern a_const_char* str_for(an_ifc_name_sort universal);
 
-extern an_ifc_encoded_name_sort to_encoded(an_ifc_module    *mod,
-                                           an_ifc_name_sort universal);
+extern an_ifc_encoded_name_sort to_encoded(an_ifc_module_file *file,
+                                           an_ifc_name_sort   universal);
 
 extern a_boolean is_known_sort(an_ifc_name_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_name_sort_0_33         versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -417,12 +417,12 @@ Functions for interacting with IFC NiladicOperatorSort sorts.
 extern a_const_char* str_for(an_ifc_niladic_operator_sort universal);
 
 extern an_ifc_encoded_niladic_operator_sort to_encoded(
-                                       an_ifc_module                *mod,
+                                       an_ifc_module_file           *file,
                                        an_ifc_niladic_operator_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_niladic_operator_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                     *mod,
+extern a_boolean validate_sort(an_ifc_module_file                *file,
                                an_ifc_niladic_operator_sort_0_33 versioned,
                                const an_ifc_validation_trace     *parent);
 
@@ -435,12 +435,12 @@ Functions for interacting with IFC NoexceptSort sorts.
 
 extern a_const_char* str_for(an_ifc_noexcept_sort universal);
 
-extern an_ifc_encoded_noexcept_sort to_encoded(an_ifc_module        *mod,
+extern an_ifc_encoded_noexcept_sort to_encoded(an_ifc_module_file   *file,
                                                an_ifc_noexcept_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_noexcept_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_noexcept_sort_0_33     versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -453,12 +453,12 @@ Functions for interacting with IFC OperatorSort sorts.
 
 extern a_const_char* str_for(an_ifc_operator_sort universal);
 
-extern an_ifc_encoded_operator_sort to_encoded(an_ifc_module        *mod,
+extern an_ifc_encoded_operator_sort to_encoded(an_ifc_module_file   *file,
                                                an_ifc_operator_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_operator_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_operator_sort_0_33     versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -472,12 +472,12 @@ Functions for interacting with IFC ParameterSort sorts.
 extern a_const_char* str_for(an_ifc_parameter_sort universal);
 
 extern an_ifc_encoded_parameter_sort to_encoded(
-                                              an_ifc_module         *mod,
+                                              an_ifc_module_file    *file,
                                               an_ifc_parameter_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_parameter_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_parameter_sort_0_33    versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -491,12 +491,12 @@ Functions for interacting with IFC PointerDeclaratorSort sorts.
 extern a_const_char* str_for(an_ifc_pointer_declarator_sort universal);
 
 extern an_ifc_encoded_pointer_declarator_sort to_encoded(
-                                     an_ifc_module                  *mod,
+                                     an_ifc_module_file             *file,
                                      an_ifc_pointer_declarator_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_pointer_declarator_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                       *mod,
+extern a_boolean validate_sort(an_ifc_module_file                  *file,
                                an_ifc_pointer_declarator_sort_0_33 versioned,
                                const an_ifc_validation_trace       *parent);
 
@@ -509,12 +509,12 @@ Functions for interacting with IFC PragmaSort sorts.
 
 extern a_const_char* str_for(an_ifc_pragma_sort universal);
 
-extern an_ifc_encoded_pragma_sort to_encoded(an_ifc_module      *mod,
+extern an_ifc_encoded_pragma_sort to_encoded(an_ifc_module_file *file,
                                              an_ifc_pragma_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_pragma_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_pragma_sort_0_33       versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -527,12 +527,12 @@ Functions for interacting with IFC ReadConversionSort sorts.
 extern a_const_char* str_for(an_ifc_read_conversion_sort universal);
 
 extern an_ifc_encoded_read_conversion_sort to_encoded(
-                                        an_ifc_module               *mod,
+                                        an_ifc_module_file          *file,
                                         an_ifc_read_conversion_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_read_conversion_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                    *mod,
+extern a_boolean validate_sort(an_ifc_module_file               *file,
                                an_ifc_read_conversion_sort_0_33 versioned,
                                const an_ifc_validation_trace    *parent);
 
@@ -545,12 +545,12 @@ Functions for interacting with IFC ReturnSort sorts.
 
 extern a_const_char* str_for(an_ifc_return_sort universal);
 
-extern an_ifc_encoded_return_sort to_encoded(an_ifc_module      *mod,
+extern an_ifc_encoded_return_sort to_encoded(an_ifc_module_file *file,
                                              an_ifc_return_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_return_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_return_sort_0_33       versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -563,12 +563,12 @@ Functions for interacting with IFC SourceDirectiveSort sorts.
 extern a_const_char* str_for(an_ifc_source_directive_sort universal);
 
 extern an_ifc_encoded_source_directive_sort to_encoded(
-                                       an_ifc_module                *mod,
+                                       an_ifc_module_file           *file,
                                        an_ifc_source_directive_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_source_directive_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                     *mod,
+extern a_boolean validate_sort(an_ifc_module_file                *file,
                                an_ifc_source_directive_sort_0_33 versioned,
                                const an_ifc_validation_trace     *parent);
 
@@ -582,12 +582,12 @@ Functions for interacting with IFC SourceIdentifierSort sorts.
 extern a_const_char* str_for(an_ifc_source_identifier_sort universal);
 
 extern an_ifc_encoded_source_identifier_sort to_encoded(
-                                      an_ifc_module                 *mod,
+                                      an_ifc_module_file            *file,
                                       an_ifc_source_identifier_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_source_identifier_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                      *mod,
+extern a_boolean validate_sort(an_ifc_module_file                 *file,
                                an_ifc_source_identifier_sort_0_33 versioned,
                                const an_ifc_validation_trace      *parent);
 
@@ -601,12 +601,12 @@ Functions for interacting with IFC SourceKeywordSort sorts.
 extern a_const_char* str_for(an_ifc_source_keyword_sort universal);
 
 extern an_ifc_encoded_source_keyword_sort to_encoded(
-                                         an_ifc_module              *mod,
+                                         an_ifc_module_file         *file,
                                          an_ifc_source_keyword_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_source_keyword_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                   *mod,
+extern a_boolean validate_sort(an_ifc_module_file              *file,
                                an_ifc_source_keyword_sort_0_33 versioned,
                                const an_ifc_validation_trace   *parent);
 
@@ -620,12 +620,12 @@ Functions for interacting with IFC SourceLiteralSort sorts.
 extern a_const_char* str_for(an_ifc_source_literal_sort universal);
 
 extern an_ifc_encoded_source_literal_sort to_encoded(
-                                         an_ifc_module              *mod,
+                                         an_ifc_module_file         *file,
                                          an_ifc_source_literal_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_source_literal_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                   *mod,
+extern a_boolean validate_sort(an_ifc_module_file              *file,
                                an_ifc_source_literal_sort_0_33 versioned,
                                const an_ifc_validation_trace   *parent);
 
@@ -639,12 +639,12 @@ Functions for interacting with IFC SourceOperatorSort sorts.
 extern a_const_char* str_for(an_ifc_source_operator_sort universal);
 
 extern an_ifc_encoded_source_operator_sort to_encoded(
-                                        an_ifc_module               *mod,
+                                        an_ifc_module_file          *file,
                                         an_ifc_source_operator_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_source_operator_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                    *mod,
+extern a_boolean validate_sort(an_ifc_module_file               *file,
                                an_ifc_source_operator_sort_0_33 versioned,
                                const an_ifc_validation_trace    *parent);
 
@@ -658,12 +658,12 @@ Functions for interacting with IFC SourcePunctuatorSort sorts.
 extern a_const_char* str_for(an_ifc_source_punctuator_sort universal);
 
 extern an_ifc_encoded_source_punctuator_sort to_encoded(
-                                      an_ifc_module                 *mod,
+                                      an_ifc_module_file            *file,
                                       an_ifc_source_punctuator_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_source_punctuator_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                      *mod,
+extern a_boolean validate_sort(an_ifc_module_file                 *file,
                                an_ifc_source_punctuator_sort_0_33 versioned,
                                const an_ifc_validation_trace      *parent);
 
@@ -677,12 +677,12 @@ Functions for interacting with IFC SpecializationSort sorts.
 extern a_const_char* str_for(an_ifc_specialization_sort universal);
 
 extern an_ifc_encoded_specialization_sort to_encoded(
-                                         an_ifc_module              *mod,
+                                         an_ifc_module_file         *file,
                                          an_ifc_specialization_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_specialization_sort_0_41 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                   *mod,
+extern a_boolean validate_sort(an_ifc_module_file              *file,
                                an_ifc_specialization_sort_0_41 versioned,
                                const an_ifc_validation_trace   *parent);
 
@@ -695,12 +695,12 @@ Functions for interacting with IFC StmtSort sorts.
 
 extern a_const_char* str_for(an_ifc_stmt_sort universal);
 
-extern an_ifc_encoded_stmt_sort to_encoded(an_ifc_module    *mod,
-                                           an_ifc_stmt_sort universal);
+extern an_ifc_encoded_stmt_sort to_encoded(an_ifc_module_file *file,
+                                           an_ifc_stmt_sort   universal);
 
 extern a_boolean is_known_sort(an_ifc_stmt_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_stmt_sort_0_33         versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -708,7 +708,7 @@ extern an_ifc_stmt_sort to_universal_sort(an_ifc_stmt_sort_0_33 versioned);
 
 extern a_boolean is_known_sort(an_ifc_stmt_sort_0_42 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_stmt_sort_0_42         versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -722,14 +722,14 @@ extern a_const_char* str_for(
                            an_ifc_storage_instruction_operator_sort universal);
 
 extern an_ifc_encoded_storage_instruction_operator_sort to_encoded(
-                           an_ifc_module                            *mod,
+                           an_ifc_module_file                       *file,
                            an_ifc_storage_instruction_operator_sort universal);
 
 extern a_boolean is_known_sort(
                       an_ifc_storage_instruction_operator_sort_0_33 versioned);
 
 extern a_boolean validate_sort(
-                      an_ifc_module                                 *mod,
+                      an_ifc_module_file                            *file,
                       an_ifc_storage_instruction_operator_sort_0_33 versioned,
                       const an_ifc_validation_trace                 *parent);
 
@@ -742,12 +742,12 @@ Functions for interacting with IFC StringSort sorts.
 
 extern a_const_char* str_for(an_ifc_string_sort universal);
 
-extern an_ifc_encoded_string_sort to_encoded(an_ifc_module      *mod,
+extern an_ifc_encoded_string_sort to_encoded(an_ifc_module_file *file,
                                              an_ifc_string_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_string_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_string_sort_0_33       versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -759,12 +759,12 @@ Functions for interacting with IFC SyntaxSort sorts.
 
 extern a_const_char* str_for(an_ifc_syntax_sort universal);
 
-extern an_ifc_encoded_syntax_sort to_encoded(an_ifc_module      *mod,
+extern an_ifc_encoded_syntax_sort to_encoded(an_ifc_module_file *file,
                                              an_ifc_syntax_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_syntax_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_syntax_sort_0_33       versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -777,12 +777,12 @@ Functions for interacting with IFC TriadicOperatorSort sorts.
 extern a_const_char* str_for(an_ifc_triadic_operator_sort universal);
 
 extern an_ifc_encoded_triadic_operator_sort to_encoded(
-                                       an_ifc_module                *mod,
+                                       an_ifc_module_file           *file,
                                        an_ifc_triadic_operator_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_triadic_operator_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                     *mod,
+extern a_boolean validate_sort(an_ifc_module_file                *file,
                                an_ifc_triadic_operator_sort_0_33 versioned,
                                const an_ifc_validation_trace     *parent);
 
@@ -791,7 +791,7 @@ extern an_ifc_triadic_operator_sort to_universal_sort(
 
 extern a_boolean is_known_sort(an_ifc_triadic_operator_sort_0_42 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                     *mod,
+extern a_boolean validate_sort(an_ifc_module_file                *file,
                                an_ifc_triadic_operator_sort_0_42 versioned,
                                const an_ifc_validation_trace     *parent);
 
@@ -805,12 +805,12 @@ Functions for interacting with IFC TypeBasisSort sorts.
 extern a_const_char* str_for(an_ifc_type_basis_sort universal);
 
 extern an_ifc_encoded_type_basis_sort to_encoded(
-                                             an_ifc_module          *mod,
+                                             an_ifc_module_file     *file,
                                              an_ifc_type_basis_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_type_basis_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_type_basis_sort_0_33   versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -824,12 +824,12 @@ Functions for interacting with IFC TypePrecisionSort sorts.
 extern a_const_char* str_for(an_ifc_type_precision_sort universal);
 
 extern an_ifc_encoded_type_precision_sort to_encoded(
-                                         an_ifc_module              *mod,
+                                         an_ifc_module_file         *file,
                                          an_ifc_type_precision_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_type_precision_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                   *mod,
+extern a_boolean validate_sort(an_ifc_module_file              *file,
                                an_ifc_type_precision_sort_0_33 versioned,
                                const an_ifc_validation_trace   *parent);
 
@@ -843,12 +843,12 @@ Functions for interacting with IFC TypeSignSort sorts.
 extern a_const_char* str_for(an_ifc_type_sign_sort universal);
 
 extern an_ifc_encoded_type_sign_sort to_encoded(
-                                              an_ifc_module         *mod,
+                                              an_ifc_module_file    *file,
                                               an_ifc_type_sign_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_type_sign_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_type_sign_sort_0_33    versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -861,12 +861,12 @@ Functions for interacting with IFC TypeSort sorts.
 
 extern a_const_char* str_for(an_ifc_type_sort universal);
 
-extern an_ifc_encoded_type_sort to_encoded(an_ifc_module    *mod,
-                                           an_ifc_type_sort universal);
+extern an_ifc_encoded_type_sort to_encoded(an_ifc_module_file *file,
+                                           an_ifc_type_sort   universal);
 
 extern a_boolean is_known_sort(an_ifc_type_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_type_sort_0_33         versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -878,12 +878,12 @@ Functions for interacting with IFC UnitSort sorts.
 
 extern a_const_char* str_for(an_ifc_unit_sort universal);
 
-extern an_ifc_encoded_unit_sort to_encoded(an_ifc_module    *mod,
-                                           an_ifc_unit_sort universal);
+extern an_ifc_encoded_unit_sort to_encoded(an_ifc_module_file *file,
+                                           an_ifc_unit_sort   universal);
 
 extern a_boolean is_known_sort(an_ifc_unit_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_unit_sort_0_33         versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -896,12 +896,12 @@ Functions for interacting with IFC VariadicOperatorSort sorts.
 extern a_const_char* str_for(an_ifc_variadic_operator_sort universal);
 
 extern an_ifc_encoded_variadic_operator_sort to_encoded(
-                                      an_ifc_module                 *mod,
+                                      an_ifc_module_file            *file,
                                       an_ifc_variadic_operator_sort universal);
 
 extern a_boolean is_known_sort(an_ifc_variadic_operator_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                      *mod,
+extern a_boolean validate_sort(an_ifc_module_file                 *file,
                                an_ifc_variadic_operator_sort_0_33 versioned,
                                const an_ifc_validation_trace      *parent);
 
@@ -914,12 +914,12 @@ Functions for interacting with IFC WordSort sorts.
 
 extern a_const_char* str_for(an_ifc_word_sort universal);
 
-extern an_ifc_encoded_word_sort to_encoded(an_ifc_module    *mod,
-                                           an_ifc_word_sort universal);
+extern an_ifc_encoded_word_sort to_encoded(an_ifc_module_file *file,
+                                           an_ifc_word_sort   universal);
 
 extern a_boolean is_known_sort(an_ifc_word_sort_0_33 versioned);
 
-extern a_boolean validate_sort(an_ifc_module                 *mod,
+extern a_boolean validate_sort(an_ifc_module_file            *file,
                                an_ifc_word_sort_0_33         versioned,
                                const an_ifc_validation_trace *parent);
 
@@ -933,15 +933,15 @@ extern an_ifc_attr_sort_0_33 attr_sort(an_ifc_attr_index_0_33 versioned);
 
 extern uint32_t attr_value(an_ifc_attr_index_0_33 versioned);
 
-extern a_boolean validate_index(an_ifc_module                 *mod,
+extern a_boolean validate_index(an_ifc_module_file            *file,
                                 an_ifc_attr_index_0_33        versioned,
                                 const an_ifc_validation_trace *parent);
 
-extern an_ifc_attr_index to_universal_index(an_ifc_module          *mod,
+extern an_ifc_attr_index to_universal_index(an_ifc_module_file     *file,
                                             an_ifc_attr_index_0_33 versioned);
 
-extern an_ifc_encoded_attr_index to_encoded(an_ifc_module     *mod,
-                                            an_ifc_attr_index universal);
+extern an_ifc_encoded_attr_index to_encoded(an_ifc_module_file *file,
+                                            an_ifc_attr_index  universal);
 
 extern a_boolean is_null_index(an_ifc_attr_index universal);
 
@@ -953,15 +953,15 @@ extern an_ifc_chart_sort_0_33 chart_sort(an_ifc_chart_index_0_33 versioned);
 
 extern uint32_t chart_value(an_ifc_chart_index_0_33 versioned);
 
-extern a_boolean validate_index(an_ifc_module                 *mod,
+extern a_boolean validate_index(an_ifc_module_file            *file,
                                 an_ifc_chart_index_0_33       versioned,
                                 const an_ifc_validation_trace *parent);
 
 extern an_ifc_chart_index to_universal_index(
-                                            an_ifc_module           *mod,
+                                            an_ifc_module_file      *file,
                                             an_ifc_chart_index_0_33 versioned);
 
-extern an_ifc_encoded_chart_index to_encoded(an_ifc_module      *mod,
+extern an_ifc_encoded_chart_index to_encoded(an_ifc_module_file *file,
                                              an_ifc_chart_index universal);
 
 extern a_boolean is_null_index(an_ifc_chart_index universal);
@@ -974,37 +974,37 @@ extern an_ifc_decl_sort_0_33 decl_sort(an_ifc_decl_index_0_33 versioned);
 
 extern uint32_t decl_value(an_ifc_decl_index_0_33 versioned);
 
-extern a_boolean validate_index(an_ifc_module                 *mod,
+extern a_boolean validate_index(an_ifc_module_file            *file,
                                 an_ifc_decl_index_0_33        versioned,
                                 const an_ifc_validation_trace *parent);
 
-extern an_ifc_decl_index to_universal_index(an_ifc_module          *mod,
+extern an_ifc_decl_index to_universal_index(an_ifc_module_file     *file,
                                             an_ifc_decl_index_0_33 versioned);
 
 extern an_ifc_decl_sort_0_41 decl_sort(an_ifc_decl_index_0_41 versioned);
 
 extern uint32_t decl_value(an_ifc_decl_index_0_41 versioned);
 
-extern a_boolean validate_index(an_ifc_module                 *mod,
+extern a_boolean validate_index(an_ifc_module_file            *file,
                                 an_ifc_decl_index_0_41        versioned,
                                 const an_ifc_validation_trace *parent);
 
-extern an_ifc_decl_index to_universal_index(an_ifc_module          *mod,
+extern an_ifc_decl_index to_universal_index(an_ifc_module_file     *file,
                                             an_ifc_decl_index_0_41 versioned);
 
 extern an_ifc_decl_sort_0_43 decl_sort(an_ifc_decl_index_0_43 versioned);
 
 extern uint32_t decl_value(an_ifc_decl_index_0_43 versioned);
 
-extern a_boolean validate_index(an_ifc_module                 *mod,
+extern a_boolean validate_index(an_ifc_module_file            *file,
                                 an_ifc_decl_index_0_43        versioned,
                                 const an_ifc_validation_trace *parent);
 
-extern an_ifc_decl_index to_universal_index(an_ifc_module          *mod,
+extern an_ifc_decl_index to_universal_index(an_ifc_module_file     *file,
                                             an_ifc_decl_index_0_43 versioned);
 
-extern an_ifc_encoded_decl_index to_encoded(an_ifc_module     *mod,
-                                            an_ifc_decl_index universal);
+extern an_ifc_encoded_decl_index to_encoded(an_ifc_module_file *file,
+                                            an_ifc_decl_index  universal);
 
 extern a_boolean is_null_index(an_ifc_decl_index universal);
 
@@ -1016,26 +1016,26 @@ extern an_ifc_expr_sort_0_33 expr_sort(an_ifc_expr_index_0_33 versioned);
 
 extern uint32_t expr_value(an_ifc_expr_index_0_33 versioned);
 
-extern a_boolean validate_index(an_ifc_module                 *mod,
+extern a_boolean validate_index(an_ifc_module_file            *file,
                                 an_ifc_expr_index_0_33        versioned,
                                 const an_ifc_validation_trace *parent);
 
-extern an_ifc_expr_index to_universal_index(an_ifc_module          *mod,
+extern an_ifc_expr_index to_universal_index(an_ifc_module_file     *file,
                                             an_ifc_expr_index_0_33 versioned);
 
 extern an_ifc_expr_sort_0_42 expr_sort(an_ifc_expr_index_0_42 versioned);
 
 extern uint32_t expr_value(an_ifc_expr_index_0_42 versioned);
 
-extern a_boolean validate_index(an_ifc_module                 *mod,
+extern a_boolean validate_index(an_ifc_module_file            *file,
                                 an_ifc_expr_index_0_42        versioned,
                                 const an_ifc_validation_trace *parent);
 
-extern an_ifc_expr_index to_universal_index(an_ifc_module          *mod,
+extern an_ifc_expr_index to_universal_index(an_ifc_module_file     *file,
                                             an_ifc_expr_index_0_42 versioned);
 
-extern an_ifc_encoded_expr_index to_encoded(an_ifc_module     *mod,
-                                            an_ifc_expr_index universal);
+extern an_ifc_encoded_expr_index to_encoded(an_ifc_module_file *file,
+                                            an_ifc_expr_index  universal);
 
 extern a_boolean is_null_index(an_ifc_expr_index universal);
 
@@ -1047,15 +1047,15 @@ extern an_ifc_form_sort_0_33 form_sort(an_ifc_form_index_0_33 versioned);
 
 extern uint32_t form_value(an_ifc_form_index_0_33 versioned);
 
-extern a_boolean validate_index(an_ifc_module                 *mod,
+extern a_boolean validate_index(an_ifc_module_file            *file,
                                 an_ifc_form_index_0_33        versioned,
                                 const an_ifc_validation_trace *parent);
 
-extern an_ifc_form_index to_universal_index(an_ifc_module          *mod,
+extern an_ifc_form_index to_universal_index(an_ifc_module_file     *file,
                                             an_ifc_form_index_0_33 versioned);
 
-extern an_ifc_encoded_form_index to_encoded(an_ifc_module     *mod,
-                                            an_ifc_form_index universal);
+extern an_ifc_encoded_form_index to_encoded(an_ifc_module_file *file,
+                                            an_ifc_form_index  universal);
 
 extern a_boolean is_null_index(an_ifc_form_index universal);
 
@@ -1067,15 +1067,15 @@ extern an_ifc_lit_sort_0_33 lit_sort(an_ifc_lit_index_0_33 versioned);
 
 extern uint32_t lit_value(an_ifc_lit_index_0_33 versioned);
 
-extern a_boolean validate_index(an_ifc_module                 *mod,
+extern a_boolean validate_index(an_ifc_module_file            *file,
                                 an_ifc_lit_index_0_33         versioned,
                                 const an_ifc_validation_trace *parent);
 
-extern an_ifc_lit_index to_universal_index(an_ifc_module         *mod,
+extern an_ifc_lit_index to_universal_index(an_ifc_module_file    *file,
                                            an_ifc_lit_index_0_33 versioned);
 
-extern an_ifc_encoded_lit_index to_encoded(an_ifc_module    *mod,
-                                           an_ifc_lit_index universal);
+extern an_ifc_encoded_lit_index to_encoded(an_ifc_module_file *file,
+                                           an_ifc_lit_index   universal);
 
 extern a_boolean is_null_index(an_ifc_lit_index universal);
 
@@ -1087,15 +1087,15 @@ extern an_ifc_macro_sort_0_33 macro_sort(an_ifc_macro_index_0_33 versioned);
 
 extern uint32_t macro_value(an_ifc_macro_index_0_33 versioned);
 
-extern a_boolean validate_index(an_ifc_module                 *mod,
+extern a_boolean validate_index(an_ifc_module_file            *file,
                                 an_ifc_macro_index_0_33       versioned,
                                 const an_ifc_validation_trace *parent);
 
 extern an_ifc_macro_index to_universal_index(
-                                            an_ifc_module           *mod,
+                                            an_ifc_module_file      *file,
                                             an_ifc_macro_index_0_33 versioned);
 
-extern an_ifc_encoded_macro_index to_encoded(an_ifc_module      *mod,
+extern an_ifc_encoded_macro_index to_encoded(an_ifc_module_file *file,
                                              an_ifc_macro_index universal);
 
 extern a_boolean is_null_index(an_ifc_macro_index universal);
@@ -1108,15 +1108,15 @@ extern an_ifc_name_sort_0_33 name_sort(an_ifc_name_index_0_33 versioned);
 
 extern uint32_t name_value(an_ifc_name_index_0_33 versioned);
 
-extern a_boolean validate_index(an_ifc_module                 *mod,
+extern a_boolean validate_index(an_ifc_module_file            *file,
                                 an_ifc_name_index_0_33        versioned,
                                 const an_ifc_validation_trace *parent);
 
-extern an_ifc_name_index to_universal_index(an_ifc_module          *mod,
+extern an_ifc_name_index to_universal_index(an_ifc_module_file     *file,
                                             an_ifc_name_index_0_33 versioned);
 
-extern an_ifc_encoded_name_index to_encoded(an_ifc_module     *mod,
-                                            an_ifc_name_index universal);
+extern an_ifc_encoded_name_index to_encoded(an_ifc_module_file *file,
+                                            an_ifc_name_index  universal);
 
 extern a_boolean is_null_index(an_ifc_name_index universal);
 
@@ -1128,15 +1128,15 @@ extern an_ifc_pragma_sort_0_33 pragma_sort(an_ifc_pragma_index_0_33 versioned);
 
 extern uint32_t pragma_value(an_ifc_pragma_index_0_33 versioned);
 
-extern a_boolean validate_index(an_ifc_module                 *mod,
+extern a_boolean validate_index(an_ifc_module_file            *file,
                                 an_ifc_pragma_index_0_33      versioned,
                                 const an_ifc_validation_trace *parent);
 
 extern an_ifc_pragma_index to_universal_index(
-                                           an_ifc_module            *mod,
+                                           an_ifc_module_file       *file,
                                            an_ifc_pragma_index_0_33 versioned);
 
-extern an_ifc_encoded_pragma_index to_encoded(an_ifc_module       *mod,
+extern an_ifc_encoded_pragma_index to_encoded(an_ifc_module_file  *file,
                                               an_ifc_pragma_index universal);
 
 extern a_boolean is_null_index(an_ifc_pragma_index universal);
@@ -1149,26 +1149,26 @@ extern an_ifc_stmt_sort_0_33 stmt_sort(an_ifc_stmt_index_0_33 versioned);
 
 extern uint32_t stmt_value(an_ifc_stmt_index_0_33 versioned);
 
-extern a_boolean validate_index(an_ifc_module                 *mod,
+extern a_boolean validate_index(an_ifc_module_file            *file,
                                 an_ifc_stmt_index_0_33        versioned,
                                 const an_ifc_validation_trace *parent);
 
-extern an_ifc_stmt_index to_universal_index(an_ifc_module          *mod,
+extern an_ifc_stmt_index to_universal_index(an_ifc_module_file     *file,
                                             an_ifc_stmt_index_0_33 versioned);
 
 extern an_ifc_stmt_sort_0_42 stmt_sort(an_ifc_stmt_index_0_42 versioned);
 
 extern uint32_t stmt_value(an_ifc_stmt_index_0_42 versioned);
 
-extern a_boolean validate_index(an_ifc_module                 *mod,
+extern a_boolean validate_index(an_ifc_module_file            *file,
                                 an_ifc_stmt_index_0_42        versioned,
                                 const an_ifc_validation_trace *parent);
 
-extern an_ifc_stmt_index to_universal_index(an_ifc_module          *mod,
+extern an_ifc_stmt_index to_universal_index(an_ifc_module_file     *file,
                                             an_ifc_stmt_index_0_42 versioned);
 
-extern an_ifc_encoded_stmt_index to_encoded(an_ifc_module     *mod,
-                                            an_ifc_stmt_index universal);
+extern an_ifc_encoded_stmt_index to_encoded(an_ifc_module_file *file,
+                                            an_ifc_stmt_index  universal);
 
 extern a_boolean is_null_index(an_ifc_stmt_index universal);
 
@@ -1180,15 +1180,15 @@ extern an_ifc_string_sort_0_33 string_sort(an_ifc_string_index_0_33 versioned);
 
 extern uint32_t string_value(an_ifc_string_index_0_33 versioned);
 
-extern a_boolean validate_index(an_ifc_module                 *mod,
+extern a_boolean validate_index(an_ifc_module_file            *file,
                                 an_ifc_string_index_0_33      versioned,
                                 const an_ifc_validation_trace *parent);
 
 extern an_ifc_string_index to_universal_index(
-                                           an_ifc_module            *mod,
+                                           an_ifc_module_file       *file,
                                            an_ifc_string_index_0_33 versioned);
 
-extern an_ifc_encoded_string_index to_encoded(an_ifc_module       *mod,
+extern an_ifc_encoded_string_index to_encoded(an_ifc_module_file  *file,
                                               an_ifc_string_index universal);
 
 extern a_boolean is_null_index(an_ifc_string_index universal);
@@ -1201,15 +1201,15 @@ extern an_ifc_syntax_sort_0_33 syntax_sort(an_ifc_syntax_index_0_33 versioned);
 
 extern uint32_t syntax_value(an_ifc_syntax_index_0_33 versioned);
 
-extern a_boolean validate_index(an_ifc_module                 *mod,
+extern a_boolean validate_index(an_ifc_module_file            *file,
                                 an_ifc_syntax_index_0_33      versioned,
                                 const an_ifc_validation_trace *parent);
 
 extern an_ifc_syntax_index to_universal_index(
-                                           an_ifc_module            *mod,
+                                           an_ifc_module_file       *file,
                                            an_ifc_syntax_index_0_33 versioned);
 
-extern an_ifc_encoded_syntax_index to_encoded(an_ifc_module       *mod,
+extern an_ifc_encoded_syntax_index to_encoded(an_ifc_module_file  *file,
                                               an_ifc_syntax_index universal);
 
 extern a_boolean is_null_index(an_ifc_syntax_index universal);
@@ -1222,15 +1222,15 @@ extern an_ifc_type_sort_0_33 type_sort(an_ifc_type_index_0_33 versioned);
 
 extern uint32_t type_value(an_ifc_type_index_0_33 versioned);
 
-extern a_boolean validate_index(an_ifc_module                 *mod,
+extern a_boolean validate_index(an_ifc_module_file            *file,
                                 an_ifc_type_index_0_33        versioned,
                                 const an_ifc_validation_trace *parent);
 
-extern an_ifc_type_index to_universal_index(an_ifc_module          *mod,
+extern an_ifc_type_index to_universal_index(an_ifc_module_file     *file,
                                             an_ifc_type_index_0_33 versioned);
 
-extern an_ifc_encoded_type_index to_encoded(an_ifc_module     *mod,
-                                            an_ifc_type_index universal);
+extern an_ifc_encoded_type_index to_encoded(an_ifc_module_file *file,
+                                            an_ifc_type_index  universal);
 
 extern a_boolean is_null_index(an_ifc_type_index universal);
 
@@ -1242,15 +1242,15 @@ extern an_ifc_unit_sort_0_33 unit_sort(an_ifc_unit_index_0_33 versioned);
 
 extern uint32_t unit_value(an_ifc_unit_index_0_33 versioned);
 
-extern a_boolean validate_index(an_ifc_module                 *mod,
+extern a_boolean validate_index(an_ifc_module_file            *file,
                                 an_ifc_unit_index_0_33        versioned,
                                 const an_ifc_validation_trace *parent);
 
-extern an_ifc_unit_index to_universal_index(an_ifc_module          *mod,
+extern an_ifc_unit_index to_universal_index(an_ifc_module_file     *file,
                                             an_ifc_unit_index_0_33 versioned);
 
-extern an_ifc_encoded_unit_index to_encoded(an_ifc_module     *mod,
-                                            an_ifc_unit_index universal);
+extern an_ifc_encoded_unit_index to_encoded(an_ifc_module_file *file,
+                                            an_ifc_unit_index  universal);
 
 extern a_boolean is_null_index(an_ifc_unit_index universal);
 
@@ -1258,21 +1258,21 @@ extern a_boolean is_null_index(an_ifc_unit_index universal);
 Functions for interacting with IFC DeclForeignIndex indexes.
 */
 
-a_boolean validate_index(an_ifc_module                  *mod,
+a_boolean validate_index(an_ifc_module_file             *file,
                          an_ifc_decl_foreign_index_0_33 versioned,
                          const an_ifc_validation_trace  *parent);
 
 extern an_ifc_decl_index to_universal_index(
-                                     an_ifc_module                  *mod,
+                                     an_ifc_module_file             *file,
                                      an_ifc_decl_foreign_index_0_33 versioned);
 
-extern a_boolean validate_index(an_ifc_module                 *foreign_mod,
+extern a_boolean validate_index(an_ifc_module_file            *foreign_file,
                                 an_ifc_decl_foreign_index     universal,
                                 const an_ifc_validation_trace *parent);
 
 extern an_ifc_decl_index to_universal_index(
-                                       an_ifc_module             *foreign_mod,
-                                       an_ifc_decl_foreign_index universal);
+                                      an_ifc_module_file        *foreign_file,
+                                      an_ifc_decl_foreign_index universal);
 
 /*
 Functions for interacting with IFC BasicSpecifiersBitfield bitfields.
@@ -1590,12 +1590,12 @@ extern an_ifc_operator_sort_0_33 operator_sort(
 
 extern uint16_t operator_value(an_ifc_operator_category_0_33 versioned);
 
-extern a_boolean validate_category(an_ifc_module                 *mod,
+extern a_boolean validate_category(an_ifc_module_file            *file,
                                    an_ifc_operator_category_0_33 versioned,
                                    const an_ifc_validation_trace *parent);
 
 extern an_ifc_operator_category to_universal_category(
-                                      an_ifc_module                 *mod,
+                                      an_ifc_module_file            *file,
                                       an_ifc_operator_category_0_33 versioned);
 
 extern an_ifc_operator_sort_0_33 operator_sort(
@@ -1603,12 +1603,12 @@ extern an_ifc_operator_sort_0_33 operator_sort(
 
 extern uint16_t operator_value(an_ifc_operator_category_0_42 versioned);
 
-extern a_boolean validate_category(an_ifc_module                 *mod,
+extern a_boolean validate_category(an_ifc_module_file            *file,
                                    an_ifc_operator_category_0_42 versioned,
                                    const an_ifc_validation_trace *parent);
 
 extern an_ifc_operator_category to_universal_category(
-                                      an_ifc_module                 *mod,
+                                      an_ifc_module_file            *file,
                                       an_ifc_operator_category_0_42 versioned);
 
 extern an_ifc_operator_sort_0_33 operator_sort(
@@ -1616,12 +1616,12 @@ extern an_ifc_operator_sort_0_33 operator_sort(
 
 extern uint16_t operator_value(an_ifc_operator_category_0_43 versioned);
 
-extern a_boolean validate_category(an_ifc_module                 *mod,
+extern a_boolean validate_category(an_ifc_module_file            *file,
                                    an_ifc_operator_category_0_43 versioned,
                                    const an_ifc_validation_trace *parent);
 
 extern an_ifc_operator_category to_universal_category(
-                                      an_ifc_module                 *mod,
+                                      an_ifc_module_file            *file,
                                       an_ifc_operator_category_0_43 versioned);
 
 /*
@@ -1635,12 +1635,12 @@ extern uint64_t source_identifier_value(
                              an_ifc_source_identifier_category_0_33 versioned);
 
 extern a_boolean validate_category(
-                             an_ifc_module                          *mod,
+                             an_ifc_module_file                     *file,
                              an_ifc_source_identifier_category_0_33 versioned,
                              const an_ifc_validation_trace          *parent);
 
 extern an_ifc_source_identifier_category to_universal_category(
-                             an_ifc_module                          *mod,
+                             an_ifc_module_file                     *file,
                              an_ifc_source_identifier_category_0_33 versioned);
 
 /*
@@ -1654,12 +1654,12 @@ extern uint64_t source_literal_value(
                                 an_ifc_source_literal_category_0_33 versioned);
 
 extern a_boolean validate_category(
-                                an_ifc_module                       *mod,
+                                an_ifc_module_file                  *file,
                                 an_ifc_source_literal_category_0_33 versioned,
                                 const an_ifc_validation_trace       *parent);
 
 extern an_ifc_source_literal_category to_universal_category(
-                                an_ifc_module                       *mod,
+                                an_ifc_module_file                  *file,
                                 an_ifc_source_literal_category_0_33 versioned);
 
 extern an_ifc_source_literal_sort_0_33 source_literal_sort(
@@ -1669,12 +1669,12 @@ extern uint64_t source_literal_value(
                                 an_ifc_source_literal_category_0_42 versioned);
 
 extern a_boolean validate_category(
-                                an_ifc_module                       *mod,
+                                an_ifc_module_file                  *file,
                                 an_ifc_source_literal_category_0_42 versioned,
                                 const an_ifc_validation_trace       *parent);
 
 extern an_ifc_source_literal_category to_universal_category(
-                                an_ifc_module                       *mod,
+                                an_ifc_module_file                  *file,
                                 an_ifc_source_literal_category_0_42 versioned);
 
 /*
@@ -1685,24 +1685,24 @@ extern an_ifc_word_sort_0_33 word_sort(an_ifc_word_category_0_33 versioned);
 
 extern uint64_t word_value(an_ifc_word_category_0_33 versioned);
 
-extern a_boolean validate_category(an_ifc_module                 *mod,
+extern a_boolean validate_category(an_ifc_module_file            *file,
                                    an_ifc_word_category_0_33     versioned,
                                    const an_ifc_validation_trace *parent);
 
 extern an_ifc_word_category to_universal_category(
-                                          an_ifc_module             *mod,
+                                          an_ifc_module_file        *file,
                                           an_ifc_word_category_0_33 versioned);
 
 extern an_ifc_word_sort_0_33 word_sort(an_ifc_word_category_0_42 versioned);
 
 extern uint64_t word_value(an_ifc_word_category_0_42 versioned);
 
-extern a_boolean validate_category(an_ifc_module                 *mod,
+extern a_boolean validate_category(an_ifc_module_file            *file,
                                    an_ifc_word_category_0_42     versioned,
                                    const an_ifc_validation_trace *parent);
 
 extern an_ifc_word_category to_universal_category(
-                                          an_ifc_module             *mod,
+                                          an_ifc_module_file        *file,
                                           an_ifc_word_category_0_42 versioned);
 
 
@@ -1783,9 +1783,9 @@ usage/sanity checks).
 
 template<typename an_ifc_Node_type>
 extern an_ifc_Node_type* get(
-                          an_ifc_module    *mod,
-                          an_ifc_Node_type *storage,
-                          a_boolean        fill_storage = FALSE) DELETED_FN_DEF
+                        an_ifc_module_file *file,
+                        an_ifc_Node_type   *storage,
+                        a_boolean          fill_storage = FALSE) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
@@ -12373,7 +12373,7 @@ extern void db_node(const an_ifc_file_header &universal);
 
 template<>
 an_ifc_file_header_storage* get<an_ifc_file_header_storage>(
-                                      an_ifc_module              *mod,
+                                      an_ifc_module_file         *file,
                                       an_ifc_file_header_storage *storage,
                                       a_boolean                  fill_storage);
 
@@ -12417,7 +12417,7 @@ extern void db_node(const an_ifc_partition &universal);
 
 template<>
 an_ifc_partition_storage* get<an_ifc_partition_storage>(
-                                        an_ifc_module            *mod,
+                                        an_ifc_module_file       *file,
                                         an_ifc_partition_storage *storage,
                                         a_boolean                fill_storage);
 
@@ -12443,7 +12443,7 @@ extern void db_node(const an_ifc_attr_basic &universal);
 
 template<>
 an_ifc_attr_basic_storage* get<an_ifc_attr_basic_storage>(
-                                       an_ifc_module             *mod,
+                                       an_ifc_module_file        *file,
                                        an_ifc_attr_basic_storage *storage,
                                        a_boolean                 fill_storage);
 
@@ -12478,7 +12478,7 @@ extern void db_node(const an_ifc_attr_called &universal);
 
 template<>
 an_ifc_attr_called_storage* get<an_ifc_attr_called_storage>(
-                                      an_ifc_module              *mod,
+                                      an_ifc_module_file         *file,
                                       an_ifc_attr_called_storage *storage,
                                       a_boolean                  fill_storage);
 
@@ -12507,7 +12507,7 @@ extern void db_node(const an_ifc_attr_elaborated &universal);
 
 template<>
 an_ifc_attr_elaborated_storage* get<an_ifc_attr_elaborated_storage>(
-                                  an_ifc_module                  *mod,
+                                  an_ifc_module_file             *file,
                                   an_ifc_attr_elaborated_storage *storage,
                                   a_boolean                      fill_storage);
 
@@ -12536,7 +12536,7 @@ extern void db_node(const an_ifc_attr_expanded &universal);
 
 template<>
 an_ifc_attr_expanded_storage* get<an_ifc_attr_expanded_storage>(
-                                    an_ifc_module                *mod,
+                                    an_ifc_module_file           *file,
                                     an_ifc_attr_expanded_storage *storage,
                                     a_boolean                    fill_storage);
 
@@ -12571,7 +12571,7 @@ extern void db_node(const an_ifc_attr_factored &universal);
 
 template<>
 an_ifc_attr_factored_storage* get<an_ifc_attr_factored_storage>(
-                                    an_ifc_module                *mod,
+                                    an_ifc_module_file           *file,
                                     an_ifc_attr_factored_storage *storage,
                                     a_boolean                    fill_storage);
 
@@ -12606,7 +12606,7 @@ extern void db_node(const an_ifc_attr_labeled &universal);
 
 template<>
 an_ifc_attr_labeled_storage* get<an_ifc_attr_labeled_storage>(
-                                     an_ifc_module               *mod,
+                                     an_ifc_module_file          *file,
                                      an_ifc_attr_labeled_storage *storage,
                                      a_boolean                   fill_storage);
 
@@ -12641,7 +12641,7 @@ extern void db_node(const an_ifc_attr_scoped &universal);
 
 template<>
 an_ifc_attr_scoped_storage* get<an_ifc_attr_scoped_storage>(
-                                      an_ifc_module              *mod,
+                                      an_ifc_module_file         *file,
                                       an_ifc_attr_scoped_storage *storage,
                                       a_boolean                  fill_storage);
 
@@ -12676,7 +12676,7 @@ extern void db_node(const an_ifc_attr_tuple &universal);
 
 template<>
 an_ifc_attr_tuple_storage* get<an_ifc_attr_tuple_storage>(
-                                       an_ifc_module             *mod,
+                                       an_ifc_module_file        *file,
                                        an_ifc_attr_tuple_storage *storage,
                                        a_boolean                 fill_storage);
 
@@ -12712,7 +12712,7 @@ extern void db_node(const an_ifc_chart_multilevel &universal);
 
 template<>
 an_ifc_chart_multilevel_storage* get<an_ifc_chart_multilevel_storage>(
-                                 an_ifc_module                   *mod,
+                                 an_ifc_module_file              *file,
                                  an_ifc_chart_multilevel_storage *storage,
                                  a_boolean                       fill_storage);
 
@@ -12753,7 +12753,7 @@ extern void db_node(const an_ifc_chart_unilevel &universal);
 
 template<>
 an_ifc_chart_unilevel_storage* get<an_ifc_chart_unilevel_storage>(
-                                   an_ifc_module                 *mod,
+                                   an_ifc_module_file            *file,
                                    an_ifc_chart_unilevel_storage *storage,
                                    a_boolean                     fill_storage);
 
@@ -12782,7 +12782,7 @@ extern void db_node(const an_ifc_const_f64 &universal);
 
 template<>
 an_ifc_const_f64_storage* get<an_ifc_const_f64_storage>(
-                                        an_ifc_module            *mod,
+                                        an_ifc_module_file       *file,
                                         an_ifc_const_f64_storage *storage,
                                         a_boolean                fill_storage);
 
@@ -12811,7 +12811,7 @@ extern void db_node(const an_ifc_const_i64 &universal);
 
 template<>
 an_ifc_const_i64_storage* get<an_ifc_const_i64_storage>(
-                                        an_ifc_module            *mod,
+                                        an_ifc_module_file       *file,
                                         an_ifc_const_i64_storage *storage,
                                         a_boolean                fill_storage);
 
@@ -12852,7 +12852,7 @@ extern void db_node(const an_ifc_const_str &universal);
 
 template<>
 an_ifc_const_str_storage* get<an_ifc_const_str_storage>(
-                                        an_ifc_module            *mod,
+                                        an_ifc_module_file       *file,
                                         an_ifc_const_str_storage *storage,
                                         a_boolean                fill_storage);
 
@@ -12918,7 +12918,7 @@ extern void db_node(const an_ifc_decl_alias &universal);
 
 template<>
 an_ifc_decl_alias_storage* get<an_ifc_decl_alias_storage>(
-                                       an_ifc_module             *mod,
+                                       an_ifc_module_file        *file,
                                        an_ifc_decl_alias_storage *storage,
                                        a_boolean                 fill_storage);
 
@@ -13004,7 +13004,7 @@ extern void db_node(const an_ifc_decl_bitfield &universal);
 
 template<>
 an_ifc_decl_bitfield_storage* get<an_ifc_decl_bitfield_storage>(
-                                    an_ifc_module                *mod,
+                                    an_ifc_module_file           *file,
                                     an_ifc_decl_bitfield_storage *storage,
                                     a_boolean                    fill_storage);
 
@@ -13094,7 +13094,7 @@ extern void db_node(const an_ifc_decl_concept &universal);
 
 template<>
 an_ifc_decl_concept_storage* get<an_ifc_decl_concept_storage>(
-                                     an_ifc_module               *mod,
+                                     an_ifc_module_file          *file,
                                      an_ifc_decl_concept_storage *storage,
                                      a_boolean                   fill_storage);
 
@@ -13174,7 +13174,7 @@ extern void db_node(const an_ifc_decl_constructor &universal);
 
 template<>
 an_ifc_decl_constructor_storage* get<an_ifc_decl_constructor_storage>(
-                                 an_ifc_module                   *mod,
+                                 an_ifc_module_file              *file,
                                  an_ifc_decl_constructor_storage *storage,
                                  a_boolean                       fill_storage);
 
@@ -13245,7 +13245,7 @@ extern void db_node(const an_ifc_decl_deduction_guide &universal);
 
 template<>
 an_ifc_decl_deduction_guide_storage* get<an_ifc_decl_deduction_guide_storage>(
-                             an_ifc_module                       *mod,
+                             an_ifc_module_file                  *file,
                              an_ifc_decl_deduction_guide_storage *storage,
                              a_boolean                           fill_storage);
 
@@ -13318,7 +13318,7 @@ extern void db_node(const an_ifc_decl_default_argument &universal);
 template<>
 an_ifc_decl_default_argument_storage*
 get<an_ifc_decl_default_argument_storage>(
-                            an_ifc_module                        *mod,
+                            an_ifc_module_file                   *file,
                             an_ifc_decl_default_argument_storage *storage,
                             a_boolean                            fill_storage);
 
@@ -13400,7 +13400,7 @@ extern void db_node(const an_ifc_decl_destructor &universal);
 
 template<>
 an_ifc_decl_destructor_storage* get<an_ifc_decl_destructor_storage>(
-                                  an_ifc_module                  *mod,
+                                  an_ifc_module_file             *file,
                                   an_ifc_decl_destructor_storage *storage,
                                   a_boolean                      fill_storage);
 
@@ -13485,7 +13485,7 @@ extern void db_node(const an_ifc_decl_enumeration &universal);
 
 template<>
 an_ifc_decl_enumeration_storage* get<an_ifc_decl_enumeration_storage>(
-                                 an_ifc_module                   *mod,
+                                 an_ifc_module_file              *file,
                                  an_ifc_decl_enumeration_storage *storage,
                                  a_boolean                       fill_storage);
 
@@ -13551,7 +13551,7 @@ extern void db_node(const an_ifc_decl_enumerator &universal);
 
 template<>
 an_ifc_decl_enumerator_storage* get<an_ifc_decl_enumerator_storage>(
-                                  an_ifc_module                  *mod,
+                                  an_ifc_module_file             *file,
                                   an_ifc_decl_enumerator_storage *storage,
                                   a_boolean                      fill_storage);
 
@@ -13586,7 +13586,7 @@ extern void db_node(const an_ifc_decl_expansion &universal);
 
 template<>
 an_ifc_decl_expansion_storage* get<an_ifc_decl_expansion_storage>(
-                                   an_ifc_module                 *mod,
+                                   an_ifc_module_file            *file,
                                    an_ifc_decl_expansion_storage *storage,
                                    a_boolean                     fill_storage);
 
@@ -13625,7 +13625,7 @@ extern void db_node(const an_ifc_decl_explicit_instantiation &universal);
 template<>
 an_ifc_decl_explicit_instantiation_storage*
 get<an_ifc_decl_explicit_instantiation_storage>(
-                      an_ifc_module                              *mod,
+                      an_ifc_module_file                         *file,
                       an_ifc_decl_explicit_instantiation_storage *storage,
                       a_boolean                                  fill_storage);
 
@@ -13665,7 +13665,7 @@ extern void db_node(const an_ifc_decl_explicit_specialization &universal);
 template<>
 an_ifc_decl_explicit_specialization_storage*
 get<an_ifc_decl_explicit_specialization_storage>(
-                     an_ifc_module                               *mod,
+                     an_ifc_module_file                          *file,
                      an_ifc_decl_explicit_specialization_storage *storage,
                      a_boolean                                   fill_storage);
 
@@ -13752,7 +13752,7 @@ extern void db_node(const an_ifc_decl_field &universal);
 
 template<>
 an_ifc_decl_field_storage* get<an_ifc_decl_field_storage>(
-                                       an_ifc_module             *mod,
+                                       an_ifc_module_file        *file,
                                        an_ifc_decl_field_storage *storage,
                                        a_boolean                 fill_storage);
 
@@ -13781,7 +13781,7 @@ extern void db_node(const an_ifc_decl_friend &universal);
 
 template<>
 an_ifc_decl_friend_storage* get<an_ifc_decl_friend_storage>(
-                                      an_ifc_module              *mod,
+                                      an_ifc_module_file         *file,
                                       an_ifc_decl_friend_storage *storage,
                                       a_boolean                  fill_storage);
 
@@ -13861,7 +13861,7 @@ extern void db_node(const an_ifc_decl_function &universal);
 
 template<>
 an_ifc_decl_function_storage* get<an_ifc_decl_function_storage>(
-                                    an_ifc_module                *mod,
+                                    an_ifc_module_file           *file,
                                     an_ifc_decl_function_storage *storage,
                                     a_boolean                    fill_storage);
 
@@ -13952,7 +13952,7 @@ extern void db_node(const an_ifc_decl_inherited_constructor &universal);
 template<>
 an_ifc_decl_inherited_constructor_storage*
 get<an_ifc_decl_inherited_constructor_storage>(
-                       an_ifc_module                             *mod,
+                       an_ifc_module_file                        *file,
                        an_ifc_decl_inherited_constructor_storage *storage,
                        a_boolean                                 fill_storage);
 
@@ -14013,7 +14013,7 @@ extern void db_node(const an_ifc_decl_intrinsic &universal);
 
 template<>
 an_ifc_decl_intrinsic_storage* get<an_ifc_decl_intrinsic_storage>(
-                                   an_ifc_module                 *mod,
+                                   an_ifc_module_file            *file,
                                    an_ifc_decl_intrinsic_storage *storage,
                                    a_boolean                     fill_storage);
 
@@ -14093,7 +14093,7 @@ extern void db_node(const an_ifc_decl_method &universal);
 
 template<>
 an_ifc_decl_method_storage* get<an_ifc_decl_method_storage>(
-                                      an_ifc_module              *mod,
+                                      an_ifc_module_file         *file,
                                       an_ifc_decl_method_storage *storage,
                                       a_boolean                  fill_storage);
 
@@ -14142,7 +14142,7 @@ extern void db_node(const an_ifc_decl_output_segment &universal);
 
 template<>
 an_ifc_decl_output_segment_storage* get<an_ifc_decl_output_segment_storage>(
-                              an_ifc_module                      *mod,
+                              an_ifc_module_file                 *file,
                               an_ifc_decl_output_segment_storage *storage,
                               a_boolean                          fill_storage);
 
@@ -14227,7 +14227,7 @@ extern void db_node(const an_ifc_decl_parameter &universal);
 
 template<>
 an_ifc_decl_parameter_storage* get<an_ifc_decl_parameter_storage>(
-                                   an_ifc_module                 *mod,
+                                   an_ifc_module_file            *file,
                                    an_ifc_decl_parameter_storage *storage,
                                    a_boolean                     fill_storage);
 
@@ -14326,7 +14326,7 @@ extern void db_node(const an_ifc_decl_partial_specialization &universal);
 template<>
 an_ifc_decl_partial_specialization_storage*
 get<an_ifc_decl_partial_specialization_storage>(
-                      an_ifc_module                              *mod,
+                      an_ifc_module_file                         *file,
                       an_ifc_decl_partial_specialization_storage *storage,
                       a_boolean                                  fill_storage);
 
@@ -14368,7 +14368,7 @@ extern void db_node(const an_ifc_decl_property &universal);
 
 template<>
 an_ifc_decl_property_storage* get<an_ifc_decl_property_storage>(
-                                    an_ifc_module                *mod,
+                                    an_ifc_module_file           *file,
                                     an_ifc_decl_property_storage *storage,
                                     a_boolean                    fill_storage);
 
@@ -14410,7 +14410,7 @@ extern void db_node(const an_ifc_decl_reference &universal);
 
 template<>
 an_ifc_decl_reference_storage* get<an_ifc_decl_reference_storage>(
-                                   an_ifc_module                 *mod,
+                                   an_ifc_module_file            *file,
                                    an_ifc_decl_reference_storage *storage,
                                    a_boolean                     fill_storage);
 
@@ -14508,7 +14508,7 @@ extern void db_node(const an_ifc_decl_scope &universal);
 
 template<>
 an_ifc_decl_scope_storage* get<an_ifc_decl_scope_storage>(
-                                       an_ifc_module             *mod,
+                                       an_ifc_module_file        *file,
                                        an_ifc_decl_scope_storage *storage,
                                        a_boolean                 fill_storage);
 
@@ -14580,7 +14580,7 @@ extern void db_node(const an_ifc_decl_specialization &universal);
 
 template<>
 an_ifc_decl_specialization_storage* get<an_ifc_decl_specialization_storage>(
-                              an_ifc_module                      *mod,
+                              an_ifc_module_file                 *file,
                               an_ifc_decl_specialization_storage *storage,
                               a_boolean                          fill_storage);
 
@@ -14660,7 +14660,7 @@ extern void db_node(const an_ifc_decl_template &universal);
 
 template<>
 an_ifc_decl_template_storage* get<an_ifc_decl_template_storage>(
-                                    an_ifc_module                *mod,
+                                    an_ifc_module_file           *file,
                                     an_ifc_decl_template_storage *storage,
                                     a_boolean                    fill_storage);
 
@@ -14703,7 +14703,7 @@ extern void db_node(const an_ifc_decl_temploid &universal);
 
 template<>
 an_ifc_decl_temploid_storage* get<an_ifc_decl_temploid_storage>(
-                                    an_ifc_module                *mod,
+                                    an_ifc_module_file           *file,
                                     an_ifc_decl_temploid_storage *storage,
                                     a_boolean                    fill_storage);
 
@@ -14738,7 +14738,7 @@ extern void db_node(const an_ifc_decl_tuple &universal);
 
 template<>
 an_ifc_decl_tuple_storage* get<an_ifc_decl_tuple_storage>(
-                                       an_ifc_module             *mod,
+                                       an_ifc_module_file        *file,
                                        an_ifc_decl_tuple_storage *storage,
                                        a_boolean                 fill_storage);
 
@@ -14825,7 +14825,7 @@ extern void db_node(const an_ifc_decl_using_declaration &universal);
 template<>
 an_ifc_decl_using_declaration_storage*
 get<an_ifc_decl_using_declaration_storage>(
-                           an_ifc_module                         *mod,
+                           an_ifc_module_file                    *file,
                            an_ifc_decl_using_declaration_storage *storage,
                            a_boolean                             fill_storage);
 
@@ -14911,7 +14911,7 @@ extern void db_node(const an_ifc_decl_variable &universal);
 
 template<>
 an_ifc_decl_variable_storage* get<an_ifc_decl_variable_storage>(
-                                    an_ifc_module                *mod,
+                                    an_ifc_module_file           *file,
                                     an_ifc_decl_variable_storage *storage,
                                     a_boolean                    fill_storage);
 
@@ -14952,7 +14952,7 @@ extern void db_node(const an_ifc_expr_alignof &universal);
 
 template<>
 an_ifc_expr_alignof_storage* get<an_ifc_expr_alignof_storage>(
-                                     an_ifc_module               *mod,
+                                     an_ifc_module_file          *file,
                                      an_ifc_expr_alignof_storage *storage,
                                      a_boolean                   fill_storage);
 
@@ -15000,7 +15000,7 @@ extern void db_node(const an_ifc_expr_array_value &universal);
 
 template<>
 an_ifc_expr_array_value_storage* get<an_ifc_expr_array_value_storage>(
-                                 an_ifc_module                   *mod,
+                                 an_ifc_module_file              *file,
                                  an_ifc_expr_array_value_storage *storage,
                                  a_boolean                       fill_storage);
 
@@ -15039,7 +15039,7 @@ extern void db_node(const an_ifc_expr_assign_initializer &universal);
 template<>
 an_ifc_expr_assign_initializer_storage*
 get<an_ifc_expr_assign_initializer_storage>(
-                          an_ifc_module                          *mod,
+                          an_ifc_module_file                     *file,
                           an_ifc_expr_assign_initializer_storage *storage,
                           a_boolean                              fill_storage);
 
@@ -15100,7 +15100,7 @@ extern void db_node(const an_ifc_expr_binary_fold &universal);
 
 template<>
 an_ifc_expr_binary_fold_storage* get<an_ifc_expr_binary_fold_storage>(
-                                 an_ifc_module                   *mod,
+                                 an_ifc_module_file              *file,
                                  an_ifc_expr_binary_fold_storage *storage,
                                  a_boolean                       fill_storage);
 
@@ -15147,7 +15147,7 @@ extern void db_node(const an_ifc_expr_call &universal);
 
 template<>
 an_ifc_expr_call_storage* get<an_ifc_expr_call_storage>(
-                                        an_ifc_module            *mod,
+                                        an_ifc_module_file       *file,
                                         an_ifc_expr_call_storage *storage,
                                         a_boolean                fill_storage);
 
@@ -15200,7 +15200,7 @@ extern void db_node(const an_ifc_expr_cast &universal);
 
 template<>
 an_ifc_expr_cast_storage* get<an_ifc_expr_cast_storage>(
-                                        an_ifc_module            *mod,
+                                        an_ifc_module_file       *file,
                                         an_ifc_expr_cast_storage *storage,
                                         a_boolean                fill_storage);
 
@@ -15250,7 +15250,7 @@ extern void db_node(const an_ifc_expr_compound_string &universal);
 
 template<>
 an_ifc_expr_compound_string_storage* get<an_ifc_expr_compound_string_storage>(
-                             an_ifc_module                       *mod,
+                             an_ifc_module_file                  *file,
                              an_ifc_expr_compound_string_storage *storage,
                              a_boolean                           fill_storage);
 
@@ -15291,7 +15291,7 @@ extern void db_node(const an_ifc_expr_condition &universal);
 
 template<>
 an_ifc_expr_condition_storage* get<an_ifc_expr_condition_storage>(
-                                   an_ifc_module                 *mod,
+                                   an_ifc_module_file            *file,
                                    an_ifc_expr_condition_storage *storage,
                                    a_boolean                     fill_storage);
 
@@ -15345,7 +15345,7 @@ extern void db_node(const an_ifc_expr_designated_initializer &universal);
 template<>
 an_ifc_expr_designated_initializer_storage*
 get<an_ifc_expr_designated_initializer_storage>(
-                      an_ifc_module                              *mod,
+                      an_ifc_module_file                         *file,
                       an_ifc_expr_designated_initializer_storage *storage,
                       a_boolean                                  fill_storage);
 
@@ -15404,7 +15404,7 @@ extern void db_node(const an_ifc_expr_destructor_call &universal);
 
 template<>
 an_ifc_expr_destructor_call_storage* get<an_ifc_expr_destructor_call_storage>(
-                             an_ifc_module                       *mod,
+                             an_ifc_module_file                  *file,
                              an_ifc_expr_destructor_call_storage *storage,
                              a_boolean                           fill_storage);
 
@@ -15463,7 +15463,7 @@ extern void db_node(const an_ifc_expr_dyad &universal);
 
 template<>
 an_ifc_expr_dyad_storage* get<an_ifc_expr_dyad_storage>(
-                                        an_ifc_module            *mod,
+                                        an_ifc_module_file       *file,
                                         an_ifc_expr_dyad_storage *storage,
                                         a_boolean                fill_storage);
 
@@ -15507,7 +15507,7 @@ extern void db_node(const an_ifc_expr_dynamic_dispatch &universal);
 template<>
 an_ifc_expr_dynamic_dispatch_storage*
 get<an_ifc_expr_dynamic_dispatch_storage>(
-                            an_ifc_module                        *mod,
+                            an_ifc_module_file                   *file,
                             an_ifc_expr_dynamic_dispatch_storage *storage,
                             a_boolean                            fill_storage);
 
@@ -15542,7 +15542,7 @@ extern void db_node(const an_ifc_expr_empty &universal);
 
 template<>
 an_ifc_expr_empty_storage* get<an_ifc_expr_empty_storage>(
-                                       an_ifc_module             *mod,
+                                       an_ifc_module_file        *file,
                                        an_ifc_expr_empty_storage *storage,
                                        a_boolean                 fill_storage);
 
@@ -15583,7 +15583,7 @@ extern void db_node(const an_ifc_expr_expansion &universal);
 
 template<>
 an_ifc_expr_expansion_storage* get<an_ifc_expr_expansion_storage>(
-                                   an_ifc_module                 *mod,
+                                   an_ifc_module_file            *file,
                                    an_ifc_expr_expansion_storage *storage,
                                    a_boolean                     fill_storage);
 
@@ -15635,7 +15635,7 @@ extern void db_node(const an_ifc_expr_expression_list &universal);
 
 template<>
 an_ifc_expr_expression_list_storage* get<an_ifc_expr_expression_list_storage>(
-                             an_ifc_module                       *mod,
+                             an_ifc_module_file                  *file,
                              an_ifc_expr_expression_list_storage *storage,
                              a_boolean                           fill_storage);
 
@@ -15678,7 +15678,7 @@ extern void db_node(const an_ifc_expr_function_string &universal);
 
 template<>
 an_ifc_expr_function_string_storage* get<an_ifc_expr_function_string_storage>(
-                             an_ifc_module                       *mod,
+                             an_ifc_module_file                  *file,
                              an_ifc_expr_function_string_storage *storage,
                              a_boolean                           fill_storage);
 
@@ -15753,7 +15753,7 @@ extern void db_node(const an_ifc_expr_hierarchy_conversion &universal);
 template<>
 an_ifc_expr_hierarchy_conversion_storage*
 get<an_ifc_expr_hierarchy_conversion_storage>(
-                        an_ifc_module                            *mod,
+                        an_ifc_module_file                       *file,
                         an_ifc_expr_hierarchy_conversion_storage *storage,
                         a_boolean                                fill_storage);
 
@@ -15798,7 +15798,7 @@ extern void db_node(const an_ifc_expr_inheritance_path &universal);
 template<>
 an_ifc_expr_inheritance_path_storage*
 get<an_ifc_expr_inheritance_path_storage>(
-                            an_ifc_module                        *mod,
+                            an_ifc_module_file                   *file,
                             an_ifc_expr_inheritance_path_storage *storage,
                             a_boolean                            fill_storage);
 
@@ -15845,7 +15845,7 @@ extern void db_node(const an_ifc_expr_initializer &universal);
 
 template<>
 an_ifc_expr_initializer_storage* get<an_ifc_expr_initializer_storage>(
-                                 an_ifc_module                   *mod,
+                                 an_ifc_module_file              *file,
                                  an_ifc_expr_initializer_storage *storage,
                                  a_boolean                       fill_storage);
 
@@ -15890,7 +15890,7 @@ extern void db_node(const an_ifc_expr_initializer_list &universal);
 template<>
 an_ifc_expr_initializer_list_storage*
 get<an_ifc_expr_initializer_list_storage>(
-                            an_ifc_module                        *mod,
+                            an_ifc_module_file                   *file,
                             an_ifc_expr_initializer_list_storage *storage,
                             a_boolean                            fill_storage);
 
@@ -15931,7 +15931,7 @@ extern void db_node(const an_ifc_expr_label &universal);
 
 template<>
 an_ifc_expr_label_storage* get<an_ifc_expr_label_storage>(
-                                       an_ifc_module             *mod,
+                                       an_ifc_module_file        *file,
                                        an_ifc_expr_label_storage *storage,
                                        a_boolean                 fill_storage);
 
@@ -15985,7 +15985,7 @@ extern void db_node(const an_ifc_expr_lambda &universal);
 
 template<>
 an_ifc_expr_lambda_storage* get<an_ifc_expr_lambda_storage>(
-                                      an_ifc_module              *mod,
+                                      an_ifc_module_file         *file,
                                       an_ifc_expr_lambda_storage *storage,
                                       a_boolean                  fill_storage);
 
@@ -16026,7 +16026,7 @@ extern void db_node(const an_ifc_expr_literal &universal);
 
 template<>
 an_ifc_expr_literal_storage* get<an_ifc_expr_literal_storage>(
-                                     an_ifc_module               *mod,
+                                     an_ifc_module_file          *file,
                                      an_ifc_expr_literal_storage *storage,
                                      a_boolean                   fill_storage);
 
@@ -16082,7 +16082,7 @@ extern void db_node(const an_ifc_expr_member_access &universal);
 
 template<>
 an_ifc_expr_member_access_storage* get<an_ifc_expr_member_access_storage>(
-                               an_ifc_module                     *mod,
+                               an_ifc_module_file                *file,
                                an_ifc_expr_member_access_storage *storage,
                                a_boolean                         fill_storage);
 
@@ -16142,7 +16142,7 @@ extern void db_node(const an_ifc_expr_member_initializer &universal);
 template<>
 an_ifc_expr_member_initializer_storage*
 get<an_ifc_expr_member_initializer_storage>(
-                          an_ifc_module                          *mod,
+                          an_ifc_module_file                     *file,
                           an_ifc_expr_member_initializer_storage *storage,
                           a_boolean                              fill_storage);
 
@@ -16195,7 +16195,7 @@ extern void db_node(const an_ifc_expr_monad &universal);
 
 template<>
 an_ifc_expr_monad_storage* get<an_ifc_expr_monad_storage>(
-                                       an_ifc_module             *mod,
+                                       an_ifc_module_file        *file,
                                        an_ifc_expr_monad_storage *storage,
                                        a_boolean                 fill_storage);
 
@@ -16236,7 +16236,7 @@ extern void db_node(const an_ifc_expr_named_decl &universal);
 
 template<>
 an_ifc_expr_named_decl_storage* get<an_ifc_expr_named_decl_storage>(
-                                  an_ifc_module                  *mod,
+                                  an_ifc_module_file             *file,
                                   an_ifc_expr_named_decl_storage *storage,
                                   a_boolean                      fill_storage);
 
@@ -16271,7 +16271,7 @@ extern void db_node(const an_ifc_expr_nullptr &universal);
 
 template<>
 an_ifc_expr_nullptr_storage* get<an_ifc_expr_nullptr_storage>(
-                                     an_ifc_module               *mod,
+                                     an_ifc_module_file          *file,
                                      an_ifc_expr_nullptr_storage *storage,
                                      a_boolean                   fill_storage);
 
@@ -16319,7 +16319,7 @@ extern void db_node(const an_ifc_expr_packed_template_arguments &universal);
 template<>
 an_ifc_expr_packed_template_arguments_storage*
 get<an_ifc_expr_packed_template_arguments_storage>(
-                   an_ifc_module                                 *mod,
+                   an_ifc_module_file                            *file,
                    an_ifc_expr_packed_template_arguments_storage *storage,
                    a_boolean                                     fill_storage);
 
@@ -16367,7 +16367,7 @@ extern void db_node(const an_ifc_expr_path &universal);
 
 template<>
 an_ifc_expr_path_storage* get<an_ifc_expr_path_storage>(
-                                        an_ifc_module            *mod,
+                                        an_ifc_module_file       *file,
                                         an_ifc_expr_path_storage *storage,
                                         a_boolean                fill_storage);
 
@@ -16402,7 +16402,7 @@ extern void db_node(const an_ifc_expr_placeholder &universal);
 
 template<>
 an_ifc_expr_placeholder_storage* get<an_ifc_expr_placeholder_storage>(
-                                 an_ifc_module                   *mod,
+                                 an_ifc_module_file              *file,
                                  an_ifc_expr_placeholder_storage *storage,
                                  a_boolean                       fill_storage);
 
@@ -16431,7 +16431,7 @@ extern void db_node(const an_ifc_expr_pointer &universal);
 
 template<>
 an_ifc_expr_pointer_storage* get<an_ifc_expr_pointer_storage>(
-                                     an_ifc_module               *mod,
+                                     an_ifc_module_file          *file,
                                      an_ifc_expr_pointer_storage *storage,
                                      a_boolean                   fill_storage);
 
@@ -16492,7 +16492,7 @@ extern void db_node(const an_ifc_expr_product_type_value &universal);
 template<>
 an_ifc_expr_product_type_value_storage*
 get<an_ifc_expr_product_type_value_storage>(
-                          an_ifc_module                          *mod,
+                          an_ifc_module_file                     *file,
                           an_ifc_expr_product_type_value_storage *storage,
                           a_boolean                              fill_storage);
 
@@ -16545,7 +16545,7 @@ extern void db_node(const an_ifc_expr_push_state &universal);
 
 template<>
 an_ifc_expr_push_state_storage* get<an_ifc_expr_push_state_storage>(
-                                  an_ifc_module                  *mod,
+                                  an_ifc_module_file             *file,
                                   an_ifc_expr_push_state_storage *storage,
                                   a_boolean                      fill_storage);
 
@@ -16597,7 +16597,7 @@ extern void db_node(const an_ifc_expr_qualified_name &universal);
 
 template<>
 an_ifc_expr_qualified_name_storage* get<an_ifc_expr_qualified_name_storage>(
-                              an_ifc_module                      *mod,
+                              an_ifc_module_file                 *file,
                               an_ifc_expr_qualified_name_storage *storage,
                               a_boolean                          fill_storage);
 
@@ -16644,7 +16644,7 @@ extern void db_node(const an_ifc_expr_read &universal);
 
 template<>
 an_ifc_expr_read_storage* get<an_ifc_expr_read_storage>(
-                                        an_ifc_module            *mod,
+                                        an_ifc_module_file       *file,
                                         an_ifc_expr_read_storage *storage,
                                         a_boolean                fill_storage);
 
@@ -16691,7 +16691,7 @@ extern void db_node(const an_ifc_expr_requires &universal);
 
 template<>
 an_ifc_expr_requires_storage* get<an_ifc_expr_requires_storage>(
-                                    an_ifc_module                *mod,
+                                    an_ifc_module_file           *file,
                                     an_ifc_expr_requires_storage *storage,
                                     a_boolean                    fill_storage);
 
@@ -16735,7 +16735,7 @@ extern void db_node(const an_ifc_expr_simple_identifier &universal);
 template<>
 an_ifc_expr_simple_identifier_storage*
 get<an_ifc_expr_simple_identifier_storage>(
-                           an_ifc_module                         *mod,
+                           an_ifc_module_file                    *file,
                            an_ifc_expr_simple_identifier_storage *storage,
                            a_boolean                             fill_storage);
 
@@ -16776,7 +16776,7 @@ extern void db_node(const an_ifc_expr_sizeof_type &universal);
 
 template<>
 an_ifc_expr_sizeof_type_storage* get<an_ifc_expr_sizeof_type_storage>(
-                                 an_ifc_module                   *mod,
+                                 an_ifc_module_file              *file,
                                  an_ifc_expr_sizeof_type_storage *storage,
                                  a_boolean                       fill_storage);
 
@@ -16817,7 +16817,7 @@ extern void db_node(const an_ifc_expr_string &universal);
 
 template<>
 an_ifc_expr_string_storage* get<an_ifc_expr_string_storage>(
-                                      an_ifc_module              *mod,
+                                      an_ifc_module_file         *file,
                                       an_ifc_expr_string_storage *storage,
                                       a_boolean                  fill_storage);
 
@@ -16861,7 +16861,7 @@ extern void db_node(const an_ifc_expr_string_sequence &universal);
 
 template<>
 an_ifc_expr_string_sequence_storage* get<an_ifc_expr_string_sequence_storage>(
-                             an_ifc_module                       *mod,
+                             an_ifc_module_file                  *file,
                              an_ifc_expr_string_sequence_storage *storage,
                              a_boolean                           fill_storage);
 
@@ -16891,7 +16891,7 @@ extern void db_node(const an_ifc_expr_subobject_value &universal);
 
 template<>
 an_ifc_expr_subobject_value_storage* get<an_ifc_expr_subobject_value_storage>(
-                             an_ifc_module                       *mod,
+                             an_ifc_module_file                  *file,
                              an_ifc_expr_subobject_value_storage *storage,
                              a_boolean                           fill_storage);
 
@@ -16947,7 +16947,7 @@ extern void db_node(const an_ifc_expr_sum_type_value &universal);
 
 template<>
 an_ifc_expr_sum_type_value_storage* get<an_ifc_expr_sum_type_value_storage>(
-                              an_ifc_module                      *mod,
+                              an_ifc_module_file                 *file,
                               an_ifc_expr_sum_type_value_storage *storage,
                               a_boolean                          fill_storage);
 
@@ -16976,7 +16976,7 @@ extern void db_node(const an_ifc_expr_syntax_tree &universal);
 
 template<>
 an_ifc_expr_syntax_tree_storage* get<an_ifc_expr_syntax_tree_storage>(
-                                 an_ifc_module                   *mod,
+                                 an_ifc_module_file              *file,
                                  an_ifc_expr_syntax_tree_storage *storage,
                                  a_boolean                       fill_storage);
 
@@ -17023,7 +17023,7 @@ extern void db_node(const an_ifc_expr_template_id &universal);
 
 template<>
 an_ifc_expr_template_id_storage* get<an_ifc_expr_template_id_storage>(
-                                 an_ifc_module                   *mod,
+                                 an_ifc_module_file              *file,
                                  an_ifc_expr_template_id_storage *storage,
                                  a_boolean                       fill_storage);
 
@@ -17098,7 +17098,7 @@ extern void db_node(const an_ifc_expr_template_reference &universal);
 template<>
 an_ifc_expr_template_reference_storage*
 get<an_ifc_expr_template_reference_storage>(
-                          an_ifc_module                          *mod,
+                          an_ifc_module_file                     *file,
                           an_ifc_expr_template_reference_storage *storage,
                           a_boolean                              fill_storage);
 
@@ -17139,7 +17139,7 @@ extern void db_node(const an_ifc_expr_temporary &universal);
 
 template<>
 an_ifc_expr_temporary_storage* get<an_ifc_expr_temporary_storage>(
-                                   an_ifc_module                 *mod,
+                                   an_ifc_module_file            *file,
                                    an_ifc_expr_temporary_storage *storage,
                                    a_boolean                     fill_storage);
 
@@ -17174,7 +17174,7 @@ extern void db_node(const an_ifc_expr_this &universal);
 
 template<>
 an_ifc_expr_this_storage* get<an_ifc_expr_this_storage>(
-                                        an_ifc_module            *mod,
+                                        an_ifc_module_file       *file,
                                         an_ifc_expr_this_storage *storage,
                                         a_boolean                fill_storage);
 
@@ -17215,7 +17215,7 @@ extern void db_node(const an_ifc_expr_tokens &universal);
 
 template<>
 an_ifc_expr_tokens_storage* get<an_ifc_expr_tokens_storage>(
-                                      an_ifc_module              *mod,
+                                      an_ifc_module_file         *file,
                                       an_ifc_expr_tokens_storage *storage,
                                       a_boolean                  fill_storage);
 
@@ -17280,7 +17280,7 @@ extern void db_node(const an_ifc_expr_triad &universal);
 
 template<>
 an_ifc_expr_triad_storage* get<an_ifc_expr_triad_storage>(
-                                       an_ifc_module             *mod,
+                                       an_ifc_module_file        *file,
                                        an_ifc_expr_triad_storage *storage,
                                        a_boolean                 fill_storage);
 
@@ -17327,7 +17327,7 @@ extern void db_node(const an_ifc_expr_tuple &universal);
 
 template<>
 an_ifc_expr_tuple_storage* get<an_ifc_expr_tuple_storage>(
-                                       an_ifc_module             *mod,
+                                       an_ifc_module_file        *file,
                                        an_ifc_expr_tuple_storage *storage,
                                        a_boolean                 fill_storage);
 
@@ -17368,7 +17368,7 @@ extern void db_node(const an_ifc_expr_type &universal);
 
 template<>
 an_ifc_expr_type_storage* get<an_ifc_expr_type_storage>(
-                                        an_ifc_module            *mod,
+                                        an_ifc_module_file       *file,
                                         an_ifc_expr_type_storage *storage,
                                         a_boolean                fill_storage);
 
@@ -17421,7 +17421,7 @@ extern void db_node(const an_ifc_expr_type_trait_intrinsic &universal);
 template<>
 an_ifc_expr_type_trait_intrinsic_storage*
 get<an_ifc_expr_type_trait_intrinsic_storage>(
-                        an_ifc_module                            *mod,
+                        an_ifc_module_file                       *file,
                         an_ifc_expr_type_trait_intrinsic_storage *storage,
                         a_boolean                                fill_storage);
 
@@ -17463,7 +17463,7 @@ extern void db_node(const an_ifc_expr_typeid &universal);
 
 template<>
 an_ifc_expr_typeid_storage* get<an_ifc_expr_typeid_storage>(
-                                      an_ifc_module              *mod,
+                                      an_ifc_module_file         *file,
                                       an_ifc_expr_typeid_storage *storage,
                                       a_boolean                  fill_storage);
 
@@ -17518,7 +17518,7 @@ extern void db_node(const an_ifc_expr_unary_fold &universal);
 
 template<>
 an_ifc_expr_unary_fold_storage* get<an_ifc_expr_unary_fold_storage>(
-                                  an_ifc_module                  *mod,
+                                  an_ifc_module_file             *file,
                                   an_ifc_expr_unary_fold_storage *storage,
                                   a_boolean                      fill_storage);
 
@@ -17576,7 +17576,7 @@ extern void db_node(const an_ifc_expr_unqualified_id &universal);
 
 template<>
 an_ifc_expr_unqualified_id_storage* get<an_ifc_expr_unqualified_id_storage>(
-                              an_ifc_module                      *mod,
+                              an_ifc_module_file                 *file,
                               an_ifc_expr_unqualified_id_storage *storage,
                               a_boolean                          fill_storage);
 
@@ -17619,7 +17619,7 @@ extern void db_node(const an_ifc_expr_unresolved_id &universal);
 
 template<>
 an_ifc_expr_unresolved_id_storage* get<an_ifc_expr_unresolved_id_storage>(
-                               an_ifc_module                     *mod,
+                               an_ifc_module_file                *file,
                                an_ifc_expr_unresolved_id_storage *storage,
                                a_boolean                         fill_storage);
 
@@ -17668,7 +17668,7 @@ extern void db_node(const an_ifc_expr_virtual_function_conversion &universal);
 template<>
 an_ifc_expr_virtual_function_conversion_storage*
 get<an_ifc_expr_virtual_function_conversion_storage>(
-                 an_ifc_module                                   *mod,
+                 an_ifc_module_file                              *file,
                  an_ifc_expr_virtual_function_conversion_storage *storage,
                  a_boolean                                       fill_storage);
 
@@ -17710,7 +17710,7 @@ extern void db_node(const an_ifc_form_catenate &universal);
 
 template<>
 an_ifc_form_catenate_storage* get<an_ifc_form_catenate_storage>(
-                                    an_ifc_module                *mod,
+                                    an_ifc_module_file           *file,
                                     an_ifc_form_catenate_storage *storage,
                                     a_boolean                    fill_storage);
 
@@ -17745,7 +17745,7 @@ extern void db_node(const an_ifc_form_character &universal);
 
 template<>
 an_ifc_form_character_storage* get<an_ifc_form_character_storage>(
-                                   an_ifc_module                 *mod,
+                                   an_ifc_module_file            *file,
                                    an_ifc_form_character_storage *storage,
                                    a_boolean                     fill_storage);
 
@@ -17780,7 +17780,7 @@ extern void db_node(const an_ifc_form_header &universal);
 
 template<>
 an_ifc_form_header_storage* get<an_ifc_form_header_storage>(
-                                      an_ifc_module              *mod,
+                                      an_ifc_module_file         *file,
                                       an_ifc_form_header_storage *storage,
                                       a_boolean                  fill_storage);
 
@@ -17815,7 +17815,7 @@ extern void db_node(const an_ifc_form_identifier &universal);
 
 template<>
 an_ifc_form_identifier_storage* get<an_ifc_form_identifier_storage>(
-                                  an_ifc_module                  *mod,
+                                  an_ifc_module_file             *file,
                                   an_ifc_form_identifier_storage *storage,
                                   a_boolean                      fill_storage);
 
@@ -17850,7 +17850,7 @@ extern void db_node(const an_ifc_form_junk &universal);
 
 template<>
 an_ifc_form_junk_storage* get<an_ifc_form_junk_storage>(
-                                        an_ifc_module            *mod,
+                                        an_ifc_module_file       *file,
                                         an_ifc_form_junk_storage *storage,
                                         a_boolean                fill_storage);
 
@@ -17885,7 +17885,7 @@ extern void db_node(const an_ifc_form_keyword &universal);
 
 template<>
 an_ifc_form_keyword_storage* get<an_ifc_form_keyword_storage>(
-                                     an_ifc_module               *mod,
+                                     an_ifc_module_file          *file,
                                      an_ifc_form_keyword_storage *storage,
                                      a_boolean                   fill_storage);
 
@@ -17920,7 +17920,7 @@ extern void db_node(const an_ifc_form_number &universal);
 
 template<>
 an_ifc_form_number_storage* get<an_ifc_form_number_storage>(
-                                      an_ifc_module              *mod,
+                                      an_ifc_module_file         *file,
                                       an_ifc_form_number_storage *storage,
                                       a_boolean                  fill_storage);
 
@@ -17961,7 +17961,7 @@ extern void db_node(const an_ifc_form_operator &universal);
 
 template<>
 an_ifc_form_operator_storage* get<an_ifc_form_operator_storage>(
-                                    an_ifc_module                *mod,
+                                    an_ifc_module_file           *file,
                                     an_ifc_form_operator_storage *storage,
                                     a_boolean                    fill_storage);
 
@@ -17996,7 +17996,7 @@ extern void db_node(const an_ifc_form_parameter &universal);
 
 template<>
 an_ifc_form_parameter_storage* get<an_ifc_form_parameter_storage>(
-                                   an_ifc_module                 *mod,
+                                   an_ifc_module_file            *file,
                                    an_ifc_form_parameter_storage *storage,
                                    a_boolean                     fill_storage);
 
@@ -18033,7 +18033,7 @@ extern void db_node(const an_ifc_form_parenthesized &universal);
 
 template<>
 an_ifc_form_parenthesized_storage* get<an_ifc_form_parenthesized_storage>(
-                               an_ifc_module                     *mod,
+                               an_ifc_module_file                *file,
                                an_ifc_form_parenthesized_storage *storage,
                                a_boolean                         fill_storage);
 
@@ -18068,7 +18068,7 @@ extern void db_node(const an_ifc_form_pragma &universal);
 
 template<>
 an_ifc_form_pragma_storage* get<an_ifc_form_pragma_storage>(
-                                      an_ifc_module              *mod,
+                                      an_ifc_module_file         *file,
                                       an_ifc_form_pragma_storage *storage,
                                       a_boolean                  fill_storage);
 
@@ -18103,7 +18103,7 @@ extern void db_node(const an_ifc_form_spec &universal);
 
 template<>
 an_ifc_form_spec_storage* get<an_ifc_form_spec_storage>(
-                                        an_ifc_module            *mod,
+                                        an_ifc_module_file       *file,
                                         an_ifc_form_spec_storage *storage,
                                         a_boolean                fill_storage);
 
@@ -18138,7 +18138,7 @@ extern void db_node(const an_ifc_form_string &universal);
 
 template<>
 an_ifc_form_string_storage* get<an_ifc_form_string_storage>(
-                                      an_ifc_module              *mod,
+                                      an_ifc_module_file         *file,
                                       an_ifc_form_string_storage *storage,
                                       a_boolean                  fill_storage);
 
@@ -18173,7 +18173,7 @@ extern void db_node(const an_ifc_form_stringize &universal);
 
 template<>
 an_ifc_form_stringize_storage* get<an_ifc_form_stringize_storage>(
-                                   an_ifc_module                 *mod,
+                                   an_ifc_module_file            *file,
                                    an_ifc_form_stringize_storage *storage,
                                    a_boolean                     fill_storage);
 
@@ -18208,7 +18208,7 @@ extern void db_node(const an_ifc_form_tuple &universal);
 
 template<>
 an_ifc_form_tuple_storage* get<an_ifc_form_tuple_storage>(
-                                       an_ifc_module             *mod,
+                                       an_ifc_module_file        *file,
                                        an_ifc_form_tuple_storage *storage,
                                        a_boolean                 fill_storage);
 
@@ -18237,7 +18237,7 @@ extern void db_node(const an_ifc_form_whitespace &universal);
 
 template<>
 an_ifc_form_whitespace_storage* get<an_ifc_form_whitespace_storage>(
-                                  an_ifc_module                  *mod,
+                                  an_ifc_module_file             *file,
                                   an_ifc_form_whitespace_storage *storage,
                                   a_boolean                      fill_storage);
 
@@ -18266,7 +18266,7 @@ extern void db_node(const an_ifc_heap_attr &universal);
 
 template<>
 an_ifc_heap_attr_storage* get<an_ifc_heap_attr_storage>(
-                                        an_ifc_module            *mod,
+                                        an_ifc_module_file       *file,
                                         an_ifc_heap_attr_storage *storage,
                                         a_boolean                fill_storage);
 
@@ -18295,7 +18295,7 @@ extern void db_node(const an_ifc_heap_chart &universal);
 
 template<>
 an_ifc_heap_chart_storage* get<an_ifc_heap_chart_storage>(
-                                       an_ifc_module             *mod,
+                                       an_ifc_module_file        *file,
                                        an_ifc_heap_chart_storage *storage,
                                        a_boolean                 fill_storage);
 
@@ -18324,7 +18324,7 @@ extern void db_node(const an_ifc_heap_decl &universal);
 
 template<>
 an_ifc_heap_decl_storage* get<an_ifc_heap_decl_storage>(
-                                        an_ifc_module            *mod,
+                                        an_ifc_module_file       *file,
                                         an_ifc_heap_decl_storage *storage,
                                         a_boolean                fill_storage);
 
@@ -18353,7 +18353,7 @@ extern void db_node(const an_ifc_heap_expr &universal);
 
 template<>
 an_ifc_heap_expr_storage* get<an_ifc_heap_expr_storage>(
-                                        an_ifc_module            *mod,
+                                        an_ifc_module_file       *file,
                                         an_ifc_heap_expr_storage *storage,
                                         a_boolean                fill_storage);
 
@@ -18382,7 +18382,7 @@ extern void db_node(const an_ifc_heap_form &universal);
 
 template<>
 an_ifc_heap_form_storage* get<an_ifc_heap_form_storage>(
-                                        an_ifc_module            *mod,
+                                        an_ifc_module_file       *file,
                                         an_ifc_heap_form_storage *storage,
                                         a_boolean                fill_storage);
 
@@ -18411,7 +18411,7 @@ extern void db_node(const an_ifc_heap_pp_form &universal);
 
 template<>
 an_ifc_heap_pp_form_storage* get<an_ifc_heap_pp_form_storage>(
-                                     an_ifc_module               *mod,
+                                     an_ifc_module_file          *file,
                                      an_ifc_heap_pp_form_storage *storage,
                                      a_boolean                   fill_storage);
 
@@ -18440,7 +18440,7 @@ extern void db_node(const an_ifc_heap_stmt &universal);
 
 template<>
 an_ifc_heap_stmt_storage* get<an_ifc_heap_stmt_storage>(
-                                        an_ifc_module            *mod,
+                                        an_ifc_module_file       *file,
                                         an_ifc_heap_stmt_storage *storage,
                                         a_boolean                fill_storage);
 
@@ -18469,7 +18469,7 @@ extern void db_node(const an_ifc_heap_syntax &universal);
 
 template<>
 an_ifc_heap_syntax_storage* get<an_ifc_heap_syntax_storage>(
-                                      an_ifc_module              *mod,
+                                      an_ifc_module_file         *file,
                                       an_ifc_heap_syntax_storage *storage,
                                       a_boolean                  fill_storage);
 
@@ -18498,7 +18498,7 @@ extern void db_node(const an_ifc_heap_type &universal);
 
 template<>
 an_ifc_heap_type_storage* get<an_ifc_heap_type_storage>(
-                                        an_ifc_module            *mod,
+                                        an_ifc_module_file       *file,
                                         an_ifc_heap_type_storage *storage,
                                         a_boolean                fill_storage);
 
@@ -18555,7 +18555,7 @@ extern void db_node(const an_ifc_macro_function_like &universal);
 
 template<>
 an_ifc_macro_function_like_storage* get<an_ifc_macro_function_like_storage>(
-                              an_ifc_module                      *mod,
+                              an_ifc_module_file                 *file,
                               an_ifc_macro_function_like_storage *storage,
                               a_boolean                          fill_storage);
 
@@ -18598,7 +18598,7 @@ extern void db_node(const an_ifc_macro_object_like &universal);
 
 template<>
 an_ifc_macro_object_like_storage* get<an_ifc_macro_object_like_storage>(
-                                an_ifc_module                    *mod,
+                                an_ifc_module_file               *file,
                                 an_ifc_macro_object_like_storage *storage,
                                 a_boolean                        fill_storage);
 
@@ -18630,7 +18630,7 @@ extern void db_node(const an_ifc_module_export_reference &universal);
 template<>
 an_ifc_module_export_reference_storage*
 get<an_ifc_module_export_reference_storage>(
-                          an_ifc_module                          *mod,
+                          an_ifc_module_file                     *file,
                           an_ifc_module_export_reference_storage *storage,
                           a_boolean                              fill_storage);
 
@@ -18662,7 +18662,7 @@ extern void db_node(const an_ifc_module_import_reference &universal);
 template<>
 an_ifc_module_import_reference_storage*
 get<an_ifc_module_import_reference_storage>(
-                          an_ifc_module                          *mod,
+                          an_ifc_module_file                     *file,
                           an_ifc_module_import_reference_storage *storage,
                           a_boolean                              fill_storage);
 
@@ -18697,7 +18697,7 @@ extern void db_node(const an_ifc_name_conversion &universal);
 
 template<>
 an_ifc_name_conversion_storage* get<an_ifc_name_conversion_storage>(
-                                  an_ifc_module                  *mod,
+                                  an_ifc_module_file             *file,
                                   an_ifc_name_conversion_storage *storage,
                                   a_boolean                      fill_storage);
 
@@ -18726,7 +18726,7 @@ extern void db_node(const an_ifc_name_guide &universal);
 
 template<>
 an_ifc_name_guide_storage* get<an_ifc_name_guide_storage>(
-                                       an_ifc_module             *mod,
+                                       an_ifc_module_file        *file,
                                        an_ifc_name_guide_storage *storage,
                                        a_boolean                 fill_storage);
 
@@ -18755,7 +18755,7 @@ extern void db_node(const an_ifc_name_literal &universal);
 
 template<>
 an_ifc_name_literal_storage* get<an_ifc_name_literal_storage>(
-                                     an_ifc_module               *mod,
+                                     an_ifc_module_file          *file,
                                      an_ifc_name_literal_storage *storage,
                                      a_boolean                   fill_storage);
 
@@ -18791,7 +18791,7 @@ extern void db_node(const an_ifc_name_operator &universal);
 
 template<>
 an_ifc_name_operator_storage* get<an_ifc_name_operator_storage>(
-                                    an_ifc_module                *mod,
+                                    an_ifc_module_file           *file,
                                     an_ifc_name_operator_storage *storage,
                                     a_boolean                    fill_storage);
 
@@ -18826,7 +18826,7 @@ extern void db_node(const an_ifc_name_source_file &universal);
 
 template<>
 an_ifc_name_source_file_storage* get<an_ifc_name_source_file_storage>(
-                                 an_ifc_module                   *mod,
+                                 an_ifc_module_file              *file,
                                  an_ifc_name_source_file_storage *storage,
                                  a_boolean                       fill_storage);
 
@@ -18863,7 +18863,7 @@ extern void db_node(const an_ifc_name_specialization &universal);
 
 template<>
 an_ifc_name_specialization_storage* get<an_ifc_name_specialization_storage>(
-                              an_ifc_module                      *mod,
+                              an_ifc_module_file                 *file,
                               an_ifc_name_specialization_storage *storage,
                               a_boolean                          fill_storage);
 
@@ -18892,7 +18892,7 @@ extern void db_node(const an_ifc_name_template &universal);
 
 template<>
 an_ifc_name_template_storage* get<an_ifc_name_template_storage>(
-                                    an_ifc_module                *mod,
+                                    an_ifc_module_file           *file,
                                     an_ifc_name_template_storage *storage,
                                     a_boolean                    fill_storage);
 
@@ -18928,7 +18928,7 @@ extern void db_node(const an_ifc_scope_descriptor &universal);
 
 template<>
 an_ifc_scope_descriptor_storage* get<an_ifc_scope_descriptor_storage>(
-                                 an_ifc_module                   *mod,
+                                 an_ifc_module_file              *file,
                                  an_ifc_scope_descriptor_storage *storage,
                                  a_boolean                       fill_storage);
 
@@ -18957,7 +18957,7 @@ extern void db_node(const an_ifc_scope_member &universal);
 
 template<>
 an_ifc_scope_member_storage* get<an_ifc_scope_member_storage>(
-                                     an_ifc_module               *mod,
+                                     an_ifc_module_file          *file,
                                      an_ifc_scope_member_storage *storage,
                                      a_boolean                   fill_storage);
 
@@ -18992,7 +18992,7 @@ extern void db_node(const an_ifc_source_line &universal);
 
 template<>
 an_ifc_source_line_storage* get<an_ifc_source_line_storage>(
-                                      an_ifc_module              *mod,
+                                      an_ifc_module_file         *file,
                                       an_ifc_source_line_storage *storage,
                                       a_boolean                  fill_storage);
 
@@ -19034,7 +19034,7 @@ extern void db_node(const an_ifc_source_sentence &universal);
 
 template<>
 an_ifc_source_sentence_storage* get<an_ifc_source_sentence_storage>(
-                                  an_ifc_module                  *mod,
+                                  an_ifc_module_file             *file,
                                   an_ifc_source_sentence_storage *storage,
                                   a_boolean                      fill_storage);
 
@@ -19087,7 +19087,7 @@ extern void db_node(const an_ifc_source_word &universal);
 
 template<>
 an_ifc_source_word_storage* get<an_ifc_source_word_storage>(
-                                      an_ifc_module              *mod,
+                                      an_ifc_module_file         *file,
                                       an_ifc_source_word_storage *storage,
                                       a_boolean                  fill_storage);
 
@@ -19128,7 +19128,7 @@ extern void db_node(const an_ifc_stmt_block &universal);
 
 template<>
 an_ifc_stmt_block_storage* get<an_ifc_stmt_block_storage>(
-                                       an_ifc_module             *mod,
+                                       an_ifc_module_file        *file,
                                        an_ifc_stmt_block_storage *storage,
                                        a_boolean                 fill_storage);
 
@@ -19157,7 +19157,7 @@ extern void db_node(const an_ifc_stmt_break &universal);
 
 template<>
 an_ifc_stmt_break_storage* get<an_ifc_stmt_break_storage>(
-                                       an_ifc_module             *mod,
+                                       an_ifc_module_file        *file,
                                        an_ifc_stmt_break_storage *storage,
                                        a_boolean                 fill_storage);
 
@@ -19192,7 +19192,7 @@ extern void db_node(const an_ifc_stmt_case &universal);
 
 template<>
 an_ifc_stmt_case_storage* get<an_ifc_stmt_case_storage>(
-                                        an_ifc_module            *mod,
+                                        an_ifc_module_file       *file,
                                         an_ifc_stmt_case_storage *storage,
                                         a_boolean                fill_storage);
 
@@ -19221,7 +19221,7 @@ extern void db_node(const an_ifc_stmt_continue &universal);
 
 template<>
 an_ifc_stmt_continue_storage* get<an_ifc_stmt_continue_storage>(
-                                    an_ifc_module                *mod,
+                                    an_ifc_module_file           *file,
                                     an_ifc_stmt_continue_storage *storage,
                                     a_boolean                    fill_storage);
 
@@ -19256,7 +19256,7 @@ extern void db_node(const an_ifc_stmt_decl &universal);
 
 template<>
 an_ifc_stmt_decl_storage* get<an_ifc_stmt_decl_storage>(
-                                        an_ifc_module            *mod,
+                                        an_ifc_module_file       *file,
                                         an_ifc_stmt_decl_storage *storage,
                                         a_boolean                fill_storage);
 
@@ -19285,7 +19285,7 @@ extern void db_node(const an_ifc_stmt_default &universal);
 
 template<>
 an_ifc_stmt_default_storage* get<an_ifc_stmt_default_storage>(
-                                     an_ifc_module               *mod,
+                                     an_ifc_module_file          *file,
                                      an_ifc_stmt_default_storage *storage,
                                      a_boolean                   fill_storage);
 
@@ -19326,7 +19326,7 @@ extern void db_node(const an_ifc_stmt_do_while &universal);
 
 template<>
 an_ifc_stmt_do_while_storage* get<an_ifc_stmt_do_while_storage>(
-                                    an_ifc_module                *mod,
+                                    an_ifc_module_file           *file,
                                     an_ifc_stmt_do_while_storage *storage,
                                     a_boolean                    fill_storage);
 
@@ -19355,7 +19355,7 @@ extern void db_node(const an_ifc_stmt_empty &universal);
 
 template<>
 an_ifc_stmt_empty_storage* get<an_ifc_stmt_empty_storage>(
-                                       an_ifc_module             *mod,
+                                       an_ifc_module_file        *file,
                                        an_ifc_stmt_empty_storage *storage,
                                        a_boolean                 fill_storage);
 
@@ -19390,7 +19390,7 @@ extern void db_node(const an_ifc_stmt_expansion &universal);
 
 template<>
 an_ifc_stmt_expansion_storage* get<an_ifc_stmt_expansion_storage>(
-                                   an_ifc_module                 *mod,
+                                   an_ifc_module_file            *file,
                                    an_ifc_stmt_expansion_storage *storage,
                                    a_boolean                     fill_storage);
 
@@ -19425,7 +19425,7 @@ extern void db_node(const an_ifc_stmt_expression &universal);
 
 template<>
 an_ifc_stmt_expression_storage* get<an_ifc_stmt_expression_storage>(
-                                  an_ifc_module                  *mod,
+                                  an_ifc_module_file             *file,
                                   an_ifc_stmt_expression_storage *storage,
                                   a_boolean                      fill_storage);
 
@@ -19478,7 +19478,7 @@ extern void db_node(const an_ifc_stmt_for &universal);
 
 template<>
 an_ifc_stmt_for_storage* get<an_ifc_stmt_for_storage>(
-                                         an_ifc_module           *mod,
+                                         an_ifc_module_file      *file,
                                          an_ifc_stmt_for_storage *storage,
                                          a_boolean               fill_storage);
 
@@ -19513,7 +19513,7 @@ extern void db_node(const an_ifc_stmt_goto &universal);
 
 template<>
 an_ifc_stmt_goto_storage* get<an_ifc_stmt_goto_storage>(
-                                        an_ifc_module            *mod,
+                                        an_ifc_module_file       *file,
                                         an_ifc_stmt_goto_storage *storage,
                                         a_boolean                fill_storage);
 
@@ -19554,7 +19554,7 @@ extern void db_node(const an_ifc_stmt_handler &universal);
 
 template<>
 an_ifc_stmt_handler_storage* get<an_ifc_stmt_handler_storage>(
-                                     an_ifc_module               *mod,
+                                     an_ifc_module_file          *file,
                                      an_ifc_stmt_handler_storage *storage,
                                      a_boolean                   fill_storage);
 
@@ -19607,7 +19607,7 @@ extern void db_node(const an_ifc_stmt_if &universal);
 
 template<>
 an_ifc_stmt_if_storage* get<an_ifc_stmt_if_storage>(
-                                          an_ifc_module          *mod,
+                                          an_ifc_module_file     *file,
                                           an_ifc_stmt_if_storage *storage,
                                           a_boolean              fill_storage);
 
@@ -19654,7 +19654,7 @@ extern void db_node(const an_ifc_stmt_labeled &universal);
 
 template<>
 an_ifc_stmt_labeled_storage* get<an_ifc_stmt_labeled_storage>(
-                                     an_ifc_module               *mod,
+                                     an_ifc_module_file          *file,
                                      an_ifc_stmt_labeled_storage *storage,
                                      a_boolean                   fill_storage);
 
@@ -19701,7 +19701,7 @@ extern void db_node(const an_ifc_stmt_return &universal);
 
 template<>
 an_ifc_stmt_return_storage* get<an_ifc_stmt_return_storage>(
-                                      an_ifc_module              *mod,
+                                      an_ifc_module_file         *file,
                                       an_ifc_stmt_return_storage *storage,
                                       a_boolean                  fill_storage);
 
@@ -19748,7 +19748,7 @@ extern void db_node(const an_ifc_stmt_switch &universal);
 
 template<>
 an_ifc_stmt_switch_storage* get<an_ifc_stmt_switch_storage>(
-                                      an_ifc_module              *mod,
+                                      an_ifc_module_file         *file,
                                       an_ifc_stmt_switch_storage *storage,
                                       a_boolean                  fill_storage);
 
@@ -19795,7 +19795,7 @@ extern void db_node(const an_ifc_stmt_try &universal);
 
 template<>
 an_ifc_stmt_try_storage* get<an_ifc_stmt_try_storage>(
-                                         an_ifc_module           *mod,
+                                         an_ifc_module_file      *file,
                                          an_ifc_stmt_try_storage *storage,
                                          a_boolean               fill_storage);
 
@@ -19836,7 +19836,7 @@ extern void db_node(const an_ifc_stmt_tuple &universal);
 
 template<>
 an_ifc_stmt_tuple_storage* get<an_ifc_stmt_tuple_storage>(
-                                       an_ifc_module             *mod,
+                                       an_ifc_module_file        *file,
                                        an_ifc_stmt_tuple_storage *storage,
                                        a_boolean                 fill_storage);
 
@@ -19873,7 +19873,7 @@ extern void db_node(const an_ifc_stmt_variable_decl &universal);
 
 template<>
 an_ifc_stmt_variable_decl_storage* get<an_ifc_stmt_variable_decl_storage>(
-                               an_ifc_module                     *mod,
+                               an_ifc_module_file                *file,
                                an_ifc_stmt_variable_decl_storage *storage,
                                a_boolean                         fill_storage);
 
@@ -19914,7 +19914,7 @@ extern void db_node(const an_ifc_stmt_while &universal);
 
 template<>
 an_ifc_stmt_while_storage* get<an_ifc_stmt_while_storage>(
-                                       an_ifc_module             *mod,
+                                       an_ifc_module_file        *file,
                                        an_ifc_stmt_while_storage *storage,
                                        a_boolean                 fill_storage);
 
@@ -19981,7 +19981,7 @@ extern void db_node(const an_ifc_syntax_access_specifier &universal);
 template<>
 an_ifc_syntax_access_specifier_storage*
 get<an_ifc_syntax_access_specifier_storage>(
-                          an_ifc_module                          *mod,
+                          an_ifc_module_file                     *file,
                           an_ifc_syntax_access_specifier_storage *storage,
                           a_boolean                              fill_storage);
 
@@ -20041,7 +20041,7 @@ extern void db_node(const an_ifc_syntax_alias_declaration &universal);
 template<>
 an_ifc_syntax_alias_declaration_storage*
 get<an_ifc_syntax_alias_declaration_storage>(
-                         an_ifc_module                           *mod,
+                         an_ifc_module_file                      *file,
                          an_ifc_syntax_alias_declaration_storage *storage,
                          a_boolean                               fill_storage);
 
@@ -20091,7 +20091,7 @@ extern void db_node(const an_ifc_syntax_alignas &universal);
 
 template<>
 an_ifc_syntax_alignas_storage* get<an_ifc_syntax_alignas_storage>(
-                                   an_ifc_module                 *mod,
+                                   an_ifc_module_file            *file,
                                    an_ifc_syntax_alignas_storage *storage,
                                    a_boolean                     fill_storage);
 
@@ -20139,7 +20139,7 @@ extern void db_node(const an_ifc_syntax_array_declarator &universal);
 template<>
 an_ifc_syntax_array_declarator_storage*
 get<an_ifc_syntax_array_declarator_storage>(
-                          an_ifc_module                          *mod,
+                          an_ifc_module_file                     *file,
                           an_ifc_syntax_array_declarator_storage *storage,
                           a_boolean                              fill_storage);
 
@@ -20189,7 +20189,7 @@ extern void db_node(const an_ifc_syntax_array_index &universal);
 
 template<>
 an_ifc_syntax_array_index_storage* get<an_ifc_syntax_array_index_storage>(
-                               an_ifc_module                     *mod,
+                               an_ifc_module_file                *file,
                                an_ifc_syntax_array_index_storage *storage,
                                a_boolean                         fill_storage);
 
@@ -20233,7 +20233,7 @@ extern void db_node(
 template<>
 an_ifc_syntax_array_or_function_declarator_storage*
 get<an_ifc_syntax_array_or_function_declarator_storage>(
-              an_ifc_module                                      *mod,
+              an_ifc_module_file                                 *file,
               an_ifc_syntax_array_or_function_declarator_storage *storage,
               a_boolean                                          fill_storage);
 
@@ -20272,7 +20272,7 @@ extern void db_node(const an_ifc_syntax_asm_statement &universal);
 
 template<>
 an_ifc_syntax_asm_statement_storage* get<an_ifc_syntax_asm_statement_storage>(
-                             an_ifc_module                       *mod,
+                             an_ifc_module_file                  *file,
                              an_ifc_syntax_asm_statement_storage *storage,
                              a_boolean                           fill_storage);
 
@@ -20334,7 +20334,7 @@ extern void db_node(const an_ifc_syntax_attribute &universal);
 
 template<>
 an_ifc_syntax_attribute_storage* get<an_ifc_syntax_attribute_storage>(
-                                 an_ifc_module                   *mod,
+                                 an_ifc_module_file              *file,
                                  an_ifc_syntax_attribute_storage *storage,
                                  a_boolean                       fill_storage);
 
@@ -20383,7 +20383,7 @@ extern void db_node(const an_ifc_syntax_attribute_argument_clause &universal);
 template<>
 an_ifc_syntax_attribute_argument_clause_storage*
 get<an_ifc_syntax_attribute_argument_clause_storage>(
-                 an_ifc_module                                   *mod,
+                 an_ifc_module_file                              *file,
                  an_ifc_syntax_attribute_argument_clause_storage *storage,
                  a_boolean                                       fill_storage);
 
@@ -20456,7 +20456,7 @@ extern void db_node(const an_ifc_syntax_attribute_specifier &universal);
 template<>
 an_ifc_syntax_attribute_specifier_storage*
 get<an_ifc_syntax_attribute_specifier_storage>(
-                       an_ifc_module                             *mod,
+                       an_ifc_module_file                        *file,
                        an_ifc_syntax_attribute_specifier_storage *storage,
                        a_boolean                                 fill_storage);
 
@@ -20490,7 +20490,7 @@ extern void db_node(const an_ifc_syntax_attribute_specifier_seq &universal);
 template<>
 an_ifc_syntax_attribute_specifier_seq_storage*
 get<an_ifc_syntax_attribute_specifier_seq_storage>(
-                   an_ifc_module                                 *mod,
+                   an_ifc_module_file                            *file,
                    an_ifc_syntax_attribute_specifier_seq_storage *storage,
                    a_boolean                                     fill_storage);
 
@@ -20530,7 +20530,7 @@ extern void db_node(const an_ifc_syntax_attribute_using_prefix &universal);
 template<>
 an_ifc_syntax_attribute_using_prefix_storage*
 get<an_ifc_syntax_attribute_using_prefix_storage>(
-                    an_ifc_module                                *mod,
+                    an_ifc_module_file                           *file,
                     an_ifc_syntax_attribute_using_prefix_storage *storage,
                     a_boolean                                    fill_storage);
 
@@ -20578,7 +20578,7 @@ extern void db_node(const an_ifc_syntax_attributed_declaration &universal);
 template<>
 an_ifc_syntax_attributed_declaration_storage*
 get<an_ifc_syntax_attributed_declaration_storage>(
-                    an_ifc_module                                *mod,
+                    an_ifc_module_file                           *file,
                     an_ifc_syntax_attributed_declaration_storage *storage,
                     a_boolean                                    fill_storage);
 
@@ -20626,7 +20626,7 @@ extern void db_node(const an_ifc_syntax_attributed_statement &universal);
 template<>
 an_ifc_syntax_attributed_statement_storage*
 get<an_ifc_syntax_attributed_statement_storage>(
-                      an_ifc_module                              *mod,
+                      an_ifc_module_file                         *file,
                       an_ifc_syntax_attributed_statement_storage *storage,
                       a_boolean                                  fill_storage);
 
@@ -20666,7 +20666,7 @@ extern void db_node(const an_ifc_syntax_base_specifier &universal);
 template<>
 an_ifc_syntax_base_specifier_storage*
 get<an_ifc_syntax_base_specifier_storage>(
-                            an_ifc_module                        *mod,
+                            an_ifc_module_file                   *file,
                             an_ifc_syntax_base_specifier_storage *storage,
                             a_boolean                            fill_storage);
 
@@ -20706,7 +20706,7 @@ extern void db_node(const an_ifc_syntax_base_specifier_list &universal);
 template<>
 an_ifc_syntax_base_specifier_list_storage*
 get<an_ifc_syntax_base_specifier_list_storage>(
-                       an_ifc_module                             *mod,
+                       an_ifc_module_file                        *file,
                        an_ifc_syntax_base_specifier_list_storage *storage,
                        a_boolean                                 fill_storage);
 
@@ -20802,7 +20802,7 @@ extern void db_node(const an_ifc_syntax_binary_fold_expression &universal);
 template<>
 an_ifc_syntax_binary_fold_expression_storage*
 get<an_ifc_syntax_binary_fold_expression_storage>(
-                    an_ifc_module                                *mod,
+                    an_ifc_module_file                           *file,
                     an_ifc_syntax_binary_fold_expression_storage *storage,
                     a_boolean                                    fill_storage);
 
@@ -20842,7 +20842,7 @@ extern void db_node(const an_ifc_syntax_break_statement &universal);
 template<>
 an_ifc_syntax_break_statement_storage*
 get<an_ifc_syntax_break_statement_storage>(
-                           an_ifc_module                         *mod,
+                           an_ifc_module_file                    *file,
                            an_ifc_syntax_break_statement_storage *storage,
                            a_boolean                             fill_storage);
 
@@ -20887,7 +20887,7 @@ extern void db_node(const an_ifc_syntax_capture_default &universal);
 template<>
 an_ifc_syntax_capture_default_storage*
 get<an_ifc_syntax_capture_default_storage>(
-                           an_ifc_module                         *mod,
+                           an_ifc_module_file                    *file,
                            an_ifc_syntax_capture_default_storage *storage,
                            a_boolean                             fill_storage);
 
@@ -20953,7 +20953,7 @@ extern void db_node(const an_ifc_syntax_class_specifier &universal);
 template<>
 an_ifc_syntax_class_specifier_storage*
 get<an_ifc_syntax_class_specifier_storage>(
-                           an_ifc_module                         *mod,
+                           an_ifc_module_file                    *file,
                            an_ifc_syntax_class_specifier_storage *storage,
                            a_boolean                             fill_storage);
 
@@ -21017,7 +21017,7 @@ extern void db_node(const an_ifc_syntax_compound_requirement &universal);
 template<>
 an_ifc_syntax_compound_requirement_storage*
 get<an_ifc_syntax_compound_requirement_storage>(
-                      an_ifc_module                              *mod,
+                      an_ifc_module_file                         *file,
                       an_ifc_syntax_compound_requirement_storage *storage,
                       a_boolean                                  fill_storage);
 
@@ -21073,7 +21073,7 @@ extern void db_node(const an_ifc_syntax_compound_statement &universal);
 template<>
 an_ifc_syntax_compound_statement_storage*
 get<an_ifc_syntax_compound_statement_storage>(
-                        an_ifc_module                            *mod,
+                        an_ifc_module_file                       *file,
                         an_ifc_syntax_compound_statement_storage *storage,
                         a_boolean                                fill_storage);
 
@@ -21151,7 +21151,7 @@ extern void db_node(const an_ifc_syntax_concept_definition &universal);
 template<>
 an_ifc_syntax_concept_definition_storage*
 get<an_ifc_syntax_concept_definition_storage>(
-                        an_ifc_module                            *mod,
+                        an_ifc_module_file                       *file,
                         an_ifc_syntax_concept_definition_storage *storage,
                         a_boolean                                fill_storage);
 
@@ -21200,7 +21200,7 @@ extern void db_node(const an_ifc_syntax_condition_declaration &universal);
 template<>
 an_ifc_syntax_condition_declaration_storage*
 get<an_ifc_syntax_condition_declaration_storage>(
-                     an_ifc_module                               *mod,
+                     an_ifc_module_file                          *file,
                      an_ifc_syntax_condition_declaration_storage *storage,
                      a_boolean                                   fill_storage);
 
@@ -21240,7 +21240,7 @@ extern void db_node(const an_ifc_syntax_continue_statement &universal);
 template<>
 an_ifc_syntax_continue_statement_storage*
 get<an_ifc_syntax_continue_statement_storage>(
-                        an_ifc_module                            *mod,
+                        an_ifc_module_file                       *file,
                         an_ifc_syntax_continue_statement_storage *storage,
                         a_boolean                                fill_storage);
 
@@ -21281,7 +21281,7 @@ extern void db_node(const an_ifc_syntax_ctor_initializer &universal);
 template<>
 an_ifc_syntax_ctor_initializer_storage*
 get<an_ifc_syntax_ctor_initializer_storage>(
-                          an_ifc_module                          *mod,
+                          an_ifc_module_file                     *file,
                           an_ifc_syntax_ctor_initializer_storage *storage,
                           a_boolean                              fill_storage);
 
@@ -21358,7 +21358,7 @@ extern void db_node(const an_ifc_syntax_decl_specifier_seq &universal);
 template<>
 an_ifc_syntax_decl_specifier_seq_storage*
 get<an_ifc_syntax_decl_specifier_seq_storage>(
-                        an_ifc_module                            *mod,
+                        an_ifc_module_file                       *file,
                         an_ifc_syntax_decl_specifier_seq_storage *storage,
                         a_boolean                                fill_storage);
 
@@ -21398,7 +21398,7 @@ extern void db_node(const an_ifc_syntax_declaration_statement &universal);
 template<>
 an_ifc_syntax_declaration_statement_storage*
 get<an_ifc_syntax_declaration_statement_storage>(
-                     an_ifc_module                               *mod,
+                     an_ifc_module_file                          *file,
                      an_ifc_syntax_declaration_statement_storage *storage,
                      a_boolean                                   fill_storage);
 
@@ -21498,7 +21498,7 @@ extern void db_node(const an_ifc_syntax_declarator &universal);
 
 template<>
 an_ifc_syntax_declarator_storage* get<an_ifc_syntax_declarator_storage>(
-                                an_ifc_module                    *mod,
+                                an_ifc_module_file               *file,
                                 an_ifc_syntax_declarator_storage *storage,
                                 a_boolean                        fill_storage);
 
@@ -21554,7 +21554,7 @@ extern void db_node(const an_ifc_syntax_decltype_specifier &universal);
 template<>
 an_ifc_syntax_decltype_specifier_storage*
 get<an_ifc_syntax_decltype_specifier_storage>(
-                        an_ifc_module                            *mod,
+                        an_ifc_module_file                       *file,
                         an_ifc_syntax_decltype_specifier_storage *storage,
                         a_boolean                                fill_storage);
 
@@ -21622,7 +21622,7 @@ extern void db_node(const an_ifc_syntax_do_while_statement &universal);
 template<>
 an_ifc_syntax_do_while_statement_storage*
 get<an_ifc_syntax_do_while_statement_storage>(
-                        an_ifc_module                            *mod,
+                        an_ifc_module_file                       *file,
                         an_ifc_syntax_do_while_statement_storage *storage,
                         a_boolean                                fill_storage);
 
@@ -21687,7 +21687,7 @@ extern void db_node(const an_ifc_syntax_dynamic_exception_spec &universal);
 template<>
 an_ifc_syntax_dynamic_exception_spec_storage*
 get<an_ifc_syntax_dynamic_exception_spec_storage>(
-                    an_ifc_module                                *mod,
+                    an_ifc_module_file                           *file,
                     an_ifc_syntax_dynamic_exception_spec_storage *storage,
                     a_boolean                                    fill_storage);
 
@@ -21720,7 +21720,7 @@ extern void db_node(const an_ifc_syntax_empty_statement &universal);
 template<>
 an_ifc_syntax_empty_statement_storage*
 get<an_ifc_syntax_empty_statement_storage>(
-                           an_ifc_module                         *mod,
+                           an_ifc_module_file                    *file,
                            an_ifc_syntax_empty_statement_storage *storage,
                            a_boolean                             fill_storage);
 
@@ -21800,7 +21800,7 @@ extern void db_node(const an_ifc_syntax_enum_specifier &universal);
 template<>
 an_ifc_syntax_enum_specifier_storage*
 get<an_ifc_syntax_enum_specifier_storage>(
-                            an_ifc_module                        *mod,
+                            an_ifc_module_file                   *file,
                             an_ifc_syntax_enum_specifier_storage *storage,
                             a_boolean                            fill_storage);
 
@@ -21861,7 +21861,7 @@ extern void db_node(const an_ifc_syntax_enumerator_definition &universal);
 template<>
 an_ifc_syntax_enumerator_definition_storage*
 get<an_ifc_syntax_enumerator_definition_storage>(
-                     an_ifc_module                               *mod,
+                     an_ifc_module_file                          *file,
                      an_ifc_syntax_enumerator_definition_storage *storage,
                      a_boolean                                   fill_storage);
 
@@ -21918,7 +21918,7 @@ extern void db_node(const an_ifc_syntax_exception_declaration &universal);
 template<>
 an_ifc_syntax_exception_declaration_storage*
 get<an_ifc_syntax_exception_declaration_storage>(
-                     an_ifc_module                               *mod,
+                     an_ifc_module_file                          *file,
                      an_ifc_syntax_exception_declaration_storage *storage,
                      a_boolean                                   fill_storage);
 
@@ -21974,7 +21974,7 @@ extern void db_node(const an_ifc_syntax_explicit_specifier &universal);
 template<>
 an_ifc_syntax_explicit_specifier_storage*
 get<an_ifc_syntax_explicit_specifier_storage>(
-                        an_ifc_module                            *mod,
+                        an_ifc_module_file                       *file,
                         an_ifc_syntax_explicit_specifier_storage *storage,
                         a_boolean                                fill_storage);
 
@@ -22006,7 +22006,7 @@ extern void db_node(const an_ifc_syntax_expression &universal);
 
 template<>
 an_ifc_syntax_expression_storage* get<an_ifc_syntax_expression_storage>(
-                                an_ifc_module                    *mod,
+                                an_ifc_module_file               *file,
                                 an_ifc_syntax_expression_storage *storage,
                                 a_boolean                        fill_storage);
 
@@ -22053,7 +22053,7 @@ extern void db_node(const an_ifc_syntax_expression_statement &universal);
 template<>
 an_ifc_syntax_expression_statement_storage*
 get<an_ifc_syntax_expression_statement_storage>(
-                      an_ifc_module                              *mod,
+                      an_ifc_module_file                         *file,
                       an_ifc_syntax_expression_statement_storage *storage,
                       a_boolean                                  fill_storage);
 
@@ -22095,7 +22095,7 @@ extern void db_node(const an_ifc_syntax_for_range_declaration &universal);
 template<>
 an_ifc_syntax_for_range_declaration_storage*
 get<an_ifc_syntax_for_range_declaration_storage>(
-                     an_ifc_module                               *mod,
+                     an_ifc_module_file                          *file,
                      an_ifc_syntax_for_range_declaration_storage *storage,
                      a_boolean                                   fill_storage);
 
@@ -22182,7 +22182,7 @@ extern void db_node(const an_ifc_syntax_for_statement &universal);
 
 template<>
 an_ifc_syntax_for_statement_storage* get<an_ifc_syntax_for_statement_storage>(
-                             an_ifc_module                       *mod,
+                             an_ifc_module_file                  *file,
                              an_ifc_syntax_for_statement_storage *storage,
                              a_boolean                           fill_storage);
 
@@ -22248,7 +22248,7 @@ extern void db_node(const an_ifc_syntax_function_body &universal);
 
 template<>
 an_ifc_syntax_function_body_storage* get<an_ifc_syntax_function_body_storage>(
-                             an_ifc_module                       *mod,
+                             an_ifc_module_file                  *file,
                              an_ifc_syntax_function_body_storage *storage,
                              a_boolean                           fill_storage);
 
@@ -22325,7 +22325,7 @@ extern void db_node(const an_ifc_syntax_function_declarator &universal);
 template<>
 an_ifc_syntax_function_declarator_storage*
 get<an_ifc_syntax_function_declarator_storage>(
-                       an_ifc_module                             *mod,
+                       an_ifc_module_file                        *file,
                        an_ifc_syntax_function_declarator_storage *storage,
                        a_boolean                                 fill_storage);
 
@@ -22397,7 +22397,7 @@ extern void db_node(const an_ifc_syntax_function_definition &universal);
 template<>
 an_ifc_syntax_function_definition_storage*
 get<an_ifc_syntax_function_definition_storage>(
-                       an_ifc_module                             *mod,
+                       an_ifc_module_file                        *file,
                        an_ifc_syntax_function_definition_storage *storage,
                        a_boolean                                 fill_storage);
 
@@ -22445,7 +22445,7 @@ extern void db_node(const an_ifc_syntax_function_try_block &universal);
 template<>
 an_ifc_syntax_function_try_block_storage*
 get<an_ifc_syntax_function_try_block_storage>(
-                        an_ifc_module                            *mod,
+                        an_ifc_module_file                       *file,
                         an_ifc_syntax_function_try_block_storage *storage,
                         a_boolean                                fill_storage);
 
@@ -22506,7 +22506,7 @@ extern void db_node(const an_ifc_syntax_goto_statement &universal);
 template<>
 an_ifc_syntax_goto_statement_storage*
 get<an_ifc_syntax_goto_statement_storage>(
-                            an_ifc_module                        *mod,
+                            an_ifc_module_file                   *file,
                             an_ifc_syntax_goto_statement_storage *storage,
                             a_boolean                            fill_storage);
 
@@ -22567,7 +22567,7 @@ extern void db_node(const an_ifc_syntax_handler &universal);
 
 template<>
 an_ifc_syntax_handler_storage* get<an_ifc_syntax_handler_storage>(
-                                   an_ifc_module                 *mod,
+                                   an_ifc_module_file            *file,
                                    an_ifc_syntax_handler_storage *storage,
                                    a_boolean                     fill_storage);
 
@@ -22598,7 +22598,7 @@ extern void db_node(const an_ifc_syntax_handler_seq &universal);
 
 template<>
 an_ifc_syntax_handler_seq_storage* get<an_ifc_syntax_handler_seq_storage>(
-                               an_ifc_module                     *mod,
+                               an_ifc_module_file                *file,
                                an_ifc_syntax_handler_seq_storage *storage,
                                a_boolean                         fill_storage);
 
@@ -22676,7 +22676,7 @@ extern void db_node(const an_ifc_syntax_if_statement &universal);
 
 template<>
 an_ifc_syntax_if_statement_storage* get<an_ifc_syntax_if_statement_storage>(
-                              an_ifc_module                      *mod,
+                              an_ifc_module_file                 *file,
                               an_ifc_syntax_if_statement_storage *storage,
                               a_boolean                          fill_storage);
 
@@ -22734,7 +22734,7 @@ extern void db_node(const an_ifc_syntax_init_capture &universal);
 
 template<>
 an_ifc_syntax_init_capture_storage* get<an_ifc_syntax_init_capture_storage>(
-                              an_ifc_module                      *mod,
+                              an_ifc_module_file                 *file,
                               an_ifc_syntax_init_capture_storage *storage,
                               a_boolean                          fill_storage);
 
@@ -22787,7 +22787,7 @@ extern void db_node(const an_ifc_syntax_init_declarator &universal);
 template<>
 an_ifc_syntax_init_declarator_storage*
 get<an_ifc_syntax_init_declarator_storage>(
-                           an_ifc_module                         *mod,
+                           an_ifc_module_file                    *file,
                            an_ifc_syntax_init_declarator_storage *storage,
                            a_boolean                             fill_storage);
 
@@ -22826,7 +22826,7 @@ extern void db_node(const an_ifc_syntax_init_statement &universal);
 template<>
 an_ifc_syntax_init_statement_storage*
 get<an_ifc_syntax_init_statement_storage>(
-                            an_ifc_module                        *mod,
+                            an_ifc_module_file                   *file,
                             an_ifc_syntax_init_statement_storage *storage,
                             a_boolean                            fill_storage);
 
@@ -22886,7 +22886,7 @@ extern void db_node(const an_ifc_syntax_labeled_statement &universal);
 template<>
 an_ifc_syntax_labeled_statement_storage*
 get<an_ifc_syntax_labeled_statement_storage>(
-                         an_ifc_module                           *mod,
+                         an_ifc_module_file                      *file,
                          an_ifc_syntax_labeled_statement_storage *storage,
                          a_boolean                               fill_storage);
 
@@ -22963,7 +22963,7 @@ extern void db_node(const an_ifc_syntax_lambda_declarator &universal);
 template<>
 an_ifc_syntax_lambda_declarator_storage*
 get<an_ifc_syntax_lambda_declarator_storage>(
-                         an_ifc_module                           *mod,
+                         an_ifc_module_file                      *file,
                          an_ifc_syntax_lambda_declarator_storage *storage,
                          a_boolean                               fill_storage);
 
@@ -23012,7 +23012,7 @@ extern void db_node(const an_ifc_syntax_lambda_introducer &universal);
 template<>
 an_ifc_syntax_lambda_introducer_storage*
 get<an_ifc_syntax_lambda_introducer_storage>(
-                         an_ifc_module                           *mod,
+                         an_ifc_module_file                      *file,
                          an_ifc_syntax_lambda_introducer_storage *storage,
                          a_boolean                               fill_storage);
 
@@ -23066,7 +23066,7 @@ extern void db_node(const an_ifc_syntax_mem_initializer &universal);
 template<>
 an_ifc_syntax_mem_initializer_storage*
 get<an_ifc_syntax_mem_initializer_storage>(
-                           an_ifc_module                         *mod,
+                           an_ifc_module_file                    *file,
                            an_ifc_syntax_mem_initializer_storage *storage,
                            a_boolean                             fill_storage);
 
@@ -23114,7 +23114,7 @@ extern void db_node(const an_ifc_syntax_member_declaration &universal);
 template<>
 an_ifc_syntax_member_declaration_storage*
 get<an_ifc_syntax_member_declaration_storage>(
-                        an_ifc_module                            *mod,
+                        an_ifc_module_file                       *file,
                         an_ifc_syntax_member_declaration_storage *storage,
                         a_boolean                                fill_storage);
 
@@ -23190,7 +23190,7 @@ extern void db_node(const an_ifc_syntax_member_declarator &universal);
 template<>
 an_ifc_syntax_member_declarator_storage*
 get<an_ifc_syntax_member_declarator_storage>(
-                         an_ifc_module                           *mod,
+                         an_ifc_module_file                      *file,
                          an_ifc_syntax_member_declarator_storage *storage,
                          a_boolean                               fill_storage);
 
@@ -23226,7 +23226,7 @@ extern void db_node(
 template<>
 an_ifc_syntax_member_function_declaration_storage*
 get<an_ifc_syntax_member_function_declaration_storage>(
-               an_ifc_module                                     *mod,
+               an_ifc_module_file                                *file,
                an_ifc_syntax_member_function_declaration_storage *storage,
                a_boolean                                         fill_storage);
 
@@ -23260,7 +23260,7 @@ extern void db_node(const an_ifc_syntax_member_specification &universal);
 template<>
 an_ifc_syntax_member_specification_storage*
 get<an_ifc_syntax_member_specification_storage>(
-                      an_ifc_module                              *mod,
+                      an_ifc_module_file                         *file,
                       an_ifc_syntax_member_specification_storage *storage,
                       a_boolean                                  fill_storage);
 
@@ -23326,7 +23326,7 @@ extern void db_node(const an_ifc_syntax_namespace_alias_definition &universal);
 template<>
 an_ifc_syntax_namespace_alias_definition_storage*
 get<an_ifc_syntax_namespace_alias_definition_storage>(
-                an_ifc_module                                    *mod,
+                an_ifc_module_file                               *file,
                 an_ifc_syntax_namespace_alias_definition_storage *storage,
                 a_boolean                                        fill_storage);
 
@@ -23366,7 +23366,7 @@ extern void db_node(const an_ifc_syntax_nested_requirement &universal);
 template<>
 an_ifc_syntax_nested_requirement_storage*
 get<an_ifc_syntax_nested_requirement_storage>(
-                        an_ifc_module                            *mod,
+                        an_ifc_module_file                       *file,
                         an_ifc_syntax_nested_requirement_storage *storage,
                         a_boolean                                fill_storage);
 
@@ -23399,7 +23399,7 @@ extern void db_node(const an_ifc_syntax_new_declarator &universal);
 template<>
 an_ifc_syntax_new_declarator_storage*
 get<an_ifc_syntax_new_declarator_storage>(
-                            an_ifc_module                        *mod,
+                            an_ifc_module_file                   *file,
                             an_ifc_syntax_new_declarator_storage *storage,
                             a_boolean                            fill_storage);
 
@@ -23454,7 +23454,7 @@ extern void db_node(const an_ifc_syntax_noexcept_specification &universal);
 template<>
 an_ifc_syntax_noexcept_specification_storage*
 get<an_ifc_syntax_noexcept_specification_storage>(
-                    an_ifc_module                                *mod,
+                    an_ifc_module_file                           *file,
                     an_ifc_syntax_noexcept_specification_storage *storage,
                     a_boolean                                    fill_storage);
 
@@ -23504,7 +23504,7 @@ extern void db_node(const an_ifc_syntax_non_type_template_argument &universal);
 template<>
 an_ifc_syntax_non_type_template_argument_storage*
 get<an_ifc_syntax_non_type_template_argument_storage>(
-                an_ifc_module                                    *mod,
+                an_ifc_module_file                               *file,
                 an_ifc_syntax_non_type_template_argument_storage *storage,
                 a_boolean                                        fill_storage);
 
@@ -23568,7 +23568,7 @@ extern void db_node(const an_ifc_syntax_parameter_declarator &universal);
 template<>
 an_ifc_syntax_parameter_declarator_storage*
 get<an_ifc_syntax_parameter_declarator_storage>(
-                      an_ifc_module                              *mod,
+                      an_ifc_module_file                         *file,
                       an_ifc_syntax_parameter_declarator_storage *storage,
                       a_boolean                                  fill_storage);
 
@@ -23626,7 +23626,7 @@ extern void db_node(const an_ifc_syntax_placeholder_type_specifier &universal);
 template<>
 an_ifc_syntax_placeholder_type_specifier_storage*
 get<an_ifc_syntax_placeholder_type_specifier_storage>(
-                an_ifc_module                                    *mod,
+                an_ifc_module_file                               *file,
                 an_ifc_syntax_placeholder_type_specifier_storage *storage,
                 a_boolean                                        fill_storage);
 
@@ -23703,7 +23703,7 @@ extern void db_node(const an_ifc_syntax_pointer_declarator &universal);
 template<>
 an_ifc_syntax_pointer_declarator_storage*
 get<an_ifc_syntax_pointer_declarator_storage>(
-                        an_ifc_module                            *mod,
+                        an_ifc_module_file                       *file,
                         an_ifc_syntax_pointer_declarator_storage *storage,
                         a_boolean                                fill_storage);
 
@@ -23801,7 +23801,7 @@ extern void db_node(const an_ifc_syntax_range_based_for_statement &universal);
 template<>
 an_ifc_syntax_range_based_for_statement_storage*
 get<an_ifc_syntax_range_based_for_statement_storage>(
-                 an_ifc_module                                   *mod,
+                 an_ifc_module_file                              *file,
                  an_ifc_syntax_range_based_for_statement_storage *storage,
                  a_boolean                                       fill_storage);
 
@@ -23849,7 +23849,7 @@ extern void db_node(const an_ifc_syntax_requirement_body &universal);
 template<>
 an_ifc_syntax_requirement_body_storage*
 get<an_ifc_syntax_requirement_body_storage>(
-                          an_ifc_module                          *mod,
+                          an_ifc_module_file                     *file,
                           an_ifc_syntax_requirement_body_storage *storage,
                           a_boolean                              fill_storage);
 
@@ -23888,7 +23888,7 @@ extern void db_node(const an_ifc_syntax_requires_clause &universal);
 template<>
 an_ifc_syntax_requires_clause_storage*
 get<an_ifc_syntax_requires_clause_storage>(
-                           an_ifc_module                         *mod,
+                           an_ifc_module_file                    *file,
                            an_ifc_syntax_requires_clause_storage *storage,
                            a_boolean                             fill_storage);
 
@@ -23948,7 +23948,7 @@ extern void db_node(const an_ifc_syntax_return_statement &universal);
 template<>
 an_ifc_syntax_return_statement_storage*
 get<an_ifc_syntax_return_statement_storage>(
-                          an_ifc_module                          *mod,
+                          an_ifc_module_file                     *file,
                           an_ifc_syntax_return_statement_storage *storage,
                           a_boolean                              fill_storage);
 
@@ -24005,7 +24005,7 @@ extern void db_node(const an_ifc_syntax_seh_except &universal);
 
 template<>
 an_ifc_syntax_seh_except_storage* get<an_ifc_syntax_seh_except_storage>(
-                                an_ifc_module                    *mod,
+                                an_ifc_module_file               *file,
                                 an_ifc_syntax_seh_except_storage *storage,
                                 a_boolean                        fill_storage);
 
@@ -24042,7 +24042,7 @@ extern void db_node(const an_ifc_syntax_seh_finally &universal);
 
 template<>
 an_ifc_syntax_seh_finally_storage* get<an_ifc_syntax_seh_finally_storage>(
-                               an_ifc_module                     *mod,
+                               an_ifc_module_file                *file,
                                an_ifc_syntax_seh_finally_storage *storage,
                                a_boolean                         fill_storage);
 
@@ -24079,7 +24079,7 @@ extern void db_node(const an_ifc_syntax_seh_leave &universal);
 
 template<>
 an_ifc_syntax_seh_leave_storage* get<an_ifc_syntax_seh_leave_storage>(
-                                 an_ifc_module                   *mod,
+                                 an_ifc_module_file              *file,
                                  an_ifc_syntax_seh_leave_storage *storage,
                                  a_boolean                       fill_storage);
 
@@ -24120,7 +24120,7 @@ extern void db_node(const an_ifc_syntax_seh_try &universal);
 
 template<>
 an_ifc_syntax_seh_try_storage* get<an_ifc_syntax_seh_try_storage>(
-                                   an_ifc_module                 *mod,
+                                   an_ifc_module_file            *file,
                                    an_ifc_syntax_seh_try_storage *storage,
                                    a_boolean                     fill_storage);
 
@@ -24172,7 +24172,7 @@ extern void db_node(const an_ifc_syntax_simple_capture &universal);
 template<>
 an_ifc_syntax_simple_capture_storage*
 get<an_ifc_syntax_simple_capture_storage>(
-                            an_ifc_module                        *mod,
+                            an_ifc_module_file                   *file,
                             an_ifc_syntax_simple_capture_storage *storage,
                             a_boolean                            fill_storage);
 
@@ -24227,7 +24227,7 @@ extern void db_node(const an_ifc_syntax_simple_declaration &universal);
 template<>
 an_ifc_syntax_simple_declaration_storage*
 get<an_ifc_syntax_simple_declaration_storage>(
-                        an_ifc_module                            *mod,
+                        an_ifc_module_file                       *file,
                         an_ifc_syntax_simple_declaration_storage *storage,
                         a_boolean                                fill_storage);
 
@@ -24267,7 +24267,7 @@ extern void db_node(const an_ifc_syntax_simple_requirement &universal);
 template<>
 an_ifc_syntax_simple_requirement_storage*
 get<an_ifc_syntax_simple_requirement_storage>(
-                        an_ifc_module                            *mod,
+                        an_ifc_module_file                       *file,
                         an_ifc_syntax_simple_requirement_storage *storage,
                         a_boolean                                fill_storage);
 
@@ -24314,7 +24314,7 @@ extern void db_node(const an_ifc_syntax_simple_type_specifier &universal);
 template<>
 an_ifc_syntax_simple_type_specifier_storage*
 get<an_ifc_syntax_simple_type_specifier_storage>(
-                     an_ifc_module                               *mod,
+                     an_ifc_module_file                          *file,
                      an_ifc_syntax_simple_type_specifier_storage *storage,
                      a_boolean                                   fill_storage);
 
@@ -24346,7 +24346,7 @@ extern void db_node(const an_ifc_syntax_statement_seq &universal);
 
 template<>
 an_ifc_syntax_statement_seq_storage* get<an_ifc_syntax_statement_seq_storage>(
-                             an_ifc_module                       *mod,
+                             an_ifc_module_file                  *file,
                              an_ifc_syntax_statement_seq_storage *storage,
                              a_boolean                           fill_storage);
 
@@ -24427,7 +24427,7 @@ extern void db_node(const an_ifc_syntax_static_assert_declaration &universal);
 template<>
 an_ifc_syntax_static_assert_declaration_storage*
 get<an_ifc_syntax_static_assert_declaration_storage>(
-                 an_ifc_module                                   *mod,
+                 an_ifc_module_file                              *file,
                  an_ifc_syntax_static_assert_declaration_storage *storage,
                  a_boolean                                       fill_storage);
 
@@ -24496,7 +24496,7 @@ extern void db_node(
 template<>
 an_ifc_syntax_structured_binding_declaration_storage*
 get<an_ifc_syntax_structured_binding_declaration_storage>(
-            an_ifc_module                                        *mod,
+            an_ifc_module_file                                   *file,
             an_ifc_syntax_structured_binding_declaration_storage *storage,
             a_boolean                                            fill_storage);
 
@@ -24541,7 +24541,7 @@ extern void db_node(
 template<>
 an_ifc_syntax_structured_binding_identifier_storage*
 get<an_ifc_syntax_structured_binding_identifier_storage>(
-             an_ifc_module                                       *mod,
+             an_ifc_module_file                                  *file,
              an_ifc_syntax_structured_binding_identifier_storage *storage,
              a_boolean                                           fill_storage);
 
@@ -24571,7 +24571,7 @@ extern void db_node(const an_ifc_syntax_super &universal);
 
 template<>
 an_ifc_syntax_super_storage* get<an_ifc_syntax_super_storage>(
-                                     an_ifc_module               *mod,
+                                     an_ifc_module_file          *file,
                                      an_ifc_syntax_super_storage *storage,
                                      a_boolean                   fill_storage);
 
@@ -24631,7 +24631,7 @@ extern void db_node(const an_ifc_syntax_switch_statement &universal);
 template<>
 an_ifc_syntax_switch_statement_storage*
 get<an_ifc_syntax_switch_statement_storage>(
-                          an_ifc_module                          *mod,
+                          an_ifc_module_file                     *file,
                           an_ifc_syntax_switch_statement_storage *storage,
                           a_boolean                              fill_storage);
 
@@ -24680,7 +24680,7 @@ extern void db_node(const an_ifc_syntax_template_argument_list &universal);
 template<>
 an_ifc_syntax_template_argument_list_storage*
 get<an_ifc_syntax_template_argument_list_storage>(
-                    an_ifc_module                                *mod,
+                    an_ifc_module_file                           *file,
                     an_ifc_syntax_template_argument_list_storage *storage,
                     a_boolean                                    fill_storage);
 
@@ -24728,7 +24728,7 @@ extern void db_node(const an_ifc_syntax_template_declaration &universal);
 template<>
 an_ifc_syntax_template_declaration_storage*
 get<an_ifc_syntax_template_declaration_storage>(
-                      an_ifc_module                              *mod,
+                      an_ifc_module_file                         *file,
                       an_ifc_syntax_template_declaration_storage *storage,
                       a_boolean                                  fill_storage);
 
@@ -24786,7 +24786,7 @@ extern void db_node(const an_ifc_syntax_template_id &universal);
 
 template<>
 an_ifc_syntax_template_id_storage* get<an_ifc_syntax_template_id_storage>(
-                               an_ifc_module                     *mod,
+                               an_ifc_module_file                *file,
                                an_ifc_syntax_template_id_storage *storage,
                                a_boolean                         fill_storage);
 
@@ -24843,7 +24843,7 @@ extern void db_node(const an_ifc_syntax_template_parameter_list &universal);
 template<>
 an_ifc_syntax_template_parameter_list_storage*
 get<an_ifc_syntax_template_parameter_list_storage>(
-                   an_ifc_module                                 *mod,
+                   an_ifc_module_file                            *file,
                    an_ifc_syntax_template_parameter_list_storage *storage,
                    a_boolean                                     fill_storage);
 
@@ -24927,7 +24927,7 @@ extern void db_node(
 template<>
 an_ifc_syntax_template_template_parameter_storage*
 get<an_ifc_syntax_template_template_parameter_storage>(
-               an_ifc_module                                     *mod,
+               an_ifc_module_file                                *file,
                an_ifc_syntax_template_template_parameter_storage *storage,
                a_boolean                                         fill_storage);
 
@@ -24973,7 +24973,7 @@ extern void db_node(const an_ifc_syntax_this_capture &universal);
 
 template<>
 an_ifc_syntax_this_capture_storage* get<an_ifc_syntax_this_capture_storage>(
-                              an_ifc_module                      *mod,
+                              an_ifc_module_file                 *file,
                               an_ifc_syntax_this_capture_storage *storage,
                               a_boolean                          fill_storage);
 
@@ -25012,7 +25012,7 @@ extern void db_node(const an_ifc_syntax_trailing_return_type &universal);
 template<>
 an_ifc_syntax_trailing_return_type_storage*
 get<an_ifc_syntax_trailing_return_type_storage>(
-                      an_ifc_module                              *mod,
+                      an_ifc_module_file                         *file,
                       an_ifc_syntax_trailing_return_type_storage *storage,
                       a_boolean                                  fill_storage);
 
@@ -25060,7 +25060,7 @@ extern void db_node(const an_ifc_syntax_try_block &universal);
 
 template<>
 an_ifc_syntax_try_block_storage* get<an_ifc_syntax_try_block_storage>(
-                                 an_ifc_module                   *mod,
+                                 an_ifc_module_file              *file,
                                  an_ifc_syntax_try_block_storage *storage,
                                  a_boolean                       fill_storage);
 
@@ -25095,7 +25095,7 @@ extern void db_node(const an_ifc_syntax_tuple &universal);
 
 template<>
 an_ifc_syntax_tuple_storage* get<an_ifc_syntax_tuple_storage>(
-                                     an_ifc_module               *mod,
+                                     an_ifc_module_file          *file,
                                      an_ifc_syntax_tuple_storage *storage,
                                      a_boolean                   fill_storage);
 
@@ -25138,7 +25138,7 @@ extern void db_node(const an_ifc_syntax_type_id &universal);
 
 template<>
 an_ifc_syntax_type_id_storage* get<an_ifc_syntax_type_id_storage>(
-                                   an_ifc_module                 *mod,
+                                   an_ifc_module_file            *file,
                                    an_ifc_syntax_type_id_storage *storage,
                                    a_boolean                     fill_storage);
 
@@ -25178,7 +25178,7 @@ extern void db_node(const an_ifc_syntax_type_id_list_element &universal);
 template<>
 an_ifc_syntax_type_id_list_element_storage*
 get<an_ifc_syntax_type_id_list_element_storage>(
-                      an_ifc_module                              *mod,
+                      an_ifc_module_file                         *file,
                       an_ifc_syntax_type_id_list_element_storage *storage,
                       a_boolean                                  fill_storage);
 
@@ -25218,7 +25218,7 @@ extern void db_node(const an_ifc_syntax_type_requirement &universal);
 template<>
 an_ifc_syntax_type_requirement_storage*
 get<an_ifc_syntax_type_requirement_storage>(
-                          an_ifc_module                          *mod,
+                          an_ifc_module_file                     *file,
                           an_ifc_syntax_type_requirement_storage *storage,
                           a_boolean                              fill_storage);
 
@@ -25279,7 +25279,7 @@ extern void db_node(const an_ifc_syntax_type_specifier_seq &universal);
 template<>
 an_ifc_syntax_type_specifier_seq_storage*
 get<an_ifc_syntax_type_specifier_seq_storage>(
-                        an_ifc_module                            *mod,
+                        an_ifc_module_file                       *file,
                         an_ifc_syntax_type_specifier_seq_storage *storage,
                         a_boolean                                fill_storage);
 
@@ -25328,7 +25328,7 @@ extern void db_node(const an_ifc_syntax_type_template_argument &universal);
 template<>
 an_ifc_syntax_type_template_argument_storage*
 get<an_ifc_syntax_type_template_argument_storage>(
-                    an_ifc_module                                *mod,
+                    an_ifc_module_file                           *file,
                     an_ifc_syntax_type_template_argument_storage *storage,
                     a_boolean                                    fill_storage);
 
@@ -25393,7 +25393,7 @@ extern void db_node(const an_ifc_syntax_type_template_parameter &universal);
 template<>
 an_ifc_syntax_type_template_parameter_storage*
 get<an_ifc_syntax_type_template_parameter_storage>(
-                   an_ifc_module                                 *mod,
+                   an_ifc_module_file                            *file,
                    an_ifc_syntax_type_template_parameter_storage *storage,
                    a_boolean                                     fill_storage);
 
@@ -25442,7 +25442,7 @@ extern void db_node(const an_ifc_syntax_type_trait_intrinsic &universal);
 template<>
 an_ifc_syntax_type_trait_intrinsic_storage*
 get<an_ifc_syntax_type_trait_intrinsic_storage>(
-                      an_ifc_module                              *mod,
+                      an_ifc_module_file                         *file,
                       an_ifc_syntax_type_trait_intrinsic_storage *storage,
                       a_boolean                                  fill_storage);
 
@@ -25522,7 +25522,7 @@ extern void db_node(const an_ifc_syntax_unary_fold_expression &universal);
 template<>
 an_ifc_syntax_unary_fold_expression_storage*
 get<an_ifc_syntax_unary_fold_expression_storage>(
-                     an_ifc_module                               *mod,
+                     an_ifc_module_file                          *file,
                      an_ifc_syntax_unary_fold_expression_storage *storage,
                      a_boolean                                   fill_storage);
 
@@ -25570,7 +25570,7 @@ extern void db_node(const an_ifc_syntax_using_declaration &universal);
 template<>
 an_ifc_syntax_using_declaration_storage*
 get<an_ifc_syntax_using_declaration_storage>(
-                         an_ifc_module                           *mod,
+                         an_ifc_module_file                      *file,
                          an_ifc_syntax_using_declaration_storage *storage,
                          a_boolean                               fill_storage);
 
@@ -25625,7 +25625,7 @@ extern void db_node(const an_ifc_syntax_using_declarator &universal);
 template<>
 an_ifc_syntax_using_declarator_storage*
 get<an_ifc_syntax_using_declarator_storage>(
-                          an_ifc_module                          *mod,
+                          an_ifc_module_file                     *file,
                           an_ifc_syntax_using_declarator_storage *storage,
                           a_boolean                              fill_storage);
 
@@ -25679,7 +25679,7 @@ extern void db_node(const an_ifc_syntax_using_directive &universal);
 template<>
 an_ifc_syntax_using_directive_storage*
 get<an_ifc_syntax_using_directive_storage>(
-                           an_ifc_module                         *mod,
+                           an_ifc_module_file                    *file,
                            an_ifc_syntax_using_directive_storage *storage,
                            a_boolean                             fill_storage);
 
@@ -25735,7 +25735,7 @@ extern void db_node(const an_ifc_syntax_using_enum_declaration &universal);
 template<>
 an_ifc_syntax_using_enum_declaration_storage*
 get<an_ifc_syntax_using_enum_declaration_storage>(
-                    an_ifc_module                                *mod,
+                    an_ifc_module_file                           *file,
                     an_ifc_syntax_using_enum_declaration_storage *storage,
                     a_boolean                                    fill_storage);
 
@@ -25790,7 +25790,7 @@ extern void db_node(const an_ifc_syntax_virtual_specifier_seq &universal);
 template<>
 an_ifc_syntax_virtual_specifier_seq_storage*
 get<an_ifc_syntax_virtual_specifier_seq_storage>(
-                     an_ifc_module                               *mod,
+                     an_ifc_module_file                          *file,
                      an_ifc_syntax_virtual_specifier_seq_storage *storage,
                      a_boolean                                   fill_storage);
 
@@ -25844,7 +25844,7 @@ extern void db_node(const an_ifc_syntax_while_statement &universal);
 template<>
 an_ifc_syntax_while_statement_storage*
 get<an_ifc_syntax_while_statement_storage>(
-                           an_ifc_module                         *mod,
+                           an_ifc_module_file                    *file,
                            an_ifc_syntax_while_statement_storage *storage,
                            a_boolean                             fill_storage);
 
@@ -25888,7 +25888,7 @@ extern void db_node(const an_ifc_trait_alias_template &universal);
 
 template<>
 an_ifc_trait_alias_template_storage* get<an_ifc_trait_alias_template_storage>(
-                             an_ifc_module                       *mod,
+                             an_ifc_module_file                  *file,
                              an_ifc_trait_alias_template_storage *storage,
                              a_boolean                           fill_storage);
 
@@ -25930,7 +25930,7 @@ extern void db_node(const an_ifc_trait_attribute &universal);
 
 template<>
 an_ifc_trait_attribute_storage* get<an_ifc_trait_attribute_storage>(
-                                  an_ifc_module                  *mod,
+                                  an_ifc_module_file             *file,
                                   an_ifc_trait_attribute_storage *storage,
                                   a_boolean                      fill_storage);
 
@@ -25974,7 +25974,7 @@ extern void db_node(const an_ifc_trait_deduction_guide &universal);
 template<>
 an_ifc_trait_deduction_guide_storage*
 get<an_ifc_trait_deduction_guide_storage>(
-                            an_ifc_module                        *mod,
+                            an_ifc_module_file                   *file,
                             an_ifc_trait_deduction_guide_storage *storage,
                             a_boolean                            fill_storage);
 
@@ -26016,7 +26016,7 @@ extern void db_node(const an_ifc_trait_deprecated &universal);
 
 template<>
 an_ifc_trait_deprecated_storage* get<an_ifc_trait_deprecated_storage>(
-                                 an_ifc_module                   *mod,
+                                 an_ifc_module_file              *file,
                                  an_ifc_trait_deprecated_storage *storage,
                                  a_boolean                       fill_storage);
 
@@ -26058,7 +26058,7 @@ extern void db_node(const an_ifc_trait_friend &universal);
 
 template<>
 an_ifc_trait_friend_storage* get<an_ifc_trait_friend_storage>(
-                                     an_ifc_module               *mod,
+                                     an_ifc_module_file          *file,
                                      an_ifc_trait_friend_storage *storage,
                                      a_boolean                   fill_storage);
 
@@ -26121,7 +26121,7 @@ extern void db_node(const an_ifc_trait_function_definition &universal);
 template<>
 an_ifc_trait_function_definition_storage*
 get<an_ifc_trait_function_definition_storage>(
-                        an_ifc_module                            *mod,
+                        an_ifc_module_file                       *file,
                         an_ifc_trait_function_definition_storage *storage,
                         a_boolean                                fill_storage);
 
@@ -26166,7 +26166,7 @@ extern void db_node(const an_ifc_trait_msvc_decl_attrs &universal);
 template<>
 an_ifc_trait_msvc_decl_attrs_storage*
 get<an_ifc_trait_msvc_decl_attrs_storage>(
-                            an_ifc_module                        *mod,
+                            an_ifc_module_file                   *file,
                             an_ifc_trait_msvc_decl_attrs_storage *storage,
                             a_boolean                            fill_storage);
 
@@ -26211,7 +26211,7 @@ extern void db_node(const an_ifc_trait_msvc_func_params &universal);
 template<>
 an_ifc_trait_msvc_func_params_storage*
 get<an_ifc_trait_msvc_func_params_storage>(
-                           an_ifc_module                         *mod,
+                           an_ifc_module_file                    *file,
                            an_ifc_trait_msvc_func_params_storage *storage,
                            a_boolean                             fill_storage);
 
@@ -26253,7 +26253,7 @@ extern void db_node(const an_ifc_trait_msvc_uuid &universal);
 
 template<>
 an_ifc_trait_msvc_uuid_storage* get<an_ifc_trait_msvc_uuid_storage>(
-                                  an_ifc_module                  *mod,
+                                  an_ifc_module_file             *file,
                                   an_ifc_trait_msvc_uuid_storage *storage,
                                   a_boolean                      fill_storage);
 
@@ -26300,7 +26300,7 @@ extern void db_node(const an_ifc_trait_msvc_vendor_trait &universal);
 template<>
 an_ifc_trait_msvc_vendor_trait_storage*
 get<an_ifc_trait_msvc_vendor_trait_storage>(
-                          an_ifc_module                          *mod,
+                          an_ifc_module_file                     *file,
                           an_ifc_trait_msvc_vendor_trait_storage *storage,
                           a_boolean                              fill_storage);
 
@@ -26342,7 +26342,7 @@ extern void db_node(const an_ifc_trait_requires &universal);
 
 template<>
 an_ifc_trait_requires_storage* get<an_ifc_trait_requires_storage>(
-                                   an_ifc_module                 *mod,
+                                   an_ifc_module_file            *file,
                                    an_ifc_trait_requires_storage *storage,
                                    a_boolean                     fill_storage);
 
@@ -26385,7 +26385,7 @@ extern void db_node(const an_ifc_trait_specialization &universal);
 
 template<>
 an_ifc_trait_specialization_storage* get<an_ifc_trait_specialization_storage>(
-                             an_ifc_module                       *mod,
+                             an_ifc_module_file                  *file,
                              an_ifc_trait_specialization_storage *storage,
                              a_boolean                           fill_storage);
 
@@ -26420,7 +26420,7 @@ extern void db_node(const an_ifc_type_array &universal);
 
 template<>
 an_ifc_type_array_storage* get<an_ifc_type_array_storage>(
-                                       an_ifc_module             *mod,
+                                       an_ifc_module_file        *file,
                                        an_ifc_type_array_storage *storage,
                                        a_boolean                 fill_storage);
 
@@ -26467,7 +26467,7 @@ extern void db_node(const an_ifc_type_base &universal);
 
 template<>
 an_ifc_type_base_storage* get<an_ifc_type_base_storage>(
-                                        an_ifc_module            *mod,
+                                        an_ifc_module_file       *file,
                                         an_ifc_type_base_storage *storage,
                                         a_boolean                fill_storage);
 
@@ -26496,7 +26496,7 @@ extern void db_node(const an_ifc_type_decltype &universal);
 
 template<>
 an_ifc_type_decltype_storage* get<an_ifc_type_decltype_storage>(
-                                    an_ifc_module                *mod,
+                                    an_ifc_module_file           *file,
                                     an_ifc_type_decltype_storage *storage,
                                     a_boolean                    fill_storage);
 
@@ -26525,7 +26525,7 @@ extern void db_node(const an_ifc_type_designated &universal);
 
 template<>
 an_ifc_type_designated_storage* get<an_ifc_type_designated_storage>(
-                                  an_ifc_module                  *mod,
+                                  an_ifc_module_file             *file,
                                   an_ifc_type_designated_storage *storage,
                                   a_boolean                      fill_storage);
 
@@ -26561,7 +26561,7 @@ extern void db_node(const an_ifc_type_expansion &universal);
 
 template<>
 an_ifc_type_expansion_storage* get<an_ifc_type_expansion_storage>(
-                                   an_ifc_module                 *mod,
+                                   an_ifc_module_file            *file,
                                    an_ifc_type_expansion_storage *storage,
                                    a_boolean                     fill_storage);
 
@@ -26596,7 +26596,7 @@ extern void db_node(const an_ifc_type_forall &universal);
 
 template<>
 an_ifc_type_forall_storage* get<an_ifc_type_forall_storage>(
-                                      an_ifc_module              *mod,
+                                      an_ifc_module_file         *file,
                                       an_ifc_type_forall_storage *storage,
                                       a_boolean                  fill_storage);
 
@@ -26652,7 +26652,7 @@ extern void db_node(const an_ifc_type_function &universal);
 
 template<>
 an_ifc_type_function_storage* get<an_ifc_type_function_storage>(
-                                    an_ifc_module                *mod,
+                                    an_ifc_module_file           *file,
                                     an_ifc_type_function_storage *storage,
                                     a_boolean                    fill_storage);
 
@@ -26694,7 +26694,7 @@ extern void db_node(const an_ifc_type_fundamental &universal);
 
 template<>
 an_ifc_type_fundamental_storage* get<an_ifc_type_fundamental_storage>(
-                                 an_ifc_module                   *mod,
+                                 an_ifc_module_file              *file,
                                  an_ifc_type_fundamental_storage *storage,
                                  a_boolean                       fill_storage);
 
@@ -26726,7 +26726,7 @@ extern void db_node(const an_ifc_type_lvalue_reference &universal);
 template<>
 an_ifc_type_lvalue_reference_storage*
 get<an_ifc_type_lvalue_reference_storage>(
-                            an_ifc_module                        *mod,
+                            an_ifc_module_file                   *file,
                             an_ifc_type_lvalue_reference_storage *storage,
                             a_boolean                            fill_storage);
 
@@ -26788,7 +26788,7 @@ extern void db_node(const an_ifc_type_method &universal);
 
 template<>
 an_ifc_type_method_storage* get<an_ifc_type_method_storage>(
-                                      an_ifc_module              *mod,
+                                      an_ifc_module_file         *file,
                                       an_ifc_type_method_storage *storage,
                                       a_boolean                  fill_storage);
 
@@ -26830,7 +26830,7 @@ extern void db_node(const an_ifc_type_placeholder &universal);
 
 template<>
 an_ifc_type_placeholder_storage* get<an_ifc_type_placeholder_storage>(
-                                 an_ifc_module                   *mod,
+                                 an_ifc_module_file              *file,
                                  an_ifc_type_placeholder_storage *storage,
                                  a_boolean                       fill_storage);
 
@@ -26859,7 +26859,7 @@ extern void db_node(const an_ifc_type_pointer &universal);
 
 template<>
 an_ifc_type_pointer_storage* get<an_ifc_type_pointer_storage>(
-                                     an_ifc_module               *mod,
+                                     an_ifc_module_file          *file,
                                      an_ifc_type_pointer_storage *storage,
                                      a_boolean                   fill_storage);
 
@@ -26898,7 +26898,7 @@ extern void db_node(const an_ifc_type_pointer_to_member &universal);
 template<>
 an_ifc_type_pointer_to_member_storage*
 get<an_ifc_type_pointer_to_member_storage>(
-                           an_ifc_module                         *mod,
+                           an_ifc_module_file                    *file,
                            an_ifc_type_pointer_to_member_storage *storage,
                            a_boolean                             fill_storage);
 
@@ -26934,7 +26934,7 @@ extern void db_node(const an_ifc_type_qualified &universal);
 
 template<>
 an_ifc_type_qualified_storage* get<an_ifc_type_qualified_storage>(
-                                   an_ifc_module                 *mod,
+                                   an_ifc_module_file            *file,
                                    an_ifc_type_qualified_storage *storage,
                                    a_boolean                     fill_storage);
 
@@ -26966,7 +26966,7 @@ extern void db_node(const an_ifc_type_rvalue_reference &universal);
 template<>
 an_ifc_type_rvalue_reference_storage*
 get<an_ifc_type_rvalue_reference_storage>(
-                            an_ifc_module                        *mod,
+                            an_ifc_module_file                   *file,
                             an_ifc_type_rvalue_reference_storage *storage,
                             a_boolean                            fill_storage);
 
@@ -26995,7 +26995,7 @@ extern void db_node(const an_ifc_type_syntactic &universal);
 
 template<>
 an_ifc_type_syntactic_storage* get<an_ifc_type_syntactic_storage>(
-                                   an_ifc_module                 *mod,
+                                   an_ifc_module_file            *file,
                                    an_ifc_type_syntactic_storage *storage,
                                    a_boolean                     fill_storage);
 
@@ -27024,7 +27024,7 @@ extern void db_node(const an_ifc_type_syntax_tree &universal);
 
 template<>
 an_ifc_type_syntax_tree_storage* get<an_ifc_type_syntax_tree_storage>(
-                                 an_ifc_module                   *mod,
+                                 an_ifc_module_file              *file,
                                  an_ifc_type_syntax_tree_storage *storage,
                                  a_boolean                       fill_storage);
 
@@ -27067,7 +27067,7 @@ extern void db_node(const an_ifc_type_tor &universal);
 
 template<>
 an_ifc_type_tor_storage* get<an_ifc_type_tor_storage>(
-                                         an_ifc_module           *mod,
+                                         an_ifc_module_file      *file,
                                          an_ifc_type_tor_storage *storage,
                                          a_boolean               fill_storage);
 
@@ -27102,7 +27102,7 @@ extern void db_node(const an_ifc_type_tuple &universal);
 
 template<>
 an_ifc_type_tuple_storage* get<an_ifc_type_tuple_storage>(
-                                       an_ifc_module             *mod,
+                                       an_ifc_module_file        *file,
                                        an_ifc_type_tuple_storage *storage,
                                        a_boolean                 fill_storage);
 
@@ -27131,7 +27131,7 @@ extern void db_node(const an_ifc_type_typename &universal);
 
 template<>
 an_ifc_type_typename_storage* get<an_ifc_type_typename_storage>(
-                                    an_ifc_module                *mod,
+                                    an_ifc_module_file           *file,
                                     an_ifc_type_typename_storage *storage,
                                     a_boolean                    fill_storage);
 
@@ -27160,7 +27160,7 @@ extern void db_node(const an_ifc_type_unaligned &universal);
 
 template<>
 an_ifc_type_unaligned_storage* get<an_ifc_type_unaligned_storage>(
-                                   an_ifc_module                 *mod,
+                                   an_ifc_module_file            *file,
                                    an_ifc_type_unaligned_storage *storage,
                                    a_boolean                     fill_storage);
 
@@ -27168,8 +27168,8 @@ template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_unaligned>();
 
 extern an_ifc_entity_size_storage get_ifc_partition_element_size(
-                                                   an_ifc_module         *mod,
-                                                   an_ifc_partition_kind kind);
+                                                  an_ifc_module_file    *file,
+                                                  an_ifc_partition_kind kind);
 
 /*
 Functions for converting IFC partition kinds to various IFC sorts.

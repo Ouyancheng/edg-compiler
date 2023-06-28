@@ -24,50 +24,63 @@ more about, the tool that generated this file.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
-struct an_ifc_module;
+struct an_ifc_module_file;
+
+/*
+This is the base class for most IFC entities which holds a reference to the
+file the entity came from.  This is represented as a base class to allow easier
+API design.
+*/
+struct an_ifc_module_entity {
+  an_ifc_module_entity(an_ifc_module_file *file_val)
+    : file(file_val)
+    {}
+
+  inline an_ifc_module_file *get_file() const
+    { return this->file; }
+
+  an_ifc_module_file *file;
+                        /* The module file associated with the underlying IFC
+                           byte buffer. */
+};  /* an_ifc_module_entity */
 
 /*
 An encapsulated representation of an IFC byte buffer.  This encapsulation
 abstracts away the exact location of the underlying byte buffer storage.
 */
 template<typename an_ifc_Storage_type>
-struct an_ifc_Byte_buffer {
+struct an_ifc_Byte_buffer : public an_ifc_module_entity {
   an_ifc_Byte_buffer()
-    : storing_value(FALSE), mod(NULL), storage_ptr(NULL)
+    : an_ifc_module_entity(NULL), storing_value(FALSE), storage_ptr(NULL)
     {}
 
-  an_ifc_Byte_buffer(an_ifc_module             *mod_val,
+  an_ifc_Byte_buffer(an_ifc_module_file        *mod_val,
                      const an_ifc_Storage_type &storage_ref)
-    : storing_value(TRUE), mod(mod_val), storage{}
+    : an_ifc_module_entity(mod_val), storing_value(TRUE), storage{}
     { memcpy(&storage, &storage_ref, sizeof(an_ifc_Storage_type)); }
 
-  an_ifc_Byte_buffer(an_ifc_module             *mod_val,
+  an_ifc_Byte_buffer(an_ifc_module_file        *mod_val,
                      const an_ifc_Storage_type *storage_ptr_val)
-    : storing_value(FALSE), mod(mod_val), storage_ptr(storage_ptr_val)
+    : an_ifc_module_entity(mod_val), storing_value(FALSE),
+      storage_ptr(storage_ptr_val)
     {}
-
-  inline an_ifc_module *get_module() const
-    { return mod; }
 
   inline const an_ifc_Storage_type *get_storage() const;
 private:
-  a_boolean storing_value;
+  a_boolean     storing_value;
                         /* TRUE when the underlying IFC byte buffer is stored
                            as a data member and should be obtained from the
                            "storage" data member.  FALSE when the underlying
                            IFC byte buffer is stored at a different address
                            and should be obtained from the "storage_ptr"
                            data member. */
-  an_ifc_module *mod;
-                        /* The module associated with the underlying IFC byte
-                           buffer. */
   union {
     an_ifc_Storage_type
-                 storage;
+                storage;
                         /* When "storing_value" is TRUE this data member holds
                            the underlying IFC byte buffer. */
     const an_ifc_Storage_type
-                 *storage_ptr;
+                *storage_ptr;
                         /* When "storing_value" is FALSE this is the pointer
                            used to obtain the underlying IFC byte buffer. */
   };
@@ -99,6 +112,79 @@ buffer is stored as part of this object or a pointer to a memory mapping).
   }  /* if */
   return result;
 }  /* get_storage */
+
+
+/*
+An encapsulated representation of an IFC numeric value.
+*/
+template<typename an_ifc_Storage_type>
+struct an_ifc_Numeric : public an_ifc_module_entity {
+  an_ifc_Numeric()
+    : an_ifc_module_entity(NULL), value{}
+    {}
+
+  an_ifc_Numeric(an_ifc_module_file        *mod_val,
+                 const an_ifc_Storage_type &value_ref)
+    : an_ifc_module_entity(mod_val), value{value_ref}
+    {}
+
+  an_ifc_Storage_type
+                value;
+                        /* The raw bit value obtained from the module.
+                           Represented as the largest common underlying
+                           type. */
+};  /* an_ifc_Byte_buffer */
+
+/*
+An encapsulated representation of an IFC numeric value that supports implicit
+conversion.
+*/
+template<typename an_ifc_Storage_type>
+struct an_ifc_Implicit_numeric : public an_ifc_module_entity {
+  an_ifc_Implicit_numeric()
+    : an_ifc_module_entity(NULL), value{}
+    {}
+
+  an_ifc_Implicit_numeric(an_ifc_module_file        *mod_val,
+                          const an_ifc_Storage_type &value_ref)
+    : an_ifc_module_entity(mod_val), value{value_ref}
+    {}
+
+  an_ifc_Storage_type
+                value;
+                        /* The raw bit value obtained from the module.
+                           Represented as the largest common underlying
+                           type. */
+
+  inline operator an_ifc_Storage_type() const
+    { return this->value; }
+};  /* an_ifc_Byte_buffer */
+
+
+/*
+An encapsulated representation of an IFC index value.
+*/
+template<typename an_ifc_Sort_type, typename a_Native_size_type>
+struct an_ifc_Index : public an_ifc_module_entity {
+  an_ifc_Index()
+    : an_ifc_module_entity(NULL), sort{}
+    {}
+
+  an_ifc_Index(an_ifc_module_file *mod_val,
+               an_ifc_Sort_type   sort_val,
+               a_Native_size_type value_val)
+    : an_ifc_module_entity(mod_val), sort{sort_val}, value{value_val}
+    {}
+
+  an_ifc_Sort_type
+                sort;
+                        /* The associated sort value for this index. */
+  a_Native_size_type
+                value;
+                        /* The index value into the associated partition of
+                           "sort" for this index.  Represented as the largest
+                           common underlying type. */
+};  /* an_ifc_Byte_buffer */
 
 
 /*
@@ -240,20 +326,11 @@ using an_ifc_abi_storage = uint8_t;
 /*
 The universal representation for an IFC Abi.
 */
-struct an_ifc_abi {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_abi_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_abi_storage() const
-    { return this->value; }
+struct an_ifc_abi : an_ifc_Implicit_numeric<an_ifc_abi_storage> {
+  using storage_type = an_ifc_abi_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_abi */
-
 
 enum an_ifc_active_member_0_33 : uint32_t;
 using an_ifc_active_member_storage = uint32_t;
@@ -262,20 +339,12 @@ using an_ifc_active_member_storage = uint32_t;
 /*
 The universal representation for an IFC ActiveMember.
 */
-struct an_ifc_active_member {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_active_member_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_active_member_storage() const
-    { return this->value; }
+struct an_ifc_active_member :
+                        an_ifc_Implicit_numeric<an_ifc_active_member_storage> {
+  using storage_type = an_ifc_active_member_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_active_member */
-
 
 enum an_ifc_associativity_0_33 : uint8_t;
 using an_ifc_associativity_storage = uint8_t;
@@ -284,20 +353,12 @@ using an_ifc_associativity_storage = uint8_t;
 /*
 The universal representation for an IFC Associativity.
 */
-struct an_ifc_associativity {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_associativity_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_associativity_storage() const
-    { return this->value; }
+struct an_ifc_associativity :
+                        an_ifc_Implicit_numeric<an_ifc_associativity_storage> {
+  using storage_type = an_ifc_associativity_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_associativity */
-
 
 enum an_ifc_byte_offset_0_33 : uint32_t;
 using an_ifc_byte_offset_storage = uint32_t;
@@ -306,20 +367,12 @@ using an_ifc_byte_offset_storage = uint32_t;
 /*
 The universal representation for an IFC ByteOffset.
 */
-struct an_ifc_byte_offset {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_byte_offset_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_byte_offset_storage() const
-    { return this->value; }
+struct an_ifc_byte_offset :
+                          an_ifc_Implicit_numeric<an_ifc_byte_offset_storage> {
+  using storage_type = an_ifc_byte_offset_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_byte_offset */
-
 
 enum an_ifc_cardinality_0_33 : uint32_t;
 using an_ifc_cardinality_storage = uint32_t;
@@ -328,20 +381,12 @@ using an_ifc_cardinality_storage = uint32_t;
 /*
 The universal representation for an IFC Cardinality.
 */
-struct an_ifc_cardinality {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_cardinality_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_cardinality_storage() const
-    { return this->value; }
+struct an_ifc_cardinality :
+                          an_ifc_Implicit_numeric<an_ifc_cardinality_storage> {
+  using storage_type = an_ifc_cardinality_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_cardinality */
-
 
 enum an_ifc_column_0_33 : uint32_t;
 using an_ifc_column_storage = uint32_t;
@@ -350,20 +395,11 @@ using an_ifc_column_storage = uint32_t;
 /*
 The universal representation for an IFC Column.
 */
-struct an_ifc_column {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_column_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_column_storage() const
-    { return this->value; }
+struct an_ifc_column : an_ifc_Implicit_numeric<an_ifc_column_storage> {
+  using storage_type = an_ifc_column_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_column */
-
 
 enum an_ifc_destructor_sort_0_33 : uint8_t;
 using an_ifc_destructor_sort_storage = uint8_t;
@@ -372,20 +408,12 @@ using an_ifc_destructor_sort_storage = uint8_t;
 /*
 The universal representation for an IFC DestructorSort.
 */
-struct an_ifc_destructor_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_destructor_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_destructor_sort_storage() const
-    { return this->value; }
+struct an_ifc_destructor_sort :
+                      an_ifc_Implicit_numeric<an_ifc_destructor_sort_storage> {
+  using storage_type = an_ifc_destructor_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_destructor_sort */
-
 
 enum an_ifc_eh_flags_0_33 : uint16_t;
 using an_ifc_eh_flags_storage = uint16_t;
@@ -394,20 +422,11 @@ using an_ifc_eh_flags_storage = uint16_t;
 /*
 The universal representation for an IFC EHFlags.
 */
-struct an_ifc_eh_flags {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_eh_flags_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_eh_flags_storage() const
-    { return this->value; }
+struct an_ifc_eh_flags : an_ifc_Implicit_numeric<an_ifc_eh_flags_storage> {
+  using storage_type = an_ifc_eh_flags_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_eh_flags */
-
 
 enum an_ifc_encoded_access_sort_0_33 : uint8_t;
 using an_ifc_encoded_access_sort_storage = uint8_t;
@@ -416,20 +435,12 @@ using an_ifc_encoded_access_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedAccessSort.
 */
-struct an_ifc_encoded_access_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_access_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_access_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_access_sort :
+                  an_ifc_Implicit_numeric<an_ifc_encoded_access_sort_storage> {
+  using storage_type = an_ifc_encoded_access_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_access_sort */
-
 
 enum an_ifc_encoded_architecture_sort_0_33 : uint8_t;
 using an_ifc_encoded_architecture_sort_storage = uint8_t;
@@ -438,20 +449,12 @@ using an_ifc_encoded_architecture_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedArchitectureSort.
 */
-struct an_ifc_encoded_architecture_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_architecture_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_architecture_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_architecture_sort :
+            an_ifc_Implicit_numeric<an_ifc_encoded_architecture_sort_storage> {
+  using storage_type = an_ifc_encoded_architecture_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_architecture_sort */
-
 
 enum an_ifc_encoded_attr_index_0_33 : uint32_t;
 using an_ifc_encoded_attr_index_storage = uint32_t;
@@ -460,20 +463,12 @@ using an_ifc_encoded_attr_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedAttrIndex.
 */
-struct an_ifc_encoded_attr_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_attr_index_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_attr_index_storage() const
-    { return this->value; }
+struct an_ifc_encoded_attr_index :
+                   an_ifc_Implicit_numeric<an_ifc_encoded_attr_index_storage> {
+  using storage_type = an_ifc_encoded_attr_index_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_attr_index */
-
 
 enum an_ifc_encoded_attr_sort_0_33 : uint32_t;
 using an_ifc_encoded_attr_sort_storage = uint32_t;
@@ -482,20 +477,12 @@ using an_ifc_encoded_attr_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedAttrSort.
 */
-struct an_ifc_encoded_attr_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_attr_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_attr_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_attr_sort :
+                    an_ifc_Implicit_numeric<an_ifc_encoded_attr_sort_storage> {
+  using storage_type = an_ifc_encoded_attr_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_attr_sort */
-
 
 enum an_ifc_encoded_calling_convention_sort_0_33 : uint8_t;
 using an_ifc_encoded_calling_convention_sort_storage = uint8_t;
@@ -504,20 +491,12 @@ using an_ifc_encoded_calling_convention_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedCallingConventionSort.
 */
-struct an_ifc_encoded_calling_convention_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_calling_convention_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_calling_convention_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_calling_convention_sort :
+      an_ifc_Implicit_numeric<an_ifc_encoded_calling_convention_sort_storage> {
+  using storage_type = an_ifc_encoded_calling_convention_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_calling_convention_sort */
-
 
 enum an_ifc_encoded_chart_index_0_33 : uint32_t;
 using an_ifc_encoded_chart_index_storage = uint32_t;
@@ -526,20 +505,12 @@ using an_ifc_encoded_chart_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedChartIndex.
 */
-struct an_ifc_encoded_chart_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_chart_index_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_chart_index_storage() const
-    { return this->value; }
+struct an_ifc_encoded_chart_index :
+                  an_ifc_Implicit_numeric<an_ifc_encoded_chart_index_storage> {
+  using storage_type = an_ifc_encoded_chart_index_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_chart_index */
-
 
 enum an_ifc_encoded_chart_sort_0_33 : uint32_t;
 using an_ifc_encoded_chart_sort_storage = uint32_t;
@@ -548,20 +519,12 @@ using an_ifc_encoded_chart_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedChartSort.
 */
-struct an_ifc_encoded_chart_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_chart_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_chart_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_chart_sort :
+                   an_ifc_Implicit_numeric<an_ifc_encoded_chart_sort_storage> {
+  using storage_type = an_ifc_encoded_chart_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_chart_sort */
-
 
 enum an_ifc_encoded_decl_index_0_33 : uint32_t;
 using an_ifc_encoded_decl_index_storage = uint32_t;
@@ -570,20 +533,12 @@ using an_ifc_encoded_decl_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedDeclIndex.
 */
-struct an_ifc_encoded_decl_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_decl_index_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_decl_index_storage() const
-    { return this->value; }
+struct an_ifc_encoded_decl_index :
+                   an_ifc_Implicit_numeric<an_ifc_encoded_decl_index_storage> {
+  using storage_type = an_ifc_encoded_decl_index_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_decl_index */
-
 
 enum an_ifc_encoded_decl_sort_0_33 : uint32_t;
 using an_ifc_encoded_decl_sort_storage = uint32_t;
@@ -592,20 +547,12 @@ using an_ifc_encoded_decl_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedDeclSort.
 */
-struct an_ifc_encoded_decl_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_decl_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_decl_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_decl_sort :
+                    an_ifc_Implicit_numeric<an_ifc_encoded_decl_sort_storage> {
+  using storage_type = an_ifc_encoded_decl_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_decl_sort */
-
 
 enum an_ifc_encoded_delimiter_sort_0_33 : uint8_t;
 using an_ifc_encoded_delimiter_sort_storage = uint8_t;
@@ -614,20 +561,12 @@ using an_ifc_encoded_delimiter_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedDelimiterSort.
 */
-struct an_ifc_encoded_delimiter_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_delimiter_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_delimiter_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_delimiter_sort :
+               an_ifc_Implicit_numeric<an_ifc_encoded_delimiter_sort_storage> {
+  using storage_type = an_ifc_encoded_delimiter_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_delimiter_sort */
-
 
 enum an_ifc_encoded_dyadic_operator_sort_0_33 : uint16_t;
 using an_ifc_encoded_dyadic_operator_sort_storage = uint16_t;
@@ -636,20 +575,12 @@ using an_ifc_encoded_dyadic_operator_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedDyadicOperatorSort.
 */
-struct an_ifc_encoded_dyadic_operator_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_dyadic_operator_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_dyadic_operator_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_dyadic_operator_sort :
+         an_ifc_Implicit_numeric<an_ifc_encoded_dyadic_operator_sort_storage> {
+  using storage_type = an_ifc_encoded_dyadic_operator_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_dyadic_operator_sort */
-
 
 enum an_ifc_encoded_expansion_mode_sort_0_33 : uint8_t;
 using an_ifc_encoded_expansion_mode_sort_storage = uint8_t;
@@ -658,20 +589,12 @@ using an_ifc_encoded_expansion_mode_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedExpansionModeSort.
 */
-struct an_ifc_encoded_expansion_mode_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_expansion_mode_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_expansion_mode_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_expansion_mode_sort :
+          an_ifc_Implicit_numeric<an_ifc_encoded_expansion_mode_sort_storage> {
+  using storage_type = an_ifc_encoded_expansion_mode_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_expansion_mode_sort */
-
 
 enum an_ifc_encoded_expr_index_0_33 : uint32_t;
 using an_ifc_encoded_expr_index_storage = uint32_t;
@@ -680,20 +603,12 @@ using an_ifc_encoded_expr_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedExprIndex.
 */
-struct an_ifc_encoded_expr_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_expr_index_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_expr_index_storage() const
-    { return this->value; }
+struct an_ifc_encoded_expr_index :
+                   an_ifc_Implicit_numeric<an_ifc_encoded_expr_index_storage> {
+  using storage_type = an_ifc_encoded_expr_index_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_expr_index */
-
 
 enum an_ifc_encoded_expr_sort_0_33 : uint32_t;
 using an_ifc_encoded_expr_sort_storage = uint32_t;
@@ -702,20 +617,12 @@ using an_ifc_encoded_expr_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedExprSort.
 */
-struct an_ifc_encoded_expr_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_expr_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_expr_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_expr_sort :
+                    an_ifc_Implicit_numeric<an_ifc_encoded_expr_sort_storage> {
+  using storage_type = an_ifc_encoded_expr_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_expr_sort */
-
 
 enum an_ifc_encoded_fold_direction_sort_0_33 : uint32_t;
 using an_ifc_encoded_fold_direction_sort_storage = uint32_t;
@@ -724,20 +631,12 @@ using an_ifc_encoded_fold_direction_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedFoldDirectionSort.
 */
-struct an_ifc_encoded_fold_direction_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_fold_direction_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_fold_direction_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_fold_direction_sort :
+          an_ifc_Implicit_numeric<an_ifc_encoded_fold_direction_sort_storage> {
+  using storage_type = an_ifc_encoded_fold_direction_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_fold_direction_sort */
-
 
 enum an_ifc_encoded_form_index_0_33 : uint32_t;
 using an_ifc_encoded_form_index_storage = uint32_t;
@@ -746,20 +645,12 @@ using an_ifc_encoded_form_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedFormIndex.
 */
-struct an_ifc_encoded_form_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_form_index_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_form_index_storage() const
-    { return this->value; }
+struct an_ifc_encoded_form_index :
+                   an_ifc_Implicit_numeric<an_ifc_encoded_form_index_storage> {
+  using storage_type = an_ifc_encoded_form_index_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_form_index */
-
 
 enum an_ifc_encoded_form_sort_0_33 : uint32_t;
 using an_ifc_encoded_form_sort_storage = uint32_t;
@@ -768,20 +659,12 @@ using an_ifc_encoded_form_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedFormSort.
 */
-struct an_ifc_encoded_form_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_form_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_form_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_form_sort :
+                    an_ifc_Implicit_numeric<an_ifc_encoded_form_sort_storage> {
+  using storage_type = an_ifc_encoded_form_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_form_sort */
-
 
 enum an_ifc_encoded_initializer_sort_0_33 : uint8_t;
 using an_ifc_encoded_initializer_sort_storage = uint8_t;
@@ -790,20 +673,12 @@ using an_ifc_encoded_initializer_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedInitializerSort.
 */
-struct an_ifc_encoded_initializer_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_initializer_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_initializer_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_initializer_sort :
+             an_ifc_Implicit_numeric<an_ifc_encoded_initializer_sort_storage> {
+  using storage_type = an_ifc_encoded_initializer_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_initializer_sort */
-
 
 enum an_ifc_encoded_keyword_sort_0_33 : uint32_t;
 using an_ifc_encoded_keyword_sort_storage = uint32_t;
@@ -812,20 +687,12 @@ using an_ifc_encoded_keyword_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedKeywordSort.
 */
-struct an_ifc_encoded_keyword_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_keyword_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_keyword_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_keyword_sort :
+                 an_ifc_Implicit_numeric<an_ifc_encoded_keyword_sort_storage> {
+  using storage_type = an_ifc_encoded_keyword_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_keyword_sort */
-
 
 enum an_ifc_encoded_label_sort_0_33 : uint32_t;
 using an_ifc_encoded_label_sort_storage = uint32_t;
@@ -834,20 +701,12 @@ using an_ifc_encoded_label_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedLabelSort.
 */
-struct an_ifc_encoded_label_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_label_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_label_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_label_sort :
+                   an_ifc_Implicit_numeric<an_ifc_encoded_label_sort_storage> {
+  using storage_type = an_ifc_encoded_label_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_label_sort */
-
 
 enum an_ifc_encoded_lit_index_0_33 : uint32_t;
 using an_ifc_encoded_lit_index_storage = uint32_t;
@@ -856,20 +715,12 @@ using an_ifc_encoded_lit_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedLitIndex.
 */
-struct an_ifc_encoded_lit_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_lit_index_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_lit_index_storage() const
-    { return this->value; }
+struct an_ifc_encoded_lit_index :
+                    an_ifc_Implicit_numeric<an_ifc_encoded_lit_index_storage> {
+  using storage_type = an_ifc_encoded_lit_index_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_lit_index */
-
 
 enum an_ifc_encoded_lit_sort_0_33 : uint32_t;
 using an_ifc_encoded_lit_sort_storage = uint32_t;
@@ -878,20 +729,12 @@ using an_ifc_encoded_lit_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedLitSort.
 */
-struct an_ifc_encoded_lit_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_lit_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_lit_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_lit_sort :
+                     an_ifc_Implicit_numeric<an_ifc_encoded_lit_sort_storage> {
+  using storage_type = an_ifc_encoded_lit_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_lit_sort */
-
 
 enum an_ifc_encoded_macro_index_0_33 : uint32_t;
 using an_ifc_encoded_macro_index_storage = uint32_t;
@@ -900,20 +743,12 @@ using an_ifc_encoded_macro_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedMacroIndex.
 */
-struct an_ifc_encoded_macro_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_macro_index_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_macro_index_storage() const
-    { return this->value; }
+struct an_ifc_encoded_macro_index :
+                  an_ifc_Implicit_numeric<an_ifc_encoded_macro_index_storage> {
+  using storage_type = an_ifc_encoded_macro_index_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_macro_index */
-
 
 enum an_ifc_encoded_macro_sort_0_33 : uint32_t;
 using an_ifc_encoded_macro_sort_storage = uint32_t;
@@ -922,20 +757,12 @@ using an_ifc_encoded_macro_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedMacroSort.
 */
-struct an_ifc_encoded_macro_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_macro_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_macro_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_macro_sort :
+                   an_ifc_Implicit_numeric<an_ifc_encoded_macro_sort_storage> {
+  using storage_type = an_ifc_encoded_macro_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_macro_sort */
-
 
 enum an_ifc_encoded_monadic_operator_sort_0_33 : uint16_t;
 using an_ifc_encoded_monadic_operator_sort_storage = uint16_t;
@@ -944,20 +771,12 @@ using an_ifc_encoded_monadic_operator_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedMonadicOperatorSort.
 */
-struct an_ifc_encoded_monadic_operator_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_monadic_operator_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_monadic_operator_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_monadic_operator_sort :
+        an_ifc_Implicit_numeric<an_ifc_encoded_monadic_operator_sort_storage> {
+  using storage_type = an_ifc_encoded_monadic_operator_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_monadic_operator_sort */
-
 
 enum an_ifc_encoded_name_index_0_33 : uint32_t;
 using an_ifc_encoded_name_index_storage = uint32_t;
@@ -966,20 +785,12 @@ using an_ifc_encoded_name_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedNameIndex.
 */
-struct an_ifc_encoded_name_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_name_index_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_name_index_storage() const
-    { return this->value; }
+struct an_ifc_encoded_name_index :
+                   an_ifc_Implicit_numeric<an_ifc_encoded_name_index_storage> {
+  using storage_type = an_ifc_encoded_name_index_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_name_index */
-
 
 enum an_ifc_encoded_name_sort_0_33 : uint32_t;
 using an_ifc_encoded_name_sort_storage = uint32_t;
@@ -988,20 +799,12 @@ using an_ifc_encoded_name_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedNameSort.
 */
-struct an_ifc_encoded_name_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_name_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_name_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_name_sort :
+                    an_ifc_Implicit_numeric<an_ifc_encoded_name_sort_storage> {
+  using storage_type = an_ifc_encoded_name_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_name_sort */
-
 
 enum an_ifc_encoded_niladic_operator_sort_0_33 : uint16_t;
 using an_ifc_encoded_niladic_operator_sort_storage = uint16_t;
@@ -1010,20 +813,12 @@ using an_ifc_encoded_niladic_operator_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedNiladicOperatorSort.
 */
-struct an_ifc_encoded_niladic_operator_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_niladic_operator_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_niladic_operator_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_niladic_operator_sort :
+        an_ifc_Implicit_numeric<an_ifc_encoded_niladic_operator_sort_storage> {
+  using storage_type = an_ifc_encoded_niladic_operator_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_niladic_operator_sort */
-
 
 enum an_ifc_encoded_noexcept_sort_0_33 : uint8_t;
 using an_ifc_encoded_noexcept_sort_storage = uint8_t;
@@ -1032,20 +827,12 @@ using an_ifc_encoded_noexcept_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedNoexceptSort.
 */
-struct an_ifc_encoded_noexcept_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_noexcept_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_noexcept_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_noexcept_sort :
+                an_ifc_Implicit_numeric<an_ifc_encoded_noexcept_sort_storage> {
+  using storage_type = an_ifc_encoded_noexcept_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_noexcept_sort */
-
 
 enum an_ifc_encoded_operator_sort_0_33 : uint16_t;
 using an_ifc_encoded_operator_sort_storage = uint16_t;
@@ -1054,20 +841,12 @@ using an_ifc_encoded_operator_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedOperatorSort.
 */
-struct an_ifc_encoded_operator_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_operator_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_operator_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_operator_sort :
+                an_ifc_Implicit_numeric<an_ifc_encoded_operator_sort_storage> {
+  using storage_type = an_ifc_encoded_operator_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_operator_sort */
-
 
 enum an_ifc_encoded_parameter_sort_0_33 : uint8_t;
 using an_ifc_encoded_parameter_sort_storage = uint8_t;
@@ -1076,20 +855,12 @@ using an_ifc_encoded_parameter_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedParameterSort.
 */
-struct an_ifc_encoded_parameter_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_parameter_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_parameter_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_parameter_sort :
+               an_ifc_Implicit_numeric<an_ifc_encoded_parameter_sort_storage> {
+  using storage_type = an_ifc_encoded_parameter_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_parameter_sort */
-
 
 enum an_ifc_encoded_pointer_declarator_sort_0_33 : uint8_t;
 using an_ifc_encoded_pointer_declarator_sort_storage = uint8_t;
@@ -1098,20 +869,12 @@ using an_ifc_encoded_pointer_declarator_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedPointerDeclaratorSort.
 */
-struct an_ifc_encoded_pointer_declarator_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_pointer_declarator_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_pointer_declarator_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_pointer_declarator_sort :
+      an_ifc_Implicit_numeric<an_ifc_encoded_pointer_declarator_sort_storage> {
+  using storage_type = an_ifc_encoded_pointer_declarator_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_pointer_declarator_sort */
-
 
 enum an_ifc_encoded_pragma_index_0_33 : uint32_t;
 using an_ifc_encoded_pragma_index_storage = uint32_t;
@@ -1120,20 +883,12 @@ using an_ifc_encoded_pragma_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedPragmaIndex.
 */
-struct an_ifc_encoded_pragma_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_pragma_index_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_pragma_index_storage() const
-    { return this->value; }
+struct an_ifc_encoded_pragma_index :
+                 an_ifc_Implicit_numeric<an_ifc_encoded_pragma_index_storage> {
+  using storage_type = an_ifc_encoded_pragma_index_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_pragma_index */
-
 
 enum an_ifc_encoded_pragma_sort_0_33 : uint32_t;
 using an_ifc_encoded_pragma_sort_storage = uint32_t;
@@ -1142,20 +897,12 @@ using an_ifc_encoded_pragma_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedPragmaSort.
 */
-struct an_ifc_encoded_pragma_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_pragma_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_pragma_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_pragma_sort :
+                  an_ifc_Implicit_numeric<an_ifc_encoded_pragma_sort_storage> {
+  using storage_type = an_ifc_encoded_pragma_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_pragma_sort */
-
 
 enum an_ifc_encoded_read_conversion_sort_0_33 : uint8_t;
 using an_ifc_encoded_read_conversion_sort_storage = uint8_t;
@@ -1164,20 +911,12 @@ using an_ifc_encoded_read_conversion_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedReadConversionSort.
 */
-struct an_ifc_encoded_read_conversion_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_read_conversion_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_read_conversion_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_read_conversion_sort :
+         an_ifc_Implicit_numeric<an_ifc_encoded_read_conversion_sort_storage> {
+  using storage_type = an_ifc_encoded_read_conversion_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_read_conversion_sort */
-
 
 enum an_ifc_encoded_return_sort_0_33 : uint8_t;
 using an_ifc_encoded_return_sort_storage = uint8_t;
@@ -1186,20 +925,12 @@ using an_ifc_encoded_return_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedReturnSort.
 */
-struct an_ifc_encoded_return_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_return_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_return_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_return_sort :
+                  an_ifc_Implicit_numeric<an_ifc_encoded_return_sort_storage> {
+  using storage_type = an_ifc_encoded_return_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_return_sort */
-
 
 enum an_ifc_encoded_source_directive_sort_0_33 : uint16_t;
 using an_ifc_encoded_source_directive_sort_storage = uint16_t;
@@ -1208,20 +939,12 @@ using an_ifc_encoded_source_directive_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedSourceDirectiveSort.
 */
-struct an_ifc_encoded_source_directive_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_source_directive_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_source_directive_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_source_directive_sort :
+        an_ifc_Implicit_numeric<an_ifc_encoded_source_directive_sort_storage> {
+  using storage_type = an_ifc_encoded_source_directive_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_source_directive_sort */
-
 
 enum an_ifc_encoded_source_identifier_sort_0_33 : uint16_t;
 using an_ifc_encoded_source_identifier_sort_storage = uint16_t;
@@ -1230,20 +953,12 @@ using an_ifc_encoded_source_identifier_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedSourceIdentifierSort.
 */
-struct an_ifc_encoded_source_identifier_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_source_identifier_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_source_identifier_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_source_identifier_sort :
+       an_ifc_Implicit_numeric<an_ifc_encoded_source_identifier_sort_storage> {
+  using storage_type = an_ifc_encoded_source_identifier_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_source_identifier_sort */
-
 
 enum an_ifc_encoded_source_keyword_sort_0_33 : uint16_t;
 using an_ifc_encoded_source_keyword_sort_storage = uint16_t;
@@ -1252,20 +967,12 @@ using an_ifc_encoded_source_keyword_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedSourceKeywordSort.
 */
-struct an_ifc_encoded_source_keyword_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_source_keyword_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_source_keyword_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_source_keyword_sort :
+          an_ifc_Implicit_numeric<an_ifc_encoded_source_keyword_sort_storage> {
+  using storage_type = an_ifc_encoded_source_keyword_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_source_keyword_sort */
-
 
 enum an_ifc_encoded_source_literal_sort_0_33 : uint16_t;
 using an_ifc_encoded_source_literal_sort_storage = uint16_t;
@@ -1274,20 +981,12 @@ using an_ifc_encoded_source_literal_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedSourceLiteralSort.
 */
-struct an_ifc_encoded_source_literal_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_source_literal_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_source_literal_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_source_literal_sort :
+          an_ifc_Implicit_numeric<an_ifc_encoded_source_literal_sort_storage> {
+  using storage_type = an_ifc_encoded_source_literal_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_source_literal_sort */
-
 
 enum an_ifc_encoded_source_operator_sort_0_33 : uint16_t;
 using an_ifc_encoded_source_operator_sort_storage = uint16_t;
@@ -1296,20 +995,12 @@ using an_ifc_encoded_source_operator_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedSourceOperatorSort.
 */
-struct an_ifc_encoded_source_operator_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_source_operator_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_source_operator_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_source_operator_sort :
+         an_ifc_Implicit_numeric<an_ifc_encoded_source_operator_sort_storage> {
+  using storage_type = an_ifc_encoded_source_operator_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_source_operator_sort */
-
 
 enum an_ifc_encoded_source_punctuator_sort_0_33 : uint16_t;
 using an_ifc_encoded_source_punctuator_sort_storage = uint16_t;
@@ -1318,20 +1009,12 @@ using an_ifc_encoded_source_punctuator_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedSourcePunctuatorSort.
 */
-struct an_ifc_encoded_source_punctuator_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_source_punctuator_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_source_punctuator_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_source_punctuator_sort :
+       an_ifc_Implicit_numeric<an_ifc_encoded_source_punctuator_sort_storage> {
+  using storage_type = an_ifc_encoded_source_punctuator_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_source_punctuator_sort */
-
 
 enum an_ifc_encoded_specialization_sort_0_41 : uint8_t;
 using an_ifc_encoded_specialization_sort_storage = uint8_t;
@@ -1340,20 +1023,12 @@ using an_ifc_encoded_specialization_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedSpecializationSort.
 */
-struct an_ifc_encoded_specialization_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_specialization_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_specialization_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_specialization_sort :
+          an_ifc_Implicit_numeric<an_ifc_encoded_specialization_sort_storage> {
+  using storage_type = an_ifc_encoded_specialization_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_specialization_sort */
-
 
 enum an_ifc_encoded_stmt_index_0_33 : uint32_t;
 using an_ifc_encoded_stmt_index_storage = uint32_t;
@@ -1362,20 +1037,12 @@ using an_ifc_encoded_stmt_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedStmtIndex.
 */
-struct an_ifc_encoded_stmt_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_stmt_index_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_stmt_index_storage() const
-    { return this->value; }
+struct an_ifc_encoded_stmt_index :
+                   an_ifc_Implicit_numeric<an_ifc_encoded_stmt_index_storage> {
+  using storage_type = an_ifc_encoded_stmt_index_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_stmt_index */
-
 
 enum an_ifc_encoded_stmt_sort_0_33 : uint32_t;
 using an_ifc_encoded_stmt_sort_storage = uint32_t;
@@ -1384,20 +1051,12 @@ using an_ifc_encoded_stmt_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedStmtSort.
 */
-struct an_ifc_encoded_stmt_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_stmt_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_stmt_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_stmt_sort :
+                    an_ifc_Implicit_numeric<an_ifc_encoded_stmt_sort_storage> {
+  using storage_type = an_ifc_encoded_stmt_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_stmt_sort */
-
 
 enum an_ifc_encoded_storage_instruction_operator_sort_0_33 : uint16_t;
 using an_ifc_encoded_storage_instruction_operator_sort_storage = uint16_t;
@@ -1406,21 +1065,13 @@ using an_ifc_encoded_storage_instruction_operator_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedStorageInstructionOperatorSort.
 */
-struct an_ifc_encoded_storage_instruction_operator_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_storage_instruction_operator_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator
-  an_ifc_encoded_storage_instruction_operator_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_storage_instruction_operator_sort :
+an_ifc_Implicit_numeric<an_ifc_encoded_storage_instruction_operator_sort_storage> {
+  using storage_type =
+                      an_ifc_encoded_storage_instruction_operator_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_storage_instruction_operator_sort */
-
 
 enum an_ifc_encoded_string_index_0_33 : uint32_t;
 using an_ifc_encoded_string_index_storage = uint32_t;
@@ -1429,20 +1080,12 @@ using an_ifc_encoded_string_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedStringIndex.
 */
-struct an_ifc_encoded_string_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_string_index_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_string_index_storage() const
-    { return this->value; }
+struct an_ifc_encoded_string_index :
+                 an_ifc_Implicit_numeric<an_ifc_encoded_string_index_storage> {
+  using storage_type = an_ifc_encoded_string_index_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_string_index */
-
 
 enum an_ifc_encoded_string_sort_0_33 : uint32_t;
 using an_ifc_encoded_string_sort_storage = uint32_t;
@@ -1451,20 +1094,12 @@ using an_ifc_encoded_string_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedStringSort.
 */
-struct an_ifc_encoded_string_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_string_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_string_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_string_sort :
+                  an_ifc_Implicit_numeric<an_ifc_encoded_string_sort_storage> {
+  using storage_type = an_ifc_encoded_string_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_string_sort */
-
 
 enum an_ifc_encoded_syntax_index_0_33 : uint32_t;
 using an_ifc_encoded_syntax_index_storage = uint32_t;
@@ -1473,20 +1108,12 @@ using an_ifc_encoded_syntax_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedSyntaxIndex.
 */
-struct an_ifc_encoded_syntax_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_syntax_index_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_syntax_index_storage() const
-    { return this->value; }
+struct an_ifc_encoded_syntax_index :
+                 an_ifc_Implicit_numeric<an_ifc_encoded_syntax_index_storage> {
+  using storage_type = an_ifc_encoded_syntax_index_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_syntax_index */
-
 
 enum an_ifc_encoded_syntax_sort_0_33 : uint32_t;
 using an_ifc_encoded_syntax_sort_storage = uint32_t;
@@ -1495,20 +1122,12 @@ using an_ifc_encoded_syntax_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedSyntaxSort.
 */
-struct an_ifc_encoded_syntax_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_syntax_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_syntax_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_syntax_sort :
+                  an_ifc_Implicit_numeric<an_ifc_encoded_syntax_sort_storage> {
+  using storage_type = an_ifc_encoded_syntax_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_syntax_sort */
-
 
 enum an_ifc_encoded_triadic_operator_sort_0_33 : uint16_t;
 using an_ifc_encoded_triadic_operator_sort_storage = uint16_t;
@@ -1517,20 +1136,12 @@ using an_ifc_encoded_triadic_operator_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedTriadicOperatorSort.
 */
-struct an_ifc_encoded_triadic_operator_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_triadic_operator_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_triadic_operator_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_triadic_operator_sort :
+        an_ifc_Implicit_numeric<an_ifc_encoded_triadic_operator_sort_storage> {
+  using storage_type = an_ifc_encoded_triadic_operator_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_triadic_operator_sort */
-
 
 enum an_ifc_encoded_type_basis_sort_0_33 : uint8_t;
 using an_ifc_encoded_type_basis_sort_storage = uint8_t;
@@ -1539,20 +1150,12 @@ using an_ifc_encoded_type_basis_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedTypeBasisSort.
 */
-struct an_ifc_encoded_type_basis_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_type_basis_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_type_basis_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_type_basis_sort :
+              an_ifc_Implicit_numeric<an_ifc_encoded_type_basis_sort_storage> {
+  using storage_type = an_ifc_encoded_type_basis_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_type_basis_sort */
-
 
 enum an_ifc_encoded_type_index_0_33 : uint32_t;
 using an_ifc_encoded_type_index_storage = uint32_t;
@@ -1561,20 +1164,12 @@ using an_ifc_encoded_type_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedTypeIndex.
 */
-struct an_ifc_encoded_type_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_type_index_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_type_index_storage() const
-    { return this->value; }
+struct an_ifc_encoded_type_index :
+                   an_ifc_Implicit_numeric<an_ifc_encoded_type_index_storage> {
+  using storage_type = an_ifc_encoded_type_index_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_type_index */
-
 
 enum an_ifc_encoded_type_precision_sort_0_33 : uint8_t;
 using an_ifc_encoded_type_precision_sort_storage = uint8_t;
@@ -1583,20 +1178,12 @@ using an_ifc_encoded_type_precision_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedTypePrecisionSort.
 */
-struct an_ifc_encoded_type_precision_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_type_precision_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_type_precision_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_type_precision_sort :
+          an_ifc_Implicit_numeric<an_ifc_encoded_type_precision_sort_storage> {
+  using storage_type = an_ifc_encoded_type_precision_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_type_precision_sort */
-
 
 enum an_ifc_encoded_type_sign_sort_0_33 : uint8_t;
 using an_ifc_encoded_type_sign_sort_storage = uint8_t;
@@ -1605,20 +1192,12 @@ using an_ifc_encoded_type_sign_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedTypeSignSort.
 */
-struct an_ifc_encoded_type_sign_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_type_sign_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_type_sign_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_type_sign_sort :
+               an_ifc_Implicit_numeric<an_ifc_encoded_type_sign_sort_storage> {
+  using storage_type = an_ifc_encoded_type_sign_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_type_sign_sort */
-
 
 enum an_ifc_encoded_type_sort_0_33 : uint32_t;
 using an_ifc_encoded_type_sort_storage = uint32_t;
@@ -1627,20 +1206,12 @@ using an_ifc_encoded_type_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedTypeSort.
 */
-struct an_ifc_encoded_type_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_type_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_type_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_type_sort :
+                    an_ifc_Implicit_numeric<an_ifc_encoded_type_sort_storage> {
+  using storage_type = an_ifc_encoded_type_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_type_sort */
-
 
 enum an_ifc_encoded_unit_index_0_33 : uint32_t;
 using an_ifc_encoded_unit_index_storage = uint32_t;
@@ -1649,20 +1220,12 @@ using an_ifc_encoded_unit_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedUnitIndex.
 */
-struct an_ifc_encoded_unit_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_unit_index_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_unit_index_storage() const
-    { return this->value; }
+struct an_ifc_encoded_unit_index :
+                   an_ifc_Implicit_numeric<an_ifc_encoded_unit_index_storage> {
+  using storage_type = an_ifc_encoded_unit_index_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_unit_index */
-
 
 enum an_ifc_encoded_unit_sort_0_33 : uint32_t;
 using an_ifc_encoded_unit_sort_storage = uint32_t;
@@ -1671,20 +1234,12 @@ using an_ifc_encoded_unit_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedUnitSort.
 */
-struct an_ifc_encoded_unit_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_unit_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_unit_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_unit_sort :
+                    an_ifc_Implicit_numeric<an_ifc_encoded_unit_sort_storage> {
+  using storage_type = an_ifc_encoded_unit_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_unit_sort */
-
 
 enum an_ifc_encoded_variadic_operator_sort_0_33 : uint16_t;
 using an_ifc_encoded_variadic_operator_sort_storage = uint16_t;
@@ -1693,20 +1248,12 @@ using an_ifc_encoded_variadic_operator_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedVariadicOperatorSort.
 */
-struct an_ifc_encoded_variadic_operator_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_variadic_operator_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_variadic_operator_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_variadic_operator_sort :
+       an_ifc_Implicit_numeric<an_ifc_encoded_variadic_operator_sort_storage> {
+  using storage_type = an_ifc_encoded_variadic_operator_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_variadic_operator_sort */
-
 
 enum an_ifc_encoded_word_sort_0_33 : uint8_t;
 using an_ifc_encoded_word_sort_storage = uint8_t;
@@ -1715,20 +1262,12 @@ using an_ifc_encoded_word_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedWordSort.
 */
-struct an_ifc_encoded_word_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_encoded_word_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_encoded_word_sort_storage() const
-    { return this->value; }
+struct an_ifc_encoded_word_sort :
+                    an_ifc_Implicit_numeric<an_ifc_encoded_word_sort_storage> {
+  using storage_type = an_ifc_encoded_word_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_encoded_word_sort */
-
 
 enum an_ifc_entity_size_0_33 : uint32_t;
 using an_ifc_entity_size_storage = uint32_t;
@@ -1737,20 +1276,12 @@ using an_ifc_entity_size_storage = uint32_t;
 /*
 The universal representation for an IFC EntitySize.
 */
-struct an_ifc_entity_size {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_entity_size_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_entity_size_storage() const
-    { return this->value; }
+struct an_ifc_entity_size :
+                          an_ifc_Implicit_numeric<an_ifc_entity_size_storage> {
+  using storage_type = an_ifc_entity_size_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_entity_size */
-
 
 enum an_ifc_form_operator_sort_0_33 : uint16_t;
 using an_ifc_form_operator_sort_storage = uint16_t;
@@ -1759,20 +1290,12 @@ using an_ifc_form_operator_sort_storage = uint16_t;
 /*
 The universal representation for an IFC FormOperatorSort.
 */
-struct an_ifc_form_operator_sort {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_form_operator_sort_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_form_operator_sort_storage() const
-    { return this->value; }
+struct an_ifc_form_operator_sort :
+                   an_ifc_Implicit_numeric<an_ifc_form_operator_sort_storage> {
+  using storage_type = an_ifc_form_operator_sort_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_form_operator_sort */
-
 
 enum an_ifc_form_spec_index_0_33 : uint32_t;
 using an_ifc_form_spec_index_storage = uint32_t;
@@ -1781,20 +1304,12 @@ using an_ifc_form_spec_index_storage = uint32_t;
 /*
 The universal representation for an IFC FormSpecIndex.
 */
-struct an_ifc_form_spec_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_form_spec_index_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_form_spec_index_storage() const
-    { return this->value; }
+struct an_ifc_form_spec_index :
+                      an_ifc_Implicit_numeric<an_ifc_form_spec_index_storage> {
+  using storage_type = an_ifc_form_spec_index_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_form_spec_index */
-
 
 enum an_ifc_guide_traits_bitfield_0_33 : uint8_t;
 using an_ifc_guide_traits_bitfield_storage = uint8_t;
@@ -1803,20 +1318,12 @@ using an_ifc_guide_traits_bitfield_storage = uint8_t;
 /*
 The universal representation for an IFC GuideTraitsBitfield.
 */
-struct an_ifc_guide_traits_bitfield {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_guide_traits_bitfield_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_guide_traits_bitfield_storage() const
-    { return this->value; }
+struct an_ifc_guide_traits_bitfield :
+                an_ifc_Implicit_numeric<an_ifc_guide_traits_bitfield_storage> {
+  using storage_type = an_ifc_guide_traits_bitfield_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_guide_traits_bitfield */
-
 
 enum an_ifc_index_0_33 : uint32_t;
 using an_ifc_index_storage = uint32_t;
@@ -1825,20 +1332,11 @@ using an_ifc_index_storage = uint32_t;
 /*
 The universal representation for an IFC Index.
 */
-struct an_ifc_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_index_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_index_storage() const
-    { return this->value; }
+struct an_ifc_index : an_ifc_Implicit_numeric<an_ifc_index_storage> {
+  using storage_type = an_ifc_index_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_index */
-
 
 enum an_ifc_language_version_0_33 : uint32_t;
 using an_ifc_language_version_storage = uint32_t;
@@ -1847,20 +1345,12 @@ using an_ifc_language_version_storage = uint32_t;
 /*
 The universal representation for an IFC LanguageVersion.
 */
-struct an_ifc_language_version {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_language_version_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_language_version_storage() const
-    { return this->value; }
+struct an_ifc_language_version :
+                     an_ifc_Implicit_numeric<an_ifc_language_version_storage> {
+  using storage_type = an_ifc_language_version_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_language_version */
-
 
 enum an_ifc_line_index_0_33 : uint32_t;
 using an_ifc_line_index_storage = uint32_t;
@@ -1869,20 +1359,11 @@ using an_ifc_line_index_storage = uint32_t;
 /*
 The universal representation for an IFC LineIndex.
 */
-struct an_ifc_line_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_line_index_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_line_index_storage() const
-    { return this->value; }
+struct an_ifc_line_index : an_ifc_Implicit_numeric<an_ifc_line_index_storage> {
+  using storage_type = an_ifc_line_index_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_line_index */
-
 
 enum an_ifc_line_number_0_33 : uint32_t;
 using an_ifc_line_number_storage = uint32_t;
@@ -1891,20 +1372,12 @@ using an_ifc_line_number_storage = uint32_t;
 /*
 The universal representation for an IFC LineNumber.
 */
-struct an_ifc_line_number {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_line_number_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_line_number_storage() const
-    { return this->value; }
+struct an_ifc_line_number :
+                          an_ifc_Implicit_numeric<an_ifc_line_number_storage> {
+  using storage_type = an_ifc_line_number_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_line_number */
-
 
 enum an_ifc_pack_size_0_33 : uint16_t;
 using an_ifc_pack_size_storage = uint16_t;
@@ -1913,20 +1386,11 @@ using an_ifc_pack_size_storage = uint16_t;
 /*
 The universal representation for an IFC PackSize.
 */
-struct an_ifc_pack_size {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_pack_size_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_pack_size_storage() const
-    { return this->value; }
+struct an_ifc_pack_size : an_ifc_Implicit_numeric<an_ifc_pack_size_storage> {
+  using storage_type = an_ifc_pack_size_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_pack_size */
-
 
 enum an_ifc_parameter_level_0_33 : uint32_t;
 using an_ifc_parameter_level_storage = uint32_t;
@@ -1935,20 +1399,12 @@ using an_ifc_parameter_level_storage = uint32_t;
 /*
 The universal representation for an IFC ParameterLevel.
 */
-struct an_ifc_parameter_level {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_parameter_level_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_parameter_level_storage() const
-    { return this->value; }
+struct an_ifc_parameter_level :
+                      an_ifc_Implicit_numeric<an_ifc_parameter_level_storage> {
+  using storage_type = an_ifc_parameter_level_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_parameter_level */
-
 
 enum an_ifc_parameter_position_0_33 : uint32_t;
 using an_ifc_parameter_position_storage = uint32_t;
@@ -1957,20 +1413,12 @@ using an_ifc_parameter_position_storage = uint32_t;
 /*
 The universal representation for an IFC ParameterPosition.
 */
-struct an_ifc_parameter_position {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_parameter_position_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_parameter_position_storage() const
-    { return this->value; }
+struct an_ifc_parameter_position :
+                   an_ifc_Implicit_numeric<an_ifc_parameter_position_storage> {
+  using storage_type = an_ifc_parameter_position_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_parameter_position */
-
 
 enum an_ifc_scope_index_0_33 : uint32_t;
 using an_ifc_scope_index_storage = uint32_t;
@@ -1979,20 +1427,12 @@ using an_ifc_scope_index_storage = uint32_t;
 /*
 The universal representation for an IFC ScopeIndex.
 */
-struct an_ifc_scope_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_scope_index_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_scope_index_storage() const
-    { return this->value; }
+struct an_ifc_scope_index :
+                          an_ifc_Implicit_numeric<an_ifc_scope_index_storage> {
+  using storage_type = an_ifc_scope_index_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_scope_index */
-
 
 enum an_ifc_segment_traits_0_33 : uint32_t;
 using an_ifc_segment_traits_storage = uint32_t;
@@ -2001,20 +1441,12 @@ using an_ifc_segment_traits_storage = uint32_t;
 /*
 The universal representation for an IFC SegmentTraits.
 */
-struct an_ifc_segment_traits {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_segment_traits_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_segment_traits_storage() const
-    { return this->value; }
+struct an_ifc_segment_traits :
+                       an_ifc_Implicit_numeric<an_ifc_segment_traits_storage> {
+  using storage_type = an_ifc_segment_traits_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_segment_traits */
-
 
 enum an_ifc_segment_type_0_33 : uint32_t;
 using an_ifc_segment_type_storage = uint32_t;
@@ -2023,20 +1455,12 @@ using an_ifc_segment_type_storage = uint32_t;
 /*
 The universal representation for an IFC SegmentType.
 */
-struct an_ifc_segment_type {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_segment_type_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_segment_type_storage() const
-    { return this->value; }
+struct an_ifc_segment_type :
+                         an_ifc_Implicit_numeric<an_ifc_segment_type_storage> {
+  using storage_type = an_ifc_segment_type_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_segment_type */
-
 
 enum an_ifc_sentence_index_0_33 : uint32_t;
 using an_ifc_sentence_index_storage = uint32_t;
@@ -2045,20 +1469,12 @@ using an_ifc_sentence_index_storage = uint32_t;
 /*
 The universal representation for an IFC SentenceIndex.
 */
-struct an_ifc_sentence_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_sentence_index_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_sentence_index_storage() const
-    { return this->value; }
+struct an_ifc_sentence_index :
+                       an_ifc_Implicit_numeric<an_ifc_sentence_index_storage> {
+  using storage_type = an_ifc_sentence_index_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_sentence_index */
-
 
 enum an_ifc_source_unknown_identifier_0_33 : uint32_t;
 using an_ifc_source_unknown_identifier_storage = uint32_t;
@@ -2067,20 +1483,12 @@ using an_ifc_source_unknown_identifier_storage = uint32_t;
 /*
 The universal representation for an IFC SourceUnknownIdentifier.
 */
-struct an_ifc_source_unknown_identifier {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_source_unknown_identifier_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_source_unknown_identifier_storage() const
-    { return this->value; }
+struct an_ifc_source_unknown_identifier :
+            an_ifc_Implicit_numeric<an_ifc_source_unknown_identifier_storage> {
+  using storage_type = an_ifc_source_unknown_identifier_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_source_unknown_identifier */
-
 
 enum an_ifc_source_unknown_literal_0_33 : uint32_t;
 using an_ifc_source_unknown_literal_storage = uint32_t;
@@ -2089,20 +1497,12 @@ using an_ifc_source_unknown_literal_storage = uint32_t;
 /*
 The universal representation for an IFC SourceUnknownLiteral.
 */
-struct an_ifc_source_unknown_literal {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_source_unknown_literal_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_source_unknown_literal_storage() const
-    { return this->value; }
+struct an_ifc_source_unknown_literal :
+               an_ifc_Implicit_numeric<an_ifc_source_unknown_literal_storage> {
+  using storage_type = an_ifc_source_unknown_literal_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_source_unknown_literal */
-
 
 enum an_ifc_source_unknown_word_0_33 : uint16_t;
 using an_ifc_source_unknown_word_storage = uint16_t;
@@ -2111,20 +1511,12 @@ using an_ifc_source_unknown_word_storage = uint16_t;
 /*
 The universal representation for an IFC SourceUnknownWord.
 */
-struct an_ifc_source_unknown_word {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_source_unknown_word_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_source_unknown_word_storage() const
-    { return this->value; }
+struct an_ifc_source_unknown_word :
+                  an_ifc_Implicit_numeric<an_ifc_source_unknown_word_storage> {
+  using storage_type = an_ifc_source_unknown_word_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_source_unknown_word */
-
 
 enum an_ifc_text_offset_0_33 : uint32_t;
 using an_ifc_text_offset_storage = uint32_t;
@@ -2133,20 +1525,12 @@ using an_ifc_text_offset_storage = uint32_t;
 /*
 The universal representation for an IFC TextOffset.
 */
-struct an_ifc_text_offset {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_text_offset_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_text_offset_storage() const
-    { return this->value; }
+struct an_ifc_text_offset :
+                          an_ifc_Implicit_numeric<an_ifc_text_offset_storage> {
+  using storage_type = an_ifc_text_offset_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_text_offset */
-
 
 enum an_ifc_unique_id_0_33 : uint32_t;
 using an_ifc_unique_id_storage = uint32_t;
@@ -2155,20 +1539,11 @@ using an_ifc_unique_id_storage = uint32_t;
 /*
 The universal representation for an IFC UniqueID.
 */
-struct an_ifc_unique_id {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_unique_id_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_unique_id_storage() const
-    { return this->value; }
+struct an_ifc_unique_id : an_ifc_Implicit_numeric<an_ifc_unique_id_storage> {
+  using storage_type = an_ifc_unique_id_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_unique_id */
-
 
 enum an_ifc_version_0_33 : uint8_t;
 using an_ifc_version_storage = uint8_t;
@@ -2177,20 +1552,11 @@ using an_ifc_version_storage = uint8_t;
 /*
 The universal representation for an IFC Version.
 */
-struct an_ifc_version {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_version_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_version_storage() const
-    { return this->value; }
+struct an_ifc_version : an_ifc_Implicit_numeric<an_ifc_version_storage> {
+  using storage_type = an_ifc_version_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_version */
-
 
 enum an_ifc_bool_0_33 : uint8_t;
 using an_ifc_bool_storage = uint8_t;
@@ -2199,20 +1565,11 @@ using an_ifc_bool_storage = uint8_t;
 /*
 The universal representation for an IFC bool.
 */
-struct an_ifc_bool {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_bool_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_bool_storage() const
-    { return this->value; }
+struct an_ifc_bool : an_ifc_Implicit_numeric<an_ifc_bool_storage> {
+  using storage_type = an_ifc_bool_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_bool */
-
 
 enum an_ifc_u16_0_33 : uint16_t;
 using an_ifc_u16_storage = uint16_t;
@@ -2221,20 +1578,11 @@ using an_ifc_u16_storage = uint16_t;
 /*
 The universal representation for an IFC u16.
 */
-struct an_ifc_u16 {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_u16_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_u16_storage() const
-    { return this->value; }
+struct an_ifc_u16 : an_ifc_Implicit_numeric<an_ifc_u16_storage> {
+  using storage_type = an_ifc_u16_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_u16 */
-
 
 enum an_ifc_u64_0_33 : uint64_t;
 using an_ifc_u64_storage = uint64_t;
@@ -2243,20 +1591,11 @@ using an_ifc_u64_storage = uint64_t;
 /*
 The universal representation for an IFC u64.
 */
-struct an_ifc_u64 {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_u64_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
-
-  inline operator an_ifc_u64_storage() const
-    { return this->value; }
+struct an_ifc_u64 : an_ifc_Implicit_numeric<an_ifc_u64_storage> {
+  using storage_type = an_ifc_u64_storage;
+  using base_type = an_ifc_Implicit_numeric<storage_type>;
+  using base_type::an_ifc_Implicit_numeric;
 };  /* an_ifc_u64 */
-
 
 enum an_ifc_access_sort_0_33 : uint8_t {
   ifc_0_33_as_none      = 0,
@@ -4855,19 +4194,12 @@ enum an_ifc_attr_index_0_33 : uint32_t {};
 /*
 The universal representation for an IFC AttrIndex.
 */
-struct an_ifc_attr_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_attr_sort
-                sort;
-                        /* The associated AttrSort value for this index. */
-  uint32_t      value;
-                        /* The index value into the associated partition of
-                           "sort" for this index.  Represented as the largest
-                           common underlying type. */
+struct an_ifc_attr_index : an_ifc_Index<an_ifc_attr_sort, uint32_t> {
+  using sort_type = an_ifc_attr_sort;
+  using native_size_type = uint32_t;
+  using base_type = an_ifc_Index<sort_type, native_size_type>;
+  using base_type::an_ifc_Index;
 };  /* an_ifc_attr_index */
-
 
 inline a_boolean operator==(const an_ifc_attr_index &lhs,
                             const an_ifc_attr_index &rhs)
@@ -4884,7 +4216,7 @@ are equivalent, return TRUE; otherwise return FALSE.
     result = FALSE;
   } else if (lhs.sort != rhs.sort) {
     result = FALSE;
-  } else if (lhs.mod != rhs.mod) {
+  } else if (lhs.file != rhs.file) {
     result = FALSE;
   }  /* if */
   return result;
@@ -4908,19 +4240,12 @@ enum an_ifc_chart_index_0_33 : uint32_t {};
 /*
 The universal representation for an IFC ChartIndex.
 */
-struct an_ifc_chart_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_chart_sort
-                sort;
-                        /* The associated ChartSort value for this index. */
-  uint32_t      value;
-                        /* The index value into the associated partition of
-                           "sort" for this index.  Represented as the largest
-                           common underlying type. */
+struct an_ifc_chart_index : an_ifc_Index<an_ifc_chart_sort, uint32_t> {
+  using sort_type = an_ifc_chart_sort;
+  using native_size_type = uint32_t;
+  using base_type = an_ifc_Index<sort_type, native_size_type>;
+  using base_type::an_ifc_Index;
 };  /* an_ifc_chart_index */
-
 
 inline a_boolean operator==(const an_ifc_chart_index &lhs,
                             const an_ifc_chart_index &rhs)
@@ -4937,7 +4262,7 @@ are equivalent, return TRUE; otherwise return FALSE.
     result = FALSE;
   } else if (lhs.sort != rhs.sort) {
     result = FALSE;
-  } else if (lhs.mod != rhs.mod) {
+  } else if (lhs.file != rhs.file) {
     result = FALSE;
   }  /* if */
   return result;
@@ -4963,19 +4288,12 @@ enum an_ifc_decl_index_0_43 : uint32_t {};
 /*
 The universal representation for an IFC DeclIndex.
 */
-struct an_ifc_decl_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_decl_sort
-                sort;
-                        /* The associated DeclSort value for this index. */
-  uint32_t      value;
-                        /* The index value into the associated partition of
-                           "sort" for this index.  Represented as the largest
-                           common underlying type. */
+struct an_ifc_decl_index : an_ifc_Index<an_ifc_decl_sort, uint32_t> {
+  using sort_type = an_ifc_decl_sort;
+  using native_size_type = uint32_t;
+  using base_type = an_ifc_Index<sort_type, native_size_type>;
+  using base_type::an_ifc_Index;
 };  /* an_ifc_decl_index */
-
 
 inline a_boolean operator==(const an_ifc_decl_index &lhs,
                             const an_ifc_decl_index &rhs)
@@ -4992,7 +4310,7 @@ are equivalent, return TRUE; otherwise return FALSE.
     result = FALSE;
   } else if (lhs.sort != rhs.sort) {
     result = FALSE;
-  } else if (lhs.mod != rhs.mod) {
+  } else if (lhs.file != rhs.file) {
     result = FALSE;
   }  /* if */
   return result;
@@ -5017,19 +4335,12 @@ enum an_ifc_expr_index_0_42 : uint32_t {};
 /*
 The universal representation for an IFC ExprIndex.
 */
-struct an_ifc_expr_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_expr_sort
-                sort;
-                        /* The associated ExprSort value for this index. */
-  uint32_t      value;
-                        /* The index value into the associated partition of
-                           "sort" for this index.  Represented as the largest
-                           common underlying type. */
+struct an_ifc_expr_index : an_ifc_Index<an_ifc_expr_sort, uint32_t> {
+  using sort_type = an_ifc_expr_sort;
+  using native_size_type = uint32_t;
+  using base_type = an_ifc_Index<sort_type, native_size_type>;
+  using base_type::an_ifc_Index;
 };  /* an_ifc_expr_index */
-
 
 inline a_boolean operator==(const an_ifc_expr_index &lhs,
                             const an_ifc_expr_index &rhs)
@@ -5046,7 +4357,7 @@ are equivalent, return TRUE; otherwise return FALSE.
     result = FALSE;
   } else if (lhs.sort != rhs.sort) {
     result = FALSE;
-  } else if (lhs.mod != rhs.mod) {
+  } else if (lhs.file != rhs.file) {
     result = FALSE;
   }  /* if */
   return result;
@@ -5070,19 +4381,12 @@ enum an_ifc_form_index_0_33 : uint32_t {};
 /*
 The universal representation for an IFC FormIndex.
 */
-struct an_ifc_form_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_form_sort
-                sort;
-                        /* The associated FormSort value for this index. */
-  uint32_t      value;
-                        /* The index value into the associated partition of
-                           "sort" for this index.  Represented as the largest
-                           common underlying type. */
+struct an_ifc_form_index : an_ifc_Index<an_ifc_form_sort, uint32_t> {
+  using sort_type = an_ifc_form_sort;
+  using native_size_type = uint32_t;
+  using base_type = an_ifc_Index<sort_type, native_size_type>;
+  using base_type::an_ifc_Index;
 };  /* an_ifc_form_index */
-
 
 inline a_boolean operator==(const an_ifc_form_index &lhs,
                             const an_ifc_form_index &rhs)
@@ -5099,7 +4403,7 @@ are equivalent, return TRUE; otherwise return FALSE.
     result = FALSE;
   } else if (lhs.sort != rhs.sort) {
     result = FALSE;
-  } else if (lhs.mod != rhs.mod) {
+  } else if (lhs.file != rhs.file) {
     result = FALSE;
   }  /* if */
   return result;
@@ -5123,19 +4427,12 @@ enum an_ifc_lit_index_0_33 : uint32_t {};
 /*
 The universal representation for an IFC LitIndex.
 */
-struct an_ifc_lit_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_lit_sort
-                sort;
-                        /* The associated LitSort value for this index. */
-  uint32_t      value;
-                        /* The index value into the associated partition of
-                           "sort" for this index.  Represented as the largest
-                           common underlying type. */
+struct an_ifc_lit_index : an_ifc_Index<an_ifc_lit_sort, uint32_t> {
+  using sort_type = an_ifc_lit_sort;
+  using native_size_type = uint32_t;
+  using base_type = an_ifc_Index<sort_type, native_size_type>;
+  using base_type::an_ifc_Index;
 };  /* an_ifc_lit_index */
-
 
 inline a_boolean operator==(const an_ifc_lit_index &lhs,
                             const an_ifc_lit_index &rhs)
@@ -5152,7 +4449,7 @@ equivalent, return TRUE; otherwise return FALSE.
     result = FALSE;
   } else if (lhs.sort != rhs.sort) {
     result = FALSE;
-  } else if (lhs.mod != rhs.mod) {
+  } else if (lhs.file != rhs.file) {
     result = FALSE;
   }  /* if */
   return result;
@@ -5176,19 +4473,12 @@ enum an_ifc_macro_index_0_33 : uint32_t {};
 /*
 The universal representation for an IFC MacroIndex.
 */
-struct an_ifc_macro_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_macro_sort
-                sort;
-                        /* The associated MacroSort value for this index. */
-  uint32_t      value;
-                        /* The index value into the associated partition of
-                           "sort" for this index.  Represented as the largest
-                           common underlying type. */
+struct an_ifc_macro_index : an_ifc_Index<an_ifc_macro_sort, uint32_t> {
+  using sort_type = an_ifc_macro_sort;
+  using native_size_type = uint32_t;
+  using base_type = an_ifc_Index<sort_type, native_size_type>;
+  using base_type::an_ifc_Index;
 };  /* an_ifc_macro_index */
-
 
 inline a_boolean operator==(const an_ifc_macro_index &lhs,
                             const an_ifc_macro_index &rhs)
@@ -5205,7 +4495,7 @@ are equivalent, return TRUE; otherwise return FALSE.
     result = FALSE;
   } else if (lhs.sort != rhs.sort) {
     result = FALSE;
-  } else if (lhs.mod != rhs.mod) {
+  } else if (lhs.file != rhs.file) {
     result = FALSE;
   }  /* if */
   return result;
@@ -5229,19 +4519,12 @@ enum an_ifc_name_index_0_33 : uint32_t {};
 /*
 The universal representation for an IFC NameIndex.
 */
-struct an_ifc_name_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_name_sort
-                sort;
-                        /* The associated NameSort value for this index. */
-  uint32_t      value;
-                        /* The index value into the associated partition of
-                           "sort" for this index.  Represented as the largest
-                           common underlying type. */
+struct an_ifc_name_index : an_ifc_Index<an_ifc_name_sort, uint32_t> {
+  using sort_type = an_ifc_name_sort;
+  using native_size_type = uint32_t;
+  using base_type = an_ifc_Index<sort_type, native_size_type>;
+  using base_type::an_ifc_Index;
 };  /* an_ifc_name_index */
-
 
 inline a_boolean operator==(const an_ifc_name_index &lhs,
                             const an_ifc_name_index &rhs)
@@ -5258,7 +4541,7 @@ are equivalent, return TRUE; otherwise return FALSE.
     result = FALSE;
   } else if (lhs.sort != rhs.sort) {
     result = FALSE;
-  } else if (lhs.mod != rhs.mod) {
+  } else if (lhs.file != rhs.file) {
     result = FALSE;
   }  /* if */
   return result;
@@ -5282,19 +4565,12 @@ enum an_ifc_pragma_index_0_33 : uint32_t {};
 /*
 The universal representation for an IFC PragmaIndex.
 */
-struct an_ifc_pragma_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_pragma_sort
-                sort;
-                        /* The associated PragmaSort value for this index. */
-  uint32_t      value;
-                        /* The index value into the associated partition of
-                           "sort" for this index.  Represented as the largest
-                           common underlying type. */
+struct an_ifc_pragma_index : an_ifc_Index<an_ifc_pragma_sort, uint32_t> {
+  using sort_type = an_ifc_pragma_sort;
+  using native_size_type = uint32_t;
+  using base_type = an_ifc_Index<sort_type, native_size_type>;
+  using base_type::an_ifc_Index;
 };  /* an_ifc_pragma_index */
-
 
 inline a_boolean operator==(const an_ifc_pragma_index &lhs,
                             const an_ifc_pragma_index &rhs)
@@ -5311,7 +4587,7 @@ are equivalent, return TRUE; otherwise return FALSE.
     result = FALSE;
   } else if (lhs.sort != rhs.sort) {
     result = FALSE;
-  } else if (lhs.mod != rhs.mod) {
+  } else if (lhs.file != rhs.file) {
     result = FALSE;
   }  /* if */
   return result;
@@ -5336,19 +4612,12 @@ enum an_ifc_stmt_index_0_42 : uint32_t {};
 /*
 The universal representation for an IFC StmtIndex.
 */
-struct an_ifc_stmt_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_stmt_sort
-                sort;
-                        /* The associated StmtSort value for this index. */
-  uint32_t      value;
-                        /* The index value into the associated partition of
-                           "sort" for this index.  Represented as the largest
-                           common underlying type. */
+struct an_ifc_stmt_index : an_ifc_Index<an_ifc_stmt_sort, uint32_t> {
+  using sort_type = an_ifc_stmt_sort;
+  using native_size_type = uint32_t;
+  using base_type = an_ifc_Index<sort_type, native_size_type>;
+  using base_type::an_ifc_Index;
 };  /* an_ifc_stmt_index */
-
 
 inline a_boolean operator==(const an_ifc_stmt_index &lhs,
                             const an_ifc_stmt_index &rhs)
@@ -5365,7 +4634,7 @@ are equivalent, return TRUE; otherwise return FALSE.
     result = FALSE;
   } else if (lhs.sort != rhs.sort) {
     result = FALSE;
-  } else if (lhs.mod != rhs.mod) {
+  } else if (lhs.file != rhs.file) {
     result = FALSE;
   }  /* if */
   return result;
@@ -5389,19 +4658,12 @@ enum an_ifc_string_index_0_33 : uint32_t {};
 /*
 The universal representation for an IFC StringIndex.
 */
-struct an_ifc_string_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_string_sort
-                sort;
-                        /* The associated StringSort value for this index. */
-  uint32_t      value;
-                        /* The index value into the associated partition of
-                           "sort" for this index.  Represented as the largest
-                           common underlying type. */
+struct an_ifc_string_index : an_ifc_Index<an_ifc_string_sort, uint32_t> {
+  using sort_type = an_ifc_string_sort;
+  using native_size_type = uint32_t;
+  using base_type = an_ifc_Index<sort_type, native_size_type>;
+  using base_type::an_ifc_Index;
 };  /* an_ifc_string_index */
-
 
 inline a_boolean operator==(const an_ifc_string_index &lhs,
                             const an_ifc_string_index &rhs)
@@ -5418,7 +4680,7 @@ are equivalent, return TRUE; otherwise return FALSE.
     result = FALSE;
   } else if (lhs.sort != rhs.sort) {
     result = FALSE;
-  } else if (lhs.mod != rhs.mod) {
+  } else if (lhs.file != rhs.file) {
     result = FALSE;
   }  /* if */
   return result;
@@ -5442,19 +4704,12 @@ enum an_ifc_syntax_index_0_33 : uint32_t {};
 /*
 The universal representation for an IFC SyntaxIndex.
 */
-struct an_ifc_syntax_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_syntax_sort
-                sort;
-                        /* The associated SyntaxSort value for this index. */
-  uint32_t      value;
-                        /* The index value into the associated partition of
-                           "sort" for this index.  Represented as the largest
-                           common underlying type. */
+struct an_ifc_syntax_index : an_ifc_Index<an_ifc_syntax_sort, uint32_t> {
+  using sort_type = an_ifc_syntax_sort;
+  using native_size_type = uint32_t;
+  using base_type = an_ifc_Index<sort_type, native_size_type>;
+  using base_type::an_ifc_Index;
 };  /* an_ifc_syntax_index */
-
 
 inline a_boolean operator==(const an_ifc_syntax_index &lhs,
                             const an_ifc_syntax_index &rhs)
@@ -5471,7 +4726,7 @@ are equivalent, return TRUE; otherwise return FALSE.
     result = FALSE;
   } else if (lhs.sort != rhs.sort) {
     result = FALSE;
-  } else if (lhs.mod != rhs.mod) {
+  } else if (lhs.file != rhs.file) {
     result = FALSE;
   }  /* if */
   return result;
@@ -5495,19 +4750,12 @@ enum an_ifc_type_index_0_33 : uint32_t {};
 /*
 The universal representation for an IFC TypeIndex.
 */
-struct an_ifc_type_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_type_sort
-                sort;
-                        /* The associated TypeSort value for this index. */
-  uint32_t      value;
-                        /* The index value into the associated partition of
-                           "sort" for this index.  Represented as the largest
-                           common underlying type. */
+struct an_ifc_type_index : an_ifc_Index<an_ifc_type_sort, uint32_t> {
+  using sort_type = an_ifc_type_sort;
+  using native_size_type = uint32_t;
+  using base_type = an_ifc_Index<sort_type, native_size_type>;
+  using base_type::an_ifc_Index;
 };  /* an_ifc_type_index */
-
 
 inline a_boolean operator==(const an_ifc_type_index &lhs,
                             const an_ifc_type_index &rhs)
@@ -5524,7 +4772,7 @@ are equivalent, return TRUE; otherwise return FALSE.
     result = FALSE;
   } else if (lhs.sort != rhs.sort) {
     result = FALSE;
-  } else if (lhs.mod != rhs.mod) {
+  } else if (lhs.file != rhs.file) {
     result = FALSE;
   }  /* if */
   return result;
@@ -5548,19 +4796,12 @@ enum an_ifc_unit_index_0_33 : uint32_t {};
 /*
 The universal representation for an IFC UnitIndex.
 */
-struct an_ifc_unit_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_unit_sort
-                sort;
-                        /* The associated UnitSort value for this index. */
-  uint32_t      value;
-                        /* The index value into the associated partition of
-                           "sort" for this index.  Represented as the largest
-                           common underlying type. */
+struct an_ifc_unit_index : an_ifc_Index<an_ifc_unit_sort, uint32_t> {
+  using sort_type = an_ifc_unit_sort;
+  using native_size_type = uint32_t;
+  using base_type = an_ifc_Index<sort_type, native_size_type>;
+  using base_type::an_ifc_Index;
 };  /* an_ifc_unit_index */
-
 
 inline a_boolean operator==(const an_ifc_unit_index &lhs,
                             const an_ifc_unit_index &rhs)
@@ -5577,7 +4818,7 @@ are equivalent, return TRUE; otherwise return FALSE.
     result = FALSE;
   } else if (lhs.sort != rhs.sort) {
     result = FALSE;
-  } else if (lhs.mod != rhs.mod) {
+  } else if (lhs.file != rhs.file) {
     result = FALSE;
   }  /* if */
   return result;
@@ -5607,17 +4848,12 @@ using an_ifc_decl_foreign_index_storage = uint32_t;
 /*
 The universal representation for an IFC DeclForeignIndex.
 */
-struct an_ifc_decl_foreign_index {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_decl_foreign_index_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
+struct an_ifc_decl_foreign_index :
+                            an_ifc_Numeric<an_ifc_decl_foreign_index_storage> {
+  using storage_type = an_ifc_decl_foreign_index_storage;
+  using base_type = an_ifc_Numeric<storage_type>;
+  using base_type::an_ifc_Numeric;
 };  /* an_ifc_decl_foreign_index */
-
 
 enum an_ifc_basic_specifiers_bitfield_0_33 : uint8_t {
   ifc_0_33_bsb_cxx                        = 0,
@@ -5638,17 +4874,12 @@ using an_ifc_basic_specifiers_bitfield_storage = uint8_t;
 /*
 The universal representation for an IFC BasicSpecifiersBitfield.
 */
-struct an_ifc_basic_specifiers_bitfield {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_basic_specifiers_bitfield_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
+struct an_ifc_basic_specifiers_bitfield :
+                     an_ifc_Numeric<an_ifc_basic_specifiers_bitfield_storage> {
+  using storage_type = an_ifc_basic_specifiers_bitfield_storage;
+  using base_type = an_ifc_Numeric<storage_type>;
+  using base_type::an_ifc_Numeric;
 };  /* an_ifc_basic_specifiers_bitfield */
-
 
 enum an_ifc_basic_specifiers_bitfield_query : uint32_t {
   ifc_bsb_c                          = 1 << 0,
@@ -5685,17 +4916,12 @@ using an_ifc_function_traits_bitfield_storage = uint16_t;
 /*
 The universal representation for an IFC FunctionTraitsBitfield.
 */
-struct an_ifc_function_traits_bitfield {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_function_traits_bitfield_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
+struct an_ifc_function_traits_bitfield :
+                      an_ifc_Numeric<an_ifc_function_traits_bitfield_storage> {
+  using storage_type = an_ifc_function_traits_bitfield_storage;
+  using base_type = an_ifc_Numeric<storage_type>;
+  using base_type::an_ifc_Numeric;
 };  /* an_ifc_function_traits_bitfield */
-
 
 enum an_ifc_function_traits_bitfield_query : uint32_t {
   ifc_ftb_constexpr     = 1 << 0,
@@ -5728,17 +4954,12 @@ using an_ifc_function_type_traits_bitfield_storage = uint8_t;
 /*
 The universal representation for an IFC FunctionTypeTraitsBitfield.
 */
-struct an_ifc_function_type_traits_bitfield {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_function_type_traits_bitfield_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
+struct an_ifc_function_type_traits_bitfield :
+                 an_ifc_Numeric<an_ifc_function_type_traits_bitfield_storage> {
+  using storage_type = an_ifc_function_type_traits_bitfield_storage;
+  using base_type = an_ifc_Numeric<storage_type>;
+  using base_type::an_ifc_Numeric;
 };  /* an_ifc_function_type_traits_bitfield */
-
 
 enum an_ifc_function_type_traits_bitfield_query : uint32_t {
   ifc_fttb_const    = 1 << 0,
@@ -5777,17 +4998,12 @@ using an_ifc_msvc_traits_bitfield_storage = uint32_t;
 /*
 The universal representation for an IFC MsvcTraitsBitfield.
 */
-struct an_ifc_msvc_traits_bitfield {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_msvc_traits_bitfield_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
+struct an_ifc_msvc_traits_bitfield :
+                          an_ifc_Numeric<an_ifc_msvc_traits_bitfield_storage> {
+  using storage_type = an_ifc_msvc_traits_bitfield_storage;
+  using base_type = an_ifc_Numeric<storage_type>;
+  using base_type::an_ifc_Numeric;
 };  /* an_ifc_msvc_traits_bitfield */
-
 
 enum an_ifc_msvc_traits_bitfield_query : uint32_t {
   ifc_mtb_allocate       = 1 << 0,
@@ -5828,17 +5044,12 @@ using an_ifc_object_traits_bitfield_storage = uint8_t;
 /*
 The universal representation for an IFC ObjectTraitsBitfield.
 */
-struct an_ifc_object_traits_bitfield {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_object_traits_bitfield_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
+struct an_ifc_object_traits_bitfield :
+                        an_ifc_Numeric<an_ifc_object_traits_bitfield_storage> {
+  using storage_type = an_ifc_object_traits_bitfield_storage;
+  using base_type = an_ifc_Numeric<storage_type>;
+  using base_type::an_ifc_Numeric;
 };  /* an_ifc_object_traits_bitfield */
-
 
 enum an_ifc_object_traits_bitfield_query : uint32_t {
   ifc_otb_constexpr            = 1 << 0,
@@ -5865,17 +5076,12 @@ using an_ifc_qualifier_bitfield_storage = uint8_t;
 /*
 The universal representation for an IFC QualifierBitfield.
 */
-struct an_ifc_qualifier_bitfield {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_qualifier_bitfield_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
+struct an_ifc_qualifier_bitfield :
+                            an_ifc_Numeric<an_ifc_qualifier_bitfield_storage> {
+  using storage_type = an_ifc_qualifier_bitfield_storage;
+  using base_type = an_ifc_Numeric<storage_type>;
+  using base_type::an_ifc_Numeric;
 };  /* an_ifc_qualifier_bitfield */
-
 
 enum an_ifc_qualifier_bitfield_query : uint32_t {
   ifc_qb_const    = 1 << 0,
@@ -5900,17 +5106,12 @@ using an_ifc_reachable_properties_bitfield_storage = uint8_t;
 /*
 The universal representation for an IFC ReachablePropertiesBitfield.
 */
-struct an_ifc_reachable_properties_bitfield {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_reachable_properties_bitfield_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
+struct an_ifc_reachable_properties_bitfield :
+                 an_ifc_Numeric<an_ifc_reachable_properties_bitfield_storage> {
+  using storage_type = an_ifc_reachable_properties_bitfield_storage;
+  using base_type = an_ifc_Numeric<storage_type>;
+  using base_type::an_ifc_Numeric;
 };  /* an_ifc_reachable_properties_bitfield */
-
 
 enum an_ifc_reachable_properties_bitfield_query : uint32_t {
   ifc_rpb_all               = 1 << 0,
@@ -5938,17 +5139,12 @@ using an_ifc_scope_traits_bitfield_storage = uint8_t;
 /*
 The universal representation for an IFC ScopeTraitsBitfield.
 */
-struct an_ifc_scope_traits_bitfield {
-  an_ifc_module*
-                mod;
-                        /* The associated module. */
-  an_ifc_scope_traits_bitfield_storage
-                value;
-                        /* The raw bit value obtained from the module.
-                           Represented as the largest common underlying
-                           type. */
+struct an_ifc_scope_traits_bitfield :
+                         an_ifc_Numeric<an_ifc_scope_traits_bitfield_storage> {
+  using storage_type = an_ifc_scope_traits_bitfield_storage;
+  using base_type = an_ifc_Numeric<storage_type>;
+  using base_type::an_ifc_Numeric;
 };  /* an_ifc_scope_traits_bitfield */
-
 
 enum an_ifc_scope_traits_bitfield_query : uint32_t {
   ifc_stb_closure_type         = 1 << 0,
@@ -5974,7 +5170,7 @@ struct an_ifc_operator_category {
                 sort;
                         /* The associated OperatorSort value for this index,
                            determining which union field is active. */
-  union {
+  union variant {
     /* When sort == ifc_os_dyadic_operator: */
     an_ifc_dyadic_operator_sort
                 dyadic_operator;
@@ -6006,6 +5202,7 @@ struct an_ifc_operator_category {
                 variadic_operator;
                         /* The represented universal value when this category
                            sort represents a VariadicOperatorSort value. */
+    variant() {}
   } variant;
 };  /* an_ifc_operator_category */
 
@@ -6021,7 +5218,7 @@ struct an_ifc_source_identifier_category {
                 sort;
                         /* The associated SourceIdentifierSort value for this
                            index, determining which union field is active. */
-  union {
+  union variant {
     /* When sort == ifc_sis_msvc: */
     an_ifc_source_unknown_identifier
                 msvc;
@@ -6062,6 +5259,7 @@ struct an_ifc_source_identifier_category {
                 plain;
                         /* The represented universal value when this category
                            sort represents a TextOffset value. */
+    variant() {}
   } variant;
 };  /* an_ifc_source_identifier_category */
 
@@ -6078,7 +5276,7 @@ struct an_ifc_source_literal_category {
                 sort;
                         /* The associated SourceLiteralSort value for this
                            index, determining which union field is active. */
-  union {
+  union variant {
     /* When sort == ifc_sls_defined_string: */
     an_ifc_string_index
                 defined_string;
@@ -6134,6 +5332,7 @@ struct an_ifc_source_literal_category {
                 unknown;
                         /* The represented universal value when this category
                            sort represents a SourceUnknownLiteral value. */
+    variant() {}
   } variant;
 };  /* an_ifc_source_literal_category */
 
@@ -6150,7 +5349,7 @@ struct an_ifc_word_category {
                 sort;
                         /* The associated WordSort value for this index,
                            determining which union field is active. */
-  union {
+  union variant {
     /* When sort == ifc_ws_source_directive: */
     an_ifc_source_directive_sort
                 source_directive;
@@ -6186,6 +5385,7 @@ struct an_ifc_word_category {
                 unknown;
                         /* The represented universal value when this category
                            sort represents a SourceUnknownWord value. */
+    variant() {}
   } variant;
 };  /* an_ifc_word_category */
 
