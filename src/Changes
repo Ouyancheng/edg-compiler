@@ -1,5 +1,14 @@
 Version 6.6
 
+6/28/23  [EDGcpfe/26457]
+Unexpected column positions for eok_call expression
+
+Previously, some expression transformations (such as those performed on a call
+to a function returning a reference) would result in the IL source position
+information for the expression being erroneously overwritten.  This is now
+fixed.
+
+
 6/28/23  [EDGcpfe/26454]
 Build failures on some platforms when MICROSOFT_EXTENSIONS_ALLOWED is TRUE
 

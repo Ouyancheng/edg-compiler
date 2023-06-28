@@ -3441,7 +3441,7 @@ values.
 
 static an_expr_node_ptr maybe_get_operand_expr_with_pos(an_operand *operand)
 /*
-If the given operand is not an expression or is a compiler generated
+If the given operand is not an expression or is a compiler-generated
 expression, return NULL; otherwise, return the underlying expression node
 containing the position information to be queried or updated.
 */
@@ -3467,17 +3467,17 @@ containing the position information to be queried or updated.
 void set_operand_expr_position_if_expr(an_operand        *operand,
                                        a_source_position *operator_pos)
 /*
-If operand is an expression operand (or has an associated expression, such as
-a backing expression for a constant operand), set the source positions in the
-underlying expression from the positions already in the operand.  If
-operator_position is non-NULL, use that position as the operator position
-if setting the positions in the underlying expression.
+If operand is an expression operand (or has an associated expression, such as a
+backing expression for a constant operand), set the source positions in the
+underlying expression node from the positions already in the operand.  If
+operator_position is non-NULL, use that position as the operator position if
+setting the positions in the underlying expression node.
 */
 {
   an_expr_node_ptr expr = maybe_get_operand_expr_with_pos(operand);
 
   if (expr != NULL) {
-    /* Set the position on the expression. */
+    /* Set the position in the expression node. */
     if (operator_pos == NULL && expr->position.seq != 0) {
       /* If no operator position is provided, but one was already recorded
          in the node, preserve the recorded position. */
@@ -7026,12 +7026,12 @@ information is prioritized as follows:
 
   if (expr != NULL) {
     an_expr_node      *orig_expr =
-                           maybe_get_operand_expr_with_pos(orig_operand);
+                                 maybe_get_operand_expr_with_pos(orig_operand);
     a_source_position *op_pos;
     a_source_position *start_pos;
     a_source_position *end_pos;
 
-    /* Use the original expression's range information if present. */
+    /* Use the original expression's position information if present. */
     if (expr->position.seq != 0) {
       op_pos = &expr->position;
     } else {
