@@ -5734,7 +5734,7 @@ inline an_Il_type *il_entry_for_symbol(a_symbol_ptr sym) DELETED_FN_DEF
 #if RECORD_MACROS_IN_IL
 
 template<>
-inline a_macro_def *il_entry_for_symbol(a_symbol_ptr sym)
+inline a_macro *il_entry_for_symbol(a_symbol_ptr sym)
 /*
 Given a symbol known to reference a macro def, return the macro def.
 */

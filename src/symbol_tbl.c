@@ -12379,7 +12379,7 @@ set to iek_none.
   switch (sym->kind) {
     case sk_macro:
 #if RECORD_MACROS_IN_IL
-      entry_ptr = (char *)il_entry_for_symbol<a_macro_def>(sym);
+      entry_ptr = (char *)il_entry_for_symbol<a_macro>(sym);
       lkind = iek_macro;
 #endif /* RECORD_MACROS_IN_IL */
       break;
