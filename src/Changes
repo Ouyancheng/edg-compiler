@@ -1,5 +1,17 @@
 Version 6.6
 
+6/28/23  [EDGcpfe/26418]
+Deduction guide correspondence in multi-TU mode
+
+Previously, two equivalent deduction guides, e.g.:
+
+  template <typename, typename> class a;
+  template <typename b> a() -> a<b, b>;
+
+compiled in two TUs in multi-TU mode would fail.  Support for deduction guide
+correspondence in multi-TU mode has been implemented.  This is now fixed.
+
+
 6/23/23  [EDGcpfe/19810,EDGcpfe/25807,EDGcpfe/26254]
 GNU/Clang compatibility: spurious "call through incomplete class" warning
 

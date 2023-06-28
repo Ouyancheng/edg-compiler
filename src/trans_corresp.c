@@ -6714,7 +6714,7 @@ entities.
       f_report_bad_trans_unit_corresp((char*)templ,
                                       &matching_sym->decl_position);
     } else if (matching_sym != NULL) {
-      /* The matching symbol should be null, a template symbol, or it should've
+      /* The matching symbol should be NULL, a template symbol, or it should've
          been considered a conflict.  If this assertion fails, a non-template
          symbol was returned as a matching (but not conflicting) symbol. */
       check_assertion(is_template_symbol(matching_sym));
