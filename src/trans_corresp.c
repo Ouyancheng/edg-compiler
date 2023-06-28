@@ -6592,7 +6592,7 @@ returned.
                                                prototype_instantiation.routine;
     a_template_ptr class_templ = routine->variant.class_template;
     a_symbol_ptr   class_templ_sym = symbol_for(class_templ);
-    a_template_ptr class_templ_corresp;
+    a_template_ptr class_templ_corresp = NULL;
 
     /* Find the corresponding class template. */
     for (a_symbol_ptr sym = corresp_symbol_list(class_templ_sym); sym != NULL;
