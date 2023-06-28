@@ -1,5 +1,13 @@
 Version 6.6
 
+6/28/23  [EDGcpfe/26454]
+Build failures on some platforms when MICROSOFT_EXTENSIONS_ALLOWED is TRUE
+
+Previously, on platforms with size_t types that did not correspond to uint32_t
+or uint64_t (e.g., Mac OS) the front end would fail to build in configurations
+where MICROSOFT_EXTENSIONS_ALLOWED is TRUE.  This is now fixed.
+
+
 6/28/23  [EDGcpfe/26418]
 Deduction guide correspondence in multi-TU mode
 
