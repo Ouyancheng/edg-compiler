@@ -1392,7 +1392,7 @@ exit_ifc_rescan is required; otherwise, return FALSE.
   an_ifc_expr_index    expr_index =
                                  from_lexical_index<an_ifc_expr_index>(*index);
 
-  expr_index.mod->cache_expr(&cache, expr_index, /*cinfo=*/{});
+  module_of(expr_index)->cache_expr(&cache, expr_index, /*cinfo=*/{});
   if (cache.is_valid()) {
     *expected_end_tsn = enter_module_token_rescan(&cache);
     result = TRUE;

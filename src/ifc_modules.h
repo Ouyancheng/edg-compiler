@@ -149,8 +149,82 @@ struct an_ifc_cache_info : public detail::an_ifc_cache_info_zero_bits {
                            index. */
 };  /* an_ifc_cache_info */
 
-struct a_str_control_block;
 struct a_partial_scope_stack_state;
+struct a_str_control_block;
+struct an_ifc_module;
+
+#if !ASSUME_LITTLE_ENDIAN_IFC_MODULES
+
+enum an_ifc_module_primary_endianness {
+  ifc_mpe_little,       /* The primary endianness of the module is
+                           little-endian. */
+  ifc_mpe_big,          /* The primary endianness of the module is
+                           big-endian. */
+  ifc_mpe_unknown       /* The primary endianness of the module is
+                           unknown. */
+};
+
+#endif /* !ASSUME_LITTLE_ENDIAN_IFC_MODULES */
+
+/*
+*/
+struct an_ifc_module_file {
+  an_ifc_module *mod = NULL;
+                        /* The IFC module using this file (if any). */
+  FILE          *f_module = NULL;
+                        /* The file descriptor for the file. */
+  size_t        f_size = 0;
+                        /* The size of the module file. */
+  an_ifc_version_storage
+                version_major = 0;
+                        /* The module file's major version.  Defaulted to the
+                           lowest supported version until initialization is
+                           complete. */
+  an_ifc_version_storage
+                version_minor = 33;
+                        /* The module file's minor version.  Defaulted to the
+                           lowest supported version until initialization is
+                           complete. */
+#if !ASSUME_LITTLE_ENDIAN_IFC_MODULES
+  an_ifc_module_primary_endianness
+                endianness = mpe_unknown;
+                        /* The primary endianness of the module file. */
+#endif /* !ASSUME_LITTLE_ENDIAN_IFC_MODULES */
+#if USE_MMAP_FOR_MEMORY_REGIONS
+  void          *mmap_addr = NULL;
+                        /* A pointer to the memory-mapped beginning of the
+                           module file. */
+  size_t        mmap_size = 0;
+                        /* The size of the memory-mapped partition. */
+#if EDG_WIN32
+  a_windows_handle
+                mapped_input = NULL;
+                        /* A HANDLE returned by CreateFile_interface during
+                           the mapping process on Windows. */
+  a_windows_handle
+                map_object = NULL;
+                        /* A HANDLE returned by CreateFileMapping during the
+                           mapping process on Windows. */
+#endif /* EDG_WIN32 */
+  unsigned char
+                *byte_buffer = NULL;
+                        /* Pointer to the current position in the buffer
+                           used by get_byte, etc. */
+  unsigned char
+                *buffer_end = NULL;
+                        /* Pointer to the last byte of the buffer used by
+                           get_byte, etc. */
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+};  /* an_ifc_module_file */
+
+
+struct an_ifc_module_string_table {
+  char          *contents = NULL;
+                        /* The string table contents. */
+  size_t        size = 0;
+                        /* The size of the string table. */
+};  /* an_ifc_module_string_table */
+
 
 /*
 Information specific to an IFC module.
@@ -184,28 +258,12 @@ struct an_ifc_module : public a_module_interface {
                            indexed by a NameSort::SourceFile index.
                            Dynamically allocated (in front end memory) once
                            the number of source files is known. */
-  an_ifc_version_storage
-                version_major = 0;
-                        /* The module's major version.  Defaulted to the
-                           lowest supported version until initialization is
-                           complete. */
-  an_ifc_version_storage
-                version_minor = 33;
-                        /* The module's minor version.  Defaulted to the
-                           lowest supported version until initialization is
-                           complete. */
-
-#if USE_MMAP_FOR_MEMORY_REGIONS
-  unsigned char
-                *byte_buffer = NULL;
-                        /* Pointer to the current position in the buffer
-                           used by get_byte, etc. */
-  unsigned char
-                *buffer_end = NULL;
-                        /* Pointer to the last byte of the buffer used by
-                           get_byte, etc. */
-#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
-  char          *string_table = NULL;
+  an_ifc_module_file
+                file = {};
+                        /* Information about the file backing this IFC module
+                           interface. */
+  an_ifc_module_string_table
+                string_table = {};
                         /* The string table of the IFC file. */
   a_tmpl_decl_state_ptr
                 curr_templ_decl_state = NULL;
@@ -235,7 +293,7 @@ public:
                            a_const_char *module_file);
 
   inline a_boolean is_open() const OVERRIDE {
-    return f_module != NULL;
+    return file.f_module != NULL;
   }
 
   a_boolean import(a_module_import_decl_ptr midp) OVERRIDE;
@@ -450,13 +508,13 @@ EXTERN const an_ifc_partition_metadata
 #endif /* DEBUG && EXPENSIVE_CHECKING */
 
 
-extern void get_bytes(an_ifc_module *mod,
-                      void          *entity,
-                      size_t        length,
-                      a_boolean     header_bytes);
+extern void get_bytes(an_ifc_module_file *file,
+                      void               *entity,
+                      size_t             length,
+                      a_boolean          header_bytes);
 
 
-inline a_boolean get_fallback_presence_value(an_ifc_module *mod)
+inline a_boolean get_fallback_presence_value(an_ifc_module_file *file)
 /*
 Given an IFC module instance, if the fallback assumption for versions below the
 supported IFC version range for has_ifc_X checks should be TRUE, return TRUE,
@@ -467,23 +525,57 @@ otherwise return FALSE.
 }  /* get_fallback_presence_value */
 
 
-extern a_boolean is_at_least(an_ifc_module          *mod,
+extern a_boolean is_at_least(an_ifc_module_file     *file,
                              an_ifc_version_storage minimum_version_major,
                              an_ifc_version_storage minimum_version_minor);
 
-extern a_boolean has_matching_endianness(an_ifc_module *mod);
+
+inline a_boolean is_at_least(an_ifc_module          *mod,
+                             an_ifc_version_storage minimum_version_major,
+                             an_ifc_version_storage minimum_version_minor)
+/*
+A convenience function for is_at_least that works directly on the module
+interface instead of the underlying file.
+*/
+{
+  return is_at_least(&mod->file, minimum_version_major, minimum_version_minor);
+}  /* is_at_least */
+
+#if ASSUME_LITTLE_ENDIAN_IFC_MODULES
+
+constexpr inline a_boolean has_matching_endianness(
+                                           ARG_UNUSED an_ifc_module_file *file)
+/*
+In modes where little endian modules are assumed, simply return TRUE
+unconditionally.
+*/
+{
+  return TRUE;
+}  /* has_matching_endianness */
+
+#else /* !ASSUME_LITTLE_ENDIAN_IFC_MODULES */
+
+extern a_boolean has_matching_endianness(an_ifc_module_file *file);
+
+#endif /* ASSUME_LITTLE_ENDIAN_IFC_MODULES */
 
 
-extern void init_byte_buffer(an_ifc_module     *mod,
-                             size_t            offset,
-                             ARG_UNUSED size_t length);
+extern void init_byte_buffer(an_ifc_module_file *file,
+                             size_t             offset,
+                             ARG_UNUSED size_t  length);
 
 /*
 An index type representing an index to a partition element for an associated
 module and partition kind.
 */
-struct an_ifc_partition_kind_index {
-  an_ifc_module *mod;   /* The associated module. */
+struct an_ifc_partition_kind_index : public an_ifc_module_entity {
+  an_ifc_partition_kind_index(an_ifc_module_file    *file_val,
+                              an_ifc_partition_kind partition_kind_val,
+                              an_ifc_index_type     value_val)
+    : an_ifc_module_entity(file_val), partition_kind(partition_kind_val),
+      value(value_val)
+    {}
+
   an_ifc_partition_kind
                 partition_kind;
                         /* The associated partition kind value for this
@@ -493,6 +585,22 @@ struct an_ifc_partition_kind_index {
                            "sort" for this index.  Represented as the largest
                            common underlying type for all partition kinds. */
 };  /* an_ifc_partition_kind_index */
+
+
+inline an_ifc_module *module_of(const an_ifc_module_entity &entity)
+/*
+Given an IFC module entity, return the corresponding an_ifc_module instance.
+*/
+{
+  an_ifc_module *mod = entity.file->mod;
+
+  /* If this assertion fails, the caller is using an IFC file instance that
+     does not have a corresponding module set on it.  This can happen when
+     using IFC processing logic with an IFC module file lacking an associated
+     IFC module interface. */
+  check_assertion_str(mod != NULL, "module requested but not bound");
+  return mod;
+}  /* module_of */
 
 
 template<typename an_ifc_Index_type>
@@ -524,7 +632,7 @@ extern a_const_char *get_partition_name_from_kind(
                                               an_ifc_partition_kind part_kind);
 
 template<typename an_ifc_Node_type>
-extern an_ifc_Node_type construct_node_from_module(an_ifc_module *mod);
+extern an_ifc_Node_type construct_node_from_module(an_ifc_module_file *file);
 
 template<typename an_ifc_Node_type, typename an_ifc_Index_type>
 extern void construct_node(Opt<an_ifc_Node_type> *result,
@@ -546,7 +654,7 @@ extern a_lexical_ifc_index_reference to_lexical_index(an_ifc_Index_type idx);
 
 extern a_boolean check_module(const an_ifc_module_reference &ref);
 
-extern an_ifc_module* get_module(const an_ifc_module_reference &ref);
+extern an_ifc_module_file* get_module(const an_ifc_module_reference &ref);
 
 extern Opt<a_string> get_name_of_ifc_module(a_const_char *file_name);
 
@@ -604,12 +712,12 @@ struct an_ifc_validation_trace {
       field_info{field_name_val, offset_val}
     {}
 
-  an_ifc_validation_trace(an_ifc_module                 *mod_val,
+  an_ifc_validation_trace(an_ifc_module_file            *file_val,
                           an_ifc_partition_kind         partition_kind_val,
                           an_ifc_index_type             partition_idx,
                           const an_ifc_validation_trace *parent_val)
     : trace_kind(ifc_vtk_partition), parent(parent_val),
-      partition_info{mod_val, partition_kind_val, partition_idx}
+      partition_info{file_val, partition_kind_val, partition_idx}
     {}
 
   an_ifc_validation_trace_kind
@@ -644,14 +752,14 @@ struct an_ifc_validation_trace {
   };
 };  /* an_ifc_validation_trace */
 
-extern void invalid_sort(an_ifc_module                 *mod,
+extern void invalid_sort(an_ifc_module_file            *file,
                          const an_ifc_validation_trace *trace);
 
-extern void invalid_partition(an_ifc_module                 *mod,
+extern void invalid_partition(an_ifc_module_file            *file,
                               const an_ifc_validation_trace *trace);
 
 extern a_boolean validate_element_exists(
-                                  an_ifc_module                 *mod,
+                                  an_ifc_module_file            *file,
                                   an_ifc_partition_kind         partition_kind,
                                   an_ifc_index_type             index,
                                   const an_ifc_validation_trace *trace);

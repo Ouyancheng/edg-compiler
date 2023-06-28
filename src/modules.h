@@ -87,6 +87,7 @@ struct a_module_entity {
   } variant;
 };  /* a_module_entity */
 
+
 /*
 An (effectively) abstract class used for interfacing with a module.  Different
 module implementations can inherit from this to provide their own interface
@@ -108,27 +109,6 @@ struct a_module_interface {
   a_module_ptr  assoc_module_info = NULL;
                         /* The associated IL module pointer that references
                            this module interface. */
-  FILE          *f_module = NULL;
-                        /* The file descriptor for the file. */
-  size_t        f_size = 0;
-                        /* The size of the module file. */
-#if USE_MMAP_FOR_MEMORY_REGIONS
-  void          *mmap_addr = NULL;
-                        /* A pointer to the memory-mapped beginning of the
-                           module file. */
-  size_t        mmap_size = 0;
-                        /* The size of the memory-mapped partition. */
-#if EDG_WIN32
-  a_windows_handle
-                mapped_input = NULL;
-                        /* A HANDLE returned by CreateFile_interface during
-                           the mapping process on Windows. */
-  a_windows_handle
-                map_object = NULL;
-                        /* A HANDLE returned by CreateFileMapping during the
-                           mapping process on Windows. */
-#endif /* EDG_WIN32 */
-#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   a_diagnostic_counter
                 suppressed_diagnostics = {};
                         /* A diagnostic counter storing the counts of any

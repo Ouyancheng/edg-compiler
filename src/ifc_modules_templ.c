@@ -127,7 +127,7 @@ Return a pointer to the ifc partition metadata object associated with the given
 index.
 */
 {
-  return &idx.mod->get_partition_metadata(get_partition_kind(idx));
+  return &idx.file->mod->get_partition_metadata(get_partition_kind(idx));
 }  /* get_partition_metadata */
 
 
@@ -206,7 +206,7 @@ the given index.
      1. There's an issue with the generated code resulting in an unsafe index.
      2. This is a manually constructed index, and the caller didn't
         check its validity. */
-  check_assertion(validate_element_exists(idx.mod, get_partition_kind(idx),
+  check_assertion(validate_element_exists(idx.file, get_partition_kind(idx),
                                           get_partition_index(idx),
                                           /*trace=*/NULL));
 #endif /* EXPENSIVE_CHECKING */
@@ -221,12 +221,12 @@ the given index.
      index that hasn't passed through validation.  This should be resolved with
      additional validation. */
   check_assertion(opt_part_offset.has_value());
-  init_byte_buffer(idx.mod, *opt_part_offset, partition_metadata->size);
+  init_byte_buffer(idx.file, *opt_part_offset, partition_metadata->size);
 }  /* read_partition_element */
 
 
 template<typename an_ifc_Node_type>
-an_ifc_Node_type construct_node_from_module(an_ifc_module *mod)
+an_ifc_Node_type construct_node_from_module(an_ifc_module_file *file)
 /*
 Using the previously initialized and validated module source buffer, initialize
 and return a new IFC node of the given type.
@@ -239,7 +239,7 @@ functions that build upon this call.
   an_ifc_Node_type    result;
   an_ifc_Storage_type nts, *ntsp;
 
-  ntsp = get<an_ifc_Storage_type>(mod, &nts, /*fill_storage=*/FALSE);
+  ntsp = get<an_ifc_Storage_type>(file, &nts, /*fill_storage=*/FALSE);
   /* When memory mapping is enabled and the endianness of the IFC and the host
      match, the front end can directly refer to portions of the IFC.
      Otherwise, the front end must fall back to copying the bytes locally with
@@ -250,14 +250,14 @@ functions that build upon this call.
 #if USE_MMAP_FOR_MEMORY_REGIONS
   if (ntsp != &nts) {
     /* The storage wasn't used, use the pointer. */
-    result = an_ifc_Node_type(mod, ntsp);
+    result = an_ifc_Node_type(file, ntsp);
   } else {
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
   {
     check_assertion(ntsp == &nts);
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
     /* The storage was used, copy it. */
-    result = an_ifc_Node_type(mod, nts);
+    result = an_ifc_Node_type(file, nts);
   }
   return result;
 }  /* construct_node_from_module */
@@ -266,7 +266,7 @@ functions that build upon this call.
 /* Macro used to explicitly instantiate construct_node_from_module. */
 #define INST_CONSTRUCT_NODE_FM(node_type) \
   template \
-  node_type construct_node_from_module<node_type>(an_ifc_module *mod);
+  node_type construct_node_from_module<node_type>(an_ifc_module_file *file);
 
 
 /* Manually defined explicit instantiations of construct_node. */
@@ -415,14 +415,14 @@ call).
     an_ifc_Node_type read_value;
 
     read_partition_element(idx);
-    read_value = construct_node_from_module<an_ifc_Node_type>(idx.mod);
+    read_value = construct_node_from_module<an_ifc_Node_type>(idx.file);
     /* First, check to see if this node has already been validated.  If the
        node hasn't been validated, validate it, and cache the result
        appropriately; otherwise, skip re-validation and use the cached result.
        */
     if (!has_been_validated(idx)) {
       a_diag_count_snapshot   diag_cnt_snapshot;
-      an_ifc_validation_trace trace{idx.mod, idx_part_kind,
+      an_ifc_validation_trace trace{idx.file, idx_part_kind,
                                     get_partition_index(idx), NULL};
       a_boolean               is_valid = validate(read_value, &trace);
 
@@ -509,7 +509,7 @@ constructed node must have previously been checked for validity.
   check_assertion(get_ifc_partition_kind<an_ifc_Node_type>() ==
                                                       get_partition_kind(idx));
   read_partition_element(idx);
-  *result = construct_node_from_module<an_ifc_Node_type>(idx.mod);
+  *result = construct_node_from_module<an_ifc_Node_type>(idx.file);
 }  /* construct_node_prechecked */
 
 
@@ -537,7 +537,7 @@ constructed node will not be checked for validity.
   check_assertion(get_ifc_partition_kind<an_ifc_Node_type>() ==
                                                       get_partition_kind(idx));
   read_partition_element(idx);
-  *result = construct_node_from_module<an_ifc_Node_type>(idx.mod);
+  *result = construct_node_from_module<an_ifc_Node_type>(idx.file);
 }  /* construct_node_unchecked */
 
 
@@ -627,7 +627,7 @@ Given a lexical index, return the corresponding IFC index.
 #endif /* DEBUG && CHECKING */
   result.sort = (decltype(result.sort))idx.sort;
   result.value = idx.index;
-  result.mod = (an_ifc_module*)idx.module;
+  result.file = (an_ifc_module_file*)idx.file;
   return result;
 }  /* from_lexical_index */
 
@@ -642,7 +642,7 @@ Given an IFC index, return the corresponding lexical index.
 
   result.sort = idx.sort;
   result.index = idx.value;
-  result.module = idx.mod;
+  result.file = idx.file;
 #if DEBUG
   result.reference_kind = get_lexical_ifc_kind<an_ifc_Index_type>();
 #endif /* DEBUG */

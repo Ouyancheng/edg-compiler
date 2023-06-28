@@ -2151,9 +2151,9 @@ typedef struct a_lexical_ifc_index_reference {
   uint32_t      index;
 			/* The index in the IFC file used to address the node
 			   being referred to. */
-  const void    *module;
-			/* An opaque pointer to the IFC module (an_ifc_module)
-			   containing this declaration. */
+  const void    *file;
+			/* An opaque pointer to the IFC module file
+			   (an_ifc_module_file) containing this declaration. */
 #if DEBUG
   a_lexical_ifc_index_kind
 		reference_kind;

@@ -123,7 +123,7 @@ name_from_index(an_ifc_name_index, a_symbol_locator*) for more information.
 */
 {
   /* Convert the text offset into a name index. */
-  an_ifc_name_index name_idx{text_offset.mod, ifc_ns_text_offset,
+  an_ifc_name_index name_idx{text_offset.file, ifc_ns_text_offset,
                              text_offset.value};
 
   return name_from_index(name_idx, loc);
@@ -158,7 +158,7 @@ is_name_present(an_ifc_name_index) for more information.
 */
 {
   /* Convert the text offset into a name index. */
-  an_ifc_name_index name_idx{text_offset.mod, ifc_ns_text_offset,
+  an_ifc_name_index name_idx{text_offset.file, ifc_ns_text_offset,
                              text_offset.value};
 
   return is_name_present(name_idx);
@@ -175,12 +175,13 @@ Return TRUE if processing succeeded, otherwise return FALSE.
 {
   a_boolean                   result = TRUE;
   Opt<an_ifc_source_line>     opt_isl;
-  an_ifc_module               *mod = locus.get_module();
+  an_ifc_module               *mod = module_of(locus);
   an_ifc_line_index           line_number = get_ifc_line(locus);
-  an_ifc_partition_kind_index src_line_idx{mod, ifc_pk_src_line, line_number};
+  an_ifc_partition_kind_index src_line_idx{&mod->file, ifc_pk_src_line,
+                                           line_number};
 
   /* FIXME: This should be addressed in the validator. */
-  if (!validate_element_exists(mod, ifc_pk_src_line, line_number,
+  if (!validate_element_exists(&mod->file, ifc_pk_src_line, line_number,
                                /*trace=*/NULL)) {
     a_string err_msg("bad source line index ", (an_ifc_index_type)line_number);
 
@@ -190,10 +191,10 @@ Return TRUE if processing succeeded, otherwise return FALSE.
   construct_node(&opt_isl, src_line_idx);
   if (opt_isl.has_value()) {
     an_ifc_source_line isl = *opt_isl;
-    an_ifc_name_index  file = get_ifc_file(isl);
+    an_ifc_name_index  file_idx = get_ifc_file(isl);
     an_ifc_line_number line = get_ifc_line(isl);
 
-    check_assertion(file.sort == ifc_ns_name_source_file);
+    check_assertion(file_idx.sort == ifc_ns_name_source_file);
     if (line == 0) {
       /* IFC LineNumbers start at one, a line number of zero means the source
          line isn't known.  As the front end (at the time of writing) doesn't
@@ -203,14 +204,14 @@ Return TRUE if processing succeeded, otherwise return FALSE.
     } else {
       /* See if this file has been used before. */
       an_ifc_module::a_module_sequence_number_mapping *msnmp =
-                                            &mod->sequence_numbers[file.value];
+                                        &mod->sequence_numbers[file_idx.value];
 
       if (msnmp->starting_sequence_number == 0) {
         /* First time accessing this source file; record the start of a new
            source file.  Note that this may be out-of-order as it depends on
            the order that entities are used, but the full tree of source file
            references isn't available in the IFC file. */
-        Opt<a_string> opt_file_name = name_from_index(file);
+        Opt<a_string> opt_file_name = name_from_index(file_idx);
         if (!opt_file_name.has_value()) {
           goto invalid;
         }  /* if */
@@ -312,7 +313,7 @@ lifetime of this object expires (whichever is sooner).
       an_ifc_partition_kind kind = to_partition_kind(idx.sort);
       a_string              dbg_msg("ignoring null source location value in ",
                                     "module ",
-                                    idx.mod->assoc_module_info->name,
+                                    module_of(idx)->assoc_module_info->name,
                                     " from locus of partition ",
                                     get_partition_name_from_kind(kind),
                                     " element ",
@@ -414,69 +415,69 @@ that returns an unsigned char.
 
 #if USE_MMAP_FOR_MEMORY_REGIONS
 
-void init_byte_buffer(an_ifc_module     *mod,
-                      size_t            offset,
-                      ARG_UNUSED size_t length)
+void init_byte_buffer(an_ifc_module_file *file,
+                      size_t             offset,
+                      ARG_UNUSED size_t  length)
 /*
 Initialize the state information used by "get_bytes", etc.  mod is the module
 owning the byte buffer.  offset is the offset from the start of the memory
 mapped region to be read.  length is its size, in bytes.
 */
 {
-  mod->byte_buffer = (unsigned char*)mod->mmap_addr + offset;
-  mod->buffer_end = mod->byte_buffer + length - 1;
+  file->byte_buffer = (unsigned char*)file->mmap_addr + offset;
+  file->buffer_end = file->byte_buffer + length - 1;
 }  /* init_byte_buffer */
 
 
-static void get_bytes_from_buffer(an_ifc_module *mod,
-                                  void          *entity,
-                                  size_t        length)
+static void get_bytes_from_buffer(an_ifc_module_file *file,
+                                  void               *entity,
+                                  size_t             length)
 /*
 Fetch a block of bytes from the IFC file, and check for reading past the end of
 the buffer.
 */
 {
   /* Check for fetching too many bytes. */
-  if (((unsigned char*)mod->byte_buffer + length - 1) > mod->buffer_end) {
+  if (((unsigned char*)file->byte_buffer + length - 1) > file->buffer_end) {
     (void)buffer_overrun();
   }  /* if */
-  memcpy((a_byte*)entity, mod->byte_buffer, length);
-  mod->byte_buffer += length;
+  memcpy((a_byte*)entity, file->byte_buffer, length);
+  file->byte_buffer += length;
 }  /* get_bytes_from_buffer */
 
 
 /*
 Macro to fetch a single byte from the IFC file.
 */
-#define get_byte(mod, byte)                                                   \
-  (*((unsigned char*)(byte)) = (mod->byte_buffer <= mod->buffer_end ?         \
-                                     *(mod->byte_buffer)++ : buffer_overrun()))
+#define get_byte(file, byte)                                                  \
+  (*((unsigned char*)(byte)) = ((file->byte_buffer <= file->buffer_end) ?     \
+                                    *(file->byte_buffer)++ : buffer_overrun()))
 
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
 
-void init_byte_buffer(an_ifc_module     *mod,
-                      size_t            offset,
-                      ARG_UNUSED size_t length)
+void init_byte_buffer(an_ifc_module_file *file,
+                      size_t             offset,
+                      ARG_UNUSED size_t  length)
 /*
 Initialize the state information used by "get_bytes", etc.  mod is the module
 owning the byte buffer. offset is the offset from the start of the module file
 to be read.  length is its size, in bytes.
 */
 {
-  fseek(mod->f_module, offset, SEEK_SET);
+  fseek(file->f_module, offset, SEEK_SET);
 }  /* init_byte_buffer */
 
 
-static void get_bytes_from_buffer(an_ifc_module *mod,
-                                  void          *entity,
-                                  size_t        length)
+static void get_bytes_from_buffer(an_ifc_module_file *file,
+                                  void               *entity,
+                                  size_t             length)
 /*
 Fetch a block of bytes from the IFC file, and check for reading past the end of
 the buffer.
 */
 {
   /* Check for fetching too many bytes. */
-  if (fread(entity, 1, length, mod->f_module) != length) {
+  if (fread(entity, 1, length, file->f_module) != length) {
     (void)buffer_overrun();
   }  /* if */
 }  /* get_bytes_from_buffer */
@@ -485,14 +486,14 @@ the buffer.
 /*
 Macro to fetch a single byte.
 */
-#define get_byte(mod, byte)                                                   \
-  get_bytes_from_buffer(mod, byte, 1)
+#define get_byte(file, byte)                                                  \
+  get_bytes_from_buffer(file, byte, 1)
 
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 
-static void get_mismatched_endian_bytes(an_ifc_module *mod,
-                                        void          *entity,
-                                        size_t        length)
+static void get_mismatched_endian_bytes(an_ifc_module_file *file,
+                                        void               *entity,
+                                        size_t             length)
 /*
 Get length bytes from the IFC file and convert them to the host byte order.
 This routine is used only when the host byte order does not match the byte
@@ -504,15 +505,15 @@ order for the entity being read.
   /* Get the bytes in reverse order into "entity". */
   for (ptr = (unsigned char*)entity + length - 1; length > 0;
        length--, ptr--) {
-    get_byte(mod, ptr);
+    get_byte(file, ptr);
   }  /* for */
 }  /* get_mismatched_endian_bytes */
 
 
-void get_bytes(an_ifc_module *mod,
-               void          *entity,
-               size_t        length,
-               a_boolean     header_bytes)
+void get_bytes(an_ifc_module_file *file,
+               void               *entity,
+               size_t             length,
+               a_boolean          header_bytes)
 /*
 Get length bytes from the IFC file.  If there's an endian mismatch between
 what's being read and the host, convert the bytes to the host byte order.  If
@@ -520,15 +521,15 @@ header_bytes is TRUE, the bytes being retrieved correspond to the IFC file
 header or table of contents (and are therefore known to be little-endian).
 */
 {
-  if (has_matching_endianness(mod) || (header_bytes && host_little_endian)) {
-    get_bytes_from_buffer(mod, entity, length);
+  if (has_matching_endianness(file) || (header_bytes && host_little_endian)) {
+    get_bytes_from_buffer(file, entity, length);
   } else {
-    get_mismatched_endian_bytes(mod, entity, length);
+    get_mismatched_endian_bytes(file, entity, length);
   }  /* if */
 }  /* get_bytes */
 
 
-a_boolean is_at_least(an_ifc_module          *mod,
+a_boolean is_at_least(an_ifc_module_file     *file,
                       an_ifc_version_storage minimum_version_major,
                       an_ifc_version_storage minimum_version_minor)
 /*
@@ -538,10 +539,10 @@ Check to see if the given module's version has at least the minimum version
 {
   a_boolean result;
 
-  if (mod->version_major > minimum_version_major) {
+  if (file->version_major > minimum_version_major) {
     result = TRUE;
-  } else if (mod->version_major == minimum_version_major &&
-             mod->version_minor >= minimum_version_minor) {
+  } else if (file->version_major == minimum_version_major &&
+             file->version_minor >= minimum_version_minor) {
     result = TRUE;
   } else {
     result = FALSE;
@@ -549,41 +550,30 @@ Check to see if the given module's version has at least the minimum version
   return result;
 }  /* is_at_least */
 
+#if !ASSUME_LITTLE_ENDIAN_IFC_MODULES
 
-a_boolean has_matching_endianness(an_ifc_module *mod)
+a_boolean has_matching_endianness(an_ifc_module_file *file)
 /*
-Check to see if the given module's endianness matches the endianness the
+Check to see if the given module file's endianness matches the endianness the
 front end was compiled under.
 */
 {
   a_boolean result;
 
-#if ASSUME_LITTLE_ENDIAN_IFC_MODULES
-  result = TRUE;
-#else /* !ASSUME_LITTLE_ENDIAN_IFC_MODULES */
-  switch (get_ifc_arch(mod->header)) {
-    /* FIXME: In this code ARM is assumed to be a little endian architecture
-       for IFC purposes, this may not be correct.  We should get
-       clarification. */
-    case ifc_as_arm32:
-    case ifc_as_arm64:
-    case ifc_as_hybrid_x86_arm64:
-    case ifc_as_x64:
-    case ifc_as_x86:
-      /* If the host is little endian then for purposes of IFC processing, the
-         byte orders match based on the above architecture's endianness. */
+  switch (file->endianness) {
+    case ifc_mpe_little:
       result = host_little_endian;
-      break;
-    case ifc_as_unknown:
+    case ifc_mpe_big:
+      result = !host_little_endian;
+    case ifc_mpe_unknown:
       /* Make a best guess based on the compiler's target. */
       result = targ_little_endian == host_little_endian;
       break;
-    default_is_unexpected();
   }  /* switch */
-#endif /* ASSUME_LITTLE_ENDIAN_IFC_MODULES */
   return result;
 }  /* has_matching_endianness */
 
+#endif /* !ASSUME_LITTLE_ENDIAN_IFC_MODULES */
 
 /*
 Verify that the variable being used to read a value is the same size as the
@@ -613,11 +603,12 @@ Utility to print some debug information for every access to an IFC module file.
       (void)fprintf(f_debug, "[%s:0x%08lx:%d] = ",
                     debug_partition->name,
 #if USE_MMAP_FOR_MEMORY_REGIONS
-                    (unsigned long)((char *)byte_buffer -
-                       ((char *)mmap_addr + debug_partition->offset) - length),
+                    (unsigned long)((char *)this->file.byte_buffer -
+                                    ((char *)this->file.mmap_addr +
+                                     debug_partition->offset) - length),
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
                     (unsigned long)
-                          (ftell(f_module) - debug_partition->offset - length),
+               (ftell(this->file.f_module) - debug_partition->offset - length),
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
                     (int)length);
     }  /* if */
@@ -728,7 +719,7 @@ Given an IFC partition kind index, return an IFC decl index.
 {
   an_ifc_decl_sort sort = to_decl_sort(index.partition_kind);
 
-  return an_ifc_decl_index{index.mod, sort, index.value};
+  return an_ifc_decl_index{index.file, sort, index.value};
 }  /* to_decl_index */
 
 
@@ -737,7 +728,7 @@ static inline uintptr_t hash_ptr(an_ifc_decl_index  idx)
 Return a hash value for the given IFC declaration index.
 */
 {
-  uintptr_t  result = 17*31 + hash_ptr((void*)idx.mod);
+  uintptr_t  result = 17*31 + hash_ptr((void*)idx.file);
 
   result = result*31 + (uintptr_t)idx.sort;
   result = result*31 + (uintptr_t)idx.value;
@@ -776,7 +767,7 @@ The module, partition kind, and index are taken as inputs and the collapsed IFC
 partition kind index is returned.
 */
 {
-  an_ifc_partition_kind_index result{mod, partition, index};
+  an_ifc_partition_kind_index result{&mod->file, partition, index};
 
   if (is_decl_sort(partition)) {
     an_ifc_decl_index decl_idx = to_decl_index(result);
@@ -788,7 +779,7 @@ partition kind index is returned.
     if (!is_null_index(specialization_idx)) {
       decl_idx = specialization_idx;
     }  /* if */
-    result = {decl_idx.mod, get_partition_kind(decl_idx), decl_idx.value};
+    result = {decl_idx.file, get_partition_kind(decl_idx), decl_idx.value};
   }  /* if */
   return result;
 }  /* collapse_partition_index */
@@ -816,7 +807,8 @@ caller.
   check_assertion(opt_offset.has_value());
 
   size_t offset = *opt_offset;
-  result = get_module_entity_ptr(element_idx.mod->assoc_module_info, offset);
+  result = get_module_entity_ptr(module_of(element_idx)->assoc_module_info,
+                                 offset);
   if (result->variant.ifc_partition == ifc_pk_none) {
     result->variant.ifc_partition = element_idx.partition_kind;
   } else {
@@ -838,7 +830,7 @@ Overload wrapper for "get_ifc_module_entity_ptr" that extracts the type sort
 and index from the provided index.
 */
 {
-  return get_ifc_module_entity_ptr(index.mod, get_partition_kind(index),
+  return get_ifc_module_entity_ptr(module_of(index), get_partition_kind(index),
                                    index.value);
 }  /* get_ifc_module_entity_ptr */
 
@@ -855,7 +847,7 @@ kind and file offset.
   an_ifc_index_type part_index = to_partition_index(mod, partition,
                                                     file_offset);
 
-  return an_ifc_decl_index{mod, to_decl_sort(partition), part_index};
+  return an_ifc_decl_index{&mod->file, to_decl_sort(partition), part_index};
 }  /* decl_index_of */
 
 
@@ -883,7 +875,7 @@ kind and file offset.
   an_ifc_index_type part_index = to_partition_index(mod, partition,
                                                     file_offset);
 
-  return an_ifc_type_index{mod, to_type_sort(partition), part_index};
+  return an_ifc_type_index{&mod->file, to_type_sort(partition), part_index};
 }  /* type_index_of */
 
 
@@ -934,6 +926,23 @@ key).
 }  /* as_key */
 
 
+static a_const_char *get_string_at_offset(
+                                       const an_ifc_module_string_table &table,
+                                       an_ifc_text_offset_storage       offset)
+/*
+Return a pointer to the IFC string table for a given TextOffset.  Strings in
+the IFC file are NULL-terminated.  This function does not do any adjustments or
+corrections to the IFC text; thus, for entity names prefer name_from_index or
+name_from_decl.
+*/
+{
+#if EXPENSIVE_CHECKING
+  check_assertion(offset < table.size);
+#endif /* EXPENSIVE_CHECKING */
+  return table.contents + offset;
+}  /* get_string_at_offset */
+
+
 static a_const_char *get_string_at_offset(an_ifc_text_offset offset)
 /*
 Return a pointer to the IFC string table for a given TextOffset.  Strings in
@@ -942,13 +951,9 @@ corrections to the IFC text; thus, for entity names prefer name_from_index or
 name_from_decl.
 */
 {
-  an_ifc_module              *mod = offset.mod;
-  an_ifc_text_offset_storage raw_offset = offset;
+  an_ifc_module *mod = module_of(offset);
 
-#if EXPENSIVE_CHECKING
-  check_assertion(raw_offset < get_ifc_string_table_size(mod->header));
-#endif /* EXPENSIVE_CHECKING */
-  return mod->string_table + raw_offset;
+  return get_string_at_offset(mod->string_table, offset);
 }  /* get_string_at_offset */
 
 
@@ -958,7 +963,7 @@ static a_module_import_decl_ptr transitive_import_module(
 Given a module reference, import the referenced module.
 */
 {
-  an_ifc_module            *mod = ref.get_module();
+  an_ifc_module            *mod = module_of(ref);
   a_module_ref_key         ref_key = as_key(ref);
   a_module_import_decl_ptr midp;
 
@@ -1023,15 +1028,134 @@ satisfies these requirements; otherwise, return FALSE.
 }  /* check_module */
 
 
-an_ifc_module* get_module(const an_ifc_module_reference &ref)
+an_ifc_module_file* get_module(const an_ifc_module_reference &ref)
 /*
 Load and return the an_ifc_module handler for the referenced module.
 */
 {
   a_module_import_decl_ptr midp = transitive_import_module(ref);
   check_assertion(midp != NULL);
-  return (an_ifc_module*)(midp->module_info->module_interface);
+  return &get_as_an_ifc_module(midp->module_info->module_interface)->file;
 }  /* get_module */
+
+
+static Opt<an_ifc_module_file> open_ifc_module_file(a_const_char *file_path)
+/*
+Open the module file and map it into the process' address space.  Return the
+module file if it was successfully opened; otherwise, return FALSE.
+*/
+{
+  Opt<an_ifc_module_file> result;
+  FILE                    *file_handle;
+  a_byte                  magic[4];
+  struct stat             stat_buf;
+
+  file_handle = fopen_with_error(file_path, FOPEN_MODE_FOR_BINARY_READ,
+                                 OFF_NO_OPTIONS, ec_module_file);
+  if (file_handle == NULL) {
+    goto error;
+  } else {
+    if (fstat(fileno(file_handle), &stat_buf) != 0) {
+      goto error;
+    }  /* if */
+    /* Make sure file is at least large enough to have the magic number
+       and an IFC header. */
+    /* FIXME: Do we actually still need to do this? */
+    static_assert(sizeof(an_ifc_file_header_storage) == 69,
+                  "file header size needs to be dealt with per-version");
+    if ((size_t)stat_buf.st_size < (sizeof(magic) + 69)) {
+      goto error;
+    }  /* if */
+    /* Read the magic number from the beginning of the file. */
+    if (fread(magic, (size_t)1, sizeof(magic), file_handle) != sizeof(magic)) {
+      goto error;
+    }  /* if */
+    /* Verify the magic number (this works for both big and little endian
+       machines). */
+    if (!magic_numbers_match(magic, ifc_magic_numbers)) {
+      goto error;
+    }  /* if */
+
+    an_ifc_module_file file;
+    /* Map the module file into the address space of the process.  The
+       process is a little different on Windows environments.  Note that we
+       do not map the file "read-only" because some strings from the string
+       table are rewritten to become valid C names (e.g., "<unnamed-enum-x>"
+       becomes "__noname_enum_x_"). */
+#if USE_MMAP_FOR_MEMORY_REGIONS
+#if EDG_WIN32
+    open_mapped_input_file(mod->full_name, &mapped_input, &map_object);
+#endif /* EDG_WIN32 */
+    file.mmap_size = stat_buf.st_size;
+    file.mmap_addr = map_input_file_to_region(file_handle,
+#if EDG_WIN32
+                                              map_object,
+#else /* !EDG_WIN32 */
+                                              (a_windows_handle)0,
+#endif /* EDG_WIN32 */
+                                              /*read_only=*/TRUE, (sizeof_t)0,
+                                              file.mmap_size, NULL,
+                                              file_path);
+    check_assertion(file.mmap_addr != NULL);
+    file.f_size = file.mmap_size;
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
+    fseek(file_handle, 0, SEEK_END);
+    file.f_size = (size_t)ftell(file_handle);
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+    file.f_module = file_handle;
+    /* Assign the created file. */
+    result = file;
+  }  /* if */
+  goto done;
+error:
+  if (file_handle != NULL) {
+    fclose(file_handle);
+  }  /* if */
+  result.clear();
+done:
+  return result;
+}  /* open_ifc_module_file */
+
+
+static an_ifc_module_string_table load_string_table(
+                                              an_ifc_module_file       *file,
+                                              const an_ifc_file_header &header)
+/*
+Load and return the string table for the given IFC module file using the
+information provided by its header.
+*/
+{
+  an_ifc_module_string_table result;
+  an_ifc_byte_offset         string_table_bytes =
+                                            get_ifc_string_table_bytes(header);
+  an_ifc_cardinality         string_table_size =
+                                             get_ifc_string_table_size(header);
+
+  result.size = string_table_size;
+#if USE_MMAP_FOR_MEMORY_REGIONS
+  result.contents = (char*)file->mmap_addr + string_table_bytes;
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
+  result.contents = alloc_il(get_ifc_string_table_size(header));
+  fseek(file->f_module, string_table_bytes, SEEK_SET);
+
+  size_t bytes_read = fread((void*)result.contents, 1,
+                            string_table_size, file->f_module);
+  if (bytes_read != string_table_size) {
+    unexpected_condition_str("Failed to load the IFC module string table");
+  }  /* if */
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+  return result;
+}  /* load_string_table */
+
+
+static an_ifc_file_header read_file_header(an_ifc_module_file *file)
+/*
+Given an IFC module file, read and return the associated IFC file header.
+*/
+{
+  init_byte_buffer(file, 4, file->f_size - 4);
+  return construct_node_from_module<an_ifc_file_header>(file);
+}  /* read_file_header */
 
 
 Opt<a_string> get_name_of_ifc_module(a_const_char *file_name)
@@ -1040,31 +1164,13 @@ Given the file name of an IFC module, return the name of the module.  If no
 name can be determined, return an empty optional.
 */
 {
-  Opt<a_string>        result;
-  /* FIXME: Using a fake module import decl creates a possibility for using an
-     improperly initialized module import decl.  This should be
-     reconsidered. */
-  a_module_import_decl mid;
-  a_module             mod;
-  an_ifc_module        ifc_mod;
+  Opt<a_string>           result;
+  Opt<an_ifc_module_file> opt_file = open_ifc_module_file(file_name);
 
-  mid.module_info = &mod;
-  mod.full_name = file_name;
-  /* FIXME: Use a better source position. */
-  mid.position = null_source_position;
-  mid.module_name_position = null_source_position;
-  if (!ifc_mod.open_and_map_ifc_module_file(&mid, /*issue_diag=*/FALSE)) {
-    goto done;
-  }  /* if */
-  /* FIXME: The current setup here in some cases leads to multiple diagnostics
-     for the same module as it's reconsidered.  However, suppressing
-     diagnostics here results in significantly worse diagnostics for a matching
-     module with a bad version. */
-  if (!ifc_mod.init_string_table_and_header(&mid, /*issue_diag=*/TRUE)) {
-    goto done_with_close;
-  }  /* if */
-  {
-    an_ifc_unit_index unit_idx = get_ifc_unit(ifc_mod.header);
+  if (opt_file.has_value()) {
+    an_ifc_module_file file = *opt_file;
+    an_ifc_file_header header = read_file_header(&file);
+    an_ifc_unit_index  unit_idx = get_ifc_unit(header);
 
     switch (unit_idx.sort) {
       case ifc_us_source:
@@ -1073,17 +1179,16 @@ name can be determined, return an empty optional.
       case ifc_us_primary:
       case ifc_us_partition:
       case ifc_us_exported_tu:
-        { an_ifc_text_offset text_offset{&ifc_mod, unit_idx.value};
+        { an_ifc_module_string_table string_table = load_string_table(&file,
+                                                                      header);
 
-          result = get_string_at_offset(text_offset);
+          result = get_string_at_offset(string_table, unit_idx.value);
         }
         break;
       default_is_unexpected();
     }  /* switch */
-  }
-done_with_close:
-  ifc_mod.close();
-done:
+    /* FIXME: Close the file. */
+  }  /* if */
   return result;
 }  /* get_name_of_ifc_module */
 
@@ -1115,7 +1220,7 @@ template<typename an_ifc_Node_type>
 Indexed<an_ifc_Node_type>::Indexed(an_ifc_module     *mod,
                                    an_ifc_index_type idx)
   : node_value(),
-    node_idx{mod, get_ifc_partition_kind<an_ifc_Node_type>(), idx}
+    node_idx{&mod->file, get_ifc_partition_kind<an_ifc_Node_type>(), idx}
 /*
 Construct an indexed representation of the node of the corresponding type at
 the given index.
@@ -1140,16 +1245,14 @@ struct Sequence_traversal_iterator {
   inline Indexed<an_ifc_Node_type> operator*() const;
 
   a_boolean
-  operator==(const Sequence_traversal_iterator<an_ifc_Node_type>& other)
-                                                                          const
+  operator==(const Sequence_traversal_iterator<an_ifc_Node_type>& other) const
     { return this->mod == other.mod && this->index == other.index; }
   a_boolean
-  operator!=(const Sequence_traversal_iterator<an_ifc_Node_type>& other)
-                                                                          const
+  operator!=(const Sequence_traversal_iterator<an_ifc_Node_type>& other) const
     { return !(*this == other); }
 private:
   Sequence_traversal_iterator(an_ifc_module     *mod_val,
-                                an_ifc_index_type index_val)
+                              an_ifc_index_type index_val)
     : mod(mod_val), index(index_val)
     {}
 
@@ -1196,7 +1299,7 @@ struct Sequence_traverser {
   template<typename an_ifc_Traversal_node_type>
   Sequence_traverser(const an_ifc_Traversal_node_type &node,
                      an_ifc_index_type                offset = 0)
-    : Sequence_traverser(node.get_module(), get_ifc_start(node) + offset,
+    : Sequence_traverser(module_of(node), get_ifc_start(node) + offset,
                          get_ifc_cardinality(node) - offset)
     { check_assertion(get_ifc_cardinality(node) >= offset); }
   inline Sequence_traversal_iterator<an_ifc_Node_type> begin() const;
@@ -1236,7 +1339,8 @@ start_val + cardinality_val (exclusive).
     /* Check to see if the last element exists.  This effectively validates the
        full range of IFC values defined by this sequence in 1 step (as the
        presence of N implies N-1 exists). */
-    if (!validate_element_exists(this->mod, part_kind, last, /*trace=*/NULL)) {
+    if (!validate_element_exists(&this->mod->file, part_kind, last,
+                                 /*trace=*/NULL)) {
       this->cardinality = 0;
     }  /* if */
   }  /* if */
@@ -1375,12 +1479,13 @@ occurred.
   check_assertion(!is_null_index(decl));
   an_ifc_partition_kind trait_part_kind =
                                     get_ifc_partition_kind<an_ifc_Node_type>();
-  an_ifc_module         *mod = decl.mod;
+  an_ifc_module         *mod = module_of(decl);
+  an_ifc_module_file    *file = &mod->file;
   size_t                num_traits = mod->get_num_entries(trait_part_kind);
   /* Provide a value function for retrieving the trait at the given trait
      partition index. */
-  auto                  value_lambda = [mod, trait_part_kind](ptrdiff_t idx) {
-    an_ifc_partition_kind_index part_idx{mod, trait_part_kind,
+  auto                  value_lambda = [file, trait_part_kind](ptrdiff_t idx) {
+    an_ifc_partition_kind_index part_idx{file, trait_part_kind,
                                          (an_ifc_index_type)idx};
     an_ifc_Node_type            trait;
 
@@ -1392,12 +1497,11 @@ occurred.
     return get_ifc_encoded_decl(trait);
   };
   /* Get the partition index (if any) for decl. */
-  ptrdiff_t             partition_idx = bin_search(num_traits,
-                                                   to_encoded(mod, decl),
-                                                   value_lambda);
+  ptrdiff_t             partition_idx =
+            bin_search(num_traits, to_encoded(&mod->file, decl), value_lambda);
 
   if (partition_idx != -1) {
-    an_ifc_partition_kind_index part_idx{mod, trait_part_kind,
+    an_ifc_partition_kind_index part_idx{file, trait_part_kind,
                                          (an_ifc_index_type)partition_idx};
 
     /* A trait was found for decl.  Load the trait (again) to retrieve the
@@ -1660,7 +1764,7 @@ Add the tokens corresponding to the given name to cache.
   /* Disable spurious GCC warning about uninitialized usage of opt_name_idx
      (when this function is called by cache_simple_template_id). */
 BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
-  name_idx.mod->cache_name(cache, name_idx);
+  module_of(name_idx)->cache_name(cache, name_idx);
 END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 }  /* cache_name */
 
@@ -1671,7 +1775,7 @@ static void cache_name(a_module_token_cache_ptr cache,
 Add the token corresponding to the given name to cache.
 */
 {
-  an_ifc_name_index name_idx{name_offset.mod, ifc_ns_text_offset,
+  an_ifc_name_index name_idx{name_offset.file, ifc_ns_text_offset,
                              name_offset.value};
 
   cache_name(cache, name_idx);
@@ -2713,7 +2817,8 @@ exported imports need to be imported).
 
     for (decltype(num_modules) idx = 0; idx < num_modules; ++idx) {
       Opt<an_ifc_module_export_reference> opt_imer;
-      an_ifc_partition_kind_index         ref_idx{this, ifc_pk_module_exported,
+      an_ifc_partition_kind_index         ref_idx{&this->file,
+                                                  ifc_pk_module_exported,
                                                   idx};
 
       construct_node(&opt_imer, ref_idx);
@@ -2730,7 +2835,8 @@ exported imports need to be imported).
 
     for (decltype(num_modules) idx = 0; idx < num_modules; ++idx) {
       Opt<an_ifc_module_import_reference> opt_imir;
-      an_ifc_partition_kind_index         ref_idx{this, ifc_pk_module_imported,
+      an_ifc_partition_kind_index         ref_idx{&this->file,
+                                                  ifc_pk_module_imported,
                                                   idx};
 
       construct_node(&opt_imir, ref_idx);
@@ -2837,7 +2943,7 @@ Export all macro definitions in this module (presumably a header unit).
     uint32_t n_macros = object_like_part.size / object_like_part.entry_size;
 
     for (uint32_t idx = 0; idx < n_macros; ++idx) {
-      an_ifc_macro_index macro_idx{this, ifc_ms_macro_object_like, idx};
+      an_ifc_macro_index macro_idx{&this->file, ifc_ms_macro_object_like, idx};
 
       define_ifc_macro(macro_idx);
     }  /* for */
@@ -2846,7 +2952,8 @@ Export all macro definitions in this module (presumably a header unit).
     uint32_t n_macros = func_like_part.size / func_like_part.entry_size;
 
     for (uint32_t idx = 0; idx < n_macros; ++idx) {
-      an_ifc_macro_index macro_idx{this, ifc_ms_macro_function_like, idx};
+      an_ifc_macro_index macro_idx{&this->file, ifc_ms_macro_function_like,
+                                   idx};
 
       define_ifc_macro(macro_idx);
     }  /* for */
@@ -2861,9 +2968,9 @@ void an_ifc_module::close()
 Close the module file specified in the module-import-declaration.
 */
 {
-  if (f_module != NULL) {
-    (void)fclose(f_module);
-    f_module = NULL;
+  if (this->file.f_module != NULL) {
+    (void)fclose(this->file.f_module);
+    this->file.f_module = NULL;
 #if USE_MMAP_FOR_MEMORY_REGIONS
 #if EDG_WIN32
     close_mapped_input_file(mapped_input, map_object);
@@ -3643,7 +3750,7 @@ parameter pack; otherwise, return FALSE.
   /*  After IFC 0.41 the IFC specifies that a parameter is a pack if its type
       is a TypeSort::Expansion type.  Prior to IFC 0.41, the pack status was
       determined by a flag on the type itself. */
-  if (is_at_least(param_decl.get_module(), 0, 41)) {
+  if (is_at_least(module_of(param_decl), 0, 41)) {
     an_ifc_type_index type_idx = get_ifc_type(param_decl);
 
     result = type_idx.sort == ifc_ts_type_expansion;
@@ -3775,7 +3882,7 @@ corresponding parameter chart; otherwise, return an empty optional.
                      " into a template parameter chart for a"
                      " template template parameter");
 
-    ifc_unexpected(type.mod, err_msg.as_temp_characters());
+    ifc_unexpected(module_of(type), err_msg.as_temp_characters());
   }  /* if */
   goto done;
 invalid:
@@ -3857,7 +3964,7 @@ already loaded in the IL from, e.g., a global module fragment).
   /* Resolve the template parameter declaration's name into the symbol
      locator. */
   if (is_named_decl) {
-    if (!param_decl.get_module()->init_decl_locator(param_decl, &loc)) {
+    if (!module_of(param_decl)->init_decl_locator(param_decl, &loc)) {
       goto invalid;
     }  /* if */
   }  /* if */
@@ -3937,7 +4044,7 @@ already loaded in the IL from, e.g., a global module fragment).
         }
         break;
       case tak_start_of_pack_expansion:
-        ifc_unexpected(param_decl.get_module(),
+        ifc_unexpected(module_of(param_decl),
                        "unimplemented detached param resolution");
         break;
       default_is_unexpected();
@@ -4114,7 +4221,7 @@ Return NULL if none is found.
     /* Load a namespace-scope entity from the IFC file and determine its
        front-end symbol. */
     a_source_correspondence     *scp;
-    an_ifc_module               *mod = decl_idx.mod;
+    an_ifc_module               *mod = module_of(decl_idx);
     /* Disable the "friend" specifier since we are parsing the entity itself
        (in namespace scope) and not its friendship (which is handled
        elsewhere). */
@@ -4132,7 +4239,7 @@ Return NULL if none is found.
         a_string err_msg(index_to_str(decl_idx),
                          " refers to itself as part of the declaration");
 
-        ifc_unexpected(decl_idx.mod, err_msg.as_temp_characters());
+        ifc_unexpected(module_of(decl_idx), err_msg.as_temp_characters());
       } else {
         process_ifc_declaration(mep);
       }  /* if */
@@ -4199,7 +4306,7 @@ error occurs, return NULL.
         /* Obtain the primary template and resolve it to a front end symbol. */
         an_ifc_expr_template_id  template_id = *opt_template_id;
         an_ifc_expr_index        primary = get_ifc_primary(template_id);
-        an_ifc_module            *mod = primary.mod;
+        an_ifc_module            *mod = module_of(primary);
         templ_sym = load_ifc_entity_ref(primary);
         if (templ_sym == NULL) goto invalid;
 
@@ -4246,7 +4353,8 @@ error occurs, return NULL.
       }
       break;
     default:
-      issue_unsupported_construct_error(expr_idx.mod, "ExprIndex entity",
+      issue_unsupported_construct_error(module_of(expr_idx),
+                                        "ExprIndex entity",
                                         &error_position);
       break;
   }  /* switch */
@@ -4276,10 +4384,9 @@ including the given index's partition, element number, file, and relative
 position.
 */
 {
-  an_ifc_module               *mod = idx.mod;
   an_ifc_partition_kind       kind = get_partition_kind(idx);
   an_ifc_index_type           idx_value = get_partition_index(idx);
-  an_ifc_partition_kind_index part_kind_idx = {mod, kind, idx_value};
+  an_ifc_partition_kind_index part_kind_idx(idx.file, kind, idx_value);
   an_ifc_partition_metadata   *part_meta =
                                          get_partition_metadata(part_kind_idx);
   size_t                      part_start = part_meta->offset;
@@ -4306,7 +4413,7 @@ Emit an error for an IFC resolved identifier pseudo token load failure (either
 from a tok_ifc_entity_ref or tok_ifc_decl_ref).
 */
 {
-  an_ifc_module     *mod = idx.mod;
+  an_ifc_module     *mod = module_of(idx);
   a_source_position pos = pos_curr_token;
   a_diagnostic_ptr  diag = pos_st_start_error(ec_ifc_entity_ref_failure, &pos,
                                               mod->assoc_module_info->name);
@@ -4461,7 +4568,7 @@ FALSE.
 {
   auto              cache_content = [](a_module_token_cache *content_cache,
                                        an_ifc_decl_index    decl_idx) {
-    decl_idx.mod->cache_decl(content_cache, decl_idx, /*cinfo=*/{});
+    module_of(decl_idx)->cache_decl(content_cache, decl_idx, /*cinfo=*/{});
   };
   an_ifc_decl_index var_decl_idx = get_ifc_decl(node);
 
@@ -4793,7 +4900,7 @@ the current cache context to help inform decisions about what to cache.  Return
 TRUE if caching succeeds, FALSE otherwise.
 */
 {
-  an_ifc_module               *mod = idc.get_module();
+  an_ifc_module               *mod = module_of(idc);
   an_ifc_source_location      locus = get_ifc_locus(idc);
   an_ifc_source_position_hint pos_hint(cache, locus);
 
@@ -4840,7 +4947,7 @@ TRUE if caching succeeds, FALSE otherwise.
     cache_identifier(cache, name.as_temp_characters());
     if (!is_null_index(initializer)) {
       cache_token(cache, tok_assign);
-      ide.get_module()->cache_expr(cache, initializer, /*cinfo=*/{});
+      module_of(ide)->cache_expr(cache, initializer, /*cinfo=*/{});
     }  /* if */
   }
   goto done;
@@ -4862,7 +4969,7 @@ TRUE if caching succeeds, FALSE otherwise.
 */
 {
   a_boolean                   result = TRUE;
-  an_ifc_module               *mod = idp.get_module();
+  an_ifc_module               *mod = module_of(idp);
   an_ifc_source_location      locus = get_ifc_locus(idp);
   an_ifc_source_position_hint pos_hint(cache, locus);
   an_ifc_type_index           type = get_ifc_type(idp);
@@ -4953,7 +5060,7 @@ the current cache context to help inform decisions about what to cache.  Return
 TRUE if caching succeeds, FALSE otherwise.
 */
 {
-  an_ifc_module *mod = idt.get_module();
+  an_ifc_module *mod = module_of(idt);
 
   /* FIXME: Currently unsupported. */
   issue_unsupported_construct_error(mod, "DeclSort::Temploid",
@@ -5014,7 +5121,7 @@ Return TRUE if caching succeeds, FALSE otherwise.
       an_ifc_expr_index parent = get_ifc_parent(using_decl);
 
       cache_token(cache, tok_using);
-      parent.mod->cache_expr(cache, parent, cinfo);
+      module_of(parent)->cache_expr(cache, parent, cinfo);
       cache_token(cache, tok_colon_colon);
       cache_identifier(cache, decl_name.as_temp_characters());
     } else {
@@ -5155,7 +5262,7 @@ about what to cache.
   cache_token(cache, tok_gt);
   if (!is_null_index(constraint)) {
     /* The template parameter list is followed by a requires-clause. */
-    constraint.mod->cache_expr(cache, constraint, cinfo);
+    module_of(constraint)->cache_expr(cache, constraint, cinfo);
   }  /* if */
   goto done;
 invalid:
@@ -5364,7 +5471,7 @@ pointer should be NULL.
   a_source_position pos;
 
   check_assertion(get_ifc_sort(idp) == ifc_ps_object);
-  idp.get_module()->source_position_from_locus(&pos, get_ifc_locus(idp));
+  module_of(idp)->source_position_from_locus(&pos, get_ifc_locus(idp));
 
   Opt<a_string> opt_name = name_from_index(get_ifc_name(idp));
   /* The caller should've already validated that this name is valid. */
@@ -5601,8 +5708,8 @@ definition.
     a_decl_flag_set             flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED;
     a_module_entity_stack_state mep_state(get_ifc_module_entity_ptr(ifb));
     a_diagnostic_suppression    diag_suppress(
-                                           &ifb.mod->suppressed_diagnostics,
-                                           !display_module_import_diagnostics);
+                                       &module_of(ifb)->suppressed_diagnostics,
+                                       !display_module_import_diagnostics);
 
 #if DEBUG
     if (db_flag_is_set("ifc_idx")) {
@@ -5614,7 +5721,7 @@ definition.
     ifc_pending_definitions->add(routine_tp);
     clear_func_info(&func_info);
     push_new_top_level_declaration();
-    if (ifb.mod->cache_function_body(&def_cache, ifb, rp, &func_info)) {
+    if (module_of(ifb)->cache_function_body(&def_cache, ifb, rp, &func_info)) {
       if (def_cache.is_valid()) {
         a_token_kind           expected_tok = tok_rbrace;
         a_module_entity_rescan rescan(&def_cache, &expected_tok);
@@ -5762,7 +5869,7 @@ Given a type index, return the corresponding type kind.
           case ifc_tbs_concept:
             { a_string err_msg("Unexpected ", str_for(basis));
 
-              ifc_unexpected(itf.get_module(), err_msg);
+              ifc_unexpected(module_of(itf), err_msg);
             }
             goto invalid;
           case ifc_tbs_void:
@@ -6192,7 +6299,7 @@ default arguments) to the given IL template param; otherwise, return FALSE.
       }  /* if */
       break;
     case ifc_ps_object:
-      ifc_unexpected(mod_templ_param.get_module(),
+      ifc_unexpected(module_of(mod_templ_param),
                      "Unexpected function parameter where a template "
                      "parameter was expected");
       goto no_match;
@@ -6859,7 +6966,7 @@ as the associated template (i.e., this function takes care of cases where the
 specialization is declared in an additional module).
 */
 {
-  if (node.get_module()->references_any_modules) {
+  if (module_of(node)->references_any_modules) {
     an_ifc_decl_index raw_templ_idx = get_ifc_primary_template(node);
 
     /* If we cross a module boundary this specialization won't be in the
@@ -7240,7 +7347,7 @@ Note that templ must refer to the canonical template.
   check_assertion(templ != NULL && templ->canonical_template == templ);
   an_ifc_decl_index def_decl_idx = ifc_template_definitions->get(templ);
 
-  return def_decl_idx.mod != NULL;
+  return def_decl_idx.file != NULL;
 }  /* has_template_definition_from_ifc_module */
 
 
@@ -7321,7 +7428,7 @@ TRUE.  Note that templ must refer to the canonical template.
   check_assertion(templ != NULL && templ->canonical_template == templ);
   an_ifc_decl_index decl_idx = ifc_template_specializations->get(templ);
 
-  return decl_idx.mod != NULL;
+  return decl_idx.file != NULL;
 }  /* has_template_specializations_from_ifc_module */
 
 
@@ -9153,7 +9260,7 @@ about what to cache.
 
     an_ifc_scope_member scope_mem = *indexed_scope_mem;
     an_ifc_decl_index   mem_idx = get_ifc_index(scope_mem);
-    mem_idx.mod->cache_decl(cache, mem_idx, cinfo);
+    module_of(mem_idx)->cache_decl(cache, mem_idx, cinfo);
   }  /* for */
   goto done;
 invalid:
@@ -9282,7 +9389,7 @@ member descriptor into the given cache.
         break;
       default_is_unexpected();
     }  /* switch */
-    decl_idx.mod->cache_decl(content_cache, decl_idx, cinfo);
+    module_of(decl_idx)->cache_decl(content_cache, decl_idx, cinfo);
   };
 
   cache_bound_entity(cache, class_mem.decl_idx, cache_content);
@@ -9470,7 +9577,7 @@ Complete the definition of the class referred to by mep (if needed).
            successfully, and that the checks performed by
            invalidate_failed_class_members do not fail/cause the compiler to
            abort. */
-        ifc_unexpected(decl_idx.mod, err_msg.as_temp_characters());
+        ifc_unexpected(module_of(decl_idx), err_msg.as_temp_characters());
         invalidate_failed_class_members(class_members, diag_count_snapshot);
       }  /* if */
     } else if (initializer != 0) {
@@ -9617,7 +9724,7 @@ definition.
     a_module_scope_push_kind scope_push_status = mspk_unattempted;
 
     push_module_declaration_context(def_mep->scope, &scope_push_status);
-    def_idx.mod->complete_definition_of_module_class(def_mep);
+    module_of(def_idx)->complete_definition_of_module_class(def_mep);
     pop_module_declaration_context(scope_push_status);
   }  /* if */
   return !def_mep->invalid;
@@ -9749,10 +9856,10 @@ Print the corresponding file and line number for the source location
   const an_ifc_partition_metadata *save_debug_partition = debug_partition;
 #endif /* DEBUG && EXPENSIVE_CHECKING */
 #if USE_MMAP_FOR_MEMORY_REGIONS
-  unsigned char *save_byte_buffer = byte_buffer;
-  unsigned char *save_buffer_end = buffer_end;
+  unsigned char *save_byte_buffer = this->file.byte_buffer;
+  unsigned char *save_buffer_end = this->file.buffer_end;
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
-  long save_seek = ftell(f_module);
+  long save_seek = ftell(this->file.f_module);
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   source_position_from_locus(&pos, locus);
   /* Restore saved information. */
@@ -9760,10 +9867,10 @@ Print the corresponding file and line number for the source location
   debug_partition = save_debug_partition;
 #endif /* DEBUG && EXPENSIVE_CHECKING */
 #if USE_MMAP_FOR_MEMORY_REGIONS
-  byte_buffer = save_byte_buffer;
-  buffer_end = save_buffer_end;
+  this->file.byte_buffer = save_byte_buffer;
+  this->file.buffer_end = save_buffer_end;
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
-  (void)fseek(f_module, save_seek, SEEK_SET);
+  (void)fseek(this->file.f_module, save_seek, SEEK_SET);
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   if (pos.seq != 0) {
     (void)conv_seq_to_file_and_line(pos.seq, &diag_file_name,
@@ -9789,14 +9896,7 @@ FALSE, and issue diagnostics if issue_diag is TRUE.
   a_boolean result = TRUE;
 
   /* Read the IFC file header (which starts after the magic number). */
-  init_byte_buffer(this, 4, this->f_size - 4);
-  this->header = construct_node_from_module<an_ifc_file_header>(this);
-  /* Set the version information.  This is presumed to be version stable, and
-     is critical for all following calls. */
-  check_assertion_str(has_ifc_major_version(this->header),
-                      "The default value of version_major needs updated.");
-  check_assertion_str(has_ifc_minor_version(this->header),
-                      "The default value of version_minor needs updated.");
+  this->header = read_file_header(&this->file);
   /* FIXME: We should likely check the version here, but for now assume all
      headers are the same.  Until the version is initialized in
      initialize_members_from_ifc_module_file this module will be treated as
@@ -9806,26 +9906,7 @@ FALSE, and issue diagnostics if issue_diag is TRUE.
     goto done;
   }
   /* FIXME: The checksum is not yet checked. */
-  {
-    an_ifc_byte_offset string_table_bytes = get_ifc_string_table_bytes(
-                                                                 this->header);
-#if USE_MMAP_FOR_MEMORY_REGIONS
-    this->string_table = (char*)this->mmap_addr + string_table_bytes;
-#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
-
-    an_ifc_cardinality string_table_size = get_ifc_string_table_size(
-                                                                 this->header);
-
-    this->string_table = alloc_il(get_ifc_string_table_size(header));
-    fseek(this->f_module, string_table_bytes, SEEK_SET);
-
-    size_t bytes_read = fread((void*)this->string_table, 1, string_table_size,
-                              this->f_module);
-    if (bytes_read != string_table_size) {
-      unexpected_condition_str("Failed to load the IFC module string table");
-    }  /* if */
-#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
-  }
+  this->string_table = load_string_table(&this->file, this->header);
 done:
   return result;
 }  /* an_ifc_module::init_string_table_and_header */
@@ -9895,9 +9976,9 @@ diagnostics if issue_diag is TRUE.
     goto done;
   }  /* if */
   {
-    /* FIXME: Initialize version information now, this should really be done
-       as part of the header initialization, however, that currently results
-       in multiple version mismatch diagnostics. */
+    /* FIXME: Initialize version and endianness information now, this should
+       really be done as part of the header initialization, however, that
+       currently results in multiple version mismatch diagnostics. */
     an_ifc_version version_major_val = get_ifc_major_version(this->header);
     an_ifc_version version_minor_val = get_ifc_minor_version(this->header);
 
@@ -9919,8 +10000,23 @@ diagnostics if issue_diag is TRUE.
         goto done;
       }  /* if */
     }  /* if */
-    this->version_major = version_major_val;
-    this->version_minor = version_minor_val;
+    this->file.version_major = version_major_val;
+    this->file.version_minor = version_minor_val;
+#if !ASSUME_LITTLE_ENDIAN_IFC_MODULES
+    switch (get_ifc_arch(this->header)) {
+      case ifc_as_arm32:
+      case ifc_as_arm64:
+      case ifc_as_hybrid_x86_arm64:
+      case ifc_as_x64:
+      case ifc_as_x86:
+        this->file.endianness = ifc_mpe_little;
+        break;
+      case ifc_as_unknown:
+        this->file.endianness = ifc_mpe_unknown;
+        break;
+      default_is_unexpected();
+    }  /* switch */
+#endif /* !ASSUME_LITTLE_ENDIAN_IFC_MODULES */
   }
 #if DEBUG
   if (db_flag_is_set("ifc_modules")) {
@@ -9935,8 +10031,10 @@ diagnostics if issue_diag is TRUE.
       /* Manually initialize the byte buffer, then read the partition. */
       static_assert(sizeof(an_ifc_partition_storage) == 16,
                     "Partition storage is larger than expected");
-      init_byte_buffer(this, toc + (16 * i), f_size - (size_t)toc);
-      an_ifc_partition ip = construct_node_from_module<an_ifc_partition>(this);
+      init_byte_buffer(&this->file, toc + (16 * i),
+                       this->file.f_size - (size_t)toc);
+      an_ifc_partition ip =
+                     construct_node_from_module<an_ifc_partition>(&this->file);
 
       /* If the partition fails to validate, don't load it. */
       if (!validate(ip, /*parent=*/NULL)) {
@@ -9967,7 +10065,7 @@ diagnostics if issue_diag is TRUE.
         an_ifc_cardinality         cardinality = get_ifc_cardinality(ip);
         an_ifc_entity_size         entry_size = get_ifc_entry_size(ip);
         an_ifc_entity_size_storage expected_entry_size =
-                               get_ifc_partition_element_size(this, part_kind);
+                        get_ifc_partition_element_size(&this->file, part_kind);
 
         pp = &get_partition_metadata(part_kind);
         pp->name = name_str;
@@ -9987,7 +10085,7 @@ diagnostics if issue_diag is TRUE.
       }  /* if */
     }  /* for */
   }
-  (void)fseek(f_module, 0L, SEEK_SET);
+  (void)fseek(this->file.f_module, 0L, SEEK_SET);
   if (get_partition_metadata(ifc_pk_name_source_file).name != NULL) {
     /* Allocate an array to map source locations to sequence numbers for each
        file referenced by the module.  No information about the sequence
@@ -10011,7 +10109,7 @@ diagnostics if issue_diag is TRUE.
          effectively reserve those source sequence numbers for the file. */
       for (uint32_t idx = 0; idx < num_src_lines; idx++) {
         Opt<an_ifc_source_line>     opt_isl;
-        an_ifc_partition_kind_index src_idx{this, ifc_pk_src_line, idx};
+        an_ifc_partition_kind_index src_idx{&this->file, ifc_pk_src_line, idx};
 
         construct_node(&opt_isl, src_idx);
         if (!opt_isl.has_value()) {
@@ -10019,10 +10117,10 @@ diagnostics if issue_diag is TRUE.
           goto done;
         }  /* if */
 
-        an_ifc_name_index  file = get_ifc_file(*opt_isl);
-        size_t             file_index = file.value;
+        an_ifc_name_index  src_file = get_ifc_file(*opt_isl);
+        size_t             file_index = src_file.value;
         an_ifc_line_number line_number = get_ifc_line(*opt_isl);
-        check_assertion(file.sort == ifc_ns_name_source_file &&
+        check_assertion(src_file.sort == ifc_ns_name_source_file &&
                         file_index < num_files);
         if (line_number > sequence_numbers[file_index].max_line_number) {
           an_ifc_line_number_storage used_line_number = line_number;
@@ -10105,82 +10203,31 @@ a_boolean an_ifc_module::open_and_map_ifc_module_file(
                                            a_module_import_decl_ptr midp,
                                            a_boolean                issue_diag)
 /*
-Open the module file and map it into the process' address space.  Note that
-this is also used after restoring from a PCH file.  Return TRUE if the module
-file was successfully opened and FALSE (with an error message if issue_diag ==
-TRUE) otherwise.
+Open the module file and map it into the process' address space.  Return TRUE
+if the module file was successfully opened and FALSE (with an error message if
+issue_diag == TRUE) otherwise.
+
+Note that this is also used after restoring from a PCH file.
 */
 {
-  a_module_ptr  mod = midp->module_info;
-  a_boolean     err = FALSE;
-  FILE          *file;
-  a_byte        magic[4];
-  struct stat   stat_buf;
+  a_module_ptr mod = midp->module_info;
 
   check_assertion(mod != NULL && mod->full_name != NULL);
-  file = fopen_with_error(mod->full_name, FOPEN_MODE_FOR_BINARY_READ,
-                          OFF_NO_OPTIONS, ec_module_file);
-  if (file == NULL) {
-    err = TRUE;
-  } else {
-    if (fstat(fileno(file), &stat_buf) != 0) {
-      err = TRUE;
-    }  /* if */
-    /* Make sure file is at least large enough to have the magic number
-       and an IFC header. */
-    /* FIXME: Do we actually still need to do this? */
-    static_assert(sizeof(an_ifc_file_header_storage) == 69,
-                  "file header size needs to be dealt with per-version");
-    if (!err && (size_t)stat_buf.st_size < (sizeof(magic) + 69)) {
-      err = TRUE;
-    }  /* if */
-    /* Read the magic number from the beginning of the file. */
-    if (!err &&
-        fread(magic, (size_t)1, sizeof(magic), file) != sizeof(magic)) {
-      err = TRUE;
-    }  /* if */
-    /* Verify the magic number (this works for both big and little endian
-       machines). */
-    if (!err && !magic_numbers_match(magic, ifc_magic_numbers)) {
-      err = TRUE;
-    }  /* if */
-    if (!err) {
-      /* Map the module file into the address space of the process.  The
-         process is a little different on Windows environments.  Note that we
-         do not map the file "read-only" because some strings from the string
-         table are rewritten to become valid C names (e.g., "<unnamed-enum-x>"
-         becomes "__noname_enum_x_"). */
-#if USE_MMAP_FOR_MEMORY_REGIONS
-#if EDG_WIN32
-      open_mapped_input_file(mod->full_name, &mapped_input, &map_object);
-#endif /* EDG_WIN32 */
-      mmap_size = stat_buf.st_size;
-      mmap_addr = map_input_file_to_region(file,
-#if EDG_WIN32
-                                           map_object,
-#else /* !EDG_WIN32 */
-                                           (a_windows_handle)0,
-#endif /* EDG_WIN32 */
-                                           /*read_only=*/TRUE, (sizeof_t)0,
-                                           mmap_size, NULL, mod->full_name);
-      check_assertion(mmap_addr != NULL);
-      f_size = mmap_size;
-#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
-      fseek(file, 0, SEEK_END);
-      f_size = (size_t)ftell(file);
-#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
-      f_module = file;
-    }  /* if */
-    if (err) {
-      (void)fclose(file);
-    }  /* if */
-  }  /* if */
-  if (err && issue_diag) {
+
+  Opt<an_ifc_module_file> opt_file = open_ifc_module_file(mod->full_name);
+  if (opt_file.has_value()) {
+    an_ifc_module *mod_iface = (an_ifc_module*)(mod->module_interface);
+
+    /* Establish the association between the IFC file and the IFC module
+       interface. */
+    mod_iface->file = *opt_file;
+    mod_iface->file.mod = mod_iface;
+  } else if (issue_diag) {
     /* FIXME: perhaps better error messages here. */
     pos_st_error(ec_cannot_import_module, &midp->module_name_position,
                  mod->full_name);
   }  /* if */
-  return !err;
+  return opt_file.has_value();
 }  /* an_ifc_module::open_and_map_ifc_module_file */
 
 #if EXPENSIVE_CHECKING
@@ -10470,7 +10517,7 @@ position of the function declaration if not.
     case ifc_ns_unenforced:
       /* FIXME: It is unclear what these sorts mean - leave as unsupported for
          now. */
-      issue_unsupported_construct_error(eh_spec.get_module(), str_for(sort),
+      issue_unsupported_construct_error(module_of(eh_spec), str_for(sort),
                                         pos);
       break;
     case ifc_ns_true:
@@ -10486,7 +10533,7 @@ position of the function declaration if not.
         an_ifc_sentence_index words = get_ifc_words(eh_spec);
 
         result->indeterminate = TRUE;
-        words.mod->cache_sentence(&cache, words);
+        module_of(words)->cache_sentence(&cache, words);
         if (!cache.is_valid()) {
           /* FIXME: Should we issue a diagnostic here? */
           result->variant.noexcept_arg = alloc_error_constant();
@@ -10579,7 +10626,7 @@ otherwise, return FALSE.
             goto invalid;
           }  /* if */
         } else if (rtsp->has_ellipsis) {
-          ifc_requirement(indexed_type.mod,
+          ifc_requirement(module_of(indexed_type),
                           idx == get_ifc_cardinality(itt) - 1,
                           "expected ellipsis to appear at "
                           "end of parameter list");
@@ -10649,7 +10696,7 @@ corresponding type, return an error type.
     result = (a_type_ptr)mep->entity.ptr;
   } else {
     an_ifc_type_index type_idx = type_index_of(mep);
-    an_ifc_module     *mod = type_index.mod;
+    an_ifc_module     *mod = module_of(type_index);
 
     switch (type_idx.sort) {
       case ifc_ts_type_fundamental:
@@ -11232,7 +11279,7 @@ corresponding type, return an error type.
       case ifc_ts_type_typename:
         { a_module_token_cache cache;
 
-          type_idx.mod->cache_type(&cache, type_idx, /*cinfo=*/{});
+          module_of(type_idx)->cache_type(&cache, type_idx, /*cinfo=*/{});
 
           {
             a_symbol_ptr           type_sym = NULL;
@@ -11331,7 +11378,7 @@ given expression.
     case ifc_es_expr_monad:
       { a_module_token_cache cache;
 
-        expr_idx.mod->cache_expr(&cache, expr_idx, /*cinfo=*/{});
+        module_of(expr_idx)->cache_expr(&cache, expr_idx, /*cinfo=*/{});
         if (!cache.is_valid()) {
           goto invalid;
         }  /* if */
@@ -11344,7 +11391,7 @@ given expression.
       break;
     default:
       { a_type_ptr    type = param->variant.nontype.constant->type;
-        an_ifc_module *mod = expr_idx.mod;
+        an_ifc_module *mod = module_of(expr_idx);
 
         result = mod->constant_for_expr_index(expr_idx, type);
       }
@@ -11420,7 +11467,7 @@ the template argument list; otherwise, return FALSE.
     }  /* if */
     result = TRUE;
   } else {
-    an_ifc_module    *mod = expr_idx.mod;
+    an_ifc_module    *mod = module_of(expr_idx);
     a_diagnostic_ptr diag = pos_st_start_error(ec_ifc_too_many_template_args,
                                                &null_source_position,
                                                mod->assoc_module_info->name);
@@ -11594,7 +11641,8 @@ represented by the expression.
           goto invalid;
         }  /* if */
         /* FIXME: Currently unsupported. */
-        issue_unsupported_construct_error(expr_idx.mod, "ExprSort::UnaryFold",
+        issue_unsupported_construct_error(module_of(expr_idx),
+                                          "ExprSort::UnaryFold",
                                           &error_position);
       }
       goto invalid;
@@ -11773,7 +11821,7 @@ param_list.
 
   if (append_template_args(&state, arguments)) {
     if (state.curr_param() != NULL) {
-      an_ifc_module    *mod = arguments.mod;
+      an_ifc_module    *mod = module_of(arguments);
       a_diagnostic_ptr diag = pos_st_start_error(ec_ifc_too_few_template_args,
                                                  &null_source_position,
                                                  mod->assoc_module_info->name);
@@ -11873,7 +11921,7 @@ module file.
         result = inst_sym->variant.variable.ptr->type;
         break;
       case templk_concept:
-        ifc_requirement(templ_id.get_module(), arg_list == NULL,
+        ifc_requirement(module_of(templ_id), arg_list == NULL,
                         "expected no arguments to be specified for concepts");
         result = templ->prototype_instantiation.constraint->type;
         break;
@@ -11968,7 +12016,7 @@ non-NULL, fields (like is_operator_name) in *loc are updated accordingly.
     result = "";
   } else if (name_index.sort == ifc_ns_text_offset) {
     /* NameSort::Identifiers just refer to the string table. */
-    an_ifc_text_offset text_offset{name_index.mod, name_index.value};
+    an_ifc_text_offset text_offset{name_index.file, name_index.value};
     a_string           text_value = get_string_at_offset(text_offset);
 
     /* Work around a variety of known and anticipated bad encodings. */
@@ -12104,7 +12152,7 @@ non-NULL, fields (like is_operator_name) in *loc are updated accordingly.
             goto invalid;
           }  /* if */
           /* FIXME: Currently unsupported. */
-          issue_unsupported_construct_error(name_index.mod,
+          issue_unsupported_construct_error(module_of(name_index),
                                             "NameSort::Specialization",
                                             &error_position);
           /* FIXME: need to set result/requires_buffer as appropriate. */
@@ -12118,7 +12166,8 @@ non-NULL, fields (like is_operator_name) in *loc are updated accordingly.
             goto invalid;
           }  /* if */
           /* FIXME: Currently unsupported. */
-          issue_unsupported_construct_error(name_index.mod, "NameSort::Guide",
+          issue_unsupported_construct_error(module_of(name_index),
+                                            "NameSort::Guide",
                                             &error_position);
           /* FIXME: need to set result/requires_buffer as appropriate. */
           goto invalid;
@@ -12154,7 +12203,8 @@ anonymous), or an empty optional if the name was present but invalid.
     case ifc_ds_decl_explicit_instantiation:
     case ifc_ds_decl_explicit_specialization:
     case ifc_ds_decl_vendor_extension:
-      issue_unsupported_construct_error(decl_idx.mod, str_for(decl_idx.sort),
+      issue_unsupported_construct_error(module_of(decl_idx),
+                                        str_for(decl_idx.sort),
                                         &error_position);
       goto invalid;
     case ifc_ds_decl_enumerator:
@@ -12275,7 +12325,7 @@ anonymous), or an empty optional if the name was present but invalid.
     case ifc_ds_decl_temploid:
       { a_string err_msg(str_for(decl_idx.sort), " does not have a name");
 
-        ifc_unexpected(decl_idx.mod, err_msg);
+        ifc_unexpected(module_of(decl_idx), err_msg);
       }
       goto invalid;
     case ifc_ds_decl_template:
@@ -12452,7 +12502,8 @@ anonymous), or an empty optional if the name was present but invalid.
           goto invalid;
         }  /* if */
         /* FIXME: Currently unsupported. */
-        issue_unsupported_construct_error(decl_idx.mod, "DeclSort::Friend",
+        issue_unsupported_construct_error(module_of(decl_idx),
+                                          "DeclSort::Friend",
                                           &error_position);
         goto invalid;
       }
@@ -12475,7 +12526,7 @@ anonymous), or an empty optional if the name was present but invalid.
           goto invalid;
         }  /* if */
         /* FIXME: Currently unsupported. */
-        issue_unsupported_construct_error(decl_idx.mod,
+        issue_unsupported_construct_error(module_of(decl_idx),
                                           "DeclSort::DeductionGuide",
                                           &error_position);
         goto invalid;
@@ -12494,7 +12545,7 @@ anonymous), or an empty optional if the name was present but invalid.
         an_ifc_decl_tuple           idt = *opt_idt;
         an_ifc_index                start = get_ifc_start(idt);
         Opt<an_ifc_heap_decl>       opt_ihd;
-        an_ifc_partition_kind_index heap_decl_idx{start.mod, ifc_pk_heap_decl,
+        an_ifc_partition_kind_index heap_decl_idx{start.file, ifc_pk_heap_decl,
                                                   start};
         construct_node(&opt_ihd, heap_decl_idx);
         if (!opt_ihd.has_value()) {
@@ -12544,7 +12595,8 @@ anonymous), or an empty optional if the name was present but invalid.
     case ifc_ds_decl_using_directive:
     case ifc_ds_decl_syntax_tree:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(decl_idx.mod, str_for(decl_idx.sort),
+      issue_unsupported_construct_error(module_of(decl_idx),
+                                        str_for(decl_idx.sort),
                                         &error_position);
       goto invalid;
     default_is_unexpected_str("Unexpected DeclSort");
@@ -12798,7 +12850,7 @@ conversion is successful, return TRUE; otherwise, return FALSE.
     case ifc_ls_integer:
       { /* An integer larger than 30 bits. */
         Opt<an_ifc_const_i64>       opt_ici64;
-        an_ifc_partition_kind_index int_idx{lit_index.mod, ifc_pk_const_i64,
+        an_ifc_partition_kind_index int_idx{lit_index.file, ifc_pk_const_i64,
                                             lit_index.value};
 
         construct_node(&opt_ici64, int_idx);
@@ -12817,7 +12869,7 @@ conversion is successful, return TRUE; otherwise, return FALSE.
           a_string err_msg("Failed to get a 64-bit integer from ",
                            str_for(lit_index.sort));
 
-          ifc_unexpected(lit_index.mod, err_msg);
+          ifc_unexpected(module_of(lit_index), err_msg);
           goto invalid;
         }  /* if */
       }
@@ -12825,7 +12877,7 @@ conversion is successful, return TRUE; otherwise, return FALSE.
     case ifc_ls_floating_point:
       { a_string err_msg("Unexpected ", str_for(lit_index.sort));
 
-        ifc_unexpected(lit_index.mod, err_msg);
+        ifc_unexpected(module_of(lit_index), err_msg);
       }
       goto invalid;
     default_is_unexpected();
@@ -12919,7 +12971,7 @@ otherwise, NULL is returned.
                                  /*maintain_expression=*/FALSE,
                                  &did_not_fold, &error_position);
             if (did_not_fold) {
-              ifc_unexpected(lit_index.mod, "could not fold nullptr");
+              ifc_unexpected(module_of(lit_index), "could not fold nullptr");
               goto invalid;
             }  /* if */
           } else if (is_integral_or_enum_type(constant_type)) {
@@ -12935,7 +12987,7 @@ otherwise, NULL is returned.
                                       stripped_type->variant.integer.int_kind);
             }  /* if */
           } else {
-            ifc_unexpected(lit_index.mod, "expected an integer type");
+            ifc_unexpected(module_of(lit_index), "expected an integer type");
             goto invalid;
           }  /* if */
           result->type = constant_type;
@@ -12944,7 +12996,7 @@ otherwise, NULL is returned.
       break;
     case ifc_ls_floating_point:
       { Opt<an_ifc_const_f64>       opt_icf;
-        an_ifc_partition_kind_index float_index{lit_index.mod,
+        an_ifc_partition_kind_index float_index{lit_index.file,
                                                 ifc_pk_const_f64,
                                                 lit_index.value};
         construct_node(&opt_icf, float_index);
@@ -12966,7 +13018,8 @@ otherwise, NULL is returned.
         result->type = float_type(fk_double);
         fp_string_to_float(fk_double, buf, &result->variant.float_value, &err);
         if (err) {
-          ifc_unexpected(lit_index.mod, "floating point conversion failure");
+          ifc_unexpected(module_of(lit_index),
+                         "floating point conversion failure");
         }  /* if */
       }
       break;
@@ -12991,7 +13044,7 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
 */
 {
   a_constant_ptr result = NULL;
-  an_ifc_module  *mod = expr_idx.mod;
+  an_ifc_module  *mod = module_of(expr_idx);
 
   /* FIXME: Can this entire thing be replaced via caching the expression and
      then calling scan_expr_or_braced_init_list, as is done for
@@ -13140,7 +13193,7 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
         an_ifc_expr_string          ies = *opt_ies;
         Opt<an_ifc_const_str>       opt_ics;
         an_ifc_string_index         raw_str_index = get_ifc_string_index(ies);
-        an_ifc_partition_kind_index str_idx{raw_str_index.mod,
+        an_ifc_partition_kind_index str_idx{raw_str_index.file,
                                             ifc_pk_const_str,
                                             raw_str_index.value};
         construct_node(&opt_ics, str_idx);
@@ -13348,7 +13401,7 @@ FIXME: what other types of named declarations can we get here?
                            "sort ", str_for(sort), " from ",
                            index_to_str(decl_idx));
 
-          ifc_unexpected(decl_param.get_module(), err_msg);
+          ifc_unexpected(module_of(decl_param), err_msg);
         }  /* if */
       }
       break;
@@ -13356,7 +13409,7 @@ FIXME: what other types of named declarations can we get here?
       { a_string err_msg("Unexpected ", str_for(decl_idx.sort),
                          " for ExprSort::NamedDecl");
 
-        ifc_unexpected(decl_idx.mod, err_msg);
+        ifc_unexpected(module_of(decl_idx), err_msg);
       }
       goto invalid;
   }  /* switch */
@@ -13837,7 +13890,7 @@ with the initializer expression referred to by init_expr.
 {
   a_dynamic_init_ptr result;
   a_constant_ptr     cp;
-  an_ifc_module      *ifc_module = init_expr.mod;
+  an_ifc_module      *ifc_module = module_of(init_expr);
 
 #if DEBUG
   if (db_flag_is_set("ifc_idx")) {
@@ -15148,7 +15201,7 @@ bytes removed.
 */
 {
   check_assertion(str.contains_null_characters());
-  an_ifc_module    *mod = idx.mod;
+  an_ifc_module    *mod = module_of(idx);
   a_diagnostic_ptr diag = pos_st_start_diagnostic(
                                                  es_warning,
                                                  ec_ifc_null_char_in_string,
@@ -15191,7 +15244,7 @@ string to cache.
   }  /* switch */
 
   Opt<an_ifc_const_str>       opt_ics;
-  an_ifc_partition_kind_index string_part_idx{string.mod, ifc_pk_const_str,
+  an_ifc_partition_kind_index string_part_idx{string.file, ifc_pk_const_str,
                                               string.value};
   construct_node(&opt_ics, string_part_idx);
   if (opt_ics.has_value()) {
@@ -15299,7 +15352,7 @@ return the index of that token.  Otherwise the return value is meaningless.
 
   if (sentence != 0) {
     Opt<an_ifc_source_sentence> opt_iss;
-    an_ifc_partition_kind_index sen_idx{sentence.mod, ifc_pk_src_sentence,
+    an_ifc_partition_kind_index sen_idx{sentence.file, ifc_pk_src_sentence,
                                         sentence - 1};
 
     construct_node(&opt_iss, sen_idx);
@@ -15384,7 +15437,7 @@ Otherwise, return FALSE.
 
   if (sentence != 0) {
     Opt<an_ifc_source_sentence> opt_iss;
-    an_ifc_partition_kind_index sen_idx{sentence.mod, ifc_pk_src_sentence,
+    an_ifc_partition_kind_index sen_idx{sentence.file, ifc_pk_src_sentence,
                                         sentence - 1};
 
     construct_node(&opt_iss, sen_idx);
@@ -15485,7 +15538,7 @@ Cache the alignment-specifier for the given variable-like declaration.
   if (!is_null_index(alignment)) {
     cache_token(cache, tok_alignas);
     cache_token(cache, tok_lparen);
-    alignment.mod->cache_expr(cache, alignment, /*cinfo=*/{});
+    module_of(alignment)->cache_expr(cache, alignment, /*cinfo=*/{});
     cache_token(cache, tok_rparen);
   }  /* if */
 }  /* cache_var_alignment */
@@ -15527,7 +15580,7 @@ the variable name.
 {
   an_ifc_type_index type = get_ifc_type(decl);
 
-  type.mod->cache_type_first_part(cache, type, /*cinfo=*/{});
+  module_of(type)->cache_type_first_part(cache, type, /*cinfo=*/{});
 }  /* cache_var_type_declarator_lhs */
 
 
@@ -15557,7 +15610,7 @@ the variable name.
 {
   an_ifc_type_index type = get_ifc_type(decl);
 
-  type.mod->cache_type_second_part(cache, type, /*cinfo=*/{});
+  module_of(type)->cache_type_second_part(cache, type, /*cinfo=*/{});
 }  /* cache_var_type_declarator_rhs */
 
 
@@ -15588,7 +15641,7 @@ Cache the initializer for the given variable-like declaration.
       if (cache_braces) {
         cache_token(cache, tok_lbrace);
       }  /* if */
-      initializer.mod->cache_expr(cache, initializer, /*cinfo=*/{});
+      module_of(initializer)->cache_expr(cache, initializer, /*cinfo=*/{});
       if (cache_braces) {
         cache_token(cache, tok_rbrace);
       }  /* if */
@@ -15654,12 +15707,12 @@ Cache the noexcept-specifier for the given noexcept specification.
       case ifc_ns_expression:
         { an_ifc_sentence_index word_idx = get_ifc_words(eh_spec);
 
-          word_idx.mod->cache_sentence(cache, word_idx);
+          module_of(word_idx)->cache_sentence(cache, word_idx);
         }
         break;
       case ifc_ns_unenforced:
         /* FIXME: Currently unsupported. */
-        issue_unsupported_construct_error(eh_spec.get_module(),
+        issue_unsupported_construct_error(module_of(eh_spec),
                                           "NoexceptSort::Unenforced",
                                           &error_position);
         goto invalid;
@@ -15756,7 +15809,7 @@ Cache the return type declarator for the given function-like type.
 {
   an_ifc_type_index return_type = get_ifc_target(type);
 
-  return_type.mod->cache_type(cache, return_type, /*cinfo=*/{});
+  module_of(return_type)->cache_type(cache, return_type, /*cinfo=*/{});
 }  /* cache_func_type_return_type */
 
 
@@ -15771,7 +15824,7 @@ Cache the parameter-declaration-clause for the given function-like type.
   an_ifc_type_index source_params = get_ifc_source(type);
 
   if (!is_null_index(source_params)) {
-    source_params.mod->cache_type(cache, source_params, /*cinfo=*/{});
+    module_of(source_params)->cache_type(cache, source_params, /*cinfo=*/{});
   }  /* if */
 }  /* cache_func_type_parameter_declaration_clause */
 
@@ -15816,7 +15869,7 @@ Cache the cv-qualifiers for the given function-like declaration.
     default:
       { a_string err_msg("Unexpected ", str_for(func_type_idx.sort));
 
-        ifc_unexpected(func_type_idx.mod, err_msg);
+        ifc_unexpected(module_of(func_type_idx), err_msg);
       }
       break;
   }  /* switch */
@@ -15868,7 +15921,7 @@ Cache the ref-qualifier for the given function-like declaration.
     default:
       { a_string err_msg("Unexpected ", str_for(func_type_idx.sort));
 
-        ifc_unexpected(func_type_idx.mod, err_msg);
+        ifc_unexpected(module_of(func_type_idx), err_msg);
       }
       break;
   }  /* switch */
@@ -15929,7 +15982,7 @@ Cache the noexcept-specifier for the given function-like declaration.
     default:
       { a_string err_msg("Unexpected ", str_for(func_type_idx.sort));
 
-        ifc_unexpected(func_type_idx.mod, err_msg);
+        ifc_unexpected(module_of(func_type_idx), err_msg);
       }
       break;
   }  /* switch */
@@ -15962,7 +16015,7 @@ Cache the vendor-specific portion of the decl-specifier-seq for the
 function-like declaration at the given declaration index.
 */
 {
-  an_ifc_module               *mod = decl_idx.mod;
+  an_ifc_module               *mod = module_of(decl_idx);
   an_ifc_msvc_traits_bitfield msvc_traits = mod->get_vendor_traits(decl_idx);
 
   if (test_bitmask<ifc_mtb_force_inline>(msvc_traits)) {
@@ -16084,7 +16137,7 @@ Cache the virt-specifier-seq for the given function-like declaration.
 
     cache_token(cache, tok_assign);
     make_zero_of_proper_type(integer_type((an_integer_kind)ik_int), cp);
-    cache_literal(decl.get_module(), cache, cp);
+    cache_literal(module_of(decl), cache, cp);
   }  /* if */
 }  /* cache_func_virt_specifier_seq */
 
@@ -16227,7 +16280,7 @@ declaration.
     default:
       { a_string err_msg("Unexpected ", str_for(func_type_idx.sort));
 
-        ifc_unexpected(func_type_idx.mod, err_msg);
+        ifc_unexpected(module_of(func_type_idx), err_msg);
       }
       break;
   }  /* switch */
@@ -16289,7 +16342,7 @@ Cache the return type declarator for the given function-like declaration.
     default:
       { a_string err_msg("Unexpected ", str_for(func_type_idx.sort));
 
-        ifc_unexpected(func_type_idx.mod, err_msg);
+        ifc_unexpected(module_of(func_type_idx), err_msg);
       }
       break;
   }  /* switch */
@@ -16356,7 +16409,7 @@ issue.  A little more thought needs put into an_ifc_func_param_context.
     default:
       { a_string err_msg("Unexpected ", str_for(func_type_idx.sort));
 
-        ifc_unexpected(func_type_idx.mod, err_msg);
+        ifc_unexpected(module_of(func_type_idx), err_msg);
       }
       break;
   }  /* switch */
@@ -16466,7 +16519,7 @@ IFC decl parameter (if possible); otherwise, return an empty optional.
        loading code for the element "manually".  We should have a better
        way to get a single element out of a heap. */
     an_ifc_index_type          element_idx = start_idx + param_idx;
-    a_decl_parameter_traverser traverser(start_idx.mod, element_idx, 1);
+    a_decl_parameter_traverser traverser(module_of(start_idx), element_idx, 1);
     /* coverity[unreachable] */ /* See FIXME above. */
     for (Indexed<an_ifc_decl_parameter> indexed_idp : traverser) {
       if (!indexed_idp.has_value()) {
@@ -16659,7 +16712,7 @@ valid type can be found, return a null type index.
            loading code for the element "manually".  We should have a better
            way to get a single element out of a heap. */
         an_ifc_index_type     element_idx = start_idx + param_idx;
-        a_type_heap_traverser traverser(start_idx.mod, element_idx, 1);
+        a_type_heap_traverser traverser(module_of(start_idx), element_idx, 1);
         /* coverity[unreachable] */ /* See FIXME above. */
         for (Indexed<an_ifc_heap_type> indexed_iht : traverser) {
           if (!indexed_iht.has_value()) {
@@ -16722,7 +16775,7 @@ can be found, return a null name index.
 
     /* FIXME: This is a repeated pattern, we could have codegen create
        conversion functions for things of this ilk. */
-    result = an_ifc_name_index{raw_result.mod, ifc_ns_text_offset,
+    result = an_ifc_name_index{raw_result.file, ifc_ns_text_offset,
                                raw_result.value};
   }  /* if */
   return result;
@@ -16868,7 +16921,7 @@ context to help inform decisions about what to cache.
 
     an_ifc_parameterized_entity entity = get_ifc_entity(decl_templ);
     an_ifc_sentence_index       head = get_ifc_head(entity);
-    head.mod->cache_sentence(&templ_cache, head);
+    module_of(head)->cache_sentence(&templ_cache, head);
 
     a_module_token_cache name_cache(infer_next_source_position(cache));
     an_ifc_name_index    name_idx = get_ifc_name(decl_templ);
@@ -16964,7 +17017,7 @@ context to help inform decisions about what to cache.
                        "for ",
                        index_to_str(cinfo.parameterizing_entity));
 
-      ifc_unexpected(cinfo.parameterizing_entity.mod,
+      ifc_unexpected(module_of(cinfo.parameterizing_entity),
                      err_msg.as_temp_characters());
       goto invalid;
     }  /* if */
@@ -16990,7 +17043,7 @@ context to help inform decisions about what to cache.
       if (is_null_index(arg_type)) {
         goto invalid;
       }  /* if */
-      arg_type.mod->cache_type_first_part(cache, arg_type, cinfo);
+      module_of(arg_type)->cache_type_first_part(cache, arg_type, cinfo);
       if (!is_variadic_parameter_declaration_clause_type(arg_type)) {
         an_ifc_name_index name_idx = param_context.get_name(i);
 
@@ -17002,7 +17055,7 @@ context to help inform decisions about what to cache.
           cache_name(cache, name_idx);
         }  /* if */
       }  /* if */
-      arg_type.mod->cache_type_second_part(cache, arg_type, cinfo);
+      module_of(arg_type)->cache_type_second_part(cache, arg_type, cinfo);
       /* Cache the default argument if we're not ignoring default arguments in
          this context, and a default argument is found. */
       if (!cinfo.ignore_default_arguments) {
@@ -17097,7 +17150,7 @@ decisions about what to cache.
                          " is not a supported scope kind");
 
         cache->invalidate();
-        ifc_unexpected(decl_idx.mod, err_msg.as_temp_characters());
+        ifc_unexpected(module_of(decl_idx), err_msg.as_temp_characters());
       } else {
         /* If there are bases specified, cache the bases. */
         if (!is_null_index(base)) {
@@ -17373,7 +17426,8 @@ this is needed.
             class_cache.inline_data_member_type = FALSE;
             class_cache.no_final_semicolon = TRUE;
             class_cache.no_access_specifier = TRUE;
-            decl_idx.mod->cache_decl(content_cache, decl_idx, class_cache);
+            module_of(decl_idx)->cache_decl(content_cache, decl_idx,
+                                            class_cache);
           };
 
           cache_bound_entity(cache, decl, cache_content);
@@ -18686,7 +18740,7 @@ spec (form_idx) to the cache.
   if (opt_ifs.has_value()) {
     an_ifc_expr_index arg_expr_idx = get_ifc_arguments(*opt_ifs);
 
-    arg_expr_idx.mod->cache_expr(cache, arg_expr_idx, /*cinfo=*/{});
+    module_of(arg_expr_idx)->cache_expr(cache, arg_expr_idx, /*cinfo=*/{});
   }  /* if */
   cache_token(cache, tok_gt);
 }  /* cache_template_argument_list */
@@ -18727,7 +18781,7 @@ otherwise, return FALSE.
       default:
         { a_string err_msg("Unexpected ", str_for(basis));
 
-          ifc_unexpected(fundamental_type.get_module(), err_msg);
+          ifc_unexpected(module_of(fundamental_type), err_msg);
         }
         break;
     }  /* switch */
@@ -19885,7 +19939,7 @@ expression being cached.
   if (args.sort != ifc_es_expr_expression_list) {
     cache_token(cache, tok_lparen);
   }  /* if */
-  args.mod->cache_expr(cache, args, cinfo);
+  module_of(args)->cache_expr(cache, args, cinfo);
   if (args.sort != ifc_es_expr_expression_list) {
     cache_token(cache, tok_rparen);
   }  /* if */
@@ -19956,7 +20010,7 @@ This has been observed with code like the following:
 {
   a_boolean                result = FALSE;
   an_ifc_lit_index         value = get_ifc_value(literal_expr);
-  an_ifc_encoded_lit_index encoded_value = to_encoded(value.mod, value);
+  an_ifc_encoded_lit_index encoded_value = to_encoded(value.file, value);
 
   if (encoded_value == 0) {
     an_ifc_type_index type = get_ifc_type(literal_expr);
@@ -20005,7 +20059,7 @@ the following type being represented as an IFC literal expression:
 {
   a_boolean                result = FALSE;
   an_ifc_lit_index         value = get_ifc_value(literal_expr);
-  an_ifc_encoded_lit_index encoded_value = to_encoded(value.mod, value);
+  an_ifc_encoded_lit_index encoded_value = to_encoded(value.file, value);
 
   if (encoded_value == 0) {
     an_ifc_type_index type = get_ifc_type(literal_expr);
@@ -20306,7 +20360,7 @@ tuple elements by '::' instead of ','.
           cache_token(cache, tok_rparen);
         };  /* cache_arg */
 
-        an_operator_kind opkind = get_operator_kind(expr.mod, assoc);
+        an_operator_kind opkind = get_operator_kind(module_of(expr), assoc);
         switch (opkind) {
           case opkind_error:
           case opkind_c_cast:
@@ -20362,7 +20416,7 @@ tuple elements by '::' instead of ','.
         an_ifc_expr_dyad            ied = *opt_ied;
         an_ifc_dyadic_operator_sort assoc = get_ifc_assoc(ied);
         an_operator_kind            opkind =
-                                    get_operator_kind(ied.get_module(), assoc);
+                                      get_operator_kind(module_of(ied), assoc);
         an_ifc_expr_index           arg_0 = get_ifc_argument_0(ied);
         an_ifc_expr_index           arg_1 = get_ifc_argument_1(ied);
         switch (opkind) {
@@ -20885,7 +20939,7 @@ common_cast:
 
         a_constant_ptr cp = alloc_cached_constant();
         make_zero_of_proper_type(integer_type((an_integer_kind)ik_int), cp);
-        cache_literal(type_idx.mod, cache, cp);
+        cache_literal(module_of(type_idx), cache, cp);
       }
       break;
     case ifc_es_expr_this:
@@ -22319,7 +22373,7 @@ Add the tokens corresponding to the given name to cache.
         }  /* if */
 
         an_ifc_name_operator ino = *opt_ino;
-        an_operator_kind     opkind = get_operator_kind(ino.get_module(),
+        an_operator_kind     opkind = get_operator_kind(module_of(ino),
                                                         get_ifc_operator(ino));
         an_ifc_text_offset   encoded = get_ifc_encoded(ino);
         if (opkind == opkind_c_cast || opkind == opkind_cpp_cast) {
@@ -22759,7 +22813,7 @@ produce a more detailed contextual diagnostic.
 }  /* add_backtrace */
 
 
-void invalid_sort(an_ifc_module                 *mod,
+void invalid_sort(an_ifc_module_file            *file,
                   const an_ifc_validation_trace *trace)
 /*
 Given the associated module and validation trace, emit a diagnostic for an
@@ -22771,13 +22825,13 @@ encountered invalid sort value.
   /* FIXME: Use a better source position. */
   diag_ptr = pos_st_start_error(ec_invalid_ifc_sort_value,
                                 &null_source_position,
-                                mod->assoc_module_info->name);
+                                file->mod->assoc_module_info->name);
   add_backtrace(diag_ptr, trace);
   end_diagnostic(diag_ptr);
 }  /* invalid_partition */
 
 
-void invalid_partition(an_ifc_module                 *mod,
+void invalid_partition(an_ifc_module_file            *file,
                        const an_ifc_validation_trace *trace)
 /*
 Given the associated module and validation trace, emit a diagnostic for an
@@ -22789,7 +22843,7 @@ encountered invalid partition.
   /* FIXME: Use a better source position. */
   diag_ptr = pos_st_start_error(ec_invalid_ifc_partition,
                                 &null_source_position,
-                                mod->assoc_module_info->name);
+                                file->mod->assoc_module_info->name);
   add_backtrace(diag_ptr, trace);
   end_diagnostic(diag_ptr);
 }  /* invalid_partition */
@@ -22867,7 +22921,7 @@ partition.
 }  /* diag_overflowing_partition */
 
 
-a_boolean validate_element_exists(an_ifc_module                 *mod,
+a_boolean validate_element_exists(an_ifc_module_file            *file,
                                   an_ifc_partition_kind         partition_kind,
                                   an_ifc_index_type             index,
                                   const an_ifc_validation_trace *trace)
@@ -22878,7 +22932,8 @@ diagnostic using the validation trace.
 */
 {
   a_boolean                   result = TRUE;
-  an_ifc_partition_kind_index part_index = {mod, partition_kind, index};
+  an_ifc_partition_kind_index part_index = {file, partition_kind, index};
+  an_ifc_module               *mod = file->mod;
   an_ifc_partition_metadata   *partition_metadata =
                                             get_partition_metadata(part_index);
   size_t                      partition_entry_size =
