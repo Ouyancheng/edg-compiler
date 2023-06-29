@@ -102,7 +102,9 @@ struct Opt {
   inline ~Opt();
   a_boolean has_value() const;
   /* Value retrieval functions. */
+  inline a_Value_type* operator->();
   inline const a_Value_type* operator->() const;
+  inline a_Value_type& operator*();
   inline const a_Value_type& operator*() const;
   /* Value update functions. */
   inline Opt<a_Value_type>& operator=(const a_Value_type &value);
@@ -194,10 +196,10 @@ Return TRUE if this optional is storing a value, otherwise return FALSE.
 
 
 template<typename a_Value_type>
-inline const a_Value_type* Opt<a_Value_type>::operator->() const
+inline a_Value_type* Opt<a_Value_type>::operator->()
 /*
-This function is only valid when the Opt is not empty.  The stored
-value is returned.
+This function is only valid when the Opt is not empty.  The stored value is
+returned.
 */
 {
   /* Check that the caller previously checked for a value. */
@@ -206,6 +208,36 @@ value is returned.
   check_assertion_str(storing_value, "the optional was empty");
   return &stored_value;
 }  /* operator-> */
+
+
+template<typename a_Value_type>
+inline const a_Value_type* Opt<a_Value_type>::operator->() const
+/*
+This function is only valid when the Opt is not empty.  The stored value is
+returned.
+*/
+{
+  /* Check that the caller previously checked for a value. */
+  check_assertion_str(value_presence_checked, "missing call to has_value");
+  /* Check that a value is present. */
+  check_assertion_str(storing_value, "the optional was empty");
+  return &stored_value;
+}  /* operator-> */
+
+
+template<typename a_Value_type>
+inline a_Value_type& Opt<a_Value_type>::operator*()
+/*
+This function is only valid when the Opt is not empty.  The stored value is
+returned.
+*/
+{
+  /* Check that the caller previously checked for a value. */
+  check_assertion_str(value_presence_checked, "missing call to has_value");
+  /* Check that a value is present. */
+  check_assertion_str(storing_value, "the optional was empty");
+  return stored_value;
+}  /* operator* */
 
 
 template<typename a_Value_type>
