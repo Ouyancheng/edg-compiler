@@ -218,12 +218,66 @@ struct an_ifc_module_file {
 };  /* an_ifc_module_file */
 
 
+/*
+A structure abstracting the representation of the IFC string table and the
+associated memory managed.
+*/
 struct an_ifc_module_string_table {
-  char          *contents = NULL;
+  an_ifc_module_string_table()
+    : contents(NULL), size(0)
+    {}
+  an_ifc_module_string_table(char *contents_ptr, size_t size_val)
+    : contents(contents_ptr), size(size_val)
+    {}
+  inline an_ifc_module_string_table(an_ifc_module_string_table &&old);
+  inline ~an_ifc_module_string_table();
+
+  inline an_ifc_module_string_table &operator=(
+                                             an_ifc_module_string_table &&old);
+
+  char          *contents;
                         /* The string table contents. */
-  size_t        size = 0;
+  size_t        size;
                         /* The size of the string table. */
+
 };  /* an_ifc_module_string_table */
+
+
+an_ifc_module_string_table::an_ifc_module_string_table(
+                                              an_ifc_module_string_table &&old)
+/*
+Move construct from the given IFC string table.
+*/
+: an_ifc_module_string_table()
+{
+  swap_at(&old.contents, &this->contents);
+  swap_at(&old.size, &this->size);
+}  /* an_ifc_module_string_table::an_ifc_module_string_table */
+
+
+an_ifc_module_string_table::~an_ifc_module_string_table()
+/*
+Destroy the given IFC string table.
+*/
+{
+#if !USE_MMAP_FOR_MEMORY_REGIONS
+  if (this->contents != NULL) {
+    free_general(this->contents, this->size);
+  }  /* if */
+#endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
+}  /* an_ifc_module_string_table */
+
+
+an_ifc_module_string_table &an_ifc_module_string_table::operator=(
+                                              an_ifc_module_string_table &&old)
+/*
+Move from the given IFC string table, returning self.
+*/
+{
+  swap_at(&old.contents, &this->contents);
+  swap_at(&old.size, &this->size);
+  return *this;
+}  /* an_ifc_module_string_table::operator= */
 
 
 /*

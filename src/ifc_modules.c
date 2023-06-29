@@ -1135,7 +1135,7 @@ information provided by its header.
 #if USE_MMAP_FOR_MEMORY_REGIONS
   result.contents = (char*)file->mmap_addr + string_table_bytes;
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
-  result.contents = alloc_il(get_ifc_string_table_size(header));
+  result.contents = alloc_general(get_ifc_string_table_size(header));
   fseek(file->f_module, string_table_bytes, SEEK_SET);
 
   size_t bytes_read = fread((void*)result.contents, 1,
