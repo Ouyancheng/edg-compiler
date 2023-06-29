@@ -7029,7 +7029,9 @@ information is prioritized as follows:
                                  maybe_get_operand_expr_with_pos(orig_operand);
     a_source_position *op_pos;
     a_source_position *start_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
     a_source_position *end_pos;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
     /* Use the original expression's position information if present. */
     if (expr->position.seq != 0) {
@@ -7061,7 +7063,7 @@ information is prioritized as follows:
       }  /* if */
     }  /* if */
 #else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-    start_pos = end_pos = &operand->position;
+    start_pos = &operand->position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     set_expr_position(expr, start_pos, end_pos, op_pos);
   }  /* if */
