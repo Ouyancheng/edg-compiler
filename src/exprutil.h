@@ -2239,21 +2239,24 @@ operator in the expression.
   }  /* if */                                                                 \
 }
 
+
+inline void set_expr_position(an_expr_node_ptr             expr,
+                              a_source_position            *start_position,
+                              ARG_UNUSED a_source_position *end_position,
+                              a_source_position            *operator_position)
+/*
+Set the start, end, and operator position information for the given expression.
+*/
+{
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-#define set_expr_position(expr, start_position, end_position,                 \
-                          operator_position)                                  \
-{                                                                             \
-  set_expr_base_position(expr, start_position, operator_position);            \
-  (expr)->expr_range.start = *start_position;                                 \
-  (expr)->expr_range.end = *end_position;                                     \
-}
+  set_expr_base_position(expr, start_position, operator_position);
+  expr->expr_range.start = *start_position;
+  expr->expr_range.end = *end_position;
 #else /* !EXTRA_SOURCE_POSITIONS_IN_IL */
-#define set_expr_position(expr, start_position, end_position,                 \
-                          operator_position)                                  \
-{                                                                             \
-  set_expr_base_position(expr, start_position, operator_position);            \
-}
+  set_expr_base_position(expr, start_position, operator_position);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+}  /* set_expr_position */
+
 
 extern void set_operand_expr_position_if_expr(an_operand        *operand,
                                               a_source_position *operator_pos);
