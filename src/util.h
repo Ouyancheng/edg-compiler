@@ -576,6 +576,47 @@ general memory.
 }  /* delete_general */
 
 
+template<typename an_Elem>
+struct IL_allocator {
+  /* A IL allocator for IL memory (i.e., as allocated by alloc_il in
+     il_alloc.c). */
+  typedef an_Elem an_elem;
+  typedef a_ptrdiff a_size;
+  typedef Allocation<an_elem> an_allocation;
+  typedef IL_allocator<an_elem> an_allocator;
+  typedef IL_allocator<an_elem> a_deallocator;
+  inline static auto alloc(a_size n) -> an_allocation;
+};  /* General_allocator */
+
+
+/* Forward declare alloc_il. */
+extern char *alloc_il(sizeof_t size);
+
+template<typename an_Elem>
+inline auto IL_allocator<an_Elem>::alloc(a_size n) -> an_allocation
+/*
+Allocate at least n elements of type an_Elem and return the resulting
+allocation (which reflects the actual number of allocated elements).
+*/
+{
+  return an_allocation{ (an_elem*)alloc_il(n*sizeof(an_elem)),
+                        (a_ptrdiff)n };
+}  /* IL_allocator::alloc */
+
+
+template<typename an_Object, typename ...an_Arg_pack>
+inline an_Object *new_il(an_Arg_pack ...args)
+/*
+Allocate in IL memory and construct an object of type an_Object with the
+constructor arguments specified by args.  Return a pointer to the object.
+*/
+{
+  an_Object  *p = IL_allocator<an_Object>::alloc(1).start;
+  construct(p, fwd<an_Arg_pack>(args)...);
+  return p;
+}  /* new_general */
+
+
 /*
 A buffered allocator uses a local buffer of memory to avoid system calls for
 dynamically allocated memory unless the local buffer overflows, in which case a
