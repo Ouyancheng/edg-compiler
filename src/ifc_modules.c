@@ -926,34 +926,57 @@ key).
 }  /* as_key */
 
 
-static a_const_char *get_string_at_offset(
-                                       const an_ifc_module_string_table &table,
-                                       an_ifc_text_offset_storage       offset)
+static a_string get_string_at_offset(const an_ifc_module_string_table &table,
+                                     an_ifc_text_offset_storage       offset)
 /*
-Return a pointer to the IFC string table for a given TextOffset.  Strings in
-the IFC file are NULL-terminated.  This function does not do any adjustments or
-corrections to the IFC text; thus, for entity names prefer name_from_index or
-name_from_decl.
+Return a NULL-terminated string from the IFC string table for a given
+TextOffset.  This function does not do any adjustments or corrections to the
+IFC text; thus, for entity names prefer name_from_index or name_from_decl.
 */
 {
 #if EXPENSIVE_CHECKING
   check_assertion(offset < table.size);
 #endif /* EXPENSIVE_CHECKING */
-  return table.contents + offset;
+  return a_string((a_const_char*)(table.contents + offset));
 }  /* get_string_at_offset */
 
 
-static a_const_char *get_string_at_offset(an_ifc_text_offset offset)
+static a_string get_string_at_offset(an_ifc_text_offset offset)
 /*
-Return a pointer to the IFC string table for a given TextOffset.  Strings in
-the IFC file are NULL-terminated.  This function does not do any adjustments or
-corrections to the IFC text; thus, for entity names prefer name_from_index or
-name_from_decl.
+Return a NULL-terminated string from the IFC string table for a given
+TextOffset.  This function does not do any adjustments or corrections to the
+IFC text; thus, for entity names prefer name_from_index or name_from_decl.
 */
 {
   an_ifc_module *mod = module_of(offset);
 
   return get_string_at_offset(mod->string_table, offset);
+}  /* get_string_at_offset */
+
+
+static a_string get_string_at_offset(an_ifc_text_offset offset,
+                                     size_t             num_bytes)
+/*
+Return a string from the IFC string table for a given TextOffset with the given
+num_bytes length.  This function does not do any adjustments or corrections to
+the IFC text; thus, for entity names prefer name_from_index or name_from_decl.
+*/
+{
+  an_ifc_module              *mod = module_of(offset);
+  an_ifc_module_string_table &string_table = mod->string_table;
+
+#if EXPENSIVE_CHECKING
+  check_assertion(offset + num_bytes < string_table.size);
+#endif /* EXPENSIVE_CHECKING */
+  /* The IFC doesn't specify this, but there is commonly one or more null
+     terminators included in the length.  As this is not specified, to allow
+     flexibility reduce the length only if these null character are present. */
+  while (string_table.contents[offset + num_bytes] == '\0') {
+    --num_bytes;
+  }  /* if */
+
+  a_string_view string_view(string_table.contents + offset, num_bytes);
+  return a_string(string_view);
 }  /* get_string_at_offset */
 
 
@@ -5427,17 +5450,21 @@ equivalent; otherwise, return FALSE.
                                    decl_param_count);
 
       a_decl_parameter_traverser traverser(icul);
+      General_allocator<char>    allocator;
       for (Indexed<an_ifc_decl_parameter> indexed_idp : traverser) {
         /* Already constructed by check_for_param_count_correction, which
            fails if there was a problem. */
         check_assertion(indexed_idp.has_value());
         if (is_bad_ifc_parameter(*indexed_idp)) {
           an_ifc_text_offset name_idx = get_ifc_name(*indexed_idp);
-          a_const_char       *name = get_string_at_offset(name_idx);
+          a_string           name = get_string_at_offset(name_idx);
           an_ifc_index_type  relative_idx = get_relative_index(traverser,
                                                                indexed_idp);
 
-          st_num_add_diag_info(diag_ptr, ec_ifc_bad_function_param_name, name,
+          /* FIXME: Eventually this should be reworked so we don't allocator on
+             errors. */
+          st_num_add_diag_info(diag_ptr, ec_ifc_bad_function_param_name,
+                               name.to_allocated_storage(allocator),
                                relative_idx);
         }  /* if */
       }  /* if */
@@ -10042,23 +10069,24 @@ diagnostics if issue_diag is TRUE.
       }  /* if */
 
       /* Read information about the partition. */
-      a_const_char *name_str = get_string_at_offset(get_ifc_name(ip));
+      a_string     name_str = get_string_at_offset(get_ifc_name(ip));
+      a_const_char *name_str_temp = name_str.as_temp_characters();
 #if DEBUG
       if (db_flag_is_set("ifc_modules")) {
         (void)fprintf(
             f_debug,
             "partition %u \"%s\" offset 0x%08x cardinality %u entry_size %u\n",
-            i, name_str, (an_ifc_byte_offset_storage)get_ifc_offset(ip),
+            i, name_str_temp, (an_ifc_byte_offset_storage)get_ifc_offset(ip),
             (an_ifc_cardinality_storage)get_ifc_cardinality(ip),
             (an_ifc_entity_size_storage)get_ifc_entry_size(ip));
       }  /* if */
 #endif /* DEBUG */
       /* FIXME: Do we need this assertion? */
       check_assertion(get_ifc_cardinality(ip) != 0 && get_ifc_offset(ip) != 0);
-      an_ifc_partition_kind part_kind = find_ifc_partition(name_str);
+      an_ifc_partition_kind part_kind = find_ifc_partition(name_str_temp);
       if (part_kind == ifc_pk_none) {
         if (issue_diag) {
-          str_remark(ec_unknown_ifc_partition, name_str);
+          str_remark(ec_unknown_ifc_partition, name_str_temp);
         }  /* if */
       } else {
         an_ifc_partition_metadata  *pp;
@@ -10068,7 +10096,7 @@ diagnostics if issue_diag is TRUE.
                         get_ifc_partition_element_size(&this->file, part_kind);
 
         pp = &get_partition_metadata(part_kind);
-        pp->name = name_str;
+        pp->name = name_str.to_allocated_storage(General_allocator<char>());
         pp->offset = get_ifc_offset(ip);
         pp->size = cardinality * entry_size;
         pp->entry_size = entry_size;
@@ -10076,7 +10104,8 @@ diagnostics if issue_diag is TRUE.
         if (entry_size != expected_entry_size) {
           pos_st_num2_diagnostic(es_error, ec_ifc_partition_bad_entry_size,
                                  &midp->module_name_position,
-                                 name_str, entry_size, expected_entry_size);
+                                 name_str_temp, entry_size,
+                                 expected_entry_size);
           /* Invalidate all elements of the partition; this stops processing of
              these partition elements without further diagnostics, and without
              ending further diagnostics. */
@@ -12108,14 +12137,16 @@ non-NULL, fields (like is_operator_name) in *loc are updated accordingly.
             goto invalid;
           }  /* if */
 
-          a_const_char *encoded =
-                               get_string_at_offset(get_ifc_encoded(*opt_inl));
+          a_string encoded = get_string_at_offset(get_ifc_encoded(*opt_inl));
           if (loc != NULL) {
             /* Set the locator as appropriate for a user-defined literal
                operator (but skip the initial ""). */
             check_assertion(encoded[0] == '"' && encoded[1] == '"');
-            encoded += 2;
-            make_literal_opname_locator(encoded, strlen(encoded), loc,
+
+            a_const_char *il_str =
+                            encoded.to_allocated_storage(IL_allocator<char>());
+            il_str += 2;
+            make_literal_opname_locator(il_str, encoded.length() - 2, loc,
                                         (a_source_position*)NULL);
             /* FIXME: set this? */
             loc->is_udl_operator_name = TRUE;
@@ -13202,14 +13233,13 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
         }  /* if */
 
         an_ifc_const_str ics = *opt_ics;
-        sizeof_t         length = (sizeof_t)get_ifc_length(ics);
-        char             *str_val = alloc_text_of_string_literal(length);
-        memcpy(str_val, get_string_at_offset(get_ifc_start(ics)), length);
-        check_assertion(str_val != NULL);
+        a_string         string = get_string_at_offset(get_ifc_start(ics),
+                                                       get_ifc_length(ics));
         result = alloc_constant(ck_string);
         result->type = type_for_type_index(get_ifc_type(ies));
-        result->variant.string.length = length;
-        result->variant.string.value  = str_val;
+        result->variant.string.length = string.length();
+        result->variant.string.value =
+                             string.to_allocated_storage(IL_allocator<char>());
         result->variant.string.literal_kind = SCLK_ORDINARY_STRING_LITERAL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         source_position_from_locus(&result->end_position, get_ifc_locus(ies));
@@ -15251,17 +15281,10 @@ string to cache.
     an_ifc_const_str   ics = *opt_ics;
     an_ifc_text_offset start = get_ifc_start(ics);
     size_t             length = get_ifc_length(ics);
-    a_const_char       *raw_str = get_string_at_offset(start);
+    a_string           raw_str = get_string_at_offset(start, length);
 
-    /* The IFC doesn't specify this, but there is commonly (always) a null
-       terminator included in the length.  As this is not specified, to allow
-       flexibility reduce the length only if this null character is
-       present. */
-    if (length > 0 && raw_str[length - 1] == '\0') {
-      --length;
-    }  /* if */
-
-    an_ifc_string str(kind, raw_str, length);
+    an_ifc_string str(kind, raw_str.to_allocated_storage(IL_allocator<char>()),
+                      raw_str.length());
     if (str.contains_null_characters()) {
       diagnose_ifc_string_null_removal(string_part_idx, str);
     }  /* if */
@@ -15270,9 +15293,9 @@ string to cache.
     if (suffix == 0) {
       cache_string_literal(cache, str);
     } else {
-      a_const_char *suffix_str = get_string_at_offset(suffix);
+      a_string suffix_str = get_string_at_offset(suffix);
 
-      cache_ud_literal(cache, str, suffix_str);
+      cache_ud_literal(cache, str, suffix_str.as_temp_characters());
     }  /* if */
   }  /* if */
 }  /* an_ifc_module::cache_string */
@@ -22331,7 +22354,8 @@ Add the tokens corresponding to the given name to cache.
 
         an_ifc_name_source_file insf = *opt_insf;
         an_ifc_text_offset      path = get_ifc_path(insf);
-        cache_identifier(cache, get_string_at_offset(path));
+        a_string                str = get_string_at_offset(path);
+        cache_identifier(cache, str.as_temp_characters());
       }
       break;
     case ifc_ns_name_template:
@@ -22375,14 +22399,15 @@ Add the tokens corresponding to the given name to cache.
         an_ifc_name_operator ino = *opt_ino;
         an_operator_kind     opkind = get_operator_kind(module_of(ino),
                                                         get_ifc_operator(ino));
-        an_ifc_text_offset   encoded = get_ifc_encoded(ino);
         if (opkind == opkind_c_cast || opkind == opkind_cpp_cast) {
           ifc_unexpected(this, "Unexpected operator kind");
           goto invalid;
         }  /* if */
         cache_token(cache, tok_operator);
-        cache_tokens_from_string(get_string_at_offset(encoded),
-                                 cache);
+
+        an_ifc_text_offset encoded = get_ifc_encoded(ino);
+        a_string           encoded_tokens = get_string_at_offset(encoded);
+        cache_tokens_from_string(encoded_tokens.as_temp_characters(), cache);
       }
       break;
     case ifc_ns_name_conversion:
@@ -22405,9 +22430,11 @@ Add the tokens corresponding to the given name to cache.
         }  /* if */
 
         an_ifc_name_literal inl = *opt_inl;
-        an_ifc_text_offset  encoded = get_ifc_encoded(inl);
         cache_token(cache, tok_operator);
-        cache_tokens_from_string(get_string_at_offset(encoded), cache);
+
+        an_ifc_text_offset encoded = get_ifc_encoded(inl);
+        a_string           encoded_tokens = get_string_at_offset(encoded);
+        cache_tokens_from_string(encoded_tokens.as_temp_characters(), cache);
       }
       break;
     case ifc_ns_name_guide:
@@ -22553,9 +22580,10 @@ static void cache_form_spelling(a_module_token_cache_ptr     cache,
 Cache the given preprocessed form.
 */
 {
-  a_const_char *str = get_string_at_offset(spelling);
+  a_string str = get_string_at_offset(spelling);
 
-  cache_pp_token(cache, str, strlen(str));
+  cache_pp_token(cache, str.to_allocated_storage(IL_allocator<char>()),
+                 str.length());
 }  /* cache_form_spelling */
 
 
