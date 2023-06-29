@@ -1,5 +1,20 @@
 Version 6.6
 
+6/29/23  [EDGcpfe/26465]
+Better build diagnostic for NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+
+The configuration option NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE is
+only supported by the front end when it is built using relatively recent
+versions of Microsoft Visual Studio (see the comments in host_envir.h
+explaining the setting and the reason for the restriction).  Previously
+the requirement for Microsoft Visual Studio was enforced via a test for
+EDG_WIN32 with a subsequent test for the requisite version.  However,
+because it is now possible for EDG_WIN32 to be TRUE when building the
+front end with compilers other than MSVC, the version test and associated
+#error text have been updated to make the requirement for Visual Studio
+explicit.
+
+
 6/28/23  [EDGcpfe/26457]
 Unexpected column positions for eok_call expression
 

@@ -2563,10 +2563,10 @@ multibyte character sequences may be invalid UTF-8 values).
 #endif /* !(EDG_WIN32 && !EDG_NATIVE_MULTIBYTE_TEST_MODE) */
 
 #if EDG_WIN32
-#if _MSC_VER < 1400
+#if !defined(_MSC_VER) || _MSC_VER < 1400
  #error -- NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE is only supported \
-           when on Windows for _MSC_VER >= 1400.
-#endif /* _MSC_VER < 1400 */
+           when building with Microsoft Visual Studio and _MSC_VER >= 1400.
+#endif /* !defined(_MSC_VER) || _MSC_VER < 1400 */
 #endif /* EDG_WIN32 */
 
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
