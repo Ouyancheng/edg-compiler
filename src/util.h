@@ -2620,6 +2620,19 @@ such element is found.
 }  /* array_bin_search */
 
 
+/*
+A struct representing a char* based string of a given length.
+*/
+struct a_string_view {
+  char  *const  start;  /* The start of the string. */
+  const size_t  length; /* The length of the string (not including the null
+                           terminator). */
+  a_string_view(char *start_val, size_t length_val)
+    : start(start_val), length(length_val)
+    {}
+};  /* a_string_view */
+
+
 template<template<typename> class Allocator>
 struct Allocated_string;
 
@@ -2698,6 +2711,35 @@ append the characters into the underlying array.  size_hint is unused.
 {
   underlying_array.insert(underlying_array.length(), str.as_temp_characters(),
                           str.length());
+}  /* append_into */
+
+
+/*
+A string formatter for a_string_view values.
+*/
+template<>
+struct String_formatter<a_string_view> {
+  static size_t size_hint_of(a_string_view value)
+    { return value.length; }
+  template<typename a_Dyn_array>
+  static inline void append_into(a_Dyn_array   &underlying_array,
+                                 a_string_view value,
+                                 size_t        size_hint);
+};  /* String_formatter */
+
+
+template<typename a_Dyn_array>
+void String_formatter<a_string_view>::append_into(
+                                          a_Dyn_array        &underlying_array,
+                                          a_string_view      value,
+                                          ARG_UNUSED size_t  size_hint)
+/*
+Append the characters representing in the given string view value into the
+underlying array.  size_hint is unused.
+*/
+{
+  underlying_array.insert(underlying_array.length(), value.start,
+                          value.length);
 }  /* append_into */
 
 
