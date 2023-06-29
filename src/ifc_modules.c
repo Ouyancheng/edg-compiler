@@ -926,6 +926,78 @@ key).
 }  /* as_key */
 
 
+an_ifc_module_file::an_ifc_module_file(an_ifc_module_file &&old)
+/*
+Move construct from the given IFC module file.
+*/
+: an_ifc_module_file()
+{
+  swap_at(&old.mod, &this->mod);
+  swap_at(&old.f_module, &this->f_module);
+  swap_at(&old.f_size, &this->f_size);
+  swap_at(&old.version_major, &this->version_major);
+  swap_at(&old.version_minor, &this->version_minor);
+#if !ASSUME_LITTLE_ENDIAN_IFC_MODULES
+  swap_at(&old.endianness, &this->endianness);
+#endif /* !ASSUME_LITTLE_ENDIAN_IFC_MODULES */
+#if USE_MMAP_FOR_MEMORY_REGIONS
+  swap_at(&old.mmap_addr, &this->mmap_addr);
+  swap_at(&old.mmap_size, &this->mmap_size);
+#if EDG_WIN32
+  swap_at(&old.mapped_input, &this->mapped_input);
+  swap_at(&old.map_object, &this->map_object);
+#endif /* EDG_WIN32 */
+  swap_at(&old.byte_buffer, &this->byte_buffer);
+  swap_at(&old.buffer_end, &this->buffer_end);
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+}  /* an_ifc_module_file::an_ifc_module_file */
+
+
+an_ifc_module_file &an_ifc_module_file::operator=(an_ifc_module_file &&old)
+/*
+Move from the given IFC module file, returning self.
+*/
+{
+  swap_at(&old.mod, &this->mod);
+  swap_at(&old.f_module, &this->f_module);
+  swap_at(&old.f_size, &this->f_size);
+  swap_at(&old.version_major, &this->version_major);
+  swap_at(&old.version_minor, &this->version_minor);
+#if !ASSUME_LITTLE_ENDIAN_IFC_MODULES
+  swap_at(&old.endianness, &this->endianness);
+#endif /* !ASSUME_LITTLE_ENDIAN_IFC_MODULES */
+#if USE_MMAP_FOR_MEMORY_REGIONS
+  swap_at(&old.mmap_addr, &this->mmap_addr);
+  swap_at(&old.mmap_size, &this->mmap_size);
+#if EDG_WIN32
+  swap_at(&old.mapped_input, &this->mapped_input);
+  swap_at(&old.map_object, &this->map_object);
+#endif /* EDG_WIN32 */
+  swap_at(&old.byte_buffer, &this->byte_buffer);
+  swap_at(&old.buffer_end, &this->buffer_end);
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+  return *this;
+}  /* an_ifc_module_file::operator= */
+
+
+void an_ifc_module_file::close()
+/*
+Close the module file.
+*/
+{
+  if (this->f_module != NULL) {
+    (void)fclose(this->f_module);
+    this->f_module = NULL;
+#if USE_MMAP_FOR_MEMORY_REGIONS
+#if EDG_WIN32
+    close_mapped_input_file(mapped_input, map_object);
+    this->mapped_input = NULL;
+    this->map_object = NULL;
+#endif /* EDG_WIN32 */
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+  }  /* if */
+}  /* an_ifc_module_file::~an_ifc_module_file */
+
 static a_string get_string_at_offset(const an_ifc_module_string_table &table,
                                      an_ifc_text_offset_storage       offset)
 /*
@@ -1127,7 +1199,7 @@ module file if it was successfully opened; otherwise, return FALSE.
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
     file.f_module = file_handle;
     /* Assign the created file. */
-    result = file;
+    result = move_from(&file);
   }  /* if */
   goto done;
 error:
@@ -1191,7 +1263,7 @@ name can be determined, return an empty optional.
   Opt<an_ifc_module_file> opt_file = open_ifc_module_file(file_name);
 
   if (opt_file.has_value()) {
-    an_ifc_module_file file = *opt_file;
+    an_ifc_module_file file = move_from(&(*opt_file));
     an_ifc_file_header header = read_file_header(&file);
     an_ifc_unit_index  unit_idx = get_ifc_unit(header);
 
@@ -1210,7 +1282,6 @@ name can be determined, return an empty optional.
         break;
       default_is_unexpected();
     }  /* switch */
-    /* FIXME: Close the file. */
   }  /* if */
   return result;
 }  /* get_name_of_ifc_module */
@@ -2991,17 +3062,7 @@ void an_ifc_module::close()
 Close the module file specified in the module-import-declaration.
 */
 {
-  if (this->file.f_module != NULL) {
-    (void)fclose(this->file.f_module);
-    this->file.f_module = NULL;
-#if USE_MMAP_FOR_MEMORY_REGIONS
-#if EDG_WIN32
-    close_mapped_input_file(mapped_input, map_object);
-    mapped_input = NULL;
-    map_object = NULL;
-#endif /* EDG_WIN32 */
-#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
-  }  /* if */
+  this->file.close();
 }  /* an_ifc_module::close */
 
 
@@ -10249,7 +10310,7 @@ Note that this is also used after restoring from a PCH file.
 
     /* Establish the association between the IFC file and the IFC module
        interface. */
-    mod_iface->file = *opt_file;
+    mod_iface->file = move_from(&(*opt_file));
     mod_iface->file.mod = mod_iface;
   } else if (issue_diag) {
     /* FIXME: perhaps better error messages here. */

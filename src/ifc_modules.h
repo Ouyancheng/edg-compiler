@@ -167,8 +167,19 @@ enum an_ifc_module_primary_endianness {
 #endif /* !ASSUME_LITTLE_ENDIAN_IFC_MODULES */
 
 /*
+A structure abstracting the representation of the IFC module file and the
+associated memory managed.
 */
 struct an_ifc_module_file {
+  an_ifc_module_file() = default;
+  an_ifc_module_file(an_ifc_module_file &&old);
+  ~an_ifc_module_file()
+    { this->close(); }
+
+  an_ifc_module_file &operator=(an_ifc_module_file &&old);
+
+  void close();
+
   an_ifc_module *mod = NULL;
                         /* The IFC module using this file (if any). */
   FILE          *f_module = NULL;
@@ -239,7 +250,6 @@ struct an_ifc_module_string_table {
                         /* The string table contents. */
   size_t        size;
                         /* The size of the string table. */
-
 };  /* an_ifc_module_string_table */
 
 
