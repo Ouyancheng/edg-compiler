@@ -3073,6 +3073,14 @@ module.  Note that the mmap-ed address does not need to be at the same
 location as the original.
 */
 {
+  a_module      *mod = midp->module_info;
+  an_ifc_module *mod_iface = get_as_an_ifc_module(mod->module_interface);
+
+  /* Reset the file state, it will be reprocessed.  This is a blind overwrite
+     as we don't want to trigger the destructor of the file (a file handle
+     pointer that's no longer valid can still be present, which will cause a
+     segfault upon an_ifc_module_file::close). */
+  new (&mod_iface->file) an_ifc_module_file();
   /* Any diagnostics related to opening the module file were already issued
      when the PCH file was first created. */
   if (!open_and_map_ifc_module_file(midp, /*issue_diag=*/FALSE)) {
@@ -10296,8 +10304,6 @@ a_boolean an_ifc_module::open_and_map_ifc_module_file(
 Open the module file and map it into the process' address space.  Return TRUE
 if the module file was successfully opened and FALSE (with an error message if
 issue_diag == TRUE) otherwise.
-
-Note that this is also used after restoring from a PCH file.
 */
 {
   a_module_ptr mod = midp->module_info;
