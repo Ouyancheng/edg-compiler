@@ -167,7 +167,7 @@ An encapsulated representation of an IFC index value.
 template<typename an_ifc_Sort_type, typename a_Native_size_type>
 struct an_ifc_Index : public an_ifc_module_entity {
   an_ifc_Index()
-    : an_ifc_module_entity(NULL), sort{}
+    : an_ifc_module_entity(NULL), sort{}, value{}
     {}
 
   an_ifc_Index(an_ifc_module_file *mod_val,
