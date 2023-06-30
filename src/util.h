@@ -578,7 +578,7 @@ general memory.
 
 template<typename an_Elem>
 struct IL_allocator {
-  /* A allocator for IL memory (i.e., as allocated by alloc_il in
+  /* An allocator for IL memory (i.e., as allocated by alloc_il in
      il_alloc.c). */
   typedef an_Elem an_elem;
   typedef a_ptrdiff a_size;
