@@ -198,8 +198,8 @@ Return TRUE if this optional is storing a value, otherwise return FALSE.
 template<typename a_Value_type>
 inline a_Value_type* Opt<a_Value_type>::operator->()
 /*
-This function is only valid when the Opt is not empty.  The stored value is
-returned.
+This function is only valid when the Opt is not empty.  A pointer to the stored
+value is returned.
 */
 {
   /* Check that the caller previously checked for a value. */
@@ -213,8 +213,8 @@ returned.
 template<typename a_Value_type>
 inline const a_Value_type* Opt<a_Value_type>::operator->() const
 /*
-This function is only valid when the Opt is not empty.  The stored value is
-returned.
+This function is only valid when the Opt is not empty.  A pointer to the stored
+value is returned.
 */
 {
   /* Check that the caller previously checked for a value. */
@@ -228,8 +228,8 @@ returned.
 template<typename a_Value_type>
 inline a_Value_type& Opt<a_Value_type>::operator*()
 /*
-This function is only valid when the Opt is not empty.  The stored value is
-returned.
+This function is only valid when the Opt is not empty.  A reference to the
+stored value is returned.
 */
 {
   /* Check that the caller previously checked for a value. */
@@ -243,8 +243,8 @@ returned.
 template<typename a_Value_type>
 inline const a_Value_type& Opt<a_Value_type>::operator*() const
 /*
-This function is only valid when the Opt is not empty.  The stored
-value is returned.
+This function is only valid when the Opt is not empty.  A reference to the
+stored value is returned.
 */
 {
   /* Check that the caller previously checked for a value. */
