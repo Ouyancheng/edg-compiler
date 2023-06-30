@@ -802,6 +802,10 @@ struct an_ifc_validation_trace {
                            start associated with this trace. */
   };  /* field_info_trace_data */
 
+#ifdef UNION_AS_STRUCT
+/* FIXME: Workaround for union-as-struct build issue. */
+#undef union
+#endif /* indef UNION_AS_STRUCT */
   union {
     /* When trace_kind == ifc_vtk_field. */
     field_info_trace_data
@@ -813,6 +817,9 @@ struct an_ifc_validation_trace {
                 partition_info;
                         /* The associated information about the traced
                            partition element. */
+#ifdef UNION_AS_STRUCT
+#define union struct
+#endif /* indef UNION_AS_STRUCT */
   };
 };  /* an_ifc_validation_trace */
 
