@@ -563,8 +563,10 @@ front end was compiled under.
   switch (file->endianness) {
     case ifc_mpe_little:
       result = host_little_endian;
+      break;
     case ifc_mpe_big:
       result = !host_little_endian;
+      break;
     case ifc_mpe_unknown:
       /* Make a best guess based on the compiler's target. */
       result = targ_little_endian == host_little_endian;

@@ -198,7 +198,7 @@ struct an_ifc_module_file {
                            complete. */
 #if !ASSUME_LITTLE_ENDIAN_IFC_MODULES
   an_ifc_module_primary_endianness
-                endianness = mpe_unknown;
+                endianness = ifc_mpe_unknown;
                         /* The primary endianness of the module file. */
 #endif /* !ASSUME_LITTLE_ENDIAN_IFC_MODULES */
 #if USE_MMAP_FOR_MEMORY_REGIONS
