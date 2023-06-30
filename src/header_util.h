@@ -27,9 +27,9 @@ a variable whose value is temporarily being changed.
 */
 template<typename a_Var_type>
 struct Value_saver {
-  inline Value_saver(a_Var_type *const var_to_be_saved);
-  inline Value_saver(a_Var_type *const var_to_be_saved,
-                     const a_Var_type  &new_value);
+  inline Value_saver(a_Var_type * const var_to_be_saved);
+  inline Value_saver(a_Var_type * const var_to_be_saved,
+                     const a_Var_type   &new_value);
   inline ~Value_saver();
 private:
   a_Var_type *const
@@ -44,7 +44,7 @@ private:
 
 
 template<typename a_Var_type>
-inline Value_saver<a_Var_type>::Value_saver(a_Var_type *const var_to_be_saved)
+inline Value_saver<a_Var_type>::Value_saver(a_Var_type * const var_to_be_saved)
   : saved_var(var_to_be_saved), saved_value(*var_to_be_saved)
 /*
 Save the current value of the given variable (var_to_be_saved).  The saved
@@ -55,8 +55,8 @@ value will be restored upon destruction.
 
 
 template<typename a_Var_type>
-inline Value_saver<a_Var_type>::Value_saver(a_Var_type *const var_to_be_saved,
-                                            const a_Var_type  &new_value)
+inline Value_saver<a_Var_type>::Value_saver(a_Var_type * const var_to_be_saved,
+                                            const a_Var_type   &new_value)
   : Value_saver(var_to_be_saved)
 /*
 Save the current value of the given variable (var_to_be_saved).  Then, update

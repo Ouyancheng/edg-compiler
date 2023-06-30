@@ -2621,10 +2621,10 @@ such element is found.
 
 
 /*
-A struct representing a char* based string of a given length.
+A struct representing a char*-based string of a given length.
 */
 struct a_string_view {
-  char  *const  start;  /* The start of the string. */
+  char * const  start;  /* The start of the string. */
   const size_t  length; /* The length of the string (not including the null
                            terminator). */
   a_string_view(char *start_val, size_t length_val)
