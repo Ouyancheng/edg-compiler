@@ -309,6 +309,7 @@ extern a_boolean is_transparent_union_type(a_type_ptr  tp);
 #endif /* GNU_EXTENSIONS_ALLOWED */
 extern a_boolean is_aggregate_or_union_type(a_type_ptr tp);
 extern a_boolean is_aggregate_type(a_type_ptr tp);
+extern a_boolean is_lambda_closure_type(a_type_ptr tp);
 extern a_boolean is_std_initializer_list_type(a_type_ptr tp);
 extern a_boolean is_std_nothrow_type(a_type_ptr tp);
 extern a_boolean is_std_destroying_delete_t(a_type_ptr tp);

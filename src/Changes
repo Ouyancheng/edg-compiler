@@ -1,5 +1,24 @@
 Version 6.6
 
+6/30/23  [EDGcpfe/26341]
+Clang/GCC compatibility: constexpr member functions and by-reference capture
+
+Consider:
+
+  struct I {
+    constexpr operator int() const { return 42; }
+  };
+  void f(I p) {
+    [&] { constexpr int N = p; };
+  }
+
+The initialization of N effectively requires the constant-evaluation of an
+expression like __closure.__ref_p.operator int().  It is unclear in the C++
+standard whether that is a valid constant expression, but the front end
+previously always treated it as invalid.  However, GCC and Clang accept it
+and the front end now emulates that behavior in the corresponding modes.
+
+
 6/30/23  [EDGcpfe/26129]
 Abort when using a local variable as a template argument in a lambda
 

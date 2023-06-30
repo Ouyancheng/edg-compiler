@@ -2914,6 +2914,18 @@ no user-provided constructors, etc.
 }  /* is_aggregate_type */
 
 
+a_boolean is_lambda_closure_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is (after skipping typeref) a lambda closure
+type.
+*/
+{
+  tp = skip_typerefs(tp);
+  return is_immediate_class_type(tp) &&
+         class_type_supp(tp)->is_lambda_closure_class;
+}  /* is_lambda_closure_type */
+
+
 a_boolean is_std_initializer_list_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an instance of std::initializer_list.  (Also

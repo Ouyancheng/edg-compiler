@@ -18796,8 +18796,7 @@ the value representation of the integer value.
                    constant. */
                 a_constant_ptr  addr_con = result_addr.variant.addr_con;
                 if (constant_is(addr_con, ck_address) &&
-                    addr_con->variant.address.kind ==
-                                         (an_address_base_kind)abk_variable) {
+                    addr_con->variant.address.kind == abk_variable) {
                   a_variable_ptr
                               vp = addr_con->variant.address.variant.variable;
                   if (addr_con->variant.address.offset >=
@@ -18811,6 +18810,19 @@ the value representation of the integer value.
                 }  /* if */
                 if (!(expr->is_lvalue || expr->is_xvalue) ||
                     field->is_bit_field) {
+                  if ((clang_mode || gpp_version_is(>= 90000)) &&
+                      is_lambda_closure_type(parent_class_of(field)) &&
+                      is_reference_type(field->type)) {
+                    /* Clang and GCC accept x.f() where x is a run-time local
+                       variable even when x is captured by reference and the
+                       expression becomes something like __closure.ref_x->f()
+                       where an lvalue-to-rvalue transformation applies to
+                       __closure.ref_x.  We emulate that conversion by just
+                       copying over the local-variable address: Any attempt
+                       to use it will create an error later on. */
+                    *(a_constexpr_address*)result_storage = result_addr;
+                    break;
+                  }  /* if */
                   do_constexpr_fail(result);
                   info_with_pos(ec_constexpr_access_to_runtime_storage,
                                 &expr->position, ips);
@@ -18903,8 +18915,7 @@ the value representation of the integer value.
               } else if (is_runtime_data_address(&result_addr)) {
                 a_constant_ptr  addr_con = result_addr.variant.addr_con;
                 if (constant_is(addr_con, ck_address) &&
-                    addr_con->variant.address.kind ==
-                                         (an_address_base_kind)abk_variable) {
+                    addr_con->variant.address.kind == abk_variable) {
                   a_variable_ptr
                               vp = addr_con->variant.address.variant.variable;
                   if (addr_con->variant.address.offset >=
@@ -19138,6 +19149,24 @@ the value representation of the integer value.
               }  /* if */
             } else {
               if (var->is_this_parameter) {
+                if ((clang_mode || gpp_version_is(>= 90000)) &&
+                    is_lambda_closure_type(type_pointed_to(var->type))) {
+                  /* Clang and GCC accept x.f() where x is a run-time local
+                     variable even when x is captured by reference and the
+                     expression has become something like __closure.ref_x->f()
+                     where an lvalue-to-rvalue transformation applies to
+                     __closure.ref_x.  we emulate that by producing a run-time
+                     address constant for the local variable lvalue. */ 
+                  con = local_constant();
+                  clear_constant(con, (a_constant_repr_kind)ck_address);
+                  con->next = ips->constants;
+                  ips->constants = con;
+                  con->variant.address.kind = abk_variable;
+                  con->variant.address.variant.variable = var;
+                  con->type = make_reference_type(var->type);
+                  clear_runtime_constant_address(result_storage, con);
+                  break;
+                }  /* if */
                 info_with_pos(ec_star_this_not_constant_valued,
                               &expr->position, ips);
               } else if (symbol_for(var) == NULL) {
@@ -19203,7 +19232,7 @@ the value representation of the integer value.
               clear_constant(con, (a_constant_repr_kind)ck_address);
               con->next = ips->constants;
               ips->constants = con;
-              con->variant.address.kind = (an_address_base_kind)abk_variable;
+              con->variant.address.kind = abk_variable;
               con->variant.address.variant.variable = var;
               con->type = make_reference_type(var->type);
               map_ptr(&ips->map, &var->initializer, (a_byte*)con);
