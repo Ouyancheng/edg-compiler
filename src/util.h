@@ -578,7 +578,7 @@ general memory.
 
 template<typename an_Elem>
 struct IL_allocator {
-  /* A IL allocator for IL memory (i.e., as allocated by alloc_il in
+  /* A allocator for IL memory (i.e., as allocated by alloc_il in
      il_alloc.c). */
   typedef an_Elem an_elem;
   typedef a_ptrdiff a_size;
@@ -586,7 +586,7 @@ struct IL_allocator {
   typedef IL_allocator<an_elem> an_allocator;
   typedef IL_allocator<an_elem> a_deallocator;
   inline static auto alloc(a_size n) -> an_allocation;
-};  /* General_allocator */
+};  /* IL_allocator */
 
 
 /* Forward declare alloc_il. */
