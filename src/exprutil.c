@@ -5897,7 +5897,14 @@ selection.
     a_lambda_ptr          lambda = get_lambda_for_scope_depth(depth_lambda);
     opnd->pending_capture = FALSE;
     while (!is_variable_node(vnode)) {
-      check_assertion(vnode->compiler_generated);
+      check_assertion(vnode->compiler_generated &&
+                      node_is(vnode, enk_operation));
+      if (node_operator_is(vnode, eok_points_to_field)) {
+        /* This can happen when the operand is copied with a shared underlying
+           expression and the expression has be rewritten already.  No further
+           rewrite is needed. */
+        goto done;
+      }  /* if */
       vnode = vnode->variant.operation.operands;
     }  /* if */
     lcp = find_lambda_capture(lambda, node_variable(vnode), (a_field*)NULL);
@@ -5918,6 +5925,7 @@ selection.
     node->is_xvalue = is_xvalue;
     opnd->type = node->type;
   }  /* if */
+done:;
 }  /* rewrite_captured_variable_access */
 
 
@@ -22296,7 +22304,9 @@ cases so we don't do it here.
         /* Normal case: not constant-valued, not a constant expression. */
         node->volatile_fetch = volatile_fetch;
         make_expression_operand(node, operand);
-        if (pending_capture) operand->pending_capture = TRUE;
+        if (pending_capture) {
+          operand->pending_capture = TRUE;
+        }  /* if */
         if (expr_stack->fold_prvalue_if_possible) {
           /* Fold the expression if possible.  This is not just an optimization
              because it may determine if underlying variables are "used": If

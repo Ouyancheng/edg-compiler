@@ -996,7 +996,9 @@ expression.
 
   for (;;) {
     a_scope_stack_entry  *ssep = &scope_stack[depth_lambda];
-    if (ssep->depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+    if (scope_is(ssep, sck_function_access) && ssep->is_rescan) {
+      depth_lambda = ssep->orig_access_depth;
+    } else if (ssep->depth_innermost_function_scope != NO_SCOPE_DEPTH) {
       depth_lambda = ssep->depth_innermost_function_scope;
       break;
     } else if (scope_is(ssep, sck_class_struct_union) &&

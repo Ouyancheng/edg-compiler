@@ -303,7 +303,10 @@ that might normally precede it.
          sym_parent_namespace_or_null(sym) ==
                                          scp_parent_namespace_or_null(scp))) {
     /* Use the IL entry to generate the name. */
-    if (suppress_qualifier) {
+    if (kind == iek_variable && ((a_variable*)entry)->is_this_parameter) {
+      check_assertion(!octl->gen_compilable_code);
+      octl->output_str("<this-param>", octl);
+    } else if (suppress_qualifier) {
       form_unqualified_name(scp, kind, octl);
     } else {
       form_name(scp, kind, octl);
