@@ -339,8 +339,8 @@ using an_ifc_active_member_storage = uint32_t;
 /*
 The universal representation for an IFC ActiveMember.
 */
-struct an_ifc_active_member :
-                        an_ifc_Implicit_numeric<an_ifc_active_member_storage> {
+struct an_ifc_active_member : an_ifc_Implicit_numeric<
+                                                an_ifc_active_member_storage> {
   using storage_type = an_ifc_active_member_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -353,8 +353,8 @@ using an_ifc_associativity_storage = uint8_t;
 /*
 The universal representation for an IFC Associativity.
 */
-struct an_ifc_associativity :
-                        an_ifc_Implicit_numeric<an_ifc_associativity_storage> {
+struct an_ifc_associativity : an_ifc_Implicit_numeric<
+                                                an_ifc_associativity_storage> {
   using storage_type = an_ifc_associativity_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -367,8 +367,8 @@ using an_ifc_byte_offset_storage = uint32_t;
 /*
 The universal representation for an IFC ByteOffset.
 */
-struct an_ifc_byte_offset :
-                          an_ifc_Implicit_numeric<an_ifc_byte_offset_storage> {
+struct an_ifc_byte_offset : an_ifc_Implicit_numeric<
+                                                  an_ifc_byte_offset_storage> {
   using storage_type = an_ifc_byte_offset_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -381,8 +381,8 @@ using an_ifc_cardinality_storage = uint32_t;
 /*
 The universal representation for an IFC Cardinality.
 */
-struct an_ifc_cardinality :
-                          an_ifc_Implicit_numeric<an_ifc_cardinality_storage> {
+struct an_ifc_cardinality : an_ifc_Implicit_numeric<
+                                                  an_ifc_cardinality_storage> {
   using storage_type = an_ifc_cardinality_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -408,8 +408,8 @@ using an_ifc_destructor_sort_storage = uint8_t;
 /*
 The universal representation for an IFC DestructorSort.
 */
-struct an_ifc_destructor_sort :
-                      an_ifc_Implicit_numeric<an_ifc_destructor_sort_storage> {
+struct an_ifc_destructor_sort : an_ifc_Implicit_numeric<
+                                              an_ifc_destructor_sort_storage> {
   using storage_type = an_ifc_destructor_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -435,8 +435,8 @@ using an_ifc_encoded_access_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedAccessSort.
 */
-struct an_ifc_encoded_access_sort :
-                  an_ifc_Implicit_numeric<an_ifc_encoded_access_sort_storage> {
+struct an_ifc_encoded_access_sort : an_ifc_Implicit_numeric<
+                                          an_ifc_encoded_access_sort_storage> {
   using storage_type = an_ifc_encoded_access_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -449,8 +449,8 @@ using an_ifc_encoded_architecture_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedArchitectureSort.
 */
-struct an_ifc_encoded_architecture_sort :
-            an_ifc_Implicit_numeric<an_ifc_encoded_architecture_sort_storage> {
+struct an_ifc_encoded_architecture_sort : an_ifc_Implicit_numeric<
+                                    an_ifc_encoded_architecture_sort_storage> {
   using storage_type = an_ifc_encoded_architecture_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -463,8 +463,8 @@ using an_ifc_encoded_attr_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedAttrIndex.
 */
-struct an_ifc_encoded_attr_index :
-                   an_ifc_Implicit_numeric<an_ifc_encoded_attr_index_storage> {
+struct an_ifc_encoded_attr_index : an_ifc_Implicit_numeric<
+                                           an_ifc_encoded_attr_index_storage> {
   using storage_type = an_ifc_encoded_attr_index_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -477,8 +477,8 @@ using an_ifc_encoded_attr_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedAttrSort.
 */
-struct an_ifc_encoded_attr_sort :
-                    an_ifc_Implicit_numeric<an_ifc_encoded_attr_sort_storage> {
+struct an_ifc_encoded_attr_sort : an_ifc_Implicit_numeric<
+                                            an_ifc_encoded_attr_sort_storage> {
   using storage_type = an_ifc_encoded_attr_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -491,8 +491,8 @@ using an_ifc_encoded_calling_convention_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedCallingConventionSort.
 */
-struct an_ifc_encoded_calling_convention_sort :
-      an_ifc_Implicit_numeric<an_ifc_encoded_calling_convention_sort_storage> {
+struct an_ifc_encoded_calling_convention_sort : an_ifc_Implicit_numeric<
+                              an_ifc_encoded_calling_convention_sort_storage> {
   using storage_type = an_ifc_encoded_calling_convention_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -505,8 +505,8 @@ using an_ifc_encoded_chart_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedChartIndex.
 */
-struct an_ifc_encoded_chart_index :
-                  an_ifc_Implicit_numeric<an_ifc_encoded_chart_index_storage> {
+struct an_ifc_encoded_chart_index : an_ifc_Implicit_numeric<
+                                          an_ifc_encoded_chart_index_storage> {
   using storage_type = an_ifc_encoded_chart_index_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -519,8 +519,8 @@ using an_ifc_encoded_chart_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedChartSort.
 */
-struct an_ifc_encoded_chart_sort :
-                   an_ifc_Implicit_numeric<an_ifc_encoded_chart_sort_storage> {
+struct an_ifc_encoded_chart_sort : an_ifc_Implicit_numeric<
+                                           an_ifc_encoded_chart_sort_storage> {
   using storage_type = an_ifc_encoded_chart_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -533,8 +533,8 @@ using an_ifc_encoded_decl_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedDeclIndex.
 */
-struct an_ifc_encoded_decl_index :
-                   an_ifc_Implicit_numeric<an_ifc_encoded_decl_index_storage> {
+struct an_ifc_encoded_decl_index : an_ifc_Implicit_numeric<
+                                           an_ifc_encoded_decl_index_storage> {
   using storage_type = an_ifc_encoded_decl_index_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -547,8 +547,8 @@ using an_ifc_encoded_decl_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedDeclSort.
 */
-struct an_ifc_encoded_decl_sort :
-                    an_ifc_Implicit_numeric<an_ifc_encoded_decl_sort_storage> {
+struct an_ifc_encoded_decl_sort : an_ifc_Implicit_numeric<
+                                            an_ifc_encoded_decl_sort_storage> {
   using storage_type = an_ifc_encoded_decl_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -561,8 +561,8 @@ using an_ifc_encoded_delimiter_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedDelimiterSort.
 */
-struct an_ifc_encoded_delimiter_sort :
-               an_ifc_Implicit_numeric<an_ifc_encoded_delimiter_sort_storage> {
+struct an_ifc_encoded_delimiter_sort : an_ifc_Implicit_numeric<
+                                       an_ifc_encoded_delimiter_sort_storage> {
   using storage_type = an_ifc_encoded_delimiter_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -575,8 +575,8 @@ using an_ifc_encoded_dyadic_operator_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedDyadicOperatorSort.
 */
-struct an_ifc_encoded_dyadic_operator_sort :
-         an_ifc_Implicit_numeric<an_ifc_encoded_dyadic_operator_sort_storage> {
+struct an_ifc_encoded_dyadic_operator_sort : an_ifc_Implicit_numeric<
+                                 an_ifc_encoded_dyadic_operator_sort_storage> {
   using storage_type = an_ifc_encoded_dyadic_operator_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -589,8 +589,8 @@ using an_ifc_encoded_expansion_mode_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedExpansionModeSort.
 */
-struct an_ifc_encoded_expansion_mode_sort :
-          an_ifc_Implicit_numeric<an_ifc_encoded_expansion_mode_sort_storage> {
+struct an_ifc_encoded_expansion_mode_sort : an_ifc_Implicit_numeric<
+                                  an_ifc_encoded_expansion_mode_sort_storage> {
   using storage_type = an_ifc_encoded_expansion_mode_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -603,8 +603,8 @@ using an_ifc_encoded_expr_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedExprIndex.
 */
-struct an_ifc_encoded_expr_index :
-                   an_ifc_Implicit_numeric<an_ifc_encoded_expr_index_storage> {
+struct an_ifc_encoded_expr_index : an_ifc_Implicit_numeric<
+                                           an_ifc_encoded_expr_index_storage> {
   using storage_type = an_ifc_encoded_expr_index_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -617,8 +617,8 @@ using an_ifc_encoded_expr_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedExprSort.
 */
-struct an_ifc_encoded_expr_sort :
-                    an_ifc_Implicit_numeric<an_ifc_encoded_expr_sort_storage> {
+struct an_ifc_encoded_expr_sort : an_ifc_Implicit_numeric<
+                                            an_ifc_encoded_expr_sort_storage> {
   using storage_type = an_ifc_encoded_expr_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -631,8 +631,8 @@ using an_ifc_encoded_fold_direction_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedFoldDirectionSort.
 */
-struct an_ifc_encoded_fold_direction_sort :
-          an_ifc_Implicit_numeric<an_ifc_encoded_fold_direction_sort_storage> {
+struct an_ifc_encoded_fold_direction_sort : an_ifc_Implicit_numeric<
+                                  an_ifc_encoded_fold_direction_sort_storage> {
   using storage_type = an_ifc_encoded_fold_direction_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -645,8 +645,8 @@ using an_ifc_encoded_form_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedFormIndex.
 */
-struct an_ifc_encoded_form_index :
-                   an_ifc_Implicit_numeric<an_ifc_encoded_form_index_storage> {
+struct an_ifc_encoded_form_index : an_ifc_Implicit_numeric<
+                                           an_ifc_encoded_form_index_storage> {
   using storage_type = an_ifc_encoded_form_index_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -659,8 +659,8 @@ using an_ifc_encoded_form_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedFormSort.
 */
-struct an_ifc_encoded_form_sort :
-                    an_ifc_Implicit_numeric<an_ifc_encoded_form_sort_storage> {
+struct an_ifc_encoded_form_sort : an_ifc_Implicit_numeric<
+                                            an_ifc_encoded_form_sort_storage> {
   using storage_type = an_ifc_encoded_form_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -673,8 +673,8 @@ using an_ifc_encoded_initializer_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedInitializerSort.
 */
-struct an_ifc_encoded_initializer_sort :
-             an_ifc_Implicit_numeric<an_ifc_encoded_initializer_sort_storage> {
+struct an_ifc_encoded_initializer_sort : an_ifc_Implicit_numeric<
+                                     an_ifc_encoded_initializer_sort_storage> {
   using storage_type = an_ifc_encoded_initializer_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -687,8 +687,8 @@ using an_ifc_encoded_keyword_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedKeywordSort.
 */
-struct an_ifc_encoded_keyword_sort :
-                 an_ifc_Implicit_numeric<an_ifc_encoded_keyword_sort_storage> {
+struct an_ifc_encoded_keyword_sort : an_ifc_Implicit_numeric<
+                                         an_ifc_encoded_keyword_sort_storage> {
   using storage_type = an_ifc_encoded_keyword_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -701,8 +701,8 @@ using an_ifc_encoded_label_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedLabelSort.
 */
-struct an_ifc_encoded_label_sort :
-                   an_ifc_Implicit_numeric<an_ifc_encoded_label_sort_storage> {
+struct an_ifc_encoded_label_sort : an_ifc_Implicit_numeric<
+                                           an_ifc_encoded_label_sort_storage> {
   using storage_type = an_ifc_encoded_label_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -715,8 +715,8 @@ using an_ifc_encoded_lit_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedLitIndex.
 */
-struct an_ifc_encoded_lit_index :
-                    an_ifc_Implicit_numeric<an_ifc_encoded_lit_index_storage> {
+struct an_ifc_encoded_lit_index : an_ifc_Implicit_numeric<
+                                            an_ifc_encoded_lit_index_storage> {
   using storage_type = an_ifc_encoded_lit_index_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -729,8 +729,8 @@ using an_ifc_encoded_lit_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedLitSort.
 */
-struct an_ifc_encoded_lit_sort :
-                     an_ifc_Implicit_numeric<an_ifc_encoded_lit_sort_storage> {
+struct an_ifc_encoded_lit_sort : an_ifc_Implicit_numeric<
+                                             an_ifc_encoded_lit_sort_storage> {
   using storage_type = an_ifc_encoded_lit_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -743,8 +743,8 @@ using an_ifc_encoded_macro_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedMacroIndex.
 */
-struct an_ifc_encoded_macro_index :
-                  an_ifc_Implicit_numeric<an_ifc_encoded_macro_index_storage> {
+struct an_ifc_encoded_macro_index : an_ifc_Implicit_numeric<
+                                          an_ifc_encoded_macro_index_storage> {
   using storage_type = an_ifc_encoded_macro_index_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -757,8 +757,8 @@ using an_ifc_encoded_macro_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedMacroSort.
 */
-struct an_ifc_encoded_macro_sort :
-                   an_ifc_Implicit_numeric<an_ifc_encoded_macro_sort_storage> {
+struct an_ifc_encoded_macro_sort : an_ifc_Implicit_numeric<
+                                           an_ifc_encoded_macro_sort_storage> {
   using storage_type = an_ifc_encoded_macro_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -771,8 +771,8 @@ using an_ifc_encoded_monadic_operator_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedMonadicOperatorSort.
 */
-struct an_ifc_encoded_monadic_operator_sort :
-        an_ifc_Implicit_numeric<an_ifc_encoded_monadic_operator_sort_storage> {
+struct an_ifc_encoded_monadic_operator_sort : an_ifc_Implicit_numeric<
+                                an_ifc_encoded_monadic_operator_sort_storage> {
   using storage_type = an_ifc_encoded_monadic_operator_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -785,8 +785,8 @@ using an_ifc_encoded_name_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedNameIndex.
 */
-struct an_ifc_encoded_name_index :
-                   an_ifc_Implicit_numeric<an_ifc_encoded_name_index_storage> {
+struct an_ifc_encoded_name_index : an_ifc_Implicit_numeric<
+                                           an_ifc_encoded_name_index_storage> {
   using storage_type = an_ifc_encoded_name_index_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -799,8 +799,8 @@ using an_ifc_encoded_name_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedNameSort.
 */
-struct an_ifc_encoded_name_sort :
-                    an_ifc_Implicit_numeric<an_ifc_encoded_name_sort_storage> {
+struct an_ifc_encoded_name_sort : an_ifc_Implicit_numeric<
+                                            an_ifc_encoded_name_sort_storage> {
   using storage_type = an_ifc_encoded_name_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -813,8 +813,8 @@ using an_ifc_encoded_niladic_operator_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedNiladicOperatorSort.
 */
-struct an_ifc_encoded_niladic_operator_sort :
-        an_ifc_Implicit_numeric<an_ifc_encoded_niladic_operator_sort_storage> {
+struct an_ifc_encoded_niladic_operator_sort : an_ifc_Implicit_numeric<
+                                an_ifc_encoded_niladic_operator_sort_storage> {
   using storage_type = an_ifc_encoded_niladic_operator_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -827,8 +827,8 @@ using an_ifc_encoded_noexcept_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedNoexceptSort.
 */
-struct an_ifc_encoded_noexcept_sort :
-                an_ifc_Implicit_numeric<an_ifc_encoded_noexcept_sort_storage> {
+struct an_ifc_encoded_noexcept_sort : an_ifc_Implicit_numeric<
+                                        an_ifc_encoded_noexcept_sort_storage> {
   using storage_type = an_ifc_encoded_noexcept_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -841,8 +841,8 @@ using an_ifc_encoded_operator_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedOperatorSort.
 */
-struct an_ifc_encoded_operator_sort :
-                an_ifc_Implicit_numeric<an_ifc_encoded_operator_sort_storage> {
+struct an_ifc_encoded_operator_sort : an_ifc_Implicit_numeric<
+                                        an_ifc_encoded_operator_sort_storage> {
   using storage_type = an_ifc_encoded_operator_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -855,8 +855,8 @@ using an_ifc_encoded_parameter_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedParameterSort.
 */
-struct an_ifc_encoded_parameter_sort :
-               an_ifc_Implicit_numeric<an_ifc_encoded_parameter_sort_storage> {
+struct an_ifc_encoded_parameter_sort : an_ifc_Implicit_numeric<
+                                       an_ifc_encoded_parameter_sort_storage> {
   using storage_type = an_ifc_encoded_parameter_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -869,8 +869,8 @@ using an_ifc_encoded_pointer_declarator_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedPointerDeclaratorSort.
 */
-struct an_ifc_encoded_pointer_declarator_sort :
-      an_ifc_Implicit_numeric<an_ifc_encoded_pointer_declarator_sort_storage> {
+struct an_ifc_encoded_pointer_declarator_sort : an_ifc_Implicit_numeric<
+                              an_ifc_encoded_pointer_declarator_sort_storage> {
   using storage_type = an_ifc_encoded_pointer_declarator_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -883,8 +883,8 @@ using an_ifc_encoded_pragma_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedPragmaIndex.
 */
-struct an_ifc_encoded_pragma_index :
-                 an_ifc_Implicit_numeric<an_ifc_encoded_pragma_index_storage> {
+struct an_ifc_encoded_pragma_index : an_ifc_Implicit_numeric<
+                                         an_ifc_encoded_pragma_index_storage> {
   using storage_type = an_ifc_encoded_pragma_index_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -897,8 +897,8 @@ using an_ifc_encoded_pragma_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedPragmaSort.
 */
-struct an_ifc_encoded_pragma_sort :
-                  an_ifc_Implicit_numeric<an_ifc_encoded_pragma_sort_storage> {
+struct an_ifc_encoded_pragma_sort : an_ifc_Implicit_numeric<
+                                          an_ifc_encoded_pragma_sort_storage> {
   using storage_type = an_ifc_encoded_pragma_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -911,8 +911,8 @@ using an_ifc_encoded_read_conversion_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedReadConversionSort.
 */
-struct an_ifc_encoded_read_conversion_sort :
-         an_ifc_Implicit_numeric<an_ifc_encoded_read_conversion_sort_storage> {
+struct an_ifc_encoded_read_conversion_sort : an_ifc_Implicit_numeric<
+                                 an_ifc_encoded_read_conversion_sort_storage> {
   using storage_type = an_ifc_encoded_read_conversion_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -925,8 +925,8 @@ using an_ifc_encoded_return_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedReturnSort.
 */
-struct an_ifc_encoded_return_sort :
-                  an_ifc_Implicit_numeric<an_ifc_encoded_return_sort_storage> {
+struct an_ifc_encoded_return_sort : an_ifc_Implicit_numeric<
+                                          an_ifc_encoded_return_sort_storage> {
   using storage_type = an_ifc_encoded_return_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -939,8 +939,8 @@ using an_ifc_encoded_source_directive_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedSourceDirectiveSort.
 */
-struct an_ifc_encoded_source_directive_sort :
-        an_ifc_Implicit_numeric<an_ifc_encoded_source_directive_sort_storage> {
+struct an_ifc_encoded_source_directive_sort : an_ifc_Implicit_numeric<
+                                an_ifc_encoded_source_directive_sort_storage> {
   using storage_type = an_ifc_encoded_source_directive_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -953,8 +953,8 @@ using an_ifc_encoded_source_identifier_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedSourceIdentifierSort.
 */
-struct an_ifc_encoded_source_identifier_sort :
-       an_ifc_Implicit_numeric<an_ifc_encoded_source_identifier_sort_storage> {
+struct an_ifc_encoded_source_identifier_sort : an_ifc_Implicit_numeric<
+                               an_ifc_encoded_source_identifier_sort_storage> {
   using storage_type = an_ifc_encoded_source_identifier_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -967,8 +967,8 @@ using an_ifc_encoded_source_keyword_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedSourceKeywordSort.
 */
-struct an_ifc_encoded_source_keyword_sort :
-          an_ifc_Implicit_numeric<an_ifc_encoded_source_keyword_sort_storage> {
+struct an_ifc_encoded_source_keyword_sort : an_ifc_Implicit_numeric<
+                                  an_ifc_encoded_source_keyword_sort_storage> {
   using storage_type = an_ifc_encoded_source_keyword_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -981,8 +981,8 @@ using an_ifc_encoded_source_literal_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedSourceLiteralSort.
 */
-struct an_ifc_encoded_source_literal_sort :
-          an_ifc_Implicit_numeric<an_ifc_encoded_source_literal_sort_storage> {
+struct an_ifc_encoded_source_literal_sort : an_ifc_Implicit_numeric<
+                                  an_ifc_encoded_source_literal_sort_storage> {
   using storage_type = an_ifc_encoded_source_literal_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -995,8 +995,8 @@ using an_ifc_encoded_source_operator_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedSourceOperatorSort.
 */
-struct an_ifc_encoded_source_operator_sort :
-         an_ifc_Implicit_numeric<an_ifc_encoded_source_operator_sort_storage> {
+struct an_ifc_encoded_source_operator_sort : an_ifc_Implicit_numeric<
+                                 an_ifc_encoded_source_operator_sort_storage> {
   using storage_type = an_ifc_encoded_source_operator_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1009,8 +1009,8 @@ using an_ifc_encoded_source_punctuator_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedSourcePunctuatorSort.
 */
-struct an_ifc_encoded_source_punctuator_sort :
-       an_ifc_Implicit_numeric<an_ifc_encoded_source_punctuator_sort_storage> {
+struct an_ifc_encoded_source_punctuator_sort : an_ifc_Implicit_numeric<
+                               an_ifc_encoded_source_punctuator_sort_storage> {
   using storage_type = an_ifc_encoded_source_punctuator_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1023,8 +1023,8 @@ using an_ifc_encoded_specialization_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedSpecializationSort.
 */
-struct an_ifc_encoded_specialization_sort :
-          an_ifc_Implicit_numeric<an_ifc_encoded_specialization_sort_storage> {
+struct an_ifc_encoded_specialization_sort : an_ifc_Implicit_numeric<
+                                  an_ifc_encoded_specialization_sort_storage> {
   using storage_type = an_ifc_encoded_specialization_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1037,8 +1037,8 @@ using an_ifc_encoded_stmt_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedStmtIndex.
 */
-struct an_ifc_encoded_stmt_index :
-                   an_ifc_Implicit_numeric<an_ifc_encoded_stmt_index_storage> {
+struct an_ifc_encoded_stmt_index : an_ifc_Implicit_numeric<
+                                           an_ifc_encoded_stmt_index_storage> {
   using storage_type = an_ifc_encoded_stmt_index_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1051,8 +1051,8 @@ using an_ifc_encoded_stmt_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedStmtSort.
 */
-struct an_ifc_encoded_stmt_sort :
-                    an_ifc_Implicit_numeric<an_ifc_encoded_stmt_sort_storage> {
+struct an_ifc_encoded_stmt_sort : an_ifc_Implicit_numeric<
+                                            an_ifc_encoded_stmt_sort_storage> {
   using storage_type = an_ifc_encoded_stmt_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1066,7 +1066,8 @@ using an_ifc_encoded_storage_instruction_operator_sort_storage = uint16_t;
 The universal representation for an IFC EncodedStorageInstructionOperatorSort.
 */
 struct an_ifc_encoded_storage_instruction_operator_sort :
-an_ifc_Implicit_numeric<an_ifc_encoded_storage_instruction_operator_sort_storage> {
+                                                       an_ifc_Implicit_numeric<
+                    an_ifc_encoded_storage_instruction_operator_sort_storage> {
   using storage_type =
                       an_ifc_encoded_storage_instruction_operator_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
@@ -1080,8 +1081,8 @@ using an_ifc_encoded_string_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedStringIndex.
 */
-struct an_ifc_encoded_string_index :
-                 an_ifc_Implicit_numeric<an_ifc_encoded_string_index_storage> {
+struct an_ifc_encoded_string_index : an_ifc_Implicit_numeric<
+                                         an_ifc_encoded_string_index_storage> {
   using storage_type = an_ifc_encoded_string_index_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1094,8 +1095,8 @@ using an_ifc_encoded_string_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedStringSort.
 */
-struct an_ifc_encoded_string_sort :
-                  an_ifc_Implicit_numeric<an_ifc_encoded_string_sort_storage> {
+struct an_ifc_encoded_string_sort : an_ifc_Implicit_numeric<
+                                          an_ifc_encoded_string_sort_storage> {
   using storage_type = an_ifc_encoded_string_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1108,8 +1109,8 @@ using an_ifc_encoded_syntax_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedSyntaxIndex.
 */
-struct an_ifc_encoded_syntax_index :
-                 an_ifc_Implicit_numeric<an_ifc_encoded_syntax_index_storage> {
+struct an_ifc_encoded_syntax_index : an_ifc_Implicit_numeric<
+                                         an_ifc_encoded_syntax_index_storage> {
   using storage_type = an_ifc_encoded_syntax_index_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1122,8 +1123,8 @@ using an_ifc_encoded_syntax_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedSyntaxSort.
 */
-struct an_ifc_encoded_syntax_sort :
-                  an_ifc_Implicit_numeric<an_ifc_encoded_syntax_sort_storage> {
+struct an_ifc_encoded_syntax_sort : an_ifc_Implicit_numeric<
+                                          an_ifc_encoded_syntax_sort_storage> {
   using storage_type = an_ifc_encoded_syntax_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1136,8 +1137,8 @@ using an_ifc_encoded_triadic_operator_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedTriadicOperatorSort.
 */
-struct an_ifc_encoded_triadic_operator_sort :
-        an_ifc_Implicit_numeric<an_ifc_encoded_triadic_operator_sort_storage> {
+struct an_ifc_encoded_triadic_operator_sort : an_ifc_Implicit_numeric<
+                                an_ifc_encoded_triadic_operator_sort_storage> {
   using storage_type = an_ifc_encoded_triadic_operator_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1150,8 +1151,8 @@ using an_ifc_encoded_type_basis_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedTypeBasisSort.
 */
-struct an_ifc_encoded_type_basis_sort :
-              an_ifc_Implicit_numeric<an_ifc_encoded_type_basis_sort_storage> {
+struct an_ifc_encoded_type_basis_sort : an_ifc_Implicit_numeric<
+                                      an_ifc_encoded_type_basis_sort_storage> {
   using storage_type = an_ifc_encoded_type_basis_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1164,8 +1165,8 @@ using an_ifc_encoded_type_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedTypeIndex.
 */
-struct an_ifc_encoded_type_index :
-                   an_ifc_Implicit_numeric<an_ifc_encoded_type_index_storage> {
+struct an_ifc_encoded_type_index : an_ifc_Implicit_numeric<
+                                           an_ifc_encoded_type_index_storage> {
   using storage_type = an_ifc_encoded_type_index_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1178,8 +1179,8 @@ using an_ifc_encoded_type_precision_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedTypePrecisionSort.
 */
-struct an_ifc_encoded_type_precision_sort :
-          an_ifc_Implicit_numeric<an_ifc_encoded_type_precision_sort_storage> {
+struct an_ifc_encoded_type_precision_sort : an_ifc_Implicit_numeric<
+                                  an_ifc_encoded_type_precision_sort_storage> {
   using storage_type = an_ifc_encoded_type_precision_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1192,8 +1193,8 @@ using an_ifc_encoded_type_sign_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedTypeSignSort.
 */
-struct an_ifc_encoded_type_sign_sort :
-               an_ifc_Implicit_numeric<an_ifc_encoded_type_sign_sort_storage> {
+struct an_ifc_encoded_type_sign_sort : an_ifc_Implicit_numeric<
+                                       an_ifc_encoded_type_sign_sort_storage> {
   using storage_type = an_ifc_encoded_type_sign_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1206,8 +1207,8 @@ using an_ifc_encoded_type_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedTypeSort.
 */
-struct an_ifc_encoded_type_sort :
-                    an_ifc_Implicit_numeric<an_ifc_encoded_type_sort_storage> {
+struct an_ifc_encoded_type_sort : an_ifc_Implicit_numeric<
+                                            an_ifc_encoded_type_sort_storage> {
   using storage_type = an_ifc_encoded_type_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1220,8 +1221,8 @@ using an_ifc_encoded_unit_index_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedUnitIndex.
 */
-struct an_ifc_encoded_unit_index :
-                   an_ifc_Implicit_numeric<an_ifc_encoded_unit_index_storage> {
+struct an_ifc_encoded_unit_index : an_ifc_Implicit_numeric<
+                                           an_ifc_encoded_unit_index_storage> {
   using storage_type = an_ifc_encoded_unit_index_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1234,8 +1235,8 @@ using an_ifc_encoded_unit_sort_storage = uint32_t;
 /*
 The universal representation for an IFC EncodedUnitSort.
 */
-struct an_ifc_encoded_unit_sort :
-                    an_ifc_Implicit_numeric<an_ifc_encoded_unit_sort_storage> {
+struct an_ifc_encoded_unit_sort : an_ifc_Implicit_numeric<
+                                            an_ifc_encoded_unit_sort_storage> {
   using storage_type = an_ifc_encoded_unit_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1248,8 +1249,8 @@ using an_ifc_encoded_variadic_operator_sort_storage = uint16_t;
 /*
 The universal representation for an IFC EncodedVariadicOperatorSort.
 */
-struct an_ifc_encoded_variadic_operator_sort :
-       an_ifc_Implicit_numeric<an_ifc_encoded_variadic_operator_sort_storage> {
+struct an_ifc_encoded_variadic_operator_sort : an_ifc_Implicit_numeric<
+                               an_ifc_encoded_variadic_operator_sort_storage> {
   using storage_type = an_ifc_encoded_variadic_operator_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1262,8 +1263,8 @@ using an_ifc_encoded_word_sort_storage = uint8_t;
 /*
 The universal representation for an IFC EncodedWordSort.
 */
-struct an_ifc_encoded_word_sort :
-                    an_ifc_Implicit_numeric<an_ifc_encoded_word_sort_storage> {
+struct an_ifc_encoded_word_sort : an_ifc_Implicit_numeric<
+                                            an_ifc_encoded_word_sort_storage> {
   using storage_type = an_ifc_encoded_word_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1276,8 +1277,8 @@ using an_ifc_entity_size_storage = uint32_t;
 /*
 The universal representation for an IFC EntitySize.
 */
-struct an_ifc_entity_size :
-                          an_ifc_Implicit_numeric<an_ifc_entity_size_storage> {
+struct an_ifc_entity_size : an_ifc_Implicit_numeric<
+                                                  an_ifc_entity_size_storage> {
   using storage_type = an_ifc_entity_size_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1290,8 +1291,8 @@ using an_ifc_form_operator_sort_storage = uint16_t;
 /*
 The universal representation for an IFC FormOperatorSort.
 */
-struct an_ifc_form_operator_sort :
-                   an_ifc_Implicit_numeric<an_ifc_form_operator_sort_storage> {
+struct an_ifc_form_operator_sort : an_ifc_Implicit_numeric<
+                                           an_ifc_form_operator_sort_storage> {
   using storage_type = an_ifc_form_operator_sort_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1304,8 +1305,8 @@ using an_ifc_form_spec_index_storage = uint32_t;
 /*
 The universal representation for an IFC FormSpecIndex.
 */
-struct an_ifc_form_spec_index :
-                      an_ifc_Implicit_numeric<an_ifc_form_spec_index_storage> {
+struct an_ifc_form_spec_index : an_ifc_Implicit_numeric<
+                                              an_ifc_form_spec_index_storage> {
   using storage_type = an_ifc_form_spec_index_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1318,8 +1319,8 @@ using an_ifc_guide_traits_bitfield_storage = uint8_t;
 /*
 The universal representation for an IFC GuideTraitsBitfield.
 */
-struct an_ifc_guide_traits_bitfield :
-                an_ifc_Implicit_numeric<an_ifc_guide_traits_bitfield_storage> {
+struct an_ifc_guide_traits_bitfield : an_ifc_Implicit_numeric<
+                                        an_ifc_guide_traits_bitfield_storage> {
   using storage_type = an_ifc_guide_traits_bitfield_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1345,8 +1346,8 @@ using an_ifc_language_version_storage = uint32_t;
 /*
 The universal representation for an IFC LanguageVersion.
 */
-struct an_ifc_language_version :
-                     an_ifc_Implicit_numeric<an_ifc_language_version_storage> {
+struct an_ifc_language_version : an_ifc_Implicit_numeric<
+                                             an_ifc_language_version_storage> {
   using storage_type = an_ifc_language_version_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1372,8 +1373,8 @@ using an_ifc_line_number_storage = uint32_t;
 /*
 The universal representation for an IFC LineNumber.
 */
-struct an_ifc_line_number :
-                          an_ifc_Implicit_numeric<an_ifc_line_number_storage> {
+struct an_ifc_line_number : an_ifc_Implicit_numeric<
+                                                  an_ifc_line_number_storage> {
   using storage_type = an_ifc_line_number_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1399,8 +1400,8 @@ using an_ifc_parameter_level_storage = uint32_t;
 /*
 The universal representation for an IFC ParameterLevel.
 */
-struct an_ifc_parameter_level :
-                      an_ifc_Implicit_numeric<an_ifc_parameter_level_storage> {
+struct an_ifc_parameter_level : an_ifc_Implicit_numeric<
+                                              an_ifc_parameter_level_storage> {
   using storage_type = an_ifc_parameter_level_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1413,8 +1414,8 @@ using an_ifc_parameter_position_storage = uint32_t;
 /*
 The universal representation for an IFC ParameterPosition.
 */
-struct an_ifc_parameter_position :
-                   an_ifc_Implicit_numeric<an_ifc_parameter_position_storage> {
+struct an_ifc_parameter_position : an_ifc_Implicit_numeric<
+                                           an_ifc_parameter_position_storage> {
   using storage_type = an_ifc_parameter_position_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1427,8 +1428,8 @@ using an_ifc_scope_index_storage = uint32_t;
 /*
 The universal representation for an IFC ScopeIndex.
 */
-struct an_ifc_scope_index :
-                          an_ifc_Implicit_numeric<an_ifc_scope_index_storage> {
+struct an_ifc_scope_index : an_ifc_Implicit_numeric<
+                                                  an_ifc_scope_index_storage> {
   using storage_type = an_ifc_scope_index_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1441,8 +1442,8 @@ using an_ifc_segment_traits_storage = uint32_t;
 /*
 The universal representation for an IFC SegmentTraits.
 */
-struct an_ifc_segment_traits :
-                       an_ifc_Implicit_numeric<an_ifc_segment_traits_storage> {
+struct an_ifc_segment_traits : an_ifc_Implicit_numeric<
+                                               an_ifc_segment_traits_storage> {
   using storage_type = an_ifc_segment_traits_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1455,8 +1456,8 @@ using an_ifc_segment_type_storage = uint32_t;
 /*
 The universal representation for an IFC SegmentType.
 */
-struct an_ifc_segment_type :
-                         an_ifc_Implicit_numeric<an_ifc_segment_type_storage> {
+struct an_ifc_segment_type : an_ifc_Implicit_numeric<
+                                                 an_ifc_segment_type_storage> {
   using storage_type = an_ifc_segment_type_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1469,8 +1470,8 @@ using an_ifc_sentence_index_storage = uint32_t;
 /*
 The universal representation for an IFC SentenceIndex.
 */
-struct an_ifc_sentence_index :
-                       an_ifc_Implicit_numeric<an_ifc_sentence_index_storage> {
+struct an_ifc_sentence_index : an_ifc_Implicit_numeric<
+                                               an_ifc_sentence_index_storage> {
   using storage_type = an_ifc_sentence_index_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1483,8 +1484,8 @@ using an_ifc_source_unknown_identifier_storage = uint32_t;
 /*
 The universal representation for an IFC SourceUnknownIdentifier.
 */
-struct an_ifc_source_unknown_identifier :
-            an_ifc_Implicit_numeric<an_ifc_source_unknown_identifier_storage> {
+struct an_ifc_source_unknown_identifier : an_ifc_Implicit_numeric<
+                                    an_ifc_source_unknown_identifier_storage> {
   using storage_type = an_ifc_source_unknown_identifier_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1497,8 +1498,8 @@ using an_ifc_source_unknown_literal_storage = uint32_t;
 /*
 The universal representation for an IFC SourceUnknownLiteral.
 */
-struct an_ifc_source_unknown_literal :
-               an_ifc_Implicit_numeric<an_ifc_source_unknown_literal_storage> {
+struct an_ifc_source_unknown_literal : an_ifc_Implicit_numeric<
+                                       an_ifc_source_unknown_literal_storage> {
   using storage_type = an_ifc_source_unknown_literal_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1511,8 +1512,8 @@ using an_ifc_source_unknown_word_storage = uint16_t;
 /*
 The universal representation for an IFC SourceUnknownWord.
 */
-struct an_ifc_source_unknown_word :
-                  an_ifc_Implicit_numeric<an_ifc_source_unknown_word_storage> {
+struct an_ifc_source_unknown_word : an_ifc_Implicit_numeric<
+                                          an_ifc_source_unknown_word_storage> {
   using storage_type = an_ifc_source_unknown_word_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -1525,8 +1526,8 @@ using an_ifc_text_offset_storage = uint32_t;
 /*
 The universal representation for an IFC TextOffset.
 */
-struct an_ifc_text_offset :
-                          an_ifc_Implicit_numeric<an_ifc_text_offset_storage> {
+struct an_ifc_text_offset : an_ifc_Implicit_numeric<
+                                                  an_ifc_text_offset_storage> {
   using storage_type = an_ifc_text_offset_storage;
   using base_type = an_ifc_Implicit_numeric<storage_type>;
   using base_type::an_ifc_Implicit_numeric;
@@ -4848,8 +4849,8 @@ using an_ifc_decl_foreign_index_storage = uint32_t;
 /*
 The universal representation for an IFC DeclForeignIndex.
 */
-struct an_ifc_decl_foreign_index :
-                            an_ifc_Numeric<an_ifc_decl_foreign_index_storage> {
+struct an_ifc_decl_foreign_index : an_ifc_Numeric<
+                                           an_ifc_decl_foreign_index_storage> {
   using storage_type = an_ifc_decl_foreign_index_storage;
   using base_type = an_ifc_Numeric<storage_type>;
   using base_type::an_ifc_Numeric;
@@ -4874,8 +4875,8 @@ using an_ifc_basic_specifiers_bitfield_storage = uint8_t;
 /*
 The universal representation for an IFC BasicSpecifiersBitfield.
 */
-struct an_ifc_basic_specifiers_bitfield :
-                     an_ifc_Numeric<an_ifc_basic_specifiers_bitfield_storage> {
+struct an_ifc_basic_specifiers_bitfield : an_ifc_Numeric<
+                                    an_ifc_basic_specifiers_bitfield_storage> {
   using storage_type = an_ifc_basic_specifiers_bitfield_storage;
   using base_type = an_ifc_Numeric<storage_type>;
   using base_type::an_ifc_Numeric;
@@ -4916,8 +4917,8 @@ using an_ifc_function_traits_bitfield_storage = uint16_t;
 /*
 The universal representation for an IFC FunctionTraitsBitfield.
 */
-struct an_ifc_function_traits_bitfield :
-                      an_ifc_Numeric<an_ifc_function_traits_bitfield_storage> {
+struct an_ifc_function_traits_bitfield : an_ifc_Numeric<
+                                     an_ifc_function_traits_bitfield_storage> {
   using storage_type = an_ifc_function_traits_bitfield_storage;
   using base_type = an_ifc_Numeric<storage_type>;
   using base_type::an_ifc_Numeric;
@@ -4954,8 +4955,8 @@ using an_ifc_function_type_traits_bitfield_storage = uint8_t;
 /*
 The universal representation for an IFC FunctionTypeTraitsBitfield.
 */
-struct an_ifc_function_type_traits_bitfield :
-                 an_ifc_Numeric<an_ifc_function_type_traits_bitfield_storage> {
+struct an_ifc_function_type_traits_bitfield : an_ifc_Numeric<
+                                an_ifc_function_type_traits_bitfield_storage> {
   using storage_type = an_ifc_function_type_traits_bitfield_storage;
   using base_type = an_ifc_Numeric<storage_type>;
   using base_type::an_ifc_Numeric;
@@ -4998,8 +4999,8 @@ using an_ifc_msvc_traits_bitfield_storage = uint32_t;
 /*
 The universal representation for an IFC MsvcTraitsBitfield.
 */
-struct an_ifc_msvc_traits_bitfield :
-                          an_ifc_Numeric<an_ifc_msvc_traits_bitfield_storage> {
+struct an_ifc_msvc_traits_bitfield : an_ifc_Numeric<
+                                         an_ifc_msvc_traits_bitfield_storage> {
   using storage_type = an_ifc_msvc_traits_bitfield_storage;
   using base_type = an_ifc_Numeric<storage_type>;
   using base_type::an_ifc_Numeric;
@@ -5044,8 +5045,8 @@ using an_ifc_object_traits_bitfield_storage = uint8_t;
 /*
 The universal representation for an IFC ObjectTraitsBitfield.
 */
-struct an_ifc_object_traits_bitfield :
-                        an_ifc_Numeric<an_ifc_object_traits_bitfield_storage> {
+struct an_ifc_object_traits_bitfield : an_ifc_Numeric<
+                                       an_ifc_object_traits_bitfield_storage> {
   using storage_type = an_ifc_object_traits_bitfield_storage;
   using base_type = an_ifc_Numeric<storage_type>;
   using base_type::an_ifc_Numeric;
@@ -5076,8 +5077,8 @@ using an_ifc_qualifier_bitfield_storage = uint8_t;
 /*
 The universal representation for an IFC QualifierBitfield.
 */
-struct an_ifc_qualifier_bitfield :
-                            an_ifc_Numeric<an_ifc_qualifier_bitfield_storage> {
+struct an_ifc_qualifier_bitfield : an_ifc_Numeric<
+                                           an_ifc_qualifier_bitfield_storage> {
   using storage_type = an_ifc_qualifier_bitfield_storage;
   using base_type = an_ifc_Numeric<storage_type>;
   using base_type::an_ifc_Numeric;
@@ -5106,8 +5107,8 @@ using an_ifc_reachable_properties_bitfield_storage = uint8_t;
 /*
 The universal representation for an IFC ReachablePropertiesBitfield.
 */
-struct an_ifc_reachable_properties_bitfield :
-                 an_ifc_Numeric<an_ifc_reachable_properties_bitfield_storage> {
+struct an_ifc_reachable_properties_bitfield : an_ifc_Numeric<
+                                an_ifc_reachable_properties_bitfield_storage> {
   using storage_type = an_ifc_reachable_properties_bitfield_storage;
   using base_type = an_ifc_Numeric<storage_type>;
   using base_type::an_ifc_Numeric;
@@ -5139,8 +5140,8 @@ using an_ifc_scope_traits_bitfield_storage = uint8_t;
 /*
 The universal representation for an IFC ScopeTraitsBitfield.
 */
-struct an_ifc_scope_traits_bitfield :
-                         an_ifc_Numeric<an_ifc_scope_traits_bitfield_storage> {
+struct an_ifc_scope_traits_bitfield : an_ifc_Numeric<
+                                        an_ifc_scope_traits_bitfield_storage> {
   using storage_type = an_ifc_scope_traits_bitfield_storage;
   using base_type = an_ifc_Numeric<storage_type>;
   using base_type::an_ifc_Numeric;
