@@ -815,6 +815,7 @@ modes.
     enter_keyword(tok_is_referenceable, "__is_referenceable");
     /* These next two are synonyms for existing intrinsics. */
     enter_keyword((a_token_kind)tok_is_literal_type, "__is_literal");
+    enter_keyword((a_token_kind)tok_is_convertible, "__is_convertible");
   }  /* if */
   if (gnu_version_is(>=130000)) {
     enter_keyword((a_token_kind)tok_is_convertible, "__is_convertible");

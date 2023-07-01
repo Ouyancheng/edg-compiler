@@ -50039,6 +50039,7 @@ a enclosing expression).
       case tok_is_same_as:
       case tok_is_base_of:
       case tok_is_convertible_to:
+      case tok_is_convertible:
       case tok_is_nothrow_convertible:
       case tok_reference_binds_to_temporary:
       case tok_reference_constructs_from_temporary:
