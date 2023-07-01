@@ -1329,6 +1329,7 @@ enum a_token_kind : unsigned short {
   tok_is_base_of,
   tok_is_class,
   tok_is_convertible_to,
+  tok_is_convertible,
   tok_is_nothrow_convertible,
   tok_is_empty,
   tok_is_enum,
@@ -1587,6 +1588,7 @@ EXTERN a_const_char
    "__is_base_of",
    "__is_class",
    "__is_convertible_to",
+   "__is_convertible",
    "__is_nothrow_convertible",
    "__is_empty",
    "__is_enum",
@@ -13558,7 +13560,10 @@ enum a_builtin_operation_kind : a_byte {
   bok_is_base_of,	/* __is_base_of.  Two operands, both types. */
   bok_is_class,		/* __is_class.  One operand: A type. */
   bok_is_convertible_to,
-			/* __is_convertible_to.  Two operands, both types. */
+			/* __is_convertible_to.  Two operands, both types
+                           (clang). */
+  bok_is_convertible,
+			/* __is_convertible.  Two operands, both types (GNU).*/
   bok_is_empty,		/* __is_empty.  One operand: A type. */
   bok_is_enum,		/* __is_enum.  One operand: A type. */
   bok_is_pod,		/* __is_pod.  One operand: A type. */
@@ -18203,6 +18208,7 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__is_base_of",
   "__is_class",
   "__is_convertible_to",
+  "__is_convertible",
   "__is_empty",
   "__is_enum",
   "__is_pod",

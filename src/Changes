@@ -1,5 +1,15 @@
 Version 6.6
 
+7/1/23   [EDGcpfe/26456,EDGcpfe/26478]
+GNU compatibility: __is_convertible
+
+The GNU and Clang compilers use different builtin function names for the same
+function (__is_convertible in GNU and __is_convertible_to in Clang).  The
+changes for EDGcpfe/26276 had added __is_convertible in GNU modes, but when
+using the C++-generating back end, this was inadvertently translated to
+__is_convertible_to in the generated C++ code.  Now fixed.
+
+
 6/30/23  [EDGcpfe/26341]
 Clang/GCC compatibility: constexpr member functions and by-reference capture
 

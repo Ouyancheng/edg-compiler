@@ -7669,7 +7669,7 @@ static void fold_is_convertible_to(an_expr_node_ptr   expr,
                                    a_constant_ptr     constant,
                                    a_boolean          maintain_expression)
 /*
-expr is an enk_builtin_operation node for an __is_convertible or
+expr is an enk_builtin_operation node for an __is_convertible[_to] or
 __is_nothrow_convertible operation, which implement the C++ standard library
 is_convertible/is_nothrow_convertible type relationship predicates (see
 [lib.meta.rel]).  Store a boolean constant in *constant whose value is "true"
@@ -10063,6 +10063,7 @@ constant is set as well.
         fold_is_base_of(expr, constant, maintain_expression);
         break;
       case bok_is_convertible_to:
+      case bok_is_convertible:
       case bok_is_nothrow_convertible:
         fold_is_convertible_to(expr, constant, maintain_expression);
         break;

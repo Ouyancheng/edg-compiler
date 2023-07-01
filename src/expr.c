@@ -14414,6 +14414,9 @@ previously-scanned construct of this kind.  Either way, return the result in
       case tok_is_convertible_to:
         bok = bok_is_convertible_to;
         break;
+      case tok_is_convertible:
+        bok = bok_is_convertible;
+        break;
       case tok_is_nothrow_convertible:
         bok = bok_is_nothrow_convertible;
         break;
@@ -31812,6 +31815,7 @@ Return TRUE if the given token kind represents a "trait" name (like
     case tok_is_base_of:
     case tok_is_class:
     case tok_is_convertible_to:
+    case tok_is_convertible:
     case tok_is_nothrow_convertible:
     case tok_is_empty:
     case tok_is_enum:
@@ -34594,6 +34598,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_is_base_of:
     case tok_is_class:
     case tok_is_convertible_to:
+    case tok_is_convertible:
     case tok_is_nothrow_convertible:
     case tok_is_empty:
     case tok_is_enum:
@@ -40817,6 +40822,7 @@ handle_identifier:
     case tok_is_same_as:
     case tok_is_base_of:
     case tok_is_convertible_to:
+    case tok_is_convertible:
     case tok_is_nothrow_convertible:
     case tok_reference_binds_to_temporary:
     case tok_reference_constructs_from_temporary:
@@ -49087,6 +49093,9 @@ TRUE if the operator is a unary operator, FALSE otherwise.
       break;
     case bok_is_convertible_to:
       operator_token = tok_is_convertible_to;
+      break;
+    case bok_is_convertible:
+      operator_token = tok_is_convertible;
       break;
     case bok_is_nothrow_convertible:
       operator_token = tok_is_nothrow_convertible;
