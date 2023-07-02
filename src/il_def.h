@@ -13562,8 +13562,6 @@ enum a_builtin_operation_kind : a_byte {
   bok_is_convertible_to,
 			/* __is_convertible_to.  Two operands, both types
                            (clang). */
-  bok_is_convertible,
-			/* __is_convertible.  Two operands, both types (GNU).*/
   bok_is_empty,		/* __is_empty.  One operand: A type. */
   bok_is_enum,		/* __is_enum.  One operand: A type. */
   bok_is_pod,		/* __is_pod.  One operand: A type. */
@@ -13716,6 +13714,8 @@ enum a_builtin_operation_kind : a_byte {
   bok_reference_converts_from_temporary,
 			/* GCC's __reference_converts_from_temporary.  Two type
 			   operands. */
+  bok_is_convertible,
+			/* __is_convertible.  Two operands, both types (GNU).*/
   bok_last              /* Marks the end of the list. */
 };
 
@@ -18208,7 +18208,6 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__is_base_of",
   "__is_class",
   "__is_convertible_to",
-  "__is_convertible",
   "__is_empty",
   "__is_enum",
   "__is_pod",
@@ -18295,6 +18294,7 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__is_nothrow_convertible",
   "__reference_constructs_from_temporary",
   "__reference_converts_from_temporary",
+  "__is_convertible",
   "last"
 }
 #endif /* VAR_INITIALIZERS */
