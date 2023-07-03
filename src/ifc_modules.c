@@ -1181,12 +1181,12 @@ module file if it was successfully opened; otherwise, return FALSE.
        becomes "__noname_enum_x_"). */
 #if USE_MMAP_FOR_MEMORY_REGIONS
 #if EDG_WIN32
-    open_mapped_input_file(mod->full_name, &mapped_input, &map_object);
+    open_mapped_input_file(file_path, &file->mapped_input, &file->map_object);
 #endif /* EDG_WIN32 */
     file.mmap_size = stat_buf.st_size;
     file.mmap_addr = map_input_file_to_region(file_handle,
 #if EDG_WIN32
-                                              map_object,
+                                              file->map_object,
 #else /* !EDG_WIN32 */
                                               (a_windows_handle)0,
 #endif /* EDG_WIN32 */
