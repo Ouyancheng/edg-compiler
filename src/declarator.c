@@ -3635,7 +3635,6 @@ an error if a default argument expression is encountered.
             default_arg_allowed_on_curr_param = FALSE;
           }  /* if */
         } else {
-          ptp->is_pack_element = is_pack_element;
           if (is_non_initial_pack_element) {
             ptp->duplicate_name = TRUE;
           } else if (param_state.has_pack_ellipsis &&
@@ -3660,7 +3659,7 @@ an error if a default argument expression is encountered.
                      scope_stack_top().in_nonreal_instantiation &&
                      !scope_stack_top().is_rescan) {
             /* In nonreal instantiations (other than rescan contexts), we also
-               may need to record that a pack element is a pack in itself.
+               may need to record that a pack element is a pack instead.
                For example:
                  template<typename> struct B;
                  template<typename R, typename ... Ps> struct X {
@@ -3672,7 +3671,9 @@ an error if a default argument expression is encountered.
                must produce B<R(Ps...)> and not just B<R(Ps)>.
             */
             ptp->is_parameter_pack = TRUE;
+            is_pack_element = FALSE;
           }  /* if */
+          ptp->is_pack_element = is_pack_element;
           if (is_pack_element &&
               scope_is(&scope_stack_top()-1, sck_template_instantiation)) {
             default_arg_allowed_on_curr_param = FALSE;
