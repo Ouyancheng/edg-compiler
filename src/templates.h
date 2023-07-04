@@ -988,6 +988,15 @@ extern a_symbol_ptr copy_template_variable_with_substitution(
 			a_boolean			*copy_error,
 			a_ctws_state_ptr		ctws_state);
 
+extern a_symbol_ptr copy_template_routine_with_substitution(
+			a_routine_ptr			rp,
+			a_template_arg_ptr		templ_arg_list,
+			a_template_param_ptr		templ_param_list,
+			a_source_position		*source_pos,
+			a_ctws_options_set		options,
+			a_boolean			*copy_error,
+			a_ctws_state_ptr		ctws_state);
+
 extern a_type_ptr copy_type_with_substitution(
 			a_type_ptr			type,
 			a_template_arg_ptr		templ_arg_list,

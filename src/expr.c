@@ -48976,6 +48976,37 @@ is TRUE if the expression is the immediate operand of an "&" operator.
         }  /* if */
       }
       break;
+    case enk_routine:
+      { a_routine_ptr  rp = expr->variant.routine.ptr;
+        /* For a templated function, find the instance based on the
+           substituted arguments. */
+        if (rp->assoc_template != NULL) {
+          a_boolean  copy_error = FALSE;
+          sym = copy_template_routine_with_substitution(
+                          rp, rcblock->template_arg_list,
+                          rcblock->template_param_list,
+                          &rcblock->expr->position, rcblock->options,
+                          &copy_error, rcblock->ctws_state);
+          if (sym == NULL) {
+            /* Substitution failed (e.g., because the constraints were not
+               satisfied). */
+            copy_error = TRUE;
+          } else if (is_nontype_template_param_symbol(sym) &&
+                     rp->template_arg_list != NULL) {
+            /* Identify the arguments for the function template instance. */
+            is_template_id = TRUE;
+            expl_templ_arg_list = rp->template_arg_list;
+          }  /* if */
+          if (copy_error) {
+            subst_fail(rcblock->error_detected);
+            make_error_operand(result);
+            copy_operand_position(&eriep->saved_operand, result);
+          }  /* if */
+        } else {
+          sym = symbol_for(rp);
+        }  /* if */
+      }
+      break;
     case enk_constant:
       { /* Constant case (ck_template_param representing an unknown name). */
         a_constant_ptr con;
@@ -49615,6 +49646,14 @@ set accordingly.
     if (vp->is_template_variable ||
         (vp->source_corresp.is_local_to_function &&
          !scope_is(&scope_stack_top(), sck_function_access))) {
+      operator_token = tok_identifier;
+    } else {
+      rescannable = FALSE;
+    }  /* if */
+  } else if (expr->kind == enk_routine) {
+    /* A function reference: Rescannable if it is a templated function. */
+    a_routine_ptr  rp = node_routine(expr);
+    if (rp->assoc_template != NULL) {
       operator_token = tok_identifier;
     } else {
       rescannable = FALSE;

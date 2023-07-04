@@ -8466,6 +8466,7 @@ if the constraints fails, or FALSE otherwise.
   an_expr_node_ptr       constraint;
   a_boolean              err = FALSE;
   a_type_ptr             enclosing_class, enclosing_template_class;
+  a_decl_parse_state     dps;
 
   sym->variant.routine.pending_trailing_requires_clause = FALSE;
   if (symbol_is(sym, sk_member_function)) {
@@ -8478,6 +8479,14 @@ if the constraints fails, or FALSE otherwise.
     }  /* if */
     enclosing_class = sym_parent_class(sym);
     push_instantiation_scope_for_rescan(symbol_for(rp->assoc_template));
+    init_decl_parse_state(&dps);
+    dps.sym = sym;
+    dps.type = rp->type;
+    dps.is_inclass_member_function_decl = TRUE;
+    (void)push_scope(sck_func_prototype, NO_SCOPE_NUMBER, rp->type,
+                     (a_routine_ptr)NULL);
+    scope_stack_top().outside_parameter_list = TRUE;
+    scope_stack_top().decl_parse_state = &dps;
   } else {
     /* A friend function defined in a class template instance. */
     check_assertion(rp->routine_fixup != NULL);
@@ -8533,6 +8542,9 @@ if the constraints fails, or FALSE otherwise.
   if (err) {
     rp->is_ineligible = TRUE;
   }
+  if (symbol_is(sym, sk_member_function)) {
+    pop_scope();
+  }  /* if */
   pop_instantiation_scope_for_rescan();
   if (!symbol_is(sym, sk_member_function)) {
     pop_class_reactivation_scope();

@@ -1,5 +1,21 @@
 Version 6.6
 
+7/4/23   [EDGcpfe/26480]
+Substitution for call to member function of class template
+
+Consider, with --c++20 --g++:
+
+  template<typename T> struct C {
+    char g(T);
+    int f() requires (sizeof(g(1)) == 1);
+  };
+  int i = C<int>().f();  // Previously a spurious error.  Now okay.
+
+Previously, the front end failed to substitute the member function g during
+constraint checking, causing the constraint to not be satisfied.  That is now
+fixed.
+
+
 7/1/23   [EDGcpfe/26456,EDGcpfe/26478]
 C++-generating back end, GNU compatibility: __is_convertible
 

@@ -14024,6 +14024,76 @@ will not be for a variable, but for a ck_template_param constant.)
 }  /* copy_template_variable_with_substitution */
 
 
+a_symbol_ptr copy_template_routine_with_substitution(
+			a_routine_ptr			rp,
+			a_template_arg_ptr		templ_arg_list,
+			a_template_param_ptr		templ_param_list,
+			a_source_position		*source_pos,
+			a_ctws_options_set		options,
+			a_boolean			*copy_error,
+			a_ctws_state_ptr		ctws_state)
+/*
+Copy the routine specified by rp, substituting the template argument list and
+parameter list specified by templ_arg_list and templ_param_list.  Return a
+pointer to the resulting symbol, or NULL if an error occurred.
+*/
+{
+  a_symbol_ptr  sym = symbol_for(rp);
+
+  /* If this is a class member, substitute the parent. */
+  if (sym->is_class_member &&
+      sym_parent_class(sym)->variant.class_struct_union.is_nonreal_class) {
+    a_template_ptr  func_templ = rp->assoc_template;
+    a_type_ptr      parent_type;
+    parent_type = parent_class_of(rp);
+    sym = copy_parent_type_with_substitution(symbol_for(func_templ),
+                                             parent_type,
+                                             templ_arg_list, templ_param_list,
+                                             source_pos, /*is_type=*/FALSE,
+                                             (a_type_ptr*)NULL, options,
+                                             copy_error, ctws_state);
+    if (sym != NULL) sym = fundamental_symbol_of(sym);
+    if (sym == NULL) {
+      /* The function was specified as something like A<T>::f, but the
+         substituted "A<T>" does not contain a f. */
+      subst_fail(*copy_error);
+    } else if (symbol_is(sym, sk_function_template)) {
+      /* A<T>::f is a function template: Substitute it. */
+      a_template_arg_ptr      t_args = rp->template_arg_list;
+      if (t_args != NULL) {
+        a_template_param_ptr  t_params = templ_params_of(sym);
+        t_args =
+              copy_template_arg_list_with_substitution_rebuilding_arg_operands(
+                                              sym, t_args, t_params,
+                                              templ_arg_list, templ_param_list,
+                                              source_pos, options, copy_error,
+                                              ctws_state);
+        if (!*copy_error) {
+          sym = find_template_function(sym, &t_args,
+                                       /*explicit_arg_list_present=*/TRUE,
+                                       source_pos);
+        } else {
+          sym = NULL;
+        }  /* if */
+        if (sym == NULL) {
+          subst_fail(*copy_error);
+        }  /* if */
+      }  /* if */
+    } else if (symbol_is(sym, sk_member_function) ||
+               symbol_is(sym, sk_routine) ||
+               symbol_is(sym, sk_overloaded_function)) {
+      /* A<T>::f is a (potentially overloaded) function or member function.
+         Return it below. */
+    } else {
+      /* Something unexpected: Fail substitution. */
+      subst_fail(*copy_error);
+      sym = NULL;
+    }  /* if */
+  }  /* if */
+  return sym;
+}  /* copy_template_routine_with_substitution */
+
+
 static a_boolean conv_nontype_arg_to_required_type(
 				a_template_arg_ptr	tap,
 				a_type_ptr		type_required,
