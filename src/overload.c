@@ -10114,11 +10114,13 @@ lists pointed to by ns_list and class_list.
 
 
 static a_boolean any_function_has_dependent_param_or_default_arg(
-                                                              a_symbol_ptr sym)
+                                            a_symbol_ptr  sym,
+                                            a_boolean     check_impl_obj_param)
 /*
 sym is a function or set of overloaded functions.  Return TRUE if
 any member of the set has a dependent parameter or dependent default
-argument expression.
+argument expression.  If check_impl_obj_param is TRUE, also consider
+the implicit object parameter.
 */
 {
   a_boolean  any_dep = FALSE;
@@ -10157,6 +10159,10 @@ argument expression.
       rout_type = routine_symbol_type(fund_sym);
       check_assertion(rout_type->kind == (a_type_kind)tk_routine);
       rtsp = rout_type->variant.routine.extra_info;
+      if (check_impl_obj_param && rtsp->has_this_param) {
+        any_dep = TRUE;
+        goto end_of_function;
+      }  /* if */
       /* Loop through the parameter list looking for dependent types. */
       for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
         if (ptp->type_involves_template_param ||
@@ -10366,7 +10372,9 @@ dependent context.
     /* In Microsoft mode, symbols found in dependent base classes should
        be considered placeholders until the real instantiation. */
     defer = TRUE;
-  } else if (any_function_has_dependent_param_or_default_arg(sym)) {
+  } else if (any_function_has_dependent_param_or_default_arg(
+                                   sym,
+                                   gpp_mode || clang_mode || microsoft_mode)) {
     /* If any function in the set has a dependent parameter type we cannot
        do overload resolution.  If any function has a dependent default
        argument expression, we might be able to determine the function
