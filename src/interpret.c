@@ -19153,7 +19153,7 @@ the value representation of the integer value.
                     is_lambda_closure_type(type_pointed_to(var->type))) {
                   /* Clang and GCC accept x.f() where x is a run-time local
                      variable even when x is captured by reference and the
-                     expression has become something like __closure.ref_x->f()
+                     expression has become something like __closure.ref_x.f()
                      where an lvalue-to-rvalue transformation applies to
                      __closure.ref_x.  we emulate that by producing a run-time
                      address constant for the local variable lvalue. */ 
