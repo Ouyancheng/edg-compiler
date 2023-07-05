@@ -5901,8 +5901,8 @@ selection.
                       node_is(vnode, enk_operation));
       if (node_operator_is(vnode, eok_points_to_field)) {
         /* This can happen when the operand is copied with a shared underlying
-           expression and the expression has been rewritten already.  No
-           further rewrite is needed. */
+           expression and the expression has be rewritten already.  No further
+           rewrite is needed. */
         goto done;
       }  /* if */
       vnode = vnode->variant.operation.operands;

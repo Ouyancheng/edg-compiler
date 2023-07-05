@@ -66,16 +66,16 @@ and the front end now emulates that behavior in the corresponding modes.
 6/30/23  [EDGcpfe/26129]
 Abort when using a local variable as a template argument in a lambda
 
-Consider the following invalid example:
+Consider:
 
   template<int> void f() {}
   int main() {
     int N = 2;
-    [&](){ f<N>(); }();  // Error: N is not constant.
+    [&](){ f<N>(); }();
   }
 
 This previously triggered an internal error in get_lambda_for_scope_depth (in
-scope_stk.c).  That is now fixed (an ordinary error is now issued).
+scope_stk.c).  That is now fixed.
 
 
 6/29/23  [EDGcpfe/26465]
