@@ -16001,6 +16001,14 @@ are inserted at *insert_location, and *insert_location is updated.
     dip = ctor_init->variant.field->initializer;
   }  /* if */
   check_assertion(dip != NULL && ctor_init_this == NULL);
+  if (ctor_init->kind == cik_field &&
+      ctor_init->variant.field->is_optimized_empty_class &&
+      dip->kind == dik_bitwise_copy) {
+    /* Do not (bitwise) copy an empty base since (a) it is a no-op, and (b) its
+       more straightforward expression in the C-generating back end would cause
+       us to erroneously copy some bytes, like overwriting legitimate data. */
+    goto done;
+  }  /* if */
   /* Remember the "this" pointer for the ctor_init (ctor_inits can't be
      nested). */
   ctor_init_this = this_param_var;
@@ -16039,6 +16047,7 @@ are inserted at *insert_location, and *insert_location is updated.
     insert_pending_stmk_init_statements_at_mark(insert_location);
   }  /* if */
   ctor_init_this = NULL;
+done:;
 }  /* lower_ctor_init */
 
 
@@ -16825,7 +16834,7 @@ constructors are handled separately.
      ctor_init list (there should be no delegation constructors on this
      list). */
   for (; ctor_init != NULL; ctor_init = ctor_init->next) {
-    check_assertion(ctor_init->kind ==(a_constructor_init_kind)cik_field);
+    check_assertion(ctor_init->kind == (a_constructor_init_kind)cik_field);
     lower_ctor_init(ctor_init, this_param_var,
                     /*base_of_complete_object=*/FALSE,
                     (a_variable_ptr)NULL, insert_location);

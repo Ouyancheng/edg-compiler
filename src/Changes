@@ -1,5 +1,33 @@
 Version 6.6
 
+7/5/23   [EDGcpfe/26261]
+Trivial copy/move initialization of [[no_unique_address]] member
+
+Consider, in C++20 mode:
+
+  struct A {
+    unsigned u;
+    A(): u(0x11111111) {}
+    A(A &&a): u(a.u) { a.u = 0x33333333; }
+    A(A const &a): u(a.u) {}
+  };
+  struct E {};
+  struct C {
+    A a;
+    [[no_unique_address]] E e;
+  };
+  int main() {
+    C x{C{}}; // Use move constructor
+    return (int)x.a.u;
+  }
+
+The move constructor synthesized for C notionally "copies" the embedded empty
+data member e.  When using the C-generating back end, however, that translated
+to an actual byte copy from the source, which corrupted the eventual result.
+That has been fixed in IL lowering: Any trivial copy of an optimized empty
+class data member is now dropped from the IL.
+
+
 7/4/23   [EDGcpfe/24353,EDGcpfe/24386,EDGcpfe/24492,EDGcpfe/24598,
           EDGcpfe/26367]
 Substitution of alias template containing a function parameter pack
