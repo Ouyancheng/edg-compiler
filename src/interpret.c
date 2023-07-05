@@ -18815,7 +18815,7 @@ the value representation of the integer value.
                       is_reference_type(field->type)) {
                     /* Clang and GCC accept x.f() where x is a run-time local
                        variable even when x is captured by reference and the
-                       expression becomes something like __closure.ref_x->f()
+                       expression becomes something like __closure.ref_x.f()
                        where an lvalue-to-rvalue transformation applies to
                        __closure.ref_x.  We emulate that conversion by just
                        copying over the local-variable address: Any attempt
