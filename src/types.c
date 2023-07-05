@@ -2916,7 +2916,7 @@ no user-provided constructors, etc.
 
 a_boolean is_lambda_closure_type(a_type_ptr tp)
 /*
-Return TRUE if the given type is (after skipping typeref) a lambda closure
+Return TRUE if the given type is (after skipping typerefs) a lambda closure
 type.
 */
 {
