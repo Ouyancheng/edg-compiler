@@ -6646,6 +6646,7 @@ are expected to be NULL in that case.
   a_boolean         adl_suppressed_by_qualification = FALSE;
   a_boolean         found_through_adl = FALSE;
   a_boolean         has_overloaded_call_operator = FALSE;
+  a_boolean         member_of_proto_inst = FALSE;
   a_boolean         saved_uses_this_operand = expr_stack->uses_this_operand;
 
   db_enter(4, "scan_function_call");
@@ -6878,6 +6879,8 @@ are expected to be NULL in that case.
     if (is_sym_for_member_operand(operand) &&
         is_a_function_designator(operand) &&
         !operand->bound_function) {
+      a_symbol_ptr    member_func_sym = operand->symbol;
+      a_type_ptr      this_class = sym_parent_class(member_func_sym);
       if (((gpp_mode && !clang_mode) || microsoft_mode) &&
           expr_stack != NULL && expr_stack->is_default_arg_expression &&
           scope_stack_top().in_prototype_instantiation) {
@@ -6886,7 +6889,6 @@ are expected to be NULL in that case.
            it as an unknown function. */
         turn_mem_func_operand_into_unknown_function(operand);
       } else {
-        a_symbol_ptr  member_func_sym = operand->symbol;
         if (make_this_pointer_operand(member_func_sym, member_func_sym,
                                       &call_position,
                                       (a_boolean)operand->
@@ -6896,6 +6898,10 @@ are expected to be NULL in that case.
           a_source_position saved_end_position;
           saved_end_position = operand->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+          if (this_class
+                    ->variant.class_struct_union.is_prototype_instantiation) {
+            member_of_proto_inst = TRUE;
+          }  /* if */
           /* Make an operand for the function bound to the "this" pointer. */
           make_function_designator_operand(
                                     member_func_sym,
@@ -7061,7 +7067,8 @@ are expected to be NULL in that case.
          done below. */
       routine_type = NULL;
       prep_generic_operand(operand);
-      if (!is_template_param_type_or_ref_thereto(operand->type)) {
+      if ((gpp_mode || clang_mode || microsoft_mode) &&
+          member_of_proto_inst && !stricter_template_checking) {
         /* Make the call target opaque. */
         make_template_param_expr_constant_operand(operand);
         operand->type = type_of_unknown_templ_param_nontype;
