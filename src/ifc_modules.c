@@ -10012,16 +10012,17 @@ module token cache pointer.
 }  /* db_node_at_tsn */
 
 
-void an_ifc_module::db_locus(const an_ifc_source_location &locus)
+void db_locus(const an_ifc_source_location &locus)
 /*
 Print the corresponding file and line number for the source location
 (for debugging purposes).
 */
 {
-  a_const_char      *full_name, *diag_file_name;
-  a_line_number     line_number;
-  a_boolean         at_end_of_source;
-  a_source_position pos;
+  an_ifc_module_file *file = locus.get_file();
+  a_const_char       *full_name, *diag_file_name;
+  a_line_number      line_number;
+  a_boolean          at_end_of_source;
+  a_source_position  pos;
 
   diag_file_name = "";
   /* Save global information related to position before calling
@@ -10030,10 +10031,10 @@ Print the corresponding file and line number for the source location
   const an_ifc_partition_metadata *save_debug_partition = debug_partition;
 #endif /* DEBUG && EXPENSIVE_CHECKING */
 #if USE_MMAP_FOR_MEMORY_REGIONS
-  unsigned char *save_byte_buffer = this->file.byte_buffer;
-  unsigned char *save_buffer_end = this->file.buffer_end;
+  unsigned char *save_byte_buffer = file->byte_buffer;
+  unsigned char *save_buffer_end = file->buffer_end;
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
-  long save_seek = ftell(this->file.f_module);
+  long save_seek = ftell(file.f_module);
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   source_position_from_locus(&pos, locus);
   /* Restore saved information. */
@@ -10041,10 +10042,10 @@ Print the corresponding file and line number for the source location
   debug_partition = save_debug_partition;
 #endif /* DEBUG && EXPENSIVE_CHECKING */
 #if USE_MMAP_FOR_MEMORY_REGIONS
-  this->file.byte_buffer = save_byte_buffer;
-  this->file.buffer_end = save_buffer_end;
+  file->byte_buffer = save_byte_buffer;
+  file->buffer_end = save_buffer_end;
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
-  (void)fseek(this->file.f_module, save_seek, SEEK_SET);
+  (void)fseek(file->f_module, save_seek, SEEK_SET);
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   if (pos.seq != 0) {
     (void)conv_seq_to_file_and_line(pos.seq, &diag_file_name,
@@ -10053,7 +10054,7 @@ Print the corresponding file and line number for the source location
     (void)fprintf(f_debug, "%s: line %lu colmun %lu\n", full_name,
                   (unsigned long) line_number, (unsigned long) pos.column);
   }  /* if */
-}  /* an_ifc_module::db_locus */
+}  /* db_locus */
 
 #endif /* DEBUG */
 

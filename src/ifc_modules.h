@@ -553,7 +553,6 @@ public:
   void db_ifc_file_header() const;
   void db_ifc_scope(an_ifc_scope_index scope);
   void db_ifc_declaration(an_ifc_decl_index decl);
-  void db_locus(const an_ifc_source_location &locus);
 #if EXPENSIVE_CHECKING
   void f_db_get_byte(a_const_char *value_str,
                      void         *addr,
@@ -846,6 +845,8 @@ extern void db_node_at_tsn(a_token_cache_ptr        cache,
 
 extern void db_node_at_tsn(a_module_token_cache_ptr cache,
                            a_token_sequence_number  tsn);
+
+extern void db_locus(const an_ifc_source_location &locus);
 
 #endif /* DEBUG */
 
