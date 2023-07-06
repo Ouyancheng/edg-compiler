@@ -1,5 +1,22 @@
 Version 6.6
 
+7/6/23   [EDGcpfe/26458]
+GNU-mode abort on invalid construct
+
+Consider, in GNU C++20 mode:
+
+  template<typename T> struct X {
+    struct N { T x; };
+    alignas(__alignof__(N::x)) int i; 
+  };
+  void f();
+  X<f()> s;  // Previously sometimes aborted.  Now an ordinary error.
+
+This example produces several errors, but in some configurations it eventually
+also produced an internal error in extract_node_from_operand (exprutil.c).
+That internal error is now avoided and an ordinary error is issued instead.
+
+
 7/6/23   [EDGcpfe/26452]
 GNU C++ compatibility: auto(x) and auto{x}
 

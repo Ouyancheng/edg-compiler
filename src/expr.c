@@ -12407,6 +12407,7 @@ for the sizeof result is built and returned there.
       /* An expression in a prototype instantiation. */
       prep_generic_operand(operand);
     }  /* if */
+    eliminate_unusual_operand_kinds(operand);
     expr = make_node_from_operand(operand);
     node->variant.sizeof_info.variant.expr = expr;
     /* Make sure the referenced flag is set on a VLA variable. */
