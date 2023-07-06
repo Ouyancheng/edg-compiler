@@ -4194,7 +4194,7 @@ can be found, return NULL.
       /* We currently have no structure that maps parameter coordinates to the
          parameter representation.  We therefore just search the scope stack
          for the required information. */
-      do {
+      while (TRUE) {
         a_template_param_ptr    tpp = NULL;
         a_scope_stack_entry_ptr ssep = &(scope_stack[sd]);
 
@@ -4231,7 +4231,11 @@ can be found, return NULL.
             }  /* if */
           }  /* if */
         }  /* if */
-      } while (--sd != DEPTH_OF_FILE_SCOPE);
+        if (sd == DEPTH_OF_FILE_SCOPE) {
+          break;
+        }  /* if */
+        --sd;
+      }  /* while */
     } else {
       Opt<a_string> opt_name = name_from_decl(decl_idx);
 
