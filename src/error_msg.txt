@@ -3427,6 +3427,7 @@ ec_ptr_to_member_operand;;"<pointer-to-member>"
 ec_bool_operand;;"<bool>"
 ec_bool_equivalent_operand;;"<bool-like>"
 ec_class_operand;;"<class>"
+ec_auto_cast_is_cpp23;;"auto(<expr>) and auto{<expr>} are a C++23 feature"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

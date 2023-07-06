@@ -1,5 +1,13 @@
 Version 6.6
 
+7/6/23   [EDGcpfe/26452]
+GNU C++ compatibility: auto(x) and auto{x}
+
+The C++23 feature allowing functional-notation casts to type "auto" is now
+accepted with a warning in non-C++23 GNU C++ modes when gnu_version >= 120000.
+(See also the entry for EDGcpfe/25075.)
+
+
 7/6/23   [EDGcpfe/26435]
 Abort on CTAD with non-type template parameter in requires clause
 
