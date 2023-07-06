@@ -2575,7 +2575,8 @@ there's no overflow TRUE is returned.
     /* Nontrivial property or event fields do not take any space. */
     field->offset = field->offset_bit_remainder = 0;
 #if !IA64_ABI
-  } else if (is_empty_field_for_layout_purposes(field)) {
+  } else if (targ_optimize_empty_base_class_layout &&
+             is_empty_field_for_layout_purposes(field)) {
     /* Empty classes with the [[no_unique_address]] attribute are treated
        as empty base classes in the Cfront ABI (and are allocated in
        set_offsets_for_empty_nonvirtual_base_classes and not here). */

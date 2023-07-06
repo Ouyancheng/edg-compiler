@@ -1,5 +1,18 @@
 Version 6.6
 
+7/6/23   [EDGcpfe/26468]
+[[no_unique_address]] and the Cfront-based ABI
+
+The entry for EDGcpfe/20019,EDGcpfe/20423 describes how fields with empty
+class type and the no_unique_address attribute are treated as empty base
+classes for the purposes of layout in the Cfront-based ABI.  However, the
+logic for that previously only covered configuration variants that enable the
+empty base class optimization: In other variants of the Cfront-based ABI no
+offset was generated for such fields.  That is now fixed: If the empty base
+optimization is not enabled, the no_unique_address attribute is effectively
+ignored.
+
+
 7/6/23   [EDGcpfe/26458]
 GNU-mode abort on invalid construct
 
