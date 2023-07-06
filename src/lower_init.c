@@ -16006,7 +16006,8 @@ are inserted at *insert_location, and *insert_location is updated.
       dip->kind == dik_bitwise_copy) {
     /* Do not (bitwise) copy an empty base since (a) it is a no-op, and (b) its
        more straightforward expression in the C-generating back end would cause
-       us to erroneously copy some bytes, like overwriting legitimate data. */
+       us to erroneously copy some bytes, thereby likely overwriting legitimate
+       data. */
     goto done;
   }  /* if */
   /* Remember the "this" pointer for the ctor_init (ctor_inits can't be
