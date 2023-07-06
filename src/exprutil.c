@@ -4338,7 +4338,7 @@ set its fields to default values, and return a pointer to it.
 }  /* alloc_expr_rescan_info_entry */
 
 
-static an_expr_rescan_info_entry_ptr save_operand_info_in_rescan_info_entry(
+an_expr_rescan_info_entry_ptr save_operand_info_in_rescan_info_entry(
                                         an_operand                    *operand,
                                         an_expr_rescan_info_entry_ptr eriep)
 /*

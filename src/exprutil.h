@@ -2590,6 +2590,10 @@ extern void make_template_param_expr_constant_operand(an_operand *operand);
 extern an_expr_node_ptr strip_ref_indirect(an_expr_node_ptr expr,
                                            a_boolean        parens_also);
 
+extern an_expr_rescan_info_entry_ptr save_operand_info_in_rescan_info_entry(
+                                        an_operand                    *operand,
+                                        an_expr_rescan_info_entry_ptr eriep);
+
 extern void save_rescan_info_for_braced_init_list(a_dynamic_init_ptr    dip,
                                                   an_init_component_ptr icp);
 

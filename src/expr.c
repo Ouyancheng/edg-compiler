@@ -8464,6 +8464,14 @@ be called from outside of the expression processing routines.
       check_assertion_str(eriep != NULL,
                           "missing rescan info on explicit template argument");
       restore_operand_info_from_expr_rescan_info_entry(operand, eriep);
+      if (expr_stack != NULL && expr_stack->possible_rescan_context) {
+        /* For a constant that may be rescanned to do semantic analysis later
+           for template deduction, save extra information from the operand. */
+        a_constant_ptr  constant = tap->variant.constant;
+        constant->rescan_info = save_operand_info_in_rescan_info_entry(
+                                                        operand,
+                                                        constant->rescan_info);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* transfer_arg_operand_for_template_arg */
