@@ -46,7 +46,7 @@ spurious declaration matching errors.  For example, with --c++11:
   { }
 
 
-7/4/23   [EDGcpfe/26480]
+7/4/23   [EDGcpfe/24665,EDGcpfe/26480]
 Substitution for call to member function of class template
 
 Consider, with --c++20 --g++:
