@@ -15709,7 +15709,7 @@ options for the copy.  cblock is a control block for the copy.
   if (need_object_lifetime_pop) {
     (void)pop_object_lifetime();
   }  /* if */
-  if (dip->lifetime != NULL || options & CE_COPYING_DMI_DIP) {
+  if (dip->lifetime != NULL || options & CE_COPYING_DEFAULT_MEMBER_INIT) {
     /* This dynamic init is on a destruction list (or will be because it is
        a data member initializer -- which have no lifetimes in the IL and
        is being copied into a constructor's scope), so the copy must be
