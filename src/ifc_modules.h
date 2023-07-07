@@ -258,7 +258,7 @@ an_ifc_module_string_table::an_ifc_module_string_table(
 /*
 Move construct from the given IFC string table.
 */
-  : an_ifc_module_string_table()
+: an_ifc_module_string_table()
 {
   swap_at(&old.contents, &this->contents);
   swap_at(&old.size, &this->size);

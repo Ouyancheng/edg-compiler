@@ -280,7 +280,7 @@ Create a position hint for the given cache from the given locus.  The position
 hint will last until it's consumed during token caching, or until the lifetime
 of this object expires (whichever is sooner).
 */
-  : cache_ptr(cache), pos(), hint_given(TRUE)
+: cache_ptr(cache), pos(), hint_given(TRUE)
 {
   source_position_from_locus(&this->pos, locus);
   this->cache_ptr->set_position_hint(&this->pos);
@@ -297,7 +297,7 @@ has no associated locus, the null_source_position will instead be used.  The
 position hint will last until it's consumed during token caching, or until the
 lifetime of this object expires (whichever is sooner).
 */
-  : cache_ptr(cache), pos(null_source_position), hint_given(TRUE)
+: cache_ptr(cache), pos(null_source_position), hint_given(TRUE)
 {
   if (!is_null_index(idx) && validate(idx) && has_ifc_locus(idx)) {
     an_ifc_source_location locus = get_ifc_locus(idx);
@@ -419,9 +419,9 @@ void init_byte_buffer(an_ifc_module_file *file,
                       size_t             offset,
                       ARG_UNUSED size_t  length)
 /*
-Initialize the file mmap state information used by "get_bytes", etc.  offset is
-the offset from the start of the memory mapped region to be read.  length is
-its size, in bytes.
+Initialize the state information used by "get_bytes", etc.  mod is the module
+owning the byte buffer.  offset is the offset from the start of the memory
+mapped region to be read.  length is its size, in bytes.
 */
 {
   file->byte_buffer = (unsigned char*)file->mmap_addr + offset;
@@ -459,9 +459,9 @@ void init_byte_buffer(an_ifc_module_file *file,
                       size_t             offset,
                       ARG_UNUSED size_t  length)
 /*
-Initialize the file read state information used by "get_bytes", etc.  offset is
-the offset from the start of the module file to be read.  length is its size,
-in bytes.
+Initialize the state information used by "get_bytes", etc.  mod is the module
+owning the byte buffer. offset is the offset from the start of the module file
+to be read.  length is its size, in bytes.
 */
 {
   fseek(file->f_module, offset, SEEK_SET);
@@ -932,7 +932,7 @@ an_ifc_module_file::an_ifc_module_file(an_ifc_module_file &&old)
 /*
 Move construct from the given IFC module file.
 */
-  : an_ifc_module_file()
+: an_ifc_module_file()
 {
   swap_at(&old.mod, &this->mod);
   swap_at(&old.f_module, &this->f_module);
@@ -999,7 +999,6 @@ Close the module file.
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   }  /* if */
 }  /* an_ifc_module_file::~an_ifc_module_file */
-
 
 static a_string get_string_at_offset(const an_ifc_module_string_table &table,
                                      an_ifc_text_offset_storage       offset)
@@ -1140,7 +1139,7 @@ Load and return the an_ifc_module handler for the referenced module.
 static Opt<an_ifc_module_file> open_ifc_module_file(a_const_char *file_path)
 /*
 Open the module file and map it into the process' address space.  Return the
-module file if it was successfully opened; otherwise, return an empty optional.
+module file if it was successfully opened; otherwise, return FALSE.
 */
 {
   Opt<an_ifc_module_file> result;
@@ -1421,7 +1420,7 @@ Sequence_traverser<an_ifc_Node_type>::Sequence_traverser(
                                     an_ifc_module              *mod_val,
                                     an_ifc_index_type          start_val,
                                     an_ifc_cardinality_storage cardinality_val)
-  : mod(mod_val), start(start_val), cardinality(cardinality_val)
+    : mod(mod_val), start(start_val), cardinality(cardinality_val)
 /*
 Construct a sequence traversal object that will traverse the partition
 associated with an_ifc_Node_type in the given module from start_val through
@@ -1448,8 +1447,8 @@ template<typename an_ifc_Node_type>
 Sequence_traverser<an_ifc_Node_type>::Sequence_traverser(
                                     an_ifc_module              *mod_val,
                                     an_ifc_index_type          start_val)
-  : mod(mod_val), start(start_val),
-    cardinality(
+    : mod(mod_val), start(start_val),
+      cardinality(
              mod->get_num_entries(get_ifc_partition_kind<an_ifc_Node_type>()) -
              start_val)
 /*
@@ -5533,7 +5532,7 @@ equivalent; otherwise, return FALSE.
           an_ifc_index_type  relative_idx = get_relative_index(traverser,
                                                                indexed_idp);
 
-          /* FIXME: Eventually this should be reworked so we don't allocate on
+          /* FIXME: Eventually this should be reworked so we don't allocator on
              errors. */
           st_num_add_diag_info(diag_ptr, ec_ifc_bad_function_param_name,
                                name.to_allocated_storage(allocator),
@@ -13807,7 +13806,7 @@ struct an_ifc_string {
     : kind(char_kind), str(ifc_str),
       length(count_nonnull_chars(ifc_str, ifc_byte_count)),
       ifc_length(ifc_byte_count)
-    {}
+  {}
   inline a_boolean contains_null_characters() const
     { return this->length != this->ifc_length; }
   a_character_kind
