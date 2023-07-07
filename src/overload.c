@@ -28482,6 +28482,9 @@ source_is_rvalue.
     check_assertion(sym->kind == (a_symbol_kind)sk_member_function);
     routine = sym->variant.routine.ptr;
     routine_type = routine->type;
+    if (is_ineligible(sym)) {
+      goto reject_function;
+    }  /* if */
   }  /* if */
   *eff_routine_type = routine_type = skip_typerefs(routine_type);
   rtsp = routine_type->variant.routine.extra_info;
@@ -28974,8 +28977,7 @@ traversal_start:
                                      this_param_type,
                                      routine_type,
                                      selector_match);
-      if (selector_match->match_level == aml_none ||
-          (!symbol_is(sym, sk_function_template) && is_ineligible(sym))) {
+      if (selector_match->match_level == aml_none) {
         /* This assignment operator cannot be used. */
         goto reject_function;
       }  /* if */
