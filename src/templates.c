@@ -14055,7 +14055,7 @@ pointer to the resulting symbol, or NULL if an error occurred.
     if (sym != NULL) sym = fundamental_symbol_of(sym);
     if (sym == NULL) {
       /* The function was specified as something like A<T>::f, but the
-         substituted "A<T>" does not contain a f. */
+         substituted "A<T>" does not contain an f. */
       subst_fail(*copy_error);
     } else if (symbol_is(sym, sk_function_template)) {
       /* A<T>::f is a function template: Substitute it. */
