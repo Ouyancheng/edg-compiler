@@ -677,14 +677,22 @@ if it turns out that no IL pragma entry is created).
           (binding_kind == pbk_none ||
            binding_kind == ppp->descr_ptr->binding_kind)) {
         ppp->source_sequence_entry = add_empty_src_seq_entry_for_pragma(ppp);
+        if (ppp->il_pragma_entry != NULL && 0) {
+          /* This pragma was already processed.  Associate the source sequence
+             entry with it. */
+          update_source_sequence_list((char*)ppp->il_pragma_entry,
+                                      (an_il_entry_kind)iek_pragma,
+                                      ppp->source_sequence_entry);
+          ppp->source_sequence_entry = NULL;
+        }  /* if */
       }  /* if */
       ppp = ppp->next;
     }  /* while */
   }  /* if */
   db_exit();
 }  /* add_source_sequence_entry_to_curr_token_pragmas */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 a_boolean select_curr_construct_pragmas(a_boolean	add_to_list)
 /*

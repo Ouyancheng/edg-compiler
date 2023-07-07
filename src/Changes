@@ -1,5 +1,20 @@
 Version 6.6
 
+7/7/23   [EDGcpfe/26488]
+Abort on pragma following attribute
+
+Consider, in GNU mode:
+
+  __attribute__((noreturn))
+  #pragma GCC push_options
+  #pragma GCC optimize("O0")
+  static void f(void) {}
+
+In C++-generating back end configurations this previously triggered an abort
+(null pointer indirection) in function r_set_keep_in_il_on_sslist (il_walk.c).
+That is now fixed.
+
+
 7/7/23   [EDGcpfe/26482]
 Abort on nontype template argument involving default member initializer
 
