@@ -15727,7 +15727,8 @@ options for the copy.  cblock is a control block for the copy.
                                        ) {
       /* Object lifetime representations aren't considered during constant
          expression evaluation (which is a compile-time evaluation). */
-      expect_error();
+      check_assertion_or_expect_error(
+                                    options & CE_COPYING_DEFAULT_MEMBER_INIT);
     } else {
       a_boolean  static_lifetime = FALSE;
       if (dip->lifetime != NULL) {

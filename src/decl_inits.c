@@ -1539,7 +1539,8 @@ Issue any diagnostics at the given position.
          the initializer already is in the right context in that case (and
          duplicating it would lead to invalid IL). */
       if (!fp->is_init_capture) {
-        dip = copy_dynamic_init(dip, CE_COPIED_CONSTANTS_MAY_BE_SHARED);
+        dip = copy_dynamic_init(dip, CE_COPIED_CONSTANTS_MAY_BE_SHARED |
+                                     CE_COPYING_DEFAULT_MEMBER_INIT);
         if (dip->destructor != NULL) {
           record_partial_aggregate_cleanup_destruction(dip,
                                                        !is->not_evaluated);

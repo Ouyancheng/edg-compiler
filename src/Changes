@@ -1,5 +1,29 @@
 Version 6.6
 
+7/7/23   [EDGcpfe/26482]
+Abort on nontype template argument involving default member initializer
+
+Consider in C++20 mode:
+
+  struct X {
+    int y = (delete new int(42), 0);  // Introduces an object lifetime.
+    int z;
+    consteval operator int() { return z; }
+  };
+  constexpr int N = 42;
+  template<template<int> class TT> void f(TT< X{.z = N} > );
+  template<int> struct I {};
+  void f() {
+    I<N> v;
+    f<I>(v);
+  }
+
+The handling of the substituted template argument X{.z = N} previously
+triggered an internal error in i_copy_dynamic_init (caused by the presence of
+an object lifetime entry in the representation of X{.z = N}).  That is now
+fixed.
+
+
 7/7/23   [EDGcpfe/26479]
 IA-64 ABI: Assertion failure in mangled_encoding_for_builtin_operation
 
