@@ -28502,6 +28502,16 @@ source_is_rvalue.
     assign_case = TRUE;
 #endif /* CHECKING */
   }  /* if */
+  /* Core issue 2369 clarified that template constraints must be checked during
+     template argument deduction.  However, MSVC (as of version 19.33) and
+     Clang (as of version 15) do not yet implement that resolution.  For the
+     corresponding modes, we check the constraints here. */
+  if (concepts_enabled && symbol_is(sym, sk_function_template) &&
+      (clang_version_is(any_version) || ms_version_is(any_version)) &&
+      !check_template_constraints(originator_symbol_of(sym),
+                                  *template_arg_list, /*diagnose=*/FALSE)) {
+    goto reject_function;
+  }  /* if */
   /* This is an appropriate function that can be called with a single
      argument.  See if the argument matches. */
   param_type = ptp->type;
