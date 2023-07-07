@@ -3080,12 +3080,18 @@ extensions, e.g., Microsoft __is_base_of).
   /* Put out the count of operands. */
   add_number_to_mangled_name(num_operands, mctl);
 #else /* IA64_ABI */
-  /* The IA-64 ABI form uses a "vendor extended operator" of builtinXX,
-     where XX is the builtin operation kind number. */
+  /* The IA-64 ABI form uses a "vendor extended operator" of builtinXXX,
+     where XXX is the builtin operation kind number. */
   add_to_mangled_name('v', mctl);
   add_number_to_mangled_name(num_operands, mctl);
-  add_str_to_mangled_name("9builtin", mctl);
-  check_assertion((int)kind <= 99);
+  if ((int)kind <= 99) {
+    /* For backward compatibility. */
+    add_str_to_mangled_name("9builtin", mctl);
+  } else {
+    add_str_to_mangled_name("10builtin", mctl);
+    add_number_to_mangled_name(((int)kind)/100, mctl);
+    kind = (a_builtin_operation_kind)((int)kind%100);
+  }  /* if */
   add_number_to_mangled_name(((int)kind)/10, mctl);
   add_number_to_mangled_name(((int)kind)%10, mctl);
 #endif /* IA64_ABI */

@@ -1,5 +1,16 @@
 Version 6.6
 
+7/7/23   [EDGcpfe/26479]
+IA-64 ABI: Assertion failure in mangled_encoding_for_builtin_operation
+
+The current vendor-specific IA-64 ABI mangling for builtin operations was
+limited to 100, resulting in an assertion failure in
+mangled_encoding_for_builtin_operation when trying to mangle a builtin
+represented by an enumerator whose value was greater than 99.  The
+vendor-specific mangling (and demangling) have now been extended to handle
+this case (leaving existing manglings undisturbed).
+
+
 7/7/23   [EDGcpfe/26036,EDGcpfe/26082,EDGcpfe/26121]
 Constraint checking when synthesizing copy/move constructors
 

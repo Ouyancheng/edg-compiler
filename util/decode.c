@@ -6237,18 +6237,31 @@ be copied quickly.
           str = "safe_cast";
           *length = 16;
           *num_operands = 1;
-        } else if (start_of_id_is("9builtin", ptr+2)) {
+        } else if (start_of_id_is("9builtin", ptr+2) ||
+                   start_of_id_is("10builtin", ptr+2)) {
           /* Builtin operation.  Name is
                vN9builtinXX
                          ^^-- Operation number
                 ^------------ Number of operands (<= 9)
+             or
+               vN10builtinXXX
+                          ^^^-- Operation number
+                ^-------------- Number of operands (<= 9)
           */
-          static char builtin_name[] = "builtin-operation-XX";
+          static char builtin_name[] = "builtin-operation-XXX";
           str = builtin_name;
-          builtin_name[18] = ptr[10];
-          builtin_name[19] = ptr[11];
-          *length = 12;
           *num_operands = ptr[1]-'0';
+          if (ptr[2] == '9') {
+            builtin_name[18] = ptr[10];
+            builtin_name[19] = ptr[11];
+            builtin_name[20] = '\0';
+            *length = 12;
+          } else {
+            builtin_name[18] = ptr[11];
+            builtin_name[19] = ptr[12];
+            builtin_name[20] = ptr[13];
+            *length = 14;
+          }  /* if */
         } else if (start_of_id_is("12clisubscript", ptr+2) &&
                    ptr[1] >= '0' && ptr[1] <= '9') {
           /* C++/CLI subscript operation with variable number of operands
