@@ -1972,17 +1972,20 @@ Update param_symbol to reflect the value specified by tap.
       break;
     case tak_template:
       /* A template template argument. */
-      { a_template_symbol_supplement_ptr	param_tssp;
-        check_assertion(param_symbol->kind ==
-                                            (a_symbol_kind)sk_class_template);
+      { a_template_symbol_supplement_ptr  param_tssp;
+
+        check_assertion(param_symbol->kind == sk_class_template);
         /* Unlike the type and nontype cases, the symbol for a template
          template parameter is not updated directly.  Instead, the
          argument_template field of the template supplement is updated
          to point to the template that is to be used as the actual
          argument. */
         param_tssp = param_symbol->variant.template_info;
-        param_tssp->variant.class_template.argument_template =
-                                           symbol_for(tap->variant.templ.ptr);
+
+        a_template_ptr tap_templ = tap->variant.templ.ptr;
+        a_symbol_ptr   tap_templ_sym = symbol_for(tap_templ);
+        check_assertion(tap_templ_sym != NULL);
+        param_tssp->variant.class_template.argument_template = tap_templ_sym;
         param_tssp->variant.class_template.substituted_param_template =
                                  tap->variant.templ.substituted_param_template;
       }

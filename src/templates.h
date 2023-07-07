@@ -616,6 +616,18 @@ extern a_template_param_ptr make_nontype_template_param(
                                   a_type_ptr                param_type,
                                   a_tmpl_decl_state_ptr     decl_state);
 
+extern a_symbol_ptr create_template_for_template_template_param(
+                      a_template_decl_ptr       decl,
+                      a_symbol_locator          *locator,
+                      a_template_nesting_depth  depth,
+                      a_template_param_list_pos position,
+                      a_boolean                 is_named,
+                      a_boolean                 is_rescan,
+                      a_boolean                 is_pack,
+                      a_boolean                 is_variadic,
+                      a_boolean                 has_variadic_template_params,
+                      a_boolean                 has_template_param_constraint);
+
 extern void template_or_specialization_declaration_full(
                                            a_tmpl_decl_state   *decl_state,
                                            a_boolean           is_generic,
@@ -1148,6 +1160,9 @@ extern void scan_nested_deduction_guide_template(
                                        a_tmpl_decl_state_ptr  decl_state,
                                        a_type_ptr             parent_class,
                                        a_decl_pos_block_ptr   decl_pos_block);
+
+extern a_template_parameter_ptr alloc_template_parameter_for_symbol(
+                                               a_template_param_ptr param_sym);
 
 extern a_symbol_ptr template_directive_or_declaration(
 			a_token_kind			*final_token,

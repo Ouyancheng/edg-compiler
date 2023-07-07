@@ -9431,7 +9431,7 @@ required, any_prototype_allowed should be set to TRUE and
 specific_prototype_allowed should be NULL.  If a specific prototype is
 required, any_prototype_allowed should be FALSE and a pointer to the specific
 prototype symbol should be passed.  eta_options can be used to specify
-additional options for use when determing equality.  A pointer to the symbol
+additional options for use when determining equality.  A pointer to the symbol
 entry field of the hash table is returned, or NULL is no entry is found.
 
 Note that any_prototype_allowed and specific_prototype_allowed are only
@@ -10979,11 +10979,12 @@ template declaration scope (if any).
 {
   a_boolean  result = TRUE;
   if (is_template_declaration_context()) {
-    a_tmpl_decl_state_ptr decl_state =
-                 scope_stack[depth_template_declaration_scope].tmpl_decl_state;
-    check_assertion(decl_state != NULL);
-    a_requires_clause     *rcp = decl_state->template_decl->
-                                                    constraint.requires_clause;
+    a_template_decl_info_ptr templ_decl_info =
+              scope_stack[depth_template_declaration_scope].template_decl_info;
+    check_assertion(templ_decl_info != NULL &&
+                    templ_decl_info->template_decl != NULL);
+    a_requires_clause     *rcp =
+                    templ_decl_info->template_decl->constraint.requires_clause;
     a_template_symbol_supplement_ptr
                           tssp = template_supplement_for_symbol(ps_sym);
     a_template_ptr        prev_tmpl = tssp->il_template_entry;
@@ -26925,6 +26926,70 @@ Scan the default argument of the template template parameter specified by tpp.
 }  /* scan_template_template_param_default_arg */
 
 
+a_symbol_ptr create_template_for_template_template_param(
+                       a_template_decl_ptr       decl,
+                       a_symbol_locator          *locator,
+                       a_template_nesting_depth  depth,
+                       a_template_param_list_pos position,
+                       a_boolean                 is_named,
+                       a_boolean                 is_rescan,
+                       a_boolean                 is_pack,
+                       a_boolean                 is_variadic,
+                       a_boolean                 has_variadic_template_params,
+                       a_boolean                 has_template_param_constraint)
+/*
+Create and return a template parameter symbol for a template template
+parameter.
+
+decl is the associated template declaration.  locator is set to a locator that
+names the template template parameter (if named).  depth and position are the
+coordinate information for the parameter.  is_named is TRUE if this parameter
+is named.  is_rescan is TRUE if this is a rescan of a dependent parameter (see
+create_template_param_symbol for more information).  is_pack is TRUE if this
+template template parameter is a pack.  is_variadic is TRUE if this is a
+variadic template (see a_template_symbol_supplement::is_variadic for more
+information).  has_variadic_template_params is TRUE if this is an actual
+variadic template and not simply treated as variadic in GNU mode.
+has_template_param_constraint is TRUE if one of the template parameters has a
+type constraint.
+*/
+{
+  a_symbol_ptr    result = create_template_param_symbol(sk_class_template,
+                                                        locator, !is_named,
+                                                        is_rescan);
+  a_template_ptr  templ_ptr = alloc_template();
+
+  templ_ptr->kind = templk_template_template_param;
+  set_source_corresp(&templ_ptr->source_corresp, result);
+  /* Keep a record of the parameterization structure.  (Needed, e.g., in the
+     C++-generating back end.) */
+  templ_ptr->template_decl = decl;
+  if (!is_named) {
+    /* Reset the name in the source correspondence entry.  An unnamed
+       parameter is represented by NULL, not "<unnamed>" as indicated
+       by the symbol header. */
+    clear_source_corresp_name(&templ_ptr->source_corresp);
+  }  /* if */
+
+  a_template_symbol_supplement_ptr tssp = result->variant.template_info;
+  /* The templates associated with template parameters and nonreal classes
+     have a template_info pointer that points back to the front end
+     information. */
+  templ_ptr->template_info = tssp;
+  tssp->variant.class_template.template_template_param = TRUE;
+  tssp->variant.class_template.type_kind = tk_class;
+  templ_ptr->coordinates.depth = depth;
+  templ_ptr->coordinates.position = position;
+  templ_ptr->is_pack = is_pack;
+  tssp->il_template_entry = templ_ptr;
+  tssp->variant.class_template.argument_template = result;
+  tssp->is_variadic = is_variadic;
+  tssp->has_variadic_template_params = has_variadic_template_params;
+  tssp->has_template_param_constraint = has_template_param_constraint;
+  return result;
+}  /* create_template_for_template_template_param */
+
+
 static a_template_param_ptr scan_template_template_param(
 		a_tmpl_decl_state_ptr		parent_decl_state,
 		a_tmpl_param_state_ptr		param_state,
@@ -27007,11 +27072,20 @@ depends on a another template parameter.
   is_named = curr_token == tok_identifier;
   /* Create a class template symbol for this template template parameter.
      Do not enter the symbol when this is a rescan. */
-  sym = create_template_param_symbol((a_symbol_kind)sk_class_template,
-                                     is_named ? &locator_for_curr_id
-                                              : (a_symbol_locator*)NULL,
-                                     !is_named, is_rescan);
-  templ_ptr = alloc_template();
+  sym = create_template_for_template_template_param(
+                               local_decl_state.template_decl,
+                               (is_named ? &locator_for_curr_id
+                                         : (a_symbol_locator*)NULL),
+                               parent_decl_state->nesting_depth,
+                               param_state->list_pos,
+                               is_named,
+                               is_rescan,
+                               is_pack,
+                               local_decl_state.is_variadic,
+                               local_decl_state.has_variadic_template_params,
+                               local_decl_state.has_template_param_constraint);
+  tssp = sym->variant.template_info;
+  templ_ptr = tssp->il_template_entry;
   /* See if the parameter being declared has the same name as one of its
      template parameters. */
   if (is_named) {
@@ -27027,39 +27101,11 @@ depends on a another template parameter.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   /* Bypass the identifier. */
   if (is_named) (void)get_token();
-  tssp = sym->variant.template_info;
-  set_source_corresp(&templ_ptr->source_corresp, sym);
   if (parent_scope_should_be_set_for_template_param()) {
     set_parent_scope(&templ_ptr->source_corresp, iek_template,
                      scope_stack[decl_scope_level].il_scope);
     add_to_templates_list(templ_ptr, depth_scope_stack);
   }  /* if */
-  templ_ptr->kind = (a_template_kind)templk_template_template_param;
-  /* Keep a record of the parameterization structure.  (Needed, e.g., in the
-     C++-generating back end.) */
-  templ_ptr->template_decl = local_decl_state.template_decl;
-  if (!is_named) {
-    /* Reset the name in the source correspondence entry.  An unnamed
-       parameter is represented by NULL, not "<unnamed>" as indicated
-       by the symbol header. */
-    clear_source_corresp_name(&templ_ptr->source_corresp);
-  }  /* if */
-  /* The templates associated with template parameters and nonreal classes
-     have a template_info pointer that points back to the front end
-     information. */
-  templ_ptr->template_info = tssp;
-  tssp->variant.class_template.template_template_param = TRUE;
-  tssp->variant.class_template.type_kind = (a_type_kind)tk_class;
-  templ_ptr->coordinates.depth = parent_decl_state->nesting_depth;
-  templ_ptr->coordinates.position = param_state->list_pos;
-  templ_ptr->is_pack = is_pack;
-  tssp->il_template_entry = templ_ptr;
-  tssp->variant.class_template.argument_template = sym;
-  tssp->is_variadic = local_decl_state.is_variadic;
-  tssp->has_variadic_template_params =
-                                local_decl_state.has_variadic_template_params;
-  tssp->has_template_param_constraint =
-                               local_decl_state.has_template_param_constraint;
   set_template_cache_info(&tssp->cache,
                           (a_token_cache_ptr)NULL,
                           local_decl_state.decl_info);
@@ -30499,8 +30545,26 @@ argument information in the front end template parameter entry is updated.
 }  /* update_il_template_parameter */
 
 
-static void complete_template_decl(a_template_decl_ptr	tdp,
-			       a_template_param_ptr	tp_list)
+a_template_parameter_ptr alloc_template_parameter_for_symbol(
+                                                a_template_param_ptr param_sym)
+/*
+Allocate and return an IL entity corresponding to the given template param from
+the symbol table.
+
+Note: The param_sym is updated in the process associating the symbol with the
+IL parameter.
+*/
+{
+  a_template_parameter_ptr result = alloc_template_parameter();
+
+  param_sym->il_template_parameter = result;
+  update_il_template_parameter(param_sym);
+  return result;
+}  /* alloc_template_parameter_for_symbol */
+
+
+static void complete_template_decl(a_template_decl_ptr   tdp,
+                                   a_template_param_ptr  tp_list)
 /*
 Fill in the IL structure describing the parameterization of a template using
 the information gathered in the front end structures.  tdp points to a
@@ -30513,9 +30577,9 @@ parameter list to be copied to tdp.
 
   /* Copy the template parameter list into the IL: */
   for (sym_tpp = tp_list; sym_tpp != NULL; sym_tpp = sym_tpp->next) {
-    a_template_parameter_ptr  new_tpp = alloc_template_parameter();
-    sym_tpp->il_template_parameter = new_tpp;
-    update_il_template_parameter(sym_tpp);
+    a_template_parameter_ptr  new_tpp =
+                                  alloc_template_parameter_for_symbol(sym_tpp);
+
     if (il_tpp == NULL) {
       tdp->param_list = new_tpp;
     } else {
