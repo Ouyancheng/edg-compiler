@@ -3397,35 +3397,90 @@ generate code for a GNU compiler (gcc or g++).
 #endif /* defined(GCC_IS_C_GEN_BE_TARGET) && BACK_END_IS_C_GEN_BE */
 #endif /* ifndef GCC_IS_GENERATED_CODE_TARGET */
 
-#ifndef GCC_IS_GENERATED_CODE_TARGET
-#if BACK_END_IS_C_GEN_BE
-#if defined(__GNUC__) && !defined(__clang__)
-#define GCC_IS_GENERATED_CODE_TARGET TRUE
-#else /* !(defined(__GNUC__) && !defined(__clang__)) */
-#define GCC_IS_GENERATED_CODE_TARGET FALSE
-#endif /* defined(__GNUC__) && !defined(__clang__) */
-#else /* !BACK_END_IS_C_GEN_BE */
-/* Not using the C generating back end. */
-#define GCC_IS_GENERATED_CODE_TARGET FALSE
-#endif /* BACK_END_IS_C_GEN_BE */
-#endif /* ifndef GCC_IS_GENERATED_CODE_TARGET */
-
 /*
-Switch that is TRUE if the C-generating or C++-generating back end should
-generate code for the clang compiler.
+If this configuration will use either the C- or the C++-generating back end
+and no target compiler has been specified, provide a default target.
 */
-#ifndef CLANG_IS_GENERATED_CODE_TARGET
+#if !defined(GCC_IS_GENERATED_CODE_TARGET) &&               \
+    !defined(CLANG_IS_GENERATED_CODE_TARGET) &&             \
+    !defined(SUN_IS_GENERATED_CODE_TARGET) &&               \
+    !defined(MSVC_IS_GENERATED_CODE_TARGET) &&              \
+    !defined(MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET) && \
+    !(BACK_END_IS_CP_GEN_BE &&                              \
+      defined(CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT))
 #if BACK_END_IS_C_GEN_BE
+/* Base the default target setting on the compiler being used to compile
+   the front end. */
 #if defined(__clang__)
 #define CLANG_IS_GENERATED_CODE_TARGET TRUE
+#define GCC_IS_GENERATED_CODE_TARGET FALSE
+#define SUN_IS_GENERATED_CODE_TARGET FALSE
+#define MSVC_IS_GENERATED_CODE_TARGET FALSE
+#define MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET FALSE
 #else /* !defined(__clang__) */
+#if defined(__GNUC__)
+#define GCC_IS_GENERATED_CODE_TARGET TRUE
 #define CLANG_IS_GENERATED_CODE_TARGET FALSE
-#endif /* !defined(__clang__) */
+#define SUN_IS_GENERATED_CODE_TARGET FALSE
+#define MSVC_IS_GENERATED_CODE_TARGET FALSE
+#define MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET FALSE
+#else /* !defined(__GNUC__) */
+#if defined(__SUNPRO_C) || defined(__SUNPRO_CC)
+#define SUN_IS_GENERATED_CODE_TARGET TRUE
+#define GCC_IS_GENERATED_CODE_TARGET FALSE
+#define CLANG_IS_GENERATED_CODE_TARGET FALSE
+#define MSVC_IS_GENERATED_CODE_TARGET FALSE
+#define MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET FALSE
+#else /* !(defined(__SUNPRO_C) || defined(__SUNPRO_CC) */
+#if EDG_WIN32
+#define MSVC_IS_GENERATED_CODE_TARGET TRUE
+/* MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET will be defined below. */
+#define GCC_IS_GENERATED_CODE_TARGET FALSE
+#define CLANG_IS_GENERATED_CODE_TARGET FALSE
+#define SUN_IS_GENERATED_CODE_TARGET FALSE
+#else /* !EDG_WIN32 */
+/* The compiler is one for which we have no special handling.  Assume it at
+   least supports C89. */
+#define C_GEN_BE_GENERATES_ANSI_C TRUE
+#define GCC_IS_GENERATED_CODE_TARGET FALSE
+#define CLANG_IS_GENERATED_CODE_TARGET FALSE
+#define SUN_IS_GENERATED_CODE_TARGET FALSE
+#define MSVC_IS_GENERATED_CODE_TARGET FALSE
+#define MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET FALSE
+#endif /* EDG_WIN32 */
+#endif /* defined(__SUNPRO_C) || defined(__SUNPRO_CC) */
+#endif /* defined(__GNUC__) */
+#endif /* defined(__clang__) */
 #else /* !BACK_END_IS_C_GEN_BE */
-/* Not using the C generating back end. */
+#if BACK_END_IS_CP_GEN_BE
+/* Make the output reflect how the source was written. */
+#define CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT TRUE
+#define GCC_IS_GENERATED_CODE_TARGET FALSE
 #define CLANG_IS_GENERATED_CODE_TARGET FALSE
+#define SUN_IS_GENERATED_CODE_TARGET FALSE
+#define MSVC_IS_GENERATED_CODE_TARGET FALSE
+#define MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET FALSE
+#endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* BACK_END_IS_C_GEN_BE */
-#endif /* ifndef CLANG_IS_GENERATED_CODE_TARGET */
+#endif /* !defined(GCC_IS_GENERATED_CODE_TARGET) && ... */
+
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+/*
+Make sure undefined targets are defined to FALSE.
+*/
+#if !defined(GCC_IS_GENERATED_CODE_TARGET)
+#define GCC_IS_GENERATED_CODE_TARGET FALSE
+#endif /* !defined(GCC_IS_GENERATED_CODE_TARGET) */
+#if !defined(CLANG_IS_GENERATED_CODE_TARGET)
+#define CLANG_IS_GENERATED_CODE_TARGET FALSE
+#endif /* !defined(CLANG_IS_GENERATED_CODE_TARGET) */
+#if !defined(SUN_IS_GENERATED_CODE_TARGET)
+#define SUN_IS_GENERATED_CODE_TARGET FALSE
+#endif /* !defined(SUN_IS_GENERATED_CODE_TARGET) */
+#if !defined(MSVC_IS_GENERATED_CODE_TARGET)
+#define MSVC_IS_GENERATED_CODE_TARGET FALSE
+#endif /* !defined(MSVC_IS_GENERATED_CODE_TARGET) */
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
 /*
 Flag that is TRUE if the GNU "ifunc" dispatch mechanism is to be lowered.
@@ -3595,20 +3650,6 @@ and Clang compilers (e.g., __builtin_va_list).
 #endif /* ifndef GCC_BUILTIN_VARARGS_IN_GENERATED_CODE */
 
 /*
-Switch that is TRUE if the C-generating or C++-generating back end should
-generate code for a Sun compiler.  This is the default value of the global
-variable sun_is_generated_code_target.
-*/
-#ifndef SUN_IS_GENERATED_CODE_TARGET
-#if (defined(__SUNPRO_C) || defined(__SUNPRO_CC)) && BACK_END_IS_C_GEN_BE \
-    && !GCC_IS_GENERATED_CODE_TARGET
-#define SUN_IS_GENERATED_CODE_TARGET TRUE
-#else /* !((defined(__SUNPRO_C) || defined(__SUNPRO_CC)) && ...) */
-#define SUN_IS_GENERATED_CODE_TARGET FALSE
-#endif /* (defined(__SUNPRO_C) || defined(__SUNPRO_CC)) && ... */
-#endif /* ifndef SUN_IS_GENERATED_CODE_TARGET */
-
-/*
 Macro representing the version of Sun C or C++ for which the C- and C++-
 generating back ends should produce code.  For version x.y of the Sun
 compiler, the macro should equal x*0x100+y*0x10 (e.g., version 5.3 would be
@@ -3669,22 +3710,6 @@ that are trying to detect uninitialized values, but not in general.
 #endif /* DEFAULT_EMULATE_GNU_VALUE_INITIALIZATION_BUGS */
 
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
-/*
-Switch that is TRUE if the C-generating or C++-generating back end should
-generate code for MSVC++ (the Microsoft C/C++ compiler).  This is the initial
-value of the global variable msvc_is_generated_code_target.  (See also
-MICROSOFT_DIALECT_IS_GENERATED_CODE_TARGET below.)  Note that this setting is
-ignored when BACK_END_IS_CP_GEN_BE if CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT
-and the source dialect is not Microsoft mode.
-*/
-#ifndef MSVC_IS_GENERATED_CODE_TARGET
-#if EDG_WIN32
-#define MSVC_IS_GENERATED_CODE_TARGET TRUE
-#else /* !EDG_WIN32 */
-#define MSVC_IS_GENERATED_CODE_TARGET FALSE
-#endif /* EDG_WIN32 */
-#endif /* ifndef MSVC_IS_GENERATED_CODE_TARGET */
-
 /*
 When generating code to be compiled with the Microsoft compiler, this macro
 specifies the version of the compiler being used.  This affects, for example,

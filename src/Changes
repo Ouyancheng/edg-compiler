@@ -1,5 +1,23 @@
 Version 6.6
 
+7/7/23   [EDGcpfe/26464]
+Default C- and C++-generating back end generated code targets
+
+When building a C- or C++-generating back end configuration of the front
+end, if no generated code target is explicitly set and the configuration
+macro EDG_WIN32 is TRUE, the front end previously defaulted to setting MSVC
+as the generated code target.  However, the logic in targ_def.h could also
+result in setting a different compiler as the default generated code
+target, based on the compiler being used to build the front end, with a
+resulting build failure due to the inconsistent settings.  This has now
+been fixed.  In C-generating back end configurations, the logic in
+targ_def.h now defaults the target to be the compiler used to build the
+front end and only chooses MSVC in EDG_WIN32 configurations if the build
+compiler is not recognized.  In C++-generating back end configurations, the
+default is to set CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT to TRUE
+regardless of the build compiler.
+
+
 7/7/23   [EDGcpfe/26488]
 Abort on pragma following attribute
 
