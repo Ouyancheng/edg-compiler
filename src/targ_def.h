@@ -3451,6 +3451,10 @@ and no target compiler has been specified, provide a default target.
 #endif /* defined(__SUNPRO_C) || defined(__SUNPRO_CC) */
 #endif /* defined(__GNUC__) */
 #endif /* defined(__clang__) */
+#if !defined(LOWER_IFUNC) && !GCC_IS_GENERATED_CODE_TARGET && \
+    GNU_EXTENSIONS_ALLOWED
+#define LOWER_IFUNC TRUE
+#endif /* !defined(LOWER_IFUNC) && ... */
 #else /* !BACK_END_IS_C_GEN_BE */
 #if BACK_END_IS_CP_GEN_BE
 /* Make the output reflect how the source was written. */
