@@ -2207,15 +2207,13 @@ switches before this point.
 
 #endif /* ABI_COMPATIBILITY_VERSION */
 
-#ifndef SUN_IS_GENERATED_CODE_TARGET
-#define SUN_IS_GENERATED_CODE_TARGET 0
-#endif /* ifndef SUN_IS_GENERATED_CODE_TARGET */
 #ifndef BACK_END_IS_CP_GEN_BE
 #define BACK_END_IS_CP_GEN_BE 0
 #endif /* ifndef BACK_END_IS_CP_GEN_BE */
 
 #if !defined(SUN_TARGET_VERSION_NUMBER) &&          \
-    (SUN_IS_GENERATED_CODE_TARGET ||                \
+    ((defined(SUN_IS_GENERATED_CODE_TARGET) &&      \
+      SUN_IS_GENERATED_CODE_TARGET) ||              \
      (BACK_END_IS_CP_GEN_BE &&                      \
       CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT &&    \
       defined(SUN_EXTENSIONS_ALLOWED) &&            \
