@@ -9398,7 +9398,7 @@ lifetime list).
            in the overall destruction list, so save the current head of the
            destruction list (so any destructions added by the
            copy_dynamic_init operation can be easily dealt with later). */
-        dip = copy_dynamic_init(field_dip, CE_COPYING_DEFAULT_MEMBER_INIT);
+        dip = copy_dynamic_init(field_dip, CE_COPYING_DMI_DIP);
         /* Set the flag that indicates that a dynamic initializer is pointed
            to by a constructor_init entry (now that it is). */
         ctor_init->initializer = dip;

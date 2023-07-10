@@ -1935,19 +1935,26 @@ typedef int an_expr_copy_options_set;
 #define CE_PRESERVE_RESCAN_INFO 0x4000
 			/* When TRUE, rescan info is preserved in the copy of
 			   expression nodes. */
-#define CE_ALWAYS_COPY_BACKING_EXPRESSIONS 0x8000
+#define CE_COPYING_DMI_DIP 0x8000
+			/* When TRUE, the dynamic initialization being copied
+			   is for a data member initializer.  In the IL,
+			   data member initializers have no lifetime, but
+			   should be treated as having a lifetime (because the
+			   copy will be placed in one).  In particular, this
+			   is required to handle overlapping lifetime
+			   destructions. */
+#define CE_ALWAYS_COPY_BACKING_EXPRESSIONS 0x10000
 			/* When TRUE, always copy backing expressions.  The
 			   caller is responsible for ensuring that references
 			   to local entities don't leak into the wrong scope
 			   memory (e.g., a reference to a local entity in
 			   file-scope memory). */
-#define CE_COPYING_DEFAULT_MEMBER_INIT 0x10000
+#define CE_COPYING_DEFAULT_MEMBER_INIT 0x20000
 			/* TRUE if this copy operation is copying a default
-			   member initializer expression. E.g., making a
-			   constructor-specific use of the scanned expression.
-			   Also used during lowering, where it is required to
-			   handle overlapping lifetime destructions. */
-#define CE_CONST_EVAL_SUB_EXPRESSION 0x20000
+			   member initializer expression, i.e., making a
+			   constructor-specific use of the scanned
+			   expression. */
+#define CE_CONST_EVAL_SUB_EXPRESSION 0x40000
 			/* TRUE if this copy operation is copying an operand of
 			   an expression in an immediate evaluation context. */
 
