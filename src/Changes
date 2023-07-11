@@ -1,5 +1,31 @@
 Version 6.6
 
+7/11/23  [EDGcpfe/24649,EDGcpfe/25625]
+Bad access checking for protected member in nondependent call in a template
+
+Consider:
+
+  template<typename T> struct R {
+  protected:
+    template<typename U> T& operator=(const U& other);
+  };
+  struct D: R<D> {
+    using R<D>::operator=;
+  };
+  template<typename> void f() {
+    D d;
+    d = 0; // Previously a spurious access error when instantiated.
+  }        // Now okay.
+  void g() {
+    f<int>();
+  }
+
+Previously, the access checking performed for the call to D::operator= in the
+expression "d = 0;" considered the operator from the perspective of the base
+class R<D> instead of the derived class D: That resulted in a spurious access
+error.  That is now fixed.
+
+
 7/7/23   [EDGcpfe/26464]
 Default C- and C++-generating back end generated code targets
 

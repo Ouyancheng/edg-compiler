@@ -402,8 +402,21 @@ typedef struct a_candidate_function {
   a_symbol_ptr	function_symbol;
 			/* Pointer to the symbol for the function.  NULL if
 			   the "function" is a built-in operator or for a
-			   surrogate function case.  Can be a projection
+			   surrogate function case.  This can be a projection
+			   symbol, but once overload resolution succeeds it
+			   may point to a specific template instance even
+			   when the template was found through a projection
 			   symbol. */
+  a_symbol_ptr	best_proj_function_symbol;
+			/* If overload resolution succeeds and causes
+			   function_symbol to point to a specific instance of
+			   a template, this points to the symbol that was
+			   found: Either a function template symbol or a
+			   projection symbol for such a template.  Otherwise,
+			   this ends up equal to function_symbol.  (This
+			   matters when performing access checking, which
+			   should be based on the symbol that was found and
+			   not the specific instance symbol.) */
   a_symbol_ptr	overloaded_function_symbol;
 			/* The overloaded function symbol we started from
 			   that contains function_symbol.  Can be a

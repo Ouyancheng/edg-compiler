@@ -10057,6 +10057,7 @@ create_final_list:
          is ambiguous. */
       *ambiguous = TRUE;
     } else {
+      candidates->best_proj_function_symbol = candidates->function_symbol;
       if (candidates->is_function_template) {
         /* A single candidate function template was unambiguously selected.
            Create the template function instance. */
@@ -10500,38 +10501,6 @@ an argument of a call in gpp mode even though the standard says it's not.
 }  /* is_gpp_falsely_dependent_argument */
 
 
-static void evaluate_unused_template_arguments(
-                                        a_symbol_ptr       function_symbol,
-                                        a_template_arg_ptr template_arg_list,
-                                        a_source_position  *pos)
-/*
-function_symbol is an instance of a template that's being called.  The
-routine to call has been determined without evaluating the explicit
-template argument list on the call (template_arg_list), because the
-call is non-dependent and we had recorded the chosen routine during
-the prototype instantiation.  Evaluate the template arguments anyway
-to make sure any references in them are recorded.  For example, in the
-call "f<x>(y)", we want to be sure to record the reference to x even
-though we didn't need it to know the function to call.  pos is a
-source position for errors.
-*/
-{
-  a_symbol_ptr                     templ_sym;
-  a_template_symbol_supplement_ptr tssp;
-  a_template_param_ptr             templ_param_list;
-
-  check_assertion(is_simple_function_symbol(function_symbol) &&
-                  function_symbol->variant.routine.instance_ptr != NULL);
-  templ_sym = function_symbol->variant.routine.instance_ptr->template_sym;
-  tssp = template_supplement_for_symbol(templ_sym);
-  templ_param_list = tssp->variant.function.decl_cache.decl_info->parameters;
-  (void)create_initial_template_arg_list(templ_param_list,
-                                         template_arg_list,
-                                         /*is_templ_templ_param_check=*/FALSE,
-                                         pos);
-}  /* evaluate_unused_template_arguments */
-
-
 static a_boolean rout_has_enable_if_attr(a_routine_ptr  rout)
 /*
 Return TRUE if the given routine has an associated enable_if attribute.
@@ -10728,7 +10697,7 @@ This routine is called only in C++ mode.
 */
 {
   a_candidate_function_ptr candidate_functions;
-  a_symbol_ptr             function_symbol;
+  a_symbol_ptr             function_symbol, proj_symbol = NULL;
   a_symbol_ptr             inaccessible_match;
   a_boolean                matched_except_for_missing_selector;
   a_boolean                matched_except_for_selector;
@@ -10937,14 +10906,6 @@ in_instantiation:
         overloaded_function_symbol = ndcall_info->symbol;
         do_arg_dep_lookup = FALSE;
         known_to_be_visible = TRUE;
-        if (template_arg_list != NULL) {
-          /* Evaluate the template argument list anyway to get references
-             recorded.  E.g., in f<x>(y) we'd like to record the reference to
-             x even though we already have the right symbol for f. */
-          evaluate_unused_template_arguments(overloaded_function_symbol,
-                                             template_arg_list,
-                                             call_position);
-        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -11082,6 +11043,7 @@ in_instantiation:
             free_list_of_symbol_list_entries(symbol_list);
             *single_function = TRUE;
             function_symbol = symbol_list->symbol;
+            proj_symbol = function_symbol;
 #if BACK_END_IS_CP_GEN_BE
             if (found_through_adl != NULL) {
               *found_through_adl = (symbol_list->symbol !=
@@ -11327,6 +11289,7 @@ normal_no_function_matches:
     }  /* if */
   } else {
     /* Exactly one function applies and is best. */
+    proj_symbol = candidate_functions->best_proj_function_symbol;
     function_symbol = candidate_functions->function_symbol;
 #if BACK_END_IS_CP_GEN_BE
     if (found_through_adl != NULL) {
@@ -11405,7 +11368,7 @@ have_function:
        a (possibly dependent) block extern declaration, which must be
        resolved in the real instantiation. */
     check_assertion(paren_tok_seq_number != 0);
-    record_nondependent_call(function_symbol, paren_tok_seq_number,
+    record_nondependent_call(proj_symbol, paren_tok_seq_number,
                              (a_nondependent_call_depth)0,
                              /*reversed_opnds=*/FALSE);
   }  /* if */
@@ -18598,9 +18561,11 @@ except that it was inaccessible because of hide-by-sig lookup.
         }  /* if */
         function_symbol = fundamental_symbol_of(proj_function_symbol);
         if (function_symbol->is_class_member) {
+          a_type_ptr  nondep_fn_type =
+                       skip_typerefs(func_sym_routine(function_symbol)->type);
           member_functions_symbol = proj_function_symbol;
           have_selector = routine_type_is_nonstatic_member_function(
-                                     routine_symbol_type(function_symbol));
+                                                              nondep_fn_type);
           if (have_selector) {
             operand_1->selector_is_object_pointer = selector_is_handle;
           }  /* if */
@@ -19582,7 +19547,8 @@ no_applicable_operator_function:
               check_assertion(!dependent_call &&
                               operator_tok_seq_number != 0);
               record_nondependent_call(
-                    proj_function_symbol, operator_tok_seq_number, call_depth,
+                    candidate_functions->best_proj_function_symbol,
+                    operator_tok_seq_number, call_depth,
                     candidate_functions->supplemental_comparison_candidate,
                     candidate_functions->supplemental_reversed_candidate);
             }  /* if */
