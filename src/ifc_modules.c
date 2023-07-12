@@ -11456,17 +11456,14 @@ corresponding type, return an error type.
 
           module_of(type_idx)->cache_type(&cache, type_idx, /*cinfo=*/{});
 
-          {
-            a_symbol_ptr           type_sym = NULL;
-            a_decl_parse_state     dps;
-            a_decl_pos_block       decl_pos_block;
-            a_module_entity_rescan rescan(&cache);
-
-            init_decl_parse_state(&dps);
-            typename_specifier(&result, &type_sym, /*within_using_decl=*/FALSE,
-                               /*is_decl_specifier=*/FALSE, &dps,
-                               &decl_pos_block);
-          }
+          a_symbol_ptr           type_sym = NULL;
+          a_decl_parse_state     dps;
+          a_decl_pos_block       decl_pos_block;
+          a_module_entity_rescan rescan(&cache);
+          init_decl_parse_state(&dps);
+          typename_specifier(&result, &type_sym, /*within_using_decl=*/FALSE,
+                             /*is_decl_specifier=*/FALSE, &dps,
+                             &decl_pos_block);
         }
         break;
       case ifc_ts_type_base:
@@ -11494,17 +11491,29 @@ corresponding type, return an error type.
           goto invalid;
         }
       case ifc_ts_type_decltype:
-        { Opt<an_ifc_type_decltype> opt_itd;
+        { a_module_token_cache cache;
 
-          construct_node(&opt_itd, type_idx);
-          if (!opt_itd.has_value()) {
-            goto invalid;
+          module_of(type_idx)->cache_type(&cache, type_idx, /*cinfo=*/{});
+
+          a_module_entity_rescan rescan(&cache);
+          if (curr_token == tok_decltype) {
+            /* A decltype could be decltype(x) or decltype(x)::something.  This
+               will coalesce the decltype into a tok_decltype_construct in the
+               first case or a tok_identifier in the latter case. */
+            (void)is_generalized_identifier_start(GID_IS_EXPR_CONTEXT);
           }  /* if */
-          /* FIXME: Currently unsupported, and (borderline) unimplementable. */
-          issue_unsupported_construct_error(mod, "TypeSort::Decltype",
-                                            &error_position);
-          goto invalid;
+
+          if (curr_token == tok_decltype_construct) {
+            result = locator_for_curr_id.variant.decltype_type;
+            (void)get_token();
+          } else {
+            a_string err_msg(index_to_str(type_idx),
+                             " does not contain a decltype expression");
+
+            ifc_unexpected(mod, err_msg.as_temp_characters());
+          }  /* if */
         }
+        break;
       case ifc_ts_type_syntax_tree:
         { Opt<an_ifc_type_syntax_tree> opt_itst;
 
@@ -17802,14 +17811,17 @@ this is needed.
       }
       break;
     case ifc_ts_type_decltype:
-      { Opt<an_ifc_type_decltype> opt_itd;
+      { Opt<an_ifc_type_decltype> opt_decltype_type;
 
-        construct_node(&opt_itd, type);
-        if (!opt_itd.has_value()) {
+        construct_node(&opt_decltype_type, type);
+        if (!opt_decltype_type.has_value()) {
           goto invalid;
         }  /* if */
+
         /* decltype constructs are currently represented as token sequences. */
-        cache_syntax(cache, get_ifc_expr(*opt_itd), /*cinfo=*/{});
+        an_ifc_type_decltype decltype_type = *opt_decltype_type;
+        an_ifc_syntax_index  syntax_idx = get_ifc_expr(decltype_type);
+        cache_syntax(cache, syntax_idx, /*cinfo=*/{});
       }
       break;
     case ifc_ts_type_placeholder:
