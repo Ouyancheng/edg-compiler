@@ -1,5 +1,18 @@
 Version 6.6
 
+7/12/23  [EDGcpfe/26489,EDGcpfe/26493]
+C++-generating back end: GNU/clang type-transforming intrinsics
+
+The changes for EDGcpfe/26193 added front end support for a number of
+type-transforming intrinsics such as __remove_cv and __add_pointer.
+However, these calls were omitted from the output of the C++-generating
+back end.  This is now fixed.  For example, with --clang --c++23:
+
+  template<typename T> struct remove_cv {
+    using type = __remove_cv(T);   // Previously generated as "using type = T"
+  };
+
+
 7/11/23  [EDGcpfe/24649,EDGcpfe/25625]
 Bad access checking for protected member in nondependent call in a template
 

@@ -2975,7 +2975,7 @@ to indicate a primary declaration.
     /* typeof and decltype tags are never autonomous.  All other non-tag
        types that get here are always autonomous. */
     autonomous = !(type->kind == (a_type_kind)tk_typeref &&
-                   typeref_is_type_operator(type));
+                   typeref_is_type_operator(type, /*include_traits=*/TRUE));
   } else {
     /* Tag. Check flag. */
     if (sec_decl == NULL) {
@@ -3075,8 +3075,9 @@ end of the type definition.
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
-  if (is_tag_type(type) || (type->kind == (a_type_kind)tk_typeref &&
-                            typeref_is_type_operator(type))) {
+  if (is_tag_type(type) ||
+      (type->kind == (a_type_kind)tk_typeref &&
+       typeref_is_type_operator(type, /*include_traits=*/TRUE))) {
     /* For a class, enum or decltype/typeof type, loop through source sequence
        entries looking for the end-of-construct entry for the type. */
     for (;;) {
@@ -3733,7 +3734,8 @@ etc.)
         inaccessible_type = *ptr_to_inaccessible_type;
       } else if (type_is(inaccessible_type, tk_typeref)) {
         if (typeref_is_typedef(inaccessible_type) ||
-            typeref_is_type_operator(inaccessible_type)) {
+            typeref_is_type_operator(inaccessible_type,
+                                     /*include_traits=*/TRUE)) {
           /* This is the problematic type. */
           break;
         } else {
@@ -5806,7 +5808,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
         }  /* if */
       }  /* if */
       if (tp->kind == (a_type_kind)tk_typeref &&
-          typeref_is_type_operator(tp)) {
+          typeref_is_type_operator(tp, /*include_traits=*/TRUE)) {
         /* If this is a decltype (or similar type operator), emit it as
            such. */
         is_decltype = TRUE;
@@ -6292,7 +6294,8 @@ put out nothing.
         decltype_type = decltype_typeref_from_proxy(class_type);
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       } else if (class_type->kind == (a_type_kind)tk_typeref &&
-                 typeref_is_type_operator(class_type)) {
+                 typeref_is_type_operator(class_type,
+                                          /*include_traits=*/TRUE)) {
         a_type_ptr targ_type = skip_typerefs(class_type);
         if (is_immediate_class_type(targ_type) &&
             targ_type->variant.class_struct_union.extra_info->
@@ -6315,7 +6318,7 @@ put out nothing.
       /* Do not insert code here. */
       {
         if (class_type->kind == (a_type_kind)tk_typeref &&
-            typeref_is_type_operator(class_type)) {
+            typeref_is_type_operator(class_type, /*include_traits=*/TRUE)) {
           gen_type_operator(class_type);
         } else {
           gen_unqualified_name(scp, kind);
@@ -8275,65 +8278,113 @@ another reference to the same instance might not be).
 
 static void gen_type_operator(a_type_ptr tp)
 /*
-Render a decltype(<expr>), __underlying_type(<type>), __typeof__(<expr>), or
-__typeof__(<type>) construct.  If the argument to the construct has associated
-source sequence entries, the type previously had its definition_delayed flag
-set to TRUE (at which time those source sequence entries were skipped); the
-source sequence entries associated with the argument should be reactivated in
-such cases.
+Emit a type operator (decltype, etc.) or type builtin construct.  If the
+argument to the construct has associated source sequence entries, the type
+previously had its definition_delayed flag set to TRUE (at which time those
+source sequence entries were skipped); the source sequence entries
+associated with the argument should be reactivated in such cases.
 */
 {
-  a_source_sequence_scan_state  saved_state = null_source_sequence_scan_state;
-  a_boolean                     is_decltype =
-                                          is_typeref_kind(tp, trk_is_decltype);
-  a_boolean                     is_bases = is_typeref_kind(tp, trk_bases);
-  a_boolean                     direct_bases =
-                                         is_typeref_kind(tp, trk_direct_bases);
-  a_boolean                     is_underlying_type =
-                                   is_typeref_kind(tp, trk_is_underlying_type);
-  char                          *kwd;
-  a_boolean                     operator_suppressed = FALSE;
+  a_source_sequence_scan_state saved_state = null_source_sequence_scan_state;
+  a_const_char                 *name = NULL;
+  an_expr_node_ptr             expr = decltype_arg(tp);
+  a_type_ptr                   type_opnd = tp->variant.typeref.extra_info->
+                                                             operator_type_arg;
 
-  if (is_decltype) {
-    if (gcc_or_clang_is_generated_code_target) {
-      /* Current versions of g++ only accept the decltype keyword with
-         -std=c++0x; however, they accept __decltype in either mode, so use
-         the safer spelling. */
-      kwd = (char *)"__decltype(";
-    } else {
-      kwd = (char *)"decltype(";
-    }  /* if */
-  } else if (is_underlying_type) {
-    kwd = (char *)"__underlying_type(";
-  } else if (is_bases) {
-    kwd = (char *)"__bases(";
-  } else if (direct_bases) {
-    kwd = (char *)"__direct_bases(";
-  } else {
-    kwd = (char *)"__typeof__(";
-  }  /* if */
+  check_assertion(tp->kind == tk_typeref);
+  switch (tp->variant.typeref.kind) {
+    case trk_is_decltype:
+      if (gcc_or_clang_is_generated_code_target) {
+        /* Early versions of g++ only accepted the decltype keyword with
+           -std=c++0x; however, all versions accept __decltype in all
+           modes, so use the safer spelling. */
+        name = "__decltype(";
+      } else {
+        name = "decltype(";
+      }  /* if */
+      break;
+    case trk_is_underlying_type:
+      name = "__underlying_type(";
+      break;
+    case trk_is_typeof_with_expression:
+    case trk_is_typeof_with_type_operand:
+      name = "__typeof__(";
+      break;
+    case trk_bases:
+      name = "__bases(";
+      break;
+    case trk_direct_bases:
+      name = "__direct_bases(";
+      break;
+    case trk_add_lvalue_reference:
+      name = "__add_lvalue_reference(";
+      break;
+    case trk_add_pointer:
+      name = "__add_pointer(";
+      break;
+    case trk_add_rvalue_reference:
+      name = "__add_rvalue_reference(";
+      break;
+    case trk_decay:
+      name = "__decay(";
+      break;
+    case trk_make_signed:
+      name = "__make_signed(";
+      break;
+    case trk_make_unsigned:
+      name = "__make_unsigned(";
+      break;
+    case trk_remove_all_extents:
+      name = "__remove_all_extents(";
+      break;
+    case trk_remove_const:
+      name = "__remove_const(";
+      break;
+    case trk_remove_cv:
+      name = "__remove_cv(";
+      break;
+    case trk_remove_cvref:
+      name = "__remove_cvref(";
+      break;
+    case trk_remove_extent:
+      name = "__remove_extent(";
+      break;
+    case trk_remove_pointer:
+      name = "__remove_pointer(";
+      break;
+    case trk_remove_reference_t:
+      name = "__remove_reference_t(";
+      break;
+    case trk_remove_restrict:
+      name = "__remove_restrict(";
+      break;
+    case trk_remove_volatile:
+      name = "__remove_volatile(";
+      break;
+    case trk_remove_reference:
+      name = "__remove_reference(";
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
   if (tp->definition_delayed) {
-    /* The decltype or typeof construct has associated source sequence entries.
-       Save the current position in the source sequence stream and change it
-       to the source sequence entries associated with the type. */
+    /* The construct has associated source sequence entries.  Save the
+       current position in the source_sequence_stream and change it to the
+       source sequence entries associated with the type. */
     save_source_sequence_scan_state(&saved_state);
     activate_delayed_type_definition_sse(tp);
     adv_curr_source_sequence_entry();
   }  /* if */
-  if (is_underlying_type || is_bases || direct_bases
-#if GNU_EXTENSIONS_ALLOWED
-      || is_typeref_kind(tp, trk_is_typeof_with_type_operand)
-#endif /* GNU_EXTENSIONS_ALLOWED */
-                                                        ) {
-    /* __underlying_type(<type>) or __typeof__(<type>). */
+  if (type_opnd != NULL) {
     skip_embedded_declarations();
-    write_tok_str(kwd);
-    gen_type(tp->variant.typeref.extra_info->operator_type_arg);
+    write_tok_str(name);
+    gen_type(type_opnd);
+    write_tok_ch(')');
   } else {
-    /* __typeof__(<expr>) or decltype(<expr>). */
-    an_expr_node_ptr expr = decltype_arg(tp);
+    a_boolean operator_suppressed = FALSE;
     check_assertion(expr != NULL);
-    if (octl.func_prototype_stack == NULL && expr_has_enk_param_ref(expr)) {
+    if (octl.func_prototype_stack == NULL &&
+        expr_has_enk_param_ref(expr)) {
       /* The expression argument refers to function parameters but the
          current context has no function prototype against which to process
          the function parameter references.  This situation can arise with
@@ -8344,7 +8395,7 @@ such cases.
       gen_type(tp->variant.typeref.type);
       operator_suppressed = TRUE;
     } else {
-      a_boolean need_parens = is_decltype &&
+      a_boolean need_parens = is_typeref_kind(tp, trk_is_decltype) &&
                           !tp->variant.typeref.decltype_expr_not_parenthesized;
       if (need_parens && msvc_is_generated_code_target) {
         /* MSVC gets confused by overparenthesizing a dependent decltype
@@ -8359,23 +8410,17 @@ such cases.
           need_parens = FALSE;
         }  /* if */
       }  /* if */
-      write_tok_str(kwd);
-      if (need_parens) {
-        write_tok_str("(");
-      }  /* if */
-      gen_expression(expr);
-      if (need_parens) {
-        write_tok_str(")");
+      if (!operator_suppressed) {
+        write_tok_str(name);
+        if (need_parens) {
+          write_tok_ch('(');
+        }  /* if */
+        gen_expression(expr);
+        if (need_parens) {
+          write_tok_str(")");
+        }  /* if */
       }  /* if */
     }  /* if */
-  }  /* if */ 
-  if (tp->definition_delayed) {
-    /* Restore the source sequence list position. */
-    restore_source_sequence_scan_state(&saved_state);
-    tp->definition_delayed = FALSE;
-  }  /* if */
-  if (!operator_suppressed) {
-    write_tok_str(")");
   }  /* if */
 }  /* gen_type_operator */
 
@@ -8407,7 +8452,7 @@ tag, a typedef, or a dependent type.  A reference is not the definition.
       /* This is the "va_list" or "std::va_list" type, but render it using
          the name of the GNU predefined primitive. */
       write_tok_str("__builtin_va_list");
-    } else if (typeref_is_type_operator(type)) {
+    } else if (typeref_is_type_operator(type, /*include_traits=*/TRUE)) {
       gen_type_operator(type);
     } else {
       int          truncate_pos = 0;
@@ -11577,17 +11622,18 @@ static a_boolean ttt_is_type_operator_for_local_type(a_type_ptr type,
 /*
 This function is called via traverse_type_tree from
 suppress_invalid_explicit_specialization.  If type is a type operator
-typeref and the associated expression is NULL, indicating a reference to a
-block-scope expression, set *end_traversal to TRUE and return TRUE;
-otherwise, return FALSE.  (A reference to a block-scope expression cannot
-be rendered correctly in a generated explicit specialization, since such
-specializations appear in namespace scope.)
+typeref with an expression operand and the associated expression is NULL,
+indicating a reference to a block-scope expression, set *end_traversal to
+TRUE and return TRUE; otherwise, return FALSE.  (A reference to a
+block-scope expression cannot be rendered correctly in a generated explicit
+specialization, since such specializations appear in namespace scope.)
 */
 {
   a_boolean result = FALSE;
 
   if (type->kind == (a_type_kind)tk_typeref &&
-      typeref_is_type_operator(type) &&
+      (is_typeref_kind(type, trk_is_decltype) ||
+       is_typeref_kind(type, trk_typeof_with_expression) &&
       type->variant.typeref.extra_info->expr == NULL) {
     /* End the traversal and return TRUE. */
     result = TRUE;
@@ -13584,7 +13630,7 @@ is_reinterpret_cast indicate it.
        op == (an_expr_operator_kind)eok_ref_cast ||
        op == (an_expr_operator_kind)eok_ref_dynamic_cast) &&
       !(dest_type->kind == (a_type_kind)tk_typeref &&
-        typeref_is_type_operator(dest_type))) {
+        typeref_is_type_operator(dest_type, /*include_traits=*/TRUE))) {
     /* A cast to a reference type that is not implicit in a type operator. */
     destination_type_for_reference_cast(expr, &ref_type);
     dest_type = &ref_type;
@@ -20598,7 +20644,8 @@ when possible.
         !has_name_before_mangling(init_entity_type) &&
         !(dip->is_explicit_cast && braced_init) &&
         !(init_entity_type->kind == (a_type_kind)tk_typeref &&
-          typeref_is_type_operator(init_entity_type))) {
+          typeref_is_type_operator(init_entity_type,
+                                   /*include_traits=*/TRUE))) {
       /* We decided we wanted to use a functional-notation cast, but the
          type is unnamed, so there's no way to write that.  (An exception
          is the case of an explicit braced-form cast, which must have used
@@ -22187,7 +22234,7 @@ declarator (or NULL if it wasn't recorded).
      in the presence of Microsoft qualifiers like near/far. */
   while (rout_type->kind == (a_type_kind)tk_typeref &&
          !(typeref_is_typedef(rout_type) ||
-           typeref_is_type_operator(rout_type))) {
+           typeref_is_type_operator(rout_type, /*include_traits=*/TRUE))) {
     rout_type = rout_type->variant.typeref.type;
   }  /* while */
   if (rout_type->kind != (a_type_kind)tk_routine) {
@@ -22894,7 +22941,7 @@ handle_as_definition:
       push_name_context_if_member(&rout->source_corresp);
       ret_type = unqual_rout_type->variant.routine.return_type;
       if (ret_type->kind == (a_type_kind)tk_typeref &&
-          typeref_is_type_operator(ret_type)) {
+          typeref_is_type_operator(ret_type, /*include_traits=*/TRUE)) {
         /* Rather than attempting to deal with all the complexities of a
            full expression operand, entity_name_is_accessible assumes that
            all type operators are inaccessible.  That eliminates too many

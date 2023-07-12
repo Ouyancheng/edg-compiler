@@ -510,25 +510,36 @@ an alias template).
 }  /* typeref_is_alias */
 
 
+inline a_boolean typeref_is_type_operator(a_type_ptr tp,
+                                          a_boolean  include_traits = FALSE)
 /*
-Return TRUE if a tk_typeref type represents a C++11 decltype,
-__underlying_type, or GNU typeof construct.
+Return TRUE if tp (which must be a tk_typeref type) represents a type
+operator (decltype, GNU __bases, etc.) or, if include_traits is TRUE, a
+clang/GNU type-returning type trait.
 */
-#if GNU_EXTENSIONS_ALLOWED
-#define typeref_is_type_operator(tp)                                        \
-  (is_typeref_kind((tp), trk_is_decltype) ||                                \
-   is_typeref_kind((tp), trk_is_underlying_type) ||                         \
-   is_typeref_kind((tp), trk_bases) ||                                      \
-   is_typeref_kind((tp), trk_direct_bases) ||                               \
-   is_typeref_kind((tp), trk_is_typeof_with_expression) ||                  \
-   is_typeref_kind((tp), trk_is_typeof_with_type_operand))
-#else /* !GNU_EXTENSIONS_ALLOWED */
-#define typeref_is_type_operator(tp)                                        \
-  (is_typeref_kind((tp), trk_is_decltype) ||                                \
-   is_typeref_kind((tp), trk_bases) ||                                      \
-   is_typeref_kind((tp), trk_direct_bases) ||                               \
-   is_typeref_kind((tp), trk_is_underlying_type))
-#endif /* GNU_EXTENSIONS_ALLOWED */
+{
+  a_boolean result;
+
+  check_assertion(tp->kind == tk_typeref);
+  if (include_traits) {
+    result = !is_typeref_kind(tp, trk_none) &&
+             !is_typeref_kind(tp, trk_is_deduced_decltype_auto) &&
+             !is_typeref_kind(tp, trk_is_deduced_auto) &&
+             !is_typeref_kind(tp, trk_is_deduced_class) &&
+             !is_typeref_kind(tp, trk_for_type_attributes) &&
+             !is_typeref_kind(tp, trk_is_alias) &&
+             !is_typeref_kind(tp, trk_is_template_alias);
+  } else {
+    result = is_typeref_kind((tp), trk_is_decltype) ||
+             is_typeref_kind((tp), trk_is_underlying_type) ||
+             is_typeref_kind((tp), trk_bases) ||
+             is_typeref_kind((tp), trk_direct_bases) ||
+             is_typeref_kind((tp), trk_is_typeof_with_expression) ||
+             is_typeref_kind((tp), trk_is_typeof_with_type_operand);
+  }  /* if */
+  return result;
+}  /* typeref_is_type_operator */
+
 
 inline a_boolean type_is_typedef(a_type_ptr  tp)
 /*

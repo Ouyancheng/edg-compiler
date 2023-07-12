@@ -72,6 +72,9 @@ static void form_qualifier(a_scope_ptr                            scope,
                            an_il_to_str_output_control_block_ptr  octl);
 static void form_expression(an_expr_node_ptr                      expr,
                             an_il_to_str_output_control_block_ptr octl);
+static a_boolean is_type_operator_to_be_rendered(
+                                   a_type_ptr                            type,
+                                   an_il_to_str_output_control_block_ptr octl);
 
 
 void clear_il_to_str_output_control_block(
@@ -2010,17 +2013,14 @@ Return its argument expression if available, or NULL otherwise.
 {
   an_expr_node_ptr  expr = type->variant.typeref.extra_info->expr;
 
-  if (is_typeref_kind(type, trk_is_underlying_type) ||
-      is_typeref_kind(type, trk_bases) ||
-      is_typeref_kind(type, trk_direct_bases)) {
-    /* __underlying_type and __based constructs don't allow expression
-        arguments. */
-  } else if (expr == NULL) {
+  if (expr == NULL &&
+      (is_typeref_kind(type, trk_is_decltype) ||
+       is_typeref_kind(type, trk_is_typeof_with_expression))) {
     /* See if the expression can be found in a local function scope. */
-    a_local_expr_node_ref_kind  lerk = is_typeref_kind(type, trk_is_decltype) ?
-                                   (a_local_expr_node_ref_kind)lerk_decltype :
-                                   (a_local_expr_node_ref_kind)lerk_typeof;
+    a_local_expr_node_ref_kind  lerk;
     a_scope_ptr scope;
+    lerk = is_typeref_kind(type, trk_is_decltype) ? lerk_decltype
+                                                  : lerk_typeof;
     if (type->source_corresp.enclosing_routine != NULL &&
         type->source_corresp.enclosing_routine->function_def_number !=
                                                     NULL_function_def_number) {
@@ -2230,9 +2230,11 @@ by octl.
       form_tag_reference(type, octl);
       break;
     case tk_typeref:
-      /* A typeref here should be a typedef, a decltype operator, an
-         __underlying_type operator, or a typeof operator. */
-      if (is_typeref_kind(type, trk_is_decltype)) {
+      /* A typeref here should be a typedef or a type operator. */
+      if (is_type_operator_to_be_rendered(type, octl) &&
+          octl->gen_compilable_code && octl->output_name != NULL) {
+        octl->output_name((char*)type, iek_type);
+      } else if (is_typeref_kind(type, trk_is_decltype)) {
         if (octl->gen_compilable_code && octl->output_name != NULL) {
           /* It may seem strange to use "output_name" to render a type that
              doesn't really have a name.  However, this uses the same
@@ -2592,16 +2594,21 @@ static a_boolean is_type_operator_to_be_rendered(
                                    a_type_ptr                            type,
                                    an_il_to_str_output_control_block_ptr octl)
 /*
-Return TRUE if the given typeref type is a decltype, __underlying_type, or
-typeof construct that should be rendered.  Otherwise, the underlying type
-should be rendered (e.g., in diagnostics the underlying type is more helpful,
-and in the C-generating back end typeof/decltype constructs are either not
-available or not portable).
+Return TRUE if the given typeref type is a construct that should be
+rendered.  Otherwise, the underlying type should be rendered (e.g., in
+diagnostics the underlying type is more helpful, and in the C-generating
+back end typeof/decltype constructs are either not available or not
+portable).
 */
 {
   a_boolean render = FALSE;
 
-  if (typeref_is_type_operator(type)) {
+  if (octl->gen_compilable_code && !octl->c_generating_back_end &&
+      typeref_is_type_operator(type, /*include_traits=*/TRUE)) {
+    /* The C++-generating back end should include these operators in the
+       generated code. */
+    render = TRUE;
+  } else if (typeref_is_type_operator(type)) {
     an_expr_node_ptr expr = decltype_arg(type);
     if (octl->c_generating_back_end) {
       /* Never render a type operator in the C-generating back end. */

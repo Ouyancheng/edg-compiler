@@ -8923,21 +8923,17 @@ typedef struct a_typeref_type_supplement {
 			   this is NULL. */
   an_expr_node_ptr
 		expr;	/* The expression argument for a decltype or typeof
-			   construct (is_decltype or is_typeof is TRUE).  When
-			   the expression is local to a function, this field is
-			   NULL and the expression must be retrieved using
-			   find_local_expr_node.  For typeof, this field is
-			   also NULL for the typeof(type) variant, which is
-			   indicated by the trk_is_typeof_with_type_operand
-			   kind.  This field is always NULL for an
-			   __underlying_type construct (is_underlying_type),
-			   as expression arguments are not allowed.  The
+			   construct (i.e., the trk_is_decltype or
+			   trk_is_typeof_with_expression kinds) and for the
+			   constraint associated with a deduced return type
+			   (i.e., when the kind is trk_is_deduced_auto or
+			   trk_is_deduced_decltype_auto).  It is NULL for
+			   kinds for which the operand is a type.  It is
+			   also NULL when the expression is local to a
+			   function, in which case the expression must be
+			   retrieved using find_local_expr_node.  The
 			   function decltype_arg can be used to fetch the
-			   expression (if there is one) in all cases.  This
-			   field also records the constraint associated with
-			   a deduced return type when is_deduced_decltype_auto
-			   or is_deduced_auto is TRUE in the tk_typeref type
-			   entry. */
+			   expression (if there is one) in all cases. */
 #if UPC_EXTENSIONS_ALLOWED
   a_upc_block_size
 		upc_block_size;
@@ -8954,8 +8950,7 @@ typedef struct a_typeref_type_supplement {
 			   use has been encountered. */
   a_type_ptr	operator_type_arg;
 			/* The type that originally appeared as the argument
-			   to the __underlying_type, typeof, __bases or
-			   __direct_bases operator. */
+			   to the operator. */
   int32_t	min_template_arguments;
 			/* The minimum number of template arguments used to
 			   refer to this instance in the source (using
@@ -9140,11 +9135,14 @@ Definitions of the bits in bit sets of type a_pointer_modifier_set.
 /*
 Some typerefs are added during compilation to indicate that a type has been
 modified in some way.  This enumeration lists the various kinds of uses of
-typerefs.  Note that this information was previously contained in bit fields
-but has been moved to an enumeration to save space.  As a result, these
-values are now mutually exclusive (whereas before both the is_typeof and
-is_typeof_with_type_operand bits could be TRUE).  Some of the names have been
-modified to help illustrate that.
+typerefs.  Note that this information was previously represented by bit
+fields but has been moved to an enumeration to save space.  As a result,
+these values are now mutually exclusive (whereas before both the is_typeof
+and is_typeof_with_type_operand bits could be TRUE).  Some of the names
+have been modified to help illustrate that.
+
+If you add new typeref kinds, update typeref_is_type_operator in types.h
+and gen_type_operator in cp_gen_be.c.
 */
 enum a_typeref_kind : a_byte {
   trk_none,             /* The typeref has no special meaning (e.g., used for
