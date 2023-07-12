@@ -3850,7 +3850,7 @@ parameter pack; otherwise, return FALSE.
 
     result = type_idx.sort == ifc_ts_type_expansion;
   } else {
-    result = is_parameter_pack(param_decl);
+    result = get_ifc_pack(param_decl);
   }  /* if */
   return result;
 }  /* is_parameter_pack */
