@@ -18122,7 +18122,8 @@ represents an explicit cast.
   }  /* if */
   if (!scope_is(ssep, sck_func_prototype) &&
       !scope_is(ssep, sck_template_declaration) &&
-      !scope_is(ssep, sck_template_instantiation)) {
+      !scope_is(ssep, sck_template_instantiation) &&
+      !scope_is(ssep, sck_module_isolated)) {
     (void)ensure_il_scope_exists(ssep);
   }  /* if */
   /* Put the dynamic initialization on a destruction list if appropriate. */
