@@ -1,5 +1,11 @@
 Version 6.6
 
+7/13/23  [EDGcpfe/25634]
+Unicode 15.0.0 characters
+
+The front end now supports the Unicode 15.0.0 character set.
+
+
 7/12/23  [EDGcpfe/26489,EDGcpfe/26493]
 C++-generating back end: GNU/clang type-transforming intrinsics
 
