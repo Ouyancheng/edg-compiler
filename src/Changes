@@ -13,7 +13,7 @@ back end.  This is now fixed.  For example, with --clang --c++23:
   };
 
 
-7/11/23  [EDGcpfe/24649,EDGcpfe/25625]
+7/11/23  [EDGcpfe/24649,EDGcpfe/25625,EDGcpfe/26293]
 Bad access checking for protected member in nondependent call in a template
 
 Consider:
