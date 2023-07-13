@@ -8423,6 +8423,11 @@ associated with the argument should be reactivated in such cases.
       }  /* if */
     }  /* if */
   }  /* if */
+  if (tp->definition_delayed) {
+    /* Restore the source sequence list position. */
+    restore_source_sequence_scan_state(&saved_state);
+    tp->definition_delayed = FALSE;
+  }  /* if */
 }  /* gen_type_operator */
 
 
