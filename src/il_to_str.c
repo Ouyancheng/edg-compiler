@@ -3112,6 +3112,10 @@ if any, recorded in the given routine type in the way described by octl.
     /* Nothing to output. */
   } else if (esp->is_noexcept) {
     octl->output_str(" noexcept", octl);
+    while (esp->copy_from_prototype) {
+      esp = skip_typerefs(esp->variant.routine->type)->
+                           variant.routine.extra_info->exception_specification;
+    }  /* while */
     if (esp->arg_cached) {
       octl->output_str("(<expr>)", octl);
     } else if (esp->variant.noexcept_arg != NULL) {

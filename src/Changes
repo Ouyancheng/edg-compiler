@@ -1,5 +1,16 @@
 Version 6.6
 
+7/13/23  [EDGcpfe/26484]
+Incorrect processing in form_exception_specification
+
+The code in form_exception_specification incorrectly accessed the field
+an_exception_specification::noexcept_arg when the copy_from_prototype flag
+is TRUE, even though that field is only valid when the flag is FALSE.
+Although this routine is not believed to be called by the front end under
+these conditions, such a call could result in incorrect output or an abort
+due to indirection through an invalid pointer.  This is now fixed.
+
+
 7/13/23  [EDGcpfe/25634]
 Unicode 15.0.0 characters
 
