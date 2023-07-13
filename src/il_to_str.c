@@ -2232,7 +2232,12 @@ by octl.
     case tk_typeref:
       /* A typeref here should be a typedef or a type operator. */
       if (is_type_operator_to_be_rendered(type, octl) &&
-          octl->gen_compilable_code && octl->output_name != NULL) {
+          octl->gen_compilable_code && octl->output_name != NULL &&
+          typeref_is_type_operator(type, /*include_traits=*/TRUE)) {
+        /* This is an actual type operator (as opposed to the type and
+           class template deduction typerefs, which are handled below).
+           The C++-generating back end is needed to handle name references
+           in the operand. */
         octl->output_name((char*)type, iek_type);
       } else if (is_typeref_kind(type, trk_is_decltype)) {
         if (octl->gen_compilable_code && octl->output_name != NULL) {
