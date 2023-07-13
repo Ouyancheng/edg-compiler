@@ -8417,8 +8417,9 @@ associated with the argument should be reactivated in such cases.
         }  /* if */
         gen_expression(expr);
         if (need_parens) {
-          write_tok_str(")");
+          write_tok_ch(')');
         }  /* if */
+        write_tok_ch(')');
       }  /* if */
     }  /* if */
   }  /* if */
