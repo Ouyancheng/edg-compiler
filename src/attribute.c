@@ -507,6 +507,8 @@ typedef struct an_attr_appl_descr {
 			       (no property switches)
 			     "0"  : stand-alone attribute (no target entity)
 			       (no property switches)
+                             "M"  : template
+                               (no property switches)
 			   A switch is optionally followed by a "!" to indicate
 			   that a failure to meet the requirement should be
 			   diagnosed as a hard error (otherwise, it elicits a
@@ -815,7 +817,7 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
 
   /* Clang-specific attributes. */
   { ak_availability, "", apply_availability_attr },
-  { ak_using_if_exists, "u|t|r|v|n", apply_using_if_exists_attr },
+  { ak_using_if_exists, "u|t|r|v|n|M", apply_using_if_exists_attr },
 
   /* Internal attributes. */
   { ak_conditional_explicit, "", apply_conditional_explicit },
@@ -3295,6 +3297,20 @@ so is_enum_constant fails).
 }  /* check_simple_constant_constraints */
 
 
+static void check_simple_template_constraints(
+                                           a_const_char                *constr,
+                                           ARG_UNUSED an_attribute_ptr ap,
+                                           ARG_UNUSED a_template_ptr   tmpl)
+/*
+constr encodes a simple target constraint for an entry of type a_template.
+Check that the attribute ap applied to the entry pointed to by tmpl matches
+those constraints.
+*/
+{
+  check_assertion(constr[0] == 'M');
+}  /* check_simple_template_constraints */
+
+
 static a_boolean check_target_entity_match(a_const_char      *constr,
                                            an_attribute_ptr  ap,
                                            a_const_char      *entity,
@@ -3436,6 +3452,17 @@ appropriate and set ap->kind to ak_unrecognized).
           match_found = TRUE;
         }  /* if */
         break;
+      case 'M':
+        /* Support for templates is basic at best and is currently only used
+           when supporting the using_if_exists attribute. */
+        if (entity_kind == iek_template) {
+          if (!weak_mismatch) {
+            check_simple_template_constraints(constr, ap,
+                                              (a_template_ptr)entity);
+          }  /* if */
+          match_found = TRUE;
+        }  /* if */
+        break;
       default:
         unexpected_condition_str2(
            "invalid entity code for constraint configuration of attribute",
@@ -3508,6 +3535,7 @@ this is &scp.attributes.)
     case iek_label:
     case iek_namespace:
     case iek_constant:
+    case iek_template:
       p_attributes = &((a_source_correspondence*)entity)->attributes;
       break;
     case iek_param_type:

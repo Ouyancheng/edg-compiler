@@ -1,5 +1,18 @@
 Version 6.6
 
+7/13/23  [EDGcpfe/26462,EDGcpfe/26481,EDGcpfe/26486]
+Clang compatibility: Assertion failure in get_attribute_link
+
+The changes for EDGcpfe/25472 (in 6.4) had resulted in an assertion failure in
+get_attribute_link when the using_if_exists attribute was applied to a
+template, for example (with --clang --c++14):
+
+  template <class T> void f(T t);
+  namespace N {
+    using ::f __attribute__((using_if_exists));
+  }
+
+
 7/13/23  [EDGcpfe/26484]
 Incorrect processing in form_exception_specification
 
