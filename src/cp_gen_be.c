@@ -11633,7 +11633,7 @@ specialization, since such specializations appear in namespace scope.)
 
   if (type->kind == (a_type_kind)tk_typeref &&
       (is_typeref_kind(type, trk_is_decltype) ||
-       is_typeref_kind(type, trk_typeof_with_expression) &&
+       is_typeref_kind(type, trk_is_typeof_with_expression)) &&
       type->variant.typeref.extra_info->expr == NULL) {
     /* End the traversal and return TRUE. */
     result = TRUE;
