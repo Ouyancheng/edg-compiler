@@ -11455,15 +11455,24 @@ corresponding type, return an error type.
         { a_module_token_cache cache;
 
           module_of(type_idx)->cache_type(&cache, type_idx, /*cinfo=*/{});
+          if (!cache.is_valid()) {
+            goto invalid;
+          }  /* if */
 
-          a_symbol_ptr           type_sym = NULL;
-          a_decl_parse_state     dps;
-          a_decl_pos_block       decl_pos_block;
           a_module_entity_rescan rescan(&cache);
-          init_decl_parse_state(&dps);
-          typename_specifier(&result, &type_sym, /*within_using_decl=*/FALSE,
-                             /*is_decl_specifier=*/FALSE, &dps,
-                             &decl_pos_block);
+          if (curr_token == tok_typename) {
+            a_symbol_ptr       type_sym = NULL;
+            a_decl_parse_state dps;
+            a_decl_pos_block   decl_pos_block;
+
+            init_decl_parse_state(&dps);
+            typename_specifier(&result, &type_sym, /*within_using_decl=*/FALSE,
+                               /*is_decl_specifier=*/FALSE, &dps,
+                               &decl_pos_block);
+          } else {
+            ifc_unexpected(module_of(type_idx), "expected a typename token");
+            goto invalid;
+          }  /* if */
         }
         break;
       case ifc_ts_type_base:
