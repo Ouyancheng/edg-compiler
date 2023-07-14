@@ -8382,9 +8382,13 @@ associated with the argument should be reactivated in such cases.
     write_tok_ch(')');
   } else {
     a_boolean operator_suppressed = FALSE;
-    check_assertion(expr != NULL);
-    if (octl.func_prototype_stack == NULL &&
-        expr_has_enk_param_ref(expr)) {
+    if (expr == NULL) {
+      /* The operator has neither a type operand nor an expression operand.
+         This probably shouldn't happen, but just put out the underlying
+         type since we are not able to recreate the decltype-specifier. */
+      operator_suppressed = TRUE;
+    } else if (octl.func_prototype_stack == NULL &&
+               expr_has_enk_param_ref(expr)) {
       /* The expression argument refers to function parameters but the
          current context has no function prototype against which to process
          the function parameter references.  This situation can arise with
