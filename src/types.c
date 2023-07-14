@@ -11162,7 +11162,7 @@ conservatively.
       result = same_entities(tp1, tp2);
     }  /* if */
   } else {
-    result = identical_types(tp1, tp2);
+    result = identical_types_ignoring_qualifiers(tp1, tp2);
   }  /* if */
   return result;
 }  /* types_are_layout_compatible */
