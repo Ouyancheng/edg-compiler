@@ -8290,6 +8290,7 @@ associated with the argument should be reactivated in such cases.
   an_expr_node_ptr             expr = decltype_arg(tp);
   a_type_ptr                   type_opnd = tp->variant.typeref.extra_info->
                                                              operator_type_arg;
+  a_boolean                    operator_suppressed = FALSE;
 
   check_assertion(tp->kind == tk_typeref);
   switch (tp->variant.typeref.kind) {
@@ -8376,12 +8377,18 @@ associated with the argument should be reactivated in such cases.
     adv_curr_source_sequence_entry();
   }  /* if */
   if (type_opnd != NULL) {
+    a_boolean for_all_scopes = FALSE;
     skip_embedded_declarations();
-    write_tok_str(name);
-    gen_type(type_opnd);
-    write_tok_ch(')');
+    if (entity_name_is_accessible(&type_opnd->source_corresp, iek_type,
+                                  /*ignore_context=*/FALSE, &for_all_scopes)) {
+      write_tok_str(name);
+      gen_type(type_opnd);
+      write_tok_ch(')');
+    } else {
+      /* The operand is inaccessible.  Just put out the underlying type. */
+      operator_suppressed = TRUE;
+    }  /* if */
   } else {
-    a_boolean operator_suppressed = FALSE;
     if (expr == NULL) {
       /* The operator has neither a type operand nor an expression operand.
          This can happen when the expression operand is local to a
@@ -8399,7 +8406,10 @@ associated with the argument should be reactivated in such cases.
          are captured at the point of instantiation but the instance can be
          referred to later from a context in which the function parameters
          are not available.  Just put out the underlying type. */
-      gen_type(tp->variant.typeref.type);
+      operator_suppressed = TRUE;
+    } else if (expr_is_unusable(expr)) {
+      /* The expression involves an inaccessible or out-of-scope name.
+         Just put out the underlying type. */
       operator_suppressed = TRUE;
     } else {
       a_boolean need_parens = is_typeref_kind(tp, trk_is_decltype) &&
@@ -8429,6 +8439,12 @@ associated with the argument should be reactivated in such cases.
         write_tok_ch(')');
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (operator_suppressed) {
+    /* The operand is inaccessible or otherwise unusable.  Put out the
+       resulting type itself instead of reconstituting the operator
+       invocation. */
+    gen_type(tp->variant.typeref.type);
   }  /* if */
   if (tp->definition_delayed) {
     /* Restore the source sequence list position. */
