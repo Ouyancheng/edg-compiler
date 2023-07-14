@@ -11705,6 +11705,7 @@ has typically been previously lowered (and is not lowered by this routine).
   }  /* if */
   zero_node = make_node_for_il_constant(zero_constant);
   check_assertion(!zero_node->is_lvalue);
+  zero_node->orig_lvalue_type = expr->orig_lvalue_type;
   /* Add a cast to the desired type. */
   zero_node = add_cast_if_necessary(zero_node, type);
   if (node_has_side_effects(expr, (a_boolean *)NULL)) {
@@ -14396,6 +14397,8 @@ and lvalueness as question_node.
   /* Make a copy of the original throw node so the original node can be
      overwritten by a comma node. */
   node_copy = copy_node(node);
+  set_expr_result_not_used(node_copy);
+  node_copy->compiler_generated = TRUE;
   node_copy->next = zero_node;
   /* Change the original node to a comma expression. */
   change_node_to_operation(node, (an_expr_operator_kind)eok_comma,

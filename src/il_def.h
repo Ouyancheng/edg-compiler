@@ -14038,19 +14038,21 @@ typedef struct an_expr_node {
   a_type_ptr    type;
                         /* The type of the expression. */
   a_type_ptr    orig_lvalue_type;
-                        /* If the expression has been converted from a
-                           glvalue to a prvalue simply by clearing the
-                           is_lvalue or is_xvalue flag, this records the type
-                           the glvalue had (which may have cv-qualifiers that
-                           were dropped in the prvalue type).  Also set for
-                           casts to reference type (is_reference_cast is TRUE),
-                           to indicate the underlying type of the cast.  NULL
-                           otherwise.  Note that this field will typically be
-                           NULL for expressions that were created during the
-                           lowering process (an exception is made for temporary
-                           variables for so-called "troublesome aggregate
-                           constants" where a const qualification has been
-                           added). */
+			/* If the expression has been converted from a
+			   glvalue to a prvalue simply by clearing the
+			   is_lvalue or is_xvalue flag, this records the type
+			   the glvalue had (which may have cv-qualifiers that
+			   were dropped in the prvalue type).  Also set for
+			   casts to reference type (is_reference_cast is TRUE),
+			   to indicate the underlying type of the cast.  Also
+			   set on enk_constant nodes that are the result of a
+			   glvalue-to-prvalue conversion.  NULL otherwise.
+			   Note that this field will typically be NULL for
+			   expressions that were created during the lowering
+			   process (an exception is made for temporary
+			   variables for so-called "troublesome aggregate
+			   constants" where a const qualification has been
+			   added). */
   an_expr_node_ptr
                 next;
                         /* When this node is part of a list of operands, this

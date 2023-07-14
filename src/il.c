@@ -23266,6 +23266,9 @@ already indicates the load.
       } else {
         an_expr_operator_kind op = node->variant.operation.kind;
         switch (op) {
+          case eok_parens:
+            rvalueable = is_rvalueable_node(node->variant.operation.operands);
+            break;
           case eok_dot_field:
           case eok_pm_field:
             /* These are rvalueable if the first operand is a glvalue.
@@ -23314,6 +23317,7 @@ already indicates the load.
           case eok_dot_static:
           case eok_points_to_static:
           case eok_unbox_lvalue:
+          case eok_call:
             rvalueable = TRUE;
             break;
           case eok_base_class_cast:
@@ -23328,8 +23332,6 @@ already indicates the load.
           case eok_lvalue_cast:  /* Not rvalueable; when converted to an
                                     rvalue it gets rewritten as a normal
                                     cast. */
-          case eok_parens:       /* Not rvalueable: to change to an rvalue,
-                                    change the underlying operand too. */
           case eok_unbox:        /* Not rvalueable: the version with is_lvalue
                                     FALSE does a fetch, but it's an inherent
                                     part of the operation, not an implicit
@@ -23370,7 +23372,57 @@ flags being FALSE in a node where the default setting would be
 for is_lvalue to be TRUE.
 */
 {
-  return !is_glvalue_node(node) && is_rvalueable_node(node);
+  a_boolean  result;
+
+  node = skip_parens(node);
+  if (is_glvalue_node(node)) {
+    /* Not a prvalue at all. */
+    result = FALSE;
+  } else if (!is_rvalueable_node(node)) {
+    /* The node is intrinsically a prvalue, not a glvalue that was implicitly
+       converted to a prvalue. */
+    if (node->orig_lvalue_type != NULL &&
+        is_operation_node(node) &&
+        node_operator_is(node, eok_cast)) {
+      /* An eok_lvalue_cast node is rvalued by turning it into an eok_cast
+         node.  Such situations are recognized by the type of the original
+         eok_lvalue_cast being recorded in the resulting eok_cast node. */
+      result = TRUE;
+    } else if (node->orig_lvalue_type != NULL &&
+               is_constant_node(node)) {
+      /* Constants that are the result of a glvalue-to-prvalue conversion have
+         a non-NULL orig_lvalue_type field set. */
+      result = TRUE;
+    } else {
+      result = FALSE;
+    }  /* if */
+  } else {
+    a_type_ptr  tp = skip_typerefs(node->type);
+    if (tp->kind == tk_void) {
+      result = FALSE;
+    } else if (is_operation_node(node)) {
+      /* For comma and conditional operators, whether there is an actual
+         glvalue-to-prvalue conversion depends on the underlying operands. */
+      if (node_operator_is(node, eok_comma)) {
+        result = node_includes_glvalue_to_prvalue_conv(
+                                      node->variant.operation.operands->next);
+      } else if (node_operator_is(node, eok_question)) {
+        result = node_includes_glvalue_to_prvalue_conv(
+                                node->variant.operation.operands->next) ||
+                 node_includes_glvalue_to_prvalue_conv(
+                                node->variant.operation.operands->next->next);
+      } else if (is_call_node(node)) {
+        /* A call to a function returning a reference might have involved a
+           glvalue-to-prvalue conversion. */
+        result = node->orig_lvalue_type != NULL;
+      } else {
+        result = TRUE;
+      }  /* if */
+    } else {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
 }  /* node_includes_glvalue_to_prvalue_conv */
 
 
@@ -30106,7 +30158,9 @@ have the is_lvalue/is_xvalue flags set incorrectly; return TRUE otherwise.
        the is_lvalue and is_xvalue flags). */
     check_assertion(node_includes_glvalue_to_prvalue_conv(node) ||
                     (is_operation_node(node) &&
-                     node->variant.operation.is_reference_cast));
+                     node->variant.operation.is_reference_cast) ||
+                    node->result_is_not_used ||
+                    is_void_type(node->type));
   }  /* if */
 #endif /* CHECKING */
   return !operand_error;
@@ -30249,9 +30303,15 @@ node, and report any failure as an internal error.
         } else if ((op == (an_expr_operator_kind)eok_question ||
                     op == (an_expr_operator_kind)eok_vector_question) &&
                    op_node != operand_1 &&
-                   expr->result_is_not_used) {
-          /* Okay, this is an operand after the first on a "?"
-             operation, and the flag is set correctly. */
+                   (expr->result_is_not_used || op_node->compiler_generated)) {
+          /* Okay, this is an operand after the first on a "?" operation.
+             Ordinarily, the eok_question node should also have the flag set,
+             but when lowering an eok_question node with a throw-expression
+             operand, that operand may be lowered to a construct (correctly)
+             marked as "result_is_not_used" even when the other branch (and
+             thus the whole "?" operation) may have its result used.  The
+             transformed operand will be marked as compiler-generated in such
+             cases. */
         } else if (op == (an_expr_operator_kind)eok_cast &&
                    expr->result_is_not_used &&
                    is_void_type(expr->type)) {

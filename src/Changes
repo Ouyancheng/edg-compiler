@@ -1,5 +1,37 @@
 Version 6.6
 
+7/13/23  [EDGcpfe/26483]
+node_includes_glvalue_to_prvalue_conv
+
+The change for EDGcpfe/26197 in version 6.5 of the front end required some
+adjustments regarding which glvalue expression nodes are "rvalueable" (i.e., a
+conversion to a prvalue can be represented simply by clearing the is_lvalue
+and is_xvalue flags).  One consequence of that change is that the function
+node_includes_glvalue_to_prvalue_conv in some surprising ways.  For example:
+
+  void v();
+  void g(bool b) {
+    b ? v() : v();
+  }
+
+In version 6.5, node_includes_glvalue_to_prvalue_conv would produce TRUE for
+the expression b ? v() : v(), even though that is not really meaningful for
+expressions of type "void".  Another example:
+
+  struct S { S(char const*); };
+  void g(bool b) {
+    int x;
+    x = b ? 7 : throw S("xyz");
+  }
+
+In version 6.5, node_includes_glvalue_to_prvalue_conv would produce TRUE for
+for the condition expression (b ? 7 : throw S("xyz")), even though 7 is always
+a prvalue (not requiring a conversion) and throw-expressions aren't glvalues
+either.  Now, these cases (and others) have been restored to produce the
+original results (i.e., for both examples there is no implied glvalue-to-
+prvalue conversion).
+
+
 7/14/23  [EDGcpfe/26098,EDGcpfe/26492]
 Microsoft-mode abort on out-of-class definition mismatch
 

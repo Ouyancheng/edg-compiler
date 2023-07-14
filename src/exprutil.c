@@ -21508,7 +21508,7 @@ it might produce an error).
   a_constant_ptr result_con = local_constant();
   a_boolean      processed = FALSE;
   a_boolean      template_constant = FALSE;
-  a_type_ptr     prvalue_node_type;
+  a_type_ptr     prvalue_node_type, orig_type = node->type;
   a_source_position
                  saved_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -21525,22 +21525,22 @@ it might produce an error).
   /* Constant folding can be done only within the expression routines. */
   check_assertion(constant_case == NULL || expr_stack != NULL);
   /* Determine the type for the node after conversion to a prvalue. */
-  if (is_function_type(node->type)) {
+  if (is_function_type(orig_type)) {
     /* Function designator (C) or function lvalue (C++): the conversion to
        prvalue adds a "pointer to". */
-    prvalue_node_type = make_pointer_type(node->type);
-  } else if (is_array_type(node->type)) {
+    prvalue_node_type = make_pointer_type(orig_type);
+  } else if (is_array_type(orig_type)) {
     /* In the unlikely event we convert an array glvalue to an array prvalue
        (we do that with the result of a function call that returns an
        rvalue reference to array, for example), keep the array type as
        it is -- don't drop cv-qualifiers on the element type. */
-    prvalue_node_type = node->type;
-  } else if (is_managed_nullptr_type(node->type)) {
+    prvalue_node_type = orig_type;
+  } else if (is_managed_nullptr_type(orig_type)) {
     /* The Microsoft C++/CLI compiler converts the managed nullptr type to
        std::nullptr_t in a glvalue-to-prvalue conversion. */
     prvalue_node_type = standard_nullptr_type();
   } else {
-    prvalue_node_type = prvalue_type(node->type);
+    prvalue_node_type = prvalue_type(orig_type);
   }  /* if */
   /* No skip_parens here.  Parentheses are handled under the enk_operation
      case. */
@@ -21682,7 +21682,7 @@ it might produce an error).
                                     /*force_prvalue=*/FALSE)) {
               /* x.*y, where x is a constexpr object. */
               con_expr_value = alloc_shareable_constant(result_con);
-              node->orig_lvalue_type = node->type;
+              node->orig_lvalue_type = orig_type;
               node->type = prvalue_node_type;
               processed = TRUE;
             } else {
@@ -21870,30 +21870,32 @@ it might produce an error).
           processed = TRUE;
           break;
         case eok_lvalue_cast:
-          /* An lvalue cast becomes a simple cast on the operand, after the
-             latter is turned into a prvalue. */
-          op1 = conv_glvalue_expr_to_prvalue(op1, allow_folding,
-                                             (a_constant_ptr *)NULL, err_pos);
-          node->variant.operation.operands = op1;
-          op1 = skip_parens(op1);
-          if (allow_folding != NULL && err_pos != NULL &&
-              is_constant_node(op1)) {
-            /* The operand is now constant so try to fold the cast to a
-               constant. */
-            a_boolean did_not_fold;
-            copy_constant(node_constant(op1), result_con);
-            expr_type_change_constant(result_con, prvalue_node_type,
-                                      /*is_implicit_cast=*/FALSE,
-                                      /*check_cast_access=*/FALSE,
-                                      /*check_ambiguity=*/FALSE,
-                                      /*is_reinterpret_cast=*/FALSE,
-                                      /*maintain_expression=*/TRUE,
-                                      &did_not_fold, err_pos);
-            check_assertion(!did_not_fold);
-            con_expr_value = alloc_shareable_constant(result_con);
+          { /* An lvalue cast becomes a simple cast on the operand, after the
+               latter is turned into a prvalue. */
+            op1 = conv_glvalue_expr_to_prvalue(op1, allow_folding,
+                                               (a_constant_ptr*)NULL, err_pos);
+            node->variant.operation.operands = op1;
+            op1 = skip_parens(op1);
+            if (allow_folding != NULL && err_pos != NULL &&
+                is_constant_node(op1)) {
+              /* The operand is now constant so try to fold the cast to a
+                 constant. */
+              a_boolean did_not_fold;
+              copy_constant(node_constant(op1), result_con);
+              expr_type_change_constant(result_con, prvalue_node_type,
+                                        /*is_implicit_cast=*/FALSE,
+                                        /*check_cast_access=*/FALSE,
+                                        /*check_ambiguity=*/FALSE,
+                                        /*is_reinterpret_cast=*/FALSE,
+                                        /*maintain_expression=*/TRUE,
+                                        &did_not_fold, err_pos);
+              check_assertion(!did_not_fold);
+              con_expr_value = alloc_shareable_constant(result_con);
+            }  /* if */
+            set_node_operator(node, (an_expr_operator_kind)eok_cast,
+                              prvalue_node_type, /*is_lvalue=*/FALSE, op1);
+            node->orig_lvalue_type = orig_type;
           }  /* if */
-          set_node_operator(node, (an_expr_operator_kind)eok_cast,
-                            prvalue_node_type, /*is_lvalue=*/FALSE, op1);
           processed = TRUE;
           break;
         case eok_ref_cast:
@@ -21905,7 +21907,7 @@ it might produce an error).
           if (constexpr_enabled &&
               ((op1->kind == (an_expr_node_kind)enk_temp_init &&
                 op1->variant.init.dynamic_init->has_temporary_lifetime) ||
-               are_reference_related(node->type, op1->type))) {
+               are_reference_related(orig_type, op1->type))) {
             goto lvalue_adjust;
           }  /* if */
           break;
@@ -21917,7 +21919,7 @@ lvalue_adjust:
           if (allow_folding != NULL &&
               is_glvalue_node(op1) &&
               !node->variant.operation.is_reinterpret_cast &&
-              are_reference_related(node->type, op1->type)) {
+              are_reference_related(orig_type, op1->type)) {
             con_expr_value = constant_value_addressed_by_node(op1);
             if (con_expr_value != NULL) {
               a_boolean did_not_fold;
@@ -22109,6 +22111,7 @@ lvalue_adjust:
     } else {
       /* The caller wants an expression node for the constant. */
       node = alloc_node_for_constant(con_expr_value);
+      node->orig_lvalue_type = orig_type;
     }  /* if */
   }  /* if */
   release_local_constant(&result_con);

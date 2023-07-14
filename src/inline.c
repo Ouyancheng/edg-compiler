@@ -777,8 +777,10 @@ expression can't be inlined.
             if (is_constant_node(constant_expr)) {
               /* The variable is remapped to a constant.  Use an enk_constant
                  instead. */
+              a_type_ptr  orig_lvalue_type = expr->orig_lvalue_type;
               set_expr_node_kind(expr, (an_expr_node_kind)enk_constant);
               node_constant(expr) = node_constant(constant_expr);
+              expr->orig_lvalue_type = orig_lvalue_type;
             } else {
               /* Other, more complicated, cases.  Just copy the expression. */
               overwrite_node(expr,
