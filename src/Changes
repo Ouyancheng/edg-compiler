@@ -1,5 +1,21 @@
 Version 6.6
 
+7/14/23  [EDGcpfe/26098,EDGcpfe/26492]
+Microsoft-mode abort on out-of-class definition mismatch
+
+Consider (in Microsoft C++17 mode) the following example, which reflects a
+situation that can occur from inconsistently expanding the STDMETHOD and
+STDMETHODIMP macros in the Microsoft Windows SDK:
+
+  class C {
+    virtual __declspec(nothrow) long __stdcall f(int const i);
+  };
+  long __stdcall C::f(int i) {}  // Previously aborted.  Now okay.
+
+This previously triggered an internal error in decl_parameter.  That is now
+fixed.
+
+
 7/13/23  [EDGcpfe/26462,EDGcpfe/26481,EDGcpfe/26486]
 Clang compatibility: Assertion failure in get_attribute_link
 
