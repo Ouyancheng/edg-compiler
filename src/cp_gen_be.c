@@ -8384,8 +8384,11 @@ associated with the argument should be reactivated in such cases.
     a_boolean operator_suppressed = FALSE;
     if (expr == NULL) {
       /* The operator has neither a type operand nor an expression operand.
-         This probably shouldn't happen, but just put out the underlying
-         type since we are not able to recreate the decltype-specifier. */
+         This can happen when the expression operand is local to a
+         function but the function scope is not currently available
+         because it hasn't been read yet from an IL file, for example.
+         Just put out the underlying type since the operator cannot be
+         reconstructed. */
       operator_suppressed = TRUE;
     } else if (octl.func_prototype_stack == NULL &&
                expr_has_enk_param_ref(expr)) {
