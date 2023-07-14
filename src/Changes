@@ -1,6 +1,6 @@
 Version 6.6
 
-7/13/23  [EDGcpfe/26483]
+7/14/23  [EDGcpfe/26483]
 node_includes_glvalue_to_prvalue_conv
 
 The change for EDGcpfe/26197 in version 6.5 of the front end required some
