@@ -4290,8 +4290,6 @@ struct Module_isolation_scope {
   inline ~Module_isolation_scope();
 };  /* Moudle_isolation_scope */
 
-}  /* namespace */
-
 template<typename an_ifc_Decl_type>
 Module_isolation_scope<an_ifc_Decl_type>::Module_isolation_scope(
                                                   const an_ifc_Decl_type &decl)
@@ -4367,6 +4365,7 @@ Tear down the constructed scope.
   pop_scope();
 }  /* Module_isolation_scope::~Module_isolation_scope */
 
+}  /* namespace */
 
 static a_symbol_ptr find_template_parameter(
                                        const an_ifc_decl_parameter &param_decl)
