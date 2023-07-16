@@ -2609,7 +2609,7 @@ portable).
   a_boolean render = FALSE;
 
   if (octl->gen_compilable_code && !octl->c_generating_back_end &&
-      typeref_is_type_operator(type, /*include_traits=*/TRUE)) {
+      typeref_is_type_operator(type, /*include_intrinsics=*/TRUE)) {
     /* The C++-generating back end should include these operators in the
        generated code. */
     render = TRUE;

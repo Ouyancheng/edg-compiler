@@ -2975,7 +2975,8 @@ to indicate a primary declaration.
     /* typeof and decltype tags are never autonomous.  All other non-tag
        types that get here are always autonomous. */
     autonomous = !(type->kind == (a_type_kind)tk_typeref &&
-                   typeref_is_type_operator(type, /*include_traits=*/TRUE));
+                   typeref_is_type_operator(type,
+                                            /*include_intrinsics=*/TRUE));
   } else {
     /* Tag. Check flag. */
     if (sec_decl == NULL) {
@@ -3077,7 +3078,7 @@ end of the type definition.
   /* Do not insert code here. */
   if (is_tag_type(type) ||
       (type->kind == (a_type_kind)tk_typeref &&
-       typeref_is_type_operator(type, /*include_traits=*/TRUE))) {
+       typeref_is_type_operator(type, /*include_intrinsics=*/TRUE))) {
     /* For a class, enum or decltype/typeof type, loop through source sequence
        entries looking for the end-of-construct entry for the type. */
     for (;;) {
@@ -3735,7 +3736,7 @@ etc.)
       } else if (type_is(inaccessible_type, tk_typeref)) {
         if (typeref_is_typedef(inaccessible_type) ||
             typeref_is_type_operator(inaccessible_type,
-                                     /*include_traits=*/TRUE)) {
+                                     /*include_intrinsics=*/TRUE)) {
           /* This is the problematic type. */
           break;
         } else {
@@ -5808,7 +5809,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
         }  /* if */
       }  /* if */
       if (tp->kind == (a_type_kind)tk_typeref &&
-          typeref_is_type_operator(tp, /*include_traits=*/TRUE)) {
+          typeref_is_type_operator(tp, /*include_intrinsics=*/TRUE)) {
         /* If this is a decltype (or similar type operator), emit it as
            such. */
         is_decltype = TRUE;
@@ -6295,7 +6296,7 @@ put out nothing.
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
       } else if (class_type->kind == (a_type_kind)tk_typeref &&
                  typeref_is_type_operator(class_type,
-                                          /*include_traits=*/TRUE)) {
+                                          /*include_intrinsics=*/TRUE)) {
         a_type_ptr targ_type = skip_typerefs(class_type);
         if (is_immediate_class_type(targ_type) &&
             targ_type->variant.class_struct_union.extra_info->
@@ -6318,7 +6319,8 @@ put out nothing.
       /* Do not insert code here. */
       {
         if (class_type->kind == (a_type_kind)tk_typeref &&
-            typeref_is_type_operator(class_type, /*include_traits=*/TRUE)) {
+            typeref_is_type_operator(class_type,
+                                     /*include_intrinsics=*/TRUE)) {
           gen_type_operator(class_type);
         } else {
           gen_unqualified_name(scp, kind);
@@ -8481,7 +8483,7 @@ tag, a typedef, or a dependent type.  A reference is not the definition.
       /* This is the "va_list" or "std::va_list" type, but render it using
          the name of the GNU predefined primitive. */
       write_tok_str("__builtin_va_list");
-    } else if (typeref_is_type_operator(type, /*include_traits=*/TRUE)) {
+    } else if (typeref_is_type_operator(type, /*include_intrinsics=*/TRUE)) {
       gen_type_operator(type);
     } else {
       int          truncate_pos = 0;
@@ -13659,7 +13661,7 @@ is_reinterpret_cast indicate it.
        op == (an_expr_operator_kind)eok_ref_cast ||
        op == (an_expr_operator_kind)eok_ref_dynamic_cast) &&
       !(dest_type->kind == (a_type_kind)tk_typeref &&
-        typeref_is_type_operator(dest_type, /*include_traits=*/TRUE))) {
+        typeref_is_type_operator(dest_type, /*include_intrinsics=*/TRUE))) {
     /* A cast to a reference type that is not implicit in a type operator. */
     destination_type_for_reference_cast(expr, &ref_type);
     dest_type = &ref_type;
@@ -20674,7 +20676,7 @@ when possible.
         !(dip->is_explicit_cast && braced_init) &&
         !(init_entity_type->kind == (a_type_kind)tk_typeref &&
           typeref_is_type_operator(init_entity_type,
-                                   /*include_traits=*/TRUE))) {
+                                   /*include_intrinsics=*/TRUE))) {
       /* We decided we wanted to use a functional-notation cast, but the
          type is unnamed, so there's no way to write that.  (An exception
          is the case of an explicit braced-form cast, which must have used
@@ -22263,7 +22265,7 @@ declarator (or NULL if it wasn't recorded).
      in the presence of Microsoft qualifiers like near/far. */
   while (rout_type->kind == (a_type_kind)tk_typeref &&
          !(typeref_is_typedef(rout_type) ||
-           typeref_is_type_operator(rout_type, /*include_traits=*/TRUE))) {
+           typeref_is_type_operator(rout_type, /*include_intrinsics=*/TRUE))) {
     rout_type = rout_type->variant.typeref.type;
   }  /* while */
   if (rout_type->kind != (a_type_kind)tk_routine) {
@@ -22970,7 +22972,7 @@ handle_as_definition:
       push_name_context_if_member(&rout->source_corresp);
       ret_type = unqual_rout_type->variant.routine.return_type;
       if (ret_type->kind == (a_type_kind)tk_typeref &&
-          typeref_is_type_operator(ret_type, /*include_traits=*/TRUE)) {
+          typeref_is_type_operator(ret_type, /*include_intrinsics=*/TRUE)) {
         /* Rather than attempting to deal with all the complexities of a
            full expression operand, entity_name_is_accessible assumes that
            all type operators are inaccessible.  That eliminates too many

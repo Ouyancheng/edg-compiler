@@ -510,18 +510,19 @@ an alias template).
 }  /* typeref_is_alias */
 
 
-inline a_boolean typeref_is_type_operator(a_type_ptr tp,
-                                          a_boolean  include_traits = FALSE)
+inline a_boolean typeref_is_type_operator(
+                                         a_type_ptr tp,
+                                         a_boolean  include_intrinsics = FALSE)
 /*
 Return TRUE if tp (which must be a tk_typeref type) represents a type
-operator (decltype, GNU __bases, etc.) or, if include_traits is TRUE, a
-clang/GNU type-returning type trait.
+operator (decltype, GNU __bases, etc.) or, if include_intrinsics is TRUE, a
+clang/GNU type-returning type builtin.
 */
 {
   a_boolean result;
 
   check_assertion(tp->kind == tk_typeref);
-  if (include_traits) {
+  if (include_intrinsics) {
     result = !is_typeref_kind(tp, trk_none) &&
              !is_typeref_kind(tp, trk_is_deduced_decltype_auto) &&
              !is_typeref_kind(tp, trk_is_deduced_auto) &&
