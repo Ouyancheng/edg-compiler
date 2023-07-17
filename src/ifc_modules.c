@@ -11508,7 +11508,12 @@ corresponding type, return an error type.
                 an_ifc_decl_parameter param_decl = *opt_param_decl;
                 an_ifc_type_index     type = get_ifc_type(param_decl);
                 if (type_represents_type_templ_param_ref(type)) {
-                  result = alloc_detached_type_templ_param(param_decl);
+                  a_symbol_ptr sym = find_template_parameter(param_decl);
+
+                  if (sym == NULL) {
+                    goto invalid;
+                  }  /* if */
+                  result = il_entry_for_symbol<a_type>(sym);
                 } else {
                   result = type_for_type_index(get_ifc_type(param_decl));
                 }  /* if */
