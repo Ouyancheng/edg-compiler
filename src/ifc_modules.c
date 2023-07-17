@@ -4259,11 +4259,7 @@ information about detached template parameters.
 
     an_ifc_parameter_position position = get_ifc_position(param_decl);
     result->param_num = position;
-
-    an_ifc_type_index param_type = get_ifc_type(param_decl);
-    if (param_type.sort == ifc_ts_type_expansion) {
-      result->is_pack = TRUE;
-    }  /* if */
+    result->is_pack = is_parameter_pack(param_decl);
   }
   goto done;
 invalid:
@@ -5308,7 +5304,7 @@ TRUE if caching succeeds, FALSE otherwise.
 
   switch (param_sort) {
     case ifc_ps_type:
-      { a_boolean is_pack = type.sort == ifc_ts_type_expansion;
+      { a_boolean is_pack = is_parameter_pack(idp);
 
         mod->cache_type_param_introducer(cache, get_ifc_constraint(idp),
                                          is_pack);
