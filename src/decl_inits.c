@@ -5867,8 +5867,8 @@ returned set to TRUE.
              expression, but it couldn't fill in extended position information.
              Do that here. */
           a_source_range  *pos_range = &folded_con->expr->expr_range;
-          pos_range.start = pos_first_token;
-          pos_range.end = curr_construct_end_position;
+          pos_range->start = pos_first_token;
+          pos_range->end = curr_construct_end_position;
         }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         if (static_lifetime &&
