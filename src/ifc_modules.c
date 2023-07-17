@@ -4017,8 +4017,7 @@ parameters.
           }  /* if */
 
           /* Check to ensure the parameter number read from the IFC matches the
-             logical expectation (i.e., is sequential indexed relative to the
-             previous parameter). */
+             logical expectation (i.e., 1, 2, ..., n). */
           an_ifc_index_type computed_param_num =
                                 get_relative_index(traverser, indexed_idp) + 1;
           if (new_sym_param->param_num != computed_param_num) {
@@ -4033,9 +4032,10 @@ parameters.
             goto invalid;
           }
           /* If this parameter is a pack, expose to the
-             sck_template_declaration that its a variadic template; this allows
-             pack expansion to function correctly during use of the parameters
-             in redeclaration checking. */
+             sck_template_declaration scope that the context is that of a
+             variadic template; this allows pack expansion to function
+             correctly during use of the parameters in redeclaration
+             checking. */
           if (new_sym_param->is_pack) {
             /* This code should only execute from within a
                Module_isolation_scope.  If this assertion is violated,
@@ -4275,11 +4275,11 @@ done:
 namespace {
 
 /*
-The module isolation scope class encapsulated the construction a of detached
-template parameter list, and isolating the template parameter resolution
-(find_template_parameter) so as to prevent resolution to an incorrect parameter
-higher up in the scope stack.  It's intended to (at least currently) only be
-used during redeclaration checking.
+The module isolation scope class encapsulates the construction of a detached
+template parameter list and the isolation of the template parameter resolution
+(find_template_parameter -- so as to prevent resolution to an incorrect
+parameter higher up in the scope stack).  It's intended to (at least currently)
+only be used during redeclaration checking.
 
 See alloc_detached_templ_param_sym for more information about detached template
 parameters.
@@ -4371,8 +4371,8 @@ static a_symbol_ptr find_template_parameter(
                                        const an_ifc_decl_parameter &param_decl)
 /*
 Return the template parameter symbol in the current scope stack corresponding
-to IFC parameter declaration at the given index.  If no parameter can be found,
-return NULL.
+to the IFC parameter declaration at the given index.  If no parameter can be
+found, return NULL.
 */
 {
   a_symbol_ptr              result = NULL;
@@ -6987,9 +6987,11 @@ is_redeclared_specialized_entity(a_Search_fn         search_fn,
 /*
 For a given module entity's potentially previously-declared symbol, primary
 template, and template arguments, check to see if the symbol is indeed a
-redeclaration.  If the symbol is a redeclaration, return TRUE and set
-*redecl_entity and *redecl_kind to the redeclared entity and its associated
-kind; otherwise, return FALSE.
+redeclaration using search_fn (a function taking a template symbol pointer and
+a template argument list, returning any matching specialization symbol).  If
+the symbol is a redeclaration, return TRUE and set *redecl_entity and
+*redecl_kind to the redeclared entity and its associated kind; otherwise,
+return FALSE.
 
 This function should not be used directly in modules code, instead see
 check_and_set_specialization_redeclaration.
@@ -7027,9 +7029,10 @@ find_redeclared_specialized_entity_in_list(a_Search_fn         search_fn,
                                            an_il_entry_kind    *redecl_kind)
 /*
 For a given module entity's associated symbol list, primary template, and
-template arguments, search the symbols for a redeclaration.  If a redeclaration
-is found, return TRUE and set *redecl_entity and *redecl_kind to the redeclared
-entity and its associated kind; otherwise, return FALSE.
+template arguments, search the symbols for a redeclaration using search_fn (see
+is_redeclared_specialized_entity for more information about search_fn).  If a
+redeclaration is found, return TRUE and set *redecl_entity and *redecl_kind to
+the redeclared entity and its associated kind; otherwise, return FALSE.
 
 This function should not be used directly in modules code, instead see
 check_and_set_specialization_redeclaration.
@@ -7064,9 +7067,10 @@ static a_boolean find_redeclared_specialized_entity(
                                         an_il_entry_kind       *redecl_kind)
 /*
 For a given module entity's symbol header and IFC node information, search the
-active and inactive symbols for a redeclaration.  If a redeclaration is found,
-return TRUE and set *redecl_entity and *redecl_kind to the redeclared entity
-and its associated kind; otherwise, return FALSE.
+active and inactive symbols for a redeclaration using search_fn (see
+is_redeclared_specialized_entity for more information about search_fn).  If a
+redeclaration is found, return TRUE and set *redecl_entity and *redecl_kind to
+the redeclared entity and its associated kind; otherwise, return FALSE.
 
 This function should not be used directly in modules code, instead see
 check_and_set_specialization_redeclaration.
@@ -11795,7 +11799,7 @@ done:;
 }  /* type_for_type_index */
 
 
-static a_template_arg_ptr create_not_type_template_arg_from_expr(
+static a_template_arg_ptr create_non_type_template_arg_from_expr(
                                            const a_template_parameter *param,
                                            an_ifc_expr_index          expr_idx)
 /*
@@ -11854,7 +11858,7 @@ non-type template argument with an error constant.
 
         an_ifc_expr_read  read_expr = *opt_read_expr;
         an_ifc_expr_index address = get_ifc_address(read_expr);
-        result = create_not_type_template_arg_from_expr(param, address);
+        result = create_non_type_template_arg_from_expr(param, address);
         /* FIXME: Update the constant with the appropriate read sort
            transformation applied (i.e., perform things like LvalueToRvalue
            conversion on the non-type constant).
@@ -11881,7 +11885,7 @@ invalid:
   result->variant.constant = alloc_error_constant();
 done:
   return result;
-}  /* create_not_type_template_arg_from_expr */
+}  /* create_non_type_template_arg_from_expr */
 
 namespace {
 
@@ -12281,7 +12285,7 @@ represented by the expression.
             goto invalid;
           }  /* if */
 
-          /* Lookup (or create) the template instantiation to resolve the
+          /* Look up (or create) the template instantiation to resolve the
              appropriate placeholder type. */
           a_symbol_ptr   new_arg_sym =
                              find_template_class(template_sym, &il_arguments,
@@ -12330,7 +12334,7 @@ represented by the expression.
       goto invalid;
     default:
       { /* The non-type template argument case. */
-        a_template_arg *new_arg = create_not_type_template_arg_from_expr(
+        a_template_arg *new_arg = create_non_type_template_arg_from_expr(
                                                            state->curr_param(),
                                                            expr_idx);
         if (!state->append_argument(new_arg, expr_idx)) {

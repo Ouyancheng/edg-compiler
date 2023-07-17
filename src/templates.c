@@ -9431,8 +9431,9 @@ required, any_prototype_allowed should be set to TRUE and
 specific_prototype_allowed should be NULL.  If a specific prototype is
 required, any_prototype_allowed should be FALSE and a pointer to the specific
 prototype symbol should be passed.  eta_options can be used to specify
-additional options for use when determining equality.  A pointer to the symbol
-entry field of the hash table is returned, or NULL is no entry is found.
+additional options for use when determining equality.  If an existing
+(matching) partial specialization is found, its symbol pointer is returned;
+otherwise, NULL is returned.
 
 Note that any_prototype_allowed and specific_prototype_allowed are only
 respected when the symbol being traversed is a class template.
@@ -9501,7 +9502,7 @@ a_symbol_ptr find_partial_template_specialization(
                                               a_symbol_ptr       template_sym,
                                               a_template_arg_ptr template_args)
 /*
-Give a pointer to a template symbol and a list of template arguments, find and
+Given a pointer to a template symbol and a list of template arguments, find and
 return a symbol pointer for any existing (matching) partial specialization;
 otherwise, return NULL.
 */
@@ -9517,7 +9518,7 @@ otherwise, return NULL.
                                      /*any_prototype_allowed=*/TRUE,
                                      /*specific_prototype_allowed=*/NULL,
                                      eta_options);
-}  /* find_template_specialization */
+}  /* find_partial_template_specialization */
 
 
 static void add_instantiation(
