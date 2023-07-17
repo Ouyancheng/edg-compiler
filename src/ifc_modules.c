@@ -7199,9 +7199,9 @@ a_boolean check_and_set_partial_specialization_redeclaration(
 /*
 Given an IFC module entity's symbol locator, module entity pointer, IFC node
 information, and source position, check for a redeclaration of a partial
-template specialization.  Return TRUE if a redeclaration is found; otherwise
-return FALSE.  If found, the redeclared entity and its associated kind will be
-set to *redecl_entity and *redecl_kind respectively.
+template specialization.  If a redeclaration is found, return TRUE and set
+*redecl_entity and *redecl_kind to the redeclared entity and its associated
+kind; otherwise, return FALSE.
 
 The caller is responsible for handling any required merging of the
 declarations.  In the case of duplicate definitions the caller is responsible
