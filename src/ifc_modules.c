@@ -10277,7 +10277,7 @@ Print the corresponding file and line number for the source location
   unsigned char *save_byte_buffer = file->byte_buffer;
   unsigned char *save_buffer_end = file->buffer_end;
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
-  long save_seek = ftell(file.f_module);
+  long save_seek = ftell(file->f_module);
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   source_position_from_locus(&pos, locus);
   /* Restore saved information. */
