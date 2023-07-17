@@ -1,5 +1,27 @@
 Version 6.6
 
+7/17/23  [EDGcpfe/26497]
+String form of template definitions with embedded _Pragma operators
+
+In template definitions containing _Pragma operators, the string form of
+the template in the IL previously represented the _Pragma operator as the
+equivalent #pragma directive.  In C++-generating back end configurations in
+modes in which the definitions of templates are put out from the string
+form instead of from the prototype instantiation IL (e.g., Microsoft mode
+or with --no_parse_templates), this transformation produced incorrect code
+when the operator is followed by other code on the same line, as the
+additional code became part of the #pragma directive line.  This is now
+fixed: _Pragma operators are preserved in the string form of template
+definitions.  For example, with --microsoft:
+
+  extern void g();
+  template<typename>
+  void f() {
+    _Pragma("warning(disable : 4996)") g();   // Previously generated as
+                                        // #pragma warning(disable : 4996) g();
+  }
+
+
 7/14/23  [EDGcpfe/26496]
 __is_layout_compatible and qualified array types
 

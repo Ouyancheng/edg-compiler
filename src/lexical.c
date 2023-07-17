@@ -25774,6 +25774,7 @@ encountered, whatever their other characteristics, are included.
     a_boolean	new_seq = ppp->pragma_position.seq >= curr_seq;
     is_pseudo_pragma = ppp->descr_ptr->is_pseudo_pragma;
     is_pragma_directive = !is_pseudo_pragma &&
+                          !ppp->is_function_style_pragma &&
                           !ppp->is_microsoft_pragma_operator;
     if (new_seq || is_pragma_directive) {
       /* We have moved to a new line, or we are generating a #pragma (which
@@ -25807,6 +25808,9 @@ encountered, whatever their other characteristics, are included.
     } else if (ppp->is_microsoft_pragma_operator) {
       /* A Microsoft __pragma operator. */
       put_str_to_temp_text_buffer("__pragma(");
+    } else if (ppp->is_function_style_pragma) {
+      /* The _Pragma form. */
+      put_str_to_temp_text_buffer("_Pragma(");
     } else {
       /* Add "#pragma " to the template string. */
       put_str_to_temp_text_buffer("#pragma ");
@@ -25814,7 +25818,23 @@ encountered, whatever their other characteristics, are included.
     if (ppp->descr_ptr->record_pragma_text) {
       /* Note: the pragma id is already part of pragma_text. */
       check_assertion(ppp->pragma_text != NULL);
-      put_str_to_temp_text_buffer(ppp->pragma_text);
+      if (ppp->is_function_style_pragma &&
+          !ppp->is_microsoft_pragma_operator) {
+        /* The operand of _Pragma is a quoted string, but the enclosing
+           quotes aren't part of the recorded pragma text.  Add enclosing
+           quotes and escape any embedded quote characters. */
+        put_ch_to_temp_text_buffer('"');
+        for (a_const_char *p = ppp->pragma_text; *p != '\0'; ++p) {
+          if (*p == '"') {
+            put_ch_to_temp_text_buffer('\\');
+          }  /* if */
+          put_ch_to_temp_text_buffer(*p);
+        }  /* for */
+        put_str_to_temp_text_buffer("\"");
+      } else {
+        /* The recorded pragma text can be used directly. */
+        put_str_to_temp_text_buffer(ppp->pragma_text);
+      }  /* if */
     } else {
       /* The pragma id is not part of pragma_text, so it has to be added
          explicitly. */
@@ -25827,9 +25847,10 @@ encountered, whatever their other characteristics, are included.
     if (is_pseudo_pragma) {
       /* Add terminating comment delimiter to the template string. */
       put_str_to_temp_text_buffer("*/");
-    } else if (ppp->is_microsoft_pragma_operator) {
-      /* Put out the closing parenthesis for the Microsoft __pragma
-         operator. */
+    } else if (ppp->is_microsoft_pragma_operator ||
+               ppp->is_function_style_pragma) {
+      /* Put out the closing parenthesis for the _Pragma or Microsoft
+         __pragma operator. */
       put_str_to_temp_text_buffer(")");
     }  /* if */
   }  /* for */
