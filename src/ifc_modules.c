@@ -3894,6 +3894,37 @@ parameters.
 static a_type_ptr type_for_type_index(an_ifc_type_index type_index);
 
 
+static a_type_ptr type_for_nontype_templ_param(
+                                       const an_ifc_decl_parameter &param_decl)
+/*
+Given an IFC type index, return the type of the parameter (or in the case of a
+parameter pack, the type of the pack elements).  If the type cannot be
+reconstructed, instead return an error type.
+*/
+{
+  a_type_ptr        result;
+  an_ifc_type_index type_idx = get_ifc_type(param_decl);
+
+  if (type_idx.sort == ifc_ts_type_expansion) {
+    Opt<an_ifc_type_expansion> opt_expansion_type;
+
+    construct_node(&opt_expansion_type, type_idx);
+    if (!opt_expansion_type.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    an_ifc_type_expansion expansion_type = *opt_expansion_type;
+    type_idx = get_ifc_pack(expansion_type);
+  }  /* if */
+  result = type_for_type_index(type_idx);
+  goto done;
+invalid:
+  result = error_type();
+done:
+  return result;
+}  /* type_for_nontype_templ_param */
+
+
 static a_constant_ptr alloc_detached_nontype_templ_param(
                                        const an_ifc_decl_parameter &param_decl)
 /*
@@ -3906,9 +3937,7 @@ parameters.
   a_constant_ptr result = fs_constant(ck_template_param);
 
   set_template_param_constant_kind(result, tpck_param);
-
-  an_ifc_type_index type_idx = get_ifc_type(param_decl);
-  result->type = type_for_type_index(type_idx);
+  result->type = type_for_nontype_templ_param(param_decl);
 
   auto                      &extra_info = result->variant.template_param;
   a_template_nesting_depth  pdepth = get_ifc_level(param_decl);
@@ -6586,9 +6615,9 @@ default arguments) to the given IL template param; otherwise, return FALSE.
         /* The parameter is not a non-type template parameter. */
         goto no_match;
       } else {
-        a_constant_ptr    constant = il_templ_param->variant.constant.ptr;
-        an_ifc_type_index ifc_type_idx = get_ifc_type(mod_templ_param);
-        a_type_ptr        mod_param_type = type_for_type_index(ifc_type_idx);
+        a_constant_ptr constant = il_templ_param->variant.constant.ptr;
+        a_type_ptr     mod_param_type =
+                                 type_for_nontype_templ_param(mod_templ_param);
 
         if (!il_identical_types(constant->type, mod_param_type)) {
           /* The non-type template parameter declared by the IFC and the
@@ -11513,6 +11542,7 @@ corresponding type, return an error type.
                   if (sym == NULL) {
                     goto invalid;
                   }  /* if */
+                  record_potential_pack_reference(sym, &null_source_position);
                   result = il_entry_for_symbol<a_type>(sym);
                 } else {
                   result = type_for_type_index(get_ifc_type(param_decl));
@@ -11690,9 +11720,33 @@ corresponding type, return an error type.
             goto invalid;
           }  /* if */
 
-          an_ifc_type_expansion expansion_type = *opt_expansion_type;
-          an_ifc_type_index     pack = get_ifc_pack(expansion_type);
+          an_ifc_type_expansion
+                          expansion_type = *opt_expansion_type;
+          an_ifc_type_index
+                          pack = get_ifc_pack(expansion_type);
+          /* Start a potential pack expansion. */
+          a_pack_expansion_stack_entry_ptr
+                          pesep;
+          (void)begin_potential_pack_expansion_context_full(
+                                                  &pesep,
+                                                  /*p_pedp=*/NULL,
+                                                  /*is_lookahead=*/FALSE,
+                                                  /*allow_empty_list=*/FALSE,
+                                                  /*ignore_suppression=*/TRUE);
+          /* Form the IL type. */
           result = type_for_type_index(pack);
+
+          /* This is a bit of a hack, a token cache is created and rescanned
+             containing an ellipsis.  This allows
+             end_potential_pack_expansion_context to consume the ellipsis and
+             mark pack use accordingly.  This in turn, ensures any packs that
+             are reference are not diagnosed. */
+          a_module_token_cache cache;
+          cache_token(&cache, tok_ellipsis);
+
+          a_module_entity_rescan rescan(&cache);
+          (void)end_potential_pack_expansion_context(pesep,
+                                                     /*is_declarator=*/FALSE);
         }
         break;
       case ifc_ts_type_typename:
@@ -11800,7 +11854,7 @@ done:;
 }  /* type_for_type_index */
 
 
-static a_template_arg_ptr create_non_type_template_arg_from_expr(
+static a_template_arg_ptr create_nontype_template_arg_from_expr(
                                            const a_template_parameter *param,
                                            an_ifc_expr_index          expr_idx)
 /*
@@ -11859,7 +11913,7 @@ non-type template argument with an error constant.
 
         an_ifc_expr_read  read_expr = *opt_read_expr;
         an_ifc_expr_index address = get_ifc_address(read_expr);
-        result = create_non_type_template_arg_from_expr(param, address);
+        result = create_nontype_template_arg_from_expr(param, address);
         /* FIXME: Update the constant with the appropriate read sort
            transformation applied (i.e., perform things like LvalueToRvalue
            conversion on the non-type constant).
@@ -11886,7 +11940,7 @@ invalid:
   result->variant.constant = alloc_error_constant();
 done:
   return result;
-}  /* create_non_type_template_arg_from_expr */
+}  /* create_nontype_template_arg_from_expr */
 
 namespace {
 
@@ -12335,7 +12389,7 @@ represented by the expression.
       goto invalid;
     default:
       { /* The non-type template argument case. */
-        a_template_arg *new_arg = create_non_type_template_arg_from_expr(
+        a_template_arg *new_arg = create_nontype_template_arg_from_expr(
                                                            state->curr_param(),
                                                            expr_idx);
         if (!state->append_argument(new_arg, expr_idx)) {
