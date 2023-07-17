@@ -12638,7 +12638,7 @@ module file.
                                            symbol_for(templ), &arg_list,
                                            /*explicit_arg_list_present=*/FALSE,
                                            &pos);
-          result = inst_sym->variant.routine.ptr->type;
+          result = il_entry_for_symbol<a_routine>(inst_sym)->type;
         }
         break;
       case templk_class:
@@ -12650,14 +12650,14 @@ module file.
                                        /*instantiation_nonreal=*/FALSE,
                                        /*do_not_create=*/FALSE,
                                        /*in_substitution=*/FALSE);
-        result = inst_sym->variant.class_struct_union.type;
+        result = il_entry_for_symbol<a_type>(inst_sym);
         break;
       case templk_variable:
       case templk_static_data_member:
         inst_sym = find_template_variable(symbol_for(templ), &arg_list,
                                           /*prototype_allowed=*/TRUE,
                                           /*is_use=*/FALSE, /*diagnose=*/TRUE);
-        result = inst_sym->variant.variable.ptr->type;
+        result = il_entry_for_symbol<a_variable>(inst_sym)->type;
         break;
       case templk_concept:
         ifc_requirement(module_of(templ_id), arg_list == NULL,
@@ -14970,7 +14970,7 @@ file for the additional information needed, depending on the kind of literal.
       break;
     case ifc_sls_msvc_string_prefix_macro:
       { an_ifc_text_offset prefix_offset =
-                                      literal.variant.msvc_function_name_macro;
+                                      literal.variant.msvc_string_prefix_macro;
         Opt<a_string>      opt_prefix = name_from_index(prefix_offset);
 
         if (!opt_prefix.has_value()) {
