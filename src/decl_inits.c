@@ -5860,6 +5860,17 @@ returned set to TRUE.
                                         is_constant_evaluated,
                                         folded_con, &diag_list)) {
         if (is_error_constant(folded_con)) init_err = TRUE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        if (folded_con->expr != NULL &&
+            node_is(folded_con->expr, enk_initializer)) {
+          /* interpret_dynamic_init may have created an enk_initializer backing
+             expression, but it couldn't fill in extended position information.
+             Do that here. */
+          a_source_range  *pos_range = &folded_con->expr->expr_range;
+          pos_range.start = pos_first_token;
+          pos_range.end = curr_construct_end_position;
+        }  /* if */
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         if (static_lifetime &&
             (init_dip->destructor == NULL ||
              init_dip->destructor->is_trivial_destructor)) {

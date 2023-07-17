@@ -1,5 +1,14 @@
 Version 6.6
 
+7/17/23  [EDGcpfe/26506]
+Extended position information in enk_initializer node
+
+In some cases folding a dynamic initializer entry produces a backing expression
+representation that uses an enk_initializer node.  Previously, no extended
+position information was recorded in such nodes (when the configuration macro
+EXTRA_SOURCE_POSITIONS_IN_IL is set to TRUE).  That is now fixed.
+
+
 7/17/23  [EDGcpfe/26497]
 String form of template definitions with embedded _Pragma operators
 
