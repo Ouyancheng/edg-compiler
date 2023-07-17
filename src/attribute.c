@@ -507,8 +507,8 @@ typedef struct an_attr_appl_descr {
 			       (no property switches)
 			     "0"  : stand-alone attribute (no target entity)
 			       (no property switches)
-                             "M"  : template
-                               (no property switches)
+			     "M"  : template
+			       (no property switches)
 			   A switch is optionally followed by a "!" to indicate
 			   that a failure to meet the requirement should be
 			   diagnosed as a hard error (otherwise, it elicits a
