@@ -3287,6 +3287,16 @@ EXTERN a_requires_range_map
 			   used to skip over those constructs during
 			   instantiations. */
 
+typedef Ptr_map<an_expr_node_ptr, a_subst_pairs_array>
+		a_requires_subst_map;
+
+EXTERN a_requires_subst_map
+		*requires_expr_substs;
+			/* A map from a requires-expression to template
+			   argument substitutions.  This is used to delay these
+			   substitutions until a fully non-dependent template
+			   argument list is available. */
+
 EXTERN Ptr_map<a_variable_ptr, a_boolean>
 		*vars_being_deduced;
 			/* A map containing variables whose type is in the

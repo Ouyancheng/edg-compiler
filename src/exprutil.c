@@ -26527,6 +26527,7 @@ Do one-time initialization of variables related to expression processing.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
   register_trans_unit_variable(pending_consteval_failure);
   register_trans_unit_variable(requires_ranges);
+  register_trans_unit_variable(requires_expr_substs);
 #if SEQUENCING_DIAGNOSTICS_ENABLED
   sequencing_diagnostics_enabled = is_effective_diagnostic(
                                                 ec_unsequenced_use_of_variable,
@@ -26559,6 +26560,8 @@ re-initialized for each translation unit.
   pending_consteval_failure.routine = NULL;
   requires_ranges = alloc_fe<a_requires_range_map>();
   construct(requires_ranges, /*mask_width=*/10);
+  requires_expr_substs = alloc_fe<a_requires_subst_map>();
+  construct(requires_expr_substs, /*mask_width=*/8);
   vars_being_deduced = alloc_fe<Ptr_map<a_variable_ptr, a_boolean>>();
   construct(vars_being_deduced, /*mask_width=*/5);
 }  /* exprutil_trans_unit_init */

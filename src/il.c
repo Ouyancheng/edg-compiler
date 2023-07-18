@@ -19584,27 +19584,41 @@ options is a set of substitution options.
       }
       break;
     case enk_requires:
-      if (template_arg_list_is_dependent(template_arg_list) &&
-          !(options & (CTWS_ADJUST_COORDINATES |
-                       CTWS_ALIAS_DEDUCTION_GUIDE))) {
+      if (template_arg_list_is_dependent(template_arg_list)) {
         /* Don't attempt to substitute requires-expressions with dependent
-           parameter lists (unless we are adjusting template parameter
-           coordinates or synthesizing an alias deduction guide). */
-        subst_fail(*copy_error);
+           parameter lists.  Exceptions occur when we are adjusting template
+           parameter coordinates or synthesizing an alias deduction guide: In
+           that case we store the template arguments for later substitution. */
+        if (options & (CTWS_ADJUST_COORDINATES | CTWS_ALIAS_DEDUCTION_GUIDE)) {
+          a_subst_pairs_array  subst_pairs = requires_expr_substs->get(expr);
+          expr_copy = copy_node(expr);
+          subst_pairs.push_back(a_subst_pairs_descr{ template_param_list,
+                                                     template_arg_list,
+                                                     TRUE, FALSE });
+          requires_expr_substs->map_or_replace(expr_copy, subst_pairs);
+        } else {
+          subst_fail(*copy_error);
+        }  /* if */
       } else {
         /* If we're substituting as part of rescanning an expression, start
            with the substitution pairs of any enclosing class template
-           instances.  (If we're rescanning a concept constraint expression,
-           class template instances on the stack are no longer "enclosing".) */
+           instances, followed by any delayed substitution pairs.  (If we're
+           rescanning a concept constraint expression, class template instances
+           on the stack are no longer "enclosing".) */
         a_boolean  val;
         a_subst_pairs_array
                    subst_pairs = (scope_stack_top().is_rescan &&
                                   !scope_stack_top().in_concept_rescan) ?
                                                   get_current_subst_pairs() :
                                                   a_subst_pairs_array(1);
+        a_subst_pairs_array
+                   delayed_subst_pairs = requires_expr_substs->get(expr);
+        subst_pairs.insert(subst_pairs.length(),
+                           delayed_subst_pairs.begin(),
+                           delayed_subst_pairs.length());
         subst_pairs.push_back(a_subst_pairs_descr{ template_param_list,
                                                    template_arg_list,
-                                                   FALSE, FALSE });
+                                                   FALSE, TRUE });
         val = requires_expr_satisfied_full(expr, subst_pairs, ctws_state);
         make_bool_constant_value(val, constant);
       }  /* if */
