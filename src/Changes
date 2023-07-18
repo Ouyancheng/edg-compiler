@@ -135,6 +135,9 @@ template, for example (with --clang --c++14):
     using ::f __attribute__((using_if_exists));
   }
 
+These changes also address an issue that such attributes were not emitted
+in C++-generating back end configurations.
+
 
 7/13/23  [EDGcpfe/26484]
 Incorrect processing in form_exception_specification
