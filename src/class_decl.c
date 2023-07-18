@@ -26190,7 +26190,7 @@ next_using_declarator_if_any:
     /* Bypass the identifier. */
     (void)get_token();
     /* Attributes are not allowed here, but clang accepts them. */
-    scan_and_attach_using_declaration_attributes(declared_sym);
+    scan_and_attach_using_declaration_attributes(rep_udp);
     result = declared_sym;
     if (!check_for_packs) break;
     pedep = end_potential_pack_expansion_context(pesep,

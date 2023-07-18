@@ -18867,11 +18867,15 @@ Generate code for a class member or nonmember using-declaration.
   a_namespace_ptr          nsp;
   a_boolean                used_generated_typedef = FALSE, emit_using = TRUE;
   a_boolean                any_entries_output = FALSE;
+  a_using_decl_ptr         rep_udp = NULL;
 
   /* Advance past the source sequence entry for the "using" directive. */
   adv_curr_source_sequence_entry();
   for (;;) {
     scp = NULL;
+    if (udp->is_representative) {
+      rep_udp = udp;
+    }  /* if */
     if (udp->is_using_enum && !udp->is_representative) {
       /* Multiple entries can be created by a "using enum".  Only process
          the representative one. */
@@ -18998,7 +19002,12 @@ next_entry:
     if (scp != NULL) write_tok_str(", ");
     emit_using = FALSE;
   }  /* for */
-  if (any_entries_output) write_tok_ch(';');
+  if (any_entries_output) {
+    check_assertion(rep_udp != NULL);
+    gen_attributes(rep_udp->attributes, al_post_using_declarator,
+                   /*primary_only=*/FALSE);
+    write_tok_ch(';');
+  }  /* if */
 }  /* gen_using_declaration */
 
 

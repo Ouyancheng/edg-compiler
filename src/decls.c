@@ -16464,44 +16464,31 @@ TRUE if and only if a redeclaration error is issued.
 }  /* import_any_hidden_tags */
 
 
-void scan_and_attach_using_declaration_attributes(
-                                                a_symbol_ptr sym,
-                              /* Defaulted: */  a_boolean    *p_has_if_exists)
+void scan_and_attach_using_declaration_attributes(a_using_decl_ptr udp)
 /*
 In Clang mode, the using_if_exists attribute can appear after the
 using-declarator in a using-declaration.  If such attributes exist, scan them
-and attach them to the IL entity associated with sym (which may be NULL).
-Return in *p_has_if_exists whether the attribute "using_if_exists" is present
-among any such attributes.
+and attach them to the udp IL entity (which may be NULL).
 */
 {
-  a_boolean  has_if_exists = FALSE;
-
   if (attributes_on_using_declarations) {
     /* Attributes are not allowed here, but the Clang using_if_exists
        attribute can appear at this location. */
     an_attribute_ptr attributes = scan_attributes(al_post_using_declarator);
     if (attributes != NULL) {
-      has_if_exists = find_attribute(ak_using_if_exists, attributes) != NULL;
       if (clang_mode && attributes->family == af_std) {
         /* Clang warns on standard attributes in this position. */
         pos_warning(ec_only_gnu_attributes_here, &attributes->position);
       }  /* if */
-      if (sym != NULL) {
-        /* Attach the attribute to the IL entity (if one exists).  Note
-           that this is too late to do anything with it (the lookup has already
-           been performed), but for now just attach the attribute so a back
-           end can see it. */
-        char              *entity;
-        an_il_entry_kind  entity_kind;
-        entity = il_entry_for_symbol_null_okay(sym, &entity_kind);
-        if (entity != NULL) {
-          attach_attributes(attributes, entity, entity_kind);
-        }  /* if */
+      if (udp != NULL) {
+        /* Attach the attribute to the using declaration entity (if one
+           exists).  Note that this is too late to do anything with it (the
+           lookup has already been performed), but for now just attach the
+           attribute so a back end can see it. */
+        attach_attributes(attributes, (char*)udp, iek_using_decl);
       }  /* if */
     }  /* if */
   }  /* if */
-  if (p_has_if_exists != NULL) *p_has_if_exists = has_if_exists;
 }  /* scan_and_attach_using_declaration_attributes */
 
 
@@ -16532,7 +16519,7 @@ there are attributes in that position.
   a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
   a_pack_expansion_stack_entry_ptr
                            pesep;
-  a_using_decl_ptr         prev_udp = NULL;
+  a_using_decl_ptr         prev_udp = NULL, rep_udp = NULL;
 
   db_enter(3, "nonmember_using_declaration");
   /* A using declaration is outside the "Embedded C++" subset. */
@@ -16767,7 +16754,6 @@ there are attributes in that position.
                declaration if it duplicates a built-in declaration, i.e.
                seq == 0). */
           } else {
-            a_using_decl_ptr  rep_udp = NULL;
             a_boolean         suppress_redecl_error = FALSE;
             /* Create the new sk_namespace_projection symbol(s). */
             if (!is_tag_symbol(fund_sym)) {
@@ -16830,7 +16816,7 @@ there are attributes in that position.
     }  /* if */
     /* Attributes are not allowed here, but clang allows attributes at this
        location. */
-    scan_and_attach_using_declaration_attributes(dps->sym);
+    scan_and_attach_using_declaration_attributes(rep_udp);
     if (check_for_packs) {
       pedep = end_potential_pack_expansion_context(pesep,
                                                    /*is_declarator=*/FALSE);

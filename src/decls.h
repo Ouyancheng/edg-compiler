@@ -1986,9 +1986,7 @@ extern void add_implicit_using_directive(a_namespace_ptr nsp,
 
 extern a_boolean is_alias_declaration(a_boolean  *has_attr);
 
-extern void scan_and_attach_using_declaration_attributes(
-                                        a_symbol_ptr sym,
-                                        a_boolean    *p_has_if_exists = NULL);
+extern void scan_and_attach_using_declaration_attributes(a_using_decl_ptr udp);
 
 extern void decls_one_time_init(void);
 
