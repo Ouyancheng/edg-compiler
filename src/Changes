@@ -48,8 +48,8 @@ node_includes_glvalue_to_prvalue_conv
 The change for EDGcpfe/26197 in version 6.5 of the front end required some
 adjustments regarding which glvalue expression nodes are "rvalueable" (i.e., a
 conversion to a prvalue can be represented simply by clearing the is_lvalue
-and is_xvalue flags).  One consequence of that change is that the function
-node_includes_glvalue_to_prvalue_conv behaves in some surprising ways.  For
+and is_xvalue flags).  One consequence of that change was that the function
+node_includes_glvalue_to_prvalue_conv behaved in some surprising ways.  For
 example:
 
   void v();
