@@ -4060,11 +4060,11 @@ parameters.
             ifc_unexpected(module_of(idp), err_msg);
             goto invalid;
           }
-          /* If this parameter is a pack, expose to the
-             sck_template_declaration scope that the context is that of a
-             variadic template; this allows pack expansion to function
-             correctly during use of the parameters in redeclaration
-             checking. */
+          /* If this parameter is a pack, update the
+             sck_template_declaration scope to indicate that the context is
+             that of a variadic template; this allows pack expansion to
+             function correctly during use of the parameters in
+             redeclaration checking. */
           if (new_sym_param->is_pack) {
             /* This code should only execute from within a
                Module_isolation_scope.  If this assertion is violated,
@@ -4301,7 +4301,7 @@ namespace {
 
 /*
 The module isolation scope class encapsulates the construction of a detached
-template parameter list and the isolation of the template parameter resolution
+template parameter list and isolates the template parameter resolution
 (find_template_parameter -- so as to prevent resolution to an incorrect
 parameter higher up in the scope stack).  It's intended to (at least currently)
 only be used during redeclaration checking.
@@ -11736,11 +11736,11 @@ corresponding type, return an error type.
           /* Form the IL type. */
           result = type_for_type_index(pack);
 
-          /* This is a bit of a hack, a token cache is created and rescanned
-             containing an ellipsis.  This allows
-             end_potential_pack_expansion_context to consume the ellipsis and
-             mark pack use accordingly.  This in turn, ensures any packs that
-             are reference are not diagnosed. */
+          /* This is a bit of a hack: a token cache is created and
+             rescanned containing an ellipsis.  This allows
+             end_potential_pack_expansion_context to consume the ellipsis
+             and mark pack use accordingly.  This, in turn, ensures that
+             any packs that are reference are not diagnosed. */
           a_module_token_cache cache;
           cache_token(&cache, tok_ellipsis);
 
