@@ -1,5 +1,21 @@
 Version 6.6
 
+7/18/23  [EDGcpfe/26467]
+Non-type template parameter of typedef type in friend function template
+constraint
+
+Previously, the front end failed to check the satisfaction of a constraint on a
+friend function template involving a non-type template parameter declared with
+a typedef type.  For example, with --c++20:
+
+  using int_t = int;
+  template<typename> struct A {
+    template<int_t N> requires (N != 0)
+    friend int f(A);
+  };
+  int i = f<1>(A<int>());  // Previously a spurious error.  Now okay.
+
+
 7/17/23  [EDGcpfe/26506]
 Extended position information in enk_initializer node
 

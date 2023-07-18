@@ -475,6 +475,13 @@ static an_equiv_templ_arg_options_set eta_options_for_template(
 			a_symbol_ptr				template_sym,
 			a_template_symbol_supplement_ptr	tssp);
 
+static void copy_template_params_to_new_list(
+			a_template_param_ptr		params_to_add,
+			a_template_param_ptr		*new_list,
+			a_template_param_ptr		*first_added_param,
+			const Dyn_array<a_boolean>	*mask,
+			a_boolean			from_class_template);
+
 static a_pack_expansion_descr_ptr copy_pack_expansion_descr_with_substitution(
 				a_pack_expansion_descr_ptr	pedp,
 				a_ctws_state_ptr		ctws_state);
@@ -34472,43 +34479,45 @@ this routine, *is_dependent is set to TRUE.
     }  /* if */
     tpp->param_symbol->is_invisible = FALSE;
   }  /* for */
+  /* Fill in the information in the IL template declaration structures. */
+  /*coverity[var_deref_model]*/
+  complete_template_decl(decl_info->template_decl, decl_info->parameters);
   if (update_nesting_depths && orig_nesting_depth != 0 &&
       decl_info->template_decl != NULL) {
     a_requires_clause_ptr  rcp =
                           decl_info->template_decl->constraint.requires_clause;
     if (rcp != NULL) {
       a_template_arg_ptr       proto_args;
+      a_template_param_ptr     orig_templ_params = NULL, first_added_param;
       a_ctws_state             ctws_state;
       an_expr_node_ptr         new_expr;
       a_boolean                copy_error = FALSE;
+      /* As we have to adjust nesting depths in the requires-clause, we need a
+         copy of the template parameter list with the original nesting
+         depths. */
+      copy_template_params_to_new_list(templ_params, &orig_templ_params,
+                                       &first_added_param, NULL,
+                                       /*from_class_template=*/FALSE);
+      for (tpp = orig_templ_params; tpp != NULL; tpp = tpp->next) {
+        *nesting_depth_addr_of_template_param(tpp) = orig_nesting_depth;
+      }  /* for */
       /* Any template parameter referenced in the constraint expression needs
          to be updated to refer to the new template nesting depth.  This is
          done by substituting the constraint expression with the prototype
          arguments created from the updated template parameter list. */
       proto_args = create_prototype_arg_list(NULL, templ_params,
                                              /*add_pack_descr=*/FALSE);
-      /* Temporarily revert the template parameters back to their original
-         nesting depth. */
-      for (tpp = templ_params; tpp != NULL; tpp = tpp->next) {
-        *nesting_depth_addr_of_template_param(tpp) = orig_nesting_depth;
-      }  /* for */
       init_ctws_state(&ctws_state);
       new_expr = copy_expr_with_substitutions(rcp->constraint,
-                                              proto_args, templ_params,
+                                              proto_args, orig_templ_params,
                                               (CTWS_ADJUST_COORDINATES |
                                                CTWS_MAY_BE_RESCANNED |
                                                CTWS_NON_CONSTANT_EXPR),
                                               &copy_error, &ctws_state);
       if (!copy_error) rcp->constraint = new_expr;
-      for (tpp = templ_params; tpp != NULL; tpp = tpp->next) {
-        *nesting_depth_addr_of_template_param(tpp) = decl_state->nesting_depth;
-      }  /* for */
       free_template_arg_list(proto_args);
     }  /* if */
   }  /* if */
-  /* Fill in the information in the IL template declaration structures. */
-  /*coverity[var_deref_model]*/
-  complete_template_decl(decl_info->template_decl, decl_info->parameters);
 }  /* update_param_depth_and_default_args */
 
 
