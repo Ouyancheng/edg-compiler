@@ -19003,9 +19003,10 @@ next_entry:
     emit_using = FALSE;
   }  /* for */
   if (any_entries_output) {
-    check_assertion(rep_udp != NULL);
-    gen_attributes(rep_udp->attributes, al_post_using_declarator,
-                   /*primary_only=*/FALSE);
+    if (rep_udp != NULL) {
+      gen_attributes(rep_udp->attributes, al_post_using_declarator,
+                     /*primary_only=*/FALSE);
+    }  /* if */
     write_tok_ch(';');
   }  /* if */
 }  /* gen_using_declaration */
