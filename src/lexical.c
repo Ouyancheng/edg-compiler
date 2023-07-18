@@ -25838,10 +25838,20 @@ encountered, whatever their other characteristics, are included.
     } else {
       /* The pragma id is not part of pragma_text, so it has to be added
          explicitly. */
+      if (ppp->is_function_style_pragma &&
+          !ppp->is_microsoft_pragma_operator) {
+        /* The operand of _Pragma is a quoted string.  Enclose the
+           pragma name and its operands in quotes. */
+        put_ch_to_temp_text_buffer('"');
+      }  /* if */
       put_str_to_temp_text_buffer(pragma_ids[(int)ppp->descr_ptr->kind]);
       if (ppp->token_cache.first_token != NULL) {
 	/* Add the tokens from the pragma token cache to the string. */
         add_token_cache_to_string(&ppp->token_cache);
+      }  /* if */
+      if (ppp->is_function_style_pragma &&
+          !ppp->is_microsoft_pragma_operator) {
+        put_ch_to_temp_text_buffer('"');
       }  /* if */
     }  /* if */
     if (is_pseudo_pragma) {
