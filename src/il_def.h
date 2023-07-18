@@ -11035,6 +11035,9 @@ typedef struct a_variable {
 			   a constant expression so that uses of the variable's
 			   value are permitted in constant-expressions.
 			   Only set in C++. */
+  a_bit_field	is_immutable:1;
+			/* TRUE if the variable is of a const type that does
+			   not contain a mutable subobject. */
   a_bit_field	is_thread_local:1;
 			/* TRUE for variables declared with the "thread_local"
 			   (or "_Thread_local in C mode) storage class (i.e.,

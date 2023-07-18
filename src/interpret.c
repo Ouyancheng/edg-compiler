@@ -5093,9 +5093,8 @@ by implied_src.
               a_variable_ptr  vp = con->variant.address.variant.variable;
               a_type_ptr      vtp = skip_typerefs(vp->type);
               if (vp->constant_valued || vp->is_constexpr ||
-                  (gpp_version_is(any_version) &&
-                   vp->init_kind == initk_static && vtp->size != 0 &&
-                   is_const_qualified_type(vp->type))) {
+                  (gpp_version_is(any_version) && vp->is_immutable &&
+                   vp->init_kind == initk_static && vtp->size != 0)) {
                 a_byte  *var_bytes;
                 get_stack_bytes(ips, vp, var_bytes);
                 if (var_bytes == NULL) {

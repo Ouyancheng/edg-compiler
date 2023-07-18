@@ -4183,6 +4183,38 @@ flag is set to TRUE.
 }  /* is_abstract_class_type */
 
 
+a_boolean class_has_mutable_member(a_type_ptr  tp)
+/*
+Return TRUE if the given class has a direct or indirect mutable member.
+*/
+{
+  a_boolean         result = FALSE;
+  a_field_ptr       fp = fields_of(tp);
+  a_base_class_ptr  bcp = base_classes_of(tp);
+
+  for (; fp != NULL; fp = fp->next) {
+    a_type_ptr  ftp;
+    if (fp->is_mutable) {
+      result = TRUE;
+      goto done;
+    }  /* if */
+    ftp = skip_typerefs(skip_array_types(fp->type));
+    if (is_immediate_class_type(ftp) && class_has_mutable_member(ftp)) {
+      result = TRUE;
+      goto done;
+    }  /* if */
+  }  /* for */
+  for (; bcp != NULL; bcp = bcp->next) {
+    if (bcp->direct && class_has_mutable_member(bcp->type)) {
+      result = TRUE;
+      goto done;
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* class_has_mutable_member */
+
+
 a_boolean f_type_has_default_constructor(a_type_ptr  tp,
                                          a_boolean   user_provided_only,
                                          a_boolean   nontrivial_only)

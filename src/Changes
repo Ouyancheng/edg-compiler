@@ -1,5 +1,24 @@
 Version 6.6
 
+7/18/23  [EDGcpfe/26507]
+Erroneous folding of mutable member in GNU C++ mode
+
+The changes for EDGcpfe/26197 in version 6.5 of the front end allowed const
+variables on non-integral types to be used in constant expressions.  However,
+that change failed to account for mutable subobjects of const variables.
+For example:
+
+  struct S {
+    mutable int x;
+  };
+  S const z[] = { 1 };
+  void foo(int * r) {
+    *r = 10 + z[0].x;  // Previously erroneously folded to "*r = 10;".
+  }                    // Now no longer folded.
+
+That regression is now fixed.
+
+
 7/18/23  [EDGcpfe/25157]
 Requires-expressions in friend function template constraints
 

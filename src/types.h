@@ -740,6 +740,8 @@ extern a_type_qualifier_set get_original_type_qualifiers(a_type_ptr type);
 #endif /* NEAR_AND_FAR_ALLOWED */
 
 
+extern a_boolean class_has_mutable_member(a_type_ptr  tp);
+
 extern a_boolean f_type_has_default_constructor(a_type_ptr  tp,
                                                 a_boolean   user_provided_only,
                                                 a_boolean   nontrivial_only);

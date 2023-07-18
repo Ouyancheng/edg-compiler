@@ -2631,6 +2631,7 @@ Clear the fields of the given variable to default values.
   vp->is_enhanced_for_iterator    = FALSE;
   vp->initializer_in_class        = FALSE;
   vp->constant_valued             = FALSE;
+  vp->is_immutable                = FALSE;
   vp->is_thread_local             = FALSE;
   vp->extends_lifetime            = FALSE;
   vp->is_template_param_object    = FALSE;

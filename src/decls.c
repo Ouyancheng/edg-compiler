@@ -7073,7 +7073,7 @@ void check_constant_valued_variable(a_decl_parse_state  *dps)
 /*
 If dps represents the declaration of a const variable initialized with a true
 constant-expression, set the "constant_valued" flag in the IL entry for that
-variable.
+variable.  Also set the is_immutable flag is appropriate.
 */
 {
   a_variable_ptr  vp = dps->sym != NULL ? variable_for_symbol(dps->sym)
@@ -7106,6 +7106,14 @@ variable.
     }  /* if */
     if (vp->initializer_in_class) vp->is_member_constant = TRUE;
     release_local_constant(&ref_val);
+  }  /* if */
+  if (vp != NULL && is_const_qualified_type(vp->type)) {
+    a_boolean   is_immutable = TRUE;
+    a_type_ptr  vtp = skip_typerefs(skip_array_types(vp->type));
+    if (is_immediate_class_type(vtp) && class_has_mutable_member(vtp)) {
+      is_immutable = FALSE;
+    }  /* if */
+    if (is_immutable) vp->is_immutable = TRUE;
   }  /* if */
 }  /* check_constant_valued_variable */
 
