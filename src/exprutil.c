@@ -21988,10 +21988,9 @@ lvalue_adjust:
           identical_types_full(dip_expr->type, prvalue_node_type,
                                ITF_EXACT_EQUIVALENCE)) {
         /* dip_expr is going to be used as the prvalue version of the
-           enk_temp_init node.  Record the type of the original lvalue in
-           it (the presence of that type allows consumers to recognize that
-           there is a notional glvalue-to-prvalue conversion involved). */
-        dip_expr->orig_lvalue_type = node->type;
+           enk_temp_init node.  Record the fact that there is a notional
+           glvalue-to-prvalue conversion involved. */
+        dip_expr->was_lvalue_temp_initializer = TRUE;
         reclaim_node_if_possible(node);
         node = dip_expr;
         processed = TRUE;

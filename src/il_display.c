@@ -4514,6 +4514,9 @@ Display the indicated expression node.
   if (ptr->is_type_constraint) {
     disp_boolean("is_type_constraint", TRUE);
   }  /* if */
+  if (ptr->was_lvalue_temp_initializer) {
+    disp_boolean("was_lvalue_temp_initializer", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case enk_error:

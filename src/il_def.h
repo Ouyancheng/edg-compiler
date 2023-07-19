@@ -14218,6 +14218,10 @@ typedef struct an_expr_node {
 			/* TRUE for an enk_concept_id node that represents a
 			   type constraint (i.e., its first template argument
 			   is implicit). */ 
+  a_bit_field	was_lvalue_temp_initializer:1;
+			/* TRUE if this was an initializer expression for an
+			   lvalue enk_temp_init node and the latter was dropped
+			   again to implement glvalue-to-prvalue conversion. */
   a_source_position
 		position;
 			/* When kind == enk_operation, the position at which

@@ -23392,6 +23392,8 @@ for is_lvalue to be TRUE.
   if (is_glvalue_node(node)) {
     /* Not a prvalue at all. */
     result = FALSE;
+  } else if (node->was_lvalue_temp_initializer) {
+    result = TRUE;
   } else if (!is_rvalueable_node(node)) {
     /* The node is intrinsically a prvalue, not a glvalue that was implicitly
        converted to a prvalue. */
