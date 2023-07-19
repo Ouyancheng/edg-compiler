@@ -4,7 +4,7 @@ Version 6.6
 Erroneous folding of mutable member in GNU C++ mode
 
 The changes for EDGcpfe/26197 in version 6.5 of the front end allowed const
-variables on non-integral types to be used in constant expressions.  However,
+variables of non-integral types to be used in constant expressions.  However,
 that change failed to account for mutable subobjects of const variables.
 For example:
 

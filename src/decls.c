@@ -7073,7 +7073,7 @@ void check_constant_valued_variable(a_decl_parse_state  *dps)
 /*
 If dps represents the declaration of a const variable initialized with a true
 constant-expression, set the "constant_valued" flag in the IL entry for that
-variable.  Also set the is_immutable flag is appropriate.
+variable.  Also set the is_immutable flag if appropriate.
 */
 {
   a_variable_ptr  vp = dps->sym != NULL ? variable_for_symbol(dps->sym)
