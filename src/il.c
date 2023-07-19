@@ -30169,16 +30169,14 @@ have the is_lvalue/is_xvalue flags set incorrectly; return TRUE otherwise.
   if (node->orig_lvalue_type != NULL) {
     /* If an original lvalue type is recorded, the node must have been
        "rvalued" (i.e., converted from a glvalue to a prvalue by just clearing
-       the is_lvalue and is_xvalue flags).  The "rvalueing" may not take effect
+       the is_lvalue and is_xvalue flags).  The "rvaluing" may not take effect
        if the result is not used or of type void.  Also, don't attempt to look
        into GNU statement expressions. */
     check_assertion(node_includes_glvalue_to_prvalue_conv(node) ||
                     (is_operation_node(node) &&
                      node->variant.operation.is_reference_cast) ||
                     node->result_is_not_used ||
-#if GNU_EXTENSIONS_ALLOWED
-                    node_is(node, enk_statement) ||
-#endif /* GNU_EXTENSIONS_ALLOWED */
+                    if_gnu_allowed(node_is(node, enk_statement) ||)
                     is_void_type(node->type));
   }  /* if */
 #endif /* CHECKING */
