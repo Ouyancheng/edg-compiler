@@ -16527,7 +16527,7 @@ there are attributes in that position.
   a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
   a_pack_expansion_stack_entry_ptr
                            pesep;
-  a_using_decl_ptr         prev_udp = NULL, rep_udp = NULL;
+  a_using_decl_ptr         prev_udp = NULL;
 
   db_enter(3, "nonmember_using_declaration");
   /* A using declaration is outside the "Embedded C++" subset. */
@@ -16762,6 +16762,7 @@ there are attributes in that position.
                declaration if it duplicates a built-in declaration, i.e.
                seq == 0). */
           } else {
+            a_using_decl_ptr  rep_udp = NULL;
             a_boolean         suppress_redecl_error = FALSE;
             /* Create the new sk_namespace_projection symbol(s). */
             if (!is_tag_symbol(fund_sym)) {
@@ -16824,7 +16825,7 @@ there are attributes in that position.
     }  /* if */
     /* Attributes are not allowed here, but clang allows attributes at this
        location. */
-    scan_and_attach_using_declaration_attributes(rep_udp);
+    scan_and_attach_using_declaration_attributes(prev_udp);
     if (check_for_packs) {
       pedep = end_potential_pack_expansion_context(pesep,
                                                    /*is_declarator=*/FALSE);
