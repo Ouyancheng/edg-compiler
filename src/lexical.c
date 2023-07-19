@@ -25822,10 +25822,13 @@ encountered, whatever their other characteristics, are included.
           !ppp->is_microsoft_pragma_operator) {
         /* The operand of _Pragma is a quoted string, but the enclosing
            quotes aren't part of the recorded pragma text.  Add enclosing
-           quotes and escape any embedded quote characters. */
+           quotes and escape any embedded quote and backslash
+           characters (the escapes in the original will have been
+           removed by the process of converting the string operand of
+           _Pragma to the non-string operand of #pragma). */
         put_ch_to_temp_text_buffer('"');
         for (a_const_char *p = ppp->pragma_text; *p != '\0'; ++p) {
-          if (*p == '"') {
+          if (*p == '"' || *p == '\\') {
             put_ch_to_temp_text_buffer('\\');
           }  /* if */
           put_ch_to_temp_text_buffer(*p);
