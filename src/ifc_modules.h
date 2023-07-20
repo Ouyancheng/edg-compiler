@@ -248,8 +248,7 @@ struct an_ifc_module_string_table {
 
   char          *contents;
                         /* The string table contents. */
-  size_t        size;
-                        /* The size of the string table. */
+  size_t        size;   /* The size of the string table. */
 };  /* an_ifc_module_string_table */
 
 
@@ -275,7 +274,7 @@ Destroy the given IFC string table.
     free_general(this->contents, this->size);
   }  /* if */
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
-}  /* an_ifc_module_string_table */
+}  /* an_ifc_module_string_table::~an_ifc_module_string_table */
 
 
 an_ifc_module_string_table &an_ifc_module_string_table::operator=(
@@ -804,7 +803,7 @@ struct an_ifc_validation_trace {
 #ifdef UNION_AS_STRUCT
 /* FIXME: Workaround for union-as-struct build issue. */
 #undef union
-#endif /* indef UNION_AS_STRUCT */
+#endif /* ifdef UNION_AS_STRUCT */
   union {
     /* When trace_kind == ifc_vtk_field. */
     field_info_trace_data
@@ -818,7 +817,7 @@ struct an_ifc_validation_trace {
                            partition element. */
 #ifdef UNION_AS_STRUCT
 #define union struct
-#endif /* indef UNION_AS_STRUCT */
+#endif /* ifdef UNION_AS_STRUCT */
   };
 };  /* an_ifc_validation_trace */
 

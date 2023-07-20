@@ -450,8 +450,9 @@ the buffer.
 Macro to fetch a single byte from the IFC file.
 */
 #define get_byte(file, byte)                                                  \
-  (*((unsigned char*)(byte)) = ((file->byte_buffer <= file->buffer_end) ?     \
-                                    *(file->byte_buffer)++ : buffer_overrun()))
+  (*((unsigned char*)(byte)) = (((file)->byte_buffer <=                       \
+                                 (file)->buffer_end) ?                        \
+                                  *((file)->byte_buffer)++ : buffer_overrun()))
 
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
 
@@ -487,7 +488,7 @@ the buffer.
 Macro to fetch a single byte.
 */
 #define get_byte(file, byte)                                                  \
-  get_bytes_from_buffer(file, byte, 1)
+  get_bytes_from_buffer((file), (byte), 1)
 
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 
@@ -998,7 +999,7 @@ Close the module file.
 #endif /* EDG_WIN32 */
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   }  /* if */
-}  /* an_ifc_module_file::~an_ifc_module_file */
+}  /* an_ifc_module_file::close */
 
 
 static a_string get_string_at_offset(const an_ifc_module_string_table &table,
@@ -1048,7 +1049,7 @@ the IFC text; thus, for entity names prefer name_from_index or name_from_decl.
      flexibility reduce the length only if these null character are present. */
   while (string_table.contents[offset + num_bytes] == '\0') {
     --num_bytes;
-  }  /* if */
+  }  /* while */
 
   a_string_view string_view(string_table.contents + offset, num_bytes);
   return a_string(string_view);

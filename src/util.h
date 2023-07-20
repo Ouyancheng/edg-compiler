@@ -680,11 +680,11 @@ private:
 #ifdef UNION_AS_STRUCT
 /* FIXME: Workaround for union-as-struct build issue. */
 #undef union
-#endif /* indef UNION_AS_STRUCT */
+#endif /* ifdef UNION_AS_STRUCT */
   union {
 #ifdef UNION_AS_STRUCT
 #define union struct
-#endif /* indef UNION_AS_STRUCT */
+#endif /* ifdef UNION_AS_STRUCT */
     an_Elem     local[a_Capacity];
                         /* The local buffer.  Represented as a union so the
                            value can be uninitialized, and construction and

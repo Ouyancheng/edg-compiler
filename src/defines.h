@@ -87,7 +87,7 @@ of the host system.
 /* Used for union-as-struct testing mode. */
 #ifdef UNION_AS_STRUCT
 #define union struct
-#endif /* UNION_AS_STRUCT */
+#endif /* ifdef UNION_AS_STRUCT */
 
 
 #ifdef MSVC_IDE_VERSION

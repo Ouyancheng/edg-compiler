@@ -118,7 +118,7 @@ private:
 #ifdef UNION_AS_STRUCT
 /* FIXME: Workaround for union-as-struct build issue. */
 #undef union
-#endif /* indef UNION_AS_STRUCT */
+#endif /* ifdef UNION_AS_STRUCT */
   union {
     a_Value_type
                 stored_value;
@@ -127,7 +127,7 @@ private:
                            destruction are manually managed. */
 #ifdef UNION_AS_STRUCT
 #define union struct
-#endif /* indef UNION_AS_STRUCT */
+#endif /* ifdef UNION_AS_STRUCT */
   };
 #if CHECKING
   a_boolean     value_presence_checked = FALSE;
