@@ -4333,7 +4333,7 @@ the given parameterized declaration.
   /* Push a template declaration scope for the parameterized declaration with
      an associated detached template parameter list (via the scope's
      template_decl_info).  This allows template parameter resolution
-     (find_template_parameter) to find the detached template parameters.  */
+     (find_template_parameter) to find the detached template parameters. */
   (void)push_scope(sck_template_declaration, NO_SCOPE_NUMBER,
                    /*assoc_type=*/NULL, /*assoc_routine=*/NULL);
 
