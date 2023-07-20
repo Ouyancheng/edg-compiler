@@ -129,8 +129,7 @@ struct Numeric_entity : public an_ifc_module_entity {
     {}
 
   an_ifc_Storage_type
-                value;
-                        /* The raw bit value obtained from the module.
+                value;  /* The raw bit value obtained from the module.
                            Represented as the largest common underlying
                            type. */
 };  /* Numeric_entity */
@@ -151,8 +150,7 @@ struct Implicit_numeric_entity : public an_ifc_module_entity {
     {}
 
   an_ifc_Storage_type
-                value;
-                        /* The raw bit value obtained from the module.
+                value;  /* The raw bit value obtained from the module.
                            Represented as the largest common underlying
                            type. */
 
@@ -177,11 +175,9 @@ struct Index_entity : public an_ifc_module_entity {
     {}
 
   an_ifc_Sort_type
-                sort;
-                        /* The associated sort value for this index. */
+                sort;   /* The associated sort value for this index. */
   a_Native_size_type
-                value;
-                        /* The index value into the associated partition of
+                value;  /* The index value into the associated partition of
                            "sort" for this index.  Represented as the largest
                            common underlying type. */
 };  /* Index_entity */
