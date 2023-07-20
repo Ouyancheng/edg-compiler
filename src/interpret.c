@@ -12868,7 +12868,7 @@ a diagnostic.
                                          (an_address_base_kind)abk_variable) {
                 a_variable_ptr  vp = addr_con->variant.address
                                               .variant.variable;
-                if (vp != NULL if_gnu_allowed(&& !vp->is_weak)) {
+                if (vp != NULL if_gnu_extensions(&& !vp->is_weak)) {
                   *p_cond = TRUE;
                   break;
                 }  /* if */

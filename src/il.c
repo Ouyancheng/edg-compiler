@@ -30178,7 +30178,7 @@ have the is_lvalue/is_xvalue flags set incorrectly; return TRUE otherwise.
                     (is_operation_node(node) &&
                      node->variant.operation.is_reference_cast) ||
                     node->result_is_not_used ||
-                    if_gnu_allowed(node_is(node, enk_statement) ||)
+                    if_gnu_extensions(node_is(node, enk_statement) ||)
                     is_void_type(node->type));
   }  /* if */
 #endif /* CHECKING */

@@ -495,13 +495,13 @@ be TRUE to enable Clang compatibility features.
 #endif /* ifndef GNU_EXTENSIONS_ALLOWED */
 
 /*
-if_gnu_allowed(txt) expands to "txt" when building with GNU_EXTENSIONS_ALLOWED
-or to nothing otherwise.
+if_gnu_extensions(txt) expands to "txt" when building with
+GNU_EXTENSIONS_ALLOWED or to nothing otherwise.
 */
 #if GNU_EXTENSIONS_ALLOWED
-#define if_gnu_allowed(txt) txt
+#define if_gnu_extensions(txt) txt
 #else /* !GNU_EXTENSIONS_ALLOWED */
-#define if_gnu_allowed(txt) /* nothing */
+#define if_gnu_extensions(txt) /* nothing */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 /*
