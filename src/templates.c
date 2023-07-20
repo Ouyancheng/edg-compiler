@@ -9482,7 +9482,7 @@ respected when the symbol being traversed is a class template.
       old_list = ps_var->template_info->template_arg_list;
     } else {
       unexpected_condition();
-    }  /* switch */
+    }  /* if */
 
     if (equiv_template_arg_lists(old_list, template_arg_list,
                                  eta_options | ETA_IS_PROTOTYPE)) {

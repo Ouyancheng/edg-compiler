@@ -4008,11 +4008,20 @@ static void alloc_detached_templ_decl_info(
                            a_template_decl_info_ptr *result,
                            an_ifc_chart_index       param_chart_idx)
 /*
-Given an IFC chart index representing a template parameter list, return the
+Given an IFC chart index representing a template parameter list, construct the
 associated template decl info in terms of detached parameters in *result.  If
-the template decl info cannot be successfully formed, instead return NULL.  See
-alloc_detached_templ_param_sym for more information about detached template
-parameters.
+the template decl info cannot be successfully formed, *result will be set to
+NULL.  See alloc_detached_templ_param_sym for more information about detached
+template parameters.
+
+Note: the template info is constructed in *result incrementally, this allows
+the result to be used during the construction of a Module_isolation_scope.
+This, in turn is used to allow parameter references to be resolved to
+previously constructed parameters, e.g.:
+
+  template<typename T, T x>
+                       ^
+
 */
 {
 
@@ -13924,7 +13933,8 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
            conversion on the non-type constant).
 
            Note: This code is largely shared (the only difference is the
-           function used for recursion) with create_constant_for_nttp. */
+           function used for recursion) with
+           create_nontype_template_arg_from_expr. */
       }
       break;
     case ifc_es_expr_string:
