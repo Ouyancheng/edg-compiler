@@ -13762,15 +13762,51 @@ otherwise, NULL is returned.
                       "Float storage bytes were not 64 bits wide.");
         memcpy(&float_value, value.get_storage(), sizeof(double));
 
-        char      buf[32];
-        a_boolean err = FALSE;
-        sprintf(buf, "%f", float_value);
+        /* Create a relatively small stack buffer to handle common cases, but
+           fallback to a dynamically allocated full sized buffer. */
+        constexpr int default_buffer_size = 30;
+        char          stack_buf[default_buffer_size];
+        char          *buf;
+        int           num_written = snprintf(stack_buf, default_buffer_size,
+                                             "%f", float_value);
+        int           num_bytes_allocated = 0;
+        if (num_written < 0) {
+          /* There was an issue with the encoding. */
+          a_string err_msg("bad floating point encoding");
+
+          ifc_unexpected(module_of(lit_index), err_msg);
+          goto invalid;
+        } else if (num_written < default_buffer_size) {
+          /* The stack buffer was sufficient. */
+          buf = stack_buf;
+        } else {
+          /* The stack buffer overflowed. */
+          num_bytes_allocated = num_written + 1;
+          buf = alloc_general(num_bytes_allocated);
+
+          ARG_UNUSED int final_count = snprintf(buf, num_bytes_allocated,
+                                                "%f", float_value);
+          /* At this point, there should be no encoding issues or overflows. */
+          check_assertion(0 <= final_count &&
+                          final_count < num_bytes_allocated);
+        }  /* if */
+        /* Allocate the result constant. */
         result = alloc_constant(ck_float);
         result->type = float_type(fk_double);
+
+        /* Convert the buffer representation of the float into a constant. */
+        a_boolean err = FALSE;
         fp_string_to_float(fk_double, buf, &result->variant.float_value, &err);
+        /* Free the buffer. */
+        if (num_bytes_allocated != 0) {
+          /* An allocated buffer was used. */
+          free_general(buf, num_bytes_allocated);
+        }  /* if */
+        /* Check for any conversion errors. */
         if (err) {
           ifc_unexpected(module_of(lit_index),
                          "floating point conversion failure");
+          goto invalid;
         }  /* if */
       }
       break;
