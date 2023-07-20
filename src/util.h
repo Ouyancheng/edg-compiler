@@ -614,7 +614,7 @@ constructor arguments specified by args.  Return a pointer to the object.
   an_Object  *p = IL_allocator<an_Object>::alloc(1).start;
   construct(p, fwd<an_Arg_pack>(args)...);
   return p;
-}  /* new_general */
+}  /* new_il */
 
 
 /*
