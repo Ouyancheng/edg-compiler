@@ -14084,6 +14084,11 @@ there was an error, and do not issue any diagnostics (including warnings).
        in base classes as long as they are named by the inherited name.
        The Microsoft compiler (all versions as of 9.0) also allows a private
        typedef to be used as a qualifier in a qualified name. */
+  } else if (locator->is_qualified_name && locator->is_class_member &&
+             is_enum_type(locator->parent.class_type)) {
+    /* Committee paper P1787R6 clarified that access checking is not performed
+       for enumeration-qualified enumerators as they are considered to be
+       members of the enumeration. */
   } else if (!have_access_to_symbol(sym)) {
     /* The symbol is not accessible.  Issue the error or record it
        for later checking if access checking is deferred.  Suppress it
