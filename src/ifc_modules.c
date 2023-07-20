@@ -18584,9 +18584,9 @@ this is needed.
             cache_type(cache, source, cinfo);
           }  /* if */
           cache_token(cache, tok_rparen);
-          cache_func_type_noexcept_specifier(cache, itm);
           cache_func_type_cv_qualifiers(cache, itm);
           cache_func_type_ref_qualifier(cache, itm);
+          cache_func_type_noexcept_specifier(cache, itm);
         }  /* if */
       }
       break;
