@@ -1,5 +1,24 @@
 Version 6.6
 
+7/20/23  [EDGcpfe/26502]
+Abort on class-scope enumerator using-declaration
+
+C++20 allows a using-declaration in class scope to also name enumerators.
+However, the front end previously aborted with an internal error in
+access_for_symbol (symbol_tbl.c) when such a declaration was named in a derived
+class.  For example, with --c++20:
+
+  enum E { E1 };
+  struct B {
+    using E::E1;
+  };
+  struct D : B {
+    void f() {
+      E1;  // Previously triggered an internal error.  Now okay.
+    }
+  };
+
+
 7/18/23  [EDGcpfe/26507]
 Erroneous folding of mutable member in GNU C++ mode
 

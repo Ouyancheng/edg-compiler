@@ -3428,6 +3428,7 @@ ec_bool_operand;;"<bool>"
 ec_bool_equivalent_operand;;"<bool-like>"
 ec_class_operand;;"<class>"
 ec_auto_cast_is_cpp23;;"auto(<expr>) and auto{<expr>} are a C++23 feature"
+ec_anon_union_using_declaration;;"invalid anonymous union -- using declaration is not allowed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

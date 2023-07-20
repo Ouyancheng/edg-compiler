@@ -4219,6 +4219,8 @@ state.
       break;
     case sk_namespace_projection:
       sym_ptr->variant.namespace_projection.fundamental_symbol = NULL;
+      sym_ptr->variant.namespace_projection.access = as_public;
+      sym_ptr->variant.namespace_projection.is_using_decl = FALSE;
       break;
     case sk_module:
       sym_ptr->variant.module_info.primary_name = NULL;
@@ -4942,7 +4944,7 @@ this is not allowed, an error will be issued by the caller.
       a_boolean    new_is_using_decl;
 
       new_is_using_decl = symbol_is(new_sym, sk_namespace_projection) &&
-                          new_sym->variant.projection.is_using_decl;
+                          new_sym->variant.namespace_projection.is_using_decl;
       if (strict_ansi_mode &&
           (is_template_symbol(fund_new_sym) ||
            is_template_symbol(fund_old_sym) ||
@@ -6174,7 +6176,7 @@ pointer must be set before link_symbol_into_symbol_table is called.
                                              &location->source_position,
                                              scope_depth);
   sym_ptr->is_error = location->is_error;
-  sym_ptr->variant.projection.is_using_decl = is_using_decl;
+  sym_ptr->variant.namespace_projection.is_using_decl = is_using_decl;
   /* Set the locator to point to the symbol entered. */
   location->specific_symbol = sym_ptr;
   location->is_qualified_name = FALSE;
@@ -12521,6 +12523,10 @@ It cannot be used for checking access (see have_access_to_symbol).
   } else if (sym_ptr->kind == sk_projection) {
     /* Projection symbol. */
     access =enum_cast<an_access_specifier>(sym_ptr->variant.projection.access);
+  } else if (sym_ptr->kind == sk_namespace_projection) {
+    /* Namespace projection symbol. */
+    access = enum_cast<an_access_specifier>(sym_ptr->
+                                          variant.namespace_projection.access);
   } else if (sym_ptr->kind == sk_class_template) {
     /* Access for class templates is stored in the template symbol
        supplement. */
@@ -13364,7 +13370,7 @@ this one.
                    mbr_sym = mbr_sym->next_in_scope) {
                 if (symbol_is(mbr_sym, sk_projection) &&
                     mbr_sym->variant.projection.is_using_decl &&
-                    fundamental_symbol_of(mbr_sym) == sym) {
+                    fundamental_symbol_of_projection(mbr_sym) == sym) {
                   sym = mbr_sym;
                   break;
                 }  /* if */
@@ -13636,7 +13642,7 @@ used because a later check for a specific instance of the function template
 will be performed (after overload resolution).
 */
 {
-  a_symbol_ptr	fund_sym = fundamental_symbol_of(symbol);
+  a_symbol_ptr	fund_sym = fundamental_symbol_of_projection(symbol);
   a_boolean	have_access = TRUE;
 
   if (scope_stack_top().in_prototype_instantiation) {

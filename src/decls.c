@@ -20268,6 +20268,7 @@ otherwise.
     a_symbol_ptr  new_sym;
     udp = make_using_decl(const_sym, &decl_pos, depth_scope_stack);
     udp->qualifier = locator->parent;
+    udp->access = access;
     udp->is_class_member = locator->is_class_member;
     udp->is_enumerator = TRUE;
     /* Update cross-reference and source-sequence info, if required. */
@@ -20278,7 +20279,7 @@ otherwise.
                                    depth_scope_stack,
                                    /*suppress_redecl_error*/FALSE);
     if (class_type != NULL) {
-      new_sym->variant.projection.access = access;
+      new_sym->variant.namespace_projection.access = access;
       set_class_membership(new_sym, (a_source_correspondence *)NULL,
                            class_type);
     } else if (is_file_or_namespace_scope(&scope_stack_top())) {

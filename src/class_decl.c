@@ -19587,6 +19587,13 @@ nonstandard anonymous unions is_nonstd is TRUE.
         /* Remove the symbol and don't reenter it. */
         remove_anonymous_union_member_from_inactive_symbols_list(sym);
         break;
+      case sk_namespace_projection:
+        /* A using declaration for an enumerator -- issue an error. */
+        pos_error(ec_anon_union_using_declaration,
+                  &assoc_object_type->source_corresp.decl_position);
+        /* Remove the symbol and don't reenter it. */
+        remove_anonymous_union_member_from_inactive_symbols_list(sym);
+        break;
       case sk_variable_template:
       case sk_static_data_member:
         /* Must be an error, since unions cannot have static data members,
@@ -25439,7 +25446,7 @@ that appertain to the using-declaration are applied (they are copied if
 copy_attributes is TRUE).
 */
 {
-  a_symbol_ptr       fund_sym = fundamental_symbol_of(sym);
+  a_symbol_ptr       fund_sym = fundamental_symbol_of_projection(sym);
   a_source_position  decl_pos;
 
   decl_pos = locator_for_curr_id.source_position;
@@ -25571,6 +25578,7 @@ copy_attributes is TRUE).
     }  /* if */
     /* Create a class member using decl entry to represent this
        declaration in the IL. */
+    reduce_projection_symbol_to_fundamental_symbol(fund_sym);
     udp = make_using_decl(fund_sym, &decl_pos, depth_scope_stack);
     /* Record the class that was actually specified in the qualified
        name in the source. */

@@ -3989,6 +3989,16 @@ typedef struct a_symbol {
 			   symbol; rather, separate projection symbols will be
 			   created for members of the fundamental namespace's
 			   overload set. */
+      ENUM_TYPE_FOR_BIT_FIELD(an_access_specifier)
+		access:2;
+			/* When the projection symbol represents a using
+			   declaration in class scope (a using declaration for
+			   an enumerator in C++20), the declared access in the
+			   class; otherwise as_public. */
+      a_bit_field
+		is_using_decl:1;
+			/* If TRUE this projection symbol represents a
+			   using-declaration. */
     } namespace_projection;
     /* When kind == sk_module: */
     struct {
@@ -6077,29 +6087,42 @@ If symbol is a projection symbol, change it to the fundamental symbol pointed
 to by the projection.
 */
 #define reduce_projection_symbol_to_fundamental_symbol(symbol)        \
-{ if ((symbol)->kind == (a_symbol_kind)sk_projection) {               \
+{ if ((symbol)->kind == sk_projection) {                              \
     (symbol) = (symbol)->variant.projection.extra_info->fundamental_symbol;\
-  } else if ((symbol)->kind == (a_symbol_kind)sk_namespace_projection) {   \
+  }  /* if */                                                         \
+  if ((symbol)->kind == sk_namespace_projection) {                    \
     (symbol) = (symbol)->variant.namespace_projection.fundamental_symbol;\
   }  /* if */                                                         \
 }  /* reduce_projection_symbol_to_fundamental_symbol */
 
+
+inline a_symbol_ptr fundamental_symbol_of(a_symbol_ptr  symbol)
 /*
 Return the fundamental symbol for a given symbol.
 */
-#define fundamental_symbol_of(symbol)                                 \
-  (									   \
-  /* if */ ((symbol)->kind == (a_symbol_kind)sk_projection) /* { */ ?      \
-    (symbol)->variant.projection.extra_info->fundamental_symbol            \
-  /* } else { */  : 							   \
-    /* if */ ((symbol)->kind ==					   \
-                          (a_symbol_kind)sk_namespace_projection) /* { */ ? \
-      (symbol)->variant.namespace_projection.fundamental_symbol		   \
-    /* } else { */ :  							   \
-      (symbol)								   \
-    /* } */								   \
-  /* } */								   \
-  )
+{
+  if (symbol->kind == sk_projection) {
+    symbol = symbol->variant.projection.extra_info->fundamental_symbol;
+  }  /* if */
+  if (symbol->kind == sk_namespace_projection) {
+    symbol = symbol->variant.namespace_projection.fundamental_symbol;
+  }  /* if */
+  return symbol;
+}  /* fundamental_symbol_of */
+
+
+inline a_symbol_ptr fundamental_symbol_of_projection(a_symbol_ptr  symbol)
+/*
+Return the fundamental symbol of a projection (but not a namespace projection)
+for a given symbol.
+*/
+{
+  if (symbol->kind == sk_projection) {
+    symbol = symbol->variant.projection.extra_info->fundamental_symbol;
+  }  /* if */
+  return symbol;
+}  /* fundamental_symbol_of_projection */
+
 
 /*
 Given a namespace projection symbol, return the fundamental symbol.
