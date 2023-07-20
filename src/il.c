@@ -7159,6 +7159,19 @@ to refine the hash value developed in hash_constant.
         if (rtsp->this_class != NULL) {
           hash_value += hash_type(rtsp->this_class);
         }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (ms_extensions &&
+            rtsp->calling_convention != default_calling_convention) {
+          /* Add a calling convention to the hash for every calling convention
+             except cc_default and its equivalent explicit spelling in the
+             current TU.
+
+             This ensures cc_default and default_calling_convention hash
+             equivalently while other calling conventions have a modified
+             hash. */
+          hash_value += rtsp->calling_convention;
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }
       break;
     case tk_typeref:

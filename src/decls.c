@@ -9457,7 +9457,8 @@ for use in generating cross-reference output describing this declaration.
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
         } else if (ms_extensions &&
                    !calling_conventions_are_compatible(routine_ptr->type,
-                                                       type_ptr)) {
+                                                       type_ptr,
+                                                       /*for_decl=*/TRUE)) {
           /* Error -- calling conventions are not compatible.  (The GNU mode
              test is delayed until attributes are applied.) */
           routines_compat = FALSE;

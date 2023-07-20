@@ -40627,7 +40627,8 @@ instantiation.
                                    tssp = template_supplement_for_symbol(sym);
           if (tssp != NULL &&
               !calling_conventions_are_compatible(
-                          tssp->variant.function.routine->type, dps->type)) {
+                          tssp->variant.function.routine->type, dps->type,
+                          /*for_decl=*/TRUE)) {
             pos_error(ec_conflicting_calling_conventions,
                       &dps->specifiers_pos);
           }  /* if */
