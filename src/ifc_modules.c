@@ -10336,6 +10336,10 @@ This class is a handler intended for use with check_ifc_compatibility.  It's
 used to determine the severity of the IFC file's incompatibility.
 */
 struct an_ifc_error_severity_checker {
+  an_ifc_error_severity_checker(a_boolean invalid_version_is_warning_val)
+    : invalid_version_is_warning(invalid_version_is_warning_val)
+    {}
+
   inline void bad_version(an_ifc_version major_version,
                           an_ifc_version minor_version);
   inline void bad_architecture(an_ifc_architecture_sort arch);
@@ -10347,6 +10351,9 @@ struct an_ifc_error_severity_checker {
   a_boolean is_error() const
     { return this->severity_level >= es_error; }
 private:
+  a_boolean     invalid_version_is_warning;
+                        /* TRUE if an invalid IFC version is only considered
+                           a warning. */
   an_error_severity
                 severity_level = es_none;
                         /* The highest severity error detected. */
@@ -10359,7 +10366,7 @@ void an_ifc_error_severity_checker::bad_version(an_ifc_version major_version,
 Update the severity for an unsupported version.
 */
 {
-  if (skip_module_version_check) {
+  if (this->invalid_version_is_warning) {
     merge_compatibility_severity(&this->severity_level, es_warning);
   } else {
     merge_compatibility_severity(&this->severity_level, es_catastrophe);
@@ -10531,14 +10538,13 @@ header.
 }  /* initialize_file_header */
 
 
-a_boolean an_ifc_module::init_string_table_and_header(
-                                           a_module_import_decl_ptr midp,
-                                           a_boolean                issue_diag)
+a_boolean an_ifc_module::init_header(a_module_import_decl_ptr midp,
+                                     a_boolean                issue_diag)
 /*
-Initialize a module header and string table for the given module import decl.
-If the initialization succeeds without error the value of issue_diag is
-ignored, and TRUE is returned.  Otherwise, if the initialization fails return
-FALSE, and issue diagnostics if issue_diag is TRUE.
+Initialize a module header for the given module import decl.  If the
+initialization succeeds without error the value of issue_diag is ignored, and
+TRUE is returned.  Otherwise, if the initialization fails return FALSE, and
+issue diagnostics if issue_diag is TRUE.
 */
 {
   a_boolean result = TRUE;
@@ -10554,11 +10560,9 @@ FALSE, and issue diagnostics if issue_diag is TRUE.
     goto done;
   }
   update_file_metadata(&this->file, this->header);
-  /* FIXME: The checksum is not yet checked. */
-  this->string_table = load_string_table(&this->file, this->header);
 done:
   return result;
-}  /* an_ifc_module::init_string_table_and_header */
+}  /* an_ifc_module::init_header */
 
 namespace {
 
@@ -10620,7 +10624,7 @@ diagnostics if issue_diag is TRUE.
 
   this->assoc_module_info = mod;
   set_name(mod->name, is_header_unit(mod));
-  if (!init_string_table_and_header(midp, issue_diag)) {
+  if (!init_header(midp, issue_diag)) {
     goto invalid;
   }  /* if */
 #if DEBUG
@@ -10629,7 +10633,9 @@ diagnostics if issue_diag is TRUE.
   }  /* if */
 #endif /* DEBUG */
   {
-    an_ifc_error_severity_checker checker;
+    an_ifc_error_severity_checker checker(skip_module_version_check);
+    Value_saver<a_boolean>        skip_saved(&skip_module_version_check,
+                                             /*new_value=*/TRUE);
 
     check_ifc_compatibility(this->header, &checker);
     if (checker.is_diagnosed()) {
@@ -10644,6 +10650,7 @@ diagnostics if issue_diag is TRUE.
       }  /* if */
     }  /* if */
   }
+  this->string_table = load_string_table(&this->file, this->header);
   {
     an_ifc_byte_offset toc = get_ifc_toc(this->header);
     an_ifc_cardinality partition_count = get_ifc_partition_count(this->header);

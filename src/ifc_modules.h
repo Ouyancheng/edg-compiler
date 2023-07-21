@@ -377,8 +377,8 @@ public:
   void debug() const OVERRIDE;
   void db_module_entity(a_module_entity_ptr mep) const OVERRIDE;
 #endif /* DEBUG */
-  a_boolean init_string_table_and_header(a_module_import_decl_ptr midp,
-                                         a_boolean                issue_diag);
+  a_boolean init_header(a_module_import_decl_ptr midp,
+                         a_boolean               issue_diag);
   a_boolean initialize_members_from_ifc_module_file(
                                           a_module_import_decl_ptr midp,
                                           a_boolean                issue_diag);
