@@ -9638,7 +9638,7 @@ be mapped to the IL entity.
     mep->invalid = TRUE;
     if (mep->uses_bound_token) {
       /* FIXME: expect_error_str cannot be used here with a_string as the
-         lifetime of the dynamically allocated buffer would expire by the time
+         lifetime of the dynamically-allocated buffer would expire by the time
          the error is diagnosed. */
       expect_error();
     } else {
@@ -13763,7 +13763,7 @@ otherwise, NULL is returned.
         memcpy(&float_value, value.get_storage(), sizeof(double));
 
         /* Create a relatively small stack buffer to handle common cases, but
-           fallback to a dynamically allocated full sized buffer. */
+           fallback to a dynamically-allocated full-sized buffer. */
         constexpr int default_buffer_size = 30;
         char          stack_buf[default_buffer_size];
         char          *buf;
