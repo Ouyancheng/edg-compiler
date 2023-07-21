@@ -2878,27 +2878,6 @@ Mark all elements in the given validation bits array as invalid.
 }  /* invalidate_all_validation_bits */
 
 
-static void emit_unsupported_ifc_version_diagnostic(
-                                           a_module_import_decl_ptr midp,
-                                           an_ifc_module            *mod_iface,
-                                           an_error_severity        severity)
-/*
-Emit a diagnostic of the given severity, indicating that the given module
-import and its associated module interface, is backed by an unsupported version
-of the IFC.
-*/
-{
-  a_module_ptr mod = midp->module_info;
-
-  check_assertion(mod == mod_iface->assoc_module_info ||
-                  mod_iface->assoc_module_info == NULL);
-  pos_st_num2_diagnostic(severity, ec_unsupported_ifc_file_version,
-                         &midp->module_name_position, mod->full_name,
-                         get_ifc_major_version(mod_iface->header),
-                         get_ifc_minor_version(mod_iface->header));
-}  /* emit_unsupported_ifc_version_diagnostic */
-
-
 void an_ifc_module::import_referenced_modules(
                                             a_boolean impl_unit_importing_self)
 /*
@@ -10336,6 +10315,222 @@ Print the corresponding file and line number for the source location
 
 #endif /* DEBUG */
 
+static void merge_compatibility_severity(an_error_severity *result,
+                                         an_error_severity new_severity)
+/*
+Update *result with new_severity if new_severity is more severe than *result's
+current value.
+
+FIXME: Is there a more general function for this? Should this be generalized?
+*/
+{
+  if (new_severity > *result) {
+    *result = new_severity;
+  }  /* if */
+}  /* merge_compatibility_severity */
+
+namespace {
+
+/*
+This class is a handler intended for use with check_ifc_compatibility.  It's
+used to determine the severity of the IFC file's incompatibility.
+*/
+struct an_ifc_error_severity_checker {
+  inline void bad_version(an_ifc_version major_version,
+                          an_ifc_version minor_version);
+  inline void bad_architecture(an_ifc_architecture_sort arch);
+
+  an_error_severity severity() const
+    { return this->severity_level; }
+  a_boolean is_diagnosed() const
+    { return this->severity_level != es_none; }
+  a_boolean is_error() const
+    { return this->severity_level >= es_error; }
+private:
+  an_error_severity
+                severity_level = es_none;
+                        /* The highest severity error detected. */
+};  /* an_ifc_error_severity_checker */
+
+
+void an_ifc_error_severity_checker::bad_version(an_ifc_version major_version,
+                                                an_ifc_version minor_version)
+/*
+Update the severity for an unsupported version.
+*/
+{
+  if (skip_module_version_check) {
+    merge_compatibility_severity(&this->severity_level, es_warning);
+  } else {
+    merge_compatibility_severity(&this->severity_level, es_catastrophe);
+  }  /* if */
+}  /* an_ifc_error_severity_checker::bad_version */
+
+
+void an_ifc_error_severity_checker::bad_architecture(
+                                                 an_ifc_architecture_sort arch)
+/*
+Update the severity for an unsupported architecture.
+*/
+{
+  merge_compatibility_severity(&this->severity_level, es_catastrophe);
+}  /* an_ifc_error_severity_checker::bad_architecture */
+
+
+/*
+This class is a handler intended for use with check_ifc_compatibility.  It's
+used to issue the incompatibility error gathering notes about the
+incompatibility.
+*/
+struct an_ifc_compatibility_diag_handler {
+  inline an_ifc_compatibility_diag_handler(an_error_severity error_severity,
+                                           a_source_position *import_pos,
+                                           a_const_char      *module_name);
+  inline ~an_ifc_compatibility_diag_handler();
+
+  inline void bad_version(an_ifc_version major_version,
+                          an_ifc_version minor_version);
+  inline void bad_architecture(an_ifc_architecture_sort arch);
+private:
+  a_diagnostic_ptr
+                diag;   /* The diagnostic that will be emitted upon
+                           destruction. */
+};  /* an_ifc_compatibility_diag_handler */
+
+
+an_ifc_compatibility_diag_handler::an_ifc_compatibility_diag_handler(
+                                              an_error_severity error_severity,
+                                              a_source_position *import_pos,
+                                              a_const_char      *file_path)
+/*
+Begin a new IFC file incompatibility diagnostic with the given severity, import
+position, and file path.
+*/
+{
+  this->diag = pos_st_start_diagnostic(error_severity,
+                                       ec_ifc_file_incompatibility,
+                                       import_pos, file_path);
+}  /* an_ifc_compatibility_diag_handler::an_ifc_compatibility_diag_handler */
+
+
+an_ifc_compatibility_diag_handler::~an_ifc_compatibility_diag_handler()
+/*
+Emit the constructed diagnostic.
+*/
+{
+  end_diagnostic(this->diag);
+}  /* an_ifc_compatibility_diag_handler::~an_ifc_compatibility_diag_handler */
+
+
+void an_ifc_compatibility_diag_handler::bad_version(
+                                                  an_ifc_version major_version,
+                                                  an_ifc_version minor_version)
+/*
+Add the diagnostic information for an unsupported version.
+*/
+{
+  num2_add_diag_info(this->diag, ec_unsupported_ifc_file_version_info,
+                     major_version, minor_version);
+}  /* an_ifc_compatibility_diag_handler::bad_version */
+
+
+void an_ifc_compatibility_diag_handler::bad_architecture(
+                                                 an_ifc_architecture_sort arch)
+/*
+Add the diagnostic information for an architecture mismatch.
+*/
+{
+  str_add_diag_info(this->diag, ec_unsupported_ifc_file_arch_info,
+                    str_for(arch));
+}  /* an_ifc_compatibility_diag_handler::bad_architecture */
+
+}  /* namespace */
+
+static a_boolean is_target_compatible_arch(an_ifc_architecture_sort arch)
+/*
+Given an IFC architecture return TRUE if the architecture is compatible with
+the current target architecture; otherwise, return FALSE.
+*/
+{
+  a_boolean result;
+
+  switch (arch) {
+    case ifc_as_arm32:
+      result = target_is_arm_based() && !target_is_64_bits();
+      break;
+    case ifc_as_arm64:
+      result = target_is_arm_based() && target_is_64_bits();
+      break;
+    case ifc_as_hybrid_x86_arm64:
+      /* FIXME: Is this right? */
+      result = target_is_arm_based();
+      break;
+    case ifc_as_x86:
+      result = target_is_x86_based() && !target_is_64_bits();
+      break;
+    case ifc_as_x64:
+      result = target_is_x86_based() && target_is_64_bits();
+      break;
+    case ifc_as_unknown:
+      result = FALSE;
+      break;
+    default_is_unexpected();
+  }  /* switch */
+  return result;
+}  /* is_target_compatible_arch */
+
+
+template<typename a_Compatibility_handler>
+static void check_ifc_compatibility(const an_ifc_file_header &header,
+                                    a_Compatibility_handler  *handler)
+/*
+Given an IFC file header, check for compatibility issues with the front end.
+Invoke the appropriate function on handler when a problem is encountered.
+*/
+{
+  an_ifc_version major_version = get_ifc_major_version(header);
+  an_ifc_version minor_version = get_ifc_minor_version(header);
+
+  if (!is_supported_ifc_version(major_version, minor_version)) {
+    handler->bad_version(major_version, minor_version);
+  }  /* if */
+
+  an_ifc_architecture_sort arch = get_ifc_arch(header);
+  if (!is_target_compatible_arch(arch)) {
+    handler->bad_architecture(arch);
+  }  /* if */
+}  /* check_ifc_compatibility */
+
+
+static void update_file_metadata(an_ifc_module_file       *file,
+                                 const an_ifc_file_header &header)
+/*
+Update the given IFC module file's fields with the data retrieved from its IFC
+header.
+*/
+{
+  /* Set the version information. */
+  file->version_major = get_ifc_major_version(header);
+  file->version_minor = get_ifc_minor_version(header);
+  /* Set the architecture information. */
+#if !ASSUME_LITTLE_ENDIAN_IFC_MODULES
+  switch (get_ifc_arch(header)) {
+    case ifc_as_arm32:
+    case ifc_as_arm64:
+    case ifc_as_hybrid_x86_arm64:
+    case ifc_as_x64:
+    case ifc_as_x86:
+      file->endianness = ifc_mpe_little;
+      break;
+    case ifc_as_unknown:
+      file->endianness = ifc_mpe_unknown;
+      break;
+    default_is_unexpected();
+  }  /* switch */
+#endif /* !ASSUME_LITTLE_ENDIAN_IFC_MODULES */
+}  /* initialize_file_header */
+
+
 a_boolean an_ifc_module::init_string_table_and_header(
                                            a_module_import_decl_ptr midp,
                                            a_boolean                issue_diag)
@@ -10358,6 +10553,7 @@ FALSE, and issue diagnostics if issue_diag is TRUE.
     result = FALSE;
     goto done;
   }
+  update_file_metadata(&this->file, this->header);
   /* FIXME: The checksum is not yet checked. */
   this->string_table = load_string_table(&this->file, this->header);
 done:
@@ -10425,60 +10621,32 @@ diagnostics if issue_diag is TRUE.
   this->assoc_module_info = mod;
   set_name(mod->name, is_header_unit(mod));
   if (!init_string_table_and_header(midp, issue_diag)) {
-    result = FALSE;
-    goto done;
+    goto invalid;
   }  /* if */
-  {
-    /* FIXME: Initialize version and endianness information now, this should
-       really be done as part of the header initialization, however, that
-       currently results in multiple version mismatch diagnostics. */
-    an_ifc_version version_major_val = get_ifc_major_version(this->header);
-    an_ifc_version version_minor_val = get_ifc_minor_version(this->header);
-
-    if (!is_supported_ifc_version(version_major_val, version_minor_val)) {
-      an_error_severity sev;
-
-      /* FIXME: Does skipping the module version check still make sense?
-         Perhaps this should require being forced to a specific version? */
-      if (skip_module_version_check) {
-        sev = es_warning;
-      } else {
-        sev = es_catastrophe;
-        result = FALSE;
-      }  /* if */
-      if (issue_diag) {
-        emit_unsupported_ifc_version_diagnostic(midp, /*mod_iface=*/this, sev);
-      }  /* if */
-      if (!result) {
-        goto done;
-      }  /* if */
-    }  /* if */
-    this->file.version_major = version_major_val;
-    this->file.version_minor = version_minor_val;
-#if !ASSUME_LITTLE_ENDIAN_IFC_MODULES
-    switch (get_ifc_arch(this->header)) {
-      case ifc_as_arm32:
-      case ifc_as_arm64:
-      case ifc_as_hybrid_x86_arm64:
-      case ifc_as_x64:
-      case ifc_as_x86:
-        this->file.endianness = ifc_mpe_little;
-        break;
-      case ifc_as_unknown:
-        this->file.endianness = ifc_mpe_unknown;
-        break;
-      default_is_unexpected();
-    }  /* switch */
-#endif /* !ASSUME_LITTLE_ENDIAN_IFC_MODULES */
-  }
 #if DEBUG
   if (db_flag_is_set("ifc_modules")) {
     db_module(mod);
   }  /* if */
 #endif /* DEBUG */
   {
-    an_ifc_byte_offset toc = get_ifc_toc(header);
-    an_ifc_cardinality partition_count = get_ifc_partition_count(header);
+    an_ifc_error_severity_checker checker;
+
+    check_ifc_compatibility(this->header, &checker);
+    if (checker.is_diagnosed()) {
+      an_ifc_compatibility_diag_handler diagnostic(checker.severity(),
+                                                   &midp->module_name_position,
+                                                   mod->full_name);
+
+
+      check_ifc_compatibility(this->header, &diagnostic);
+      if (checker.is_error()) {
+        goto invalid;
+      }  /* if */
+    }  /* if */
+  }
+  {
+    an_ifc_byte_offset toc = get_ifc_toc(this->header);
+    an_ifc_cardinality partition_count = get_ifc_partition_count(this->header);
 
     for (an_ifc_cardinality_storage i = 0; i < partition_count; ++i) {
       /* Manually initialize the byte buffer, then read the partition. */
@@ -10568,8 +10736,7 @@ diagnostics if issue_diag is TRUE.
 
         construct_node(&opt_isl, src_idx);
         if (!opt_isl.has_value()) {
-          result = FALSE;
-          goto done;
+          goto invalid;
         }  /* if */
 
         an_ifc_name_index  src_file = get_ifc_file(*opt_isl);
@@ -10649,6 +10816,9 @@ diagnostics if issue_diag is TRUE.
     }  /* for */
   }  /* if */
 #endif /* EXPENSIVE_CHECKING */
+  goto done;
+invalid:
+  result = FALSE;
 done:
   return result;
 }  /* an_ifc_module::initialize_members_from_ifc_module_file */
