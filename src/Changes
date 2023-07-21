@@ -1,5 +1,28 @@
 Version 6.6
 
+7/21/23  [EDGcpfe/26495]
+Inherited constructor only called in a constraint
+
+Consider, in C++20 mode:
+
+  struct B {
+    unsigned u;
+    constexpr B(unsigned x): u{x} {}
+  };
+  struct D: B {
+    using B::B;
+  };
+  template<typename T> concept C = static_cast<T>(1).u == 1;
+  template<C T> void g(T) {}
+  void f(D x) {
+    g(x);
+  }
+
+Previously, this triggered a spurious error claiming the constraint couldn't
+succeed because the inherited construct D::B(int) lacks a definition.  That is
+now fixed.
+
+
 7/20/23  [EDGcpfe/26349]
 Access checking for enumeration-qualified enumerators
 

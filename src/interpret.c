@@ -11222,6 +11222,8 @@ the body of the (constructor) function proper.
         ips->input_error = TRUE;
         do_constexpr_fail(result);
       }  /* if */
+    } else if (callee->is_inheriting_ctor) {
+      force_definition_of_compiler_generated_routine(callee);
     } else {
       set_instance_required(symbol_for(callee), TRUE, SIR_CONSTANT_CONTEXT);
     }  /* if */
