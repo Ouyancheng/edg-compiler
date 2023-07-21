@@ -7375,9 +7375,7 @@ check_typerefs:
                 !ignore_ms_calling_convention) {
               /* The types are identical so far.  Check the calling
                  conventions. */
-              identical =
-                        calling_conventions_are_compatible(type_1, type_2,
-                                                           /*for_decl=*/FALSE);
+              identical = calling_conventions_are_compatible(type_1, type_2);
             }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
             if (identical &&
@@ -7769,17 +7767,12 @@ done:;
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
 
 a_boolean calling_conventions_are_compatible(a_type_ptr type1,
-                                             a_type_ptr type2,
-                                             a_boolean  for_decl)
+                                             a_type_ptr type2)
 /*
-Return TRUE if the calling conventions of the two given function types are
-compatible.  When this is in the context of a routine declaration (for_decl is
-TRUE), that means they are identical or one is cc_default and the other matches
-default_calling_convention (or cc_thiscall in the case of Microsoft-mode member
-functions).  When this is in the context of a routine type (e.g., when
-comparing parameter types for overload resolution), any difference is an
-incompatibility as each function and pointer-to-member function type needs to
-be considered distinct.
+Return TRUE if the calling conventions of the two given function types
+are compatible.  That means they are identical or one is cc_default and
+the other matches default_calling_convention (or cc_thiscall in the case
+of Microsoft-mode member functions).
 */
 {
   a_calling_convention          cc1, cc2;
@@ -7792,7 +7785,7 @@ be considered distinct.
   type2 = skip_typerefs(type2);
   rtsp2 = type2->variant.routine.extra_info;
   cc2 = rtsp2->calling_convention;
-  if (ms_extensions && for_decl && !target_is_32_bit_x86_based()) {
+  if (ms_extensions && !target_is_32_bit_x86_based()) {
     /* Microsoft x86-64 conventions only distinguish __vectorcall and __clrcall
        from other conventions.  All other conventions (__cdecl, __fastcall,
        etc.) are accepted but have no effect. */
@@ -8330,8 +8323,7 @@ check_typerefs:
                 /* Check calling conventions, either because it affects
                    compatibility, or because the caller is interested in a
                    record of differences. */
-                if (!calling_conventions_are_compatible(type_1, type_2,
-                                                        /*for_decl=*/FALSE)) {
+                if (!calling_conventions_are_compatible(type_1, type_2)) {
                   if ((flags & TCF_RECORD_DIRECT_CALLING_CONVENTION_DIFFS) &&
                       diffs != NULL) {
                     /* Calling convention differences don't affect

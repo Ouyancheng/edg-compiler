@@ -1130,8 +1130,7 @@ extern a_boolean param_types_are_compatible_full(
 
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
 extern a_boolean calling_conventions_are_compatible(a_type_ptr type1,
-                                                    a_type_ptr type2,
-                                                    a_boolean  for_decl);
+                                                    a_type_ptr type2);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
 extern a_boolean f_types_are_compatible(a_type_ptr              type_1,
                                         a_type_ptr              type_2,
