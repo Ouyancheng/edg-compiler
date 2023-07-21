@@ -1011,6 +1011,9 @@ expression.
          Here, innermost_function_scope will be NO_SCOPE_DEPTH while parsing
          the initializer in "f = fn". */
       depth_lambda = ssep->previous_scope;
+    } else if (scope_is(ssep, sck_func_prototype) ||
+               scope_is(ssep, sck_template_declaration)) {
+      depth_lambda = ssep->previous_scope;
     } else {
       depth_lambda = NO_SCOPE_DEPTH;
       break;
