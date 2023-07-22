@@ -33,8 +33,8 @@ Consider, in C++20 mode:
   }
 
 Previously, this triggered a spurious error claiming the constraint couldn't
-succeed because the inherited construct D::B(int) lacks a definition.  That is
-now fixed.
+succeed because the inherited constructor D::B(int) lacks a definition.  That
+is now fixed.
 
 
 7/20/23  [EDGcpfe/26349]
