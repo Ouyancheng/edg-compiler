@@ -541,6 +541,21 @@ try_debug_driver()
 
 
 #
+# Function used to print a driver error.
+#
+driver_error()
+{
+  if [ $verbose_driver_debug -ne 0 ] ; then
+    # Emit an copy of the error with the "driver debug: " prefix for driver
+    # debug tooling to easily pickup and expose the error.
+    echo "driver debug: $driver_name: $1"
+  fi
+  echo "$driver_name: $1"
+  error=1
+}
+
+
+#
 # Function used to execute a grep operation on a fixed string.
 #
 grep_f()
@@ -1425,8 +1440,7 @@ process_option()
       any_l_or_o_files=1
       add_to_instantiation_command=0
       if [ ! -f $arg ] ; then
-        echo "$driver_name: cannot open object file \"$arg\"."
-        error=1
+        driver_error "cannot open object file \"$arg\"."
       fi
       ;;
 ###############################################################################
@@ -2093,13 +2107,11 @@ process_option()
       invalid_keyword_option=1
       ;;
     -*)
-      echo "$driver_name: unknown option: $arg";
-      error=1;
+      driver_error "unknown option: $arg"
       add_to_instantiation_command=0
       ;;
     *)
-      echo "$driver_name: unrecognizable argument: $arg";
-      error=1;
+      driver_error "unrecognizable argument: $arg"
       ;;
   esac
   if [ $invalid_keyword_option -eq 0 -a $automatic_instantiation -eq 1 -a \
@@ -2149,8 +2161,7 @@ do
     check_abbreviation $arg
     process_option "$arg" "$2"
     if [ $invalid_keyword_option -ne 0 ] ; then
-      echo "$driver_name: unknown option: $arg";
-      error=1;
+      driver_error "unknown option: $arg";
     fi
   fi
   shift;
@@ -2199,8 +2210,7 @@ if [ $any_l_or_o_files -eq 0 -a $any_c_files -eq 0 ] ; then
     # (but only run the front end in that case).
     fe_only=1
   else
-    echo "$driver_name: no source, object, or library files were specified"
-    error=1
+    driver_error "no source, object, or library files were specified"
   fi
 fi
 
@@ -2208,15 +2218,13 @@ fi
 # specified.
 if [ $use_default_instantiation_dir -eq 0 ] ; then
   if [ ! -d $instantiation_dir ] ; then
-    echo "$driver_name: instantiation directory \"$instantiation_dir\" does not exist"
-    error=1
+    driver_error "instantiation directory \"$instantiation_dir\" does not exist"
   fi
 fi
 
 # One instantiation per object mode requires driver versions >= 2.37
 if [ $one_instantiation_per_object -ne 0 -a $driver_version -lt 237 ] ; then
-  echo "$driver_name: one instantiation per object not supported in driver version $driver_version"
-  error=1
+  driver_error "one instantiation per object not supported in driver version $driver_version"
 fi
 
 # If we are in C mode then disable automatic instantiation just for
