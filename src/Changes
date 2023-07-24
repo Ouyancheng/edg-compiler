@@ -1,5 +1,21 @@
 Version 6.6
 
+8/9/13   [EDGcpfe/14360]
+Triviality of defaulted copy constructor or copy assignment operator
+
+Consider:
+
+  struct S {
+    S(S&) = default;
+  };
+  static_assert(__is_trivially_copyable(S), "");  // Previously failed.
+                                                  // Now okay.
+
+The changes for EDGcpfe/14360 intentionally caused this example to fail.
+However, that appears no longer to match the C++ standard and that change has
+therefore been overturned.
+
+
 7/21/23  [EDGcpfe/26503]
 Spurious error with capture of init-capture in nested lambda constraint
 

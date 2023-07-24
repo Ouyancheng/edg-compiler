@@ -23280,34 +23280,19 @@ deleted, disable bitwise copying.
             tqs &= ~(a_type_qualifier_set)TQ_FAR;
           }  /* if */
 #endif /* NEAR_AND_FAR_ALLOWED */
-          if (!cli_class &&
-              tqs != (is_move ? TQ_NONE : gsfd->copy_ctor_qualifiers)) {
-            /* If the declared parameter type doesn't match what would have
-               been generated, the function is not trivial.  (Exclude managed
-               classes from this because they follow different copy
-               semantics.) */
-            rp->is_trivial_copy_function = FALSE;
-            cssp->makes_copy_construction_nontrivial = TRUE;
-            if (!(is_move && rp->is_deleted)) {
-              /* A deleted move constructor doesn't in and of itself disallow
-                 construction by bitwise copy. */
-              cssp->construction_by_bitwise_copy_allowed = FALSE;
-            }
-          } else {
-            if (is_move ? !cssp->makes_move_construction_nontrivial
-                        : !cssp->makes_copy_construction_nontrivial) {
-              rp->is_trivial_copy_function = TRUE;
-              rp->is_constexpr = constexpr_enabled;
-            }  /* if */
-            if (rp->is_deleted) {
+          if (is_move ? !cssp->makes_move_construction_nontrivial
+                      : !cssp->makes_copy_construction_nontrivial) {
+            rp->is_trivial_copy_function = TRUE;
+            rp->is_constexpr = constexpr_enabled;
+          }  /* if */
+          if (rp->is_deleted) {
 #if DELETED_COPY_FUNCTION_CLEARS_BITWISE_COPY_FLAG
-              class_state->rule_out_bitwise_copy_for_deleted_ctor = TRUE;
+            class_state->rule_out_bitwise_copy_for_deleted_ctor = TRUE;
 #endif /* DELETED_COPY_FUNCTION_CLEARS_BITWISE_COPY_FLAG */
-              if (gpp_mode && gnu_version < 40700) {
-                /* Early drafts of C++11 made deleted functions nontrivial, and
-                   GCC versions from that era implemented that rule. */
-                rp->is_trivial_copy_function = FALSE;
-              }  /* if */
+            if (gpp_mode && gnu_version < 40700) {
+              /* Early drafts of C++11 made deleted functions nontrivial, and
+                 GCC versions from that era implemented that rule. */
+              rp->is_trivial_copy_function = FALSE;
             }  /* if */
           }  /* if */
           if (rp->is_deleted) {
@@ -23323,29 +23308,19 @@ deleted, disable bitwise copying.
             tqs &= ~(a_type_qualifier_set)TQ_FAR;
           }  /* if */
 #endif /* NEAR_AND_FAR_ALLOWED */
-          if (!cli_class &&
-              tqs != (is_move ? TQ_NONE : gsfd->copy_assign_qualifiers)) {
-            /* If the declared parameter type doesn't match what would have
-               been generated, the function is not trivial.  (Exclude managed
-               classes from this because they follow different copy
-               semantics.) */
-            rp->is_trivial_copy_function = FALSE;
-            cssp->makes_copy_assignment_nontrivial = TRUE;
-          } else {
-            if (is_move ? !cssp->makes_move_assignment_nontrivial
-                        : !cssp->makes_copy_assignment_nontrivial) {
-              rp->is_trivial_copy_function = TRUE;
-              rp->is_constexpr = constexpr_enabled;
-            }  /* if */
-            if (rp->is_deleted) {
+          if (is_move ? !cssp->makes_move_assignment_nontrivial
+                      : !cssp->makes_copy_assignment_nontrivial) {
+            rp->is_trivial_copy_function = TRUE;
+            rp->is_constexpr = constexpr_enabled;
+          }  /* if */
+          if (rp->is_deleted) {
 #if DELETED_COPY_FUNCTION_CLEARS_BITWISE_COPY_FLAG
-              class_state->rule_out_bitwise_assign_for_deleted_operator = TRUE;
+            class_state->rule_out_bitwise_assign_for_deleted_operator = TRUE;
 #endif /* DELETED_COPY_FUNCTION_CLEARS_BITWISE_COPY_FLAG */
-              if (gpp_mode && gnu_version < 40700) {
-                /* Early drafts of C++11 made deleted functions nontrivial, and
-                   GCC versions from that era implemented that rule. */
-                rp->is_trivial_copy_function = FALSE;
-              }  /* if */
+            if (gpp_mode && gnu_version < 40700) {
+              /* Early drafts of C++11 made deleted functions nontrivial, and
+                 GCC versions from that era implemented that rule. */
+              rp->is_trivial_copy_function = FALSE;
             }  /* if */
           }  /* if */
           if (rp->is_deleted) {
