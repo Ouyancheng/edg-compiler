@@ -1,5 +1,13 @@
 Version 6.6
 
+7/24/23  [EDGcpfe/26521]
+Clang compatibility: builtin signatures with vectors of __bf16 or unsigned int
+
+The tool that generates the builtin signature table in builtin_defs.h didn't
+correctly handle vectors of type __bf16 or unsigned int.  That has been
+corrected.
+
+
 8/9/13   [EDGcpfe/14360]
 Triviality of defaulted copy constructor or copy assignment operator
 
