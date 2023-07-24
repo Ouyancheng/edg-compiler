@@ -7076,6 +7076,40 @@ and hashing the resulting string.
   return hash_value;
 }  /* hash_class_type */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
+
+a_boolean routine_has_default_calling_convention(
+                                            a_routine_type_supplement_ptr rtsp)
+/*
+Given a routine's type supplement ptr, return TRUE if the associated routine
+has the default calling convention; otherwise, return FALSE.
+*/
+{
+  a_boolean            result;
+  a_calling_convention cc = rtsp->calling_convention;
+
+  if (cc == cc_default) {
+    result = TRUE;
+  } else {
+    if (ms_extensions && !target_is_32_bit_x86_based()) {
+      /* Microsoft x86-64 conventions only distinguish __vectorcall and
+         __clrcall from other conventions.  All other conventions (__cdecl,
+         __fastcall, etc.) are accepted but have no effect. */
+      if (cc != cc_vectorcall && cc != cc_clrcall) {
+        cc = cc_default;
+      }  /* if */
+    }  /* if */
+    if (ms_extensions && rtsp->this_class != NULL) {
+      /* The default calling convention for member functions is cc_thiscall. */
+      result = (cc == cc_thiscall);
+    } else {
+      result = (cc == default_calling_convention);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* routine_has_default_calling_convention */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
 
 static a_hash_value hash_type(a_type_ptr type)
 /*
@@ -7161,13 +7195,13 @@ to refine the hash value developed in hash_constant.
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (ms_extensions &&
-            rtsp->calling_convention != default_calling_convention &&
+            !routine_has_default_calling_convention(rtsp) &&
             target_is_32_bit_x86_based()) {
           /* Add a calling convention to the hash for every calling convention
-             except cc_default and its equivalent explicit spelling in the
-             current TU.
+             except calling conventions equivalent to the default calling
+             convention.
 
-             This ensures cc_default and default_calling_convention hash
+             This ensures all spellings of the default calling convention hash
              equivalently while other calling conventions have a modified
              hash. */
           hash_value += rtsp->calling_convention;

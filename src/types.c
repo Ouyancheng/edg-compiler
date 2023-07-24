@@ -7769,53 +7769,34 @@ done:;
 a_boolean calling_conventions_are_compatible(a_type_ptr type1,
                                              a_type_ptr type2)
 /*
-Return TRUE if the calling conventions of the two given function types
-are compatible.  That means they are identical or one is cc_default and
-the other matches default_calling_convention (or cc_thiscall in the case
-of Microsoft-mode member functions).
+Return TRUE if the calling conventions of the two given function types are
+compatible.  That means they are either both the respective default calling
+convention, or exactly equivalent calling conventions.
+
+Note: type1 and type2 must be equivalent categories of routines (e.g., both
+member function pointers or both free function pointers).
 */
 {
-  a_calling_convention          cc1, cc2;
-  a_routine_type_supplement_ptr rtsp1, rtsp2;
-  a_boolean                     compatible = FALSE;
+  a_boolean result = FALSE;
 
   type1 = skip_typerefs(type1);
-  rtsp1 = type1->variant.routine.extra_info;
-  cc1 = rtsp1->calling_convention;
   type2 = skip_typerefs(type2);
-  rtsp2 = type2->variant.routine.extra_info;
-  cc2 = rtsp2->calling_convention;
-  if (ms_extensions && !target_is_32_bit_x86_based()) {
-    /* Microsoft x86-64 conventions only distinguish __vectorcall and __clrcall
-       from other conventions.  All other conventions (__cdecl, __fastcall,
-       etc.) are accepted but have no effect. */
-    if (cc1 != (a_calling_convention)cc_vectorcall &&
-        cc1 != (a_calling_convention)cc_clrcall) {
-      cc1 = (a_calling_convention)cc_default;
-    }  /* if */
-    if (cc2 != (a_calling_convention)cc_vectorcall &&
-        cc2 != (a_calling_convention)cc_clrcall) {
-      cc2 = (a_calling_convention)cc_default;
-    }  /* if */
+
+  a_routine_type_supplement_ptr rtsp1 = type1->variant.routine.extra_info;
+  a_routine_type_supplement_ptr rtsp2 = type2->variant.routine.extra_info;
+  /* If this assertion fails, type1 and type2 are not equivalent categories of
+     routines and the caller has violated this function's precondition. */
+  check_assertion((rtsp1->this_class != NULL) == (rtsp2->this_class != NULL));
+  if (routine_has_default_calling_convention(rtsp1) &&
+      routine_has_default_calling_convention(rtsp2)) {
+    result = TRUE;
+  } else {
+    a_calling_convention cc1 = rtsp1->calling_convention;
+    a_calling_convention cc2 = rtsp2->calling_convention;
+
+    result = (cc1 == cc2);
   }  /* if */
-  if (cc1 == cc2) {
-    compatible = TRUE;
-  } else if (cc1 == (a_calling_convention)cc_default) {
-    if (ms_extensions && rtsp1->this_class != NULL) {
-      /* The default calling convention for member functions is cc_thiscall. */
-      compatible = (cc2 == (a_calling_convention)cc_thiscall);
-    } else {
-      compatible = (cc2 ==  default_calling_convention);
-    }  /* if */
-  } else if (cc2 == (a_calling_convention)cc_default) {
-    if (ms_extensions && rtsp2->this_class != NULL) {
-      /* The default calling convention for member functions is cc_thiscall. */
-      compatible = (cc1 == (a_calling_convention)cc_thiscall);
-    } else {
-      compatible = (cc1 ==  default_calling_convention);
-    }  /* if */
-  }  /* if */
-  return compatible;
+  return result;
 }  /* calling_conventions_are_compatible */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
