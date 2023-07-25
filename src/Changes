@@ -11,7 +11,7 @@ Consider, with --c++11:
   int f(U, C<noexcept(U())>);
   int i = f<int>(1, C<true>());
 
-When substituting the explicitly specified template arguments into the function
+When substituting the explicitly-specified template arguments into the function
 template declaration, the noexcept operator remains a dependent expression.
 Previously, however, that dependent noexcept operator was not correctly
 represented, which could in turn lead to an abort due to a null pointer
