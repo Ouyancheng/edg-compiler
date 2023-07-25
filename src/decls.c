@@ -6637,6 +6637,7 @@ is a namespace projection symbol made visible by an inline namespace.
       }  /* if */
     }  /* if */
     if (namespace_scope_needed) {
+      check_assertion(fund_linked_decl != NULL);
       f_push_namespace_extension_scope(
                                 sym_parent_namespace(fund_linked_decl), TRUE);
     }  /* if */
