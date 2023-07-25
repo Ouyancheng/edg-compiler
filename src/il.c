@@ -7090,22 +7090,24 @@ has the default calling convention; otherwise, return FALSE.
 
   if (cc == cc_default) {
     result = TRUE;
-  } else {
-    if (ms_extensions && !target_is_32_bit_x86_based()) {
-      /* Microsoft x86-64 conventions only distinguish __vectorcall and
-         __clrcall from other conventions.  All other conventions (__cdecl,
-         __fastcall, etc.) are accepted but have no effect. */
-      if (cc != cc_vectorcall && cc != cc_clrcall) {
-        cc = cc_default;
-      }  /* if */
-    }  /* if */
-    if (ms_extensions && rtsp->this_class != NULL) {
-      /* The default calling convention for member functions is cc_thiscall. */
-      result = (cc == cc_thiscall);
-    } else {
-      result = (cc == default_calling_convention);
+    goto done;
+  }  /* if */
+  if (ms_extensions && !target_is_32_bit_x86_based()) {
+    /* Microsoft x86-64 conventions only distinguish __vectorcall and __clrcall
+       from other conventions.  All other conventions (__cdecl, __fastcall,
+       etc.) are accepted but have no effect. */
+    if (cc != cc_vectorcall && cc != cc_clrcall) {
+      result = TRUE;
+      goto done;
     }  /* if */
   }  /* if */
+  if (ms_extensions && rtsp->this_class != NULL) {
+    /* The default calling convention for member functions is cc_thiscall. */
+    result = (cc == cc_thiscall);
+  } else {
+    result = (cc == default_calling_convention);
+  }  /* if */
+done:
   return result;
 }  /* routine_has_default_calling_convention */
 
