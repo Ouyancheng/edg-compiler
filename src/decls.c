@@ -8472,11 +8472,11 @@ position.
   a_boolean   okay = TRUE;
   a_type_ptr  rtp = skip_typerefs(rp->type);
 
-  if (rtp->kind == (a_type_kind)tk_error) {
+  if (type_is(rtp, tk_error)) {
     /* A severe error must have occurred: Nothing more to be done. */
     expect_error();
   } else {
-    check_assertion(rtp->kind == (a_type_kind)tk_routine);
+    check_assertion(type_is(rtp, tk_routine));
     /* The return type and parameter types of a constexpr function must be
        literal types. */
     if (special_kind_is(rp, sfk_destructor) &&
@@ -8488,7 +8488,11 @@ position.
                !could_be_literal_type(rtp->variant.routine.return_type)) {
       okay = FALSE;
       if ((rp->is_declared_constexpr || rp->is_consteval) &&
-          !rout_is_real_template_instance(rp)) {
+          !rout_is_real_template_instance(rp) &&
+          !(cpp23_mode ||
+            (gnu_version_is(any_version) && rp->is_lambda_body))) {
+        /* C++23  (via P2448R2) no longer makes this ill-formed.  GCC never
+           diagnosed it for lambda call operators. */
         an_error_severity  sev = es_error;
         if (rp->defined_in_friend_decl &&
             scope_is(&scope_stack_top()-1, sck_class_reactivation) &&
@@ -8504,7 +8508,10 @@ position.
       a_boolean         diagnose = (rp->is_declared_constexpr ||
                                     rp->is_consteval) &&
                                    !rp->is_inheriting_ctor &&
-                                   !rout_is_real_template_instance(rp);
+                                   !rout_is_real_template_instance(rp) &&
+                                   !(cpp23_mode ||
+                                     (gnu_version_is(any_version) &&
+                                      rp->is_lambda_body));
       for (; ptp != NULL; ptp = ptp->next) {
         if (!could_be_literal_type(ptp->type)) {
           okay = FALSE;
