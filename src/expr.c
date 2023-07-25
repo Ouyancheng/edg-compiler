@@ -28110,6 +28110,9 @@ freed by this routine.
       scan_braced_init_list_cast(type_cast_to, csf_functional,
                                  supplied_arg_list, result);
       if (scanning_source) {
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         check_closing_paren_after_expr_list();
       } else if (arg_list_supplied) {
         /* The arg list was provided - don't free it here. */
