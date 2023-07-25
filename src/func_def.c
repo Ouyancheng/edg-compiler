@@ -2312,24 +2312,6 @@ member declaration (allowed in some Microsoft modes only).
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (ms_extensions) {
-      if (rtsp->calling_convention != (a_calling_convention)cc_default) {
-        /* A calling convention was specified on the out-of-class
-           definition. */
-        if (rtsp->calling_convention == (a_calling_convention)cc_thiscall &&
-            !routine_type_is_nonstatic_member_function(*old_type)) {
-          /* The "__thiscall" calling convention can only be applied to
-             nonstatic member functions. */
-          pos_error(ec_thiscall_requires_nonstatic_member,
-                    &locator->source_position);
-        } else if (!calling_conventions_are_compatible(*old_type, rout_type)) {
-          /* An out-of-class definition should not change the calling
-             convention declared in the class definition (not specifying a
-             calling convention never amounts to a change).  (A similar GNU-
-             mode test is delayed until attributes are applied.) */
-          pos_error(ec_conflicting_calling_conventions,
-                    &locator->source_position);
-        }  /* if */
-      }  /* if */
       if (microsoft_out_of_class_redecl && microsoft_version >= 1310 &&
           !in_microsoft_implementation_key_mapping_region &&
           (!is_member_function_symbol(sym) || !rp->is_template_function)) {
@@ -2347,6 +2329,27 @@ member declaration (allowed in some Microsoft modes only).
        into rout_type:  it is always wrong for nonstatic member functions.
        Also be sure the routine name linkage for the type is right. */
     adjust_member_routine_type(rout_type, *old_type);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (ms_extensions && rtsp->calling_convention != cc_default) {
+      /* A calling convention was specified on the out-of-class definition.
+         Note this must be checked after the function is adjusted, this ensures
+         calling_conventions_are_compatible has its preconditions satisfied. */
+      if (rtsp->calling_convention == cc_thiscall &&
+          !routine_type_is_nonstatic_member_function(*old_type)) {
+        /* The "__thiscall" calling convention can only be applied to nonstatic
+           member functions. */
+        pos_error(ec_thiscall_requires_nonstatic_member,
+                  &locator->source_position);
+      } else if (!calling_conventions_are_compatible(*old_type, rout_type)) {
+        /* An out-of-class definition should not change the calling convention
+           declared in the class definition (not specifying a calling
+           convention never amounts to a change).  (A similar GNU- mode test is
+           delayed until attributes are applied.) */
+        pos_error(ec_conflicting_calling_conventions,
+                  &locator->source_position);
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (noexcept_enabled && rtsp->exception_specification == NULL) {
       if (special_kind_is(rp, sfk_destructor)) {
         /* [except.spec]/p8 (N4762) "The exception specification for [...] a
