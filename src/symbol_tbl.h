@@ -7183,28 +7183,42 @@ supplement.
    a routine definition). */
 #define current_routine_entry() (innermost_function_scope->variant.routine.ptr)
 
-/* Return a pointer to the template symbol supplement for a given
-   symbol.  Return NULL for symbols of the wrong kind. */
-#define template_supplement_for_symbol(sym)				\
-  (/* if */ ((sym)->kind == (a_symbol_kind)sk_class_template ||		\
-             (sym)->kind == (a_symbol_kind)sk_variable_template ||	\
-             (sym)->kind == (a_symbol_kind)sk_concept_template ||	\
-             (sym)->kind == (a_symbol_kind)sk_function_template) ? /* { */ \
-    (sym)->variant.template_info :					\
-  /* } else if */ (sym)->kind == (a_symbol_kind)sk_member_function ? /* { */ \
-    (sym)->variant.routine.instance_ptr->template_info :		\
-  /* } else if */ ((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||  \
-                  (sym)->kind == (a_symbol_kind)sk_union_tag) ? /* { */ \
-    (sym)->variant.class_struct_union.extra_info->template_info :       \
-  /* } else if */ (sym)->kind ==					\
-			 (a_symbol_kind)sk_static_data_member ? /* { */	\
-    (sym)->variant.static_data_member.instance_ptr->template_info :	\
-  /* } else if */ (sym)->kind ==					\
-			 (a_symbol_kind)sk_enum_tag ? /* { */		\
-    (sym)->variant.enumeration.extra_info->template_info :		\
-  /* } else { */							\
-    ((a_template_symbol_supplement_ptr)NULL)				\
-  /* } */)
+
+inline a_template_symbol_supplement_ptr
+template_supplement_for_symbol(a_symbol_ptr sym)
+/*
+Return a pointer to the template symbol supplement for a given symbol.  Return
+NULL for symbols of the wrong kind.
+*/
+{
+  a_template_symbol_supplement_ptr result = NULL;
+
+  switch (sym->kind) {
+    case sk_class_template:
+    case sk_variable_template:
+    case sk_concept_template:
+    case sk_function_template:
+      result = sym->variant.template_info;
+      break;
+    case sk_member_function:
+      result = sym->variant.routine.instance_ptr->template_info;
+      break;
+    case sk_class_or_struct_tag:
+    case sk_union_tag:
+      result = sym->variant.class_struct_union.extra_info->template_info;
+      break;
+    case sk_static_data_member:
+      result = sym->variant.static_data_member.instance_ptr->template_info;
+      break;
+    case sk_enum_tag:
+      result = sym->variant.enumeration.extra_info->template_info;
+      break;
+    default:
+      break;
+  }  /* switch */
+  return result;
+}  /* template_supplement_for_symbol */
+
 
 /* If sym is a template template parameter, return the symbol for the template
    argument, otherwise return the original symbol. */
