@@ -43,7 +43,7 @@ correctly handle vectors of type __bf16 or unsigned int.  That has been
 corrected.
 
 
-8/9/13   [EDGcpfe/14360]
+7/24/23   [EDGcpfe/26518]
 Triviality of defaulted copy constructor or copy assignment operator
 
 Consider:
