@@ -546,7 +546,7 @@ try_debug_driver()
 driver_error()
 {
   if [ $verbose_driver_debug -ne 0 ] ; then
-    # Emit an copy of the error with the "driver debug: " prefix for driver
+    # Emit a copy of the error with the "driver debug: " prefix for driver
     # debug tooling to easily pickup and expose the error.
     echo "driver debug: $driver_name: $1"
   fi
