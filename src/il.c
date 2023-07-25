@@ -7082,7 +7082,8 @@ a_boolean routine_has_default_calling_convention(
                                             a_routine_type_supplement_ptr rtsp)
 /*
 Given a routine's type supplement ptr, return TRUE if the associated routine
-has the default calling convention; otherwise, return FALSE.
+has a calling convention equivalent to the default calling convention;
+otherwise, return FALSE.
 */
 {
   a_boolean            result;

@@ -7769,12 +7769,10 @@ done:;
 a_boolean calling_conventions_are_compatible(a_type_ptr type1,
                                              a_type_ptr type2)
 /*
-Return TRUE if the calling conventions of the two given function types are
-compatible.  That means they are either both the respective default calling
-convention, or exactly equivalent calling conventions.
-
-Note: type1 and type2 must be equivalent categories of routines (e.g., both
-member function pointers or both free function pointers).
+type1 and type2 are function types with the same function kind (i.e., both are
+either non-static member functions or ordinary functions).  Return TRUE if
+their calling conventions are identical or equivalent to the default calling
+convention; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -7784,9 +7782,10 @@ member function pointers or both free function pointers).
 
   a_routine_type_supplement_ptr rtsp1 = type1->variant.routine.extra_info;
   a_routine_type_supplement_ptr rtsp2 = type2->variant.routine.extra_info;
-  /* If this assertion fails, type1 and type2 are not equivalent categories of
-     routines and the caller has violated this function's precondition. */
-  check_assertion((rtsp1->this_class != NULL) == (rtsp2->this_class != NULL));
+  /* If this assertion fails, type1 and type2 do not have the same function
+     kind and the caller has violated this function's precondition. */
+  check_assertion(routine_type_is_nonstatic_member_function(type1) ==
+                  routine_type_is_nonstatic_member_function(type2));
   if (routine_has_default_calling_convention(rtsp1) &&
       routine_has_default_calling_convention(rtsp2)) {
     result = TRUE;
