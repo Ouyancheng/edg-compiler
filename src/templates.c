@@ -40562,9 +40562,36 @@ instantiation.
                                    &is_new_template_instance);
       if (new_sym != NULL) {
         dps->sym = new_sym;
+        if (new_sym->kind == sk_member_function) {
+          a_routine_ptr instantiation_rp =
+                                       il_entry_for_symbol<a_routine>(new_sym);
+          a_type_ptr    instantiation_rp_type = instantiation_rp->type;
+
+          if (routine_type_is_nonstatic_member_function(
+                                                      instantiation_rp_type)) {
+            /* The front end typically sets non-static member function status
+               on the in class declaration, then copies this status when the
+               function is defined (in define_member_function) using
+               adjust_member_routine_type.
+
+               Instantiations of non-static member functions do not flow
+               through define_member_function, so the parsed explicit
+               instantiation declarator type does not have it's non-static
+               member function status propagated.  Use the created
+               instantiation symbol (instead of the in class declaration as
+               would be done in the non-template case) to perform propagation
+               here. */
+            a_type_ptr      class_type = sym_parent_class(new_sym);
+            a_routine_type_supplement_ptr
+                            rtsp = rout_type_supp(dps->type);
+
+            rtsp->this_class = class_type;
+            rtsp->has_this_param = TRUE;
+          }  /* if */
+        }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (ms_extensions) {
-          if (new_sym->kind == (a_symbol_kind)sk_member_function &&
+          if (new_sym->kind == sk_member_function &&
               new_sym->variant.routine.ptr->template_arg_list == NULL &&
               (dps->decl_modifiers.flags & DM_DLLFLAGS) == 0) {
             /* For ordinary member functions of class templates (i.e., not for
@@ -40594,8 +40621,7 @@ instantiation.
         /* If a throw specification was mentioned in the instantiation
            directive, check that it matches up with that of the instantiated
            routine. */
-        if (dps->type->variant.routine.extra_info->exception_specification !=
-                                                                       NULL) {
+        if (rout_type_supp(dps->type)->exception_specification != NULL) {
           instantiate_exception_spec_if_needed(new_sym);
           (void)check_exception_specification(dps->type, new_sym,
                                               &func_info.throw_position,
@@ -40612,8 +40638,7 @@ instantiation.
                           (kind != (a_pragma_kind)pk_do_not_instantiate),
                           (a_boolean)new_sym->variant.routine.ptr->is_inline);
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
-        if (dps->type->variant.routine.extra_info->calling_convention !=
-                                           (a_calling_convention)cc_default &&
+        if (rout_type_supp(dps->type)->calling_convention != cc_default &&
             (symbol_is(sym, sk_function_template) ||
              (symbol_is(sym, sk_member_function) &&
               sym->variant.routine.instance_ptr != NULL))) {
