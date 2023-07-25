@@ -1,5 +1,23 @@
 Version 6.6
 
+7/25/23  [EDGcpfe/26520]
+Abort on dependent noexcept expression during substitution
+
+Consider, with --c++11:
+
+  template<bool B>
+  struct C { };
+  template<typename T, typename U>
+  int f(U, C<noexcept(U())>);
+  int i = f<int>(1, C<true>());
+
+When substituting the explicitly specified template arguments into the function
+template declaration, the noexcept operator remains a dependent expression.
+Previously, however, that dependent noexcept operator was not correctly
+represented, which could in turn lead to an abort due to a null pointer
+indirection in f_identical_types (types.c).  That is now fixed.
+
+
 7/24/23  [EDGcpfe/26521]
 Clang compatibility: builtin signatures with vectors of __bf16 or unsigned int
 

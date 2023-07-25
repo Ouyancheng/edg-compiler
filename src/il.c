@@ -20508,8 +20508,10 @@ options.
             /* Still a template dependent type, so still need a
                tpck_sizeof/alignof/uuidof/typeid/noexcept constant. */
             *constant = *con;
-            constant->variant.template_param.variant.templ_sizeof.type =
+            if (con->variant.template_param.variant.templ_sizeof.type != NULL){
+              constant->variant.template_param.variant.templ_sizeof.type =
                                                                       new_type;
+            }  /* if */
             constant->variant.template_param.variant.templ_sizeof.expr = expr;
             con_copy = NULL;
           } else {
