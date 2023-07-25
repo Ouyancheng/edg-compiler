@@ -1309,16 +1309,19 @@ because of performance concerns).
 #endif /* defined(__GNUC__) && ... */
 
 
+static inline void get_int_val_from(void                  *bytes,
+                                    a_type                *tp,
+                                    a_host_large_integer  &val,
+                                    a_boolean             &ovfl)
 /*
-Convenience macro to extract a host large integer from the integer value at
-bytes of type tp, which must be a tk_integer type.  The result is left in
-val.  ovfl is set to TRUE if the value is too large or small for a host
-large integer.
+Extract an integer value of type tp stored at bytes (which must point to an
+object of type an_integer_value) and store the result in val.  If an overflow
+occurs, set ovfl to TRUE.
 */
-#define get_int_val_from(bytes, tp, val, ovfl)                               \
-  conv_integer_value_to_host_large_integer((an_integer_value *)(bytes),      \
-                                           int_type_is_signed(tp),           \
-                                           &(val), &(ovfl))
+{
+  val = value_of_integer_value((an_integer_value*)bytes,
+                               int_type_is_signed(tp), &ovfl);
+}  /* get_int_val_from */
 
 
 /*

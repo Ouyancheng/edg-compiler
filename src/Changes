@@ -1,5 +1,22 @@
 Version 6.6
 
+7/25/23  [EDGcpfe/26530]
+Incorrect handling of pointer arithmetic with unsigned value
+
+Consider:
+
+  using U = decltype(sizeof(42));
+  constexpr int arr[] = { 3, 5, 9 };
+  static constexpr int get(U i) {
+    return *(arr-i);
+  }
+  static_assert(get(-2) == 9, "");
+
+The front end previously accepted this, failing to recognize that the
+evaluation of "arr-i" (with i a very large unsigned value resulting from the
+conversion of -2) is not a valid core constant expression.  That is now fixed.
+
+
 7/25/23  [EDGcpfe/26527]
 Non-literal parameter and return types for constexpr functions
 
