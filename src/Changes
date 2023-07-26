@@ -9,26 +9,6 @@ internally sets _M_X64 and _M_AMD64 for x86_64 targets in Microsoft mode and
 when using Microsoft extensions in Clang mode.
 
 
-7/25/25  [EDGcpfe/26531]
-Uninitialized read on expression end position
-
-The changes in EDGcpfe/26457 resulted in an uninitialized read of expression
-end positions for expressions using C++ functional-notation type conversions
-(e.g., "int(1.5)") to perform aggregate initialization on a class type that
-captures the value given by reference.  For example:
-
-  struct class_type {
-    int &val;
-  };
-
-  int x = 0;
-  int y = (class_type(x), 0 );
-        /* ^^^^^^^^^^^^^ */
-
-Previously, this expression's end position could be an uninitialized value.
-This is now fixed.
-
-
 7/25/23  [EDGcpfe/26530]
 Incorrect handling of pointer arithmetic with unsigned value
 
