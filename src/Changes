@@ -1,5 +1,22 @@
 Version 6.6
 
+7/26/23  [EDGcpfe/26060,EDGcpfe/26203,EDGcpfe/26533]
+Spurious copy-constructor invocation on braced-initializer argument
+
+Consider:
+
+  struct B { ~B(); };
+  struct D: B {
+    D() = default;
+    D(D const&) = delete;
+  };
+  void g(D = {});  // Previously an error.  Now okay.
+
+Previously, the binding of {} to the parameter forced a copy constructor
+invocation, which triggered an error in D's copy constructor is deleted.
+That is now fixed.
+
+
 7/26/23  [EDGcpfe/26525]
 Implement predefined macro definition for _M_X64 and _M_AMD64
 

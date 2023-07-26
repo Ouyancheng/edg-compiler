@@ -27584,18 +27584,11 @@ checks that), and *conversion describes it.
                           /*warning_on_narrowing=*/!error_on_narrowing,
                           conv_context,
                           /*fill_in_dtor=*/TRUE,
-                          /*force_temp=*/
-                                     formal_param->passed_via_copy_constructor,
+                          /*force_temp=*/FALSE,
                           /*make_lvalue_temp=*/FALSE,
                           result,
                           (an_init_state *)NULL,
                           (an_arg_match_summary *)NULL);
-    if (formal_param->passed_via_copy_constructor) {
-      /* Argument is passed via a copy constructor, so adjust the operand
-         so the address of a temporary will be passed. */
-      prep_arg_passed_via_copy_constructor(result, formal_param->type,
-                                           (a_conv_descr *)NULL, err_code);
-    }  /* if */
   }  /* if */
 }  /* prep_argument */
 
