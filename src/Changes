@@ -55,7 +55,7 @@ For example:
   }
 
 
-7/25/23  [EDGcpfe/25037,EDGcpfe/26189]
+7/25/23  [EDGcpfe/23275,EDGcpfe/25037,EDGcpfe/26189]
 Spurious 'argument list for variable template is missing' error during
 substitution
 
