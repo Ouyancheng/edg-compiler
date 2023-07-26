@@ -7770,7 +7770,7 @@ a_boolean calling_conventions_are_compatible(a_type_ptr type1,
                                              a_type_ptr type2)
 /*
 type1 and type2 are function types with the same function kind (i.e., both are
-either non-static member functions or ordinary functions).  Return TRUE if
+non-static member functions or both are ordinary functions).  Return TRUE if
 their calling conventions are identical or equivalent to the default calling
 convention; otherwise, return FALSE.
 */

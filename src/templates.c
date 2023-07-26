@@ -40570,15 +40570,15 @@ instantiation.
           if (routine_type_is_nonstatic_member_function(
                                                       instantiation_rp_type)) {
             /* The front end typically sets non-static member function status
-               on the in class declaration, then copies this status when the
+               on the in-class declaration, then copies this status when the
                function is defined (in define_member_function) using
                adjust_member_routine_type.
 
                Instantiations of non-static member functions do not flow
                through define_member_function, so the parsed explicit
-               instantiation declarator type does not have it's non-static
+               instantiation declarator type does not have its non-static
                member function status propagated.  Use the created
-               instantiation symbol (instead of the in class declaration as
+               instantiation symbol (instead of the in-class declaration as
                would be done in the non-template case) to perform propagation
                here. */
             a_type_ptr      class_type = sym_parent_class(new_sym);
