@@ -9,7 +9,7 @@ internally sets _M_X64 and _M_AMD64 for x86_64 targets in Microsoft mode and
 when using Microsoft extensions in Clang mode.
 
 
-7/25/23  [EDGcpfe/26531]
+7/25/25  [EDGcpfe/26531]
 Uninitialized read on expression end position
 
 The changes in EDGcpfe/26457 resulted in an uninitialized read of expression
