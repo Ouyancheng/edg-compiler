@@ -416,6 +416,20 @@ Currently this is the default (but that may change in the future).
 }  /* target_is_x86_based */
 
 
+inline a_boolean target_is_x86_compatible(void)
+/*
+Utility to return TRUE if the target is based on an x86 architecture or is
+emulation compatible with x86.
+*/
+{
+  /* The ARM64EC ABI exists and is ARM64 code that's been compiled to allow
+     emulated x86_64 to call into it.  As the front end does not have an
+     equivalent mode at the time of writing, this function currently only
+     returns true when the target is x86 based. */
+  return target_is_x86_based();
+}  /* target_is_x86_compatible */
+
+
 inline a_boolean target_is_32_bit_x86_based(void)
 /*
 Utility to return TRUE if the target is based on a 32-bit x86 architecture.

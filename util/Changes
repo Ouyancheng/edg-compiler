@@ -1,5 +1,13 @@
 Version 6.5, June 21, 2023
 
+7/26/23  [EDGcpfe/26525]
+Remove predefined macro definition for _M_X64 and _M_AMD64
+
+Previously, make_win_predef_macro defined _M_AMD64 and _M_X64.  This
+functionality has been removed, and the front end is now responsible for
+setting these macro definitions.
+
+
 6/5/23   [EDGcpfe/26345]
 Added %u error message fill-in
 

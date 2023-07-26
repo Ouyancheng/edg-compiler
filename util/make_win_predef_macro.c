@@ -39,7 +39,9 @@ list).  Some of these macros are pre-defined by the front end, namely:
   __FUNCTION__
   _INTEGRAL_MAX_BITS
   _MANAGED
+  _M_AMD64
   _M_CEE
+  _M_X64
   _MSC_BUILD
   _MSC_EXTENSIONS
   _MSC_FULL_VER
@@ -124,9 +126,6 @@ int main(int argc, char *argv[]) {
 #ifdef _DLL
   define_predefined_macro(_DLL)
 #endif /* _DLL */
-#ifdef _M_AMD64
-  define_predefined_macro(_M_AMD64)
-#endif /* _M_AMD64 */
 #ifdef _M_ARM
   define_predefined_macro(_M_ARM)
 #endif /* _M_ARM */
@@ -145,9 +144,6 @@ int main(int argc, char *argv[]) {
 #ifdef _M_IX86_FP
   define_predefined_macro(_M_IX86_FP)
 #endif /* _M_IX86_FP */
-#ifdef _M_X64
-  define_predefined_macro(_M_X64)
-#endif /* _M_X64 */
 #ifdef _MFC_VER
   define_predefined_macro(_MFC_VER)
 #endif /* _MFC_VER */

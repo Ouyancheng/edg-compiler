@@ -1,5 +1,14 @@
 Version 6.6
 
+7/26/23  [EDGcpfe/26525]
+Implement predefined macro definition for _M_X64 and _M_AMD64
+
+The front end previously defined _M_AMD64 and _M_X64 via the
+predefined_macros.txt file.  This has been changed and the front end now
+internally sets _M_X64 and _M_AMD64 for x86_64 targets in Microsoft mode and
+when using Microsoft extensions in Clang mode.
+
+
 7/25/23  [EDGcpfe/26531]
 Uninitialized read on expression end position
 
