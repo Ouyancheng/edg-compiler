@@ -7892,6 +7892,13 @@ expr_statement:
         !(gpp_version_is(>=120000) && current_rp->is_template_function)) {
       /* Report an error if the statement is not one that is allowed in a
          constexpr function or constexpr constructor. */
+      if (current_rp->is_prototype_instantiation &&
+          in_constexpr_body_sev == es_error && !strict_ansi_mode) {
+        /* In uninstantiated templates common practice is to either not
+           diagnose this (GCC, MSVC) or to just issue a warning (Clang).  We
+           therefore only issue a warning in nonstrict modes. */
+        in_constexpr_body_sev = es_warning;
+      }  /* if */
       pos_diagnostic(in_constexpr_body_sev,
                      special_kind_is(current_rp, sfk_constructor) ?
                                 ec_invalid_statement_in_constexpr_constructor :

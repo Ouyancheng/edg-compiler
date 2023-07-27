@@ -1,5 +1,17 @@
 Version 6.6
 
+7/27/23  [EDGcpfe/26532]
+Statements in constexpr function templates
+
+In C++11, constexpr function bodies mostly permit only a single return
+statement.  It appears, however, that most implementations do not issue an
+error on a violation of that constraint in a constexpr function template that
+is never instantiated (Clang issues a warning; GCC and MSVC are silent).  The
+front end's diagnostic for those cases has therefore been weakened to a
+warning in nonstrict modes.  (See also the entry for EDGcpfe/26319: In some
+GCC modes, even real instantiations of such cases are not diagnosed.)
+
+
 7/27/23  [EDGcpfe/26542]
 GNU compatibility: Update builtin signatures to 13.2.0
 
