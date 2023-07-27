@@ -23385,6 +23385,11 @@ already indicates the load.
           case eok_points_to_static:
           case eok_unbox_lvalue:
           case eok_call:
+          case eok_dot_member_call:
+          case eok_points_to_member_call:
+          case eok_dot_pm_call:
+          case eok_points_to_pm_call:
+          case eok_lvalue:
             rvalueable = TRUE;
             break;
           case eok_base_class_cast:
