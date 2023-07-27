@@ -8401,6 +8401,74 @@ structures for space tracking purposes.
 
 #endif /* DEBUG */
 
+namespace detail {
+
+#if !STANDALONE_UTILITY_PROGRAM
+
+void Fillin<long long>::add(a_diagnostic_ptr diag,
+                            long long        value)
+/*
+Add a number fill-in entry for number to the diagnostic specified
+by diag.
+*/
+{
+  add_number_fill_in(diag, value);
+}  /* Fillin<long long>::add */
+
+
+void Fillin<unsigned long long>::add(a_diagnostic_ptr   diag,
+                                     unsigned long long value)
+/*
+Add an unsigned number fill-in entry for number to the diagnostic specified by
+diag.
+*/
+{
+  add_unsigned_number_fill_in(diag, value);
+}  /* Fillin<unsigned long long>::add */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
+void Fillin<a_source_position*>::add(a_diagnostic_ptr  diag,
+                                     a_source_position *value)
+/*
+Add a position fill-in entry for pos to the diagnostic specified by diag.
+*/
+{
+  add_position_fill_in(diag, value);
+}  /* Fillin<a_source_position*>::add */
+
+
+void Fillin<a_const_char*>::add(a_diagnostic_ptr diag,
+                                a_const_char     *value)
+/*
+Add a string fill-in entry for string to the diagnostic specified by diag.
+*/
+{
+  add_string_fill_in(diag, value);
+}  /* Fillin<a_const_char*>::add */
+
+
+void Fillin<a_symbol*>::add(a_diagnostic_ptr diag,
+                            a_symbol         *value)
+/*
+Add a symbol fill-in entry for "symbol" to the diagnostic specified by diag.
+*/
+{
+  add_symbol_fill_in(diag, value);
+}  /* Fillin<a_symbol*>::add */
+
+
+void Fillin<a_type*>::add(a_diagnostic_ptr diag,
+                          a_type           *value)
+/*
+Add a declaration fill-in entry for "type" to the diagnostic specified by diag.
+*/
+{
+  add_type_fill_in(diag, value);
+}  /* Fillin<a_type*>::add */
+
+}  /* detail */
+
 #if !STANDALONE_UTILITY_PROGRAM
 
 #if MAKE_FRONT_END_CALLABLE
