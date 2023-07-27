@@ -23240,13 +23240,12 @@ Otherwise, parameter references should only include the parameter name.
                                                      get_ifc_qualifiers(istss);
         cache_syntactic_type_qualifiers(cache, qualifiers);
 
-        an_ifc_type_index   type = get_ifc_type(istss);
-        an_ifc_syntax_index type_name = get_ifc_type_name(istss);
+        an_ifc_type_index type = get_ifc_type(istss);
         if (is_null_index(type)) {
-          check_assertion(!is_null_index(type_name));
+          an_ifc_syntax_index type_name = get_ifc_type_name(istss);
+
           cache_syntax(cache, type_name, cinfo);
         } else {
-          check_assertion(is_null_index(type_name));
           cache_type(cache, type, cinfo);
         }  /* if */
       }
