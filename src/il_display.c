@@ -4412,6 +4412,9 @@ local) memory region.
     case lerk_generic_sizeof:
       (void)printf("generic-sizeof");
       break;
+    case lerk_tpl_param_expr:
+      (void)printf("tpl_param_expr");
+      break;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     case lerk_array_bound:
       (void)printf("array-bound");
@@ -4421,6 +4424,12 @@ local) memory region.
       break;
     case lerk_decltype:
       (void)printf("decltype");
+      break;
+    case lerk_bit_field_width:
+      (void)printf("bit_field_width");
+      break;
+    case lerk_constant_expr:
+      (void)printf("constant_expr");
       break;
     default:
       (void)printf("**BAD LOCAL-EXPR-NODE-REF KIND**");

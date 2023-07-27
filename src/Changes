@@ -1,5 +1,13 @@
 Version 6.6
 
+7/27/23  [EDGcpfe/26537]
+Missing cases in disp_local_expr_node_ref
+
+Some missing cases for a switch statement in disp_local_expr_node_ref had
+resulted in the string "**BAD LOCAL-EXPR-NODE-REF KIND**" being emitted in
+some IL displays.  Those are now fixed.
+
+
 7/27/23  [EDGcpfe/26526]
 Deducing the type of a non-type template parameter used as a template template
 parameter argument
