@@ -28,9 +28,9 @@ Consider:
   };
   void g(D = {});  // Previously an error.  Now okay.
 
-Previously, in pre-C++17 modes, the binding of {} to the parameter forced a
-copy constructor invocation.  That in turn triggered an error because D's copy
-constructor is deleted.  That is now fixed.
+Previously, in pre-C++17 modes, the initialization of the parameter with {}
+forced a copy constructor invocation.  That in turn triggered an error because
+D's copy constructor is deleted.  That is now fixed.
 
 
 7/26/23  [EDGcpfe/26525]
