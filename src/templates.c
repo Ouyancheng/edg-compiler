@@ -12382,8 +12382,7 @@ list of a template function.  Returns TRUE if a match is found.
                 (flags & MTT_NESTED_TYPE_MATCH) != 0)) {
             match = FALSE;
           }  /* if */
-        } else if (auto_template_params_enabled &&
-                   (flags & MTT_TEMPL_TEMPL_MATCH) == 0) {
+        } else if (auto_template_params_enabled) {
           /* When auto template parameters are allowed, it is also permitted
              to deduce from the type of a nontype argument.  This is only
              done to potentially deduce a type, it does not fail deduction
