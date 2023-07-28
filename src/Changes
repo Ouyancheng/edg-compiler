@@ -23,7 +23,7 @@ GCC modes, even real instantiations of such cases are not diagnosed.)
 7/27/23  [EDGcpfe/26542]
 GNU compatibility: Update builtin signatures to 13.2.0
 
-There were a small number of builtin changes to builtin signatures between
+There were a small number of changes to builtin signatures between
 GNU 13.1.0 and 13.2.0 (some uses of _Float128 were replaced by __float128).
 The builtin signatures have been updated accordingly.
 
