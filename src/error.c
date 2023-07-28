@@ -4897,11 +4897,11 @@ newly created entry.
   return dp;
 }  /* create_diagnostic_entry */
 
+namespace detail {
 
-static a_diagnostic_ptr create_primary_diagnostic(
-			an_error_code		error_code,
-			a_source_position	*position,
-			an_error_severity	severity)
+a_diagnostic_ptr create_primary_diagnostic(an_error_code     error_code,
+                                           a_source_position *position,
+                                           an_error_severity severity)
 /*
 Interface to create_diagnostic_entry that does not require a primary
 diagnostic to be provided.
@@ -4929,18 +4929,19 @@ diagnostic to be provided.
 }  /* create_primary_diagnostic */
 
 
-static a_diagnostic_ptr create_sub_message(a_diagnostic_ptr	primary_dp,
-					   an_error_code	error_code)
+a_diagnostic_ptr create_sub_message(a_diagnostic_ptr primary_dp,
+                                    an_error_code    error_code)
 /*
 Create a sub-message for the diagnostic pointed to by "primary_dp".
 */
 {
-  a_diagnostic_ptr	dp;
-  dp = create_diagnostic_entry(primary_dp, dck_sub_message, error_code,
-                               &null_source_position, es_none);
-  return dp;
+  return create_diagnostic_entry(primary_dp, dck_sub_message, error_code,
+                                 &null_source_position, es_none);
 }  /* create_sub_message */
 
+}  /* detail */
+
+using namespace detail;
 
 static void add_fill_in_to_diagnostic(a_diagnostic_ptr		diag_ptr,
 				      a_diag_fill_in_ptr	fill_in_ptr)

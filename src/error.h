@@ -1170,6 +1170,13 @@ struct Fillin<a_type*> {
                   a_type           *value);
 };  /* Fillin */
 
+extern a_diagnostic_ptr create_primary_diagnostic(an_error_code     error_code,
+                                                  a_source_position *position,
+                                                  an_error_severity severity);
+
+extern a_diagnostic_ptr create_sub_message(a_diagnostic_ptr primary_dp,
+                                           an_error_code    error_code);
+
 }  /* detail */
 
 template<typename... a_Fillin_type>
@@ -1183,8 +1190,9 @@ source position, and fillins.  Return a pointer to the diagnostic entry that
 will be passed in for the subsequent messages.
 */
 {
-  a_diagnostic_ptr diag = pos_start_diagnostic(error_severity, error_code,
-                                               error_pos);
+  a_diagnostic_ptr diag = detail::create_primary_diagnostic(error_code,
+                                                            error_pos,
+                                                            error_severity);
 
   /* Use a braced-init-list to provide ordered evaluation of each pack element,
      calling the appropriate add_fillin function.  The created array's values
@@ -1450,6 +1458,26 @@ and fillins.
 {
   diagnostic(es_catastrophe, error_code, fillins...);
 }  /* catastrophe */
+
+
+template<typename... a_Fillin_type>
+inline void add_diag_info(a_diagnostic_ptr   primary_dp,
+                          an_error_code      error_code,
+                          a_Fillin_type...   fillins)
+/*
+Add the specified diagnostic message to the primary_dp with the given fillins.
+*/
+{
+  a_diagnostic_ptr sub_diag = detail::create_sub_message(primary_dp,
+                                                         error_code);
+
+  /* Use a braced-init-list to provide ordered evaluation of each pack element,
+     calling the appropriate add_fillin function.  The created array's values
+     are irrelevant and discarded. */
+  ARG_UNUSED unsigned discarded[] = {
+    (detail::Fillin<a_Fillin_type>::add(sub_diag, fillins), 0u)...
+  };
+}  /* add_diag_info */
 
 
 /*
