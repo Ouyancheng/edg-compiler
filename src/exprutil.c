@@ -22165,11 +22165,26 @@ prvalue.  This is TRUE for nonlocal nonreal class types.  E.g.:
     struct L;  // Nonreal local type.
     static_cast<T&&>(*(L*)p);  // Error.
   }
+
+Clang, GCC, and MSVC also allow this in the function prototype scope of a
+function template declaration.  For example:
+
+  template<typename> struct S {
+    static bool f(S);
+    template<typename T> friend auto g(S p)->decltype(S::f(p)) {
+      throw 42;
+    }
+  };
+  S<int> si;  // Ordinarily, S::f(p) would be an error because S is still
+              // incomplete, but this is generally accepted.
 */
 {
   return is_immediate_class_type(utp) &&
-         utp->variant.class_struct_union.is_nonreal_class &&
-         !utp->source_corresp.is_local_to_function;
+         ((utp->variant.class_struct_union.is_nonreal_class &&
+           !utp->source_corresp.is_local_to_function) ||
+          (!strict_ansi_mode &&
+           scope_is(&scope_stack_top(), sck_func_prototype) &&
+           scope_is(&scope_stack_top()-1, sck_template_declaration)));
 }  /* incomplete_glvalue_type_okay_for_prvalue */
 
 

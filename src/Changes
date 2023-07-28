@@ -1,5 +1,26 @@
 Version 6.6
 
+7/28/23  [EDGcpfe/26512]
+Use of incomplete types in function template declarations
+
+Consider:
+
+  template<typename> struct S {
+    static bool f(S);
+    template<typename T> friend auto g(S p)->decltype(S::f(p)) {
+      throw 42;
+    }
+  };
+  S<int> si;  // Ordinarily, S::f(p) would be an error because S is still
+              // incomplete, but this is generally accepted.
+
+During the instantiation of S<int>, the call S::f(p) is invalid because p has
+the still-incomplete type S<int> but it requires a glvalue-to-prvalue
+conversion.  The front end previously (correctly) diagnosed this.  However,
+common practice is to accept this example.  The diagnostic is therefore no
+longer issued in nonstrict modes.
+
+
 7/28/23  [EDGcpfe/26419]
 Hang on GCC target pragma with multiple string arguments
 
