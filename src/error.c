@@ -4943,14 +4943,16 @@ Create a sub-message for the diagnostic pointed to by "primary_dp".
 
 using namespace detail;
 
-static void add_fill_in_to_diagnostic(a_diagnostic_ptr		diag_ptr,
-				      a_diag_fill_in_ptr	fill_in_ptr)
+static inline void add_fill_in_to_diagnostic(a_diagnostic_ptr   diag_ptr,
+                                             a_diag_fill_in_ptr fill_in_ptr)
 /*
-Add the fill-in specified by fill_in_ptr to the diagnostic specified
-by diag_ptr.
+Add the fill-in specified by fill_in_ptr to the diagnostic specified by
+diag_ptr.
 */
 {
-  if (diag_ptr->fill_in_head == NULL) diag_ptr->fill_in_head = fill_in_ptr;
+  if (diag_ptr->fill_in_head == NULL) {
+    diag_ptr->fill_in_head = fill_in_ptr;
+  }  /* if */
   if (diag_ptr->fill_in_tail != NULL) {
     diag_ptr->fill_in_tail->next = fill_in_ptr;
   }  /* if */
@@ -4959,11 +4961,10 @@ by diag_ptr.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-static void add_number_fill_in(a_diagnostic_ptr     diag_ptr,
-                               a_signed_diag_number number)
+static inline void add_number_fill_in(a_diagnostic_ptr     diag_ptr,
+                                      a_signed_diag_number number)
 /*
-Add a number fill-in entry for number to the diagnostic specified
-by diag_ptr.
+Add a number fill-in entry for number to the diagnostic specified by diag_ptr.
 */
 {
   a_diag_fill_in_ptr dfip = alloc_diag_fill_in(dfk_number);
@@ -4973,8 +4974,9 @@ by diag_ptr.
 }  /* add_number_fill_in */
 
 
-static void add_unsigned_number_fill_in(a_diagnostic_ptr        diag_ptr,
-                                        an_unsigned_diag_number number)
+static inline void add_unsigned_number_fill_in(
+                                              a_diagnostic_ptr        diag_ptr,
+                                              an_unsigned_diag_number number)
 /*
 Add an unsigned number fill-in entry for number to the diagnostic specified by
 diag_ptr.
@@ -4988,90 +4990,83 @@ diag_ptr.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-static void add_position_fill_in(a_diagnostic_ptr	diag_ptr,
-				 a_source_position	*pos)
+static inline void add_position_fill_in(a_diagnostic_ptr  diag_ptr,
+                                        a_source_position *pos)
 /*
-Add a position fill-in entry for pos to the diagnostic specified
-by diag_ptr.
+Add a position fill-in entry for pos to the diagnostic specified by diag_ptr.
 */
 {
-  a_diag_fill_in_ptr	dfip;
+  a_diag_fill_in_ptr dfip = alloc_diag_fill_in(dfk_position);
 
-  dfip = alloc_diag_fill_in(dfk_position);
   dfip->variant.position = *pos;
   add_fill_in_to_diagnostic(diag_ptr, dfip);
 }  /* add_position_fill_in */
 
 
-static void add_string_fill_in(a_diagnostic_ptr	diag_ptr,
-			       a_const_char	*string)
+static inline void add_string_fill_in(a_diagnostic_ptr diag_ptr,
+                                      a_const_char     *string)
 /*
-Add a string fill-in entry for string to the diagnostic specified
-by diag_ptr.
+Add a string fill-in entry for string to the diagnostic specified by diag_ptr.
 */
 {
-  a_diag_fill_in_ptr	dfip;
+  a_diag_fill_in_ptr dfip = alloc_diag_fill_in(dfk_string);
 
-  dfip = alloc_diag_fill_in(dfk_string);
   dfip->variant.string = string;
   add_fill_in_to_diagnostic(diag_ptr, dfip);
 }  /* add_string_fill_in */
 
 
-static void add_symbol_fill_in_with_depth(a_diagnostic_ptr	diag_ptr,
-					  a_symbol_ptr		symbol,
-					  a_scope_depth		scope_depth)
+static inline void add_symbol_fill_in_with_depth(a_diagnostic_ptr diag_ptr,
+                                                 a_symbol_ptr     symbol,
+                                                 a_scope_depth    scope_depth)
 /*
-Add a symbol fill-in entry for symbol to the diagnostic specified
-by diag_ptr.  scope_depth is the scope stack depth associated with the
-symbol, or NO_SCOPE_DEPTH.
+Add a symbol fill-in entry for symbol to the diagnostic specified by diag_ptr.
+scope_depth is the scope stack depth associated with the symbol, or
+NO_SCOPE_DEPTH.
 */
 {
-  a_diag_fill_in_ptr	dfip;
+  a_diag_fill_in_ptr dfip = alloc_diag_fill_in(dfk_symbol);
 
-  dfip = alloc_diag_fill_in(dfk_symbol);
   dfip->variant.symbol.ptr = symbol;
   dfip->variant.symbol.scope_depth = scope_depth;
   add_fill_in_to_diagnostic(diag_ptr, dfip);
 }  /* add_symbol_fill_in_with_depth */
 
 
-static void add_symbol_fill_in(a_diagnostic_ptr	diag_ptr,
-			       a_symbol_ptr	symbol)
+static inline void add_symbol_fill_in(a_diagnostic_ptr diag_ptr,
+                                      a_symbol_ptr     symbol)
 /*
-Add a symbol fill-in entry for "symbol" to the diagnostic specified
-by diag_ptr.
+Add a symbol fill-in entry for "symbol" to the diagnostic specified by
+diag_ptr.
 */
 {
   add_symbol_fill_in_with_depth(diag_ptr, symbol, NO_SCOPE_DEPTH);
 }  /* add_string_fill_in */
 
 
-static void add_template_arg_list_fill_in(a_diagnostic_ptr      diag_ptr,
-                                          a_template_arg_ptr    templ_args)
+static inline void add_template_arg_list_fill_in(a_diagnostic_ptr   diag_ptr,
+                                                 a_template_arg_ptr templ_args)
 /*
-Add a declaration fill-in entry for "templ_args" to the diagnostic specified
-by diag_ptr.
+Add a declaration fill-in entry for "templ_args" to the diagnostic specified by
+diag_ptr.
 */
 {
-  a_diag_fill_in_ptr	dfip;
+  a_diag_fill_in_ptr dfip = alloc_diag_fill_in(dfk_template_args);
 
-  dfip = alloc_diag_fill_in(dfk_template_args);
   dfip->variant.template_args = templ_args;
   add_fill_in_to_diagnostic(diag_ptr, dfip);
 }  /* add_template_arg_list_fill_in */
 
 
-static void add_type_fill_in(a_diagnostic_ptr	diag_ptr,
-			     a_type_ptr		type)
+static inline void add_type_fill_in(a_diagnostic_ptr diag_ptr,
+                                    a_type_ptr       type)
 /*
-Add a declaration fill-in entry for "type" to the diagnostic specified
-by diag_ptr.
+Add a declaration fill-in entry for "type" to the diagnostic specified by
+diag_ptr.
 */
 {
-  a_diag_fill_in_ptr	dfip;
+  a_diag_fill_in_ptr dfip = alloc_diag_fill_in(dfk_type);
 
-  dfip = alloc_diag_fill_in(dfk_type);
   dfip->variant.type = type;
   add_fill_in_to_diagnostic(diag_ptr, dfip);
 }  /* add_type_fill_in */

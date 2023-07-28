@@ -1180,10 +1180,10 @@ extern a_diagnostic_ptr create_sub_message(a_diagnostic_ptr primary_dp,
 }  /* detail */
 
 template<typename... a_Fillin_type>
-inline a_diagnostic_ptr pos_start_diagnostic(an_error_severity  error_severity,
-                                             an_error_code      error_code,
-                                             a_source_position  *error_pos,
-                                             a_Fillin_type...   fillins)
+inline a_diagnostic_ptr pos_start_diagnostic(an_error_severity error_severity,
+                                             an_error_code     error_code,
+                                             a_source_position *error_pos,
+                                             a_Fillin_type...  fillins)
 /*
 Begin a multiple message diagnostic with the specified severity, error code,
 source position, and fillins.  Return a pointer to the diagnostic entry that
@@ -1205,9 +1205,9 @@ will be passed in for the subsequent messages.
 
 
 template<typename... a_Fillin_type>
-inline a_diagnostic_ptr pos_start_remark(an_error_code      error_code,
-                                         a_source_position  *error_pos,
-                                         a_Fillin_type...   fillins)
+inline a_diagnostic_ptr pos_start_remark(an_error_code     error_code,
+                                         a_source_position *error_pos,
+                                         a_Fillin_type...  fillins)
 /*
 Begin a multiple message remark with the specified error code, source position,
 and fillins.  Return a pointer to the diagnostic entry that will be passed in
@@ -1219,9 +1219,9 @@ for the subsequent messages.
 
 
 template<typename... a_Fillin_type>
-inline a_diagnostic_ptr pos_start_warning(an_error_code      error_code,
-                                          a_source_position  *error_pos,
-                                          a_Fillin_type...   fillins)
+inline a_diagnostic_ptr pos_start_warning(an_error_code     error_code,
+                                          a_source_position *error_pos,
+                                          a_Fillin_type...  fillins)
 /*
 Begin a multiple message warning with the specified error code, source
 position, and fillins.  Return a pointer to the diagnostic entry that will be
@@ -1233,9 +1233,9 @@ passed in for the subsequent messages.
 
 
 template<typename... a_Fillin_type>
-inline a_diagnostic_ptr pos_start_error(an_error_code      error_code,
-                                        a_source_position  *error_pos,
-                                        a_Fillin_type...   fillins)
+inline a_diagnostic_ptr pos_start_error(an_error_code     error_code,
+                                        a_source_position *error_pos,
+                                        a_Fillin_type...  fillins)
 /*
 Begin a multiple message error with the specified error code, source position,
 and fillins.  Return a pointer to the diagnostic entry that will be passed in
@@ -1261,9 +1261,9 @@ passed in for the subsequent messages.
 
 
 template<typename... a_Fillin_type>
-inline a_diagnostic_ptr start_diag(an_error_severity  error_severity,
-                                   an_error_code      error_code,
-                                   a_Fillin_type...   fillins)
+inline a_diagnostic_ptr start_diag(an_error_severity error_severity,
+                                   an_error_code     error_code,
+                                   a_Fillin_type...  fillins)
 /*
 Begin a multiple message diagnostic with the specified error severity, error
 code, and fillins.  Return a pointer to the diagnostic entry that will be
@@ -1277,8 +1277,8 @@ passed in for the subsequent messages.
 
 
 template<typename... a_Fillin_type>
-inline a_diagnostic_ptr start_remark(an_error_code      error_code,
-                                     a_Fillin_type...   fillins)
+inline a_diagnostic_ptr start_remark(an_error_code    error_code,
+                                     a_Fillin_type... fillins)
 /*
 Begin a multiple message remark with the specified error code, and fillins.
 Return a pointer to the diagnostic entry that will be passed in for the
@@ -1290,8 +1290,8 @@ subsequent messages.
 
 
 template<typename... a_Fillin_type>
-inline a_diagnostic_ptr start_warning(an_error_code      error_code,
-                                      a_Fillin_type...   fillins)
+inline a_diagnostic_ptr start_warning(an_error_code    error_code,
+                                      a_Fillin_type... fillins)
 /*
 Begin a multiple message warning with the specified error code, and fillins.
 Return a pointer to the diagnostic entry that will be passed in for the
@@ -1303,8 +1303,8 @@ subsequent messages.
 
 
 template<typename... a_Fillin_type>
-inline a_diagnostic_ptr start_error(an_error_code      error_code,
-                                    a_Fillin_type...   fillins)
+inline a_diagnostic_ptr start_error(an_error_code    error_code,
+                                    a_Fillin_type... fillins)
 /*
 Begin a multiple message error with the specified error code, and fillins.
 Return a pointer to the diagnostic entry that will be passed in for the
@@ -1316,8 +1316,8 @@ subsequent messages.
 
 
 template<typename... a_Fillin_type>
-inline a_diagnostic_ptr start_catastrophe(an_error_code      error_code,
-                                          a_Fillin_type...   fillins)
+inline a_diagnostic_ptr start_catastrophe(an_error_code    error_code,
+                                          a_Fillin_type... fillins)
 /*
 Begin a multiple message catastrophe with the specified error code, and
 fillins.  Return a pointer to the diagnostic entry that will be passed in for
@@ -1329,10 +1329,10 @@ the subsequent messages.
 
 
 template<typename... a_Fillin_type>
-inline void pos_diagnostic(an_error_severity  error_severity,
-                           an_error_code      error_code,
-                           a_source_position  *error_pos,
-                           a_Fillin_type...   fillins)
+inline void pos_diagnostic(an_error_severity error_severity,
+                           an_error_code     error_code,
+                           a_source_position *error_pos,
+                           a_Fillin_type...  fillins)
 /*
 Report the indicated diagnostic with the specified error severity, error code,
 source position, and fillins.
@@ -1346,9 +1346,9 @@ source position, and fillins.
 
 
 template<typename... a_Fillin_type>
-inline void pos_remark(an_error_code      error_code,
-                       a_source_position  *error_pos,
-                       a_Fillin_type...   fillins)
+inline void pos_remark(an_error_code     error_code,
+                       a_source_position *error_pos,
+                       a_Fillin_type...  fillins)
 /*
 Report the indicated remark with the specified error code, source position, and
 fillins.
@@ -1359,9 +1359,9 @@ fillins.
 
 
 template<typename... a_Fillin_type>
-inline void pos_warning(an_error_code      error_code,
-                        a_source_position  *error_pos,
-                        a_Fillin_type...   fillins)
+inline void pos_warning(an_error_code     error_code,
+                        a_source_position *error_pos,
+                        a_Fillin_type...  fillins)
 /*
 Report the indicated warning with the specified error code, source position,
 and fillins.
@@ -1372,9 +1372,9 @@ and fillins.
 
 
 template<typename... a_Fillin_type>
-inline void pos_error(an_error_code      error_code,
-                      a_source_position  *error_pos,
-                      a_Fillin_type...   fillins)
+inline void pos_error(an_error_code     error_code,
+                      a_source_position *error_pos,
+                      a_Fillin_type...  fillins)
 /*
 Report the indicated error with the specified error code, source position, and
 fillins.
@@ -1398,9 +1398,9 @@ position, and fillins.
 
 
 template<typename... a_Fillin_type>
-inline void diagnostic(an_error_severity  error_severity,
-                       an_error_code      error_code,
-                       a_Fillin_type...   fillins)
+inline void diagnostic(an_error_severity error_severity,
+                       an_error_code     error_code,
+                       a_Fillin_type...  fillins)
 /*
 Report the indicated diagnostic with the specified error severity, error code,
 and fillins.
@@ -1413,8 +1413,8 @@ and fillins.
 
 
 template<typename... a_Fillin_type>
-inline void remark(an_error_code      error_code,
-                   a_Fillin_type...   fillins)
+inline void remark(an_error_code    error_code,
+                   a_Fillin_type... fillins)
 /*
 Report the indicated remark with the specified error severity, error code, and
 fillins.
@@ -1425,8 +1425,8 @@ fillins.
 
 
 template<typename... a_Fillin_type>
-inline void warning(an_error_code      error_code,
-                    a_Fillin_type...   fillins)
+inline void warning(an_error_code    error_code,
+                    a_Fillin_type... fillins)
 /*
 Report the indicated warning with the specified error severity, error code, and
 fillins.
@@ -1437,8 +1437,8 @@ fillins.
 
 
 template<typename... a_Fillin_type>
-inline void error(an_error_code      error_code,
-                  a_Fillin_type...   fillins)
+inline void error(an_error_code    error_code,
+                  a_Fillin_type... fillins)
 /*
 Report the indicated error with the specified error severity, error code, and
 fillins.
@@ -1449,8 +1449,8 @@ fillins.
 
 
 template<typename... a_Fillin_type>
-inline void catastrophe(an_error_code      error_code,
-                        a_Fillin_type...   fillins)
+inline void catastrophe(an_error_code    error_code,
+                        a_Fillin_type... fillins)
 /*
 Report the indicated catastrophe with the specified error severity, error code,
 and fillins.
@@ -1461,9 +1461,9 @@ and fillins.
 
 
 template<typename... a_Fillin_type>
-inline void add_diag_info(a_diagnostic_ptr   primary_dp,
-                          an_error_code      error_code,
-                          a_Fillin_type...   fillins)
+inline void add_diag_info(a_diagnostic_ptr primary_dp,
+                          an_error_code    error_code,
+                          a_Fillin_type... fillins)
 /*
 Add the specified diagnostic message to the primary_dp with the given fillins.
 */
