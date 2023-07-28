@@ -11874,11 +11874,11 @@ command line -D options.
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
     if (target_is_x86_compatible() && target_is_64_bits()) {
-      /* These are Microsoft predefined macro defined to 100 for certain 64-bit
-         targets.
+      /* These are Microsoft predefined macros defined to 100 for certain
+         64-bit targets.
 
-         Notably, the Microsoft documentation states this should be defined for
-         "x64 and ARM64EC" (i.e., x86_64 and "Arm64 Emulation Compatible")
+         Notably, the Microsoft documentation states these should be defined
+         for "x64 and ARM64EC" (i.e., x86_64 and "Arm64 Emulation Compatible")
          targets. */
       (void)enter_predef_macro("100", "_M_X64",
                                /*cannot_be_redefined=*/FALSE,

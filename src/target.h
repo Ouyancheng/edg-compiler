@@ -422,10 +422,11 @@ Utility to return TRUE if the target is based on an x86 architecture or is
 emulation compatible with x86.
 */
 {
-  /* The ARM64EC ABI exists and is ARM64 code that's been compiled to allow
-     emulated x86_64 to call into it.  As the front end does not have an
-     equivalent mode at the time of writing, this function currently only
-     returns true when the target is x86 based. */
+  /* Note this logic is incomplete as it does not handle the ARM64EC ABI (i.e.,
+     ARM64 code that's been compiled to allow emulated x86_64 code to call into
+     it).  As the front end does not have an equivalent mode for ARM64EC at the
+     time of writing, this function currently only returns true when the target
+     is x86 based. */
   return target_is_x86_based();
 }  /* target_is_x86_compatible */
 
