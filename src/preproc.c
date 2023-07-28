@@ -3238,6 +3238,29 @@ If there are any current token pragmas that are C99 predefined pragmas
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
 
+static an_ELF_visibility_kind visibility_from_curr_token(void)
+/*
+This utility determines if curr_token represents a valid GCC visibility
+value and returns the appropriate an_ELF_visibility_kind for it.  The routine
+is needed when pragma processing interprets keywords in pragmas (i.e.,
+recognize_keywords_in_pragma is TRUE) since two of the valid visibility values
+are keywords (i.e., "default" and "protected").
+*/
+{
+  an_ELF_visibility_kind result = evk_unspecified;
+
+  if (curr_token == tok_default) {
+    result = evk_default;
+  } else if (curr_token == tok_protected) {
+    result = evk_protected;
+  } else if (curr_token == tok_identifier) {
+    result = ELF_visibility_from_string(
+                                locator_for_curr_id.symbol_header->identifier);
+  }  /* if */
+  return result;
+}  /* visibility_from_curr_token */
+
+
 static void process_gnu_visibility_pragma(ARG_UNUSED a_pending_pragma_ptr  ppp)
 /*
 Handle
@@ -3259,25 +3282,22 @@ the construct is not correctly formed.
       (void)get_token();
       if (curr_token == tok_lparen) {
         (void)get_token();
-        if (curr_token == tok_identifier) {
-          an_ELF_visibility_kind evk = ELF_visibility_from_string(
-                               locator_for_curr_id.symbol_header->identifier);
-          if (evk == (an_ELF_visibility_kind)evk_unspecified) {
-            /* An invalid visibility kind was specified. */
-            pos_warning(ec_unrecognized_visibility, &error_position);
-            warning_issued = TRUE;
-          } else {
-            ppp->variant.gcc.kind = (a_gcc_pragma_kind)gcc_pk_visibility_push;
-            ppp->variant.gcc.variant.visibility = evk;
-          }  /* if */
+        an_ELF_visibility_kind evk = visibility_from_curr_token();
+        if (evk != evk_unspecified) {
+          ppp->variant.gcc.kind = (a_gcc_pragma_kind)gcc_pk_visibility_push;
+          ppp->variant.gcc.variant.visibility = evk;
           push_ELF_visibility(evk, /*namespace_attribute=*/FALSE);
+        } else {
+          /* An invalid visibility kind was specified. */
+          pos_warning(ec_unrecognized_visibility, &error_position);
+          warning_issued = TRUE;
+        }  /* if */
+        (void)get_token();
+        if (curr_token != tok_rparen) {
+          pos_warning(ec_exp_rparen, &error_position);
+          warning_issued = TRUE;
+        } else {
           (void)get_token();
-          if (curr_token != tok_rparen) {
-            pos_warning(ec_exp_rparen, &error_position);
-            warning_issued = TRUE;
-          } else {
-            (void)get_token();
-          }  /* if */
         }  /* if */
       } else {
         pos_warning(ec_exp_lparen, &error_position);

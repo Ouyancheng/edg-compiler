@@ -1,5 +1,19 @@
 Version 6.6
 
+7/28/23  [EDGcpfe/26419]
+Hang on GCC target pragma with multiple string arguments
+
+Previously, passing multiple string arguments to the GCC target pragma had
+caused the front end to hang.  A change has been made to enable string literal
+concatentation when parsing GCC pragmas so the following is now accepted in
+GNU emulation modes:
+
+  _Pragma("GCC push_options")
+  _Pragma("GCC target \"sse2,ssse3\" \",sse4.1,sse4.2\" \",pclmul,aes\"")
+  void f() {}
+  _Pragma("GCC pop_options")
+
+
 7/28/23  [EDGcpfe/26514]
 Microsoft compatibility: partial ordering of constrained function templates
 

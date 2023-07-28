@@ -2006,7 +2006,7 @@ Initialize the pragma description table.
                  /*automatically_include_in_il=*/FALSE,
                  /*record_pragma_text=*/TRUE,
                  /*expand_macros=*/FALSE,
-                 /*processing_C_code=*/FALSE,
+                 /*processing_C_code=*/TRUE,
                  /*fetch_pp_tokens=*/FALSE,
                  /*ignore_in_back_end=*/FALSE,
                  /*il_info_is_complete=*/TRUE,
