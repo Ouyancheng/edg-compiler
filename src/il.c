@@ -7198,8 +7198,7 @@ to refine the hash value developed in hash_constant.
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (ms_extensions &&
-            !routine_has_default_calling_convention(rtsp) &&
-            target_is_32_bit_x86_based()) {
+            !routine_has_default_calling_convention(rtsp)) {
           /* Add a calling convention to the hash for every calling convention
              except calling conventions equivalent to the default calling
              convention.
