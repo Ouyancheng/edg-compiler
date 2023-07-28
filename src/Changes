@@ -1,5 +1,23 @@
 Version 6.6
 
+7/28/23  [EDGcpfe/26514]
+Microsoft compatibility: partial ordering of constrained function templates
+
+Consider, with --ms_c++20:
+
+  template<typename T, typename U>
+  void f(T *, U);
+  template<typename T, typename U>
+  char f(T, U *) requires true;
+  char c = f("", "");  // Normally ambiguous.  Now okay in Microsoft mode.
+
+According to the rules in [temp.func.order], constraints should only be
+considered if deduction succeeded both ways as described in
+[temp.deduct.partial].  However, the Microsoft compiler appears to also
+consider constraints in cases where deduction did not succeed both ways.  The
+front end now emulates that behavior in Microsoft mode.
+
+
 7/28/23  [EDGcpfe/26336]
 Partial ordering of constrained function templates with trailing parameter pack
 

@@ -3737,13 +3737,14 @@ CFT_ENTIRE_TYPE flag is FALSE.
         result = 0;
       }  /* if */
     }  /* if */
-  } else if (result == 0 && match1 && match2) {
+  } else if (result == 0 && ((match1 && match2) || microsoft_mode)) {
     /* If neither function template is more specialized than the other and
        deduction succeeded both ways, select the more constrained template
-       (N4849 [temp.func.order]/2).  The comparison of constraints used here is
-       not exactly what the standard prescribes, but the standard specification
-       is not entirely clear either.  This approach appears to match what other
-       implementations (GCC and Clang) do. */
+       (N4849 [temp.func.order]/2).  MSVC also considers constraints if
+       deduction didn't succeed both ways.  The comparison of constraints used
+       here is not exactly what the standard prescribes, but the standard
+       specification is not entirely clear either.  This approach appears to
+       match what other implementations (GCC and Clang) do. */
     a_boolean  equiv;
     int        constraint_order = compare_constraints(templ_sym1, templ_sym2,
                                                       &equiv);
