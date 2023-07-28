@@ -1,5 +1,21 @@
 Version 6.6
 
+7/28/23  [EDGcpfe/26552]
+Abort in prep_reference_initializer_operand on incomplete-type argument
+
+Consider:
+
+  struct I;
+  template<typename> struct S {
+    auto f()->I;
+    void f(I const&);
+    auto g()->decltype(f(f()));
+  };
+
+This previously failed an assertion in prep_reference_initializer_operand (in
+overload.c), triggering an internal error.  That is now fixed.
+
+
 7/28/23  [EDGcpfe/26512]
 Use of incomplete types in function template declarations
 

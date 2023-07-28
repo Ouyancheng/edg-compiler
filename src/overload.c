@@ -24767,7 +24767,7 @@ the conversion.
            (e.g., when folding later on). */
         complete_type_is_needed(utp);
         if (utp->incomplete) {
-          expect_error();
+          check_assertion_or_expect_error(is_template_dependent_context());
         } else {
           conv_class_prvalue_operand_to_glvalue(source_operand, is_rvalue_ref);
         }  /* if */
