@@ -41,7 +41,8 @@ Abort in node_operands_have_correct_value_category on eok_lvalue node
 
 In some configurations, certain template definitions could trigger an assertion
 failure in node_operands_have_correct_value_category (il.c) for an rvalued
-eok_lvalue node.  That is now fixed.
+eok_lvalue node.  That regression (introduced in version 6.5 by the changes for
+EDGcpfe/26197) is now fixed.
 
 
 7/27/23  [EDGcpfe/26532]
