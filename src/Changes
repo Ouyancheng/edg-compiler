@@ -1,5 +1,20 @@
 Version 6.6
 
+7/31/23  [EDGcpfe/26554]
+C++-generating back end, GNU compatibility: array designated initializers
+
+Prior to version 4.7.0, g++ only accepted a nonstandard syntax for
+designated initializers.  The C++-generating back end previously used this
+syntax unconditionally when targeting g++.  However, for array element
+designators, this syntax can produce initializers that resemble malformed
+lambda expressions and thus resulted in errors when the generated code was
+compiled.  This is now fixed and the C++-generating back end only emits the
+older syntax when gnu_target_version is less than 40700.  For example, with
+--g++:
+
+  int a[] = {[0] = 0};   // Previously generated as "[0](0)"
+
+
 7/28/23  [EDGcpfe/26552]
 Abort in prep_reference_initializer_operand on incomplete-type argument
 
