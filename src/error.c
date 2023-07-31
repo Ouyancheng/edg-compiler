@@ -3968,8 +3968,17 @@ null-terminated.
       if (fill_in_seq == 0) break;
     }  /* if */
   }  /* for */
-  check_assertion_str2(dfip != NULL, "process_fill_in:",
-                       "specified fill-in not found");
+#if CHECKING
+  if (dfip == NULL) {
+    a_string err_msg("specified fill-in (",
+                     a_string_view(&fill_in_char, 1), fill_in_seq,
+                     ") not found for error string: \"",
+                     error_text(dp->error_code), "\"");
+
+    unexpected_condition_str2("process_fill_in:",
+                              err_msg.as_temp_characters());
+  }  /* if */
+#endif /* CHECKING */
 #if CHECKING
   dfip->fill_in_used = TRUE;
 #endif /* CHECKING */
