@@ -1,5 +1,28 @@
 Version 6.6
 
+7/31/23  [EDGcpfe/26402]
+Incorrect handling of operands of function type in decltype construct
+
+Consider:
+
+    template<typename T> T val();
+    template<typename T> struct IsRef {
+      static constexpr bool value = false;
+    };
+    template<typename T> struct IsRef<T&> {
+      static constexpr bool value = true;
+    };
+    typedef void (*FP)(int);
+    using X = decltype(*val<FP&>());  // (1)
+    static_assert(IsRef<X>::value);   // Previously failed.  Now okay.
+
+The operand of the decltype construct in line (1) is an lvalue (of function
+type) and thus the result of the construct should be a reference type.
+However, previously the front end did not handle operands of function type
+correctly in this context and X was instead made to be a function type.  That
+in turn caused the static assertion to fail.  That is now fixed.
+
+
 7/31/23  [EDGcpfe/26554]
 C++-generating back end, GNU compatibility: array designated initializers
 
