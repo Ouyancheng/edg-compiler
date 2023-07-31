@@ -899,7 +899,7 @@ with --c++11 --g++ --no_defer_parse_function_templates:
   }
 
 
-6/23/23  [EDGcpfe/26425]
+6/23/23  [EDGcpfe/20691,EDGcpfe/26425]
 Missing diagnostic on defining a type in a range-for-declaration
 
 The front end previously accepted the following example in C++11 mode and the
