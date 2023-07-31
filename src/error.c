@@ -4426,10 +4426,17 @@ that might be required.
   write_message_to_buffer(dp);
 #if CHECKING
   /* Make sure all of the fill-ins were used. */
-  { a_diag_fill_in_ptr	dfip;
+  { a_diag_fill_in_ptr dfip;
     for (dfip = dp->fill_in_head; dfip != NULL; dfip = dfip->next) {
-      check_assertion_str2(dfip->fill_in_used, "construct_text_message:",
-                           "not all fill-ins used");
+      if (dfip->fill_in_used) {
+        continue;
+      }  /* if */
+
+      a_string err_msg("not all fill-ins used for error string: \"",
+                       error_text(dp->error_code), "\"");
+
+      unexpected_condition_str2("construct_text_message:",
+                                err_msg.as_temp_characters());
     }  /* for */
   }
 #endif /* CHECKING */
