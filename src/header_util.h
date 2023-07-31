@@ -372,12 +372,10 @@ guaranteed to evaluate at runtime in the order of expansion.
 This macro uses a braced-init-list as the means of expansion (for the well
 defined left-to-right evaluation order of braced-init-list [dcl.init.list]).
 
-As the braced-init-list must initialize something, the following steps are
-performed as implementation details:
-- Each pack element is coalesced into a zero value initializer-clause via a
-  comma expression.
-- The expanded braced-init-list is assigned to an (unused and thus optimizer
-  discarded) array.
+As the braced-init-list must initialize something, the following expansion
+defines an array (unused and thus discarded by the optimizer), where each array
+element is initialized by a comma expression that evaluates the corresponding
+pack element and then has a constant zero-valued result.
 */
 #define PACK_EXPAND_VOID_EXPR(expr) \
   { LOCAL_UNUSED unsigned _[] = { ( (expr), 0u)... }; }
