@@ -2863,18 +2863,27 @@ formatter::append_into functions.
   for (size_t i = 0; i < sizeof...(args); ++i) {
     total_size += element_sizes[i];
   }  /* for */
-  auto *backing_array = reserve_func(total_size);
 
-  /* Use a braced-init-list to provide ordered evaluation of each pack element,
-     calling the appropriate append function.  The created array's values are
-     irrelevant and discarded. */
+  auto   *backing_array = reserve_func(total_size);
   size_t counter = 0;
-  ARG_UNUSED unsigned discarded[] = {
-    (detail::String_formatter<a_Text_convertible_type>::append_into(
-                                              *backing_array,
-                                              args,
-                                              element_sizes[counter++]), 0u)...
-  };
+  /* The following expression is expanded to effectively evaluate as:
+
+       detail::String_formatter<type_1>::append_into(*backing_array,
+                                                     arg_1,
+                                                     element_sizes[counter++]);
+       detail::String_formatter<type_2>::append_into(*backing_array,
+                                                     arg_2,
+                                                     element_sizes[counter++]);
+       ...
+       detail::String_formatter<type_n>::append_into(*backing_array,
+                                                     arg_n,
+                                                     element_sizes[counter++]);
+   */
+  PACK_EXPAND_VOID_EXPR(
+                detail::String_formatter<a_Text_convertible_type>::append_into(
+                                                     *backing_array,
+                                                     args,
+                                                     element_sizes[counter++]))
   /* Ensure the underlying array is always null-terminated. */
   if (backing_array->length() < 1 ||
       (*backing_array)[backing_array->length() - 1] != '\0') {

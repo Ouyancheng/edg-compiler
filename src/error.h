@@ -1081,94 +1081,94 @@ unsigned long show_error_space_used(void);
 namespace detail {
 
 /*
-A forward declaration of a type specialized to handle adding a fillin value to
+A forward declaration of a type specialized to handle adding a fill-in value to
 a diagnostic.
 
 Each specialization should implement the function:
 
-  static void add(a_diagnostic_ptr *diag,
+  static void add(a_diagnostic_ptr diag,
                   a_Type           value);
 
 */
 template<typename a_Type>
-struct Fillin;
+struct Fill_in;
 
 #if !STANDALONE_UTILITY_PROGRAM
 
 /*
-A diagnostic fillin for signed integer values.
+A diagnostic fill-in for signed integer values.
 */
 template<>
-struct Fillin<long long> {
+struct Fill_in<long long> {
   static void add(a_diagnostic_ptr diag,
                   long long        value);
-};  /* Fillin */
+};  /* Fill_in */
 
 
 template<>
-struct Fillin<long> : Fillin<long long> {
-};  /* Fillin */
+struct Fill_in<long> : Fill_in<long long> {
+};  /* Fill_in */
 
 template<>
-struct Fillin<int> : Fillin<long long> {
-};  /* Fillin */
+struct Fill_in<int> : Fill_in<long long> {
+};  /* Fill_in */
 
 
 /*
-A diagnostic fillin for unsigned integer values.
+A diagnostic fill-in for unsigned integer values.
 */
 template<>
-struct Fillin<unsigned long long> {
+struct Fill_in<unsigned long long> {
   static void add(a_diagnostic_ptr   diag,
                   unsigned long long value);
-};  /* Fillin */
+};  /* Fill_in */
 
 
 template<>
-struct Fillin<unsigned long> : Fillin<unsigned long long> {
-};  /* Fillin */
+struct Fill_in<unsigned long> : Fill_in<unsigned long long> {
+};  /* Fill_in */
 
 template<>
-struct Fillin<unsigned> : Fillin<unsigned long long> {
-};  /* Fillin */
+struct Fill_in<unsigned> : Fill_in<unsigned long long> {
+};  /* Fill_in */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /*
-A diagnostic fillin for source positions.
+A diagnostic fill-in for source positions.
 */
 template<>
-struct Fillin<a_source_position*> {
+struct Fill_in<a_source_position*> {
   static void add(a_diagnostic_ptr  diag,
                   a_source_position *value);
-};  /* Fillin */
+};  /* Fill_in */
 
 /*
-A diagnostic fillin for a_const_char* (C-string) values.
+A diagnostic fill-in for a_const_char* (C-string) values.
 */
 template<>
-struct Fillin<a_const_char*> {
+struct Fill_in<a_const_char*> {
   static void add(a_diagnostic_ptr diag,
                   a_const_char     *value);
-};  /* Fillin */
+};  /* Fill_in */
 
 /*
-A diagnostic fillin for symbols.
+A diagnostic fill-in for symbols.
 */
 template<>
-struct Fillin<a_symbol*> {
+struct Fill_in<a_symbol*> {
   static void add(a_diagnostic_ptr diag,
                   a_symbol         *value);
-};  /* Fillin */
+};  /* Fill_in */
 
 /*
-A diagnostic fillin for types.
+A diagnostic fill-in for types.
 */
 template<>
-struct Fillin<a_type*> {
+struct Fill_in<a_type*> {
   static void add(a_diagnostic_ptr diag,
                   a_type           *value);
-};  /* Fillin */
+};  /* Fill_in */
 
 extern a_diagnostic_ptr create_primary_diagnostic(an_error_code     error_code,
                                                   a_source_position *position,
@@ -1179,14 +1179,14 @@ extern a_diagnostic_ptr create_sub_message(a_diagnostic_ptr primary_dp,
 
 }  /* detail */
 
-template<typename... a_Fillin_type>
+template<typename... a_Fill_in_type>
 inline a_diagnostic_ptr pos_start_diagnostic(an_error_severity error_severity,
                                              an_error_code     error_code,
                                              a_source_position *error_pos,
-                                             a_Fillin_type...  fillins)
+                                             a_Fill_in_type... fill_ins)
 /*
 Begin a multiple message diagnostic with the specified severity, error code,
-source position, and fillins.  Return a pointer to the diagnostic entry that
+source position, and fill-ins.  Return a pointer to the diagnostic entry that
 will be passed in for the subsequent messages.
 */
 {
@@ -1194,289 +1194,292 @@ will be passed in for the subsequent messages.
                                                             error_pos,
                                                             error_severity);
 
-  /* Use a braced-init-list to provide ordered evaluation of each pack element,
-     calling the appropriate add_fillin function.  The created array's values
-     are irrelevant and discarded. */
-  ARG_UNUSED unsigned discarded[] = {
-    (detail::Fillin<a_Fillin_type>::add(diag, fillins), 0u)...
-  };
+  /* The following expression is expanded to effectively evaluate as:
+
+       detail::Fill_in<type_1>::add(diag, arg_1);
+       detail::Fill_in<type_2>::add(diag, arg_2);
+       ...
+       detail::Fill_in<type_n>::add(diag, arg_n);
+   */
+  PACK_EXPAND_VOID_EXPR(detail::Fill_in<a_Fill_in_type>::add(diag, fill_ins))
   return diag;
 }  /* pos_start_diag */
 
 
-template<typename... a_Fillin_type>
+template<typename... a_Fill_in_type>
 inline a_diagnostic_ptr pos_start_remark(an_error_code     error_code,
                                          a_source_position *error_pos,
-                                         a_Fillin_type...  fillins)
+                                         a_Fill_in_type... fill_ins)
 /*
 Begin a multiple message remark with the specified error code, source position,
-and fillins.  Return a pointer to the diagnostic entry that will be passed in
+and fill-ins.  Return a pointer to the diagnostic entry that will be passed in
 for the subsequent messages.
 */
 {
-  return pos_start_diag(es_remark, error_code, error_pos, fillins...);
+  return pos_start_diag(es_remark, error_code, error_pos, fill_ins...);
 }  /* pos_start_remark */
 
 
-template<typename... a_Fillin_type>
+template<typename... a_Fill_in_type>
 inline a_diagnostic_ptr pos_start_warning(an_error_code     error_code,
                                           a_source_position *error_pos,
-                                          a_Fillin_type...  fillins)
+                                          a_Fill_in_type... fill_ins)
 /*
 Begin a multiple message warning with the specified error code, source
-position, and fillins.  Return a pointer to the diagnostic entry that will be
+position, and fill-ins.  Return a pointer to the diagnostic entry that will be
 passed in for the subsequent messages.
 */
 {
-  return pos_start_diag(es_warning, error_code, error_pos, fillins...);
+  return pos_start_diag(es_warning, error_code, error_pos, fill_ins...);
 }  /* pos_start_warning */
 
 
-template<typename... a_Fillin_type>
+template<typename... a_Fill_in_type>
 inline a_diagnostic_ptr pos_start_error(an_error_code     error_code,
                                         a_source_position *error_pos,
-                                        a_Fillin_type...  fillins)
+                                        a_Fill_in_type... fill_ins)
 /*
 Begin a multiple message error with the specified error code, source position,
-and fillins.  Return a pointer to the diagnostic entry that will be passed in
+and fill-ins.  Return a pointer to the diagnostic entry that will be passed in
 for the subsequent messages.
 */
 {
-  return pos_start_diag(es_error, error_code, error_pos, fillins...);
+  return pos_start_diag(es_error, error_code, error_pos, fill_ins...);
 }  /* pos_start_error */
 
 
-template<typename... a_Fillin_type>
+template<typename... a_Fill_in_type>
 inline a_diagnostic_ptr pos_start_catastrophe(an_error_code     error_code,
                                               a_source_position *error_pos,
-                                              a_Fillin_type...  fillins)
+                                              a_Fill_in_type... fill_ins)
 /*
 Begin a multiple message catastrophe with the specified error code, source
-position, and fillins.  Return a pointer to the diagnostic entry that will be
+position, and fill-ins.  Return a pointer to the diagnostic entry that will be
 passed in for the subsequent messages.
 */
 {
-  return pos_start_diag(es_catastrophe, error_code, error_pos, fillins...);
+  return pos_start_diag(es_catastrophe, error_code, error_pos, fill_ins...);
 }  /* pos_start_catastrophe */
 
 
-template<typename... a_Fillin_type>
+template<typename... a_Fill_in_type>
 inline a_diagnostic_ptr start_diag(an_error_severity error_severity,
                                    an_error_code     error_code,
-                                   a_Fillin_type...  fillins)
+                                   a_Fill_in_type... fill_ins)
 /*
 Begin a multiple message diagnostic with the specified error severity, error
-code, and fillins.  Return a pointer to the diagnostic entry that will be
+code, and fill-ins.  Return a pointer to the diagnostic entry that will be
 passed in for the subsequent messages.
 */
 {
   return pos_start_diagnostic(error_severity, error_code,
                               &null_source_position,
-                              fillins...);
+                              fill_ins...);
 }  /* start_diag */
 
 
-template<typename... a_Fillin_type>
-inline a_diagnostic_ptr start_remark(an_error_code    error_code,
-                                     a_Fillin_type... fillins)
+template<typename... a_Fill_in_type>
+inline a_diagnostic_ptr start_remark(an_error_code     error_code,
+                                     a_Fill_in_type... fill_ins)
 /*
-Begin a multiple message remark with the specified error code, and fillins.
+Begin a multiple message remark with the specified error code, and fill-ins.
 Return a pointer to the diagnostic entry that will be passed in for the
 subsequent messages.
 */
 {
-  return start_diag(es_remark, error_code, fillins...);
+  return start_diag(es_remark, error_code, fill_ins...);
 }  /* start_remark */
 
 
-template<typename... a_Fillin_type>
-inline a_diagnostic_ptr start_warning(an_error_code    error_code,
-                                      a_Fillin_type... fillins)
+template<typename... a_Fill_in_type>
+inline a_diagnostic_ptr start_warning(an_error_code     error_code,
+                                      a_Fill_in_type... fill_ins)
 /*
-Begin a multiple message warning with the specified error code, and fillins.
+Begin a multiple message warning with the specified error code, and fill-ins.
 Return a pointer to the diagnostic entry that will be passed in for the
 subsequent messages.
 */
 {
-  return start_diag(es_warning, error_code, fillins...);
+  return start_diag(es_warning, error_code, fill_ins...);
 }  /* start_warning */
 
 
-template<typename... a_Fillin_type>
-inline a_diagnostic_ptr start_error(an_error_code    error_code,
-                                    a_Fillin_type... fillins)
+template<typename... a_Fill_in_type>
+inline a_diagnostic_ptr start_error(an_error_code     error_code,
+                                    a_Fill_in_type... fill_ins)
 /*
-Begin a multiple message error with the specified error code, and fillins.
+Begin a multiple message error with the specified error code, and fill-ins.
 Return a pointer to the diagnostic entry that will be passed in for the
 subsequent messages.
 */
 {
-  return start_diag(es_error, error_code, fillins...);
+  return start_diag(es_error, error_code, fill_ins...);
 }  /* start_error */
 
 
-template<typename... a_Fillin_type>
-inline a_diagnostic_ptr start_catastrophe(an_error_code    error_code,
-                                          a_Fillin_type... fillins)
+template<typename... a_Fill_in_type>
+inline a_diagnostic_ptr start_catastrophe(an_error_code     error_code,
+                                          a_Fill_in_type... fill_ins)
 /*
 Begin a multiple message catastrophe with the specified error code, and
-fillins.  Return a pointer to the diagnostic entry that will be passed in for
+fill-ins.  Return a pointer to the diagnostic entry that will be passed in for
 the subsequent messages.
 */
 {
-  return start_diag(es_catastrophe, error_code, fillins...);
+  return start_diag(es_catastrophe, error_code, fill_ins...);
 }  /* start_catastrophe */
 
 
-template<typename... a_Fillin_type>
+template<typename... a_Fill_in_type>
 inline void pos_diagnostic(an_error_severity error_severity,
                            an_error_code     error_code,
                            a_source_position *error_pos,
-                           a_Fillin_type...  fillins)
+                           a_Fill_in_type... fill_ins)
 /*
 Report the indicated diagnostic with the specified error severity, error code,
-source position, and fillins.
+source position, and fill-ins.
 */
 {
   a_diagnostic_ptr diag = pos_start_diagnostic(error_severity, error_code,
-                                               error_pos, fillins...);
+                                               error_pos, fill_ins...);
 
   end_diagnostic(diag);
 }  /* pos_diagnostic */
 
 
-template<typename... a_Fillin_type>
+template<typename... a_Fill_in_type>
 inline void pos_remark(an_error_code     error_code,
                        a_source_position *error_pos,
-                       a_Fillin_type...  fillins)
+                       a_Fill_in_type... fill_ins)
 /*
 Report the indicated remark with the specified error code, source position, and
-fillins.
+fill-ins.
 */
 {
-  pos_diagnostic(es_remark, error_code, error_pos, fillins...);
+  pos_diagnostic(es_remark, error_code, error_pos, fill_ins...);
 }  /* pos_remark */
 
 
-template<typename... a_Fillin_type>
+template<typename... a_Fill_in_type>
 inline void pos_warning(an_error_code     error_code,
                         a_source_position *error_pos,
-                        a_Fillin_type...  fillins)
+                        a_Fill_in_type... fill_ins)
 /*
 Report the indicated warning with the specified error code, source position,
-and fillins.
+and fill-ins.
 */
 {
-  pos_diagnostic(es_warning, error_code, error_pos, fillins...);
+  pos_diagnostic(es_warning, error_code, error_pos, fill_ins...);
 }  /* pos_warning */
 
 
-template<typename... a_Fillin_type>
+template<typename... a_Fill_in_type>
 inline void pos_error(an_error_code     error_code,
                       a_source_position *error_pos,
-                      a_Fillin_type...  fillins)
+                      a_Fill_in_type... fill_ins)
 /*
 Report the indicated error with the specified error code, source position, and
-fillins.
+fill-ins.
 */
 {
-  pos_diagnostic(es_error, error_code, error_pos, fillins...);
+  pos_diagnostic(es_error, error_code, error_pos, fill_ins...);
 }  /* pos_error */
 
 
-template<typename... a_Fillin_type>
+template<typename... a_Fill_in_type>
 inline void pos_catastrophe(an_error_code     error_code,
                             a_source_position *error_pos,
-                            a_Fillin_type...  fillins)
+                            a_Fill_in_type... fill_ins)
 /*
 Report the indicated catastrophe with the specified error code, source
-position, and fillins.
+position, and fill-ins.
 */
 {
-  pos_diagnostic(es_catastrophe, error_code, error_pos, fillins...);
+  pos_diagnostic(es_catastrophe, error_code, error_pos, fill_ins...);
 }  /* pos_catastrophe */
 
 
-template<typename... a_Fillin_type>
+template<typename... a_Fill_in_type>
 inline void diagnostic(an_error_severity error_severity,
                        an_error_code     error_code,
-                       a_Fillin_type...  fillins)
+                       a_Fill_in_type... fill_ins)
 /*
 Report the indicated diagnostic with the specified error severity, error code,
-and fillins.
+and fill-ins.
 */
 {
   pos_diagnostic(error_severity, error_code,
                  &null_source_position,
-                 fillins...);
+                 fill_ins...);
 }  /* diagnostic */
 
 
-template<typename... a_Fillin_type>
-inline void remark(an_error_code    error_code,
-                   a_Fillin_type... fillins)
+template<typename... a_Fill_in_type>
+inline void remark(an_error_code     error_code,
+                   a_Fill_in_type... fill_ins)
 /*
 Report the indicated remark with the specified error severity, error code, and
-fillins.
+fill-ins.
 */
 {
-  diagnostic(es_remark, error_code, fillins...);
+  diagnostic(es_remark, error_code, fill_ins...);
 }  /* remark */
 
 
-template<typename... a_Fillin_type>
-inline void warning(an_error_code    error_code,
-                    a_Fillin_type... fillins)
+template<typename... a_Fill_in_type>
+inline void warning(an_error_code     error_code,
+                    a_Fill_in_type... fill_ins)
 /*
 Report the indicated warning with the specified error severity, error code, and
-fillins.
+fill-ins.
 */
 {
-  diagnostic(es_warning, error_code, fillins...);
+  diagnostic(es_warning, error_code, fill_ins...);
 }  /* warning */
 
 
-template<typename... a_Fillin_type>
-inline void error(an_error_code    error_code,
-                  a_Fillin_type... fillins)
+template<typename... a_Fill_in_type>
+inline void error(an_error_code     error_code,
+                  a_Fill_in_type... fill_ins)
 /*
 Report the indicated error with the specified error severity, error code, and
-fillins.
+fill-ins.
 */
 {
-  diagnostic(es_error, error_code, fillins...);
+  diagnostic(es_error, error_code, fill_ins...);
 }  /* error */
 
 
-template<typename... a_Fillin_type>
-inline void catastrophe(an_error_code    error_code,
-                        a_Fillin_type... fillins)
+template<typename... a_Fill_in_type>
+inline void catastrophe(an_error_code     error_code,
+                        a_Fill_in_type... fill_ins)
 /*
 Report the indicated catastrophe with the specified error severity, error code,
-and fillins.
+and fill-ins.
 */
 {
-  diagnostic(es_catastrophe, error_code, fillins...);
+  diagnostic(es_catastrophe, error_code, fill_ins...);
 }  /* catastrophe */
 
 
-template<typename... a_Fillin_type>
-inline void add_diag_info(a_diagnostic_ptr primary_dp,
-                          an_error_code    error_code,
-                          a_Fillin_type... fillins)
+template<typename... a_Fill_in_type>
+inline void add_diag_info(a_diagnostic_ptr  primary_dp,
+                          an_error_code     error_code,
+                          a_Fill_in_type... fill_ins)
 /*
-Add the specified diagnostic message to the primary_dp with the given fillins.
+Add the specified diagnostic message to the primary_dp with the given fill-ins.
 */
 {
-  a_diagnostic_ptr sub_diag = detail::create_sub_message(primary_dp,
-                                                         error_code);
+  a_diagnostic_ptr diag = detail::create_sub_message(primary_dp, error_code);
 
-  /* Use a braced-init-list to provide ordered evaluation of each pack element,
-     calling the appropriate add_fillin function.  The created array's values
-     are irrelevant and discarded. */
-  ARG_UNUSED unsigned discarded[] = {
-    (detail::Fillin<a_Fillin_type>::add(sub_diag, fillins), 0u)...
-  };
+  /* The following expression is expanded to effectively evaluate as:
+
+       detail::Fill_in<type_1>::add(diag, arg_1);
+       detail::Fill_in<type_2>::add(diag, arg_2);
+       ...
+       detail::Fill_in<type_n>::add(diag, arg_n);
+   */
+  PACK_EXPAND_VOID_EXPR(detail::Fill_in<a_Fill_in_type>::add(diag, fill_ins))
 }  /* add_diag_info */
 
 

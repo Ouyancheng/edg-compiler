@@ -13961,8 +13961,8 @@ otherwise, NULL is returned.
           num_bytes_allocated = num_written + 1;
           buf = alloc_general(num_bytes_allocated);
 
-          ARG_UNUSED int final_count = snprintf(buf, num_bytes_allocated,
-                                                "%f", float_value);
+          LOCAL_UNUSED int final_count = snprintf(buf, num_bytes_allocated,
+                                                  "%f", float_value);
           /* At this point, there should be no encoding issues or overflows. */
           check_assertion(0 <= final_count &&
                           final_count < num_bytes_allocated);

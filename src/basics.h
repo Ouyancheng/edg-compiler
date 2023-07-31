@@ -1066,6 +1066,9 @@ source code.
 ARG_UNUSED: specifies that the argument that follows may not be used in all
 configurations.
 
+LOCAL_UNUSED: specifies that the local variable that follows may not be used in
+all configurations.
+
 FALLTHROUGH: specifies that flow-of-control purposely flows from one case to
 another without an intervening "break" statement.
 
@@ -1075,6 +1078,7 @@ NORETURN: specifies that a function will not return to its caller.
 /* Use PC-lint annotations. */
 #define FALLTHROUGH /*lint -fallthrough*/
 #define ARG_UNUSED /*lint -e{715}*/
+#define LOCAL_UNUSED /*lint -e{715}*/
 #define NORETURN [[noreturn]]
 #else /* !defined(_lint) */
 /* Use standard attributes if those are supported. */
@@ -1112,14 +1116,18 @@ Clang warns about [[maybe_unused]] in pre-C++17 modes. However, it supports the
 [[gnu::unused]] attribute in C++11 mode.
 */
 #define ARG_UNUSED [[gnu::unused]]
+#define LOCAL_UNUSED [[gnu::unused]]
 #else /* !defined(__clang__) && __clang__ */
 #define ARG_UNUSED [[maybe_unused]]
+#define LOCAL_UNUSED [[maybe_unused]]
 #endif /* defined(__clang__) && __clang__ */
 #else /* !(__has_cpp_attribute(maybe_unused)) */
 #ifdef __GNUC__
 #define ARG_UNUSED __attribute__((unused))
+#define LOCAL_UNUSED __attribute__((unused))
 #else /* !defined __GNUC__ */
 #define ARG_UNUSED /*nothing*/
+#define LOCAL_UNUSED /*nothing*/
 #endif /* defined __GNUC__ */
 #endif /* __has_cpp_attribute(maybe_unused) */
 

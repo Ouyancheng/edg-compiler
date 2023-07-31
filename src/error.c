@@ -8401,67 +8401,71 @@ namespace detail {
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-void Fillin<long long>::add(a_diagnostic_ptr diag,
-                            long long        value)
+void Fill_in<long long>::add(a_diagnostic_ptr diag,
+                             long long        value)
 /*
-Add a number fill-in entry for number to the diagnostic specified
-by diag.
+Add a number fill-in entry for the given signed integer (value) to the
+diagnostic specified by diag.
 */
 {
   add_number_fill_in(diag, value);
-}  /* Fillin<long long>::add */
+}  /* Fill_in<long long>::add */
 
 
-void Fillin<unsigned long long>::add(a_diagnostic_ptr   diag,
-                                     unsigned long long value)
+void Fill_in<unsigned long long>::add(a_diagnostic_ptr   diag,
+                                      unsigned long long value)
 /*
-Add an unsigned number fill-in entry for number to the diagnostic specified by
-diag.
+Add an unsigned number fill-in entry for the given unsigned integer (value) to
+the diagnostic specified by diag.
 */
 {
   add_unsigned_number_fill_in(diag, value);
-}  /* Fillin<unsigned long long>::add */
+}  /* Fill_in<unsigned long long>::add */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-void Fillin<a_source_position*>::add(a_diagnostic_ptr  diag,
+void Fill_in<a_source_position*>::add(a_diagnostic_ptr  diag,
                                      a_source_position *value)
 /*
-Add a position fill-in entry for pos to the diagnostic specified by diag.
+Add a position fill-in entry for the given source position (value) to the
+diagnostic specified by diag.
 */
 {
   add_position_fill_in(diag, value);
-}  /* Fillin<a_source_position*>::add */
+}  /* Fill_in<a_source_position*>::add */
 
 
-void Fillin<a_const_char*>::add(a_diagnostic_ptr diag,
-                                a_const_char     *value)
+void Fill_in<a_const_char*>::add(a_diagnostic_ptr diag,
+                                 a_const_char     *value)
 /*
-Add a string fill-in entry for string to the diagnostic specified by diag.
+Add a string fill-in entry for the given string (value) to the diagnostic
+specified by diag.
 */
 {
   add_string_fill_in(diag, value);
-}  /* Fillin<a_const_char*>::add */
+}  /* Fill_in<a_const_char*>::add */
 
 
-void Fillin<a_symbol*>::add(a_diagnostic_ptr diag,
-                            a_symbol         *value)
+void Fill_in<a_symbol*>::add(a_diagnostic_ptr diag,
+                             a_symbol         *value)
 /*
-Add a symbol fill-in entry for "symbol" to the diagnostic specified by diag.
+Add a symbol fill-in entry for the given symbol (value) to the diagnostic
+specified by diag.
 */
 {
   add_symbol_fill_in(diag, value);
-}  /* Fillin<a_symbol*>::add */
+}  /* Fill_in<a_symbol*>::add */
 
 
-void Fillin<a_type*>::add(a_diagnostic_ptr diag,
-                          a_type           *value)
+void Fill_in<a_type*>::add(a_diagnostic_ptr diag,
+                           a_type           *value)
 /*
-Add a declaration fill-in entry for "type" to the diagnostic specified by diag.
+Add a declaration fill-in entry for the given type (value) to the diagnostic
+specified by diag.
 */
 {
   add_type_fill_in(diag, value);
-}  /* Fillin<a_type*>::add */
+}  /* Fill_in<a_type*>::add */
 
 }  /* detail */
 

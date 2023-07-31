@@ -365,6 +365,23 @@ Reset the optional to an empty state.
 }  /* clear */
 
 
+/*
+Pack expand the given void type expression with each expanded expression
+guaranteed to evaluate at runtime in the order of expansion.
+
+This macro uses a braced-init-list as the means of expansion (for the well
+defined left-to-right evaluation order of braced-init-list [dcl.init.list]).
+
+As the braced-init-list must initialize something, the following steps are
+performed as implementation details:
+- Each pack element is coalesced into a zero value initializer-clause via a
+  comma expression.
+- The expanded braced-init-list is assigned to an (unused and thus optimizer
+  discarded) array.
+*/
+#define PACK_EXPAND_VOID_EXPR(expr) \
+  { LOCAL_UNUSED unsigned _[] = { ( (expr), 0u)... }; }
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 
