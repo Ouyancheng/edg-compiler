@@ -875,7 +875,7 @@ compiled in two TUs in multi-TU mode would fail.  Support for deduction guide
 correspondence in multi-TU mode has been implemented.  This is now fixed.
 
 
-6/23/23  [EDGcpfe/19810,EDGcpfe/25807,EDGcpfe/26254]
+6/23/23  [EDGcpfe/19810,EDGcpfe/20667,EDGcpfe/25807,EDGcpfe/26254]
 GNU/Clang compatibility: spurious "call through incomplete class" warning
 
 The warning added for EDGcpfe/15754 (see entry of 12/4/14) to improve
