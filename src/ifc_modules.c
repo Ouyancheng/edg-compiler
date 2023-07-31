@@ -71,13 +71,12 @@ does not compile with a possibly-misinterpreted IFC import).
      did not set up the module entity state stack properly. */
   check_assertion(curr_mep_state != NULL);
   if (!condition) {
-    a_diagnostic_ptr diag = pos_st_start_error(ec_ifc_requirement_failure,
-                                               &null_source_position,
-                                               mod->assoc_module_info->name);
+    a_diagnostic_ptr diag = start_error(ec_ifc_requirement_failure,
+                                        mod->assoc_module_info->name);
 
 #if DEBUG
-    num_st2_add_diag_info(diag, ec_ifc_requirement_failure_fill_in,
-                          line_number, function, string);
+    add_diag_info(diag, ec_ifc_requirement_failure_fill_in,
+                  line_number, function, string);
 #endif /* DEBUG */
     end_diagnostic(diag);
     curr_mep_state->invalidate();
@@ -1891,11 +1890,11 @@ nodes.
 */
 {
   if (!mod->assoc_module_info->contains_unsupported_constructs) {
-    pos_st_error(ec_module_file_contains_unsupported_constructs,
-                 &null_source_position, mod->assoc_module_info->name);
+    error(ec_module_file_contains_unsupported_constructs,
+          mod->assoc_module_info->name);
     mod->assoc_module_info->contains_unsupported_constructs = TRUE;
   }  /* if */
-  pos_st_error(ec_unhandled_ifc_construct, pos, node);
+  pos_error(ec_unhandled_ifc_construct, pos, node);
 }  /* issue_unsupported_construct_error */
 
 
@@ -1941,9 +1940,9 @@ Map an IFC NiladicOperator to an_opname_kind.
   switch (niladic_op) {
     case ifc_nos_unknown:
     case ifc_nos_msvc:
-      pos_st_diagnostic(es_discretionary_error,
-                        ec_ifc_no_corresponding_operator, &error_position,
-                        str_for(niladic_op));
+      pos_diagnostic(es_discretionary_error,
+                     ec_ifc_no_corresponding_operator, &error_position,
+                     str_for(niladic_op));
       op = onk_none;
       break;
     case ifc_nos_phantom:
@@ -1951,9 +1950,9 @@ Map an IFC NiladicOperator to an_opname_kind.
     case ifc_nos_nil:
     case ifc_nos_msvc_constant_object:
     case ifc_nos_msvc_lambda:
-      pos_st_diagnostic(es_discretionary_error,
-                        ec_ifc_no_corresponding_operator, &error_position,
-                        str_for(niladic_op));
+      pos_diagnostic(es_discretionary_error,
+                     ec_ifc_no_corresponding_operator, &error_position,
+                     str_for(niladic_op));
       op = onk_none;
       break;
     default_is_unexpected_str("Unexpected NiladicOperator");
@@ -1977,9 +1976,9 @@ Map an IFC MonadicOperator to an_opname_kind.
     case ifc_mos_msvc_confused_vtor_displacement:
     case ifc_mos_msvc_confusion:
     case ifc_mos_unknown:
-      pos_st_diagnostic(es_discretionary_error,
-                        ec_ifc_no_corresponding_operator, &error_position,
-                        str_for(monadic_op));
+      pos_diagnostic(es_discretionary_error,
+                     ec_ifc_no_corresponding_operator, &error_position,
+                     str_for(monadic_op));
       op = onk_none;
       break;
     case ifc_mos_plus:               op = onk_plus;          break;
@@ -2059,9 +2058,9 @@ Map an IFC MonadicOperator to an_opname_kind.
     case ifc_mos_msvc_has_user_destructor:
     case ifc_mos_msvc_confused_expand:
     case ifc_mos_msvc_confused_dependent_sizeof:
-      pos_st_diagnostic(es_discretionary_error,
-                        ec_ifc_no_corresponding_operator, &error_position,
-                        str_for(monadic_op));
+      pos_diagnostic(es_discretionary_error,
+                     ec_ifc_no_corresponding_operator, &error_position,
+                     str_for(monadic_op));
       op = onk_none;
       break;
     default_is_unexpected_str("Unexpected MonadicOperator");
@@ -2084,9 +2083,9 @@ Map an IFC DyadicOperator to an_opname_kind.
     case ifc_dos_msvc_saturated_arithmetic:
     case ifc_dos_select:
     case ifc_dos_unknown:
-      pos_st_diagnostic(es_discretionary_error,
-                        ec_ifc_no_corresponding_operator, &error_position,
-                        str_for(dyadic_op));
+      pos_diagnostic(es_discretionary_error,
+                     ec_ifc_no_corresponding_operator, &error_position,
+                     str_for(dyadic_op));
       op = onk_none;
       break;
     case ifc_dos_plus:            op = onk_plus;              break;
@@ -2173,9 +2172,9 @@ Map an IFC DyadicOperator to an_opname_kind.
     case ifc_dos_msvc_builtin_is_pointer_interconvertible_with_class:
     case ifc_dos_msvc_builtin_is_corresponding_member:
     case ifc_dos_msvc_intrinsic:
-      pos_st_diagnostic(es_discretionary_error,
-                        ec_ifc_no_corresponding_operator, &error_position,
-                        str_for(dyadic_op));
+      pos_diagnostic(es_discretionary_error,
+                     ec_ifc_no_corresponding_operator, &error_position,
+                     str_for(dyadic_op));
       op = onk_none;
       break;
     default_is_unexpected_str("Unexpected DyadicOperator");
@@ -2198,17 +2197,17 @@ Map an IFC TriadicOperator to an_opname_kind.
     case ifc_tos_msvc_confusion:
     case ifc_tos_msvc_confused_choice:
     case ifc_tos_msvc_confused_push_state:
-      pos_st_diagnostic(es_discretionary_error,
-                        ec_ifc_no_corresponding_operator, &error_position,
-                        str_for(triadic_op));
+      pos_diagnostic(es_discretionary_error,
+                     ec_ifc_no_corresponding_operator, &error_position,
+                     str_for(triadic_op));
       op = onk_none;
       break;
     case ifc_tos_choice:
     case ifc_tos_construct_at:
     case ifc_tos_initialize:
-      pos_st_diagnostic(es_discretionary_error,
-                        ec_ifc_no_corresponding_operator, &error_position,
-                        str_for(triadic_op));
+      pos_diagnostic(es_discretionary_error,
+                     ec_ifc_no_corresponding_operator, &error_position,
+                     str_for(triadic_op));
       op = onk_none;
       break;
     default_is_unexpected_str("Unexpected TriadicOperator");
@@ -2228,9 +2227,9 @@ Map an IFC StorageOperator to an_opname_kind.
   switch (storage_op) {
     case ifc_sios_unknown:
     case ifc_sios_msvc:
-      pos_st_diagnostic(es_discretionary_error,
-                        ec_ifc_no_corresponding_operator, &error_position,
-                        str_for(storage_op));
+      pos_diagnostic(es_discretionary_error,
+                     ec_ifc_no_corresponding_operator, &error_position,
+                     str_for(storage_op));
       op = onk_none;
       break;
     case ifc_sios_allocate_single:    op = onk_new;            break;
@@ -2254,9 +2253,9 @@ Map an IFC VariadicOperator to an_opname_kind.
   switch (variadic_op) {
     case ifc_vos_unknown:
     case ifc_vos_msvc:
-      pos_st_diagnostic(es_discretionary_error,
-                        ec_ifc_no_corresponding_operator, &error_position,
-                        str_for(variadic_op));
+      pos_diagnostic(es_discretionary_error,
+                     ec_ifc_no_corresponding_operator, &error_position,
+                     str_for(variadic_op));
       op = onk_none;
       break;
     case ifc_vos_collection:
@@ -2265,9 +2264,9 @@ Map an IFC VariadicOperator to an_opname_kind.
     case ifc_vos_msvc_is_constructible:
     case ifc_vos_msvc_is_nothrow_constructible:
     case ifc_vos_msvc_is_trivially_constructible:
-      pos_st_diagnostic(es_discretionary_error,
-                        ec_ifc_no_corresponding_operator, &error_position,
-                        str_for(variadic_op));
+      pos_diagnostic(es_discretionary_error,
+                     ec_ifc_no_corresponding_operator, &error_position,
+                     str_for(variadic_op));
       op = onk_none;
       break;
     default_is_unexpected_str("Unexpected VariadicOperator");
@@ -3752,8 +3751,8 @@ or template.
       if (symbol_is(src_sym, sk_variable_template)) {
         /* Currently, some IFC function templates are parsed erroneously,
            producing a variable template instead. */
-        pos_sy_error(ec_ifc_function_template_parse_failure, &error_position,
-                     src_sym);
+        pos_error(ec_ifc_function_template_parse_failure, &error_position,
+                  src_sym);
       } else {
         dst_sym = alloc_symbol(src_sym->kind, src_sym->header,
                                &src_sym->decl_position);
@@ -4742,8 +4741,8 @@ position.
   size_t abs_offset = *opt_abs_offset;
   size_t rel_offset = abs_offset - part_start;
 
-  st_unum3_add_diag_info(diag, error_code, get_partition_name_from_kind(kind),
-                         idx_value, abs_offset, rel_offset);
+  add_diag_info(diag, error_code, get_partition_name_from_kind(kind),
+                idx_value, abs_offset, rel_offset);
 }  /* add_partition_element_diag_info */
 
 
@@ -4756,8 +4755,8 @@ from a tok_ifc_entity_ref or tok_ifc_decl_ref).
 {
   an_ifc_module     *mod = module_of(idx);
   a_source_position pos = pos_curr_token;
-  a_diagnostic_ptr  diag = pos_st_start_error(ec_ifc_entity_ref_failure, &pos,
-                                              mod->assoc_module_info->name);
+  a_diagnostic_ptr  diag = pos_start_error(ec_ifc_entity_ref_failure, &pos,
+                                           mod->assoc_module_info->name);
 
   add_partition_element_diag_info(diag, ec_ifc_entity_ref_failure_info, idx);
   end_diagnostic(diag);
@@ -5625,10 +5624,10 @@ Start a new IFC validation diagnostic for the given routine pointer's
 associated function definition, with the given error severity.
 */
 {
-  return pos_st_start_diagnostic(error_severity,
-                                 ec_ifc_bad_function_definition,
-                                 &rp->source_corresp.decl_position,
-                                 rp->source_corresp.name);
+  return pos_start_diagnostic(error_severity,
+                              ec_ifc_bad_function_definition,
+                              &rp->source_corresp.decl_position,
+                              rp->source_corresp.name);
 }  /* start_rp_diag */
 
 
@@ -5652,8 +5651,7 @@ parameter count.
   } else {
     error_code = ec_ifc_bad_function_param_counts_single_multi;
   }  /* if */
-  num2_add_diag_info(diag_ptr, error_code, chart_param_count,
-                     type_param_count);
+  add_diag_info(diag_ptr, error_code, chart_param_count, type_param_count);
 }  /* add_bad_parameter_count_info */
 
 
@@ -5781,9 +5779,8 @@ equivalent; otherwise, return FALSE.
 
           /* FIXME: Eventually this should be reworked so we don't allocate on
              errors. */
-          st_num_add_diag_info(diag_ptr, ec_ifc_bad_function_param_name,
-                               name.to_allocated_storage(allocator),
-                               relative_idx);
+          add_diag_info(diag_ptr, ec_ifc_bad_function_param_name,
+                        name.to_allocated_storage(allocator), relative_idx);
         }  /* if */
       }  /* if */
       end_diagnostic(diag_ptr);
@@ -5980,8 +5977,8 @@ instead.
 #endif /* DEBUG */
   } else {
     /* The IFC told us there would be a definition but none was written. */
-    pos_st_error(ec_ifc_missing_function_definition,
-                 &rp->source_corresp.decl_position, rp->source_corresp.name);
+    pos_error(ec_ifc_missing_function_definition,
+              &rp->source_corresp.decl_position, rp->source_corresp.name);
     result = FALSE;
   }  /* if */
 done:
@@ -10414,9 +10411,9 @@ Begin a new IFC file incompatibility diagnostic with the given severity, import
 position, and file path.
 */
 {
-  this->diag = pos_st_start_diagnostic(error_severity,
-                                       ec_ifc_file_incompatibility,
-                                       import_pos, file_path);
+  this->diag = pos_start_diagnostic(error_severity,
+                                    ec_ifc_file_incompatibility,
+                                    import_pos, file_path);
 }  /* an_ifc_compatibility_diag_handler::an_ifc_compatibility_diag_handler */
 
 
@@ -10436,8 +10433,9 @@ void an_ifc_compatibility_diag_handler::bad_version(
 Add the diagnostic information for an unsupported version.
 */
 {
-  num2_add_diag_info(this->diag, ec_unsupported_ifc_file_version_info,
-                     major_version, minor_version);
+  /* Cast the version to uint32_t as an_ifc_version_storage is too small. */
+  add_diag_info(this->diag, ec_unsupported_ifc_file_version_info,
+                (uint32_t)major_version, (uint32_t)minor_version);
 }  /* an_ifc_compatibility_diag_handler::bad_version */
 
 
@@ -10447,8 +10445,7 @@ void an_ifc_compatibility_diag_handler::bad_architecture(
 Add the diagnostic information for an architecture mismatch.
 */
 {
-  str_add_diag_info(this->diag, ec_unsupported_ifc_file_arch_info,
-                    str_for(arch));
+  add_diag_info(this->diag, ec_unsupported_ifc_file_arch_info, str_for(arch));
 }  /* an_ifc_compatibility_diag_handler::bad_architecture */
 
 }  /* namespace */
@@ -10687,7 +10684,7 @@ diagnostics if issue_diag is TRUE.
       an_ifc_partition_kind part_kind = find_ifc_partition(name_str_temp);
       if (part_kind == ifc_pk_none) {
         if (issue_diag) {
-          str_remark(ec_unknown_ifc_partition, name_str_temp);
+          remark(ec_unknown_ifc_partition, name_str_temp);
         }  /* if */
       } else {
         an_ifc_partition_metadata  *pp;
@@ -10703,10 +10700,10 @@ diagnostics if issue_diag is TRUE.
         pp->entry_size = entry_size;
         pp->format_validated = alloc_validation_bit_array(cardinality);
         if (entry_size != expected_entry_size) {
-          pos_st_num2_diagnostic(es_error, ec_ifc_partition_bad_entry_size,
-                                 &midp->module_name_position,
-                                 name_str_temp, entry_size,
-                                 expected_entry_size);
+          pos_error(ec_ifc_partition_bad_entry_size,
+                    &midp->module_name_position,
+                    name_str_temp, (an_ifc_entity_size_storage)entry_size,
+                    expected_entry_size);
           /* Invalidate all elements of the partition; this stops processing of
              these partition elements without further diagnostics, and without
              ending further diagnostics. */
@@ -10754,14 +10751,13 @@ diagnostics if issue_diag is TRUE.
         if (line_number > sequence_numbers[file_index].max_line_number) {
           an_ifc_line_number_storage used_line_number = line_number;
 
-          if (line_number > MODULE_MAX_LINE_NUMBER) {
+          if (used_line_number > MODULE_MAX_LINE_NUMBER) {
             static_assert(MODULE_MAX_LINE_NUMBER < MAX_LINE_NUMBER,
                           "the module maximum line number is limited by "
                           "the general front end maximum line number");
-            st_unum2_warning(ec_ifc_line_number_overflow,
-                             mod->module_interface->assoc_module_info->name,
-                             line_number,
-                             MODULE_MAX_LINE_NUMBER);
+            warning(ec_ifc_line_number_overflow,
+                    mod->module_interface->assoc_module_info->name,
+                    used_line_number, MODULE_MAX_LINE_NUMBER);
             used_line_number = MODULE_MAX_LINE_NUMBER;
           }  /* if */
           sequence_numbers[file_index].max_line_number = used_line_number;
@@ -10854,8 +10850,8 @@ issue_diag == TRUE) otherwise.
     mod_iface->file.mod = mod_iface;
   } else if (issue_diag) {
     /* FIXME: perhaps better error messages here. */
-    pos_st_error(ec_cannot_import_module, &midp->module_name_position,
-                 mod->full_name);
+    pos_error(ec_cannot_import_module, &midp->module_name_position,
+              mod->full_name);
   }  /* if */
   return opt_file.has_value();
 }  /* an_ifc_module::open_and_map_ifc_module_file */
@@ -11110,9 +11106,9 @@ Convert the given IFC calling convention to the corresponding EDG one.
     case ifc_ccs_clr:     conv = cc_clrcall; break;
     case ifc_ccs_vector:  conv = cc_vectorcall; break;
     case ifc_ccs_eabi:    /* conv = cc_eabicall; break; */
-      pos_st_diagnostic(es_discretionary_error,
-                        ec_ifc_no_corresponding_calling_conv,
-                        &error_position, "CallingConvention::Eabi");
+      pos_diagnostic(es_discretionary_error,
+                     ec_ifc_no_corresponding_calling_conv,
+                     &error_position, "CallingConvention::Eabi");
       conv = cc_default;
       break;
     default_is_unexpected_str("Unexpected CallingConvention");
@@ -12193,9 +12189,8 @@ the template argument list; otherwise, return FALSE.
     result = TRUE;
   } else {
     an_ifc_module    *mod = module_of(expr_idx);
-    a_diagnostic_ptr diag = pos_st_start_error(ec_ifc_too_many_template_args,
-                                               &null_source_position,
-                                               mod->assoc_module_info->name);
+    a_diagnostic_ptr diag = start_error(ec_ifc_too_many_template_args,
+                                        mod->assoc_module_info->name);
 
     add_partition_element_diag_info(diag,
                                     ec_ifc_too_many_template_args_info,
@@ -12748,9 +12743,8 @@ param_list.
   if (append_template_args(&state, arguments)) {
     if (state.curr_param() != NULL) {
       an_ifc_module    *mod = module_of(arguments);
-      a_diagnostic_ptr diag = pos_st_start_error(ec_ifc_too_few_template_args,
-                                                 &null_source_position,
-                                                 mod->assoc_module_info->name);
+      a_diagnostic_ptr diag = start_error(ec_ifc_too_few_template_args,
+                                          mod->assoc_module_info->name);
 
       add_partition_element_diag_info(diag,
                                       ec_ifc_too_few_template_args_info,
@@ -14530,7 +14524,7 @@ rules of position inference).
   switch (get_ident_res(name)) {
     case iir_error:
       cache->invalidate();
-      pos_st_error(ec_ifc_bad_identifier, pos, name);
+      pos_error(ec_ifc_bad_identifier, pos, name);
       break;
     case iir_recover_via_skip:
       break;
@@ -16169,14 +16163,11 @@ bytes removed.
 {
   check_assertion(str.contains_null_characters());
   an_ifc_module    *mod = module_of(idx);
-  a_diagnostic_ptr diag = pos_st_start_diagnostic(
-                                                 es_warning,
-                                                 ec_ifc_null_char_in_string,
-                                                 &null_source_position,
-                                                 mod->assoc_module_info->name);
+  a_diagnostic_ptr diag = start_warning(ec_ifc_null_char_in_string,
+                                        mod->assoc_module_info->name);
 
-  num2_add_diag_info(diag, ec_ifc_null_char_in_string_removal_info,
-                     str.length, str.ifc_length);
+  add_diag_info(diag, ec_ifc_null_char_in_string_removal_info,
+                str.length, str.ifc_length);
   add_partition_element_diag_info(diag, ec_ifc_null_char_in_string_info, idx);
   end_diagnostic(diag);
 }  /* diagnose_ifc_string_null_removal */
@@ -16736,9 +16727,9 @@ convention sort value.
       cache_token(cache, tok_vectorcall);
       break;
     case ifc_ccs_eabi:
-      pos_st_diagnostic(es_discretionary_error,
-                        ec_ifc_no_corresponding_calling_conv,
-                        &error_position, "CallingConvention::Eabi");
+      pos_diagnostic(es_discretionary_error,
+                     ec_ifc_no_corresponding_calling_conv,
+                     &error_position, "CallingConvention::Eabi");
       break;
     default_is_unexpected_str("Unexpected CallingConvention");
   }  /* switch */
@@ -23762,10 +23753,9 @@ produce a more detailed contextual diagnostic.
         { a_const_char *field_name = cur->field_info.name;
           size_t       offset = cur->field_info.offset;
 
-          /* FIXME: Migrate to allowing diagnostics with size_t. */
-          st_num_add_diag_info(diag_ptr,
-                               ec_invalid_ifc_position_backtrace_field,
-                               field_name, (uint32_t)offset);
+          add_diag_info(diag_ptr,
+                        ec_invalid_ifc_position_backtrace_field,
+                        field_name, offset);
         }
         break;
       case ifc_vtk_partition:
@@ -23788,12 +23778,9 @@ Given the associated module and validation trace, emit a diagnostic for an
 encountered invalid sort value.
 */
 {
-  a_diagnostic_ptr diag_ptr;
+  a_diagnostic_ptr diag_ptr = start_error(ec_invalid_ifc_sort_value,
+                                          file->mod->assoc_module_info->name);
 
-  /* FIXME: Use a better source position. */
-  diag_ptr = pos_st_start_error(ec_invalid_ifc_sort_value,
-                                &null_source_position,
-                                file->mod->assoc_module_info->name);
   add_backtrace(diag_ptr, trace);
   end_diagnostic(diag_ptr);
 }  /* invalid_partition */
@@ -23806,12 +23793,9 @@ Given the associated module and validation trace, emit a diagnostic for an
 encountered invalid partition.
 */
 {
-  a_diagnostic_ptr diag_ptr;
+  a_diagnostic_ptr diag_ptr = start_error(ec_invalid_ifc_partition,
+                                          file->mod->assoc_module_info->name);
 
-  /* FIXME: Use a better source position. */
-  diag_ptr = pos_st_start_error(ec_invalid_ifc_partition,
-                                &null_source_position,
-                                file->mod->assoc_module_info->name);
   add_backtrace(diag_ptr, trace);
   end_diagnostic(diag_ptr);
 }  /* invalid_partition */
@@ -23827,12 +23811,9 @@ partition.
 */
 {
   a_const_char     *part_name = get_partition_name_from_kind(part_kind);
-  a_diagnostic_ptr diag_ptr;
-
-  /* FIXME: Use a better source position. */
-  diag_ptr = pos_st2_start_error(ec_undefined_ifc_partition,
-                                 &null_source_position,
-                                 mod->assoc_module_info->name, part_name);
+  a_diagnostic_ptr diag_ptr = start_error(ec_undefined_ifc_partition,
+                                          mod->assoc_module_info->name,
+                                          part_name);
   add_backtrace(diag_ptr, trace);
   end_diagnostic(diag_ptr);
 }  /* undefined_partition */
@@ -23849,14 +23830,11 @@ handle failure and diagnostics for an encountered undefined partition.
 */
 {
   a_const_char     *part_name = get_partition_name_from_kind(part_kind);
-  a_diagnostic_ptr diag_ptr;
+  a_diagnostic_ptr diag_ptr = start_error(
+                                       ec_invalid_unrepresentable_ifc_position,
+                                       mod->assoc_module_info->name,
+                                       part_name, idx);
 
-  /* FIXME: Use a better source position. */
-  diag_ptr = pos_st2_unum_start_error(ec_invalid_unrepresentable_ifc_position,
-                                      &null_source_position,
-                                      mod->assoc_module_info->name,
-                                      part_name,
-                                      idx);
   add_backtrace(diag_ptr, trace);
   end_diagnostic(diag_ptr);
 }  /* diag_unrepresentable_partition */
@@ -23877,13 +23855,10 @@ partition.
 */
 {
   a_const_char     *part_name = get_partition_name_from_kind(part_kind);
-  a_diagnostic_ptr diag_ptr;
-
-  /* FIXME: Use a better source position. */
-  diag_ptr = pos_st2_unum2_start_error(error_code, &null_source_position,
-                                       mod->assoc_module_info->name,
-                                       part_name, file_offset,
-                                       relative_offset);
+  a_diagnostic_ptr diag_ptr = start_error(error_code,
+                                          mod->assoc_module_info->name,
+                                          part_name, file_offset,
+                                          relative_offset);
   add_backtrace(diag_ptr, trace);
   end_diagnostic(diag_ptr);
 }  /* diag_overflowing_partition */

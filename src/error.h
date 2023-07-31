@@ -560,39 +560,16 @@ extern void pos_stsy_diagnostic(an_error_severity  error_severity,
                                 a_source_position  *error_pos,
                                 a_const_char       *error_string,
                                 struct a_symbol    *symbol);
-extern a_diagnostic_ptr pos_st2_unum_start_error(
-                                        an_error_code           error_code,
-                                        a_source_position       *error_pos,
-                                        a_const_char            *error_string1,
-                                        a_const_char            *error_string2,
-                                        an_unsigned_diag_number num);
-extern a_diagnostic_ptr pos_st2_unum2_start_error(
-                                        an_error_code           error_code,
-                                        a_source_position       *error_pos,
-                                        a_const_char            *error_string1,
-                                        a_const_char            *error_string2,
-                                        an_unsigned_diag_number num1,
-                                        an_unsigned_diag_number num2);
 extern void pos_st_num2_diagnostic(an_error_severity error_severity,
                                    an_error_code     error_code,
                                    a_source_position *error_pos,
                                    a_const_char      *error_string,
                                    int32_t           num1,
                                    int32_t           num2);
-extern void num2_add_diag_info(a_diagnostic_ptr primary_dp,
-                               an_error_code    error_code,
-                               int64_t          num1,
-                               int64_t          num2);
 extern void st_num_add_diag_info(a_diagnostic_ptr primary_dp,
                                  an_error_code    error_code,
                                  a_const_char     *error_string,
                                  int32_t          num);
-extern void st_unum3_add_diag_info(a_diagnostic_ptr        primary_dp,
-                                   an_error_code           error_code,
-                                   a_const_char            *error_string,
-                                   an_unsigned_diag_number num1,
-                                   an_unsigned_diag_number num2,
-                                   an_unsigned_diag_number num3);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 extern void pos_st_remark(an_error_code     error_code,
                           a_source_position *error_pos,
@@ -782,17 +759,6 @@ NORETURN extern void str_errno_catastrophe(an_error_code error_code,
 extern a_diagnostic_ptr pos_start_diagnostic(an_error_severity  error_severity,
                                              an_error_code      error_code,
                                              a_source_position  *error_pos);
-extern a_diagnostic_ptr pos_st_start_diagnostic(
-                                              an_error_severity error_severity,
-                                              an_error_code     error_code,
-                                              a_source_position *error_pos,
-                                              a_const_char      *error_string);
-extern a_diagnostic_ptr pos_st2_start_diagnostic(
-                                             an_error_severity error_severity,
-                                             an_error_code     error_code,
-                                             a_source_position *error_pos,
-                                             a_const_char      *error_string1,
-                                             a_const_char      *error_string2);
 extern a_diagnostic_ptr pos_ty_start_diagnostic(
                                     an_error_severity  error_severity,
                                     an_error_code      error_code,
@@ -803,10 +769,6 @@ extern a_diagnostic_ptr pos_start_error(an_error_code     error_code,
 extern a_diagnostic_ptr pos_st_start_error(an_error_code     error_code,
                                            a_source_position *error_pos,
                                            a_const_char      *error_string);
-extern a_diagnostic_ptr pos_st2_start_error(an_error_code     error_code,
-                                            a_source_position *error_pos,
-                                            a_const_char      *error_string1,
-                                            a_const_char      *error_string2);
 extern a_diagnostic_ptr pos_ty_start_error(an_error_code     error_code,
                                            a_source_position *error_pos,
                                            struct a_type     *type);
@@ -820,13 +782,6 @@ extern void ty_add_diag_info(a_diagnostic_ptr primary_dp,
 extern void str_add_diag_info(a_diagnostic_ptr primary_dp,
                               an_error_code    error_code,
                               a_const_char     *error_string);
-#if !STANDALONE_UTILITY_PROGRAM
-extern void num_st2_add_diag_info(a_diagnostic_ptr primary_dp,
-                                  an_error_code    error_code,
-                                  int32_t          error_num,
-                                  a_const_char     *error_string1,
-                                  a_const_char     *error_string2);
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 extern void copy_str_add_diag_info(a_diagnostic_ptr primary_dp,
                                    an_error_code    error_code,
                                    a_const_char     *error_string);
@@ -887,10 +842,6 @@ extern a_diagnostic_ptr pos_stsy_start_error(an_error_code     error_code,
                                              a_source_position *error_pos,
                                              a_const_char      *error_string,
                                              struct a_symbol   *symbol);
-extern void st_unum2_warning(an_error_code error_code,
-                             a_const_char  *error_string,
-                             uint32_t      num1,
-                             uint32_t      num2);
 extern void pos_sy2_warning(an_error_code     error_code,
                             a_source_position *error_pos,
                             struct a_symbol   *symbol1,
@@ -899,10 +850,6 @@ extern void pos_sy2_warning(an_error_code     error_code,
 extern void sym_add_diag_info(a_diagnostic_ptr primary_dp,
                               an_error_code    error_code,
                               struct a_symbol  *symbol);
-
-extern void pos_add_diag_info(a_diagnostic_ptr      primary_dp,
-                              an_error_code         error_code,
-                              a_source_position_ptr pos);
 
 extern void pos_sy_add_diag_info(a_diagnostic_ptr  primary_dp,
                                  an_error_code     error_code,

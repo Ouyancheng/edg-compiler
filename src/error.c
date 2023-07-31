@@ -6388,30 +6388,6 @@ that will be passed in for the subsequent messages.
 }  /* pos_st2_unum_start_error */
 
 
-a_diagnostic_ptr pos_st2_unum2_start_error(
-                                        an_error_code           error_code,
-                                        a_source_position       *error_pos,
-                                        a_const_char            *error_string1,
-                                        a_const_char            *error_string2,
-                                        an_unsigned_diag_number num1,
-                                        an_unsigned_diag_number num2)
-/*
-Begin a multiple message error with the specified error code, source position,
-string fill-ins, and unsigned numbers.  Return a pointer to the diagnostic
-entry that will be passed in for the subsequent messages.
-*/
-{
-  a_diagnostic_ptr dp;
-
-  dp = create_primary_diagnostic(error_code, error_pos, es_error);
-  add_string_fill_in(dp, error_string1);
-  add_string_fill_in(dp, error_string2);
-  add_unsigned_number_fill_in(dp, num1);
-  add_unsigned_number_fill_in(dp, num2);
-  return dp;
-}  /* pos_st2_unum2_start_error */
-
-
 void pos_st_num2_diagnostic(an_error_severity error_severity,
                             an_error_code     error_code,
                             a_source_position *error_pos,
@@ -6448,44 +6424,6 @@ number) to primary_dp.
   add_string_fill_in(dp, error_string);
   add_number_fill_in(dp, num);
 }  /* st_num_add_diag_info */
-
-
-void st_unum3_add_diag_info(a_diagnostic_ptr        primary_dp,
-                            an_error_code           error_code,
-                            a_const_char            *error_string,
-                            an_unsigned_diag_number num1,
-                            an_unsigned_diag_number num2,
-                            an_unsigned_diag_number num3)
-/*
-Add the specified diagnostic message (with the indicated fill-in string and
-unsigned numbers) to primary_dp.
-*/
-{
-  a_diagnostic_ptr dp;
-
-  dp = create_sub_message(primary_dp, error_code);
-  add_string_fill_in(dp, error_string);
-  add_unsigned_number_fill_in(dp, num1);
-  add_unsigned_number_fill_in(dp, num2);
-  add_unsigned_number_fill_in(dp, num3);
-}  /* st_unum3_add_diag_info */
-
-
-void num2_add_diag_info(a_diagnostic_ptr primary_dp,
-                        an_error_code    error_code,
-                        int64_t          num1,
-                        int64_t          num2)
-/*
-Add the specified diagnostic message (with the indicated fill-in numbers) to
-primary_dp.
-*/
-{
-  a_diagnostic_ptr dp;
-
-  dp = create_sub_message(primary_dp, error_code);
-  add_number_fill_in(dp, num1);
-  add_number_fill_in(dp, num2);
-}  /* num2_add_diag_info */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
@@ -7232,44 +7170,6 @@ will be passed in for the subsequent messages.
 }  /* pos_start_diagnostic */
 
 
-a_diagnostic_ptr pos_st_start_diagnostic(an_error_severity error_severity,
-                                         an_error_code     error_code,
-                                         a_source_position *error_pos,
-                                         a_const_char      *error_string)
-/*
-Begin a multiple message diagnostic with the specified severity, error code,
-source position and indicated fill-in string.  Return a pointer to the
-diagnostic entry that will be passed in for the subsequent messages.
-*/
-{
-  a_diagnostic_ptr	dp;
-
-  dp = create_primary_diagnostic(error_code, error_pos, error_severity);
-  add_string_fill_in(dp, error_string);
-  return dp;
-}  /* pos_st_start_diagnostic */
-
-
-a_diagnostic_ptr pos_st2_start_diagnostic(an_error_severity error_severity,
-                                          an_error_code     error_code,
-                                          a_source_position *error_pos,
-                                          a_const_char      *error_string1,
-                                          a_const_char      *error_string2)
-/*
-Begin a multiple message diagnostic with the specified severity, error code,
-source position and indicated fill-in strings.  Return a pointer to the
-diagnostic entry that will be passed in for the subsequent messages.
-*/
-{
-  a_diagnostic_ptr	dp;
-
-  dp = create_primary_diagnostic(error_code, error_pos, error_severity);
-  add_string_fill_in(dp, error_string1);
-  add_string_fill_in(dp, error_string2);
-  return dp;
-}  /* pos_st2_start_diagnostic */
-
-
 a_diagnostic_ptr pos_ty_start_diagnostic(an_error_severity  error_severity,
                                          an_error_code      error_code,
                                          a_source_position *error_pos,
@@ -7315,25 +7215,6 @@ that will be passed in for the subsequent messages.
   add_string_fill_in(dp, error_string);
   return dp;
 }  /* pos_st_start_error */
-
-
-a_diagnostic_ptr pos_st2_start_error(an_error_code     error_code,
-                                     a_source_position *error_pos,
-                                     a_const_char      *error_string1,
-                                     a_const_char      *error_string2)
-/*
-Begin a multiple message error with the specified error code, source
-position and string fill-ins.  Return a pointer to the diagnostic entry
-that will be passed in for the subsequent messages.
-*/
-{
-  a_diagnostic_ptr	dp;
-
-  dp = create_primary_diagnostic(error_code, error_pos, es_error);
-  add_string_fill_in(dp, error_string1);
-  add_string_fill_in(dp, error_string2);
-  return dp;
-}  /* pos_st2_start_error */
 
 
 a_diagnostic_ptr pos_ty_start_error(an_error_code     error_code,
@@ -7397,26 +7278,6 @@ primary_dp.
   add_string_fill_in(dp, error_string);
 }  /* str_add_diag_info */
 
-#if !STANDALONE_UTILITY_PROGRAM
-
-void num_st2_add_diag_info(a_diagnostic_ptr primary_dp,
-                           an_error_code    error_code,
-                           int32_t          error_num,
-                           a_const_char     *error_string1,
-                           a_const_char     *error_string2)
-/*
-Add the specified diagnostic message with the number and string substitutions
-to primary_dp.
-*/
-{
-  a_diagnostic_ptr dp = create_sub_message(primary_dp, error_code);
-
-  add_number_fill_in(dp, error_num);
-  add_string_fill_in(dp, error_string1);
-  add_string_fill_in(dp, error_string2);
-}  /* num_st2_add_diag_info */
-
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 void copy_str_add_diag_info(a_diagnostic_ptr primary_dp,
                             an_error_code    error_code,
@@ -7535,25 +7396,6 @@ will be passed in for the subsequent messages.
 }  /* pos_stsy_start_error */
 
 
-void st_unum2_warning(an_error_code error_code,
-                      a_const_char  *error_string,
-                      uint32_t      num1,
-                      uint32_t      num2)
-/*
-Report the indicated warning (with the indicated string and unsigned numbers).
-*/
-{
-  a_diagnostic_ptr dp;
-
-  dp = create_primary_diagnostic(error_code, &null_source_position,
-                                 es_warning);
-  add_string_fill_in(dp, error_string);
-  add_unsigned_number_fill_in(dp, num1);
-  add_unsigned_number_fill_in(dp, num2);
-  wrap_up_diagnostic(dp);
-}  /* st_unum2_warning */
-
-
 void pos_sy2_warning(an_error_code     error_code,
                      a_source_position *error_pos,
                      struct a_symbol   *symbol1,
@@ -7580,20 +7422,6 @@ primary_dp.
   dp = create_sub_message(primary_dp, error_code);
   add_symbol_fill_in(dp, symbol);
 }  /* sym_add_diag_info */
-
-
-void pos_add_diag_info(a_diagnostic_ptr      primary_dp,
-                       an_error_code         error_code,
-                       a_source_position_ptr pos)
-/*
-Add the specified diagnostic message with the indicated position to primary_dp.
-*/
-{
-  a_diagnostic_ptr	dp;
-
-  dp = create_sub_message(primary_dp, error_code);
-  add_position_fill_in(dp, pos);
-}  /* pos_sy_add_diag_info */
 
 
 void pos_sy_add_diag_info(a_diagnostic_ptr      primary_dp,

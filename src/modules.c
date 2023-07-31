@@ -319,10 +319,10 @@ file_kind (which may range from remarks to catastrophic errors).
       severity = es_catastrophe;
       unexpected_condition_str("Unexpected module kind");
   }  /* switch */
-  dp = pos_st2_start_diagnostic(severity, ec_mismatched_module_file_kind,
-                                &error_position,
-                                err_string_for_module_kind(expected_kind),
-                                err_string_for_module_kind(file_kind));
+  dp = pos_start_diagnostic(severity, ec_mismatched_module_file_kind,
+                            &error_position,
+                            err_string_for_module_kind(expected_kind),
+                            err_string_for_module_kind(file_kind));
   str_add_diag_info(dp, ec_mismatched_module_file_context, module_file);
   end_diagnostic(dp);
 done:;
@@ -356,11 +356,9 @@ ignored.
                       &open_result);
     }  /* if */
 
-    a_diagnostic_ptr dp = pos_st_start_diagnostic(es_catastrophe,
-                                                  ec_file_for_module_not_found,
-                                                  &error_position,
-                                                  module_file);
-
+    a_diagnostic_ptr dp = pos_start_catastrophe(ec_file_for_module_not_found,
+                                                &error_position,
+                                                module_file);
     /* Note any module mappings pointing to this file. */
     for (const a_module_file_map::an_entry &entry : *mod_map) {
       if (entry.ptr == NULL) {

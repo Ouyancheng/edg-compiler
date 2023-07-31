@@ -2210,7 +2210,7 @@ number each module source file is allowed to claim (note that a binary module
 interface file may reference multiple module source files).
 */
 #ifndef MODULE_MAX_LINE_NUMBER
-#define MODULE_MAX_LINE_NUMBER 250000
+#define MODULE_MAX_LINE_NUMBER 250000u
 #endif /* MODULE_MAX_LINE_NUMBER */
 
 /*
