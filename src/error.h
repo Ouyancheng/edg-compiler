@@ -1203,7 +1203,7 @@ will be passed in for the subsequent messages.
    */
   PACK_EXPAND_VOID_EXPR(detail::Fill_in<a_Fill_in_type>::add(diag, fill_ins))
   return diag;
-}  /* pos_start_diag */
+}  /* pos_start_diagnostic */
 
 
 template<typename... a_Fill_in_type>
@@ -1216,7 +1216,7 @@ and fill-ins.  Return a pointer to the diagnostic entry that will be passed in
 for the subsequent messages.
 */
 {
-  return pos_start_diag(es_remark, error_code, error_pos, fill_ins...);
+  return pos_start_diagnostic(es_remark, error_code, error_pos, fill_ins...);
 }  /* pos_start_remark */
 
 
@@ -1230,7 +1230,7 @@ position, and fill-ins.  Return a pointer to the diagnostic entry that will be
 passed in for the subsequent messages.
 */
 {
-  return pos_start_diag(es_warning, error_code, error_pos, fill_ins...);
+  return pos_start_diagostic(es_warning, error_code, error_pos, fill_ins...);
 }  /* pos_start_warning */
 
 
@@ -1244,7 +1244,7 @@ and fill-ins.  Return a pointer to the diagnostic entry that will be passed in
 for the subsequent messages.
 */
 {
-  return pos_start_diag(es_error, error_code, error_pos, fill_ins...);
+  return pos_start_diagnostic(es_error, error_code, error_pos, fill_ins...);
 }  /* pos_start_error */
 
 
@@ -1258,14 +1258,15 @@ position, and fill-ins.  Return a pointer to the diagnostic entry that will be
 passed in for the subsequent messages.
 */
 {
-  return pos_start_diag(es_catastrophe, error_code, error_pos, fill_ins...);
+  return pos_start_diagnostic(es_catastrophe, error_code, error_pos,
+                              fill_ins...);
 }  /* pos_start_catastrophe */
 
 
 template<typename... a_Fill_in_type>
-inline a_diagnostic_ptr start_diag(an_error_severity error_severity,
-                                   an_error_code     error_code,
-                                   a_Fill_in_type... fill_ins)
+inline a_diagnostic_ptr start_diagnostic(an_error_severity error_severity,
+                                         an_error_code     error_code,
+                                         a_Fill_in_type... fill_ins)
 /*
 Begin a multiple message diagnostic with the specified error severity, error
 code, and fill-ins.  Return a pointer to the diagnostic entry that will be
@@ -1275,7 +1276,7 @@ passed in for the subsequent messages.
   return pos_start_diagnostic(error_severity, error_code,
                               &null_source_position,
                               fill_ins...);
-}  /* start_diag */
+}  /* start_diagnostic */
 
 
 template<typename... a_Fill_in_type>
@@ -1287,7 +1288,7 @@ Return a pointer to the diagnostic entry that will be passed in for the
 subsequent messages.
 */
 {
-  return start_diag(es_remark, error_code, fill_ins...);
+  return start_diagnostic(es_remark, error_code, fill_ins...);
 }  /* start_remark */
 
 
@@ -1300,7 +1301,7 @@ Return a pointer to the diagnostic entry that will be passed in for the
 subsequent messages.
 */
 {
-  return start_diag(es_warning, error_code, fill_ins...);
+  return start_diagnostic(es_warning, error_code, fill_ins...);
 }  /* start_warning */
 
 
@@ -1313,7 +1314,7 @@ Return a pointer to the diagnostic entry that will be passed in for the
 subsequent messages.
 */
 {
-  return start_diag(es_error, error_code, fill_ins...);
+  return start_diagnostic(es_error, error_code, fill_ins...);
 }  /* start_error */
 
 
@@ -1326,7 +1327,7 @@ fill-ins.  Return a pointer to the diagnostic entry that will be passed in for
 the subsequent messages.
 */
 {
-  return start_diag(es_catastrophe, error_code, fill_ins...);
+  return start_diagnostic(es_catastrophe, error_code, fill_ins...);
 }  /* start_catastrophe */
 
 
