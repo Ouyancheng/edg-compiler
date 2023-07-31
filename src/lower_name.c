@@ -14503,9 +14503,9 @@ be embedded in other mangled names.
 {
   a_mangling_control_block mctl;
   a_boolean                is_string = FALSE;
-#if IA64_ABI
+#if IA64_ABI || ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
   unsigned long            sequence_number = 0;
-#endif /* IA64_ABI */
+#endif /* IA64_ABI || ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
   a_variable_ptr           var = (a_variable_ptr)scp;
 
   check_assertion(kind == iek_variable ||

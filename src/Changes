@@ -1,5 +1,12 @@
 Version 6.6
 
+7/31/23  [EDGcpfe/26555]
+Build error when IA64_ABI is 0 and ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS is 1
+
+The front end had failed to build when the configuration macro IA64_ABI == 0
+and ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS == 1.  Now fixed.
+
+
 7/31/23  [EDGcpfe/26402]
 Incorrect handling of operands of function type in decltype construct
 
