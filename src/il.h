@@ -2463,6 +2463,10 @@ typedef int a_conv_context_set;
 #define CCO_CONVERT_INITIALIZER ((a_conv_context_set)0x8000000)
 			/* Used to indicate that this is a conversion for an
 			   initializer via convert_initializer. */
+#define CCO_PREP_ARGUMENT ((a_conv_context_set)0x10000000)
+			/* Used to indicate that this is a conversion for an
+			   argument that has already been determined to match
+			   its parameter. */
 
 
 /*

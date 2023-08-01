@@ -6268,6 +6268,7 @@ in a new-expression).
                                 CCO_ARG_VIA_COPY_CTOR |
                                 CCO_INITIALIZING_VARIABLE |
                                 CCO_INITIALIZING_RETURN_VALUE |
+                                CCO_PREP_ARGUMENT |
                                 CCO_MOVE_OPTIMIZATION_ALLOWED |
                                 CCO_ALLOW_EXPLICIT_CONV_FUNCTIONS |
                                 CCO_UNWRAPPED_BRACED_LIST |
@@ -27519,7 +27520,7 @@ to be acceptable (as far as overload resolution checks that), and
 #endif /* !GNU_EXTENSIONS_ALLOWED */
                                conversion,
                                /*is_copy_initialization=*/TRUE,
-                               conv_context,
+                               conv_context | CCO_PREP_ARGUMENT,
                                err_code);
     } else {
       /* Handle the special adjustment for a ref to non-const (see above). */
