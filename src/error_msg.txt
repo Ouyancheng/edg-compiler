@@ -3430,7 +3430,7 @@ ec_class_operand;;"<class>"
 ec_auto_cast_is_cpp23;;"auto(<expr>) and auto{<expr>} are a C++23 feature"
 ec_anon_union_using_declaration;;"invalid anonymous union -- using declaration is not allowed"
 ec_ifc_file_incompatibility;;"IFC file %sq is incompatible"
-ec_unsupported_ifc_file_version_info;;"IFC version %d1.%d2 is not supported"
+ec_unsupported_ifc_file_version_info;;"IFC version %u1.%u2 is not supported"
 ec_unsupported_ifc_file_arch_info;;"IFC architecture %sq is incompatible with the current target architecture"
 ###############################################################################
 #                                                             \  ___  /       #

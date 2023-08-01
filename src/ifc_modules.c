@@ -10684,7 +10684,7 @@ diagnostics if issue_diag is TRUE.
       an_ifc_partition_kind part_kind = find_ifc_partition(name_str_temp);
       if (part_kind == ifc_pk_none) {
         if (issue_diag) {
-          remark(ec_unknown_ifc_partition, name_str_temp);
+          pos_remark(ec_unknown_ifc_partition, &error_position, name_str_temp);
         }  /* if */
       } else {
         an_ifc_partition_metadata  *pp;
