@@ -26007,7 +26007,9 @@ the components of the declaration.
        are a problem in particular.) */
     invalidate_type(&state);
   }  /* if */
-  *param_type_ptr = state.type;
+  /* The top-level cv-qualifiers on the template-parameter are ignored when
+     determining its type. */
+  *param_type_ptr = make_unqualified_type(state.type);
   attach_decl_attributes(&state, /*primary_decl=*/TRUE);
   run_end_of_parse_actions(&state, /*more_declarators=*/FALSE);
 #if MAINTAIN_NEEDED_FLAGS

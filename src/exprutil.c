@@ -8266,8 +8266,10 @@ The position of the current token will be used as the operand position.
         constant_is(con_ptr, ck_template_param) &&
         (is_class_struct_union_type(con_ptr->type) ||
          could_be_dependent_class_type(con_ptr->type))) {
-      /* Template parameters of class type are lvalues. */
-      change_template_param_constant_operand_to_lvalue(operand);
+      /* Template parameters of class type are const-qualified lvalues. */
+      change_template_param_constant_operand_to_lvalue(
+                                   operand,
+                                   !is_template_dependent_type(con_ptr->type));
     }  /* if */
   }  /* if */
 }  /* make_sym_constant_operand */
@@ -13201,12 +13203,15 @@ if it is for a nonreal member function, return *is_function TRUE.
 }  /* is_nonreal_member_constant */
 
 
-void change_template_param_constant_operand_to_lvalue(an_operand *operand)
+void change_template_param_constant_operand_to_lvalue(
+                                                    an_operand *operand,
+                                  /* Defaulted: */  a_boolean  const_qualified)
 /*
 Change the indicated operand (a prvalue for a template parameter constant)
 to an lvalue by placing an eok_lvalue node on top of the constant.  This
 allows the operand (which has uncertain value category) to be used henceforth
-as an lvalue.
+as an lvalue.  If const_qualified is TRUE, the type of the operand will be
+const-qualified.
 */
 {
   if (is_error_operand(operand)) {
@@ -13219,8 +13224,12 @@ as an lvalue.
     /* Use make_node_from_operand to get operand rescan information saved. */
     expr = make_node_from_operand(operand);
     check_assertion(!expr->is_lvalue);
-    new_expr = make_lvalue_operator_node((an_expr_operator_kind)eok_lvalue,
-                                         expr->type, expr);
+    new_expr = make_lvalue_operator_node(
+                                   eok_lvalue,
+                                   (const_qualified ?
+                                    make_qualified_type(expr->type, TQ_CONST) :
+                                    expr->type),
+                                   expr);
     new_expr->compiler_generated = TRUE;
     new_expr->position = expr->position;
     make_glvalue_expression_operand(new_expr, operand);

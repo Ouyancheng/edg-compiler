@@ -15925,6 +15925,11 @@ id_case:
         a_variable_ptr  vp = node_variable(expr);
         if (vp->is_struct_binding) {
           result = decltype_for_struct_binding(vp);
+        } else if (vp->is_template_param_object) {
+          /* For a template parameter object, the type of the id-expression
+             (represented by vp) is always const-qualified, but the type of the
+             template parameter is unqualified. */
+          result = make_unqualified_type(vp->type);
         } else {
           result = vp->type;
         }  /* if */

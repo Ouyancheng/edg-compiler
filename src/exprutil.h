@@ -2298,7 +2298,9 @@ extern void type2_error_in_operand(an_error_code error_code,
                                    a_type_ptr    type2);
 
 extern
-void change_template_param_constant_operand_to_lvalue(an_operand *operand);
+void change_template_param_constant_operand_to_lvalue(
+                                           an_operand *operand,
+                                           a_boolean  const_qualified = FALSE);
 
 extern
 void change_nonreal_member_constant_operand_to_lvalue(an_operand *operand);
