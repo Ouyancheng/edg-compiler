@@ -108,6 +108,24 @@ string argument.
   ifc_requirement_impl(__LINE__, __EDG_func__,                          \
                        mod, FALSE, string)
 
+
+template<typename an_ifc_Index_type>
+a_string index_to_str(an_ifc_Index_type idx)
+/*
+Convert the given index value into a string representation.
+*/
+{
+  a_string msg(str_for(idx.sort), " (", idx.value, ")");
+
+#if DEBUG
+  if (db_flag_is_set("ifc_idx")) {
+    append_index_context(msg, idx);
+  }  /* if */
+#endif /* DEBUG */
+  return msg;
+}  /* index_to_str */
+
+
 static Opt<a_string> name_from_decl(an_ifc_decl_index decl_idx);
 
 static Opt<a_string> name_from_index(an_ifc_name_index name_index,
@@ -164,6 +182,66 @@ is_name_present(an_ifc_name_index) for more information.
 }  /* is_name_present */
 
 
+static a_boolean is_missing_source_location(const an_ifc_source_line &line)
+/*
+Given an IFC source line, return TRUE if the source line represents a missing
+source location; otherwise, return FALSE.
+*/
+{
+  a_boolean          result = TRUE;
+  an_ifc_line_number line_number = get_ifc_line(line);
+
+  if (line_number != 0) {
+    result = FALSE;
+  } else {
+    an_ifc_name_index            file_idx = get_ifc_file(line);
+    Opt<an_ifc_name_source_file> opt_source_file;
+
+    construct_node(&opt_source_file, file_idx);
+    if (opt_source_file.has_value()) {
+      an_ifc_name_source_file source_file = *opt_source_file;
+      an_ifc_text_offset      path = get_ifc_path(source_file);
+      an_ifc_text_offset      guard = get_ifc_guard(source_file);
+
+      if (path != 0 || guard != 0) {
+        result = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_missing_source_location */
+
+
+static a_boolean is_missing_source_location(an_ifc_line_offset offset)
+/*
+Given an IFC line offset, return TRUE if the line represents a missing source
+location; otherwise, return FALSE.
+*/
+{
+  a_boolean               result = TRUE;
+  Opt<an_ifc_source_line> opt_src_line;
+
+  construct_node(&opt_src_line, offset);
+  if (opt_src_line.has_value()) {
+    an_ifc_source_line src_line = *opt_src_line;
+
+    result = is_missing_source_location(src_line);
+  }  /* if */
+  return result;
+}  /* is_missing_source_location */
+
+
+static a_boolean is_missing_source_location(
+                                         const an_ifc_source_location &src_loc)
+/*
+Given an IFC source location, return TRUE if the source location represents a
+missing source location; otherwise, return FALSE.
+*/
+{
+  return is_missing_source_location(get_ifc_line(src_loc));
+}  /* is_missing_source_location */
+
+
 static a_boolean source_position_from_locus(
                                            a_source_position            *pos,
                                            const an_ifc_source_location &locus)
@@ -172,39 +250,35 @@ Map the IFC locus source position information into the source position at pos.
 Return TRUE if processing succeeded, otherwise return FALSE.
 */
 {
-  a_boolean                   result = TRUE;
-  Opt<an_ifc_source_line>     opt_isl;
-  an_ifc_module               *mod = module_of(locus);
-  an_ifc_line_index           line_number = get_ifc_line(locus);
-  an_ifc_partition_kind_index src_line_idx{&mod->file, ifc_pk_src_line,
-                                           line_number};
+  a_boolean               result = TRUE;
+  Opt<an_ifc_source_line> opt_isl;
+  an_ifc_module           *mod = module_of(locus);
+  an_ifc_line_offset      line_offset = get_ifc_line(locus);
 
-  /* FIXME: This should be addressed in the validator. */
-  if (!validate_element_exists(&mod->file, ifc_pk_src_line, line_number,
-                               /*trace=*/NULL)) {
-    a_string err_msg("bad source line index ", (an_ifc_index_type)line_number);
-
-    ifc_unexpected(mod, err_msg.as_temp_characters());
-    goto done;
-  }  /* if */
-  construct_node(&opt_isl, src_line_idx);
+  construct_node(&opt_isl, line_offset);
   if (opt_isl.has_value()) {
     an_ifc_source_line isl = *opt_isl;
-    an_ifc_name_index  file_idx = get_ifc_file(isl);
-    an_ifc_line_number line = get_ifc_line(isl);
 
-    check_assertion(file_idx.sort == ifc_ns_name_source_file);
-    if (line == 0) {
+    if (is_missing_source_location(isl)) {
       /* IFC LineNumbers start at one, a line number of zero means the source
          line isn't known.  As the front end (at the time of writing) doesn't
          support source locations for a file without a line, resolve all cases
          of this to null source position. */
       *pos = null_source_position;
     } else {
+      an_ifc_name_index  file_idx = get_ifc_file(isl);
+
+      if (file_idx.sort != ifc_ns_name_source_file) {
+        a_string err_msg("expected ", index_to_str(file_idx), " to be ",
+                         str_for(ifc_ns_name_source_file));
+
+        ifc_unexpected(module_of(file_idx), err_msg.as_temp_characters());
+        goto invalid;
+      }  /* if */
+
       /* See if this file has been used before. */
       an_ifc_module::a_module_sequence_number_mapping *msnmp =
                                         &mod->sequence_numbers[file_idx.value];
-
       if (msnmp->starting_sequence_number == 0) {
         /* First time accessing this source file; record the start of a new
            source file.  Note that this may be out-of-order as it depends on
@@ -225,6 +299,10 @@ Return TRUE if processing succeeded, otherwise return FALSE.
                                                msnmp->max_line_number);
         msnmp->starting_sequence_number = pos->seq;
       }  /* if */
+
+      an_ifc_line_number line = get_ifc_line(isl);
+      /* If this assertion fails, the initial source position scan when the
+         module is imported did not properly account for it. */
       check_assertion(line <= msnmp->max_line_number);
       pos->seq = msnmp->starting_sequence_number + line;
       /* Add one to map 0-based IFC column numbers to 1-based EDG numbers. */
@@ -3276,22 +3354,6 @@ Append any useful identifying information about the index.
 }  /* append_index_context */
 
 #endif /* DEBUG */
-
-template<typename an_ifc_Index_type>
-a_string index_to_str(an_ifc_Index_type idx)
-/*
-Convert the given index value into a string representation.
-*/
-{
-  a_string msg(str_for(idx.sort), " (", idx.value, ")");
-
-#if DEBUG
-  if (db_flag_is_set("ifc_idx")) {
-    append_index_context(msg, idx);
-  }  /* if */
-#endif /* DEBUG */
-  return msg;
-}  /* index_to_str */
 
 namespace {
 
@@ -6970,11 +7032,11 @@ template, create and return a corresponding template argument set.  If a
 problem is encountered during reconstruction, NULL is returned instead.
 */
 {
-  a_template_arg_ptr     result = NULL;
-  an_ifc_form_spec_index form_idx = get_ifc_form(decl_spec);
-  Opt<an_ifc_form_spec>  opt_form_spec;
+  a_template_arg_ptr      result = NULL;
+  an_ifc_form_spec_offset form_offset = get_ifc_form(decl_spec);
+  Opt<an_ifc_form_spec>   opt_form_spec;
 
-  construct_node(&opt_form_spec, form_idx);
+  construct_node(&opt_form_spec, form_offset);
   if (opt_form_spec.has_value()) {
     an_ifc_form_spec         form_spec = *opt_form_spec;
     an_ifc_expr_index        form_arg_idx = get_ifc_arguments(form_spec);
@@ -8203,8 +8265,8 @@ pushed.
 }  /* ensure_module_scope */
 
 
-static void load_ifc_namespace(an_ifc_scope_index scope_index,
-                               a_scope_ptr        scope);
+static void load_ifc_namespace(an_ifc_scope_offset scope_offset,
+                               a_scope_ptr         scope);
 
 
 static void process_decl_to_il_entity(a_module_entity_ptr mep,
@@ -9970,9 +10032,9 @@ Complete the definition of the class referred to by mep (if needed).
      the definition is imminent. */
   /* FIXME: Migrate mep->def_imminent to ifc_pending_definitions. */
   if (opt_ids.has_value() && !mep->def_imminent) {
-    an_ifc_decl_scope  ids = *opt_ids;
-    an_ifc_scope_index initializer = get_ifc_initializer(ids);
-    a_type_ptr         class_type = (a_type_ptr)mep->entity.ptr;
+    an_ifc_decl_scope   ids = *opt_ids;
+    an_ifc_scope_offset initializer = get_ifc_initializer(ids);
+    a_type_ptr          class_type = (a_type_ptr)mep->entity.ptr;
 
     check_assertion(mep->entity.kind == (an_il_entry_kind)iek_type &&
                     class_type != NULL);
@@ -9985,9 +10047,9 @@ Complete the definition of the class referred to by mep (if needed).
     }  /* if */
 #endif /* DEBUG */
 
-    an_ifc_scope_index           class_members_idx = get_ifc_initializer(ids);
+    an_ifc_scope_offset          class_members_idx = get_ifc_initializer(ids);
     Opt<an_ifc_scope_descriptor> opt_class_members;
-    if (class_members_idx != 0) {
+    if (!is_null_index(class_members_idx)) {
       construct_node(&opt_class_members, class_members_idx);
     }  /* if */
     if (!class_type->incomplete) {
@@ -10008,7 +10070,7 @@ Complete the definition of the class referred to by mep (if needed).
         ifc_unexpected(module_of(decl_idx), err_msg.as_temp_characters());
         invalidate_failed_class_members(class_members, diag_count_snapshot);
       }  /* if */
-    } else if (initializer != 0) {
+    } else if (!is_null_index(initializer)) {
       a_template_decl_info_ptr    tdip;
       a_symbol_ptr                class_sym = symbol_for(class_type);
       a_scope_depth               saved_non_local_class_fixup_depth =
@@ -10548,16 +10610,7 @@ issue diagnostics if issue_diag is TRUE.
 
   /* Read the IFC file header (which starts after the magic number). */
   this->header = read_file_header(&this->file);
-  /* FIXME: We should likely check the version here, but for now assume all
-     headers are the same.  Until the version is initialized in
-     initialize_members_from_ifc_module_file this module will be treated as
-     the current minimum supported version. */
-  if (!validate(this->header, /*parent=*/NULL)) {
-    result = FALSE;
-    goto done;
-  }
   update_file_metadata(&this->file, this->header);
-done:
   return result;
 }  /* an_ifc_module::init_header */
 
@@ -10712,6 +10765,10 @@ diagnostics if issue_diag is TRUE.
       }  /* if */
     }  /* for */
   }
+  if (!validate(this->header, /*parent=*/NULL)) {
+    result = FALSE;
+    goto done;
+  }  /* if */
   (void)fseek(this->file.f_module, 0L, SEEK_SET);
   if (get_partition_metadata(ifc_pk_name_source_file).name != NULL) {
     /* Allocate an array to map source locations to sequence numbers for each
@@ -10964,18 +11021,18 @@ done:;
 }  /* defer_ifc_declaration */
 
 
-static void load_ifc_namespace(an_ifc_scope_index scope_index,
-                               a_scope_ptr        scope)
+static void load_ifc_namespace(an_ifc_scope_offset scope_offset,
+                               a_scope_ptr         scope)
 /*
-Process the IFC namespace scope specified by scope_index in the module file.
+Process the IFC namespace scope specified by scope_offset in the module file.
 All items in the IFC scope will be members of scope and their definitions will
 be deferred until they are referenced.
 */
 {
-  if (scope != NULL && scope_index != 0) {
+  if (scope != NULL && !is_null_index(scope_offset)) {
     Opt<an_ifc_scope_descriptor> opt_scope_desc;
 
-    construct_node(&opt_scope_desc, scope_index);
+    construct_node(&opt_scope_desc, scope_offset);
     if (!opt_scope_desc.has_value()) {
       goto done;
     }  /* if */
@@ -18065,7 +18122,7 @@ void an_ifc_module::cache_scope_decl(a_module_token_cache_ptr cache,
                                      an_ifc_type_index        type,
                                      an_ifc_name_index        name,
                                      an_ifc_type_index        base,
-                                     an_ifc_scope_index       scope,
+                                     an_ifc_scope_offset      scope,
                                      const an_ifc_cache_info  &cinfo)
 /*
 Cache the tokens corresponding to the given scope decl (indexed in the IFC by
@@ -18108,7 +18165,7 @@ decisions about what to cache.
           cache_token(cache, tok_colon);
           cache_type(cache, base, /*cinfo=*/{});
         }  /* if */
-        if (scope != 0) {
+        if (!is_null_index(scope)) {
           Opt<an_ifc_scope_descriptor> opt_class_members;
 
           construct_node(&opt_class_members, scope);
@@ -19679,7 +19736,7 @@ context to help inform decisions about what to cache.
 
 
 static void cache_template_argument_list(a_module_token_cache_ptr cache,
-                                         an_ifc_form_spec_index   form_idx)
+                                         an_ifc_form_spec_offset  form_offset)
 /*
 Add the tokens for the portion of a simple-template-id following the
 template-name (i.e., '<' template-argument-listopt '>') via the associated form
@@ -19690,7 +19747,7 @@ spec (form_idx) to the cache.
 
   /* Load the argument list from the specialization form. */
   Opt<an_ifc_form_spec> opt_ifs;
-  construct_node(&opt_ifs, form_idx);
+  construct_node(&opt_ifs, form_offset);
   if (opt_ifs.has_value()) {
     an_ifc_expr_index arg_expr_idx = get_ifc_arguments(*opt_ifs);
 
@@ -19945,8 +20002,8 @@ current cache context to help inform decisions about what to cache.
                 cache_type(cache, base, cinfo);
               }  /* if */
 
-              an_ifc_scope_index class_members_idx = get_ifc_initializer(ids);
-              if (class_members_idx != 0) {
+              an_ifc_scope_offset class_members_idx = get_ifc_initializer(ids);
+              if (!is_null_index(class_members_idx)) {
                 Opt<an_ifc_scope_descriptor> opt_class_members;
 
                 construct_node(&opt_class_members, class_members_idx);
@@ -20492,9 +20549,9 @@ about what to cache.
 
         const a_string &decl_name = *opt_decl_name;
         if (decl_name.is_empty()) {
-          an_ifc_type_index  type = get_ifc_type(scope_decl);
-          an_ifc_type_index  base = get_ifc_base(scope_decl);
-          an_ifc_scope_index initializer = get_ifc_initializer(scope_decl);
+          an_ifc_type_index   type = get_ifc_type(scope_decl);
+          an_ifc_type_index   base = get_ifc_base(scope_decl);
+          an_ifc_scope_offset initializer = get_ifc_initializer(scope_decl);
 
           cache_scope_decl(cache, decl, type, /*name=*/{}, base, initializer,
                            cinfo);
@@ -21185,7 +21242,10 @@ tuple elements by '::' instead of ','.
         an_ifc_expr_unqualified_id ieui = *opt_ieui;
         an_ifc_expr_index          resolution = get_ifc_resolution(ieui);
         an_ifc_name_index          name = get_ifc_name(ieui);
-        if (get_ifc_line(get_ifc_template_keyword(ieui)) != 0) {
+        an_ifc_source_location     templ_kw = get_ifc_template_keyword(ieui);
+        if (!is_missing_source_location(templ_kw)) {
+          an_ifc_source_position_hint tok_pos_hint(cache, templ_kw);
+
           cache_token(cache, tok_template);
         }  /* if */
         /* It's possible to have this with no name/resolution at all.  For
@@ -21231,8 +21291,12 @@ tuple elements by '::' instead of ','.
         an_ifc_expr_qualified_name ieqn = *opt_ieqn;
         an_ifc_cache_info          cache_info = cinfo;
         cache_info.qualified_name = TRUE;
+
+        an_ifc_source_location  typename_kw = get_ifc_typename_keyword(ieqn);
         /* FIXME: Do we need to handle the "type" field here? */
-        if (get_ifc_line(get_ifc_typename_keyword(ieqn)) != 0) {
+        if (!is_missing_source_location(typename_kw)) {
+          an_ifc_source_position_hint tok_pos_hint(cache, typename_kw);
+
           cache_token(cache, tok_typename);
         }  /* if */
         cache_expr(cache, get_ifc_elements(ieqn), cache_info);
@@ -22141,11 +22205,20 @@ Otherwise, parameter references should only include the parameter name.
           goto invalid;
         }  /* if */
 
-        an_ifc_syntax_virtual_specifier_seq isvss = *opt_isvss;
-        if (get_ifc_line(get_ifc_override_kw(isvss)) != 0) {
+        an_ifc_syntax_virtual_specifier_seq
+                        isvss = *opt_isvss;
+        an_ifc_source_location
+                        override_kw = get_ifc_override_kw(isvss);
+        if (!is_missing_source_location(override_kw)) {
+          an_ifc_source_position_hint tok_pos_hint(cache, override_kw);
+
           cache_token(cache, tok_override);
         }  /* if */
-        if (get_ifc_line(get_ifc_final_kw(isvss)) != 0) {
+
+        an_ifc_source_location final_kw = get_ifc_final_kw(isvss);
+        if (!is_missing_source_location(final_kw)) {
+          an_ifc_source_position_hint tok_pos_hint(cache, final_kw);
+
           cache_token(cache, tok_final);
         }  /* if */
       }
@@ -22474,9 +22547,8 @@ Otherwise, parameter references should only include the parameter name.
           cache_token(cache, tok_eq);
           cache_expr(cache, initializer, cinfo);
         }  /* if */
-        if (get_ifc_line(comma) != 0) {
-          an_ifc_source_location      locus = get_ifc_comma(isid);
-          an_ifc_source_position_hint tok_pos_hint(cache, locus);
+        if (!is_missing_source_location(comma)) {
+          an_ifc_source_position_hint tok_pos_hint(cache, comma);
 
           cache_token(cache, tok_comma);
         }  /* if */
@@ -22774,7 +22846,7 @@ Otherwise, parameter references should only include the parameter name.
 
           cache_token(cache, tok_rbrace);
         }  /* if */
-        if (get_ifc_line(noexcept_loc) != 0) {
+        if (!is_missing_source_location(noexcept_loc)) {
           an_ifc_source_position_hint tok_pos_hint(cache, noexcept_loc);
 
           cache_token(cache, tok_noexcept);
@@ -22818,11 +22890,16 @@ Otherwise, parameter references should only include the parameter name.
           goto invalid;
         }  /* if */
 
-        an_ifc_syntax_type_template_parameter isttp = *opt_isttp;
-        an_ifc_syntax_index                   argument =
-                                                       get_ifc_argument(isttp);
+        an_ifc_syntax_type_template_parameter
+                        isttp = *opt_isttp;
+        an_ifc_syntax_index
+                        argument = get_ifc_argument(isttp);
+        an_ifc_source_location
+                        ellipsis = get_ifc_ellipsis(isttp);
         cache_token(cache, tok_typename);
-        if (get_ifc_line(get_ifc_ellipsis(isttp)) != 0) {
+        if (!is_missing_source_location(ellipsis)) {
+          an_ifc_source_position_hint tok_pos_hint(cache, ellipsis);
+
           cache_token(cache, tok_ellipsis);
         }  /* if */
 
@@ -22856,7 +22933,7 @@ Otherwise, parameter references should only include the parameter name.
         cache_token(cache, tok_gt);
 
         an_ifc_source_location ellipsis = get_ifc_ellipsis(isttp);
-        if (get_ifc_line(ellipsis) != 0) {
+        if (!is_missing_source_location(ellipsis)) {
           an_ifc_source_position_hint tok_pos_hint(cache, ellipsis);
 
           cache_token(cache, tok_ellipsis);
@@ -22875,7 +22952,7 @@ Otherwise, parameter references should only include the parameter name.
         }  /* if */
 
         an_ifc_source_location comma = get_ifc_comma(isttp);
-        if (get_ifc_line(comma) != 0) {
+        if (!is_missing_source_location(comma)) {
           an_ifc_source_position_hint tok_pos_hint(cache, comma);
 
           cache_token(cache, tok_comma);
@@ -22894,14 +22971,14 @@ Otherwise, parameter references should only include the parameter name.
         cache_syntax(cache, get_ifc_argument(istta), cinfo);
 
         an_ifc_source_location ellipsis = get_ifc_ellipsis(istta);
-        if (get_ifc_line(ellipsis) != 0) {
+        if (!is_missing_source_location(ellipsis)) {
           an_ifc_source_position_hint tok_pos_hint(cache, ellipsis);
 
           cache_token(cache, tok_ellipsis);
         }  /* if */
 
         an_ifc_source_location comma = get_ifc_comma(istta);
-        if (get_ifc_line(comma) != 0) {
+        if (!is_missing_source_location(comma)) {
           an_ifc_source_position_hint tok_pos_hint(cache, comma);
 
           cache_token(cache, tok_comma);
@@ -22920,14 +22997,14 @@ Otherwise, parameter references should only include the parameter name.
         cache_expr(cache, get_ifc_argument(isntta), cinfo);
 
         an_ifc_source_location ellipsis = get_ifc_ellipsis(isntta);
-        if (get_ifc_line(ellipsis) != 0) {
+        if (!is_missing_source_location(ellipsis)) {
           an_ifc_source_position_hint tok_pos_hint(cache, ellipsis);
 
           cache_token(cache, tok_ellipsis);
         }  /* if */
 
         an_ifc_source_location comma = get_ifc_comma(isntta);
-        if (get_ifc_line(comma) != 0) {
+        if (!is_missing_source_location(comma)) {
           an_ifc_source_position_hint tok_pos_hint(cache, comma);
 
           cache_token(cache, tok_comma);
@@ -22995,7 +23072,7 @@ Otherwise, parameter references should only include the parameter name.
         an_ifc_syntax_template_id isti = *opt_isti;
         an_ifc_syntax_index       name = get_ifc_name(isti);
         an_ifc_source_location    template_kw = get_ifc_template_kw(isti);
-        if (get_ifc_line(template_kw) != 0) {
+        if (!is_missing_source_location(template_kw)) {
           an_ifc_source_position_hint tok_pos_hint(cache, template_kw);
 
           cache_token(cache, tok_template);
@@ -23919,6 +23996,25 @@ diagnostic using the validation trace.
 }  /* validate_element_exists */
 
 
+void unknown_partition_conversion(an_ifc_module_file            *file,
+                                  const char                    *sort_name,
+                                  an_ifc_index_type             index,
+                                  const an_ifc_validation_trace *trace)
+/*
+Given the associated module, sort name, requested partition index, and
+validation trace, emit a diagnostic for an index that couldn't be converted to
+a partition index.
+*/
+{
+  a_diagnostic_ptr diag_ptr = start_error(ec_unknown_ifc_partition_conversion,
+                                          file->mod->assoc_module_info->name,
+                                          sort_name, index);
+
+  add_backtrace(diag_ptr, trace);
+  end_diagnostic(diag_ptr);
+}  /* unknown_partition_conversion */
+
+
 an_ifc_msvc_traits_bitfield an_ifc_module::get_vendor_traits(
                                                         an_ifc_decl_index decl)
 /*
@@ -24042,7 +24138,7 @@ Display the contents of the IFC file header.
 }  /* an_ifc_module::db_ifc_file_header */
 
 
-void an_ifc_module::db_ifc_scope(an_ifc_scope_index scope)
+void an_ifc_module::db_ifc_scope(an_ifc_scope_offset scope)
 /*
 Display the contents of the specified scope.
 */

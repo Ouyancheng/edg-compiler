@@ -433,7 +433,7 @@ public:
                         an_ifc_type_index            type,
                         an_ifc_name_index            name,
                         an_ifc_type_index            base,
-                        an_ifc_scope_index           scope,
+                        an_ifc_scope_offset          scope,
                         const an_ifc_cache_info      &cinfo);
   void cache_type_first_part(a_module_token_cache_ptr cache,
                              an_ifc_type_index        type,
@@ -550,7 +550,7 @@ public:
                                        an_il_entry_kind                 *kind);
 #if DEBUG
   void db_ifc_file_header() const;
-  void db_ifc_scope(an_ifc_scope_index scope);
+  void db_ifc_scope(an_ifc_scope_offset scope);
   void db_ifc_declaration(an_ifc_decl_index decl);
 #if EXPENSIVE_CHECKING
   void f_db_get_byte(a_const_char *value_str,
@@ -649,6 +649,16 @@ struct an_ifc_partition_kind_index : public an_ifc_module_entity {
 };  /* an_ifc_partition_kind_index */
 
 
+inline a_boolean is_null_index(an_ifc_partition_kind_index idx)
+/*
+Given an IFC partition kind index, return TRUE if the given index is considered
+a NULL index; otherwise, return FALSE.
+*/
+{
+  return idx.partition_kind == ifc_pk_none;
+}  /* is_null_index */
+
+
 inline an_ifc_module *module_of(const an_ifc_module_entity &entity)
 /*
 Given an IFC module entity, return the corresponding an_ifc_module instance.
@@ -668,20 +678,8 @@ Given an IFC module entity, return the corresponding an_ifc_module instance.
 template<typename an_ifc_Index_type>
 extern an_ifc_partition_kind get_partition_kind(an_ifc_Index_type idx);
 
-template<>
-an_ifc_partition_kind get_partition_kind(an_ifc_partition_kind_index idx);
-
-template<>
-an_ifc_partition_kind get_partition_kind(an_ifc_form_spec_index idx);
-
-template<>
-an_ifc_partition_kind get_partition_kind(an_ifc_scope_index idx);
-
 template<typename an_ifc_Index_type>
 extern an_ifc_index_type get_partition_index(an_ifc_Index_type idx);
-
-template<>
-an_ifc_index_type get_partition_index(an_ifc_scope_index idx);
 
 template<typename an_ifc_Index_type>
 extern an_ifc_partition_metadata *get_partition_metadata(
@@ -833,6 +831,11 @@ extern a_boolean validate_element_exists(
                                   an_ifc_index_type             index,
                                   const an_ifc_validation_trace *trace);
 
+extern void unknown_partition_conversion(
+                                      an_ifc_module_file            *file,
+                                      const char                    *sort_name,
+                                      an_ifc_index_type             index,
+                                      const an_ifc_validation_trace *trace);
 
 #if DEBUG
 extern void db_mep(a_module_entity_ptr mep);

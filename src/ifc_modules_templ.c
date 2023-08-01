@@ -29,17 +29,22 @@ BEGIN_EDG_NAMESPACE
 
 
 template<typename an_ifc_Index_type>
-an_ifc_partition_kind get_partition_kind(an_ifc_Index_type idx)
+static inline an_ifc_partition_kind resolve_partition_kind(
+                                                         an_ifc_Index_type idx)
 /*
-Return the partition kind associated with the given index.
+This function exists as an implementation detail.  Template specializations
+need to be forward declared in every location where they're visible, to reduce
+code complexity this function is specialized instead of get_partition_kind.
+
+Given an IFC index value return the associated partition kind.
 */
 {
   return to_partition_kind(idx.sort);
-}  /* get_partition_kind */
+}  /* resolve_partition_kind */
 
 
 template<>
-an_ifc_partition_kind get_partition_kind(an_ifc_partition_kind_index idx)
+an_ifc_partition_kind resolve_partition_kind(an_ifc_partition_kind_index idx)
 /*
 Return the partition kind associated with the given index.
 */
@@ -48,26 +53,31 @@ Return the partition kind associated with the given index.
 }  /* get_partition_kind */
 
 
-/* FIXME: It probably shouldn't be necessary to have these specializations.  We
-   probably need a role that represents an index into a particular
-   partition. */
-template<>
-an_ifc_partition_kind get_partition_kind(an_ifc_form_spec_index idx)
-/*
-Return the partition kind associated with the given index.
-*/
-{
-  return ifc_pk_form_spec;
-}  /* get_partition_kind */
+/* Macro used to explicitly specialize resolve_partition_kind for a node offset
+   type. */
+#define SPEC_OFFSET_PARTITION_KIND(offset_type) \
+  template<> \
+  an_ifc_partition_kind resolve_partition_kind<offset_type>(                  \
+                                                  ARG_UNUSED offset_type idx) \
+    { return get_ifc_partition_kind<offset_type>(); }
 
 
-template<>
-an_ifc_partition_kind get_partition_kind(an_ifc_scope_index idx)
+template<typename an_ifc_Index_type>
+an_ifc_partition_kind get_partition_kind(an_ifc_Index_type idx)
 /*
 Return the partition kind associated with the given index.
+
+Note: NULL index values are considered in ifc_pk_none; this allows for null
+index reads to be safely diagnosed as a mismatched partition kind read
+(ec_ifc_partition_mismatch).
 */
 {
-  return ifc_pk_scope_desc;
+  an_ifc_partition_kind result = ifc_pk_none;
+
+  if (!is_null_index(idx)) {
+    result = resolve_partition_kind(idx);
+  }  /* if */
+  return result;
 }  /* get_partition_kind */
 
 
@@ -82,31 +92,35 @@ Return the partition kind associated with the given index.
 
 
 template<typename an_ifc_Index_type>
+static inline an_ifc_index_type resolve_partition_index(an_ifc_Index_type idx)
+/*
+This function exists as an implementation detail.  Template specializations
+need to be forward declared in every location where they're visible, to reduce
+code complexity this function is specialized instead of get_partition_kind.
+
+Given an IFC index value return the associated index into its associated
+partition.
+*/
+{
+  return idx.value;
+}  /* resolve_partition_kind */
+
+
+/* Macro used to explicitly specialize resolve_partition_kind for a node offset
+   type. */
+#define SPEC_OFFSET_PARTITION_INDEX(offset_type) \
+  template<> \
+  an_ifc_index_type resolve_partition_index<offset_type>(offset_type idx) \
+    { return idx.value - 1; }
+
+
+template<typename an_ifc_Index_type>
 an_ifc_index_type get_partition_index(an_ifc_Index_type idx)
 /*
 Return the index into the partition associated with the given index type.
 */
 {
-  return idx.value;
-}  /* get_partition_index */
-
-
-/* FIXME: It probably shouldn't be necessary to have this specialization.  We
-   probably need a role that represents an index into a particular
-   partition. */
-template<>
-an_ifc_index_type get_partition_index(an_ifc_scope_index idx)
-/*
-Return the index into the partition associated with the given scope index.
-*/
-{
-  /* "an_ifc_scope_index" is an offset into the partition a value of 0 means
-     there is not a value.  A value (n) of 1 or higher means the information is
-     in the associated ifc_pk_scope_desc partition at n - 1. */
-  /* If this fails, the caller did not properly check that they had a
-     "non-NULL" index. */
-  check_assertion_str(idx.value > 0, "attempted read from a null scope index");
-  return idx.value - 1;
+  return resolve_partition_index(idx);
 }  /* get_partition_index */
 
 
@@ -467,7 +481,6 @@ INST_CONSTRUCT_NODE(an_ifc_decl_partial_specialization,
 INST_CONSTRUCT_NODE(an_ifc_decl_template, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_decl_temploid, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_decl_specialization, an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE(an_ifc_form_spec, an_ifc_form_spec_index)
 INST_CONSTRUCT_NODE(an_ifc_heap_attr, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_heap_decl, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_heap_expr, an_ifc_partition_kind_index)
@@ -479,7 +492,6 @@ INST_CONSTRUCT_NODE(an_ifc_module_export_reference,
                     an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_module_import_reference,
                     an_ifc_partition_kind_index)
-INST_CONSTRUCT_NODE(an_ifc_scope_descriptor, an_ifc_scope_index)
 INST_CONSTRUCT_NODE(an_ifc_scope_member, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_source_line, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_source_sentence, an_ifc_partition_kind_index)
@@ -550,7 +562,6 @@ constructed node will not be checked for validity.
 /* Manually defined explicit instantiations of construct_node_unchecked. */
 /* FIXME: This should be automatically handled by the codegen script,
    but it isn't. */
-INST_CONSTRUCT_NODE_UN(an_ifc_form_spec, an_ifc_form_spec_index)
 INST_CONSTRUCT_NODE_UN(an_ifc_trait_function_definition,
                        an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE_UN(an_ifc_trait_deduction_guide,
@@ -665,6 +676,7 @@ INST_LEXICAL_IDX_CONVERSION(an_ifc_expr_index)
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 
+#include "ifc_modules_spec.h"
 #include "ifc_modules_inst.h"
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED && !STANDALONE_UTILITY_PROGRAM */

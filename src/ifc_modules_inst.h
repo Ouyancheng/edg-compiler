@@ -744,6 +744,12 @@ INST_CONSTRUCT_NODE_ALL(an_ifc_form_pragma, an_ifc_form_index)
 
 
 /*
+Explicit instantiations of functions for FormSpec.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_form_spec, an_ifc_form_spec_offset)
+
+
+/*
 Explicit instantiations of functions for FormString.
 */
 INST_CONSTRUCT_NODE_ALL(an_ifc_form_string, an_ifc_form_index)
@@ -819,6 +825,18 @@ INST_CONSTRUCT_NODE_ALL(an_ifc_name_specialization, an_ifc_name_index)
 Explicit instantiations of functions for NameTemplate.
 */
 INST_CONSTRUCT_NODE_ALL(an_ifc_name_template, an_ifc_name_index)
+
+
+/*
+Explicit instantiations of functions for ScopeDescriptor.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_scope_descriptor, an_ifc_scope_offset)
+
+
+/*
+Explicit instantiations of functions for SourceLine.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_source_line, an_ifc_line_offset)
 
 
 /*
@@ -1768,6 +1786,24 @@ INST_CONSTRUCT_NODE_ALL(an_ifc_type_typename, an_ifc_type_index)
 Explicit instantiations of functions for TypeUnaligned.
 */
 INST_CONSTRUCT_NODE_ALL(an_ifc_type_unaligned, an_ifc_type_index)
+
+
+/*
+Explicit instantiations of functions for FormSpecOffset.
+*/
+INST_PARTITION_ALL(an_ifc_form_spec_offset)
+
+
+/*
+Explicit instantiations of functions for LineOffset.
+*/
+INST_PARTITION_ALL(an_ifc_line_offset)
+
+
+/*
+Explicit instantiations of functions for ScopeOffset.
+*/
+INST_PARTITION_ALL(an_ifc_scope_offset)
 
 
 /* Conditionally close the "edg" namespace. */
