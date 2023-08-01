@@ -22078,10 +22078,84 @@ Otherwise, parameter references should only include the parameter name.
   an_ifc_source_position_hint pos_hint(cache, syntax);
 
   switch (syntax.sort) {
+    case ifc_ss_syntax_access_specifier:
+    case ifc_ss_syntax_alias_declaration:
+    case ifc_ss_syntax_alignas:
+    case ifc_ss_syntax_asm_statement:
+    case ifc_ss_syntax_attribute:
+    case ifc_ss_syntax_attribute_argument_clause:
+    case ifc_ss_syntax_attribute_specifier:
+    case ifc_ss_syntax_attribute_specifier_seq:
+    case ifc_ss_syntax_attribute_using_prefix:
+    case ifc_ss_syntax_attributed_declaration:
+    case ifc_ss_syntax_attributed_statement:
+    case ifc_ss_syntax_base_specifier:
+    case ifc_ss_syntax_base_specifier_list:
+    case ifc_ss_syntax_binary_fold_expression:
+    case ifc_ss_syntax_break_statement:
+    case ifc_ss_syntax_capture_default:
+    case ifc_ss_syntax_class_specifier:
+    case ifc_ss_syntax_compound_statement:
+    case ifc_ss_syntax_concept_definition:
+    case ifc_ss_syntax_condition_declaration:
+    case ifc_ss_syntax_continue_statement:
+    case ifc_ss_syntax_ctor_initializer:
+    case ifc_ss_syntax_declaration_statement:
+    case ifc_ss_syntax_do_while_statement:
+    case ifc_ss_syntax_dynamic_exception_spec:
+    case ifc_ss_syntax_empty_statement:
+    case ifc_ss_syntax_enum_specifier:
+    case ifc_ss_syntax_enumerator_definition:
+    case ifc_ss_syntax_exception_declaration:
+    case ifc_ss_syntax_expression_statement:
+    case ifc_ss_syntax_for_range_declaration:
+    case ifc_ss_syntax_for_statement:
+    case ifc_ss_syntax_function_body:
+    case ifc_ss_syntax_function_definition:
+    case ifc_ss_syntax_function_try_block:
+    case ifc_ss_syntax_goto_statement:
+    case ifc_ss_syntax_handler:
+    case ifc_ss_syntax_handler_seq:
+    case ifc_ss_syntax_if_statement:
+    case ifc_ss_syntax_init_capture:
+    case ifc_ss_syntax_init_statement:
+    case ifc_ss_syntax_labeled_statement:
+    case ifc_ss_syntax_lambda_declarator:
+    case ifc_ss_syntax_lambda_introducer:
+    case ifc_ss_syntax_mem_initializer:
+    case ifc_ss_syntax_member_declaration:
+    case ifc_ss_syntax_member_declarator:
+    case ifc_ss_syntax_member_function_declaration:
+    case ifc_ss_syntax_member_specification:
+    case ifc_ss_syntax_namespace_alias_definition:
+    case ifc_ss_syntax_nested_requirement:
+    case ifc_ss_syntax_new_declarator:
+    case ifc_ss_syntax_range_based_for_statement:
+    case ifc_ss_syntax_return_statement:
+    case ifc_ss_syntax_seh_except:
+    case ifc_ss_syntax_seh_finally:
+    case ifc_ss_syntax_seh_leave:
+    case ifc_ss_syntax_seh_try:
+    case ifc_ss_syntax_simple_capture:
+    case ifc_ss_syntax_statement_seq:
+    case ifc_ss_syntax_structured_binding_declaration:
+    case ifc_ss_syntax_structured_binding_identifier:
+    case ifc_ss_syntax_super:
+    case ifc_ss_syntax_switch_statement:
+    case ifc_ss_syntax_this_capture:
+    case ifc_ss_syntax_try_block:
+    case ifc_ss_syntax_type_id_list_element:
+    case ifc_ss_syntax_unary_fold_expression:
+    case ifc_ss_syntax_using_declaration:
+    case ifc_ss_syntax_using_declarator:
+    case ifc_ss_syntax_using_directive:
+    case ifc_ss_syntax_using_enum_declaration:
     case ifc_ss_syntax_vendor_extension:
-      issue_unsupported_construct_error(this, "SyntaxSort::VendorExtension",
+    case ifc_ss_syntax_while_statement:
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_construct_error(this, str_for(syntax.sort),
                                         &error_position);
-      break;
+      goto invalid;
     case ifc_ss_syntax_simple_type_specifier:
       { Opt<an_ifc_syntax_simple_type_specifier> opt_issts;
 
@@ -22255,53 +22329,6 @@ Otherwise, parameter references should only include the parameter name.
           cache_token(cache, tok_rparen);
         }  /* if */
       }
-      break;
-    case ifc_ss_syntax_enum_specifier:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::EnumSpecifier",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_enumerator_definition:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "SyntaxSort::EnumeratorDefinition",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_class_specifier:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::ClassSpecifier",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_member_specification:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "SyntaxSort::MemberSpecification",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_member_declaration:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::MemberDeclaration",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_member_declarator:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::MemberDeclarator",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_access_specifier:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::AccessSpecifier",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_base_specifier_list:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::BaseSpecifierList",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_base_specifier:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::BaseSpecifier",
-                                        &error_position);
       break;
     case ifc_ss_syntax_type_id:
       { Opt<an_ifc_syntax_type_id> opt_isti;
@@ -22554,11 +22581,6 @@ Otherwise, parameter references should only include the parameter name.
         }  /* if */
       }
       break;
-    case ifc_ss_syntax_new_declarator:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::NewDeclarator",
-                                        &error_position);
-      break;
     case ifc_ss_syntax_simple_declaration:
       { Opt<an_ifc_syntax_simple_declaration> opt_issd;
 
@@ -22582,18 +22604,6 @@ Otherwise, parameter references should only include the parameter name.
         }
       }
       break;
-    case ifc_ss_syntax_exception_declaration:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "SyntaxSort::ExceptionDeclaration",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_condition_declaration:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "SyntaxSort::ConditionDeclaration",
-                                        &error_position);
-      break;
     case ifc_ss_syntax_static_assert_declaration:
       { Opt<an_ifc_syntax_static_assert_declaration> opt_issad;
 
@@ -22616,141 +22626,6 @@ Otherwise, parameter references should only include the parameter name.
         cache_token(cache, tok_semicolon);
       }
       break;
-    case ifc_ss_syntax_alias_declaration:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::AliasDeclaration",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_concept_definition:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::ConceptDefinition",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_compound_statement:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::CompoundStatement",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_return_statement:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::ReturnStatement",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_if_statement:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::IfStatement",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_while_statement:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::WhileStatement",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_do_while_statement:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::DoWhileStatement",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_for_statement:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::ForStatement",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_init_statement:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::InitStatement",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_range_based_for_statement:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "SyntaxSort::RangeBasedForStatement",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_for_range_declaration:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "SyntaxSort::ForRangeDeclaration",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_labeled_statement:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::LabeledStatement",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_break_statement:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::BreakStatement",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_continue_statement:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::ContinueStatement",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_switch_statement:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::SwitchStatement",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_goto_statement:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::GotoStatement",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_declaration_statement:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "SyntaxSort::DeclarationStatement",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_expression_statement:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "SyntaxSort::ExpressionStatement",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_try_block:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::TryBlock",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_handler:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::Handler",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_handler_seq:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::HandlerSeq",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_function_try_block:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::FunctionTryBlock",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_type_id_list_element:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::TypeIdListElement",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_dynamic_exception_spec:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "SyntaxSort::DynamicExceptionSpec",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_statement_seq:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::StatementSeq",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_function_body:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::FunctionBody",
-                                        &error_position);
-      break;
     case ifc_ss_syntax_expression:
       { Opt<an_ifc_syntax_expression> opt_ise;
 
@@ -22760,18 +22635,6 @@ Otherwise, parameter references should only include the parameter name.
         }  /* if */
         cache_expr(cache, get_ifc_expression(*opt_ise), cinfo);
       }
-      break;
-    case ifc_ss_syntax_function_definition:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::FunctionDefinition",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_member_function_declaration:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(
-                                       this,
-                                       "SyntaxSort::MemberFunctionDeclaration",
-                                       &error_position);
       break;
     case ifc_ss_syntax_template_declaration:
       { Opt<an_ifc_syntax_template_declaration> opt_istd;
@@ -22855,11 +22718,6 @@ Otherwise, parameter references should only include the parameter name.
         cache_expr(cache, get_ifc_constraint(iscr), cinfo);
         cache_token(cache, tok_semicolon);
       }
-      break;
-    case ifc_ss_syntax_nested_requirement:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::NestedRequirement",
-                                        &error_position);
       break;
     case ifc_ss_syntax_requirement_body:
       { Opt<an_ifc_syntax_requirement_body> opt_isrb;
@@ -23088,106 +22946,6 @@ Otherwise, parameter references should only include the parameter name.
         cache_syntax(cache, get_ifc_arguments(isti), cinfo);
       }
       break;
-    case ifc_ss_syntax_mem_initializer:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::MemInitializer",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_ctor_initializer:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::CtorInitializer",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_lambda_introducer:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::LambdaIntroducer",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_lambda_declarator:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::LambdaDeclarator",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_capture_default:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::CaptureDefault",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_simple_capture:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::SimpleCapture",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_init_capture:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::InitCapture",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_this_capture:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::ThisCapture",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_attributed_statement:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "SyntaxSort::AttributedStatement",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_attributed_declaration:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "SyntaxSort::AttributedDeclaration",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_attribute_specifier_seq:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "SyntaxSort::AttributeSpecifierSeq",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_attribute_specifier:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::AttributeSpecifier",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_attribute_using_prefix:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "SyntaxSort::AttributeUsingPrefix",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_attribute:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::Attribute",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_attribute_argument_clause:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "SyntaxSort::AttributeArgumentClause",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_alignas:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::Alignas",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_using_declaration:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::UsingDeclaration",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_using_declarator:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::UsingDeclarator",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_using_directive:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::UsingDirective",
-                                        &error_position);
-      break;
     case ifc_ss_syntax_array_index:
       { Opt<an_ifc_syntax_array_index> opt_array_idx;
 
@@ -23214,26 +22972,6 @@ Otherwise, parameter references should only include the parameter name.
           cache_token(cache, tok_rbracket);
         }
       }
-      break;
-    case ifc_ss_syntax_seh_try:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::SEHTry",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_seh_except:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::SEHExcept",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_seh_finally:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::SEHFinally",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_seh_leave:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::SEHLeave",
-                                        &error_position);
       break;
     case ifc_ss_syntax_type_trait_intrinsic:
       { Opt<an_ifc_syntax_type_trait_intrinsic> opt_ty_trait;
@@ -23270,59 +23008,6 @@ Otherwise, parameter references should only include the parameter name.
           cache_syntax(cache, get_ifc_value(*indexed_ihs), cinfo);
         }  /* for */
       }
-      break;
-    case ifc_ss_syntax_asm_statement:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::AsmStatement",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_namespace_alias_definition:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "SyntaxSort::NamespaceAliasDefinition",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_super:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::Super",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_unary_fold_expression:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "SyntaxSort::UnaryFoldExpression",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_binary_fold_expression:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "SyntaxSort::BinaryFoldExpression",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_empty_statement:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SyntaxSort::EmptyStatement",
-                                        &error_position);
-      break;
-    case ifc_ss_syntax_structured_binding_declaration:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(
-                                    this,
-                                    "SyntaxSort::StructuredBindingDeclaration",
-                                    &error_position);
-      break;
-    case ifc_ss_syntax_structured_binding_identifier:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(
-                                     this,
-                                     "SyntaxSort::StructuredBindingIdentifier",
-                                     &error_position);
-      break;
-    case ifc_ss_syntax_using_enum_declaration:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "SyntaxSort::UsingEnumDeclaration",
-                                        &error_position);
       break;
     default_is_unexpected_str("Unexpected SyntaxSort");
   }  /* switch */
@@ -23455,6 +23140,7 @@ Add the tokens corresponding to the given name to cache.
         /* FIXME: Currently unsupported. */
         issue_unsupported_construct_error(this, "NameSort::Guide",
                                           &error_position);
+        goto invalid;
       }
       break;
     default_is_unexpected();
