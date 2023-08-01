@@ -941,25 +941,25 @@ otherwise, return FALSE.
 
 
 template<>
-an_ifc_line_index get_ifc_line(const an_ifc_source_location &universal)
+an_ifc_line_offset get_ifc_line(const an_ifc_source_location &universal)
 /*
 Given the universal representation of SourceLocation, return the universal
 representation of the field "line".
 */
 {
-  an_ifc_line_index result;
+  an_ifc_line_offset result;
 
   /* Ensure the line field exists in the current module version. */
   check_assertion(has_ifc_line(universal));
-  an_ifc_line_index_0_33 stage_0;
-  an_ifc_line_index      stage_1;
+  an_ifc_line_offset_0_33 stage_0;
+  an_ifc_line_offset      stage_1;
 
-  /* Copy the field (SourceLocation::line - LineIndex) into version-specific
+  /* Copy the field (SourceLocation::line - LineOffset) into version-specific
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = {universal.get_file(), (an_ifc_line_index_storage)stage_0};
+  stage_1 = to_universal_offset(universal.get_file(), stage_0);
   result = stage_1;
   return result;
 }  /* get_ifc_line */
@@ -1207,25 +1207,25 @@ otherwise, return FALSE.
 
 
 template<>
-an_ifc_scope_index get_ifc_global_scope(const an_ifc_file_header &universal)
+an_ifc_scope_offset get_ifc_global_scope(const an_ifc_file_header &universal)
 /*
 Given the universal representation of FileHeader, return the universal
 representation of the field "global_scope".
 */
 {
-  an_ifc_scope_index result;
+  an_ifc_scope_offset result;
 
   /* Ensure the global_scope field exists in the current module version. */
   check_assertion(has_ifc_global_scope(universal));
-  an_ifc_scope_index_0_33 stage_0;
-  an_ifc_scope_index      stage_1;
+  an_ifc_scope_offset_0_33 stage_0;
+  an_ifc_scope_offset      stage_1;
 
-  /* Copy the field (FileHeader::global_scope - ScopeIndex) into
+  /* Copy the field (FileHeader::global_scope - ScopeOffset) into
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/56);
-  stage_1 = {universal.get_file(), (an_ifc_scope_index_storage)stage_0};
+  stage_1 = to_universal_offset(universal.get_file(), stage_0);
   result = stage_1;
   return result;
 }  /* get_ifc_global_scope */
@@ -7432,26 +7432,26 @@ otherwise, return FALSE.
 
 
 template<>
-an_ifc_form_spec_index get_ifc_form(
+an_ifc_form_spec_offset get_ifc_form(
                            const an_ifc_decl_explicit_instantiation &universal)
 /*
 Given the universal representation of DeclExplicitInstantiation, return the
 universal representation of the field "form".
 */
 {
-  an_ifc_form_spec_index result;
+  an_ifc_form_spec_offset result;
 
   /* Ensure the form field exists in the current module version. */
   check_assertion(has_ifc_form(universal));
-  an_ifc_form_spec_index_0_33 stage_0;
-  an_ifc_form_spec_index      stage_1;
+  an_ifc_form_spec_offset_0_33 stage_0;
+  an_ifc_form_spec_offset      stage_1;
 
-  /* Copy the field (DeclExplicitInstantiation::form - FormSpecIndex) into
+  /* Copy the field (DeclExplicitInstantiation::form - FormSpecOffset) into
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = {universal.get_file(), (an_ifc_form_spec_index_storage)stage_0};
+  stage_1 = to_universal_offset(universal.get_file(), stage_0);
   result = stage_1;
   return result;
 }  /* get_ifc_form */
@@ -7527,26 +7527,26 @@ otherwise, return FALSE.
 
 
 template<>
-an_ifc_form_spec_index get_ifc_form(
+an_ifc_form_spec_offset get_ifc_form(
                           const an_ifc_decl_explicit_specialization &universal)
 /*
 Given the universal representation of DeclExplicitSpecialization, return the
 universal representation of the field "form".
 */
 {
-  an_ifc_form_spec_index result;
+  an_ifc_form_spec_offset result;
 
   /* Ensure the form field exists in the current module version. */
   check_assertion(has_ifc_form(universal));
-  an_ifc_form_spec_index_0_33 stage_0;
-  an_ifc_form_spec_index      stage_1;
+  an_ifc_form_spec_offset_0_33 stage_0;
+  an_ifc_form_spec_offset      stage_1;
 
-  /* Copy the field (DeclExplicitSpecialization::form - FormSpecIndex) into
+  /* Copy the field (DeclExplicitSpecialization::form - FormSpecOffset) into
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = {universal.get_file(), (an_ifc_form_spec_index_storage)stage_0};
+  stage_1 = to_universal_offset(universal.get_file(), stage_0);
   result = stage_1;
   return result;
 }  /* get_ifc_form */
@@ -10779,26 +10779,26 @@ otherwise, return FALSE.
 
 
 template<>
-an_ifc_form_spec_index get_ifc_form(
+an_ifc_form_spec_offset get_ifc_form(
                            const an_ifc_decl_partial_specialization &universal)
 /*
 Given the universal representation of DeclPartialSpecialization, return the
 universal representation of the field "form".
 */
 {
-  an_ifc_form_spec_index result;
+  an_ifc_form_spec_offset result;
 
   /* Ensure the form field exists in the current module version. */
   check_assertion(has_ifc_form(universal));
-  an_ifc_form_spec_index_0_33 stage_0;
-  an_ifc_form_spec_index      stage_1;
+  an_ifc_form_spec_offset_0_33 stage_0;
+  an_ifc_form_spec_offset      stage_1;
 
-  /* Copy the field (DeclPartialSpecialization::form - FormSpecIndex) into
+  /* Copy the field (DeclPartialSpecialization::form - FormSpecOffset) into
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36);
-  stage_1 = {universal.get_file(), (an_ifc_form_spec_index_storage)stage_0};
+  stage_1 = to_universal_offset(universal.get_file(), stage_0);
   result = stage_1;
   return result;
 }  /* get_ifc_form */
@@ -11037,18 +11037,18 @@ universal representation of the field "primary_template".
   /* Ensure the primary_template field exists in the current module version. */
   check_assertion(has_ifc_primary_template(universal));
   if (is_at_least(universal.get_file(), 0, 43)) {
-    an_ifc_form_spec_index_0_33 stage_0;
-    an_ifc_form_spec_index      stage_1;
-    an_ifc_form_spec            stage_2;
-    an_ifc_decl_index_0_43      stage_3;
-    an_ifc_decl_index           stage_4;
+    an_ifc_form_spec_offset_0_33 stage_0;
+    an_ifc_form_spec_offset      stage_1;
+    an_ifc_form_spec             stage_2;
+    an_ifc_decl_index_0_43       stage_3;
+    an_ifc_decl_index            stage_4;
 
-    /* Copy the field (DeclPartialSpecialization::form - FormSpecIndex) into
+    /* Copy the field (DeclPartialSpecialization::form - FormSpecOffset) into
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36);
-    stage_1 = {universal.get_file(), (an_ifc_form_spec_index_storage)stage_0};
+    stage_1 = to_universal_offset(universal.get_file(), stage_0);
     /* Use the obtained offset to retrieve the appropriate instance of
        FormSpec.  Then, retrieve and return the desired value held by the field
        primary_template. */
@@ -11061,18 +11061,18 @@ universal representation of the field "primary_template".
     stage_4 = to_universal_index(stage_2.get_file(), stage_3);
     result = stage_4;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
-    an_ifc_form_spec_index_0_33 stage_0;
-    an_ifc_form_spec_index      stage_1;
-    an_ifc_form_spec            stage_2;
-    an_ifc_decl_index_0_41      stage_3;
-    an_ifc_decl_index           stage_4;
+    an_ifc_form_spec_offset_0_33 stage_0;
+    an_ifc_form_spec_offset      stage_1;
+    an_ifc_form_spec             stage_2;
+    an_ifc_decl_index_0_41       stage_3;
+    an_ifc_decl_index            stage_4;
 
-    /* Copy the field (DeclPartialSpecialization::form - FormSpecIndex) into
+    /* Copy the field (DeclPartialSpecialization::form - FormSpecOffset) into
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36);
-    stage_1 = {universal.get_file(), (an_ifc_form_spec_index_storage)stage_0};
+    stage_1 = to_universal_offset(universal.get_file(), stage_0);
     /* Use the obtained offset to retrieve the appropriate instance of
        FormSpec.  Then, retrieve and return the desired value held by the field
        primary_template. */
@@ -11085,18 +11085,18 @@ universal representation of the field "primary_template".
     stage_4 = to_universal_index(stage_2.get_file(), stage_3);
     result = stage_4;
   } else {
-    an_ifc_form_spec_index_0_33 stage_0;
-    an_ifc_form_spec_index      stage_1;
-    an_ifc_form_spec            stage_2;
-    an_ifc_decl_index_0_33      stage_3;
-    an_ifc_decl_index           stage_4;
+    an_ifc_form_spec_offset_0_33 stage_0;
+    an_ifc_form_spec_offset      stage_1;
+    an_ifc_form_spec             stage_2;
+    an_ifc_decl_index_0_33       stage_3;
+    an_ifc_decl_index            stage_4;
 
-    /* Copy the field (DeclPartialSpecialization::form - FormSpecIndex) into
+    /* Copy the field (DeclPartialSpecialization::form - FormSpecOffset) into
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36);
-    stage_1 = {universal.get_file(), (an_ifc_form_spec_index_storage)stage_0};
+    stage_1 = to_universal_offset(universal.get_file(), stage_0);
     /* Use the obtained offset to retrieve the appropriate instance of
        FormSpec.  Then, retrieve and return the desired value held by the field
        primary_template. */
@@ -11804,25 +11804,25 @@ otherwise, return FALSE.
 
 
 template<>
-an_ifc_scope_index get_ifc_initializer(const an_ifc_decl_scope &universal)
+an_ifc_scope_offset get_ifc_initializer(const an_ifc_decl_scope &universal)
 /*
 Given the universal representation of DeclScope, return the universal
 representation of the field "initializer".
 */
 {
-  an_ifc_scope_index result;
+  an_ifc_scope_offset result;
 
   /* Ensure the initializer field exists in the current module version. */
   check_assertion(has_ifc_initializer(universal));
-  an_ifc_scope_index_0_33 stage_0;
-  an_ifc_scope_index      stage_1;
+  an_ifc_scope_offset_0_33 stage_0;
+  an_ifc_scope_offset      stage_1;
 
-  /* Copy the field (DeclScope::initializer - ScopeIndex) into version-specific
-     storage. */
+  /* Copy the field (DeclScope::initializer - ScopeOffset) into
+     version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
-  stage_1 = {universal.get_file(), (an_ifc_scope_index_storage)stage_0};
+  stage_1 = to_universal_offset(universal.get_file(), stage_0);
   result = stage_1;
   return result;
 }  /* get_ifc_initializer */
@@ -12209,26 +12209,26 @@ otherwise, return FALSE.
 
 
 template<>
-an_ifc_form_spec_index get_ifc_form(
+an_ifc_form_spec_offset get_ifc_form(
                                    const an_ifc_decl_specialization &universal)
 /*
 Given the universal representation of DeclSpecialization, return the universal
 representation of the field "form".
 */
 {
-  an_ifc_form_spec_index result;
+  an_ifc_form_spec_offset result;
 
   /* Ensure the form field exists in the current module version. */
   check_assertion(has_ifc_form(universal));
-  an_ifc_form_spec_index_0_33 stage_0;
-  an_ifc_form_spec_index      stage_1;
+  an_ifc_form_spec_offset_0_33 stage_0;
+  an_ifc_form_spec_offset      stage_1;
 
-  /* Copy the field (DeclSpecialization::form - FormSpecIndex) into
+  /* Copy the field (DeclSpecialization::form - FormSpecOffset) into
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
   copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-  stage_1 = {universal.get_file(), (an_ifc_form_spec_index_storage)stage_0};
+  stage_1 = to_universal_offset(universal.get_file(), stage_0);
   result = stage_1;
   return result;
 }  /* get_ifc_form */
@@ -12422,18 +12422,18 @@ representation of the field "primary_template".
   /* Ensure the primary_template field exists in the current module version. */
   check_assertion(has_ifc_primary_template(universal));
   if (is_at_least(universal.get_file(), 0, 43)) {
-    an_ifc_form_spec_index_0_33 stage_0;
-    an_ifc_form_spec_index      stage_1;
-    an_ifc_form_spec            stage_2;
-    an_ifc_decl_index_0_43      stage_3;
-    an_ifc_decl_index           stage_4;
+    an_ifc_form_spec_offset_0_33 stage_0;
+    an_ifc_form_spec_offset      stage_1;
+    an_ifc_form_spec             stage_2;
+    an_ifc_decl_index_0_43       stage_3;
+    an_ifc_decl_index            stage_4;
 
-    /* Copy the field (DeclSpecialization::form - FormSpecIndex) into
+    /* Copy the field (DeclSpecialization::form - FormSpecOffset) into
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    stage_1 = {universal.get_file(), (an_ifc_form_spec_index_storage)stage_0};
+    stage_1 = to_universal_offset(universal.get_file(), stage_0);
     /* Use the obtained offset to retrieve the appropriate instance of
        FormSpec.  Then, retrieve and return the desired value held by the field
        primary_template. */
@@ -12446,18 +12446,18 @@ representation of the field "primary_template".
     stage_4 = to_universal_index(stage_2.get_file(), stage_3);
     result = stage_4;
   } else {
-    an_ifc_form_spec_index_0_33 stage_0;
-    an_ifc_form_spec_index      stage_1;
-    an_ifc_form_spec            stage_2;
-    an_ifc_decl_index_0_41      stage_3;
-    an_ifc_decl_index           stage_4;
+    an_ifc_form_spec_offset_0_33 stage_0;
+    an_ifc_form_spec_offset      stage_1;
+    an_ifc_form_spec             stage_2;
+    an_ifc_decl_index_0_41       stage_3;
+    an_ifc_decl_index            stage_4;
 
-    /* Copy the field (DeclSpecialization::form - FormSpecIndex) into
+    /* Copy the field (DeclSpecialization::form - FormSpecOffset) into
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-    stage_1 = {universal.get_file(), (an_ifc_form_spec_index_storage)stage_0};
+    stage_1 = to_universal_offset(universal.get_file(), stage_0);
     /* Use the obtained offset to retrieve the appropriate instance of
        FormSpec.  Then, retrieve and return the desired value held by the field
        primary_template. */

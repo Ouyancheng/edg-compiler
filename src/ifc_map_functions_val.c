@@ -3201,7 +3201,7 @@ a_boolean validate_index(an_ifc_module_file            *file,
                          const an_ifc_validation_trace *parent)
 /*
 Given the versioned representation of AttrIndex and the associated module file,
-return TRUE if the value represents a valid index position; otherwise, return
+return TRUE if the value represents a valid node position; otherwise, return
 FALSE.
 */
 {
@@ -3221,6 +3221,14 @@ FALSE.
       if (!validate_element_exists(file, kind, value, parent)) {
         result = FALSE;
       }  /* if */
+    } else {
+      an_ifc_attr_index univ_idx = to_universal_index(file, versioned);
+
+      if (!is_null_index(univ_idx)) {
+        unknown_partition_conversion(file, str_for(univ_sort), univ_idx.value,
+                                     parent);
+        result = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
@@ -3232,7 +3240,7 @@ a_boolean validate_index(an_ifc_module_file            *file,
                          const an_ifc_validation_trace *parent)
 /*
 Given the versioned representation of ChartIndex and the associated module
-file, return TRUE if the value represents a valid index position; otherwise,
+file, return TRUE if the value represents a valid node position; otherwise,
 return FALSE.
 */
 {
@@ -3252,6 +3260,14 @@ return FALSE.
       if (!validate_element_exists(file, kind, value, parent)) {
         result = FALSE;
       }  /* if */
+    } else {
+      an_ifc_chart_index univ_idx = to_universal_index(file, versioned);
+
+      if (!is_null_index(univ_idx)) {
+        unknown_partition_conversion(file, str_for(univ_sort), univ_idx.value,
+                                     parent);
+        result = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
@@ -3263,7 +3279,7 @@ a_boolean validate_index(an_ifc_module_file            *file,
                          const an_ifc_validation_trace *parent)
 /*
 Given the versioned representation of DeclIndex and the associated module file,
-return TRUE if the value represents a valid index position; otherwise, return
+return TRUE if the value represents a valid node position; otherwise, return
 FALSE.
 */
 {
@@ -3283,6 +3299,14 @@ FALSE.
       if (!validate_element_exists(file, kind, value, parent)) {
         result = FALSE;
       }  /* if */
+    } else {
+      an_ifc_decl_index univ_idx = to_universal_index(file, versioned);
+
+      if (!is_null_index(univ_idx)) {
+        unknown_partition_conversion(file, str_for(univ_sort), univ_idx.value,
+                                     parent);
+        result = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
@@ -3294,7 +3318,7 @@ a_boolean validate_index(an_ifc_module_file            *file,
                          const an_ifc_validation_trace *parent)
 /*
 Given the versioned representation of DeclIndex and the associated module file,
-return TRUE if the value represents a valid index position; otherwise, return
+return TRUE if the value represents a valid node position; otherwise, return
 FALSE.
 */
 {
@@ -3314,6 +3338,14 @@ FALSE.
       if (!validate_element_exists(file, kind, value, parent)) {
         result = FALSE;
       }  /* if */
+    } else {
+      an_ifc_decl_index univ_idx = to_universal_index(file, versioned);
+
+      if (!is_null_index(univ_idx)) {
+        unknown_partition_conversion(file, str_for(univ_sort), univ_idx.value,
+                                     parent);
+        result = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
@@ -3325,7 +3357,7 @@ a_boolean validate_index(an_ifc_module_file            *file,
                          const an_ifc_validation_trace *parent)
 /*
 Given the versioned representation of DeclIndex and the associated module file,
-return TRUE if the value represents a valid index position; otherwise, return
+return TRUE if the value represents a valid node position; otherwise, return
 FALSE.
 */
 {
@@ -3345,6 +3377,14 @@ FALSE.
       if (!validate_element_exists(file, kind, value, parent)) {
         result = FALSE;
       }  /* if */
+    } else {
+      an_ifc_decl_index univ_idx = to_universal_index(file, versioned);
+
+      if (!is_null_index(univ_idx)) {
+        unknown_partition_conversion(file, str_for(univ_sort), univ_idx.value,
+                                     parent);
+        result = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
@@ -3356,7 +3396,7 @@ a_boolean validate_index(an_ifc_module_file            *file,
                          const an_ifc_validation_trace *parent)
 /*
 Given the versioned representation of ExprIndex and the associated module file,
-return TRUE if the value represents a valid index position; otherwise, return
+return TRUE if the value represents a valid node position; otherwise, return
 FALSE.
 */
 {
@@ -3376,6 +3416,14 @@ FALSE.
       if (!validate_element_exists(file, kind, value, parent)) {
         result = FALSE;
       }  /* if */
+    } else {
+      an_ifc_expr_index univ_idx = to_universal_index(file, versioned);
+
+      if (!is_null_index(univ_idx)) {
+        unknown_partition_conversion(file, str_for(univ_sort), univ_idx.value,
+                                     parent);
+        result = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
@@ -3387,7 +3435,7 @@ a_boolean validate_index(an_ifc_module_file            *file,
                          const an_ifc_validation_trace *parent)
 /*
 Given the versioned representation of ExprIndex and the associated module file,
-return TRUE if the value represents a valid index position; otherwise, return
+return TRUE if the value represents a valid node position; otherwise, return
 FALSE.
 */
 {
@@ -3407,6 +3455,14 @@ FALSE.
       if (!validate_element_exists(file, kind, value, parent)) {
         result = FALSE;
       }  /* if */
+    } else {
+      an_ifc_expr_index univ_idx = to_universal_index(file, versioned);
+
+      if (!is_null_index(univ_idx)) {
+        unknown_partition_conversion(file, str_for(univ_sort), univ_idx.value,
+                                     parent);
+        result = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
@@ -3418,7 +3474,7 @@ a_boolean validate_index(an_ifc_module_file            *file,
                          const an_ifc_validation_trace *parent)
 /*
 Given the versioned representation of FormIndex and the associated module file,
-return TRUE if the value represents a valid index position; otherwise, return
+return TRUE if the value represents a valid node position; otherwise, return
 FALSE.
 */
 {
@@ -3438,6 +3494,14 @@ FALSE.
       if (!validate_element_exists(file, kind, value, parent)) {
         result = FALSE;
       }  /* if */
+    } else {
+      an_ifc_form_index univ_idx = to_universal_index(file, versioned);
+
+      if (!is_null_index(univ_idx)) {
+        unknown_partition_conversion(file, str_for(univ_sort), univ_idx.value,
+                                     parent);
+        result = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
@@ -3449,7 +3513,7 @@ a_boolean validate_index(an_ifc_module_file            *file,
                          const an_ifc_validation_trace *parent)
 /*
 Given the versioned representation of LitIndex and the associated module file,
-return TRUE if the value represents a valid index position; otherwise, return
+return TRUE if the value represents a valid node position; otherwise, return
 FALSE.
 */
 {
@@ -3469,7 +3533,7 @@ a_boolean validate_index(an_ifc_module_file            *file,
                          const an_ifc_validation_trace *parent)
 /*
 Given the versioned representation of MacroIndex and the associated module
-file, return TRUE if the value represents a valid index position; otherwise,
+file, return TRUE if the value represents a valid node position; otherwise,
 return FALSE.
 */
 {
@@ -3489,6 +3553,14 @@ return FALSE.
       if (!validate_element_exists(file, kind, value, parent)) {
         result = FALSE;
       }  /* if */
+    } else {
+      an_ifc_macro_index univ_idx = to_universal_index(file, versioned);
+
+      if (!is_null_index(univ_idx)) {
+        unknown_partition_conversion(file, str_for(univ_sort), univ_idx.value,
+                                     parent);
+        result = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
@@ -3500,7 +3572,7 @@ a_boolean validate_index(an_ifc_module_file            *file,
                          const an_ifc_validation_trace *parent)
 /*
 Given the versioned representation of NameIndex and the associated module file,
-return TRUE if the value represents a valid index position; otherwise, return
+return TRUE if the value represents a valid node position; otherwise, return
 FALSE.
 */
 {
@@ -3520,6 +3592,15 @@ FALSE.
       if (!validate_element_exists(file, kind, value, parent)) {
         result = FALSE;
       }  /* if */
+    } else {
+      an_ifc_name_index univ_idx = to_universal_index(file, versioned);
+
+      if (univ_idx.sort == ifc_ns_text_offset) {
+      } else if (!is_null_index(univ_idx)) {
+        unknown_partition_conversion(file, str_for(univ_sort), univ_idx.value,
+                                     parent);
+        result = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
@@ -3531,7 +3612,7 @@ a_boolean validate_index(an_ifc_module_file            *file,
                          const an_ifc_validation_trace *parent)
 /*
 Given the versioned representation of PragmaIndex and the associated module
-file, return TRUE if the value represents a valid index position; otherwise,
+file, return TRUE if the value represents a valid node position; otherwise,
 return FALSE.
 */
 {
@@ -3551,7 +3632,7 @@ a_boolean validate_index(an_ifc_module_file            *file,
                          const an_ifc_validation_trace *parent)
 /*
 Given the versioned representation of StmtIndex and the associated module file,
-return TRUE if the value represents a valid index position; otherwise, return
+return TRUE if the value represents a valid node position; otherwise, return
 FALSE.
 */
 {
@@ -3571,6 +3652,14 @@ FALSE.
       if (!validate_element_exists(file, kind, value, parent)) {
         result = FALSE;
       }  /* if */
+    } else {
+      an_ifc_stmt_index univ_idx = to_universal_index(file, versioned);
+
+      if (!is_null_index(univ_idx)) {
+        unknown_partition_conversion(file, str_for(univ_sort), univ_idx.value,
+                                     parent);
+        result = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
@@ -3582,7 +3671,7 @@ a_boolean validate_index(an_ifc_module_file            *file,
                          const an_ifc_validation_trace *parent)
 /*
 Given the versioned representation of StmtIndex and the associated module file,
-return TRUE if the value represents a valid index position; otherwise, return
+return TRUE if the value represents a valid node position; otherwise, return
 FALSE.
 */
 {
@@ -3602,6 +3691,14 @@ FALSE.
       if (!validate_element_exists(file, kind, value, parent)) {
         result = FALSE;
       }  /* if */
+    } else {
+      an_ifc_stmt_index univ_idx = to_universal_index(file, versioned);
+
+      if (!is_null_index(univ_idx)) {
+        unknown_partition_conversion(file, str_for(univ_sort), univ_idx.value,
+                                     parent);
+        result = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
@@ -3613,7 +3710,7 @@ a_boolean validate_index(an_ifc_module_file            *file,
                          const an_ifc_validation_trace *parent)
 /*
 Given the versioned representation of StringIndex and the associated module
-file, return TRUE if the value represents a valid index position; otherwise,
+file, return TRUE if the value represents a valid node position; otherwise,
 return FALSE.
 */
 {
@@ -3633,7 +3730,7 @@ a_boolean validate_index(an_ifc_module_file            *file,
                          const an_ifc_validation_trace *parent)
 /*
 Given the versioned representation of SyntaxIndex and the associated module
-file, return TRUE if the value represents a valid index position; otherwise,
+file, return TRUE if the value represents a valid node position; otherwise,
 return FALSE.
 */
 {
@@ -3653,6 +3750,14 @@ return FALSE.
       if (!validate_element_exists(file, kind, value, parent)) {
         result = FALSE;
       }  /* if */
+    } else {
+      an_ifc_syntax_index univ_idx = to_universal_index(file, versioned);
+
+      if (!is_null_index(univ_idx)) {
+        unknown_partition_conversion(file, str_for(univ_sort), univ_idx.value,
+                                     parent);
+        result = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
@@ -3664,7 +3769,7 @@ a_boolean validate_index(an_ifc_module_file            *file,
                          const an_ifc_validation_trace *parent)
 /*
 Given the versioned representation of TypeIndex and the associated module file,
-return TRUE if the value represents a valid index position; otherwise, return
+return TRUE if the value represents a valid node position; otherwise, return
 FALSE.
 */
 {
@@ -3684,6 +3789,14 @@ FALSE.
       if (!validate_element_exists(file, kind, value, parent)) {
         result = FALSE;
       }  /* if */
+    } else {
+      an_ifc_type_index univ_idx = to_universal_index(file, versioned);
+
+      if (!is_null_index(univ_idx)) {
+        unknown_partition_conversion(file, str_for(univ_sort), univ_idx.value,
+                                     parent);
+        result = FALSE;
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
@@ -3695,7 +3808,7 @@ a_boolean validate_index(an_ifc_module_file            *file,
                          const an_ifc_validation_trace *parent)
 /*
 Given the versioned representation of UnitIndex and the associated module file,
-return TRUE if the value represents a valid index position; otherwise, return
+return TRUE if the value represents a valid node position; otherwise, return
 FALSE.
 */
 {
@@ -4694,6 +4807,21 @@ representation is valid; otherwise, return FALSE.
 {
   a_boolean result = TRUE;
 
+  if (has_ifc_line(universal)) {
+    an_ifc_line_offset_0_33 stage_0;
+    an_ifc_validation_trace stage_0_trace = {"line", /*offset=*/0, parent};
+
+    /* Copy the field (SourceLocation::line - LineOffset) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    if (!validate_offset(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+done:
   return result;
 }  /* validate */
 
@@ -4749,6 +4877,21 @@ representation is valid; otherwise, return FALSE.
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/35);
     if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+  if (has_ifc_global_scope(universal)) {
+    an_ifc_scope_offset_0_33 stage_0;
+    an_ifc_validation_trace  stage_0_trace =
+                                       {"global_scope", /*offset=*/56, parent};
+
+    /* Copy the field (FileHeader::global_scope - ScopeOffset) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/56);
+    if (!validate_offset(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -7501,6 +7644,21 @@ the representation is valid; otherwise, return FALSE.
       goto done;
     }  /* if */
   }  /* if */
+  if (has_ifc_form(universal)) {
+    an_ifc_form_spec_offset_0_33 stage_0;
+    an_ifc_validation_trace      stage_0_trace =
+                                                {"form", /*offset=*/0, parent};
+
+    /* Copy the field (DeclExplicitInstantiation::form - FormSpecOffset) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    if (!validate_offset(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
 done:
   return result;
 }  /* validate */
@@ -7526,6 +7684,21 @@ if the representation is valid; otherwise, return FALSE.
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
     if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+  if (has_ifc_form(universal)) {
+    an_ifc_form_spec_offset_0_33 stage_0;
+    an_ifc_validation_trace      stage_0_trace =
+                                                {"form", /*offset=*/0, parent};
+
+    /* Copy the field (DeclExplicitSpecialization::form - FormSpecOffset) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    if (!validate_offset(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -8858,6 +9031,21 @@ the representation is valid; otherwise, return FALSE.
       goto done;
     }  /* if */
   }  /* if */
+  if (has_ifc_form(universal)) {
+    an_ifc_form_spec_offset_0_33 stage_0;
+    an_ifc_validation_trace      stage_0_trace =
+                                               {"form", /*offset=*/36, parent};
+
+    /* Copy the field (DeclPartialSpecialization::form - FormSpecOffset) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36);
+    if (!validate_offset(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
   if (has_ifc_home_scope(universal)) {
     if (is_at_least(universal.get_file(), 0, 43)) {
       an_ifc_parameterized_entity_bytes stage_0;
@@ -9030,22 +9218,25 @@ the representation is valid; otherwise, return FALSE.
   }  /* if */
   if (has_ifc_primary_template(universal)) {
     if (is_at_least(universal.get_file(), 0, 43)) {
-      an_ifc_form_spec_index_0_33 stage_0;
-      an_ifc_validation_trace     stage_0_trace =
+      an_ifc_form_spec_offset_0_33 stage_0;
+      an_ifc_validation_trace      stage_0_trace =
                                                {"form", /*offset=*/36, parent};
-      an_ifc_form_spec_index      stage_1;
-      an_ifc_form_spec            stage_2;
-      an_ifc_decl_index_0_43      stage_3;
-      an_ifc_validation_trace     stage_3_trace =
+      an_ifc_form_spec_offset      stage_1;
+      an_ifc_form_spec             stage_2;
+      an_ifc_decl_index_0_43       stage_3;
+      an_ifc_validation_trace      stage_3_trace =
                             {"primary_template", /*offset=*/0, &stage_0_trace};
 
-      /* Copy the field (DeclPartialSpecialization::form - FormSpecIndex) into
+      /* Copy the field (DeclPartialSpecialization::form - FormSpecOffset) into
          version-specific storage. */
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36);
-      stage_1 = {universal.get_file(),
-                 (an_ifc_form_spec_index_storage)stage_0};
+      if (!validate_offset(universal.get_file(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_offset(universal.get_file(), stage_0);
       /* Use the obtained offset to retrieve the appropriate instance of
          FormSpec.  Then, retrieve and return the desired value held by the
          field primary_template. */
@@ -9060,22 +9251,25 @@ the representation is valid; otherwise, return FALSE.
         goto done;
       }  /* if */
     } else if (is_at_least(universal.get_file(), 0, 41)) {
-      an_ifc_form_spec_index_0_33 stage_0;
-      an_ifc_validation_trace     stage_0_trace =
+      an_ifc_form_spec_offset_0_33 stage_0;
+      an_ifc_validation_trace      stage_0_trace =
                                                {"form", /*offset=*/36, parent};
-      an_ifc_form_spec_index      stage_1;
-      an_ifc_form_spec            stage_2;
-      an_ifc_decl_index_0_41      stage_3;
-      an_ifc_validation_trace     stage_3_trace =
+      an_ifc_form_spec_offset      stage_1;
+      an_ifc_form_spec             stage_2;
+      an_ifc_decl_index_0_41       stage_3;
+      an_ifc_validation_trace      stage_3_trace =
                             {"primary_template", /*offset=*/0, &stage_0_trace};
 
-      /* Copy the field (DeclPartialSpecialization::form - FormSpecIndex) into
+      /* Copy the field (DeclPartialSpecialization::form - FormSpecOffset) into
          version-specific storage. */
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36);
-      stage_1 = {universal.get_file(),
-                 (an_ifc_form_spec_index_storage)stage_0};
+      if (!validate_offset(universal.get_file(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_offset(universal.get_file(), stage_0);
       /* Use the obtained offset to retrieve the appropriate instance of
          FormSpec.  Then, retrieve and return the desired value held by the
          field primary_template. */
@@ -9090,22 +9284,25 @@ the representation is valid; otherwise, return FALSE.
         goto done;
       }  /* if */
     } else {
-      an_ifc_form_spec_index_0_33 stage_0;
-      an_ifc_validation_trace     stage_0_trace =
+      an_ifc_form_spec_offset_0_33 stage_0;
+      an_ifc_validation_trace      stage_0_trace =
                                                {"form", /*offset=*/36, parent};
-      an_ifc_form_spec_index      stage_1;
-      an_ifc_form_spec            stage_2;
-      an_ifc_decl_index_0_33      stage_3;
-      an_ifc_validation_trace     stage_3_trace =
+      an_ifc_form_spec_offset      stage_1;
+      an_ifc_form_spec             stage_2;
+      an_ifc_decl_index_0_33       stage_3;
+      an_ifc_validation_trace      stage_3_trace =
                             {"primary_template", /*offset=*/0, &stage_0_trace};
 
-      /* Copy the field (DeclPartialSpecialization::form - FormSpecIndex) into
+      /* Copy the field (DeclPartialSpecialization::form - FormSpecOffset) into
          version-specific storage. */
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36);
-      stage_1 = {universal.get_file(),
-                 (an_ifc_form_spec_index_storage)stage_0};
+      if (!validate_offset(universal.get_file(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_offset(universal.get_file(), stage_0);
       /* Use the obtained offset to retrieve the appropriate instance of
          FormSpec.  Then, retrieve and return the desired value held by the
          field primary_template. */
@@ -9447,6 +9644,21 @@ representation is valid; otherwise, return FALSE.
       }  /* if */
     }  /* if */
   }  /* if */
+  if (has_ifc_initializer(universal)) {
+    an_ifc_scope_offset_0_33 stage_0;
+    an_ifc_validation_trace  stage_0_trace =
+                                        {"initializer", /*offset=*/20, parent};
+
+    /* Copy the field (DeclScope::initializer - ScopeOffset) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    if (!validate_offset(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
   if (has_ifc_locus(universal)) {
     an_ifc_source_location_bytes stage_0;
     an_ifc_validation_trace      stage_0_trace =
@@ -9539,6 +9751,21 @@ representation is valid; otherwise, return FALSE.
         result = FALSE;
         goto done;
       }  /* if */
+    }  /* if */
+  }  /* if */
+  if (has_ifc_form(universal)) {
+    an_ifc_form_spec_offset_0_33 stage_0;
+    an_ifc_validation_trace      stage_0_trace =
+                                                {"form", /*offset=*/0, parent};
+
+    /* Copy the field (DeclSpecialization::form - FormSpecOffset) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    if (!validate_offset(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
     }  /* if */
   }  /* if */
   if (has_ifc_home_scope(universal)) {
@@ -9654,22 +9881,25 @@ representation is valid; otherwise, return FALSE.
   }  /* if */
   if (has_ifc_primary_template(universal)) {
     if (is_at_least(universal.get_file(), 0, 43)) {
-      an_ifc_form_spec_index_0_33 stage_0;
-      an_ifc_validation_trace     stage_0_trace =
+      an_ifc_form_spec_offset_0_33 stage_0;
+      an_ifc_validation_trace      stage_0_trace =
                                                 {"form", /*offset=*/0, parent};
-      an_ifc_form_spec_index      stage_1;
-      an_ifc_form_spec            stage_2;
-      an_ifc_decl_index_0_43      stage_3;
-      an_ifc_validation_trace     stage_3_trace =
+      an_ifc_form_spec_offset      stage_1;
+      an_ifc_form_spec             stage_2;
+      an_ifc_decl_index_0_43       stage_3;
+      an_ifc_validation_trace      stage_3_trace =
                             {"primary_template", /*offset=*/0, &stage_0_trace};
 
-      /* Copy the field (DeclSpecialization::form - FormSpecIndex) into
+      /* Copy the field (DeclSpecialization::form - FormSpecOffset) into
          version-specific storage. */
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      stage_1 = {universal.get_file(),
-                 (an_ifc_form_spec_index_storage)stage_0};
+      if (!validate_offset(universal.get_file(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_offset(universal.get_file(), stage_0);
       /* Use the obtained offset to retrieve the appropriate instance of
          FormSpec.  Then, retrieve and return the desired value held by the
          field primary_template. */
@@ -9684,22 +9914,25 @@ representation is valid; otherwise, return FALSE.
         goto done;
       }  /* if */
     } else {
-      an_ifc_form_spec_index_0_33 stage_0;
-      an_ifc_validation_trace     stage_0_trace =
+      an_ifc_form_spec_offset_0_33 stage_0;
+      an_ifc_validation_trace      stage_0_trace =
                                                 {"form", /*offset=*/0, parent};
-      an_ifc_form_spec_index      stage_1;
-      an_ifc_form_spec            stage_2;
-      an_ifc_decl_index_0_41      stage_3;
-      an_ifc_validation_trace     stage_3_trace =
+      an_ifc_form_spec_offset      stage_1;
+      an_ifc_form_spec             stage_2;
+      an_ifc_decl_index_0_41       stage_3;
+      an_ifc_validation_trace      stage_3_trace =
                             {"primary_template", /*offset=*/0, &stage_0_trace};
 
-      /* Copy the field (DeclSpecialization::form - FormSpecIndex) into
+      /* Copy the field (DeclSpecialization::form - FormSpecOffset) into
          version-specific storage. */
       static_assert(sizeof(stage_0) == 4,
                     "stage_0 is not properly sized storage!");
       copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
-      stage_1 = {universal.get_file(),
-                 (an_ifc_form_spec_index_storage)stage_0};
+      if (!validate_offset(universal.get_file(), stage_0, &stage_0_trace)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      stage_1 = to_universal_offset(universal.get_file(), stage_0);
       /* Use the obtained offset to retrieve the appropriate instance of
          FormSpec.  Then, retrieve and return the desired value held by the
          field primary_template. */
@@ -31419,6 +31652,79 @@ representation is valid; otherwise, return FALSE.
 done:
   return result;
 }  /* validate */
+
+
+a_boolean validate_offset(an_ifc_module_file            *file,
+                          an_ifc_form_spec_offset_0_33  versioned,
+                          const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of FormSpecOffset and the associated module
+file, return TRUE if the value represents a valid node position; otherwise,
+return FALSE.
+*/
+{
+  a_boolean               result = TRUE;
+  an_ifc_form_spec_offset univ_offset = to_universal_offset(file, versioned);
+
+  if (!is_null_index(univ_offset)) {
+    an_ifc_partition_kind kind =
+                             get_ifc_partition_kind<an_ifc_form_spec_offset>();
+    uint32_t              value = univ_offset.value - 1;
+
+    if (!validate_element_exists(file, kind, value, parent)) {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* validate_offset */
+
+
+a_boolean validate_offset(an_ifc_module_file            *file,
+                          an_ifc_line_offset_0_33       versioned,
+                          const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of LineOffset and the associated module
+file, return TRUE if the value represents a valid node position; otherwise,
+return FALSE.
+*/
+{
+  a_boolean          result = TRUE;
+  an_ifc_line_offset univ_offset = to_universal_offset(file, versioned);
+
+  if (!is_null_index(univ_offset)) {
+    an_ifc_partition_kind kind = get_ifc_partition_kind<an_ifc_line_offset>();
+    uint32_t              value = univ_offset.value - 1;
+
+    if (!validate_element_exists(file, kind, value, parent)) {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* validate_offset */
+
+
+a_boolean validate_offset(an_ifc_module_file            *file,
+                          an_ifc_scope_offset_0_33      versioned,
+                          const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of ScopeOffset and the associated module
+file, return TRUE if the value represents a valid node position; otherwise,
+return FALSE.
+*/
+{
+  a_boolean           result = TRUE;
+  an_ifc_scope_offset univ_offset = to_universal_offset(file, versioned);
+
+  if (!is_null_index(univ_offset)) {
+    an_ifc_partition_kind kind = get_ifc_partition_kind<an_ifc_scope_offset>();
+    uint32_t              value = univ_offset.value - 1;
+
+    if (!validate_element_exists(file, kind, value, parent)) {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* validate_offset */
 
 
 /* Conditionally close the "edg" namespace. */

@@ -3780,7 +3780,7 @@ type that allows resolution of the return type for DeclScope nodes.
 */
 template<>
 struct an_ifc_initializer_metadata<an_ifc_decl_scope> {
-  using return_type = an_ifc_scope_index;
+  using return_type = an_ifc_scope_offset;
 };  /* an_ifc_initializer_metadata */
 
 
@@ -4231,7 +4231,7 @@ that allows resolution of the return type for SourceLocation nodes.
 */
 template<>
 struct an_ifc_line_metadata<an_ifc_source_location> {
-  using return_type = an_ifc_line_index;
+  using return_type = an_ifc_line_offset;
 };  /* an_ifc_line_metadata */
 
 
@@ -10314,7 +10314,7 @@ extern a_boolean has_ifc_form(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
-extern an_ifc_form_spec_index get_ifc_form(
+extern an_ifc_form_spec_offset get_ifc_form(
                               const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
@@ -10364,7 +10364,7 @@ extern a_boolean has_ifc_global_scope(
 
 
 template<typename an_ifc_Node_type>
-extern an_ifc_scope_index get_ifc_global_scope(
+extern an_ifc_scope_offset get_ifc_global_scope(
                               const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
@@ -12235,7 +12235,7 @@ template<>
 a_boolean has_ifc_line(const an_ifc_source_location &universal);
 
 template<>
-an_ifc_line_index get_ifc_line(const an_ifc_source_location &universal);
+an_ifc_line_offset get_ifc_line(const an_ifc_source_location &universal);
 
 template<>
 a_boolean validate(const an_ifc_source_location  &universal,
@@ -12302,7 +12302,7 @@ template<>
 a_boolean has_ifc_global_scope(const an_ifc_file_header &universal);
 
 template<>
-an_ifc_scope_index get_ifc_global_scope(const an_ifc_file_header &universal);
+an_ifc_scope_offset get_ifc_global_scope(const an_ifc_file_header &universal);
 
 template<>
 a_boolean has_ifc_internal(const an_ifc_file_header &universal);
@@ -13608,7 +13608,7 @@ template<>
 a_boolean has_ifc_form(const an_ifc_decl_explicit_instantiation &universal);
 
 template<>
-an_ifc_form_spec_index get_ifc_form(
+an_ifc_form_spec_offset get_ifc_form(
                           const an_ifc_decl_explicit_instantiation &universal);
 
 template<>
@@ -13648,7 +13648,7 @@ template<>
 a_boolean has_ifc_form(const an_ifc_decl_explicit_specialization &universal);
 
 template<>
-an_ifc_form_spec_index get_ifc_form(
+an_ifc_form_spec_offset get_ifc_form(
                          const an_ifc_decl_explicit_specialization &universal);
 
 template<>
@@ -14263,7 +14263,7 @@ template<>
 a_boolean has_ifc_form(const an_ifc_decl_partial_specialization &universal);
 
 template<>
-an_ifc_form_spec_index get_ifc_form(
+an_ifc_form_spec_offset get_ifc_form(
                           const an_ifc_decl_partial_specialization &universal);
 
 template<>
@@ -14449,7 +14449,7 @@ template<>
 a_boolean has_ifc_initializer(const an_ifc_decl_scope &universal);
 
 template<>
-an_ifc_scope_index get_ifc_initializer(const an_ifc_decl_scope &universal);
+an_ifc_scope_offset get_ifc_initializer(const an_ifc_decl_scope &universal);
 
 template<>
 a_boolean has_ifc_locus(const an_ifc_decl_scope &universal);
@@ -14529,7 +14529,7 @@ template<>
 a_boolean has_ifc_form(const an_ifc_decl_specialization &universal);
 
 template<>
-an_ifc_form_spec_index get_ifc_form(
+an_ifc_form_spec_offset get_ifc_form(
                                   const an_ifc_decl_specialization &universal);
 
 template<>
@@ -27167,6 +27167,57 @@ an_ifc_type_unaligned_storage* get<an_ifc_type_unaligned_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_unaligned>();
 
+/*
+Functions for interacting with IFC FormSpecOffset offsets.
+*/
+
+extern a_boolean is_null_index(an_ifc_form_spec_offset universal);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_spec_offset>();
+
+extern a_boolean validate_offset(an_ifc_module_file            *file,
+                                 an_ifc_form_spec_offset_0_33  versioned,
+                                 const an_ifc_validation_trace *parent);
+
+extern an_ifc_form_spec_offset to_universal_offset(
+                                       an_ifc_module_file           *file,
+                                       an_ifc_form_spec_offset_0_33 versioned);
+
+/*
+Functions for interacting with IFC LineOffset offsets.
+*/
+
+extern a_boolean is_null_index(an_ifc_line_offset universal);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_line_offset>();
+
+extern a_boolean validate_offset(an_ifc_module_file            *file,
+                                 an_ifc_line_offset_0_33       versioned,
+                                 const an_ifc_validation_trace *parent);
+
+extern an_ifc_line_offset to_universal_offset(
+                                            an_ifc_module_file      *file,
+                                            an_ifc_line_offset_0_33 versioned);
+
+/*
+Functions for interacting with IFC ScopeOffset offsets.
+*/
+
+extern a_boolean is_null_index(an_ifc_scope_offset universal);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_scope_offset>();
+
+extern a_boolean validate_offset(an_ifc_module_file            *file,
+                                 an_ifc_scope_offset_0_33      versioned,
+                                 const an_ifc_validation_trace *parent);
+
+extern an_ifc_scope_offset to_universal_offset(
+                                           an_ifc_module_file       *file,
+                                           an_ifc_scope_offset_0_33 versioned);
+
 extern an_ifc_entity_size_storage get_ifc_partition_element_size(
                                                   an_ifc_module_file    *file,
                                                   an_ifc_partition_kind kind);
@@ -27362,9 +27413,15 @@ extern void db_node_at_idx(an_ifc_expr_index idx);
 
 extern void db_node_at_idx(an_ifc_form_index idx);
 
+extern void db_node_at_idx(an_ifc_form_spec_offset idx);
+
+extern void db_node_at_idx(an_ifc_line_offset idx);
+
 extern void db_node_at_idx(an_ifc_macro_index idx);
 
 extern void db_node_at_idx(an_ifc_name_index idx);
+
+extern void db_node_at_idx(an_ifc_scope_offset idx);
 
 extern void db_node_at_idx(an_ifc_stmt_index idx);
 

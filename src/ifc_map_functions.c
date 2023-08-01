@@ -34256,6 +34256,127 @@ Return the corresponding partition kind for TypeUnaligned.
 }  /* get_ifc_partition_kind */
 
 
+/*
+Functions for interacting with IFC FormSpecOffset offsets.
+*/
+
+
+a_boolean is_null_index(an_ifc_form_spec_offset universal)
+/*
+Given the universal representation of FormSpecOffset, return TRUE if the given
+offset is considered a NULL index; otherwise, return FALSE.
+*/
+{
+  return universal.value == 0;
+}  /* is_null_index */
+
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_spec_offset>()
+/*
+Return the corresponding partition kind for FormSpecOffset.
+*/
+{
+  return ifc_pk_form_spec;
+}  /* get_ifc_partition_kind */
+
+
+an_ifc_form_spec_offset to_universal_offset(
+                                        an_ifc_module_file           *file,
+                                        an_ifc_form_spec_offset_0_33 versioned)
+/*
+Given the versioned representation of FormSpecOffset and the associated module,
+return the corresponding universal representation.
+*/
+{
+  uint32_t index = versioned;
+
+  /* This offset never contains a null value in its encoded form, normalize it
+     by increasing all values by one. */
+  index += 1;
+  return an_ifc_form_spec_offset{file, index};
+}  /* to_universal_offset */
+
+
+/*
+Functions for interacting with IFC LineOffset offsets.
+*/
+
+
+a_boolean is_null_index(an_ifc_line_offset universal)
+/*
+Given the universal representation of LineOffset, return TRUE if the given
+offset is considered a NULL index; otherwise, return FALSE.
+*/
+{
+  return universal.value == 0;
+}  /* is_null_index */
+
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_line_offset>()
+/*
+Return the corresponding partition kind for LineOffset.
+*/
+{
+  return ifc_pk_src_line;
+}  /* get_ifc_partition_kind */
+
+
+an_ifc_line_offset to_universal_offset(an_ifc_module_file      *file,
+                                       an_ifc_line_offset_0_33 versioned)
+/*
+Given the versioned representation of LineOffset and the associated module,
+return the corresponding universal representation.
+*/
+{
+  uint32_t index = versioned;
+
+  /* This offset never contains a null value in its encoded form, normalize it
+     by increasing all values by one. */
+  index += 1;
+  return an_ifc_line_offset{file, index};
+}  /* to_universal_offset */
+
+
+/*
+Functions for interacting with IFC ScopeOffset offsets.
+*/
+
+
+a_boolean is_null_index(an_ifc_scope_offset universal)
+/*
+Given the universal representation of ScopeOffset, return TRUE if the given
+offset is considered a NULL index; otherwise, return FALSE.
+*/
+{
+  return universal.value == 0;
+}  /* is_null_index */
+
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_scope_offset>()
+/*
+Return the corresponding partition kind for ScopeOffset.
+*/
+{
+  return ifc_pk_scope_desc;
+}  /* get_ifc_partition_kind */
+
+
+an_ifc_scope_offset to_universal_offset(an_ifc_module_file       *file,
+                                        an_ifc_scope_offset_0_33 versioned)
+/*
+Given the versioned representation of ScopeOffset and the associated module,
+return the corresponding universal representation.
+*/
+{
+  uint32_t index = versioned;
+
+  return an_ifc_scope_offset{file, index};
+}  /* to_universal_offset */
+
+
 an_ifc_entity_size_storage get_ifc_partition_element_size(
                                                    an_ifc_module_file    *file,
                                                    an_ifc_partition_kind kind)

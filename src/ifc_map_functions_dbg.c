@@ -595,7 +595,7 @@ textual representation with the given indent.
     fprintf(f_debug, "column: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_line(universal)) {
-    an_ifc_line_index field = get_ifc_line(universal);
+    an_ifc_line_offset field = get_ifc_line(universal);
 
     db_print_indent(indent);
     fprintf(f_debug, "line: %llu\n", (unsigned long long)field.value);
@@ -674,7 +674,7 @@ representation with the given indent.
     fprintf(f_debug, "dialect: %llu\n", (unsigned long long)field.value);
   }  /* if */
   if (has_ifc_global_scope(universal)) {
-    an_ifc_scope_index field = get_ifc_global_scope(universal);
+    an_ifc_scope_offset field = get_ifc_global_scope(universal);
 
     db_print_indent(indent);
     fprintf(f_debug, "global_scope: %llu\n", (unsigned long long)field.value);
@@ -2872,7 +2872,7 @@ diagnostic textual representation with the given indent.
     }  /* if */
   }  /* if */
   if (has_ifc_form(universal)) {
-    an_ifc_form_spec_index field = get_ifc_form(universal);
+    an_ifc_form_spec_offset field = get_ifc_form(universal);
 
     db_print_indent(indent);
     fprintf(f_debug, "form: %llu\n", (unsigned long long)field.value);
@@ -2916,7 +2916,7 @@ diagnostic textual representation with the given indent.
     }  /* if */
   }  /* if */
   if (has_ifc_form(universal)) {
-    an_ifc_form_spec_index field = get_ifc_form(universal);
+    an_ifc_form_spec_offset field = get_ifc_form(universal);
 
     db_print_indent(indent);
     fprintf(f_debug, "form: %llu\n", (unsigned long long)field.value);
@@ -4147,7 +4147,7 @@ diagnostic textual representation with the given indent.
     db_node(field, indent + 1);
   }  /* if */
   if (has_ifc_form(universal)) {
-    an_ifc_form_spec_index field = get_ifc_form(universal);
+    an_ifc_form_spec_offset field = get_ifc_form(universal);
 
     db_print_indent(indent);
     fprintf(f_debug, "form: %llu\n", (unsigned long long)field.value);
@@ -4445,7 +4445,7 @@ representation with the given indent.
     }  /* if */
   }  /* if */
   if (has_ifc_initializer(universal)) {
-    an_ifc_scope_index field = get_ifc_initializer(universal);
+    an_ifc_scope_offset field = get_ifc_initializer(universal);
 
     db_print_indent(indent);
     fprintf(f_debug, "initializer: %llu\n", (unsigned long long)field.value);
@@ -4636,7 +4636,7 @@ textual representation with the given indent.
     }  /* if */
   }  /* if */
   if (has_ifc_form(universal)) {
-    an_ifc_form_spec_index field = get_ifc_form(universal);
+    an_ifc_form_spec_offset field = get_ifc_form(universal);
 
     db_print_indent(indent);
     fprintf(f_debug, "form: %llu\n", (unsigned long long)field.value);
@@ -21923,6 +21923,32 @@ associated node.
 }  /* db_node_at_idx */
 
 
+void db_node_at_idx(an_ifc_form_spec_offset idx)
+/*
+Given the FormSpecOffset, print a diagnostic textual representation of the
+associated node.
+*/
+{
+  an_ifc_form_spec universal;
+
+  construct_node_prechecked(&universal, idx);
+  db_node(universal);
+}  /* db_node_at_idx */
+
+
+void db_node_at_idx(an_ifc_line_offset idx)
+/*
+Given the LineOffset, print a diagnostic textual representation of the
+associated node.
+*/
+{
+  an_ifc_source_line universal;
+
+  construct_node_prechecked(&universal, idx);
+  db_node(universal);
+}  /* db_node_at_idx */
+
+
 void db_node_at_idx(an_ifc_macro_index idx)
 /*
 Given the MacroIndex, print a diagnostic textual representation of the
@@ -22011,6 +22037,19 @@ associated node.
       fprintf(f_debug, "Node not found.");
       break;
   }  /* switch */
+}  /* db_node_at_idx */
+
+
+void db_node_at_idx(an_ifc_scope_offset idx)
+/*
+Given the ScopeOffset, print a diagnostic textual representation of the
+associated node.
+*/
+{
+  an_ifc_scope_descriptor universal;
+
+  construct_node_prechecked(&universal, idx);
+  db_node(universal);
 }  /* db_node_at_idx */
 
 

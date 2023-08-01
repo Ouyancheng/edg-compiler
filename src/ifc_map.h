@@ -184,6 +184,28 @@ struct Index_entity : public an_ifc_module_entity {
 
 
 /*
+An encapsulated representation of an IFC node offset value.
+*/
+template<typename an_ifc_Node_type, typename a_Native_size_type>
+struct Offset_entity : public an_ifc_module_entity {
+  using node_type = an_ifc_Node_type;
+  Offset_entity()
+    : an_ifc_module_entity(NULL), value{}
+    {}
+
+  Offset_entity(an_ifc_module_file *mod_val,
+                a_Native_size_type value_val)
+    : an_ifc_module_entity(mod_val), value{value_val}
+    {}
+
+  a_Native_size_type
+                value;  /* The index value into the associated partition for
+                           this offset.  Represented as the largest common
+                           underlying type. */
+};  /* Offset_entity */
+
+
+/*
   |----------------|
   | Version | Size |
   |---------|------|
@@ -328,6 +350,7 @@ struct an_ifc_abi : Implicit_numeric_entity<an_ifc_abi_storage> {
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_abi */
 
+
 enum an_ifc_active_member_0_33 : uint32_t;
 using an_ifc_active_member_storage = uint32_t;
 
@@ -341,6 +364,7 @@ struct an_ifc_active_member : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_active_member */
+
 
 enum an_ifc_associativity_0_33 : uint8_t;
 using an_ifc_associativity_storage = uint8_t;
@@ -356,6 +380,7 @@ struct an_ifc_associativity : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_associativity */
 
+
 enum an_ifc_byte_offset_0_33 : uint32_t;
 using an_ifc_byte_offset_storage = uint32_t;
 
@@ -369,6 +394,7 @@ struct an_ifc_byte_offset : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_byte_offset */
+
 
 enum an_ifc_cardinality_0_33 : uint32_t;
 using an_ifc_cardinality_storage = uint32_t;
@@ -384,6 +410,7 @@ struct an_ifc_cardinality : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_cardinality */
 
+
 enum an_ifc_column_0_33 : uint32_t;
 using an_ifc_column_storage = uint32_t;
 
@@ -396,6 +423,7 @@ struct an_ifc_column : Implicit_numeric_entity<an_ifc_column_storage> {
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_column */
+
 
 enum an_ifc_destructor_sort_0_33 : uint8_t;
 using an_ifc_destructor_sort_storage = uint8_t;
@@ -411,6 +439,7 @@ struct an_ifc_destructor_sort : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_destructor_sort */
 
+
 enum an_ifc_eh_flags_0_33 : uint16_t;
 using an_ifc_eh_flags_storage = uint16_t;
 
@@ -423,6 +452,7 @@ struct an_ifc_eh_flags : Implicit_numeric_entity<an_ifc_eh_flags_storage> {
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_eh_flags */
+
 
 enum an_ifc_encoded_access_sort_0_33 : uint8_t;
 using an_ifc_encoded_access_sort_storage = uint8_t;
@@ -438,6 +468,7 @@ struct an_ifc_encoded_access_sort : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_access_sort */
 
+
 enum an_ifc_encoded_architecture_sort_0_33 : uint8_t;
 using an_ifc_encoded_architecture_sort_storage = uint8_t;
 
@@ -451,6 +482,7 @@ struct an_ifc_encoded_architecture_sort : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_architecture_sort */
+
 
 enum an_ifc_encoded_attr_index_0_33 : uint32_t;
 using an_ifc_encoded_attr_index_storage = uint32_t;
@@ -466,6 +498,7 @@ struct an_ifc_encoded_attr_index : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_attr_index */
 
+
 enum an_ifc_encoded_attr_sort_0_33 : uint32_t;
 using an_ifc_encoded_attr_sort_storage = uint32_t;
 
@@ -479,6 +512,7 @@ struct an_ifc_encoded_attr_sort : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_attr_sort */
+
 
 enum an_ifc_encoded_calling_convention_sort_0_33 : uint8_t;
 using an_ifc_encoded_calling_convention_sort_storage = uint8_t;
@@ -494,6 +528,7 @@ struct an_ifc_encoded_calling_convention_sort : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_calling_convention_sort */
 
+
 enum an_ifc_encoded_chart_index_0_33 : uint32_t;
 using an_ifc_encoded_chart_index_storage = uint32_t;
 
@@ -507,6 +542,7 @@ struct an_ifc_encoded_chart_index : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_chart_index */
+
 
 enum an_ifc_encoded_chart_sort_0_33 : uint32_t;
 using an_ifc_encoded_chart_sort_storage = uint32_t;
@@ -522,6 +558,7 @@ struct an_ifc_encoded_chart_sort : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_chart_sort */
 
+
 enum an_ifc_encoded_decl_index_0_33 : uint32_t;
 using an_ifc_encoded_decl_index_storage = uint32_t;
 
@@ -535,6 +572,7 @@ struct an_ifc_encoded_decl_index : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_decl_index */
+
 
 enum an_ifc_encoded_decl_sort_0_33 : uint32_t;
 using an_ifc_encoded_decl_sort_storage = uint32_t;
@@ -550,6 +588,7 @@ struct an_ifc_encoded_decl_sort : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_decl_sort */
 
+
 enum an_ifc_encoded_delimiter_sort_0_33 : uint8_t;
 using an_ifc_encoded_delimiter_sort_storage = uint8_t;
 
@@ -563,6 +602,7 @@ struct an_ifc_encoded_delimiter_sort : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_delimiter_sort */
+
 
 enum an_ifc_encoded_dyadic_operator_sort_0_33 : uint16_t;
 using an_ifc_encoded_dyadic_operator_sort_storage = uint16_t;
@@ -578,6 +618,7 @@ struct an_ifc_encoded_dyadic_operator_sort : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_dyadic_operator_sort */
 
+
 enum an_ifc_encoded_expansion_mode_sort_0_33 : uint8_t;
 using an_ifc_encoded_expansion_mode_sort_storage = uint8_t;
 
@@ -591,6 +632,7 @@ struct an_ifc_encoded_expansion_mode_sort : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_expansion_mode_sort */
+
 
 enum an_ifc_encoded_expr_index_0_33 : uint32_t;
 using an_ifc_encoded_expr_index_storage = uint32_t;
@@ -606,6 +648,7 @@ struct an_ifc_encoded_expr_index : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_expr_index */
 
+
 enum an_ifc_encoded_expr_sort_0_33 : uint32_t;
 using an_ifc_encoded_expr_sort_storage = uint32_t;
 
@@ -619,6 +662,7 @@ struct an_ifc_encoded_expr_sort : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_expr_sort */
+
 
 enum an_ifc_encoded_fold_direction_sort_0_33 : uint32_t;
 using an_ifc_encoded_fold_direction_sort_storage = uint32_t;
@@ -634,6 +678,7 @@ struct an_ifc_encoded_fold_direction_sort : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_fold_direction_sort */
 
+
 enum an_ifc_encoded_form_index_0_33 : uint32_t;
 using an_ifc_encoded_form_index_storage = uint32_t;
 
@@ -647,6 +692,7 @@ struct an_ifc_encoded_form_index : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_form_index */
+
 
 enum an_ifc_encoded_form_sort_0_33 : uint32_t;
 using an_ifc_encoded_form_sort_storage = uint32_t;
@@ -662,6 +708,7 @@ struct an_ifc_encoded_form_sort : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_form_sort */
 
+
 enum an_ifc_encoded_initializer_sort_0_33 : uint8_t;
 using an_ifc_encoded_initializer_sort_storage = uint8_t;
 
@@ -675,6 +722,7 @@ struct an_ifc_encoded_initializer_sort : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_initializer_sort */
+
 
 enum an_ifc_encoded_keyword_sort_0_33 : uint32_t;
 using an_ifc_encoded_keyword_sort_storage = uint32_t;
@@ -690,6 +738,7 @@ struct an_ifc_encoded_keyword_sort : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_keyword_sort */
 
+
 enum an_ifc_encoded_label_sort_0_33 : uint32_t;
 using an_ifc_encoded_label_sort_storage = uint32_t;
 
@@ -703,6 +752,7 @@ struct an_ifc_encoded_label_sort : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_label_sort */
+
 
 enum an_ifc_encoded_lit_index_0_33 : uint32_t;
 using an_ifc_encoded_lit_index_storage = uint32_t;
@@ -718,6 +768,7 @@ struct an_ifc_encoded_lit_index : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_lit_index */
 
+
 enum an_ifc_encoded_lit_sort_0_33 : uint32_t;
 using an_ifc_encoded_lit_sort_storage = uint32_t;
 
@@ -731,6 +782,7 @@ struct an_ifc_encoded_lit_sort : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_lit_sort */
+
 
 enum an_ifc_encoded_macro_index_0_33 : uint32_t;
 using an_ifc_encoded_macro_index_storage = uint32_t;
@@ -746,6 +798,7 @@ struct an_ifc_encoded_macro_index : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_macro_index */
 
+
 enum an_ifc_encoded_macro_sort_0_33 : uint32_t;
 using an_ifc_encoded_macro_sort_storage = uint32_t;
 
@@ -759,6 +812,7 @@ struct an_ifc_encoded_macro_sort : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_macro_sort */
+
 
 enum an_ifc_encoded_monadic_operator_sort_0_33 : uint16_t;
 using an_ifc_encoded_monadic_operator_sort_storage = uint16_t;
@@ -774,6 +828,7 @@ struct an_ifc_encoded_monadic_operator_sort : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_monadic_operator_sort */
 
+
 enum an_ifc_encoded_name_index_0_33 : uint32_t;
 using an_ifc_encoded_name_index_storage = uint32_t;
 
@@ -787,6 +842,7 @@ struct an_ifc_encoded_name_index : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_name_index */
+
 
 enum an_ifc_encoded_name_sort_0_33 : uint32_t;
 using an_ifc_encoded_name_sort_storage = uint32_t;
@@ -802,6 +858,7 @@ struct an_ifc_encoded_name_sort : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_name_sort */
 
+
 enum an_ifc_encoded_niladic_operator_sort_0_33 : uint16_t;
 using an_ifc_encoded_niladic_operator_sort_storage = uint16_t;
 
@@ -815,6 +872,7 @@ struct an_ifc_encoded_niladic_operator_sort : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_niladic_operator_sort */
+
 
 enum an_ifc_encoded_noexcept_sort_0_33 : uint8_t;
 using an_ifc_encoded_noexcept_sort_storage = uint8_t;
@@ -830,6 +888,7 @@ struct an_ifc_encoded_noexcept_sort : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_noexcept_sort */
 
+
 enum an_ifc_encoded_operator_sort_0_33 : uint16_t;
 using an_ifc_encoded_operator_sort_storage = uint16_t;
 
@@ -843,6 +902,7 @@ struct an_ifc_encoded_operator_sort : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_operator_sort */
+
 
 enum an_ifc_encoded_parameter_sort_0_33 : uint8_t;
 using an_ifc_encoded_parameter_sort_storage = uint8_t;
@@ -858,6 +918,7 @@ struct an_ifc_encoded_parameter_sort : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_parameter_sort */
 
+
 enum an_ifc_encoded_pointer_declarator_sort_0_33 : uint8_t;
 using an_ifc_encoded_pointer_declarator_sort_storage = uint8_t;
 
@@ -871,6 +932,7 @@ struct an_ifc_encoded_pointer_declarator_sort : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_pointer_declarator_sort */
+
 
 enum an_ifc_encoded_pragma_index_0_33 : uint32_t;
 using an_ifc_encoded_pragma_index_storage = uint32_t;
@@ -886,6 +948,7 @@ struct an_ifc_encoded_pragma_index : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_pragma_index */
 
+
 enum an_ifc_encoded_pragma_sort_0_33 : uint32_t;
 using an_ifc_encoded_pragma_sort_storage = uint32_t;
 
@@ -899,6 +962,7 @@ struct an_ifc_encoded_pragma_sort : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_pragma_sort */
+
 
 enum an_ifc_encoded_read_conversion_sort_0_33 : uint8_t;
 using an_ifc_encoded_read_conversion_sort_storage = uint8_t;
@@ -914,6 +978,7 @@ struct an_ifc_encoded_read_conversion_sort : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_read_conversion_sort */
 
+
 enum an_ifc_encoded_return_sort_0_33 : uint8_t;
 using an_ifc_encoded_return_sort_storage = uint8_t;
 
@@ -927,6 +992,7 @@ struct an_ifc_encoded_return_sort : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_return_sort */
+
 
 enum an_ifc_encoded_source_directive_sort_0_33 : uint16_t;
 using an_ifc_encoded_source_directive_sort_storage = uint16_t;
@@ -942,6 +1008,7 @@ struct an_ifc_encoded_source_directive_sort : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_source_directive_sort */
 
+
 enum an_ifc_encoded_source_identifier_sort_0_33 : uint16_t;
 using an_ifc_encoded_source_identifier_sort_storage = uint16_t;
 
@@ -955,6 +1022,7 @@ struct an_ifc_encoded_source_identifier_sort : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_source_identifier_sort */
+
 
 enum an_ifc_encoded_source_keyword_sort_0_33 : uint16_t;
 using an_ifc_encoded_source_keyword_sort_storage = uint16_t;
@@ -970,6 +1038,7 @@ struct an_ifc_encoded_source_keyword_sort : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_source_keyword_sort */
 
+
 enum an_ifc_encoded_source_literal_sort_0_33 : uint16_t;
 using an_ifc_encoded_source_literal_sort_storage = uint16_t;
 
@@ -983,6 +1052,7 @@ struct an_ifc_encoded_source_literal_sort : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_source_literal_sort */
+
 
 enum an_ifc_encoded_source_operator_sort_0_33 : uint16_t;
 using an_ifc_encoded_source_operator_sort_storage = uint16_t;
@@ -998,6 +1068,7 @@ struct an_ifc_encoded_source_operator_sort : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_source_operator_sort */
 
+
 enum an_ifc_encoded_source_punctuator_sort_0_33 : uint16_t;
 using an_ifc_encoded_source_punctuator_sort_storage = uint16_t;
 
@@ -1011,6 +1082,7 @@ struct an_ifc_encoded_source_punctuator_sort : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_source_punctuator_sort */
+
 
 enum an_ifc_encoded_specialization_sort_0_41 : uint8_t;
 using an_ifc_encoded_specialization_sort_storage = uint8_t;
@@ -1026,6 +1098,7 @@ struct an_ifc_encoded_specialization_sort : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_specialization_sort */
 
+
 enum an_ifc_encoded_stmt_index_0_33 : uint32_t;
 using an_ifc_encoded_stmt_index_storage = uint32_t;
 
@@ -1040,6 +1113,7 @@ struct an_ifc_encoded_stmt_index : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_stmt_index */
 
+
 enum an_ifc_encoded_stmt_sort_0_33 : uint32_t;
 using an_ifc_encoded_stmt_sort_storage = uint32_t;
 
@@ -1053,6 +1127,7 @@ struct an_ifc_encoded_stmt_sort : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_stmt_sort */
+
 
 enum an_ifc_encoded_storage_instruction_operator_sort_0_33 : uint16_t;
 using an_ifc_encoded_storage_instruction_operator_sort_storage = uint16_t;
@@ -1070,6 +1145,7 @@ struct an_ifc_encoded_storage_instruction_operator_sort :
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_storage_instruction_operator_sort */
 
+
 enum an_ifc_encoded_string_index_0_33 : uint32_t;
 using an_ifc_encoded_string_index_storage = uint32_t;
 
@@ -1083,6 +1159,7 @@ struct an_ifc_encoded_string_index : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_string_index */
+
 
 enum an_ifc_encoded_string_sort_0_33 : uint32_t;
 using an_ifc_encoded_string_sort_storage = uint32_t;
@@ -1098,6 +1175,7 @@ struct an_ifc_encoded_string_sort : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_string_sort */
 
+
 enum an_ifc_encoded_syntax_index_0_33 : uint32_t;
 using an_ifc_encoded_syntax_index_storage = uint32_t;
 
@@ -1111,6 +1189,7 @@ struct an_ifc_encoded_syntax_index : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_syntax_index */
+
 
 enum an_ifc_encoded_syntax_sort_0_33 : uint32_t;
 using an_ifc_encoded_syntax_sort_storage = uint32_t;
@@ -1126,6 +1205,7 @@ struct an_ifc_encoded_syntax_sort : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_syntax_sort */
 
+
 enum an_ifc_encoded_triadic_operator_sort_0_33 : uint16_t;
 using an_ifc_encoded_triadic_operator_sort_storage = uint16_t;
 
@@ -1139,6 +1219,7 @@ struct an_ifc_encoded_triadic_operator_sort : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_triadic_operator_sort */
+
 
 enum an_ifc_encoded_type_basis_sort_0_33 : uint8_t;
 using an_ifc_encoded_type_basis_sort_storage = uint8_t;
@@ -1154,6 +1235,7 @@ struct an_ifc_encoded_type_basis_sort : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_type_basis_sort */
 
+
 enum an_ifc_encoded_type_index_0_33 : uint32_t;
 using an_ifc_encoded_type_index_storage = uint32_t;
 
@@ -1167,6 +1249,7 @@ struct an_ifc_encoded_type_index : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_type_index */
+
 
 enum an_ifc_encoded_type_precision_sort_0_33 : uint8_t;
 using an_ifc_encoded_type_precision_sort_storage = uint8_t;
@@ -1182,6 +1265,7 @@ struct an_ifc_encoded_type_precision_sort : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_type_precision_sort */
 
+
 enum an_ifc_encoded_type_sign_sort_0_33 : uint8_t;
 using an_ifc_encoded_type_sign_sort_storage = uint8_t;
 
@@ -1195,6 +1279,7 @@ struct an_ifc_encoded_type_sign_sort : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_type_sign_sort */
+
 
 enum an_ifc_encoded_type_sort_0_33 : uint32_t;
 using an_ifc_encoded_type_sort_storage = uint32_t;
@@ -1210,6 +1295,7 @@ struct an_ifc_encoded_type_sort : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_type_sort */
 
+
 enum an_ifc_encoded_unit_index_0_33 : uint32_t;
 using an_ifc_encoded_unit_index_storage = uint32_t;
 
@@ -1223,6 +1309,7 @@ struct an_ifc_encoded_unit_index : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_unit_index */
+
 
 enum an_ifc_encoded_unit_sort_0_33 : uint32_t;
 using an_ifc_encoded_unit_sort_storage = uint32_t;
@@ -1238,6 +1325,7 @@ struct an_ifc_encoded_unit_sort : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_unit_sort */
 
+
 enum an_ifc_encoded_variadic_operator_sort_0_33 : uint16_t;
 using an_ifc_encoded_variadic_operator_sort_storage = uint16_t;
 
@@ -1251,6 +1339,7 @@ struct an_ifc_encoded_variadic_operator_sort : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_variadic_operator_sort */
+
 
 enum an_ifc_encoded_word_sort_0_33 : uint8_t;
 using an_ifc_encoded_word_sort_storage = uint8_t;
@@ -1266,6 +1355,7 @@ struct an_ifc_encoded_word_sort : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_word_sort */
 
+
 enum an_ifc_entity_size_0_33 : uint32_t;
 using an_ifc_entity_size_storage = uint32_t;
 
@@ -1279,6 +1369,7 @@ struct an_ifc_entity_size : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_entity_size */
+
 
 enum an_ifc_form_operator_sort_0_33 : uint16_t;
 using an_ifc_form_operator_sort_storage = uint16_t;
@@ -1294,19 +1385,6 @@ struct an_ifc_form_operator_sort : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_form_operator_sort */
 
-enum an_ifc_form_spec_index_0_33 : uint32_t;
-using an_ifc_form_spec_index_storage = uint32_t;
-
-
-/*
-The universal representation for an IFC FormSpecIndex.
-*/
-struct an_ifc_form_spec_index : Implicit_numeric_entity<
-                                              an_ifc_form_spec_index_storage> {
-  using storage_type = an_ifc_form_spec_index_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
-};  /* an_ifc_form_spec_index */
 
 enum an_ifc_guide_traits_bitfield_0_33 : uint8_t;
 using an_ifc_guide_traits_bitfield_storage = uint8_t;
@@ -1322,6 +1400,7 @@ struct an_ifc_guide_traits_bitfield : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_guide_traits_bitfield */
 
+
 enum an_ifc_index_0_33 : uint32_t;
 using an_ifc_index_storage = uint32_t;
 
@@ -1334,6 +1413,7 @@ struct an_ifc_index : Implicit_numeric_entity<an_ifc_index_storage> {
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_index */
+
 
 enum an_ifc_language_version_0_33 : uint32_t;
 using an_ifc_language_version_storage = uint32_t;
@@ -1349,18 +1429,6 @@ struct an_ifc_language_version : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_language_version */
 
-enum an_ifc_line_index_0_33 : uint32_t;
-using an_ifc_line_index_storage = uint32_t;
-
-
-/*
-The universal representation for an IFC LineIndex.
-*/
-struct an_ifc_line_index : Implicit_numeric_entity<an_ifc_line_index_storage> {
-  using storage_type = an_ifc_line_index_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
-};  /* an_ifc_line_index */
 
 enum an_ifc_line_number_0_33 : uint32_t;
 using an_ifc_line_number_storage = uint32_t;
@@ -1376,6 +1444,7 @@ struct an_ifc_line_number : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_line_number */
 
+
 enum an_ifc_pack_size_0_33 : uint16_t;
 using an_ifc_pack_size_storage = uint16_t;
 
@@ -1388,6 +1457,7 @@ struct an_ifc_pack_size : Implicit_numeric_entity<an_ifc_pack_size_storage> {
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_pack_size */
+
 
 enum an_ifc_parameter_level_0_33 : uint32_t;
 using an_ifc_parameter_level_storage = uint32_t;
@@ -1403,6 +1473,7 @@ struct an_ifc_parameter_level : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_parameter_level */
 
+
 enum an_ifc_parameter_position_0_33 : uint32_t;
 using an_ifc_parameter_position_storage = uint32_t;
 
@@ -1417,19 +1488,6 @@ struct an_ifc_parameter_position : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_parameter_position */
 
-enum an_ifc_scope_index_0_33 : uint32_t;
-using an_ifc_scope_index_storage = uint32_t;
-
-
-/*
-The universal representation for an IFC ScopeIndex.
-*/
-struct an_ifc_scope_index : Implicit_numeric_entity<
-                                                  an_ifc_scope_index_storage> {
-  using storage_type = an_ifc_scope_index_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
-};  /* an_ifc_scope_index */
 
 enum an_ifc_segment_traits_0_33 : uint32_t;
 using an_ifc_segment_traits_storage = uint32_t;
@@ -1445,6 +1503,7 @@ struct an_ifc_segment_traits : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_segment_traits */
 
+
 enum an_ifc_segment_type_0_33 : uint32_t;
 using an_ifc_segment_type_storage = uint32_t;
 
@@ -1458,6 +1517,7 @@ struct an_ifc_segment_type : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_segment_type */
+
 
 enum an_ifc_sentence_index_0_33 : uint32_t;
 using an_ifc_sentence_index_storage = uint32_t;
@@ -1473,6 +1533,7 @@ struct an_ifc_sentence_index : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_sentence_index */
 
+
 enum an_ifc_source_unknown_identifier_0_33 : uint32_t;
 using an_ifc_source_unknown_identifier_storage = uint32_t;
 
@@ -1486,6 +1547,7 @@ struct an_ifc_source_unknown_identifier : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_source_unknown_identifier */
+
 
 enum an_ifc_source_unknown_literal_0_33 : uint32_t;
 using an_ifc_source_unknown_literal_storage = uint32_t;
@@ -1501,6 +1563,7 @@ struct an_ifc_source_unknown_literal : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_source_unknown_literal */
 
+
 enum an_ifc_source_unknown_word_0_33 : uint16_t;
 using an_ifc_source_unknown_word_storage = uint16_t;
 
@@ -1515,19 +1578,6 @@ struct an_ifc_source_unknown_word : Implicit_numeric_entity<
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_source_unknown_word */
 
-enum an_ifc_text_offset_0_33 : uint32_t;
-using an_ifc_text_offset_storage = uint32_t;
-
-
-/*
-The universal representation for an IFC TextOffset.
-*/
-struct an_ifc_text_offset : Implicit_numeric_entity<
-                                                  an_ifc_text_offset_storage> {
-  using storage_type = an_ifc_text_offset_storage;
-  using base_type = Implicit_numeric_entity<storage_type>;
-  using base_type::Implicit_numeric_entity;
-};  /* an_ifc_text_offset */
 
 enum an_ifc_unique_id_0_33 : uint32_t;
 using an_ifc_unique_id_storage = uint32_t;
@@ -1542,6 +1592,7 @@ struct an_ifc_unique_id : Implicit_numeric_entity<an_ifc_unique_id_storage> {
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_unique_id */
 
+
 enum an_ifc_version_0_33 : uint8_t;
 using an_ifc_version_storage = uint8_t;
 
@@ -1554,6 +1605,7 @@ struct an_ifc_version : Implicit_numeric_entity<an_ifc_version_storage> {
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_version */
+
 
 enum an_ifc_bool_0_33 : uint8_t;
 using an_ifc_bool_storage = uint8_t;
@@ -1568,6 +1620,7 @@ struct an_ifc_bool : Implicit_numeric_entity<an_ifc_bool_storage> {
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_bool */
 
+
 enum an_ifc_u16_0_33 : uint16_t;
 using an_ifc_u16_storage = uint16_t;
 
@@ -1581,6 +1634,7 @@ struct an_ifc_u16 : Implicit_numeric_entity<an_ifc_u16_storage> {
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_u16 */
 
+
 enum an_ifc_u64_0_33 : uint64_t;
 using an_ifc_u64_storage = uint64_t;
 
@@ -1593,6 +1647,7 @@ struct an_ifc_u64 : Implicit_numeric_entity<an_ifc_u64_storage> {
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_u64 */
+
 
 enum an_ifc_access_sort_0_33 : uint8_t {
   ifc_0_33_as_none      = 0,
@@ -4198,6 +4253,7 @@ struct an_ifc_attr_index : Index_entity<an_ifc_attr_sort, uint32_t> {
   using base_type::Index_entity;
 };  /* an_ifc_attr_index */
 
+
 inline a_boolean operator==(const an_ifc_attr_index &lhs,
                             const an_ifc_attr_index &rhs)
 /*
@@ -4243,6 +4299,7 @@ struct an_ifc_chart_index : Index_entity<an_ifc_chart_sort, uint32_t> {
   using base_type = Index_entity<sort_type, native_size_type>;
   using base_type::Index_entity;
 };  /* an_ifc_chart_index */
+
 
 inline a_boolean operator==(const an_ifc_chart_index &lhs,
                             const an_ifc_chart_index &rhs)
@@ -4292,6 +4349,7 @@ struct an_ifc_decl_index : Index_entity<an_ifc_decl_sort, uint32_t> {
   using base_type::Index_entity;
 };  /* an_ifc_decl_index */
 
+
 inline a_boolean operator==(const an_ifc_decl_index &lhs,
                             const an_ifc_decl_index &rhs)
 /*
@@ -4339,6 +4397,7 @@ struct an_ifc_expr_index : Index_entity<an_ifc_expr_sort, uint32_t> {
   using base_type::Index_entity;
 };  /* an_ifc_expr_index */
 
+
 inline a_boolean operator==(const an_ifc_expr_index &lhs,
                             const an_ifc_expr_index &rhs)
 /*
@@ -4384,6 +4443,7 @@ struct an_ifc_form_index : Index_entity<an_ifc_form_sort, uint32_t> {
   using base_type = Index_entity<sort_type, native_size_type>;
   using base_type::Index_entity;
 };  /* an_ifc_form_index */
+
 
 inline a_boolean operator==(const an_ifc_form_index &lhs,
                             const an_ifc_form_index &rhs)
@@ -4431,6 +4491,7 @@ struct an_ifc_lit_index : Index_entity<an_ifc_lit_sort, uint32_t> {
   using base_type::Index_entity;
 };  /* an_ifc_lit_index */
 
+
 inline a_boolean operator==(const an_ifc_lit_index &lhs,
                             const an_ifc_lit_index &rhs)
 /*
@@ -4476,6 +4537,7 @@ struct an_ifc_macro_index : Index_entity<an_ifc_macro_sort, uint32_t> {
   using base_type = Index_entity<sort_type, native_size_type>;
   using base_type::Index_entity;
 };  /* an_ifc_macro_index */
+
 
 inline a_boolean operator==(const an_ifc_macro_index &lhs,
                             const an_ifc_macro_index &rhs)
@@ -4523,6 +4585,7 @@ struct an_ifc_name_index : Index_entity<an_ifc_name_sort, uint32_t> {
   using base_type::Index_entity;
 };  /* an_ifc_name_index */
 
+
 inline a_boolean operator==(const an_ifc_name_index &lhs,
                             const an_ifc_name_index &rhs)
 /*
@@ -4568,6 +4631,7 @@ struct an_ifc_pragma_index : Index_entity<an_ifc_pragma_sort, uint32_t> {
   using base_type = Index_entity<sort_type, native_size_type>;
   using base_type::Index_entity;
 };  /* an_ifc_pragma_index */
+
 
 inline a_boolean operator==(const an_ifc_pragma_index &lhs,
                             const an_ifc_pragma_index &rhs)
@@ -4616,6 +4680,7 @@ struct an_ifc_stmt_index : Index_entity<an_ifc_stmt_sort, uint32_t> {
   using base_type::Index_entity;
 };  /* an_ifc_stmt_index */
 
+
 inline a_boolean operator==(const an_ifc_stmt_index &lhs,
                             const an_ifc_stmt_index &rhs)
 /*
@@ -4661,6 +4726,7 @@ struct an_ifc_string_index : Index_entity<an_ifc_string_sort, uint32_t> {
   using base_type = Index_entity<sort_type, native_size_type>;
   using base_type::Index_entity;
 };  /* an_ifc_string_index */
+
 
 inline a_boolean operator==(const an_ifc_string_index &lhs,
                             const an_ifc_string_index &rhs)
@@ -4708,6 +4774,7 @@ struct an_ifc_syntax_index : Index_entity<an_ifc_syntax_sort, uint32_t> {
   using base_type::Index_entity;
 };  /* an_ifc_syntax_index */
 
+
 inline a_boolean operator==(const an_ifc_syntax_index &lhs,
                             const an_ifc_syntax_index &rhs)
 /*
@@ -4753,6 +4820,7 @@ struct an_ifc_type_index : Index_entity<an_ifc_type_sort, uint32_t> {
   using base_type = Index_entity<sort_type, native_size_type>;
   using base_type::Index_entity;
 };  /* an_ifc_type_index */
+
 
 inline a_boolean operator==(const an_ifc_type_index &lhs,
                             const an_ifc_type_index &rhs)
@@ -4800,6 +4868,7 @@ struct an_ifc_unit_index : Index_entity<an_ifc_unit_sort, uint32_t> {
   using base_type::Index_entity;
 };  /* an_ifc_unit_index */
 
+
 inline a_boolean operator==(const an_ifc_unit_index &lhs,
                             const an_ifc_unit_index &rhs)
 /*
@@ -4838,6 +4907,21 @@ A type representing the largest possible index size for any index.
 */
 using an_ifc_index_type = uint32_t;
 
+enum an_ifc_text_offset_0_33 : uint32_t;
+using an_ifc_text_offset_storage = uint32_t;
+
+
+/*
+The universal representation for an IFC TextOffset.
+*/
+struct an_ifc_text_offset : Implicit_numeric_entity<
+                                                  an_ifc_text_offset_storage> {
+  using storage_type = an_ifc_text_offset_storage;
+  using base_type = Implicit_numeric_entity<storage_type>;
+  using base_type::Implicit_numeric_entity;
+};  /* an_ifc_text_offset */
+
+
 enum an_ifc_decl_foreign_index_0_33 : uint32_t;
 using an_ifc_decl_foreign_index_storage = uint32_t;
 
@@ -4851,6 +4935,7 @@ struct an_ifc_decl_foreign_index : Numeric_entity<
   using base_type = Numeric_entity<storage_type>;
   using base_type::Numeric_entity;
 };  /* an_ifc_decl_foreign_index */
+
 
 enum an_ifc_basic_specifiers_bitfield_0_33 : uint8_t {
   ifc_0_33_bsb_cxx                        = 0,
@@ -4877,6 +4962,7 @@ struct an_ifc_basic_specifiers_bitfield : Numeric_entity<
   using base_type = Numeric_entity<storage_type>;
   using base_type::Numeric_entity;
 };  /* an_ifc_basic_specifiers_bitfield */
+
 
 enum an_ifc_basic_specifiers_bitfield_query : uint32_t {
   ifc_bsb_c                          = 1 << 0,
@@ -4920,6 +5006,7 @@ struct an_ifc_function_traits_bitfield : Numeric_entity<
   using base_type::Numeric_entity;
 };  /* an_ifc_function_traits_bitfield */
 
+
 enum an_ifc_function_traits_bitfield_query : uint32_t {
   ifc_ftb_constexpr     = 1 << 0,
   ifc_ftb_constrained   = 1 << 1,
@@ -4957,6 +5044,7 @@ struct an_ifc_function_type_traits_bitfield : Numeric_entity<
   using base_type = Numeric_entity<storage_type>;
   using base_type::Numeric_entity;
 };  /* an_ifc_function_type_traits_bitfield */
+
 
 enum an_ifc_function_type_traits_bitfield_query : uint32_t {
   ifc_fttb_const    = 1 << 0,
@@ -5001,6 +5089,7 @@ struct an_ifc_msvc_traits_bitfield : Numeric_entity<
   using base_type = Numeric_entity<storage_type>;
   using base_type::Numeric_entity;
 };  /* an_ifc_msvc_traits_bitfield */
+
 
 enum an_ifc_msvc_traits_bitfield_query : uint32_t {
   ifc_mtb_allocate       = 1 << 0,
@@ -5048,6 +5137,7 @@ struct an_ifc_object_traits_bitfield : Numeric_entity<
   using base_type::Numeric_entity;
 };  /* an_ifc_object_traits_bitfield */
 
+
 enum an_ifc_object_traits_bitfield_query : uint32_t {
   ifc_otb_constexpr            = 1 << 0,
   ifc_otb_initializer_exported = 1 << 1,
@@ -5080,6 +5170,7 @@ struct an_ifc_qualifier_bitfield : Numeric_entity<
   using base_type::Numeric_entity;
 };  /* an_ifc_qualifier_bitfield */
 
+
 enum an_ifc_qualifier_bitfield_query : uint32_t {
   ifc_qb_const    = 1 << 0,
   ifc_qb_none     = 1 << 1,
@@ -5109,6 +5200,7 @@ struct an_ifc_reachable_properties_bitfield : Numeric_entity<
   using base_type = Numeric_entity<storage_type>;
   using base_type::Numeric_entity;
 };  /* an_ifc_reachable_properties_bitfield */
+
 
 enum an_ifc_reachable_properties_bitfield_query : uint32_t {
   ifc_rpb_all               = 1 << 0,
@@ -5142,6 +5234,7 @@ struct an_ifc_scope_traits_bitfield : Numeric_entity<
   using base_type = Numeric_entity<storage_type>;
   using base_type::Numeric_entity;
 };  /* an_ifc_scope_traits_bitfield */
+
 
 enum an_ifc_scope_traits_bitfield_query : uint32_t {
   ifc_stb_closure_type         = 1 << 0,
@@ -5602,14 +5695,14 @@ struct an_ifc_sequence : Byte_buffer_entity<an_ifc_sequence_storage> {
 };  /* an_ifc_sequence */
 
 /*
-  |-------------------------------------|
-  |   SourceLocation - 0.33 (8 bytes)   |
-  |--------|-----------|---------|------|
-  | Name   | Type      | Version | Size |
-  |--------|-----------|---------|------|
-  | line   | LineIndex | 0.33    | 4    |
-  | column | Column    | 0.33    | 4    |
-  |--------|-----------|---------|------|
+  |--------------------------------------|
+  |   SourceLocation - 0.33 (8 bytes)    |
+  |--------|------------|---------|------|
+  | Name   | Type       | Version | Size |
+  |--------|------------|---------|------|
+  | line   | LineOffset | 0.33    | 4    |
+  | column | Column     | 0.33    | 4    |
+  |--------|------------|---------|------|
 */
 enum an_ifc_source_location_part : uint8_t {};
 using an_ifc_source_location_storage = an_ifc_source_location_part[8];
@@ -5680,7 +5773,7 @@ struct an_ifc_type_placeholder_basis_wrapper :
   | string_table_size  | Cardinality      | 0.33    | 4    |
   | unit               | UnitIndex        | 0.33    | 4    |
   | src_path           | TextOffset       | 0.33    | 4    |
-  | global_scope       | ScopeIndex       | 0.33    | 4    |
+  | global_scope       | ScopeOffset      | 0.33    | 4    |
   | toc                | ByteOffset       | 0.33    | 4    |
   | partition_count    | Cardinality      | 0.33    | 4    |
   | internal           | bool             | 0.33    | 1    |
@@ -6888,12 +6981,12 @@ struct an_ifc_decl_expansion :
 /*
   |--------------------------------------------|
   | DeclExplicitInstantiation - 0.33 (8 bytes) |
-  |--------|----------------|----------|-------|
-  | Name   | Type           | Version  | Size  |
-  |--------|----------------|----------|-------|
-  | form   | FormSpecIndex  | 0.33     | 4     |
-  | decl   | DeclIndex      | 0.33     | 4     |
-  |--------|----------------|----------|-------|
+  |-------|-----------------|----------|-------|
+  | Name  | Type            | Version  | Size  |
+  |-------|-----------------|----------|-------|
+  | form  | FormSpecOffset  | 0.33     | 4     |
+  | decl  | DeclIndex       | 0.33     | 4     |
+  |-------|-----------------|----------|-------|
 */
 enum an_ifc_decl_explicit_instantiation_part : uint8_t {};
 using an_ifc_decl_explicit_instantiation_storage =
@@ -6921,12 +7014,12 @@ struct an_ifc_decl_explicit_instantiation :
 /*
   |---------------------------------------------|
   | DeclExplicitSpecialization - 0.33 (8 bytes) |
-  |---------|----------------|----------|-------|
-  | Name    | Type           | Version  | Size  |
-  |---------|----------------|----------|-------|
-  | form    | FormSpecIndex  | 0.33     | 4     |
-  | decl    | DeclIndex      | 0.33     | 4     |
-  |---------|----------------|----------|-------|
+  |--------|-----------------|----------|-------|
+  | Name   | Type            | Version  | Size  |
+  |--------|-----------------|----------|-------|
+  | form   | FormSpecOffset  | 0.33     | 4     |
+  | decl   | DeclIndex       | 0.33     | 4     |
+  |--------|-----------------|----------|-------|
 */
 enum an_ifc_decl_explicit_specialization_part : uint8_t {};
 using an_ifc_decl_explicit_specialization_storage =
@@ -7492,7 +7585,7 @@ struct an_ifc_decl_parameter :
   | home_scope       | DeclIndex                   | 0.33    | 4    |
   | chart            | ChartIndex                  | 0.33    | 4    |
   | entity           | ParameterizedEntity         | 0.33    | 16   |
-  | form             | FormSpecIndex               | 0.33    | 4    |
+  | form             | FormSpecOffset              | 0.33    | 4    |
   | specifiers       | BasicSpecifiersBitfield     | 0.33    | 1    |
   | access           | AccessSort                  | 0.33    | 1    |
   | properties       | ReachablePropertiesBitfield | 0.33    | 1    |
@@ -7513,7 +7606,7 @@ struct an_ifc_decl_parameter :
   | home_scope       | DeclIndex                   | 0.41    | 4    |
   | chart            | ChartIndex                  | 0.33    | 4    |
   | entity           | ParameterizedEntity         | 0.41    | 16   |
-  | form             | FormSpecIndex               | 0.33    | 4    |
+  | form             | FormSpecOffset              | 0.33    | 4    |
   | specifiers       | BasicSpecifiersBitfield     | 0.33    | 1    |
   | access           | AccessSort                  | 0.33    | 1    |
   | properties       | ReachablePropertiesBitfield | 0.33    | 1    |
@@ -7534,7 +7627,7 @@ struct an_ifc_decl_parameter :
   | home_scope       | DeclIndex                   | 0.43    | 4    |
   | chart            | ChartIndex                  | 0.33    | 4    |
   | entity           | ParameterizedEntity         | 0.43    | 16   |
-  | form             | FormSpecIndex               | 0.33    | 4    |
+  | form             | FormSpecOffset              | 0.33    | 4    |
   | specifiers       | BasicSpecifiersBitfield     | 0.33    | 1    |
   | access           | AccessSort                  | 0.33    | 1    |
   | properties       | ReachablePropertiesBitfield | 0.33    | 1    |
@@ -7661,7 +7754,7 @@ struct an_ifc_decl_reference :
   | locus       | SourceLocation              | 0.33    | 8    |
   | type        | TypeIndex                   | 0.33    | 4    |
   | base        | TypeIndex                   | 0.33    | 4    |
-  | initializer | ScopeIndex                  | 0.33    | 4    |
+  | initializer | ScopeOffset                 | 0.33    | 4    |
   | home_scope  | DeclIndex                   | 0.33    | 4    |
   | alignment   | ExprIndex                   | 0.33    | 4    |
   | pack_size   | PackSize                    | 0.33    | 2    |
@@ -7681,7 +7774,7 @@ struct an_ifc_decl_reference :
   | locus       | SourceLocation              | 0.33    | 8    |
   | type        | TypeIndex                   | 0.33    | 4    |
   | base        | TypeIndex                   | 0.33    | 4    |
-  | initializer | ScopeIndex                  | 0.33    | 4    |
+  | initializer | ScopeOffset                 | 0.33    | 4    |
   | home_scope  | DeclIndex                   | 0.41    | 4    |
   | alignment   | ExprIndex                   | 0.33    | 4    |
   | pack_size   | PackSize                    | 0.33    | 2    |
@@ -7703,7 +7796,7 @@ struct an_ifc_decl_reference :
   | locus       | SourceLocation              | 0.33    | 8    |
   | type        | TypeIndex                   | 0.33    | 4    |
   | base        | TypeIndex                   | 0.33    | 4    |
-  | initializer | ScopeIndex                  | 0.33    | 4    |
+  | initializer | ScopeOffset                 | 0.33    | 4    |
   | home_scope  | DeclIndex                   | 0.41    | 4    |
   | alignment   | ExprIndex                   | 0.42    | 4    |
   | pack_size   | PackSize                    | 0.33    | 2    |
@@ -7725,7 +7818,7 @@ struct an_ifc_decl_reference :
   | locus       | SourceLocation              | 0.33    | 8    |
   | type        | TypeIndex                   | 0.33    | 4    |
   | base        | TypeIndex                   | 0.33    | 4    |
-  | initializer | ScopeIndex                  | 0.33    | 4    |
+  | initializer | ScopeOffset                 | 0.33    | 4    |
   | home_scope  | DeclIndex                   | 0.43    | 4    |
   | alignment   | ExprIndex                   | 0.42    | 4    |
   | pack_size   | PackSize                    | 0.33    | 2    |
@@ -7763,7 +7856,7 @@ struct an_ifc_decl_scope : Byte_buffer_entity<an_ifc_decl_scope_storage> {
   |------------------|--------------------|---------|------|
   | Name             | Type               | Version | Size |
   |------------------|--------------------|---------|------|
-  | form             | FormSpecIndex      | 0.33    | 4    |
+  | form             | FormSpecOffset     | 0.33    | 4    |
   | decl             | DeclIndex          | 0.41    | 4    |
   | sort             | SpecializationSort | 0.41    | 1    |
   | __padding__      | uint8_t[3]         |         | 3    |
@@ -7779,7 +7872,7 @@ struct an_ifc_decl_scope : Byte_buffer_entity<an_ifc_decl_scope_storage> {
   |------------------|--------------------|---------|------|
   | Name             | Type               | Version | Size |
   |------------------|--------------------|---------|------|
-  | form             | FormSpecIndex      | 0.33    | 4    |
+  | form             | FormSpecOffset     | 0.33    | 4    |
   | decl             | DeclIndex          | 0.43    | 4    |
   | sort             | SpecializationSort | 0.41    | 1    |
   | __padding__      | uint8_t[3]         |         | 3    |
@@ -18516,6 +18609,144 @@ struct an_ifc_type_unaligned :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_type_unaligned */
+
+enum an_ifc_form_spec_offset_0_33 : uint32_t {};
+
+
+/*
+The universal representation for an IFC FormSpecOffset.
+*/
+struct an_ifc_form_spec_offset : Offset_entity<an_ifc_form_spec, uint32_t> {
+  using node_type = an_ifc_form_spec;
+
+  using native_size_type = uint32_t;
+  using base_type = Offset_entity<node_type, native_size_type>;
+  using base_type::Offset_entity;
+};  /* an_ifc_form_spec_offset */
+
+
+inline a_boolean operator==(const an_ifc_form_spec_offset &lhs,
+                            const an_ifc_form_spec_offset &rhs)
+/*
+Compare two instances of this FormSpecOffset (lhs and rhs).  If the two
+instances are equivalent, return TRUE; otherwise return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  /* Check members that are more likely to be unique first.  This allows the
+     logic to short circuit in common negative cases. */
+  if (lhs.value != rhs.value) {
+    result = FALSE;
+  } else if (lhs.file != rhs.file) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+inline a_boolean operator!=(const an_ifc_form_spec_offset &lhs,
+                            const an_ifc_form_spec_offset &rhs)
+/*
+Compare two instances of this FormSpecOffset (lhs and rhs).  If the two
+instances are equivalent, return FALSE; otherwise return TRUE.
+*/
+{
+  return !(lhs == rhs);
+}  /* operator!= */
+
+
+enum an_ifc_line_offset_0_33 : uint32_t {};
+
+
+/*
+The universal representation for an IFC LineOffset.
+*/
+struct an_ifc_line_offset : Offset_entity<an_ifc_source_line, uint32_t> {
+  using node_type = an_ifc_source_line;
+
+  using native_size_type = uint32_t;
+  using base_type = Offset_entity<node_type, native_size_type>;
+  using base_type::Offset_entity;
+};  /* an_ifc_line_offset */
+
+
+inline a_boolean operator==(const an_ifc_line_offset &lhs,
+                            const an_ifc_line_offset &rhs)
+/*
+Compare two instances of this LineOffset (lhs and rhs).  If the two instances
+are equivalent, return TRUE; otherwise return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  /* Check members that are more likely to be unique first.  This allows the
+     logic to short circuit in common negative cases. */
+  if (lhs.value != rhs.value) {
+    result = FALSE;
+  } else if (lhs.file != rhs.file) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+inline a_boolean operator!=(const an_ifc_line_offset &lhs,
+                            const an_ifc_line_offset &rhs)
+/*
+Compare two instances of this LineOffset (lhs and rhs).  If the two instances
+are equivalent, return FALSE; otherwise return TRUE.
+*/
+{
+  return !(lhs == rhs);
+}  /* operator!= */
+
+
+enum an_ifc_scope_offset_0_33 : uint32_t {};
+
+
+/*
+The universal representation for an IFC ScopeOffset.
+*/
+struct an_ifc_scope_offset : Offset_entity<an_ifc_scope_descriptor, uint32_t> {
+  using node_type = an_ifc_scope_descriptor;
+
+  using native_size_type = uint32_t;
+  using base_type = Offset_entity<node_type, native_size_type>;
+  using base_type::Offset_entity;
+};  /* an_ifc_scope_offset */
+
+
+inline a_boolean operator==(const an_ifc_scope_offset &lhs,
+                            const an_ifc_scope_offset &rhs)
+/*
+Compare two instances of this ScopeOffset (lhs and rhs).  If the two instances
+are equivalent, return TRUE; otherwise return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  /* Check members that are more likely to be unique first.  This allows the
+     logic to short circuit in common negative cases. */
+  if (lhs.value != rhs.value) {
+    result = FALSE;
+  } else if (lhs.file != rhs.file) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+inline a_boolean operator!=(const an_ifc_scope_offset &lhs,
+                            const an_ifc_scope_offset &rhs)
+/*
+Compare two instances of this ScopeOffset (lhs and rhs).  If the two instances
+are equivalent, return FALSE; otherwise return TRUE.
+*/
+{
+  return !(lhs == rhs);
+}  /* operator!= */
+
 
 enum an_ifc_partition_kind : uint32_t {
   ifc_pk_none,
