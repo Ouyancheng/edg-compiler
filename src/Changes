@@ -1,5 +1,22 @@
 Version 6.6
 
+7/31/23  [EDGcpfe/25594]
+C++-generating back end: CTAD involving member templates
+
+When forming a type specified in the original source using class template
+argument deduction (CTAD), where the class template is a class member, the
+C++-generating back end previously incorrectly treated the type specifier
+as dependent and thus needing to be prefixed by the "typename" keyword.
+This has now been fixed.  For example, with --c++17:
+
+  struct A {
+    template <typename T> struct B {
+      B(T);
+    };
+  };
+  A::B ab{0};   // Previously generated as "typename A::B"
+
+
 7/31/23  [EDGcpfe/26555]
 Build error when IA64_ABI is 0 and ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS is 1
 

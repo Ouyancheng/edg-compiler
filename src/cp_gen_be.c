@@ -8464,13 +8464,29 @@ tag, a typedef, or a dependent type.  A reference is not the definition.
 {
   a_type_ptr             orig_type = type;
   a_gen_name_options_set options = GN_NO_OPTIONS;
+  a_type_ptr             poss_dep_type = NULL;
 
-  if (is_template_param_or_nonreal_class_type(type) ||
-      (type->source_corresp.is_class_member &&
-       is_template_param_or_nonreal_class_type(parent_class_of(type)))) {
-    /* This type depends on a template parameter and thus must be preceded
-       by the "typename" keyword. */
-    options = GN_DEPENDENT;
+  if (is_template_param_or_nonreal_class_type(type)) {
+    poss_dep_type = type;
+  } else if (type->source_corresp.is_class_member &&
+             is_template_param_or_nonreal_class_type(parent_class_of(type))) {
+    poss_dep_type = parent_class_of(type);
+  }  /* if */
+  if (poss_dep_type != NULL) {
+    if (poss_dep_type->kind == tk_template_param) {
+      /* Template parameter types other than CTAD placeholders are
+         dependent and must be prefixed by the "typename" keyword. */
+      a_template_param_type_supplement_ptr tptsp =
+                              poss_dep_type->variant.template_param.extra_info;
+      if (tptsp->coordinates.depth !=
+                                    CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH) {
+        options = GN_DEPENDENT;
+      }  /* if */
+    } else {
+      /* Nonreal class types are dependent and must be prefixed by the
+         "typename" keyword. */
+      options = GN_DEPENDENT;
+    }  /* if */
   }  /* if */
   type = orig_type_if_nonreal_prototype_type(type);
   if (type->replace_by_generated_typedef) {
