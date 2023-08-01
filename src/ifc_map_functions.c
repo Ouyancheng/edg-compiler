@@ -13757,7 +13757,8 @@ is considered a NULL index; otherwise, return FALSE.
   if (file == NULL) {
     result = TRUE;
   } else {
-    result = 0 == to_encoded(file, universal);
+    /* Never null by encoding. */
+    result = FALSE;
   }  /* if */
   return result;
 }  /* is_null_index */
@@ -13830,7 +13831,8 @@ is considered a NULL index; otherwise, return FALSE.
   if (file == NULL) {
     result = TRUE;
   } else {
-    result = 0 == to_encoded(file, universal);
+    /* Never null by encoding. */
+    result = FALSE;
   }  /* if */
   return result;
 }  /* is_null_index */
@@ -13903,7 +13905,8 @@ index is considered a NULL index; otherwise, return FALSE.
   if (file == NULL) {
     result = TRUE;
   } else {
-    result = 0 == to_encoded(file, universal);
+    /* Never null by encoding. */
+    result = FALSE;
   }  /* if */
   return result;
 }  /* is_null_index */
@@ -13976,7 +13979,8 @@ is considered a NULL index; otherwise, return FALSE.
   if (file == NULL) {
     result = TRUE;
   } else {
-    result = 0 == to_encoded(file, universal);
+    /* Never null by encoding. */
+    result = FALSE;
   }  /* if */
   return result;
 }  /* is_null_index */
@@ -14049,7 +14053,8 @@ index is considered a NULL index; otherwise, return FALSE.
   if (file == NULL) {
     result = TRUE;
   } else {
-    result = 0 == to_encoded(file, universal);
+    /* Never null by encoding. */
+    result = FALSE;
   }  /* if */
   return result;
 }  /* is_null_index */
@@ -14229,7 +14234,8 @@ index is considered a NULL index; otherwise, return FALSE.
   if (file == NULL) {
     result = TRUE;
   } else {
-    result = 0 == to_encoded(file, universal);
+    /* Never null by encoding. */
+    result = FALSE;
   }  /* if */
   return result;
 }  /* is_null_index */
@@ -14448,7 +14454,8 @@ is considered a NULL index; otherwise, return FALSE.
   if (file == NULL) {
     result = TRUE;
   } else {
-    result = 0 == to_encoded(file, universal);
+    /* Never null by encoding. */
+    result = FALSE;
   }  /* if */
   return result;
 }  /* is_null_index */
