@@ -1471,6 +1471,13 @@ tables are const.
   a_type_ptr type = make_vtbl_entry_type();
   type = make_qualified_type(type, TQ_CONST);
   type = make_pointer_type(type);
+#if BACK_END_IS_C_GEN_BE
+  /* The C-generating back end does not support virtual function table pointers
+     types that don't match the size and alignment of the class's virtual
+     function info. */
+  check_assertion(type->size == targ_sizeof_virtual_function_info &&
+                  type->alignment == targ_alignof_virtual_function_info);
+#endif /* BACK_END_IS_C_GEN_BE */
   return type;
 }  /* pointer_to_vtbl_type */
 
