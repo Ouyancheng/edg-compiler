@@ -1,5 +1,25 @@
 Version 6.6
 
+8/2/23   [EDGcpfe/26300]
+Spurious failure to pass an argument via user-defined conversion
+
+Consider:
+
+  struct S {
+    S(int) {}
+    operator int() const volatile { return 0; }
+  };
+  void f(S) {}
+  int main() {
+    volatile S a{0};
+    f(a);  // Previously a spurious error in some modes.  Now okay.
+  }
+
+Previously, the call f(a) elicited a spurious error.  That is a regression
+introduced by the changes for EDGcpfe/25746 (in version 6.5).  That is
+now fixed.
+
+
 8/1/23   [EDGcpfe/24171,EDGcpfe/24573,EDGcpfe/26140,EDGcpfe/26267]
 Cv-qualification of non-type template parameters
 
