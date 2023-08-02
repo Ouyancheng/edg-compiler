@@ -1,6 +1,6 @@
 Version 6.6
 
-8/1/23   [EDGcpfe/24573,EDGcpfe/26140,EDGcpfe/26267]
+8/1/23   [EDGcpfe/24171,EDGcpfe/24573,EDGcpfe/26140,EDGcpfe/26267]
 Cv-qualification of non-type template parameters
 
 The C++ Standard requires that top-level cv-qualifiers are ignored when
