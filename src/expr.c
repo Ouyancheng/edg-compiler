@@ -2982,6 +2982,8 @@ provide some additional ones over the basic ones implied for this case.
       if (err) subst_fail(rcblock->error_detected);
       while (any_more) {
         an_operand local_operand, local_bound_function_selector;
+        clear_operand(ok_error, &local_operand);
+        clear_operand(ok_error, &local_bound_function_selector);
         make_rescan_operand_full(expr, rcblock, options, &local_operand,
                                  &local_bound_function_selector);
         if (first_time) {
