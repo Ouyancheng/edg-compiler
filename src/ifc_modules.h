@@ -302,7 +302,8 @@ struct an_ifc_module : public a_module_interface {
                         /* Zero until the first time the file is referenced,
                            then set to the initial sequence number for the
                            file. */
-    uint32_t    max_line_number;
+    an_ifc_line_number_storage
+                max_line_number;
                         /* The maximum line number that will be seen in the
                            file.  Used to allocate a block of sequence numbers
                            that map to this file. */

@@ -258,15 +258,16 @@ Return TRUE if processing succeeded, otherwise return FALSE.
   construct_node(&opt_isl, line_offset);
   if (opt_isl.has_value()) {
     an_ifc_source_line isl = *opt_isl;
+    an_ifc_line_number line = get_ifc_line(isl);
 
-    if (is_missing_source_location(isl)) {
+    if (line == 0) {
       /* IFC LineNumbers start at one, a line number of zero means the source
          line isn't known.  As the front end (at the time of writing) doesn't
          support source locations for a file without a line, resolve all cases
          of this to null source position. */
       *pos = null_source_position;
     } else {
-      an_ifc_name_index  file_idx = get_ifc_file(isl);
+      an_ifc_name_index file_idx = get_ifc_file(isl);
 
       if (file_idx.sort != ifc_ns_name_source_file) {
         a_string err_msg("expected ", index_to_str(file_idx), " to be ",
@@ -299,8 +300,6 @@ Return TRUE if processing succeeded, otherwise return FALSE.
                                                msnmp->max_line_number);
         msnmp->starting_sequence_number = pos->seq;
       }  /* if */
-
-      an_ifc_line_number line = get_ifc_line(isl);
       /* If this assertion fails, the initial source position scan when the
          module is imported did not properly account for it. */
       check_assertion(line <= msnmp->max_line_number);
