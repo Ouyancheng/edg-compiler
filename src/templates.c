@@ -22522,7 +22522,8 @@ static void rename_prototype_arg_list(
 		a_template_param_ptr			templ_param_list)
 /*
 Rename the template argument list for the prototype instantiation with
-the names of the template parameters specified by templ_param_list.
+the names of the template parameters specified by templ_param_list.  Also
+create pack expansion entries for template parameters that are packs.
 */
 {
   a_template_arg_ptr		tap;
@@ -22551,6 +22552,9 @@ the names of the template parameters specified by templ_param_list.
       check_assertion(param_sym->kind == (a_symbol_kind)sk_class_template);
       tap->variant.templ.ptr = param_sym->
                                       variant.template_info->il_template_entry;
+    }  /* if */
+    if (tap->is_pack) {
+      add_pack_expansion_descr_to_prototype_arg(tpp, tap);
     }  /* if */
   }  /* for */
 }  /* rename_prototype_arg_list */
