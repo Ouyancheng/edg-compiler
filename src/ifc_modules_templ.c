@@ -131,7 +131,7 @@ Return the index into the partition associated with the given index type.
 
 
 /* Manually defined explicit instantiations of get_partition_index. */
-INST_PARTITION_INDEX(an_ifc_partition_kind_index)
+/* none */
 
 
 template<typename an_ifc_Index_type>
@@ -152,7 +152,7 @@ index.
 
 
 /* Manually defined explicit instantiations of get_partition_metadata. */
-INST_PARTITION_METADATA(an_ifc_partition_kind_index)
+/* none */
 
 
 template<typename an_ifc_Index_type>
@@ -196,16 +196,21 @@ done:
 
 
 /* Manually defined explicit instantiations of get_partition_offset. */
-INST_PARTITION_OFFSET(an_ifc_partition_kind_index)
+/* none */
 
 
 /* Macro used to explicitly instantiate get_partition_kind,
-   get_partition_metdata, and get_partition_offset. */
+   get_partition_index, get_partition_metdata, and get_partition_offset. */
 #define INST_PARTITION_ALL(idx_type) \
   INST_PARTITION_KIND(idx_type) \
   INST_PARTITION_INDEX(idx_type) \
   INST_PARTITION_METADATA(idx_type) \
   INST_PARTITION_OFFSET(idx_type)
+
+
+/* Manually defined explicit instantiations of get_partition_kind,
+   get_partition_index, get_partition_metdata, and get_partition_offset. */
+INST_PARTITION_ALL(an_ifc_partition_kind_index)
 
 
 template<typename an_ifc_Index_type>

@@ -23141,7 +23141,6 @@ Add the tokens corresponding to the given name to cache.
                                           &error_position);
         goto invalid;
       }
-      break;
     default_is_unexpected();
   }  /* switch */
   goto done;
