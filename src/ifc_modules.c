@@ -10593,7 +10593,7 @@ header.
     default_is_unexpected();
   }  /* switch */
 #endif /* !ASSUME_LITTLE_ENDIAN_IFC_MODULES */
-}  /* initialize_file_header */
+}  /* update_file_metadata */
 
 
 a_boolean an_ifc_module::init_header(a_module_import_decl_ptr midp,
@@ -10691,7 +10691,6 @@ diagnostics if issue_diag is TRUE.
       an_ifc_compatibility_diag_handler diagnostic(checker.severity(),
                                                    &midp->module_name_position,
                                                    mod->full_name);
-
 
       check_ifc_compatibility(this->header, &diagnostic);
       if (checker.is_error()) {
