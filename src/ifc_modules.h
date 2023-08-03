@@ -532,8 +532,8 @@ public:
                                  const an_ifc_cache_info          &cinfo);
   void cache_name(a_module_token_cache_ptr     cache,
                   an_ifc_name_index            name);
-  void cache_name_from_decl(a_module_token_cache_ptr cache,
-                            an_ifc_decl_index        decl);
+  void cache_name_of_decl(a_module_token_cache_ptr cache,
+                          an_ifc_decl_index        decl);
   void cache_macro(a_module_token_cache_ptr cache,
                    an_ifc_macro_index       macro);
   void cache_form(a_module_token_cache_ptr cache,

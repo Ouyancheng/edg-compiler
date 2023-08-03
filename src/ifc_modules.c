@@ -126,7 +126,47 @@ Convert the given index value into a string representation.
 }  /* index_to_str */
 
 
-static Opt<a_string> name_from_decl(an_ifc_decl_index decl_idx);
+template<typename an_ifc_Decl_type>
+static Opt<a_string> name_of_decl(const an_ifc_Decl_type &decl);
+
+template<>
+Opt<a_string> name_of_decl(const an_ifc_decl_constructor &decl);
+
+template<>
+Opt<a_string> name_of_decl(const an_ifc_decl_destructor &decl);
+
+template<>
+Opt<a_string> name_of_decl(const an_ifc_decl_expansion &decl);
+
+template<>
+Opt<a_string> name_of_decl(const an_ifc_decl_inherited_constructor &decl);
+
+template<>
+Opt<a_string> name_of_decl(const an_ifc_decl_property &decl);
+
+template<>
+Opt<a_string> name_of_decl(const an_ifc_decl_reference &decl);
+
+template<>
+Opt<a_string> name_of_decl(const an_ifc_decl_scope &decl);
+
+template<>
+Opt<a_string> name_of_decl(const an_ifc_decl_tuple &decl);
+
+
+static Opt<a_string> name_of_decl(an_ifc_decl_index decl_idx);
+
+template<typename an_ifc_Decl_type>
+a_boolean is_named_decl(an_ifc_Decl_type decl)
+/*
+Given an IFC declaration node, return true if the node is named declaration.
+*/
+{
+  Opt<a_string> opt_name = name_of_decl(decl);
+
+  return opt_name.has_value() && !opt_name->is_empty();
+}  /* is_named_decl */
+
 
 static Opt<a_string> name_from_index(an_ifc_name_index name_index,
                                      a_symbol_locator  *loc = NULL);
@@ -165,20 +205,6 @@ FALSE.
     }  /* if */
   }  /* if */
   return result;
-}  /* is_name_present */
-
-
-static a_boolean is_name_present(an_ifc_text_offset text_offset)
-/*
-An overload of is_name_present for an_ifc_text_offset types, see
-is_name_present(an_ifc_name_index) for more information.
-*/
-{
-  /* Convert the text offset into a name index. */
-  an_ifc_name_index name_idx{text_offset.file, ifc_ns_text_offset,
-                             text_offset.value};
-
-  return is_name_present(name_idx);
 }  /* is_name_present */
 
 
@@ -1083,7 +1109,7 @@ static a_string get_string_at_offset(const an_ifc_module_string_table &table,
 /*
 Return a NULL-terminated string from the IFC string table for a given
 TextOffset.  This function does not do any adjustments or corrections to the
-IFC text; thus, for entity names prefer name_from_index or name_from_decl.
+IFC text; thus, for entity names prefer name_from_index or name_of_decl.
 */
 {
 #if EXPENSIVE_CHECKING
@@ -1097,7 +1123,7 @@ static a_string get_string_at_offset(an_ifc_text_offset offset)
 /*
 Return a NULL-terminated string from the IFC string table for a given
 TextOffset.  This function does not do any adjustments or corrections to the
-IFC text; thus, for entity names prefer name_from_index or name_from_decl.
+IFC text; thus, for entity names prefer name_from_index or name_of_decl.
 */
 {
   an_ifc_module *mod = module_of(offset);
@@ -1111,7 +1137,7 @@ static a_string get_string_at_offset(an_ifc_text_offset offset,
 /*
 Return a string from the IFC string table for a given TextOffset with the given
 num_bytes length.  This function does not do any adjustments or corrections to
-the IFC text; thus, for entity names prefer name_from_index or name_from_decl.
+the IFC text; thus, for entity names prefer name_from_index or name_of_decl.
 */
 {
   an_ifc_module              *mod = module_of(offset);
@@ -1709,36 +1735,75 @@ its ifc_AttrIndex.
 }  /* attr_index_of */
 
 
-static Opt<an_ifc_type_basis_sort> get_scope_kind(an_ifc_decl_index scope_ref)
+static Opt<a_scope_kind> get_scope_kind(const an_ifc_decl_scope &scope_decl)
 /*
-Return the type basis for the given decl index if the given IFC DeclIndex
+Return the scope kind for the given declaration.  If the scope kind cannot be
+determined or was invalid, return an empty optional.
+*/
+{
+  Opt<a_scope_kind> result;
+
+  { Opt<an_ifc_type_fundamental> opt_fundamental_type;
+    an_ifc_type_index            scope_type = get_ifc_type(scope_decl);
+
+    construct_node(&opt_fundamental_type, scope_type);
+    if (!opt_fundamental_type.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    an_ifc_type_fundamental fundamental_type = *opt_fundamental_type;
+    an_ifc_type_basis_sort  basis = get_ifc_basis(fundamental_type);
+    switch (basis) {
+      case ifc_tbs_class:
+      case ifc_tbs_interface:
+      case ifc_tbs_struct:
+      case ifc_tbs_union:
+        result = sck_class_struct_union;
+        break;
+      case ifc_tbs_namespace:
+        result = sck_namespace;
+        break;
+      default:
+        { a_string err_msg("expected an ", str_for(ifc_tbs_class), " or ",
+                           str_for(ifc_tbs_namespace), " got ",
+                           str_for(basis));
+
+          ifc_unexpected(module_of(fundamental_type), err_msg);
+        }
+        goto invalid;
+    }  /* switch */
+  }
+  goto done;
+invalid:
+  result.clear();
+done:
+  return result;
+}  /* get_scope_kind */
+
+
+static Opt<a_scope_kind> get_scope_kind(an_ifc_decl_index scope_ref)
+/*
+Return the scope kind for the given decl index if the given IFC DeclIndex
 points to an IFC DeclScope with an IFC TypeFundamental; otherwise return an
 empty optional.
 */
 {
-  Opt<an_ifc_type_basis_sort> result;
+  Opt<a_scope_kind> result;
 
   if (scope_ref.sort == ifc_ds_decl_scope) {
-    Opt<an_ifc_decl_scope> opt_ids;
+    Opt<an_ifc_decl_scope> opt_scope_decl;
 
-    construct_node(&opt_ids, scope_ref);
-    if (!opt_ids.has_value()) {
-      goto done;
+    construct_node(&opt_scope_decl, scope_ref);
+    if (!opt_scope_decl.has_value()) {
+      goto invalid;
     }  /* if */
 
-    an_ifc_type_index type = get_ifc_type(*opt_ids);
-    /* FIXME: We may want to diagnose the non-fundamental type here. */
-    if (type.sort != ifc_ts_type_fundamental) {
-      goto done;
-    }  /* if */
-
-    Opt<an_ifc_type_fundamental> opt_itf;
-    construct_node(&opt_itf, type);
-    if (!opt_itf.has_value()) {
-      goto done;
-    }  /* if */
-    result = get_ifc_basis(*opt_itf);
+    an_ifc_decl_scope scope_decl = *opt_scope_decl;
+    result = get_scope_kind(scope_decl);
   }  /* if */
+  goto done;
+invalid:
+  result.clear();
 done:
   return result;
 }  /* get_scope_kind */
@@ -1750,42 +1815,180 @@ Return TRUE if the provided scope is a class/struct/union scope; otherwise,
 return FALSE.
 */
 {
-  a_boolean                   result = FALSE;
-  Opt<an_ifc_type_basis_sort> opt_scope_kind = get_scope_kind(scope_ref);
+  a_boolean         result = FALSE;
+  Opt<a_scope_kind> opt_scope_kind = get_scope_kind(scope_ref);
 
   if (opt_scope_kind.has_value()) {
-    an_ifc_type_basis_sort scope_kind = *opt_scope_kind;
+    a_scope_kind scope_kind = *opt_scope_kind;
 
-    switch (scope_kind) {
-      case ifc_tbs_class:
-      case ifc_tbs_struct:
-      case ifc_tbs_union:
-      case ifc_tbs_interface:
-        result = TRUE;
-        break;
-      default:
-        result = FALSE;
-        break;
-    }  /* switch */
+    result = (scope_kind == sck_class_struct_union);
   }  /* if */
   return result;
 }  /* is_class_scope */
 
 
-static a_boolean is_namespace_scope(const an_ifc_decl_index scope_ref)
+static a_boolean is_interfance_scope(const an_ifc_decl_scope &scope_decl)
+/*
+Return TRUE if the given scope is a Microsoft C++/CX interface class;
+otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  { Opt<an_ifc_type_fundamental> opt_fundamental_type;
+    an_ifc_type_index            scope_type = get_ifc_type(scope_decl);
+
+    construct_node(&opt_fundamental_type, scope_type);
+    if (opt_fundamental_type.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    an_ifc_type_fundamental fundamental_type = *opt_fundamental_type;
+    an_ifc_type_basis_sort  basis = get_ifc_basis(fundamental_type);
+    result = (basis == ifc_tbs_interface);
+  }  /* if */
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
+}  /* is_interfance_scope */
+
+
+static a_type_kind get_csu_type_kind(const an_ifc_decl_scope &scope_decl)
+/*
+Return the associated type kind of the class, struct, or union represented by
+the given scope.
+*/
+{
+  a_type_kind             result;
+  an_ifc_type_fundamental fundamental_type;
+  an_ifc_type_index       scope_type = get_ifc_type(scope_decl);
+
+  /* The caller should only call this function if it knows this is a class,
+     struct, or union scope, the caller should've had to read this previously
+     to know it's working with a class. */
+  construct_node_prechecked(&fundamental_type, scope_type);
+
+  an_ifc_type_basis_sort basis = get_ifc_basis(fundamental_type);
+  switch (basis) {
+    case ifc_tbs_class:
+      result = tk_class;
+      break;
+    case ifc_tbs_struct:
+    case ifc_tbs_interface:
+      result = tk_struct;
+      break;
+    case ifc_tbs_union:
+      result = tk_union;
+      break;
+    default:
+      /* If this assertion is violated, the given scope declaration isn't a
+         class, struct, or union scope and the caller needs to properly
+         guard. */
+      unexpected_condition();
+  }  /* switch */
+  return result;
+}  /* get_csu_type_kind */
+
+
+static a_symbol_kind get_csu_sym_kind(const an_ifc_decl_scope &scope_decl)
+/*
+Return the associated symbol kind of the class, struct, or union represented by
+the given scope.
+*/
+{
+  a_symbol_kind           result;
+  an_ifc_type_fundamental fundamental_type;
+  an_ifc_type_index       scope_type = get_ifc_type(scope_decl);
+
+  /* The caller should only call this function if it knows this is a class,
+     struct, or union scope, the caller should've had to read this previously
+     to know it's working with a class. */
+  construct_node_prechecked(&fundamental_type, scope_type);
+
+  an_ifc_type_basis_sort basis = get_ifc_basis(fundamental_type);
+  switch (basis) {
+    case ifc_tbs_class:
+    case ifc_tbs_struct:
+    case ifc_tbs_interface:
+      result = sk_class_or_struct_tag;
+      break;
+    case ifc_tbs_union:
+      result = sk_union_tag;
+      break;
+    default:
+      /* If this assertion is violated, the given scope declaration isn't a
+         class, struct, or union scope and the caller needs to properly
+         guard. */
+      unexpected_condition();
+  }  /* switch */
+  return result;
+}  /* get_csu_sym_kind */
+
+
+static a_boolean is_namespace_scope(const an_ifc_decl_scope &scope)
 /*
 Return TRUE if the provided scope is a namespace scope; otherwise, return
 FALSE.
 */
 {
-  a_boolean                   result = FALSE;
-  Opt<an_ifc_type_basis_sort> opt_scope_kind = get_scope_kind(scope_ref);
+  a_boolean         result = FALSE;
+  Opt<a_scope_kind> opt_scope_kind = get_scope_kind(scope);
 
   if (opt_scope_kind.has_value()) {
-    an_ifc_type_basis_sort scope_kind = *opt_scope_kind;
+    a_scope_kind scope_kind = *opt_scope_kind;
 
-    result = (scope_kind == ifc_tbs_namespace);
+    result = (scope_kind == sck_namespace);
   }  /* if */
+  return result;
+}  /* is_namespace_scope */
+
+
+static a_boolean is_namespace_scope(const an_ifc_decl_index decl_idx)
+/*
+Return TRUE if the provided declaration index is a namespace scope; otherwise,
+return FALSE.
+*/
+{
+  a_boolean         result = FALSE;
+  Opt<a_scope_kind> opt_scope_kind = get_scope_kind(decl_idx);
+
+  if (opt_scope_kind.has_value()) {
+    a_scope_kind scope_kind = *opt_scope_kind;
+
+    result = (scope_kind == sck_namespace);
+  }  /* if */
+  return result;
+}  /* is_namespace_scope */
+
+
+static a_boolean is_std_namespace_scope(const an_ifc_decl_scope &scope)
+/*
+Return TRUE if the provided scope is the namespace scope; otherwise, return
+FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (is_namespace_scope(scope)) {
+    an_ifc_decl_index home_scope = get_ifc_home_scope(scope);
+    if (!is_null_index(home_scope)) {
+      goto done;
+    }  /* if */
+
+    Opt<a_string> opt_name = name_of_decl(scope);
+    if (!opt_name.has_value()) {
+      goto done;
+    }  /* if */
+
+    a_string name = *opt_name;
+    if (name != "std") {
+      goto done;
+    }  /* if */
+    result = TRUE;
+  }  /* if */
+done:
   return result;
 }  /* is_namespace_scope */
 
@@ -3343,7 +3546,7 @@ void append_index_context(a_string          &str,
 Append any useful identifying information about the index.
 */
 {
-  Opt<a_string> opt_decl_name = name_from_decl(decl_idx);
+  Opt<a_string> opt_decl_name = name_of_decl(decl_idx);
 
   if (opt_decl_name.has_value()) {
     a_string name = *opt_decl_name;
@@ -4241,19 +4444,18 @@ is already loaded in the IL from, e.g., a global module fragment).
 {
   a_symbol_ptr       result = NULL;
   a_symbol_locator   loc;
-  an_ifc_text_offset name_idx = get_ifc_name(param_decl);
-  a_boolean          is_named_decl = is_name_present(name_idx);
+  a_boolean          decl_is_named = is_named_decl(param_decl);
 
   /* Resolve the template parameter declaration's name into the symbol
      locator. */
-  if (is_named_decl) {
+  if (decl_is_named) {
     if (!module_of(param_decl)->init_decl_locator(param_decl, &loc)) {
       goto invalid;
     }  /* if */
   }  /* if */
   {
     a_templ_arg_kind arg_kind = get_template_arg_kind(param_decl);
-    a_symbol_locator *loc_ptr = (is_named_decl ? &loc : NULL);
+    a_symbol_locator *loc_ptr = (decl_is_named ? &loc : NULL);
 
     switch (arg_kind) {
       case tak_type:
@@ -4261,13 +4463,13 @@ is already loaded in the IL from, e.g., a global module fragment).
              as a rescan as we don't want a symbol entered for this detached
              parameter declaration. */
           result = create_template_param_symbol(sk_type, loc_ptr,
-                                                !is_named_decl,
+                                                !decl_is_named,
                                                 /*is_rescan=*/TRUE);
 
           /* Form the detached type backing the template parameter type
              symbol, and associate the two. */
           a_type_ptr result_ty = alloc_detached_type_templ_param(param_decl);
-          if (is_named_decl) {
+          if (decl_is_named) {
             set_source_corresp(&result_ty->source_corresp, result);
           } else {
             clear_source_corresp_name(&result_ty->source_corresp);
@@ -4280,14 +4482,14 @@ is already loaded in the IL from, e.g., a global module fragment).
             as a rescan as we don't want a symbol entered for this detached
             parameter declaration.*/
           result = create_template_param_symbol(sk_constant, loc_ptr,
-                                                !is_named_decl,
+                                                !decl_is_named,
                                                 /*is_rescan=*/TRUE);
 
           /* Form the detached constant backing the template parameter nontype
              symbol, and associate the two. */
           a_constant_ptr param_con =
                                alloc_detached_nontype_templ_param(param_decl);
-          if (is_named_decl) {
+          if (decl_is_named) {
             set_source_corresp(&param_con->source_corresp, result);
           } else {
             clear_source_corresp_name(&param_con->source_corresp);
@@ -4530,7 +4732,7 @@ can be found, return NULL.
     if (is_template_param) {
       result = find_template_parameter(param_decl);
     } else {
-      Opt<a_string> opt_name = name_from_decl(decl_idx);
+      Opt<a_string> opt_name = name_of_decl(decl_idx);
 
       if (!opt_name.has_value()) {
         goto invalid;
@@ -5526,7 +5728,7 @@ Return TRUE if caching succeeds, FALSE otherwise.
       cache_token(cache, tok_colon_colon);
       cache_identifier(cache, decl_name.as_temp_characters());
     } else {
-      Opt<a_string> opt_aliased_decl_name = name_from_decl(resolution);
+      Opt<a_string> opt_aliased_decl_name = name_of_decl(resolution);
       if (!opt_aliased_decl_name.has_value()) {
         goto invalid;
       }  /* if */
@@ -7325,7 +7527,7 @@ entity has default arguments; otherwise, return FALSE.
 static a_boolean is_from_gmf(an_ifc_basic_specifiers_bitfield specifier)
 /*
 Return TRUE if the specifier indicates the associated entity came from the
-global module fragment, FALSE otherwise.
+global module fragment; otherwise, return FALSE.
 */
 {
   /* Lambda closure class members are marked as being members of the GMF
@@ -7335,6 +7537,19 @@ global module fragment, FALSE otherwise.
      in the GMF to cover it, if necessary. */
   return (test_bitmask<ifc_bsb_is_member_of_global_module>(specifier) &&
           !test_bitmask<ifc_bsb_initialized_in_class>(specifier));
+}  /* is_from_gmf */
+
+
+template<typename an_ifc_Node_type>
+static a_boolean is_from_gmf(const an_ifc_Node_type &node)
+/*
+Return TRUE if the entity represented by the given node came from the global
+module fragment; otherwise, return FALSE.
+*/
+{
+  an_ifc_basic_specifiers_bitfield specifiers = get_ifc_specifiers(node);
+
+  return is_from_gmf(specifiers);
 }  /* is_from_gmf */
 
 
@@ -8330,7 +8545,7 @@ strongly preferred over calling this function directly.
           a_decl_parse_state   dps;
           a_module_token_cache cache;
 
-          if (is_from_gmf(get_ifc_specifiers(idv))) {
+          if (is_from_gmf(idv)) {
             mep->global_module = TRUE;
           }  /* if */
           if (!ensure_module_scope(mep, idv, &scope_push_status)) {
@@ -8522,77 +8737,48 @@ strongly preferred over calling this function directly.
       /* A DeclSort::Scope, which indicates a namespace or a
          class/struct/union.  Note that although these declare "scopes", the IL
          entity that is attached to them is either a namespace or a type. */
-      { Opt<an_ifc_decl_scope> opt_ids;
+      { Opt<an_ifc_decl_scope> opt_scope_decl;
 
-        construct_node(&opt_ids, decl_idx);
-        if (!opt_ids.has_value()) {
+        /* Scope deferral was migrated to defer_ifc_declaration. */
+        check_assertion(!defer);
+        construct_node(&opt_scope_decl, decl_idx);
+        if (!opt_scope_decl.has_value()) {
           goto invalid;
         }  /* if */
 
-        a_symbol_locator  loc;
-        an_ifc_decl_scope ids = *opt_ids;
-        an_ifc_name_index name_idx = get_ifc_name(ids);
-        a_boolean         is_named_decl = is_name_present(name_idx);
-        if (is_named_decl) {
-          if (!mod->init_decl_locator(*opt_ids, &loc)) {
-            goto invalid;
-          }  /* if */
-        } else {
-          a_source_position      pos;
-          an_ifc_source_location locus = get_ifc_locus(ids);
-
-          if (!source_position_from_locus(&pos, locus)) {
-            goto invalid;
-          }  /* if */
-          defer = FALSE;
+        an_ifc_decl_scope scope_decl = *opt_scope_decl;
+        if (!ensure_module_scope(mep, scope_decl, &scope_push_status)) {
+          goto invalid;
         }  /* if */
-
-        a_type_kind       type_kind;
-        a_symbol_kind     tag_kind;
-        /* Should be no unnamed namespaces or types. */
-        /* FIXME: This should be a soft failure. */
-        check_assertion(!is_null_index(get_ifc_name(ids)));
-        if (is_from_gmf(get_ifc_specifiers(ids))) {
+        if (is_from_gmf(scope_decl)) {
           mep->global_module = TRUE;
         }  /* if */
-        if (!ensure_module_scope(mep, ids, &scope_push_status)) {
+
+        Opt<a_scope_kind> opt_scope_kind = get_scope_kind(scope_decl);
+        if (!opt_scope_kind.has_value()) {
           goto invalid;
         }  /* if */
 
-        /* Look at the "type" to determine whether we have a namespace or
-           not. */
-        Opt<an_ifc_type_fundamental> opt_itf;
-        construct_node(&opt_itf, get_ifc_type(ids));
-        if (!opt_itf.has_value()) {
-          goto invalid;
-        }  /* if */
-        switch (get_ifc_basis(*opt_itf)) {
-          case ifc_tbs_namespace:
-            { an_ifc_scope_traits_bitfield traits = get_ifc_traits(ids);
+        a_scope_kind scope_kind = *opt_scope_kind;
+        a_boolean    decl_is_named = is_named_decl(scope_decl);
+        switch (scope_kind) {
+          case sck_namespace:
+            { an_ifc_scope_traits_bitfield traits = get_ifc_traits(scope_decl);
               a_namespace_ptr              nsp = NULL;
-              a_symbol_ptr                 ns_sym;
 
-              if (defer && !test_bitmask<ifc_stb_inline>(traits)) {
-                /* Note that inline namespaces are not deferred. */
-                defer_symbol_creation(mep, &loc);
-              } else {
-                /* FIXME: lots missing. */
-                /* FIXME: This should probably call
-                   push/pop_module_declaration_context on itself, rather than
-                   managing the namespace scopes through an alternative code
-                   path. */
-                if (test_bitmask<ifc_stb_unnamed>(traits) || !is_named_decl) {
-                  ifc_unexpected(mod,
-                                 "anonymous namespaces are not yet supported");
+              if (decl_is_named) {
+                a_symbol_ptr     ns_sym;
+                a_symbol_locator loc;
+
+                if (!mod->init_decl_locator(scope_decl, &loc)) {
                   goto invalid;
                 }  /* if */
-                { Value_saver<a_boolean> lazy_load_saver(
-                                                &lazy_symbols_may_be_visible,
-                                                /*new_value=*/FALSE);
-                  if (loc.symbol_header == symbol_for_namespace_std->header &&
-                      (scope_is(&scope_stack_top(), sck_module_decl_import) ||
-                       scope_is(&scope_stack_top(), sck_file)) &&
-                      !loc.is_error) {
+                { /* FIXME: does this need to be switched off for the standard
+                     namespace? */
+                  Value_saver<a_boolean> lazy_load_saver(
+                                                  &lazy_symbols_may_be_visible,
+                                                  /*new_value=*/FALSE);
+                  if (is_std_namespace_scope(scope_decl)) {
                     /* Be sure to use the pre-created namespace std symbol.  It
                        might not be entered in the symbol table yet: Hence,
                        call enter_symbol_for_namespace_std. */
@@ -8603,160 +8789,137 @@ strongly preferred over calling this function directly.
                   }  /* if */
                 }
                 if (ns_sym != NULL) {
-                  if (ns_sym->kind == (a_symbol_kind)sk_namespace &&
-                      !ns_sym->variant.namespace_info.ptr->
-                                                          is_namespace_alias) {
-                    /* A namespace already exists; use it. */
-                    nsp = ns_sym->variant.namespace_info.ptr;
-                    (void)push_namespace_scope(
-                                         (a_scope_kind)sck_namespace_extension,
-                                         nsp);
-                  } else {
-                    /* FIXME: need to fix this. */
-                    unexpected_condition();
-                  }  /* if */
+                  /* A namespace already exists; use it. */
+                  nsp = ns_sym->variant.namespace_info.ptr;
+                  (void)push_namespace_scope(sck_namespace_extension, nsp);
                 } else {
                   /* No namespace in the specified scope; create one. */
-                  ns_sym = enter_symbol((a_symbol_kind)sk_namespace, &loc,
+                  ns_sym = enter_symbol(sk_namespace, &loc,
                                         mep->scope->depth_in_scope_stack,
                                         /*suppress_redecl_error=*/FALSE);
                   nsp = alloc_namespace(/*is_alias=*/FALSE);
                   set_source_corresp(&nsp->source_corresp, ns_sym);
                   set_namespace_membership(ns_sym, &nsp->source_corresp,
                                            (a_namespace_ptr)NULL);
-                  nsp->source_corresp.name_linkage =
-                                   (a_name_linkage_kind)nlk_cplusplus_external;
+                  nsp->source_corresp.name_linkage = nlk_cplusplus_external;
                   if (test_bitmask<ifc_stb_inline>(traits)) {
                     nsp->is_inline = TRUE;
                   }  /* if */
                   ns_sym->variant.namespace_info.ptr = nsp;
                   add_to_namespaces_list(nsp);
-                  (void)push_namespace_scope((a_scope_kind)sck_namespace, nsp);
+                  (void)push_namespace_scope(sck_namespace, nsp);
                   nsp->variant.assoc_scope->variant.assoc_namespace = nsp;
                   if (nsp->is_inline) {
                     add_implicit_using_directive(nsp, /*is_inline=*/TRUE,
                                                  /*namespace_pushed=*/TRUE);
                   }  /* if */
                 }  /* if */
-                /* Forward assign the module entity pointer's information so we
-                   can self-reference. */
-                il_entity = (char *)nsp;
-                kind = iek_namespace;
-                /* Process declarations in the namespace scope (which makes
-                   their symbols available but not their definitions). */
-                load_ifc_namespace(get_ifc_initializer(ids),
-                                       nsp->variant.assoc_scope);
-                pop_namespace_scope();
+              } else {
+                ifc_unexpected(module_of(scope_decl), "anon namespace");
+                goto invalid;
               }  /* if */
+              /* Forward assign the module entity pointer's information so we
+                 can self-reference. */
+              il_entity = (char*)nsp;
+              kind = iek_namespace;
+
+              /* Process declarations in the namespace scope (which makes their
+                 symbols available but not their definitions). */
+              an_ifc_scope_offset init = get_ifc_initializer(scope_decl);
+              load_ifc_namespace(init, nsp->variant.assoc_scope);
+              pop_namespace_scope();
             }
             break;
-          case ifc_tbs_class:
-            type_kind = tk_class;
-            tag_kind = sk_class_or_struct_tag;
-            goto class_struct_union_case;
-          case ifc_tbs_struct:
-          case ifc_tbs_interface:
-            type_kind = tk_struct;
-            tag_kind = sk_class_or_struct_tag;
-            goto class_struct_union_case;
-          case ifc_tbs_union:
-            type_kind = tk_union;
-            tag_kind = sk_union_tag;
-class_struct_union_case:
-            /* A class/struct/union type. */
-            { if (defer) {
-                defer_symbol_creation(mep, &loc);
-              } else {
-                an_ifc_reachable_properties_bitfield properties =
-                                                       get_ifc_properties(ids);
+          case sck_class_struct_union:
+            { /* Allocate the appropriate class type, but leave it as
+                 incomplete.  The class will be completed during a call to
+                 get_definition_of_class if it is referenced. */
+              an_ifc_reachable_properties_bitfield
+                              properties = get_ifc_properties(scope_decl);
+              a_symbol_kind   sym_kind = get_csu_sym_kind(scope_decl);
+              a_symbol_ptr    tag_sym;
 
-                /* Allocate the appropriate class type, but leave it as
-                   incomplete.  The class will be completed during a call to
-                   get_definition_of_class if it is referenced. */
-                if (is_named_decl) {
-                  if (check_and_set_redeclaration(&loc, mep, &error_position,
-                                                  iek_type, &il_entity,
-                                                  &kind)) {
-                    a_type_ptr type = (a_type_ptr)il_entity;
+              if (decl_is_named) {
+                a_symbol_locator loc;
 
-                    if (is_incomplete_type(type) &&
-                        test_bitmask<ifc_rpb_initializer>(properties)) {
-                      /* Record the presence of a definition of an existing
-                         type. */
-                      if (is_null_index(ifc_tag_definitions->get(type))) {
-                        ifc_tag_definitions->map(type, decl_idx);
-                      }  /* if */
+                if (!mod->init_decl_locator(scope_decl, &loc)) {
+                  goto invalid;
+                }  /* if */
+                if (check_and_set_redeclaration(&loc, mep, &error_position,
+                                                iek_type, &il_entity,
+                                                &kind)) {
+                  a_type_ptr type = (a_type_ptr)il_entity;
+
+                  if (is_incomplete_type(type) &&
+                      test_bitmask<ifc_rpb_initializer>(properties)) {
+                    /* Record the presence of a definition of an existing
+                       type. */
+                    if (is_null_index(ifc_tag_definitions->get(type))) {
+                      ifc_tag_definitions->map(type, decl_idx);
                     }  /* if */
-                    break;
                   }  /* if */
+                  break;
+                }  /* if */
+                tag_sym = enter_local_symbol(sym_kind, &loc,
+                                             mep->scope->depth_in_scope_stack,
+                                             /*suppress_redecl_error=*/TRUE);
+
+              } else {
+                a_source_position      pos;
+                an_ifc_source_location locus = get_ifc_locus(scope_decl);
+
+                if (!source_position_from_locus(&pos, locus)) {
+                  goto invalid;
                 }  /* if */
 
-                a_type_ptr   tag_type = alloc_type(type_kind);
-                a_symbol_ptr tag_sym;
-                if (get_ifc_basis(*opt_itf) == ifc_tbs_interface) {
-                  tag_type->variant.class_struct_union.is_interface = TRUE;
-                  tag_type->variant.class_struct_union.abstract = TRUE;
-                }  /* if */
-                if (is_named_decl) {
-                  tag_sym = enter_local_symbol(
-                                              tag_kind, &loc,
-                                              mep->scope->depth_in_scope_stack,
-                                              /*suppress_redecl_error=*/TRUE);
-                } else {
-                  a_source_position      pos;
-                  an_ifc_source_location locus = get_ifc_locus(ids);
-
-                  if (!source_position_from_locus(&pos, locus)) {
-                    goto invalid;
-                  }  /* if */
-
-                  Value_saver<a_scope_depth> saver(
+                Value_saver<a_scope_depth> saver(
                                              &decl_scope_level,
                                              mep->scope->depth_in_scope_stack);
-                  tag_sym = make_unnamed_tag_symbol(tag_kind, &pos);
-                }  /* if */
-                tag_sym->variant.class_struct_union.type = tag_type;
-                set_source_corresp(&(tag_type->source_corresp), tag_sym);
-                if (!is_named_decl) {
-                  /* Emulate the behavior of the class_specifier function:
-                     Although the symbol header has a name of sorts, it should
-                     not appear in the type, so NULL it out after the call to
-                     set_source_corresp. */
-                  clear_source_corresp_name(&(tag_type->source_corresp));
-                  tag_type->variant.class_struct_union.originally_unnamed =
-                                                                          TRUE;
-                }  /* if */
+                tag_sym = make_unnamed_tag_symbol(sym_kind, &pos);
+              }  /* if */
+
+              a_type_kind type_kind = get_csu_type_kind(scope_decl);
+              a_type_ptr  tag_type = alloc_type(type_kind);
+              if (is_interfance_scope(scope_decl)) {
+                tag_type->variant.class_struct_union.is_interface = TRUE;
+                tag_type->variant.class_struct_union.abstract = TRUE;
+              }  /* if */
+              tag_sym->variant.class_struct_union.type = tag_type;
+              set_source_corresp(&(tag_type->source_corresp), tag_sym);
+              if (!decl_is_named) {
+                /* Emulate the behavior of the class_specifier function:
+                   Although the symbol header has a name of sorts, it should
+                   not appear in the type, so NULL it out after the call to
+                   set_source_corresp. */
+                clear_source_corresp_name(&(tag_type->source_corresp));
+                tag_type->variant.class_struct_union.originally_unnamed = TRUE;
+              }  /* if */
 #if NEED_NAME_MANGLING
-                compute_name_collision_discriminator(
+              compute_name_collision_discriminator(
                                              tag_sym,
                                              mep->scope->depth_in_scope_stack);
 #endif /* NEED_NAME_MANGLING */
-                /* Set parent class or namespace pointers, if appropriate, and
-                   adjust related fields (e.g., name linkage). */
-                /* FIXME: all of these values need to be checked. */
-                update_membership_of_class(tag_sym,
-                                           /*def_or_vacuous_decl=*/FALSE,
-                                           /*is_event_interface=*/FALSE,
-                                           mep->scope->depth_in_scope_stack,
-                                           &null_source_position);
-                /* FIXME: need to call record_symbol_declaration? */
-                add_to_types_list(tag_type, mep->scope->depth_in_scope_stack);
-                /* Mark the class as incomplete.  It can be completed later if
-                   needed. */
-                tag_type->incomplete = TRUE;
-                /* FIXME: idssp->alignment, idssp->pack_size, idssp->traits,
-                          idssp->specifiers, all need to be set manually
-                          here. */
-                /* FIXME: for now: */
-                tag_type->source_corresp.name_linkage =
-                                   (a_name_linkage_kind)nlk_cplusplus_external;
-                if (test_bitmask<ifc_rpb_initializer>(properties)) {
-                  /* Record the presence of a definition. */
-                  ifc_tag_definitions->map(tag_type, decl_idx);
-                }  /* if */
-                il_entity = (char*)tag_type;
-                kind = iek_type;
+              /* Set parent class or namespace pointers, if appropriate, and
+                 adjust related fields (e.g., name linkage). */
+              /* FIXME: all of these values need to be checked. */
+              update_membership_of_class(tag_sym,
+                                         /*def_or_vacuous_decl=*/FALSE,
+                                         /*is_event_interface=*/FALSE,
+                                         mep->scope->depth_in_scope_stack,
+                                         &null_source_position);
+              /* FIXME: need to call record_symbol_declaration? */
+              add_to_types_list(tag_type, mep->scope->depth_in_scope_stack);
+              /* Mark the class as incomplete.  It can be completed later if
+                 needed. */
+              tag_type->incomplete = TRUE;
+              /* FIXME: for now: */
+              tag_type->source_corresp.name_linkage = nlk_cplusplus_external;
+              if (test_bitmask<ifc_rpb_initializer>(properties)) {
+                /* Record the presence of a definition. */
+                ifc_tag_definitions->map(tag_type, decl_idx);
               }  /* if */
+              il_entity = (char*)tag_type;
+              kind = iek_type;
             }
             break;
           default:
@@ -8782,7 +8945,7 @@ class_struct_union_case:
           an_ifc_decl_alias ida = *opt_ida;
           an_ifc_type_index type = get_ifc_type(ida);
 
-          if (is_from_gmf(get_ifc_specifiers(ida))) {
+          if (is_from_gmf(ida)) {
             mep->global_module = TRUE;
           }  /* if */
           if (type.sort == ifc_ts_type_fundamental) {
@@ -8892,15 +9055,14 @@ class_struct_union_case:
           goto invalid;
         }  /* if */
 
-        an_ifc_decl_enumeration          ide = *opt_ide;
-        an_ifc_source_location           locus = get_ifc_locus(ide);
-        an_ifc_type_index                type = get_ifc_type(ide);
-        an_ifc_basic_specifiers_bitfield specifiers = get_ifc_specifiers(ide);
+        an_ifc_decl_enumeration ide = *opt_ide;
+        an_ifc_source_location  locus = get_ifc_locus(ide);
+        an_ifc_type_index       type = get_ifc_type(ide);
         /* FIXME: This does a lot of stuff even when deferred. */
         if (!source_position_from_locus(&error_position, locus)) {
           goto invalid;
         }  /* if */
-        if (is_from_gmf(specifiers)) {
+        if (is_from_gmf(ide)) {
           mep->global_module = TRUE;
         }  /* if */
 
@@ -8937,9 +9099,9 @@ class_struct_union_case:
         }  /* if */
 
         an_ifc_text_offset enum_name = get_ifc_name(ide);
-        a_boolean          is_named_decl = is_name_present(enum_name);
+        a_boolean          decl_is_named = is_named_decl(ide);
         a_symbol_locator   loc;
-        if (is_named_decl) {
+        if (decl_is_named) {
           if (!mod->init_locator_from_name(enum_name, locus, &loc)) {
             goto invalid;
           }  /* if */
@@ -8970,7 +9132,7 @@ class_struct_union_case:
           }  /* if */
           enum_scope = mep->scope;
           scope_depth = enum_scope->depth_in_scope_stack;
-          if (is_named_decl) {
+          if (decl_is_named) {
             if (check_and_set_redeclaration(&loc, mep, &error_position,
                                             iek_type, &il_entity, &kind)) {
               /* FIXME: Is this right? */
@@ -8979,6 +9141,9 @@ class_struct_union_case:
               }  /* if */
             }  /* if */
           }  /* if */
+
+          an_ifc_basic_specifiers_bitfield specifiers =
+                                                       get_ifc_specifiers(ide);
           if (!mod->init_dps(&dps, locus, base,
                              an_ifc_object_traits_bitfield{},
                              an_ifc_msvc_traits_bitfield{}, specifiers,
@@ -9023,7 +9188,7 @@ class_struct_union_case:
             enum_type->variant.integer.enum_info.assoc_scope = enum_scope;
           }  /* if */
           /* Create a symbol for the enumeration. */
-          if (is_named_decl) {
+          if (decl_is_named) {
             tag_sym = enter_local_symbol(sk_enum_tag, &loc, scope_depth,
                                          /*suppress_redecl_error=*/FALSE);
           } else {
@@ -9101,7 +9266,7 @@ class_struct_union_case:
           a_constant_ptr         enum_con;
           a_memory_region_number region_to_switch_back_to;
 
-          if (is_from_gmf(get_ifc_specifiers(ide))) {
+          if (is_from_gmf(ide)) {
             mep->global_module = TRUE;
           }  /* if */
           if (!ensure_module_scope(mep, ide, &scope_push_status)) {
@@ -9169,9 +9334,8 @@ class_struct_union_case:
 
         a_symbol_locator     loc;
         an_ifc_decl_template idt = *opt_idt;
-        an_ifc_name_index    name_idx = get_ifc_name(idt);
-        a_boolean            is_named_decl = is_name_present(name_idx);
-        if (is_named_decl) {
+        a_boolean            decl_is_named = is_named_decl(idt);
+        if (decl_is_named) {
           if (!mod->init_decl_locator(idt, &loc)) {
             goto invalid;
           }  /* if */
@@ -9203,17 +9367,15 @@ class_struct_union_case:
         if (defer) {
           defer_symbol_creation(mep, &loc);
         } else {
-          an_ifc_basic_specifiers_bitfield
-                                 specifiers = get_ifc_specifiers(idt);
-          an_ifc_cache_info      cache_info;
+          an_ifc_cache_info cache_info;
 
-          if (is_from_gmf(specifiers)) {
+          if (is_from_gmf(idt)) {
             mep->global_module = TRUE;
           }  /* if */
           if (!ensure_module_scope(mep, idt, &scope_push_status)) {
             goto invalid;
           }  /* if */
-          if (is_named_decl) {
+          if (decl_is_named) {
             if (check_and_set_template_redeclaration(&loc, mep,
                                                      &error_position,
                                                      &il_entity, &kind)) {
@@ -9416,7 +9578,7 @@ class_struct_union_case:
           /* Create a definition for the concept and scan it. */
           an_ifc_decl_concept idc = *opt_idc;
 
-          if (is_from_gmf(get_ifc_specifiers(idc))) {
+          if (is_from_gmf(idc)) {
             mep->global_module = TRUE;
           }  /* if */
           /* Activate the parent scope if needed. */
@@ -9927,7 +10089,7 @@ member scope descriptor into the given cache.
       if (opt_type_decl.has_value()) {
         an_ifc_decl_index type_decl = *opt_type_decl;
 
-        Opt<a_string> opt_type_decl_name = name_from_decl(type_decl);
+        Opt<a_string> opt_type_decl_name = name_of_decl(type_decl);
         if (!opt_type_decl_name.has_value()) {
           goto invalid;
         }  /* if */
@@ -10933,7 +11095,8 @@ return FALSE.
 static void defer_ifc_declaration(a_module_entity_ptr mep)
 /*
 Setup deferred processing for the IFC module entity declaration specified by
-mep by updating the appropriate symbol header.
+mep by updating the appropriate symbol header.  If the entity cannot be
+deferred, instead process it immediately.
 
 Only module entity pointers for IL entities not in class scope should be passed
 to this function.
@@ -10953,6 +11116,55 @@ to this function.
   }  /* if */
 #endif /* DEBUG */
   switch (decl_idx.sort) {
+    case ifc_ds_decl_scope:
+      { Opt<an_ifc_decl_scope> opt_scope_decl;
+
+        construct_node(&opt_scope_decl, decl_idx);
+        if (!opt_scope_decl.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_decl_scope scope_decl = *opt_scope_decl;
+        a_boolean         decl_is_named = is_named_decl(scope_decl);
+        if (!decl_is_named) {
+          process_ifc_declaration(mep);
+          goto done;
+        }  /* if */
+
+        a_symbol_locator  loc;
+        an_ifc_module     *mod = module_of(scope_decl);
+        if (!mod->init_decl_locator(scope_decl, &loc)) {
+          goto invalid;
+        }  /* if */
+
+        Opt<a_scope_kind> opt_scope_kind = get_scope_kind(scope_decl);
+        if (!opt_scope_kind.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        a_scope_kind scope_kind = *opt_scope_kind;
+        switch (scope_kind) {
+          case sck_class_struct_union:
+            defer_symbol_creation(mep, &loc);
+            break;
+          case sck_namespace:
+            { an_ifc_scope_traits_bitfield traits = get_ifc_traits(scope_decl);
+
+              if (test_bitmask<ifc_stb_inline>(traits)) {
+                /* Inline namespaces are not deferred. */
+                process_ifc_declaration(mep);
+              } else {
+                defer_symbol_creation(mep, &loc);
+              }  /* if */
+            }
+            break;
+          default:
+            /* If this condition is violated, get_scope_kind returned an
+               unexpected scope kind that this function needs to implement. */
+            unexpected_condition();
+        }  /* switch */
+      }
+      break;
     case ifc_ds_decl_partial_specialization:
       { Opt<an_ifc_decl_partial_specialization> opt_idps;
 
@@ -13164,139 +13376,325 @@ done:
 }  /* name_from_index */
 
 
-static Opt<a_string> name_from_decl(an_ifc_decl_index decl_idx)
+template<typename an_ifc_Decl_type>
+static Opt<a_string> name_of_decl(const an_ifc_Decl_type &decl)
 /*
 Given a declaration, return the name associated with that declaration, an empty
 string if no name was present (i.e., the declaration declares something
 anonymous), or an empty optional if the name was present but invalid.
 */
 {
-  Opt<a_string>          result;
-  Opt<an_ifc_decl_index> gmf_decl_scope;
-  Opt<an_ifc_type_index> gmf_decl_type;
+  auto name = get_ifc_name(decl);
+
+  return name_from_index(name);
+}  /* name_of_decl */
+
+
+template<>
+Opt<a_string> name_of_decl(const an_ifc_decl_constructor &decl)
+/*
+Given a constructor declaration, return the name of the constructor, or an
+empty optional if the name was present but invalid.
+*/
+{
+  an_ifc_decl_index home_scope = get_ifc_home_scope(decl);
+
+  return name_of_decl(home_scope);
+}  /* name_of_decl */
+
+
+template<>
+Opt<a_string> name_of_decl(const an_ifc_decl_destructor &decl)
+/*
+Given a destructor declaration, return the name of the destructor, or an empty
+optional if the name was present but invalid.
+*/
+{
+  an_ifc_decl_index home_scope = get_ifc_home_scope(decl);
+
+  return name_of_decl(home_scope);
+}  /* name_of_decl */
+
+
+template<>
+Opt<a_string> name_of_decl(const an_ifc_decl_expansion &decl)
+/*
+Given a expansion declaration, return the name associated with the property
+declaration, an empty string if no name was present (i.e., the declaration
+declares something anonymous), or an empty optional if the name was present but
+invalid.
+*/
+{
+  an_ifc_decl_index operand = get_ifc_operand(decl);
+
+  return name_of_decl(operand);
+}  /* name_of_decl */
+
+
+template<>
+Opt<a_string> name_of_decl(const an_ifc_decl_inherited_constructor &decl)
+/*
+Given a inherited constructor declaration, return the name of the constructor,
+or an empty optional if the name was present but invalid.
+*/
+{
+  an_ifc_decl_index home_scope = get_ifc_home_scope(decl);
+
+  return name_of_decl(home_scope);
+}  /* name_of_decl */
+
+
+template<>
+Opt<a_string> name_of_decl(const an_ifc_decl_property &decl)
+/*
+Given a property declaration, return the name of the property declaration, an
+empty string if no name was present (i.e., the declaration declares something
+anonymous), or an empty optional if the name was present but invalid.
+*/
+{
+  an_ifc_decl_index member = get_ifc_member(decl);
+
+  return name_of_decl(member);
+}  /* name_of_decl */
+
+
+template<>
+Opt<a_string> name_of_decl(const an_ifc_decl_reference &decl)
+/*
+Given a declaration reference, return the name associated with that
+declaration, an empty string if no name was present (i.e., the declaration
+declares something anonymous), or an empty optional if the name was present but
+invalid.
+*/
+{
+  /* References are a special case where we need to recurse to a foreign
+     module. */
+  an_ifc_decl_index remote_index = get_ifc_index(decl);
+
+  return name_of_decl(remote_index);
+}  /* name_of_decl */
+
+
+static a_boolean is_named_scope(const an_ifc_decl_scope &scope_decl)
+/*
+Given a scope declaration, return TRUE if the scope has a name; otherwise,
+return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  { Opt<a_scope_kind> opt_scope_kind = get_scope_kind(scope_decl);
+
+    if (!opt_scope_kind.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    a_scope_kind scope_kind = *opt_scope_kind;
+    switch (scope_kind) {
+      case sck_class_struct_union:
+        { an_ifc_name_index name_idx = get_ifc_name(scope_decl);
+
+          result = is_name_present(name_idx);
+        }
+        break;
+      case sck_namespace:
+        { an_ifc_scope_traits_bitfield traits = get_ifc_traits(scope_decl);
+
+          /* In theory it should be sufficient to check the result of
+             is_name_present.  However, in practice the IFC (at the time of
+             writing) regularly contains mangled names for anonymous
+             namespaces.  Thus, to remain flexible, the front end first checks
+             the bitfield value, and then additionally checks the name.  If
+             either are empty, it's assumed the scope represents an
+             anonymous/unnamed namespace. */
+          if (test_bitmask<ifc_stb_unnamed>(traits)) {
+            result = FALSE;
+          } else {
+            an_ifc_name_index name_idx = get_ifc_name(scope_decl);
+
+            result = is_name_present(name_idx);
+          }  /* if */
+        }
+        break;
+      default:
+        /* If this condition is violated, get_scope_kind returned an unexpected
+           scope kind that this function needs to implement. */
+        unexpected_condition();
+    }  /* switch */
+  }
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
+}  /* is_named_scope */
+
+
+template<>
+Opt<a_string> name_of_decl(const an_ifc_decl_scope &decl)
+/*
+Given a scope declaration, return the name of said scope, an empty string if
+the scope was unnamed, or an empty optional if the name was present but
+invalid.
+*/
+{
+  Opt<a_string> result;
+
+  if (is_named_scope(decl)) {
+    an_ifc_name_index name = get_ifc_name(decl);
+
+    result = name_from_index(name);
+  } else {
+    result = "";
+  }  /* if */
+  return result;
+}  /* scope */
+
+
+template<>
+Opt<a_string> name_of_decl(const an_ifc_decl_tuple &decl)
+/*
+Given a tuple of declarations, return the name of said declarations, an empty
+string if the declarations are unnamed, or an empty optional if a name was
+present but invalid.
+*/
+{
+  /* All references here should have the same name, so we just need to use the
+     first. */
+  Opt<a_string>               result;
+  an_ifc_index                start = get_ifc_start(decl);
+  Opt<an_ifc_heap_decl>       opt_heap_decl;
+  an_ifc_partition_kind_index heap_decl_idx{start.file, ifc_pk_heap_decl,
+                                            start};
+
+  construct_node(&opt_heap_decl, heap_decl_idx);
+  if (opt_heap_decl.has_value()) {
+    an_ifc_heap_decl  heap_decl = *opt_heap_decl;
+    an_ifc_decl_index value = get_ifc_value(heap_decl);
+
+    result = name_of_decl(value);
+  }  /* if */
+  return result;
+}  /* scope */
+
+
+static Opt<a_string> name_of_decl(an_ifc_decl_index decl_idx)
+/*
+Given a declaration, return the name associated with that declaration, an empty
+string if no name was present (i.e., the declaration declares something
+anonymous), or an empty optional if the name was present but invalid.
+*/
+{
+  Opt<a_string> result;
 
   switch (decl_idx.sort) {
+    case ifc_ds_decl_barren:
+    case ifc_ds_decl_deduction_guide:
     case ifc_ds_decl_default_argument:
     case ifc_ds_decl_explicit_instantiation:
     case ifc_ds_decl_explicit_specialization:
+    case ifc_ds_decl_friend:
+    case ifc_ds_decl_syntax_tree:
+    case ifc_ds_decl_using_directive:
     case ifc_ds_decl_vendor_extension:
       issue_unsupported_construct_error(module_of(decl_idx),
                                         str_for(decl_idx.sort),
                                         &error_position);
       goto invalid;
     case ifc_ds_decl_enumerator:
-      { Opt<an_ifc_decl_enumerator> opt_ide;
+      { Opt<an_ifc_decl_enumerator> opt_enumerator_decl;
 
-        construct_node(&opt_ide, decl_idx);
-        if (!opt_ide.has_value()) {
+        construct_node(&opt_enumerator_decl, decl_idx);
+        if (!opt_enumerator_decl.has_value()) {
           goto invalid;
         }  /* if */
 
-        an_ifc_decl_enumerator ide = *opt_ide;
-        result = name_from_index(get_ifc_name(ide));
-        if (is_from_gmf(get_ifc_specifiers(ide))) {
-          gmf_decl_type = get_ifc_type(ide);
-        }  /* if */
+        an_ifc_decl_enumerator enumerator_decl = *opt_enumerator_decl;
+        result = name_of_decl(enumerator_decl);
       }
       break;
     case ifc_ds_decl_variable:
-      { Opt<an_ifc_decl_variable> opt_idv;
+      { Opt<an_ifc_decl_variable> opt_variable_decl;
 
-        construct_node(&opt_idv, decl_idx);
-        if (!opt_idv.has_value()) {
+        construct_node(&opt_variable_decl, decl_idx);
+        if (!opt_variable_decl.has_value()) {
           goto invalid;
         }  /* if */
 
-        an_ifc_decl_variable idv = *opt_idv;
-        result = name_from_index(get_ifc_name(idv), /*loc=*/NULL);
-        if (is_from_gmf(get_ifc_specifiers(idv))) {
-          gmf_decl_scope = get_ifc_home_scope(idv);
-        }  /* if */
+        an_ifc_decl_variable variable_decl = *opt_variable_decl;
+        result = name_of_decl(variable_decl);
       }
       break;
     case ifc_ds_decl_parameter:
-      { Opt<an_ifc_decl_parameter> opt_idp;
+      { Opt<an_ifc_decl_parameter> opt_parameter_decl;
 
-        construct_node(&opt_idp, decl_idx);
-        if (!opt_idp.has_value()) {
+        construct_node(&opt_parameter_decl, decl_idx);
+        if (!opt_parameter_decl.has_value()) {
           goto invalid;
         }  /* if */
-        result = name_from_index(get_ifc_name(*opt_idp));
+
+        an_ifc_decl_parameter parameter_decl = *opt_parameter_decl;
+        result = name_of_decl(parameter_decl);
       }
       break;
     case ifc_ds_decl_field:
-      { Opt<an_ifc_decl_field> opt_idf;
+      { Opt<an_ifc_decl_field> opt_decl_field;
 
-        construct_node(&opt_idf, decl_idx);
-        if (!opt_idf.has_value()) {
+        construct_node(&opt_decl_field, decl_idx);
+        if (!opt_decl_field.has_value()) {
           goto invalid;
         }  /* if */
 
-        an_ifc_decl_field idf = *opt_idf;
-        result = name_from_index(get_ifc_name(idf));
-        if (is_from_gmf(get_ifc_specifiers(idf))) {
-          gmf_decl_scope = get_ifc_home_scope(idf);
-        }  /* if */
+        an_ifc_decl_field decl_field = *opt_decl_field;
+        result = name_of_decl(decl_field);
       }
       break;
     case ifc_ds_decl_bitfield:
-      { Opt<an_ifc_decl_bitfield> opt_idb;
+      { Opt<an_ifc_decl_bitfield> opt_bitfield_decl;
 
-        construct_node(&opt_idb, decl_idx);
-        if (!opt_idb.has_value()) {
+        construct_node(&opt_bitfield_decl, decl_idx);
+        if (!opt_bitfield_decl.has_value()) {
           goto invalid;
         }  /* if */
 
-        an_ifc_decl_bitfield idb = *opt_idb;
-        result = name_from_index(get_ifc_name(idb));
-        if (is_from_gmf(get_ifc_specifiers(idb))) {
-          gmf_decl_scope = get_ifc_home_scope(idb);
-        }  /* if */
+        an_ifc_decl_bitfield bitfield_decl = *opt_bitfield_decl;
+        result = name_of_decl(bitfield_decl);
       }
       break;
     case ifc_ds_decl_scope:
-      { Opt<an_ifc_decl_scope> opt_ids;
+      { Opt<an_ifc_decl_scope> opt_scope_decl;
 
-        construct_node(&opt_ids, decl_idx);
-        if (!opt_ids.has_value()) {
+        construct_node(&opt_scope_decl, decl_idx);
+        if (!opt_scope_decl.has_value()) {
           goto invalid;
         }  /* if */
 
-        an_ifc_decl_scope ids = *opt_ids;
-        result = name_from_index(get_ifc_name(ids), /*loc=*/NULL);
-        if (is_from_gmf(get_ifc_specifiers(ids))) {
-          gmf_decl_scope = get_ifc_home_scope(ids);
-        }  /* if */
+        an_ifc_decl_scope scope_decl = *opt_scope_decl;
+        result = name_of_decl(scope_decl);
       }
       break;
     case ifc_ds_decl_enumeration:
-      { Opt<an_ifc_decl_enumeration> opt_ide;
+      { Opt<an_ifc_decl_enumeration> opt_enumeration_decl;
 
-        construct_node(&opt_ide, decl_idx);
-        if (!opt_ide.has_value()) {
+        construct_node(&opt_enumeration_decl, decl_idx);
+        if (!opt_enumeration_decl.has_value()) {
           goto invalid;
         }  /* if */
 
-        an_ifc_decl_enumeration ide = *opt_ide;
-        result = name_from_index(get_ifc_name(ide));
-        if (is_from_gmf(get_ifc_specifiers(ide))) {
-          gmf_decl_scope = get_ifc_home_scope(ide);
-        }  /* if */
+        an_ifc_decl_enumeration enumeration_decl = *opt_enumeration_decl;
+        result = name_of_decl(enumeration_decl);
       }
       break;
     case ifc_ds_decl_alias:
-      { Opt<an_ifc_decl_alias> opt_ida;
+      { Opt<an_ifc_decl_alias> opt_alias_decl;
 
-        construct_node(&opt_ida, decl_idx);
-        if (!opt_ida.has_value()) {
+        construct_node(&opt_alias_decl, decl_idx);
+        if (!opt_alias_decl.has_value()) {
           goto invalid;
         }  /* if */
 
-        an_ifc_decl_alias ida = *opt_ida;
-        result = name_from_index(get_ifc_name(ida));
-        if (is_from_gmf(get_ifc_specifiers(ida))) {
-          gmf_decl_scope = get_ifc_home_scope(ida);
-        }  /* if */
+        an_ifc_decl_alias alias_decl = *opt_alias_decl;
+        result = name_of_decl(alias_decl);
       }
       break;
     case ifc_ds_decl_temploid:
@@ -13306,281 +13704,203 @@ anonymous), or an empty optional if the name was present but invalid.
       }
       goto invalid;
     case ifc_ds_decl_template:
-      { Opt<an_ifc_decl_template> opt_idt;
+      { Opt<an_ifc_decl_template> opt_template_decl;
 
-        construct_node(&opt_idt, decl_idx);
-        if (!opt_idt.has_value()) {
+        construct_node(&opt_template_decl, decl_idx);
+        if (!opt_template_decl.has_value()) {
           goto invalid;
         }  /* if */
 
-        an_ifc_decl_template idt = *opt_idt;
-        result = name_from_index(get_ifc_name(idt), /*loc=*/NULL);
-        if (is_from_gmf(get_ifc_specifiers(idt))) {
-          gmf_decl_scope = get_ifc_home_scope(idt);
-        }  /* if */
+        an_ifc_decl_template template_decl = *opt_template_decl;
+        result = name_of_decl(template_decl);
       }
       break;
     case ifc_ds_decl_partial_specialization:
-      { Opt<an_ifc_decl_partial_specialization> opt_idps;
+      { Opt<an_ifc_decl_partial_specialization> opt_spec_decl;
 
-        construct_node(&opt_idps, decl_idx);
-        if (!opt_idps.has_value()) {
+        construct_node(&opt_spec_decl, decl_idx);
+        if (!opt_spec_decl.has_value()) {
           goto invalid;
         }  /* if */
 
-        an_ifc_decl_partial_specialization idps = *opt_idps;
-        result = name_from_index(get_ifc_name(idps), /*loc=*/NULL);
-        if (is_from_gmf(get_ifc_specifiers(idps))) {
-          gmf_decl_scope = get_ifc_home_scope(idps);
-        }  /* if */
+        an_ifc_decl_partial_specialization spec_decl = *opt_spec_decl;
+        result = name_of_decl(spec_decl);
       }
       break;
     case ifc_ds_decl_specialization:
-      { Opt<an_ifc_decl_specialization> opt_ids;
+      { Opt<an_ifc_decl_specialization> opt_spec_decl;
 
-        construct_node(&opt_ids, decl_idx);
-        if (!opt_ids.has_value()) {
+        construct_node(&opt_spec_decl, decl_idx);
+        if (!opt_spec_decl.has_value()) {
           goto invalid;
         }  /* if */
 
-        an_ifc_decl_specialization ids = *opt_ids;
-        result = name_from_index(get_ifc_name(ids), /*loc=*/NULL);
+        an_ifc_decl_specialization spec_decl = *opt_spec_decl;
+        result = name_of_decl(spec_decl);
       }
       break;
     case ifc_ds_decl_concept:
-      { Opt<an_ifc_decl_concept> opt_idc;
+      { Opt<an_ifc_decl_concept> opt_concept_decl;
 
-        construct_node(&opt_idc, decl_idx);
-        if (!opt_idc.has_value()) {
+        construct_node(&opt_concept_decl, decl_idx);
+        if (!opt_concept_decl.has_value()) {
           goto invalid;
         }  /* if */
 
-        an_ifc_decl_concept idc = *opt_idc;
-        result = name_from_index(get_ifc_name(idc));
-        if (is_from_gmf(get_ifc_specifiers(idc))) {
-          gmf_decl_scope = get_ifc_home_scope(idc);
-        }  /* if */
+        an_ifc_decl_concept concept_decl = *opt_concept_decl;
+        result = name_of_decl(concept_decl);
       }
       break;
     case ifc_ds_decl_function:
-      { Opt<an_ifc_decl_function> opt_idf;
+      { Opt<an_ifc_decl_function> opt_function_decl;
 
-        construct_node(&opt_idf, decl_idx);
-        if (!opt_idf.has_value()) {
+        construct_node(&opt_function_decl, decl_idx);
+        if (!opt_function_decl.has_value()) {
           goto invalid;
         }  /* if */
 
-        an_ifc_decl_function idf = *opt_idf;
-        result = name_from_index(get_ifc_name(idf), /*loc=*/NULL);
-        if (is_from_gmf(get_ifc_specifiers(idf))) {
-          gmf_decl_scope = get_ifc_home_scope(idf);
-        }  /* if */
+        an_ifc_decl_function function_decl = *opt_function_decl;
+        result = name_of_decl(function_decl);
       }
       break;
     case ifc_ds_decl_method:
-      { Opt<an_ifc_decl_method> opt_idm;
+      { Opt<an_ifc_decl_method> opt_method_decl;
 
-        construct_node(&opt_idm, decl_idx);
-        if (!opt_idm.has_value()) {
+        construct_node(&opt_method_decl, decl_idx);
+        if (!opt_method_decl.has_value()) {
           goto invalid;
         }  /* if */
 
-        an_ifc_decl_method idm = *opt_idm;
-        result = name_from_index(get_ifc_name(idm), /*loc=*/NULL);
-        if (is_from_gmf(get_ifc_specifiers(idm))) {
-          gmf_decl_scope = get_ifc_home_scope(idm);
-        }  /* if */
+        an_ifc_decl_method method_decl = *opt_method_decl;
+        result = name_of_decl(method_decl);
       }
       break;
     case ifc_ds_decl_constructor:
-      { Opt<an_ifc_decl_constructor> opt_idc;
+      { Opt<an_ifc_decl_constructor> opt_ctor_decl;
 
-        construct_node(&opt_idc, decl_idx);
-        if (!opt_idc.has_value()) {
+        construct_node(&opt_ctor_decl, decl_idx);
+        if (!opt_ctor_decl.has_value()) {
           goto invalid;
         }  /* if */
 
-        an_ifc_decl_constructor idc = *opt_idc;
-        an_ifc_decl_index       home_scope = get_ifc_home_scope(idc);
-        result = name_from_decl(home_scope);
-        if (is_from_gmf(get_ifc_specifiers(idc))) {
-          gmf_decl_scope = home_scope;
-        }  /* if */
+        an_ifc_decl_constructor ctor_decl = *opt_ctor_decl;
+        result = name_of_decl(ctor_decl);
       }
       break;
     case ifc_ds_decl_inherited_constructor:
-      { Opt<an_ifc_decl_inherited_constructor> opt_idic;
+      { Opt<an_ifc_decl_inherited_constructor> opt_ctor_decl;
 
-        construct_node(&opt_idic, decl_idx);
-        if (!opt_idic.has_value()) {
+        construct_node(&opt_ctor_decl, decl_idx);
+        if (!opt_ctor_decl.has_value()) {
           goto invalid;
         }  /* if */
 
-        an_ifc_decl_inherited_constructor idic = *opt_idic;
-        an_ifc_decl_index                 home_scope =
-                                                      get_ifc_home_scope(idic);
-        result = name_from_decl(home_scope);
-        if (is_from_gmf(get_ifc_specifiers(idic))) {
-          gmf_decl_scope = home_scope;
-        }  /* if */
+        an_ifc_decl_inherited_constructor ctor_decl = *opt_ctor_decl;
+        result = name_of_decl(ctor_decl);
       }
       break;
     case ifc_ds_decl_destructor:
-      { Opt<an_ifc_decl_destructor> opt_idd;
+      { Opt<an_ifc_decl_destructor> opt_dtor_decl;
 
-        construct_node(&opt_idd, decl_idx);
-        if (!opt_idd.has_value()) {
+        construct_node(&opt_dtor_decl, decl_idx);
+        if (!opt_dtor_decl.has_value()) {
           goto invalid;
         }  /* if */
 
-        an_ifc_decl_destructor idd = *opt_idd;
-        an_ifc_decl_index      home_scope = get_ifc_home_scope(idd);
-        result = name_from_decl(home_scope);
-        if (is_from_gmf(get_ifc_specifiers(idd))) {
-          gmf_decl_scope = home_scope;
-        }  /* if */
+        an_ifc_decl_destructor dtor_decl = *opt_dtor_decl;
+        result = name_of_decl(dtor_decl);
       }
       break;
     case ifc_ds_decl_reference:
-      { Opt<an_ifc_decl_reference> opt_decl_ref;
+      { Opt<an_ifc_decl_reference> opt_referenced_decl;
 
-        construct_node(&opt_decl_ref, decl_idx);
-        if (!opt_decl_ref.has_value()) {
+        construct_node(&opt_referenced_decl, decl_idx);
+        if (!opt_referenced_decl.has_value()) {
           goto invalid;
         }  /* if */
 
-        /* References are a special case where we need to recurse to a foreign
-           module. */
-        an_ifc_decl_reference decl_ref = *opt_decl_ref;
-        an_ifc_decl_index     remote_index = get_ifc_index(decl_ref);
-        result = name_from_decl(remote_index);
+        an_ifc_decl_reference referenced_decl = *opt_referenced_decl;
+        result = name_of_decl(referenced_decl);
       }
       break;
     case ifc_ds_decl_using_declaration:
-      { Opt<an_ifc_decl_using_declaration> opt_idud;
+      { Opt<an_ifc_decl_using_declaration> opt_using_decl;
 
-        construct_node(&opt_idud, decl_idx);
-        if (!opt_idud.has_value()) {
+        construct_node(&opt_using_decl, decl_idx);
+        if (!opt_using_decl.has_value()) {
           goto invalid;
         }  /* if */
 
-        an_ifc_decl_using_declaration idud = *opt_idud;
-        result = name_from_index(get_ifc_name(idud));
-        if (is_from_gmf(get_ifc_specifiers(idud))) {
-          gmf_decl_scope = get_ifc_home_scope(idud);
-        }  /* if */
+        an_ifc_decl_using_declaration using_decl = *opt_using_decl;
+        result = name_of_decl(using_decl);
       }
       break;
-    case ifc_ds_decl_friend:
-      { Opt<an_ifc_decl_friend> opt_idf;
-
-        construct_node(&opt_idf, decl_idx);
-        if (!opt_idf.has_value()) {
-          goto invalid;
-        }  /* if */
-        /* FIXME: Currently unsupported. */
-        issue_unsupported_construct_error(module_of(decl_idx),
-                                          "DeclSort::Friend",
-                                          &error_position);
-        goto invalid;
-      }
     case ifc_ds_decl_expansion:
-      { Opt<an_ifc_decl_expansion> opt_ide;
+      { Opt<an_ifc_decl_expansion> opt_expansion_decl;
 
-        construct_node(&opt_ide, decl_idx);
-        if (!opt_ide.has_value()) {
+        construct_node(&opt_expansion_decl, decl_idx);
+        if (!opt_expansion_decl.has_value()) {
           goto invalid;
         }  /* if */
+
         /* FIXME: Is this reachable? */
-        result = name_from_decl(get_ifc_operand(*opt_ide));
+        an_ifc_decl_expansion expansion_decl = *opt_expansion_decl;
+        result = name_of_decl(expansion_decl);
       }
       break;
-    case ifc_ds_decl_deduction_guide:
-      { Opt<an_ifc_decl_deduction_guide> opt_ddg;
-
-        construct_node(&opt_ddg, decl_idx);
-        if (!opt_ddg.has_value()) {
-          goto invalid;
-        }  /* if */
-        /* FIXME: Currently unsupported. */
-        issue_unsupported_construct_error(module_of(decl_idx),
-                                          "DeclSort::DeductionGuide",
-                                          &error_position);
-        goto invalid;
-      }
     case ifc_ds_decl_tuple:
-      /* An overload set. */
-      { Opt<an_ifc_decl_tuple> opt_idt;
+      { Opt<an_ifc_decl_tuple> opt_tuple_decl;
 
-        construct_node(&opt_idt, decl_idx);
-        if (!opt_idt.has_value()) {
+        construct_node(&opt_tuple_decl, decl_idx);
+        if (!opt_tuple_decl.has_value()) {
           goto invalid;
         }  /* if */
 
-        /* All references here should have the same name, so we just need to
-           use the first. */
-        an_ifc_decl_tuple           idt = *opt_idt;
-        an_ifc_index                start = get_ifc_start(idt);
-        Opt<an_ifc_heap_decl>       opt_ihd;
-        an_ifc_partition_kind_index heap_decl_idx{start.file, ifc_pk_heap_decl,
-                                                  start};
-        construct_node(&opt_ihd, heap_decl_idx);
-        if (!opt_ihd.has_value()) {
-          goto invalid;
-        }  /* if */
-        result = name_from_decl(get_ifc_value(*opt_ihd));
+        an_ifc_decl_tuple tuple_decl = *opt_tuple_decl;
+        result = name_of_decl(tuple_decl);
       }
       break;
     case ifc_ds_decl_intrinsic:
-      { Opt<an_ifc_decl_intrinsic> opt_idi;
+      { Opt<an_ifc_decl_intrinsic> opt_intrinsic_decl;
 
-        construct_node(&opt_idi, decl_idx);
-        if (!opt_idi.has_value()) {
+        construct_node(&opt_intrinsic_decl, decl_idx);
+        if (!opt_intrinsic_decl.has_value()) {
           goto invalid;
         }  /* if */
 
-        an_ifc_decl_intrinsic idi = *opt_idi;
-        result = name_from_index(get_ifc_name(idi));
-        if (is_from_gmf(get_ifc_specifiers(idi))) {
-          gmf_decl_scope = get_ifc_home_scope(idi);
-        }  /* if */
+        an_ifc_decl_intrinsic intrinsic_decl = *opt_intrinsic_decl;
+        result = name_of_decl(intrinsic_decl);
       }
       break;
     case ifc_ds_decl_property:
-      { Opt<an_ifc_decl_property> opt_idp;
+      { Opt<an_ifc_decl_property> opt_property_decl;
 
-        construct_node(&opt_idp, decl_idx);
-        if (!opt_idp.has_value()) {
+        construct_node(&opt_property_decl, decl_idx);
+        if (!opt_property_decl.has_value()) {
           goto invalid;
         }  /* if */
 
-        an_ifc_decl_property idp = *opt_idp;
-        result = name_from_decl(get_ifc_member(idp));
+        an_ifc_decl_property property_decl = *opt_property_decl;
+        result = name_of_decl(property_decl);
       }
       break;
     case ifc_ds_decl_output_segment:
-      { Opt<an_ifc_decl_output_segment> opt_idos;
+      { Opt<an_ifc_decl_output_segment> opt_output_seg_decl;
 
-        construct_node(&opt_idos, decl_idx);
-        if (!opt_idos.has_value()) {
+        construct_node(&opt_output_seg_decl, decl_idx);
+        if (!opt_output_seg_decl.has_value()) {
           goto invalid;
         }  /* if */
-        result = name_from_index(get_ifc_name(*opt_idos));
+
+        an_ifc_decl_output_segment output_seg_decl = *opt_output_seg_decl;
+        result = name_of_decl(output_seg_decl);
       }
       break;
-    case ifc_ds_decl_barren:
-    case ifc_ds_decl_using_directive:
-    case ifc_ds_decl_syntax_tree:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(module_of(decl_idx),
-                                        str_for(decl_idx.sort),
-                                        &error_position);
-      goto invalid;
     default_is_unexpected_str("Unexpected DeclSort");
   }  /* switch */
 invalid:
   return result;
-}  /* name_from_decl */
+}  /* name_of_decl */
 
 
 a_boolean an_ifc_module::init_dps(a_decl_parse_state               *dps,
@@ -20540,7 +20860,7 @@ about what to cache.
 
         construct_node_prechecked(&scope_decl, decl);
 
-        Opt<a_string> opt_decl_name = name_from_decl(decl);
+        Opt<a_string> opt_decl_name = name_of_decl(decl);
         if (!opt_decl_name.has_value()) {
           goto invalid;
         }  /* if */
@@ -20801,9 +21121,9 @@ about what to cache.
 
         an_ifc_decl_index base_ctor = get_ifc_base_ctor(idic);
         cache_token(cache, tok_using);
-        cache_name_from_decl(cache, base_ctor);
+        cache_name_of_decl(cache, base_ctor);
         cache_token(cache, tok_colon_colon);
-        cache_name_from_decl(cache, base_ctor);
+        cache_name_of_decl(cache, base_ctor);
         cache_token(cache, tok_semicolon);
       }
       break;
@@ -21187,7 +21507,7 @@ tuple elements by '::' instead of ','.
 
         an_ifc_expr_named_decl named_decl = *opt_named_decl;
         an_ifc_decl_index      resolution = get_ifc_resolution(named_decl);
-        cache_name_from_decl(cache, resolution);
+        cache_name_of_decl(cache, resolution);
       } else {
         cache_token_with_index(cache, tok_ifc_entity_ref, expr);
       }  /* if */
@@ -21608,7 +21928,7 @@ tuple elements by '::' instead of ','.
         an_ifc_type_index              base = get_ifc_base(iemi);
         if (!is_null_index(member)) {
           /* A nonstatic member initialization. */
-          Opt<a_string> opt_name_str = name_from_decl(member);
+          Opt<a_string> opt_name_str = name_of_decl(member);
           if (!opt_name_str.has_value()) {
             goto invalid;
           }  /* if */
@@ -23150,13 +23470,13 @@ done:;
 }  /* an_ifc_module::cache_name */
 
 
-void an_ifc_module::cache_name_from_decl(a_module_token_cache_ptr cache,
-                                         an_ifc_decl_index        decl)
+void an_ifc_module::cache_name_of_decl(a_module_token_cache_ptr cache,
+                                       an_ifc_decl_index        decl)
 /*
 Add the tokens corresponding to the given declaration's (decl) name to cache.
 */
 {
-  Opt<a_string> opt_name = name_from_decl(decl);
+  Opt<a_string> opt_name = name_of_decl(decl);
 
   if (opt_name.has_value()) {
     const a_string &name = *opt_name;
@@ -23165,9 +23485,9 @@ Add the tokens corresponding to the given declaration's (decl) name to cache.
   } else {
     cache->invalidate();
     check_assertion_str(is_at_least_one_error(),
-                        "expected errors from name_from_decl");
+                        "expected errors from name_of_decl");
   }  /* if */
-}  /* an_ifc_module::cache_name_from_decl */
+}  /* an_ifc_module::cache_name_of_decl */
 
 
 static a_boolean func_macro_is_variadic(const an_ifc_variadic_arity& arity)
