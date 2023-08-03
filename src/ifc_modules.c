@@ -11496,6 +11496,14 @@ be deferred until they are referenced.
 
       an_ifc_scope_member scope_mem = *indexed_scope_mem;
       an_ifc_decl_index   decl_idx = get_ifc_index(scope_mem);
+      if (decl_idx.sort == ifc_ds_decl_barren) {
+        /* IFC Barren declarations represent declarations that don't introduce
+           names but instead modify the translation process.  These
+           declarations are provided in the IFC for completeness and are not
+           useful to the front end. */
+        continue;
+      }  /* if */
+
       a_module_entity_ptr dmep = get_ifc_module_entity_ptr(decl_idx);
       dmep->scope = scope;
 #if EXPENSIVE_CHECKING
