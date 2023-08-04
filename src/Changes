@@ -5,7 +5,7 @@ IL write-read error on coroutine function template
 
 In C++-generating back end configurations with ALL_TEMPLATE_INFO_IN_IL set to
 TRUE, a coroutine function template could trigger an IL write-read error due to
-a dangling object lifetime pointer for the implicitly generated goto statement
+a dangling object lifetime pointer for the implicitly-generated goto statement
 following a co_return statement.  That is now fixed.  Additionally, the
 final-suspend label will now also be created for coroutines with a dependent
 promise type.  For example, with --c++20:
