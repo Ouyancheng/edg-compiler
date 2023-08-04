@@ -9877,7 +9877,6 @@ and if so, resolve and record the appropriate call.
       set_possibly_null_expr_result_not_used(cr_desc->alloc_failure_gro_call);
     }  /* if */
   }  /* if */
-  cr_desc->final_suspend_label = make_coroutine_final_suspend_label();
   pop_expr_stack();
   expr_stack = saved_expr_stack;
 }  /* select_coroutine_new_delete */
@@ -10078,10 +10077,13 @@ a nonstatic member function, P1 is the type of this.)
       cdp->has_return_void = rvoid_sym != NULL;
     }  /* if */
   }  /* if */
-  if (!cdp->error_descr && !is_template_param_type(promise_type)) {
-    /* We have a real promise type, so we can prepare the various calls that
-       a coroutine requires. */
-    prepare_coroutine_calls(cdp, rp);
+  if (!cdp->error_descr) {
+    cdp->final_suspend_label = make_coroutine_final_suspend_label();
+    if (!is_template_param_type(promise_type)) {
+      /* We have a real promise type, so we can prepare the various calls that
+         a coroutine requires. */
+      prepare_coroutine_calls(cdp, rp);
+    }  /* if */
   }  /* if */
 }  /* init_coroutine_descr */
 
