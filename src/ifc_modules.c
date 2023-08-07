@@ -5760,6 +5760,80 @@ done:
 }  /* cache_direct_decl */
 
 
+static a_boolean has_default_arg_expr(const an_ifc_decl_parameter &param)
+/*
+If the given parameter has a default argument, return TRUE; otherwise, return
+FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (is_at_least(module_of(param), 0, 43)) {
+    an_ifc_expr_named_decl_offset init_decl_expr = get_ifc_init_decl(param);
+
+    if (!is_null_index(init_decl_expr)) {
+      Opt<an_ifc_expr_named_decl> opt_named_decl;
+
+      construct_node(&opt_named_decl, init_decl_expr);
+      if (!opt_named_decl.has_value()) {
+        goto invalid;
+      }  /* if */
+
+      an_ifc_expr_named_decl            named_decl = *opt_named_decl;
+      an_ifc_decl_index                 resolution =
+                                                get_ifc_resolution(named_decl);
+      Opt<an_ifc_decl_default_argument> opt_default_arg_decl;
+      construct_node(&opt_default_arg_decl, resolution);
+      if (!opt_default_arg_decl.has_value()) {
+        goto invalid;
+      }  /* if */
+
+      an_ifc_decl_default_argument default_arg_decl = *opt_default_arg_decl;
+      an_ifc_expr_index            initializer =
+                                         get_ifc_initializer(default_arg_decl);
+      result = is_cachable_expr(initializer);
+    }  /* if */
+  } else {
+    an_ifc_expr_index initializer = get_ifc_initializer(param);
+
+    result = is_cachable_expr(initializer);
+  }  /* if */
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
+}  /* has_default_arg_expr */
+
+
+static an_ifc_expr_index get_default_arg_expr(
+                                            const an_ifc_decl_parameter &param)
+/*
+Return the default argument expression for the given parameter.
+*/
+{
+  an_ifc_expr_index result;
+
+  check_assertion(has_default_arg_expr(param));
+  if (is_at_least(module_of(param), 0, 43)) {
+    an_ifc_expr_named_decl_offset init_decl_expr = get_ifc_init_decl(param);
+    an_ifc_expr_named_decl        named_decl;
+
+    /* When the has_default_arg_expr was called, this should've been validated
+       and this function should not have been called if invalid. */
+    construct_node_prechecked(&named_decl, init_decl_expr);
+
+    an_ifc_decl_index            resolution = get_ifc_resolution(named_decl);
+    an_ifc_decl_default_argument default_arg_decl;
+    construct_node_prechecked(&default_arg_decl, resolution);
+    result = get_ifc_initializer(default_arg_decl);
+  } else {
+    result = get_ifc_initializer(param);
+  }  /* if */
+  return result;
+}  /* get_default_arg_expr */
+
+
 static void cache_type_first_part(a_module_token_cache_ptr cache,
                                   an_ifc_type_index        type,
                                   const an_ifc_cache_info  &cinfo);
@@ -5771,6 +5845,7 @@ static void cache_type_second_part(a_module_token_cache_ptr cache,
 static void cache_type(a_module_token_cache_ptr cache,
                        an_ifc_type_index        type,
                        const an_ifc_cache_info  &cinfo);
+
 
 template<>
 a_boolean cache_direct_decl(a_module_token_cache_ptr    cache,
@@ -5788,7 +5863,6 @@ TRUE if caching succeeds, FALSE otherwise.
   an_ifc_source_position_hint pos_hint(cache, locus);
   an_ifc_type_index           type = get_ifc_type(idp);
   an_ifc_text_offset          name = get_ifc_name(idp);
-  an_ifc_expr_index           initializer = get_ifc_initializer(idp);
   an_ifc_parameter_sort       param_sort = get_ifc_sort(idp);
   a_boolean                   need_second_pass = FALSE;
   a_boolean                   defer_initializer_expr = FALSE;
@@ -5845,14 +5919,16 @@ TRUE if caching succeeds, FALSE otherwise.
     }  /* if */
 
     a_boolean is_template_param = param_sort != ifc_ps_object;
-    if (is_cachable_expr(initializer) &&
+    if (has_default_arg_expr(idp) &&
         ((!cinfo.ignore_default_arguments && !is_template_param) ||
          (!cinfo.ignore_default_template_arguments && is_template_param))) {
+      an_ifc_expr_index initializer_expr = get_default_arg_expr(idp);
+
       cache_token(cache, tok_assign);
       if (defer_initializer_expr) {
-        cache_pending_expr_token(cache, initializer);
+        cache_pending_expr_token(cache, initializer_expr);
       } else {
-        cache_expr(cache, initializer, /*cinfo=*/{});
+        cache_expr(cache, initializer_expr, /*cinfo=*/{});
       }  /* if */
     }  /* if */
   }
@@ -9997,6 +10073,7 @@ strongly preferred over calling this function directly.
         source_position_from_locus(&error_position, locus);
         goto unhandled;
       }
+    case ifc_ds_decl_default_argument:
     case ifc_ds_decl_explicit_instantiation:
     case ifc_ds_decl_explicit_specialization:
     case ifc_ds_decl_parameter:
@@ -10014,7 +10091,6 @@ strongly preferred over calling this function directly.
          node reporting and module entity invalidation logic. */
       FALLTHROUGH
     case ifc_ds_decl_barren:
-    case ifc_ds_decl_default_argument:
     case ifc_ds_decl_syntax_tree:
     case ifc_ds_decl_using_directive:
     case ifc_ds_decl_vendor_extension:
@@ -15071,7 +15147,13 @@ successful, FALSE if any errors were encountered.
   if (is_null_index(params)) {
     goto done;
   }  /* if */
-  check_assertion(params.sort == ifc_cs_chart_unilevel);
+  if (params.sort != ifc_cs_chart_unilevel) {
+    a_string err_msg("expected ", str_for(ifc_cs_chart_unilevel),
+                     " received ", str_for(params.sort));
+
+    ifc_unexpected(module_of(params), err_msg.as_temp_characters());
+    goto done;
+  }  /* if */
   construct_node(&opt_icu, params);
   if (opt_icu.has_value()) {
     an_ifc_chart_unilevel     icu = *opt_icu;
@@ -15090,16 +15172,18 @@ successful, FALSE if any errors were encountered.
         result = FALSE;
         goto done;
       }  /* if */
-      an_ifc_decl_parameter curr_param = *indexed_param;
-      an_ifc_expr_index     initializer_expr = get_ifc_initializer(curr_param);
+
       /* FIXME: Should we issue a diagnostic or attempt to determine expression
          equivalencies here if the parameter already has a default argument?
          Due to the way that IFC handles these, duplicate expressions are very
          possible. */
-      if (!is_null_index(initializer_expr)) {
-        a_module_token_cache cache;
-
+      an_ifc_decl_parameter curr_param = *indexed_param;
+      if (has_default_arg_expr(curr_param)) {
         ptp->has_default_arg = TRUE;
+
+        a_module_token_cache cache;
+        an_ifc_expr_index    initializer_expr =
+                                              get_default_arg_expr(curr_param);
         cache_expr(&cache, initializer_expr, /*cinfo=*/{});
         if (!cache.is_valid()) {
           ptp->default_arg_expr = error_node();
@@ -18898,7 +18982,9 @@ default argument expression can be found, return a null expr index.
   if (opt_decl_param.has_value()) {
     an_ifc_decl_parameter decl_param = *opt_decl_param;
 
-    result = get_ifc_initializer(decl_param);
+    if (has_default_arg_expr(decl_param)) {
+      result = get_default_arg_expr(decl_param);
+    }  /* if */
   }  /* if */
   return result;
 }  /* get_default_arg_from_chart */
