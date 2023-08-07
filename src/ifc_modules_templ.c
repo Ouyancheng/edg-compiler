@@ -33,7 +33,7 @@ static inline an_ifc_partition_kind resolve_partition_kind(
                                                          an_ifc_Index_type idx)
 /*
 This function exists as an implementation detail.  Template specializations
-need to be forward declared in every location where they're visible, to reduce
+need to be forward declared in every location where they're visible.  To reduce
 code complexity this function is specialized instead of get_partition_kind.
 
 Given an IFC index value return the associated partition kind.
@@ -67,7 +67,7 @@ an_ifc_partition_kind get_partition_kind(an_ifc_Index_type idx)
 /*
 Return the partition kind associated with the given index.
 
-Note: NULL index values are considered in ifc_pk_none; this allows for null
+Note: null index values are considered in ifc_pk_none; this allows for null
 index reads to be safely diagnosed as a mismatched partition kind read
 (ec_ifc_partition_mismatch).
 */
@@ -87,7 +87,7 @@ index reads to be safely diagnosed as a mismatched partition kind read
   an_ifc_partition_kind get_partition_kind<idx_type>(idx_type idx);
 
 
-/* Manually defined explicit instantiations of get_partition_kind. */
+/* Manually-defined explicit instantiations of get_partition_kind. */
 /* none */
 
 
@@ -95,7 +95,7 @@ template<typename an_ifc_Index_type>
 static inline an_ifc_index_type resolve_partition_index(an_ifc_Index_type idx)
 /*
 This function exists as an implementation detail.  Template specializations
-need to be forward declared in every location where they're visible, to reduce
+need to be forward declared in every location where they're visible.  To reduce
 code complexity this function is specialized instead of get_partition_kind.
 
 Given an IFC index value return the associated index into its associated
@@ -130,7 +130,7 @@ Return the index into the partition associated with the given index type.
   an_ifc_index_type get_partition_index<idx_type>(idx_type idx);
 
 
-/* Manually defined explicit instantiations of get_partition_index. */
+/* Manually-defined explicit instantiations of get_partition_index. */
 /* none */
 
 
@@ -151,7 +151,7 @@ index.
   an_ifc_partition_metadata *get_partition_metadata<idx_type>(idx_type idx);
 
 
-/* Manually defined explicit instantiations of get_partition_metadata. */
+/* Manually-defined explicit instantiations of get_partition_metadata. */
 /* none */
 
 
@@ -195,7 +195,7 @@ done:
   Opt<size_t> get_partition_offset<idx_type>(idx_type idx);
 
 
-/* Manually defined explicit instantiations of get_partition_offset. */
+/* Manually-defined explicit instantiations of get_partition_offset. */
 /* none */
 
 
@@ -208,7 +208,7 @@ done:
   INST_PARTITION_OFFSET(idx_type)
 
 
-/* Manually defined explicit instantiations of get_partition_kind,
+/* Manually-defined explicit instantiations of get_partition_kind,
    get_partition_index, get_partition_metdata, and get_partition_offset. */
 INST_PARTITION_ALL(an_ifc_partition_kind_index)
 
@@ -288,7 +288,7 @@ functions that build upon this call.
   node_type construct_node_from_module<node_type>(an_ifc_module_file *file);
 
 
-/* Manually defined explicit instantiations of construct_node. */
+/* Manually-defined explicit instantiations of construct_node. */
 INST_CONSTRUCT_NODE_FM(an_ifc_file_header)
 INST_CONSTRUCT_NODE_FM(an_ifc_partition)
 
@@ -475,7 +475,7 @@ call).
                                            idx_type       idx);
 
 
-/* Manually defined explicit instantiations of construct_node. */
+/* Manually-defined explicit instantiations of construct_node. */
 INST_CONSTRUCT_NODE(an_ifc_const_f64, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_const_i64, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_const_str, an_ifc_partition_kind_index)
@@ -537,7 +537,7 @@ constructed node must have previously been checked for validity.
                                                       idx_type  idx);
 
 
-/* Manually defined explicit instantiations of construct_node_prechecked. */
+/* Manually-defined explicit instantiations of construct_node_prechecked. */
 /* none */
 
 
@@ -564,7 +564,7 @@ constructed node will not be checked for validity.
   void construct_node_unchecked<node_type, idx_type>(node_type *result, \
                                                      idx_type  idx);
 
-/* Manually defined explicit instantiations of construct_node_unchecked. */
+/* Manually-defined explicit instantiations of construct_node_unchecked. */
 /* FIXME: This should be automatically handled by the codegen script,
    but it isn't. */
 INST_CONSTRUCT_NODE_UN(an_ifc_trait_function_definition,
@@ -590,7 +590,7 @@ INST_CONSTRUCT_NODE_UN(an_ifc_trait_specialization,
   INST_CONSTRUCT_NODE_UN(node_type, idx_type) \
 
 
-/* Manually defined explicit instantiations of construct_node,
+/* Manually-defined explicit instantiations of construct_node,
    construct_node_prechecked, and construct_node_unchecked, all in one. */
 /* none */
 
@@ -673,7 +673,7 @@ Given an IFC index, return the corresponding lexical index.
   template \
   a_lexical_ifc_index_reference to_lexical_index(idx_type idx);
 
-/* Manually defined explicit instantiations of from_lexical_index and
+/* Manually-defined explicit instantiations of from_lexical_index and
    to_lexical_index. */
 INST_LEXICAL_IDX_CONVERSION(an_ifc_decl_index)
 INST_LEXICAL_IDX_CONVERSION(an_ifc_expr_index)

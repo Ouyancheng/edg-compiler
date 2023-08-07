@@ -653,7 +653,7 @@ struct an_ifc_partition_kind_index : public an_ifc_module_entity {
 inline a_boolean is_null_index(an_ifc_partition_kind_index idx)
 /*
 Given an IFC partition kind index, return TRUE if the given index is considered
-a NULL index; otherwise, return FALSE.
+a null index; otherwise, return FALSE.
 */
 {
   return idx.partition_kind == ifc_pk_none;
