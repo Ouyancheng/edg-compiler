@@ -13354,7 +13354,7 @@ file, return a reencoded index value.
 a_boolean is_null_index(an_ifc_attr_index universal)
 /*
 Given the universal representation of AttrIndex, return TRUE if the given index
-is considered a NULL index; otherwise, return FALSE.
+is considered a null index; otherwise, return FALSE.
 */
 {
   a_boolean          result = FALSE;
@@ -13427,7 +13427,7 @@ file, return a reencoded index value.
 a_boolean is_null_index(an_ifc_chart_index universal)
 /*
 Given the universal representation of ChartIndex, return TRUE if the given
-index is considered a NULL index; otherwise, return FALSE.
+index is considered a null index; otherwise, return FALSE.
 */
 {
   a_boolean          result = FALSE;
@@ -13568,7 +13568,7 @@ file, return a reencoded index value.
 a_boolean is_null_index(an_ifc_decl_index universal)
 /*
 Given the universal representation of DeclIndex, return TRUE if the given index
-is considered a NULL index; otherwise, return FALSE.
+is considered a null index; otherwise, return FALSE.
 */
 {
   a_boolean          result = FALSE;
@@ -13675,7 +13675,7 @@ file, return a reencoded index value.
 a_boolean is_null_index(an_ifc_expr_index universal)
 /*
 Given the universal representation of ExprIndex, return TRUE if the given index
-is considered a NULL index; otherwise, return FALSE.
+is considered a null index; otherwise, return FALSE.
 */
 {
   a_boolean          result = FALSE;
@@ -13748,7 +13748,7 @@ file, return a reencoded index value.
 a_boolean is_null_index(an_ifc_form_index universal)
 /*
 Given the universal representation of FormIndex, return TRUE if the given index
-is considered a NULL index; otherwise, return FALSE.
+is considered a null index; otherwise, return FALSE.
 */
 {
   a_boolean          result = FALSE;
@@ -13822,7 +13822,7 @@ return a reencoded index value.
 a_boolean is_null_index(an_ifc_lit_index universal)
 /*
 Given the universal representation of LitIndex, return TRUE if the given index
-is considered a NULL index; otherwise, return FALSE.
+is considered a null index; otherwise, return FALSE.
 */
 {
   a_boolean          result = FALSE;
@@ -13896,7 +13896,7 @@ file, return a reencoded index value.
 a_boolean is_null_index(an_ifc_macro_index universal)
 /*
 Given the universal representation of MacroIndex, return TRUE if the given
-index is considered a NULL index; otherwise, return FALSE.
+index is considered a null index; otherwise, return FALSE.
 */
 {
   a_boolean          result = FALSE;
@@ -13970,7 +13970,7 @@ file, return a reencoded index value.
 a_boolean is_null_index(an_ifc_name_index universal)
 /*
 Given the universal representation of NameIndex, return TRUE if the given index
-is considered a NULL index; otherwise, return FALSE.
+is considered a null index; otherwise, return FALSE.
 */
 {
   a_boolean          result = FALSE;
@@ -14044,7 +14044,7 @@ file, return a reencoded index value.
 a_boolean is_null_index(an_ifc_pragma_index universal)
 /*
 Given the universal representation of PragmaIndex, return TRUE if the given
-index is considered a NULL index; otherwise, return FALSE.
+index is considered a null index; otherwise, return FALSE.
 */
 {
   a_boolean          result = FALSE;
@@ -14152,7 +14152,7 @@ file, return a reencoded index value.
 a_boolean is_null_index(an_ifc_stmt_index universal)
 /*
 Given the universal representation of StmtIndex, return TRUE if the given index
-is considered a NULL index; otherwise, return FALSE.
+is considered a null index; otherwise, return FALSE.
 */
 {
   a_boolean          result = FALSE;
@@ -14225,7 +14225,7 @@ file, return a reencoded index value.
 a_boolean is_null_index(an_ifc_string_index universal)
 /*
 Given the universal representation of StringIndex, return TRUE if the given
-index is considered a NULL index; otherwise, return FALSE.
+index is considered a null index; otherwise, return FALSE.
 */
 {
   a_boolean          result = FALSE;
@@ -14299,7 +14299,7 @@ file, return a reencoded index value.
 a_boolean is_null_index(an_ifc_syntax_index universal)
 /*
 Given the universal representation of SyntaxIndex, return TRUE if the given
-index is considered a NULL index; otherwise, return FALSE.
+index is considered a null index; otherwise, return FALSE.
 */
 {
   a_boolean          result = FALSE;
@@ -14372,7 +14372,7 @@ file, return a reencoded index value.
 a_boolean is_null_index(an_ifc_type_index universal)
 /*
 Given the universal representation of TypeIndex, return TRUE if the given index
-is considered a NULL index; otherwise, return FALSE.
+is considered a null index; otherwise, return FALSE.
 */
 {
   a_boolean          result = FALSE;
@@ -14445,7 +14445,7 @@ file, return a reencoded index value.
 a_boolean is_null_index(an_ifc_unit_index universal)
 /*
 Given the universal representation of UnitIndex, return TRUE if the given index
-is considered a NULL index; otherwise, return FALSE.
+is considered a null index; otherwise, return FALSE.
 */
 {
   a_boolean          result = FALSE;
@@ -14518,7 +14518,7 @@ Functions for interacting with IFC BasicSpecifiersBitfield bitfields.
 a_boolean is_null_bitfield(an_ifc_basic_specifiers_bitfield universal)
 /*
 Given the universal representation of BasicSpecifiersBitfield, return TRUE if
-the given bitfield is considered a NULL index; otherwise, return FALSE.
+the given bitfield is considered a null index; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -14579,7 +14579,7 @@ Functions for interacting with IFC FunctionTraitsBitfield bitfields.
 a_boolean is_null_bitfield(an_ifc_function_traits_bitfield universal)
 /*
 Given the universal representation of FunctionTraitsBitfield, return TRUE if
-the given bitfield is considered a NULL index; otherwise, return FALSE.
+the given bitfield is considered a null index; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -14649,7 +14649,7 @@ Functions for interacting with IFC FunctionTypeTraitsBitfield bitfields.
 a_boolean is_null_bitfield(an_ifc_function_type_traits_bitfield universal)
 /*
 Given the universal representation of FunctionTypeTraitsBitfield, return TRUE
-if the given bitfield is considered a NULL index; otherwise, return FALSE.
+if the given bitfield is considered a null index; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -14698,7 +14698,7 @@ Functions for interacting with IFC MsvcTraitsBitfield bitfields.
 a_boolean is_null_bitfield(an_ifc_msvc_traits_bitfield universal)
 /*
 Given the universal representation of MsvcTraitsBitfield, return TRUE if the
-given bitfield is considered a NULL index; otherwise, return FALSE.
+given bitfield is considered a null index; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -14786,7 +14786,7 @@ Functions for interacting with IFC ObjectTraitsBitfield bitfields.
 a_boolean is_null_bitfield(an_ifc_object_traits_bitfield universal)
 /*
 Given the universal representation of ObjectTraitsBitfield, return TRUE if the
-given bitfield is considered a NULL index; otherwise, return FALSE.
+given bitfield is considered a null index; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -14841,7 +14841,7 @@ Functions for interacting with IFC QualifierBitfield bitfields.
 a_boolean is_null_bitfield(an_ifc_qualifier_bitfield universal)
 /*
 Given the universal representation of QualifierBitfield, return TRUE if the
-given bitfield is considered a NULL index; otherwise, return FALSE.
+given bitfield is considered a null index; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -14887,7 +14887,7 @@ Functions for interacting with IFC ReachablePropertiesBitfield bitfields.
 a_boolean is_null_bitfield(an_ifc_reachable_properties_bitfield universal)
 /*
 Given the universal representation of ReachablePropertiesBitfield, return TRUE
-if the given bitfield is considered a NULL index; otherwise, return FALSE.
+if the given bitfield is considered a null index; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -14936,7 +14936,7 @@ Functions for interacting with IFC ScopeTraitsBitfield bitfields.
 a_boolean is_null_bitfield(an_ifc_scope_traits_bitfield universal)
 /*
 Given the universal representation of ScopeTraitsBitfield, return TRUE if the
-given bitfield is considered a NULL index; otherwise, return FALSE.
+given bitfield is considered a null index; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -34271,7 +34271,7 @@ Functions for interacting with IFC FormSpecOffset offsets.
 a_boolean is_null_index(an_ifc_form_spec_offset universal)
 /*
 Given the universal representation of FormSpecOffset, return TRUE if the given
-offset is considered a NULL index; otherwise, return FALSE.
+offset is considered a null index; otherwise, return FALSE.
 */
 {
   return universal.value == 0;
@@ -34313,7 +34313,7 @@ Functions for interacting with IFC LineOffset offsets.
 a_boolean is_null_index(an_ifc_line_offset universal)
 /*
 Given the universal representation of LineOffset, return TRUE if the given
-offset is considered a NULL index; otherwise, return FALSE.
+offset is considered a null index; otherwise, return FALSE.
 */
 {
   return universal.value == 0;
@@ -34354,7 +34354,7 @@ Functions for interacting with IFC ScopeOffset offsets.
 a_boolean is_null_index(an_ifc_scope_offset universal)
 /*
 Given the universal representation of ScopeOffset, return TRUE if the given
-offset is considered a NULL index; otherwise, return FALSE.
+offset is considered a null index; otherwise, return FALSE.
 */
 {
   return universal.value == 0;
