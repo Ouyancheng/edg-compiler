@@ -22684,7 +22684,9 @@ The scope is the top scope in a memory region.
       a_label_ptr lab;
       for (lab = scope->labels; lab != NULL; lab = lab->next) {
         a_statement_ptr lab_stmt = lab->exec_stmt;
-        lab_stmt->variant.label.lifetime = NULL;
+        if (lab_stmt != NULL) {
+          lab_stmt->variant.label.lifetime = NULL;
+        }  /* if */
       }  /* for */
     }  /* if */
   } else {
