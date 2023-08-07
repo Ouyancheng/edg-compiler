@@ -2017,6 +2017,10 @@ a_module_entity_ptr process_decl_at_index(an_ifc_decl_index decl_idx)
 /*
 Process the IFC module entity declaration specified at the given declaration
 index by creating the appropriate IL entity.
+
+This function should be preferred if the entity should be processed
+immediately.  request_entity_at_index should be preferred in context where it's
+important that the entity be processed at some point.
 */
 {
   /* Get the associated IFC module entity pointer, and then use it to
@@ -2026,6 +2030,65 @@ index by creating the appropriate IL entity.
   process_ifc_declaration(dmep);
   return dmep;
 }  /* process_decl_at_index */
+
+
+static a_boolean is_entity_imminent(a_module_entity_ptr mep)
+/*
+Given a module entity pointer, return TRUE if the entity is an unresolved
+imminent state (i.e., the entity is not yet resolved to an IL entity or marked
+invalid); otherwise, return FALSE.
+*/
+{
+  return mep->imminent && !mep->invalid && mep->entity.ptr == NULL;
+}  /* is_entity_imminent */
+
+
+static a_boolean is_entity_resolved(a_module_entity_ptr mep)
+/*
+Given a module entity pointer, return TRUE if the entity is in a resolved state
+(i.e., the entity is is either resolved to an IL entity or marked invalid);
+otherwise, return FALSE.
+*/
+{
+  return mep->imminent && (mep->entity.ptr != NULL || mep->invalid);
+}  /* is_entity_resolved */
+
+
+static a_boolean request_entity(a_module_entity_ptr mep)
+/*
+Request that the given module entity be processed (if not already being
+processed).  If the entity's processing is complete, return TRUE; otherwise,
+return FALSE.
+
+This function should be preferred in context where it's important that the
+entity be processed at some point.  process_ifc_declaration should be preferred
+if the entity should be processed immediately.
+*/
+{
+  if (!is_entity_resolved(mep) && !is_entity_imminent(mep)) {
+    process_ifc_declaration(mep);
+  }  /* if */
+  return is_entity_resolved(mep);
+}  /* request_entity */
+
+
+static a_boolean request_entity_at_index(an_ifc_decl_index decl_idx)
+/*
+Request that the given module entity specified at the given declaration index
+be processed (if not already being processed).  If the entity's processing is
+complete, return TRUE; otherwise, return FALSE.
+
+This function should be preferred in context where it's important that the
+entity be processed at some point.  process_decl_at_index should be preferred
+if the entity should be processed immediately.
+*/
+{
+  /* Get the associated IFC module entity pointer, and then use it to
+     process this declaration via process_ifc_declaration. */
+  a_module_entity_ptr dmep = get_ifc_module_entity_ptr(decl_idx);
+
+  return request_entity(dmep);
+}  /* request_entity_at_index */
 
 
 static a_module_entity_ptr
@@ -3793,17 +3856,6 @@ out to be needed later on.
   templ = templ->canonical_template;
   (void)ifc_template_specializations->map_or_replace(templ, decl_idx);
 }  /* record_pending_ifc_template_specializations */
-
-
-static a_boolean is_entity_imminent(a_module_entity_ptr mep)
-/*
-Given a module entity pointer, return TRUE if the entity is an unresolved
-imminent state (i.e., the entity is not yet resolved to an IL entity or marked
-invalid); otherwise, return FALSE.
-*/
-{
-  return mep->imminent && !mep->invalid && mep->entity.ptr == NULL;
-}  /* is_entity_imminent */
 
 
 static void finish_mep_processing(a_module_entity_ptr mep);
@@ -7692,7 +7744,7 @@ specialization is declared in an additional module).
 
           decl_arr->push_back(node_idx);
         } else {
-          (void)process_decl_at_index(node_idx);
+          (void)request_entity_at_index(node_idx);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -7848,7 +7900,7 @@ Process the specializations associated with a given template.
   check_assertion(this->has_specs());
   /* Process the specializations. */
   for (an_ifc_decl_index decl_idx : this->specializations) {
-    (void)process_decl_at_index(decl_idx);
+    (void)request_entity_at_index(decl_idx);
   }  /* for */
   free_specialization_list(this->templ_idx);
 }  /* process_specializations */
@@ -7863,7 +7915,7 @@ should be called after all specializations are setup.
   check_assertion(this->has_specs());
   /* Process the explicit instantiations. */
   for (an_ifc_decl_index decl_idx : this->explicit_instantiations) {
-    (void)process_decl_at_index(decl_idx);
+    (void)request_entity_at_index(decl_idx);
   }  /* for */
 }  /* process_instantiations */
 
@@ -7912,7 +7964,7 @@ check if it has any associated deduction guides, and process them.
        will be for an ifc_DeclSort_Tuple entry instead (and its treatment
        will propagate the parent scope). */
     guides_mep->scope = templ->source_corresp.parent_scope;
-    process_decl_at_index(guides_idx);
+    (void)request_entity_at_index(guides_idx);
   }  /* if */
 }  /* process_template_deduction_guides */
 
@@ -9866,6 +9918,10 @@ prerequisite didn't result in the creation of an IL entity, one will be created
 (via process_decl_to_il_entity).  Third and finally, if the declaration has a
 definition that can be lazily loaded, information to support lazy loading will
 be mapped to the IL entity.
+
+This function should be preferred if the entity should be processed
+immediately.  request_entity should be preferred in context where it's
+important that the entity be processed at some point.
 */
 {
   a_module_entity_stack_state mep_state(mep);
@@ -11184,7 +11240,7 @@ to this function.
         an_ifc_decl_scope scope_decl = *opt_scope_decl;
         a_boolean         decl_is_named = is_named_decl(scope_decl);
         if (!decl_is_named) {
-          process_ifc_declaration(mep);
+          (void)request_entity(mep);
           goto done;
         }  /* if */
 
@@ -11209,7 +11265,7 @@ to this function.
 
               if (test_bitmask<ifc_stb_inline>(traits)) {
                 /* Inline namespaces are not deferred. */
-                process_ifc_declaration(mep);
+                (void)request_entity(mep);
               } else {
                 defer_symbol_creation(mep, &loc);
               }  /* if */
@@ -11325,7 +11381,9 @@ be deferred until they are referenced.
          branch is in an anticipated hot path, conditionally enable it with
          EXPENSIVE_CHECKING as an optimization. */
       if (eager_load_modules && can_be_eager_loaded(decl_idx)) {
-        process_ifc_declaration(dmep);
+        if (!request_entity(dmep)) {
+          continue;
+        }  /* if */
         if (dmep->invalid) {
           continue;
         }  /* if */
