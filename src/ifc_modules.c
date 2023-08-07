@@ -8483,6 +8483,97 @@ static void load_ifc_namespace(an_ifc_scope_offset scope_offset,
                                a_scope_ptr         scope);
 
 
+static a_symbol_ptr find_existing_namespace(
+                                           const an_ifc_decl_scope &scope_decl)
+/*
+Given a namespace scope declaration, if the corresponding namespace already
+exists, return the associated symbol; otherwise, return NULL.
+*/
+{
+  a_symbol_ptr result = NULL;
+
+  if (is_named_decl(scope_decl)) {
+    /* FIXME: Do we need this suppression? */
+    Value_saver<a_boolean> lazy_load_saver(&lazy_symbols_may_be_visible,
+                                           /*new_value=*/FALSE);
+    a_symbol_locator       locator;
+
+    (void)module_of(scope_decl)->init_decl_locator(scope_decl, &locator);
+    if (is_std_namespace_scope(scope_decl)) {
+      /* The standard namespace is predeclared. */
+      result = symbol_for_namespace_std;
+      enter_symbol_for_namespace_std(&locator);
+    } else {
+      /* Attempt to find the namespace by name. */
+      result = curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
+    }
+  } else {
+    /* Attempt to find an existing anonymous namespace in the current scope's
+       pointers block. */
+    a_scope_pointers_block_ptr pointers_block =
+                       assoc_pointers_block_of(&scope_stack[decl_scope_level]);
+
+    result = pointers_block->unnamed_namespace_sym;
+  }  /* if */
+  return result;
+}  /* find_existing_namespace */
+
+
+static a_symbol_ptr declare_new_namespace(const an_ifc_decl_scope &scope_decl)
+/*
+Given a namespace scope declaration, declare the corresponding (new) namespace
+and return the associated symbol.
+
+The caller is responsible for managing the scope stack, including:
+- Ensuring the scope stack state represents this namespace's enclosing scope.
+- Ensuring the created namespace is pushed to the scope stack.
+*/
+{
+  a_symbol_ptr result = NULL;
+  a_boolean    decl_is_named = is_named_decl(scope_decl);
+
+  if (decl_is_named) {
+    a_symbol_locator locator;
+
+    (void)module_of(scope_decl)->init_decl_locator(scope_decl, &locator);
+    check_assertion(!is_std_namespace_scope(scope_decl));
+    result = enter_symbol(sk_namespace, &locator, decl_scope_level,
+                          /*suppress_redecl_error=*/FALSE);
+  } else {
+    an_ifc_source_location     locus = get_ifc_locus(scope_decl);
+    a_source_position          namespace_pos;
+
+    if (!source_position_from_locus(&namespace_pos, locus)) {
+      namespace_pos = null_source_position;
+    }  /* if */
+    result = make_unnamed_namespace_symbol(&namespace_pos);
+
+    a_scope_pointers_block_ptr pointers_block =
+                       assoc_pointers_block_of(&scope_stack[decl_scope_level]);
+    pointers_block->unnamed_namespace_sym = result;
+  }  /* if */
+
+  a_namespace_ptr nsp = alloc_namespace(/*is_alias=*/FALSE);
+  /* Link the namespace symbol to the namespace IL entity. */
+  result->variant.namespace_info.ptr = nsp;
+  /* Update the source correspondence information. */
+  set_source_corresp(&nsp->source_corresp, result);
+  nsp->source_corresp.name_linkage = nlk_cplusplus_external;
+  /* Update the namespace membership information. */
+  set_namespace_membership(result, &nsp->source_corresp,
+                           (a_namespace_ptr)NULL);
+
+  /* Set the namespace's inline status. */
+  an_ifc_scope_traits_bitfield traits = get_ifc_traits(scope_decl);
+  if (test_bitmask<ifc_stb_inline>(traits)) {
+    nsp->is_inline = TRUE;
+  }  /* if */
+  /* Expose the namespace to relevant lists. */
+  add_to_namespaces_list(nsp);
+  return result;
+}  /* declare_new_namespace */
+
+
 static void process_decl_to_il_entity(a_module_entity_ptr mep,
                                       a_boolean           defer)
 /*
@@ -8763,60 +8854,26 @@ strongly preferred over calling this function directly.
         a_boolean    decl_is_named = is_named_decl(scope_decl);
         switch (scope_kind) {
           case sck_namespace:
-            { an_ifc_scope_traits_bitfield traits = get_ifc_traits(scope_decl);
-              a_namespace_ptr              nsp = NULL;
+            { a_symbol_ptr    existing_sym =
+                                           find_existing_namespace(scope_decl);
+              a_namespace_ptr nsp;
 
-              if (decl_is_named) {
-                a_symbol_ptr     ns_sym;
-                a_symbol_locator loc;
+              if (existing_sym == NULL) {
+                a_symbol_ptr new_sym = declare_new_namespace(scope_decl);
 
-                if (!mod->init_decl_locator(scope_decl, &loc)) {
-                  goto invalid;
-                }  /* if */
-                { /* FIXME: does this need to be switched off for the standard
-                     namespace? */
-                  Value_saver<a_boolean> lazy_load_saver(
-                                                  &lazy_symbols_may_be_visible,
-                                                  /*new_value=*/FALSE);
-                  if (is_std_namespace_scope(scope_decl)) {
-                    /* Be sure to use the pre-created namespace std symbol.  It
-                       might not be entered in the symbol table yet: Hence,
-                       call enter_symbol_for_namespace_std. */
-                    ns_sym = symbol_for_namespace_std;
-                    enter_symbol_for_namespace_std(&loc);
-                  } else {
-                    ns_sym = curr_scope_id_lookup(&loc, IDL_NO_OPTIONS);
-                  }  /* if */
-                }
-                if (ns_sym != NULL) {
-                  /* A namespace already exists; use it. */
-                  nsp = ns_sym->variant.namespace_info.ptr;
-                  (void)push_namespace_scope(sck_namespace_extension, nsp);
-                } else {
-                  /* No namespace in the specified scope; create one. */
-                  ns_sym = enter_symbol(sk_namespace, &loc,
-                                        mep->scope->depth_in_scope_stack,
-                                        /*suppress_redecl_error=*/FALSE);
-                  nsp = alloc_namespace(/*is_alias=*/FALSE);
-                  set_source_corresp(&nsp->source_corresp, ns_sym);
-                  set_namespace_membership(ns_sym, &nsp->source_corresp,
-                                           (a_namespace_ptr)NULL);
-                  nsp->source_corresp.name_linkage = nlk_cplusplus_external;
-                  if (test_bitmask<ifc_stb_inline>(traits)) {
-                    nsp->is_inline = TRUE;
-                  }  /* if */
-                  ns_sym->variant.namespace_info.ptr = nsp;
-                  add_to_namespaces_list(nsp);
-                  (void)push_namespace_scope(sck_namespace, nsp);
-                  nsp->variant.assoc_scope->variant.assoc_namespace = nsp;
-                  if (nsp->is_inline) {
-                    add_implicit_using_directive(nsp, /*is_inline=*/TRUE,
-                                                 /*namespace_pushed=*/TRUE);
-                  }  /* if */
+                nsp = new_sym->variant.namespace_info.ptr;
+                (void)push_namespace_scope(sck_namespace, nsp);
+                /* Link the scope to the namespace IL entity. */
+                nsp->variant.assoc_scope->variant.assoc_namespace = nsp;
+                /* If this is an unnamed or inline namespace, create a
+                   using-directive to make it visible. */
+                if (!decl_is_named || nsp->is_inline) {
+                  add_implicit_using_directive(nsp, /*is_inline=*/TRUE,
+                                               /*namespace_pushed=*/TRUE);
                 }  /* if */
               } else {
-                ifc_unexpected(module_of(scope_decl), "anon namespace");
-                goto invalid;
+                nsp = existing_sym->variant.namespace_info.ptr;
+                (void)push_namespace_scope(sck_namespace_extension, nsp);
               }  /* if */
               /* Forward assign the module entity pointer's information so we
                  can self-reference. */
