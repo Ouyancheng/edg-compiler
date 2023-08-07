@@ -8269,7 +8269,7 @@ the diagnostic specified by diag.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 void Fill_in<a_source_position*>::add(a_diagnostic_ptr  diag,
-                                     a_source_position *value)
+                                      a_source_position *value)
 /*
 Add a position fill-in entry for the given source position (value) to the
 diagnostic specified by diag.
