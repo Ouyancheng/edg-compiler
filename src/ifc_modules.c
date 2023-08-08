@@ -17675,8 +17675,13 @@ Cache the storage-class-specifier for the given variable-like declaration.
 */
 {
   an_ifc_basic_specifiers_bitfield specifiers = get_ifc_specifiers(decl);
+  an_ifc_object_traits_bitfield    traits = get_ifc_traits(decl);
 
-  if (test_bitmask<ifc_bsb_external>(specifiers)) {
+  if (test_bitmask<ifc_bsb_external>(specifiers) &&
+      !test_bitmask<ifc_otb_constexpr>(traits)) {
+    /* As of IFC 0.43 external linkage is noted for constexpr variables.  Thus,
+       only cache the extern specifier if the variable has external linkage and
+       is not constexpr. */
     cache_token(cache, tok_extern);
   }  /* if */
 }  /* cache_func_decl_specifier */
