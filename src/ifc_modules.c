@@ -2451,8 +2451,11 @@ Map an IFC MonadicOperator to an_opname_kind.
 
   switch (monadic_op) {
     case ifc_mos_msvc:
+    case ifc_mos_msvc_confused_aggregate_return:
+    case ifc_mos_msvc_confused_dependent_expression:
     case ifc_mos_msvc_confused_dtor_action:
     case ifc_mos_msvc_confused_pop_state:
+    case ifc_mos_msvc_confused_substitution:
     case ifc_mos_msvc_confused_vtor_displacement:
     case ifc_mos_msvc_confusion:
     case ifc_mos_unknown:
@@ -2838,8 +2841,11 @@ Return the kind of operator described by op in the context of the given module.
 
   switch (op) {
     case ifc_mos_msvc:
+    case ifc_mos_msvc_confused_aggregate_return:
+    case ifc_mos_msvc_confused_dependent_expression:
     case ifc_mos_msvc_confused_dtor_action:
     case ifc_mos_msvc_confused_pop_state:
+    case ifc_mos_msvc_confused_substitution:
     case ifc_mos_msvc_confused_vtor_displacement:
     case ifc_mos_msvc_confusion:
     case ifc_mos_unknown:
@@ -20137,8 +20143,11 @@ Add the tokens corresponding to the given Monadic Operator to cache.
 {
   switch (op) {
     case ifc_mos_msvc:
+    case ifc_mos_msvc_confused_aggregate_return:
+    case ifc_mos_msvc_confused_dependent_expression:
     case ifc_mos_msvc_confused_dtor_action:
     case ifc_mos_msvc_confused_pop_state:
+    case ifc_mos_msvc_confused_substitution:
     case ifc_mos_msvc_confused_vtor_displacement:
     case ifc_mos_msvc_confusion:
     case ifc_mos_unknown:
