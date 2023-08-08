@@ -1,5 +1,23 @@
 Version 6.6
 
+8/8/23   [EDGcpfe/26565]
+Constraints and surrogate function calls
+
+A value of class type that has a user-defined conversion to a pointer-to-
+function type can be used as the target of a call expression.  Such calls are
+sometimes called "surrogate function calls" (see also the entry of 8/10/99).
+Previously, the front end failed to check template constraints before selecting
+such calls.  That is now fixed.  For example:
+
+  using FP = int(*)(int);
+  template<bool B> struct S {
+    operator FP() requires B;
+  };
+  int r = S<false>{}(0);  // Previously accepted despite the constraint on
+                          // S::operator FP() not being satisfied.  Now an
+                          // error as expected.
+
+
 8/4/23   [EDGcpfe/26557]
 IL write-read error on coroutine function template
 

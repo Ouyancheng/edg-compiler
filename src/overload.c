@@ -6533,6 +6533,9 @@ next_argument:
           a_type_ptr    return_type;
           this_match->match_level = aml_user_conversion;
           base_conv_sym = fundamental_symbol_of(surrogate_function_conv_sym);
+          if (is_ineligible(base_conv_sym)) {
+            goto reject_function;
+          }  /* if */
           conv_rout = base_conv_sym->variant.routine.ptr;
           this_match->conversion.routine = conv_rout;
           this_match->conversion.routine_symbol = surrogate_function_conv_sym;
