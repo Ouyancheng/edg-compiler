@@ -103,7 +103,7 @@ partition.
 */
 {
   return idx.value;
-}  /* resolve_partition_kind */
+}  /* resolve_partition_index */
 
 
 /* Macro used to explicitly specialize resolve_partition_kind for a node offset
