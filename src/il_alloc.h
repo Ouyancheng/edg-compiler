@@ -37,8 +37,8 @@ in some configurations.
 */
 EXTERN a_constant_ptr temp_for_local_constant;
 
-/* IL allocation facilities are neither available nor needed in a
-   standalone utility program. */
+/* Most IL allocation facilities are not needed in a standalone utility
+   program. */
 #if !STANDALONE_UTILITY_PROGRAM
 
 extern char *alloc_il(sizeof_t size);
@@ -426,6 +426,13 @@ memory region.
    available_local_constants = *cp,         \
    *cp = NULL)
 
+/* A standalone C++-generating back end uses clear_expr_node. */
+#if BACK_END_IS_CP_GEN_BE
+
+extern void clear_expr_node(an_expr_node_ptr  node,
+                            an_expr_node_kind kind);
+
+#endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #define clear_tagged_ptr(tagged_ptr)                                        \
