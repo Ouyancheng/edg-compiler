@@ -1,5 +1,30 @@
 Version 6.6
 
+8/9/23   [EDGcpfe/26339]
+C++-generating back end: template arguments involving local constexpr variables
+
+In general, the IL for a template instance reflects the template arguments
+used in the first reference to that instance.  When such template arguments
+involve a local variable, the C++-generating back end could produce
+erroneous output when generating references to the template instance in
+contexts outside the scope of the local variable.  This is now fixed.  For
+example, with --c++17:
+
+  struct A {
+    int a;
+    constexpr A() : a{} {}
+  };
+  template <auto> struct B {};
+  template <typename> struct C {};
+  auto f() {
+    constexpr auto a = A{};
+    return B<a>{};
+  }
+  void g() {
+    C<decltype(f())> c;  // Previously generated as C<B<A{0}>>, now C<B<A{}>>
+  }
+
+
 8/9/23   [EDGcpfe/26449]
 Equivalence of alias templates
 
