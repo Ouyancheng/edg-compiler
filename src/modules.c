@@ -1383,18 +1383,22 @@ Return a string containing debug information about the given module.
   }  /* if */
   result.append(", kind: ");
   switch (m_kind) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
     case mk_ifc:
       result.append("ifc");
       break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     default:
       result.append("UNKNOWN");
       break;
   }  /* switch */
   result.append(", version: ");
   switch (m_kind) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
     case mk_ifc:
       result.append(s_db_version_of_ifc_module(mod));
       break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     default:
       result.append("UNKNOWN");
       break;
@@ -1430,9 +1434,11 @@ This string does not contain extensive information about the module.
   }  /* if */
   result.append(", entity id: ");
   switch (m_kind) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
     case mk_ifc:
       result.append(s_db_id_of_ifc_mep(mep));
       break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     default:
       result.append("UNKNOWN");
       break;
