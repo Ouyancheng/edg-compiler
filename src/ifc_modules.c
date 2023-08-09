@@ -1866,7 +1866,7 @@ the given scope.
   an_ifc_type_index       scope_type = get_ifc_type(scope_decl);
 
   /* The caller should only call this function if it knows this is a class,
-     struct, or union scope, the caller should've had to read this previously
+     struct, or union scope.  The caller should've had to read this previously
      to know it's working with a class. */
   construct_node_prechecked(&fundamental_type, scope_type);
 
@@ -1903,7 +1903,7 @@ the given scope.
   an_ifc_type_index       scope_type = get_ifc_type(scope_decl);
 
   /* The caller should only call this function if it knows this is a class,
-     struct, or union scope, the caller should've had to read this previously
+     struct, or union scope.  The caller should've had to read this previously
      to know it's working with a class. */
   construct_node_prechecked(&fundamental_type, scope_type);
 
@@ -1965,8 +1965,8 @@ return FALSE.
 
 static a_boolean is_std_namespace_scope(const an_ifc_decl_scope &scope)
 /*
-Return TRUE if the provided scope is the namespace scope; otherwise, return
-FALSE.
+Return TRUE if the provided scope is the "std" namespace scope; otherwise,
+return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -2019,8 +2019,9 @@ Process the IFC module entity declaration specified at the given declaration
 index by creating the appropriate IL entity.
 
 This function should be preferred if the entity should be processed
-immediately.  request_entity_at_index should be preferred in context where it's
-important that the entity be processed at some point.
+immediately.  request_entity_at_index should be preferred in contexts when
+immediate processing is not required (i.e., the exact entity doesn't need to be
+known).
 */
 {
   /* Get the associated IFC module entity pointer, and then use it to
@@ -2046,7 +2047,7 @@ invalid); otherwise, return FALSE.
 static a_boolean is_entity_resolved(a_module_entity_ptr mep)
 /*
 Given a module entity pointer, return TRUE if the entity is in a resolved state
-(i.e., the entity is is either resolved to an IL entity or marked invalid);
+(i.e., the entity is either resolved to an IL entity or marked invalid);
 otherwise, return FALSE.
 */
 {
@@ -2060,7 +2061,7 @@ Request that the given module entity be processed (if not already being
 processed).  If the entity's processing is complete, return TRUE; otherwise,
 return FALSE.
 
-This function should be preferred in context where it's important that the
+This function should be preferred in contexts where it's important that the
 entity be processed at some point.  process_ifc_declaration should be preferred
 if the entity should be processed immediately.
 */
@@ -2078,7 +2079,7 @@ Request that the given module entity specified at the given declaration index
 be processed (if not already being processed).  If the entity's processing is
 complete, return TRUE; otherwise, return FALSE.
 
-This function should be preferred in context where it's important that the
+This function should be preferred in contexts where it's important that the
 entity be processed at some point.  process_decl_at_index should be preferred
 if the entity should be processed immediately.
 */
@@ -9920,8 +9921,8 @@ definition that can be lazily loaded, information to support lazy loading will
 be mapped to the IL entity.
 
 This function should be preferred if the entity should be processed
-immediately.  request_entity should be preferred in context where it's
-important that the entity be processed at some point.
+immediately.  request_entity should be preferred in contexts when immediate
+processing is not required (i.e., the exact entity doesn't need to be known).
 */
 {
   a_module_entity_stack_state mep_state(mep);
@@ -13504,7 +13505,7 @@ optional if the name was present but invalid.
 template<>
 Opt<a_string> name_of_decl(const an_ifc_decl_expansion &decl)
 /*
-Given a expansion declaration, return the name associated with the property
+Given an expansion declaration, return the name associated with the property
 declaration, an empty string if no name was present (i.e., the declaration
 declares something anonymous), or an empty optional if the name was present but
 invalid.
@@ -13519,7 +13520,7 @@ invalid.
 template<>
 Opt<a_string> name_of_decl(const an_ifc_decl_inherited_constructor &decl)
 /*
-Given a inherited constructor declaration, return the name of the constructor,
+Given an inherited constructor declaration, return the name of the constructor,
 or an empty optional if the name was present but invalid.
 */
 {
@@ -13590,7 +13591,7 @@ return FALSE.
              writing) regularly contains mangled names for anonymous
              namespaces.  Thus, to remain flexible, the front end first checks
              the bitfield value, and then additionally checks the name.  If
-             either are empty, it's assumed the scope represents an
+             either is empty, it's assumed the scope represents an
              anonymous/unnamed namespace. */
           if (test_bitmask<ifc_stb_unnamed>(traits)) {
             result = FALSE;
@@ -13633,7 +13634,7 @@ invalid.
     result = "";
   }  /* if */
   return result;
-}  /* scope */
+}  /* name_of_decl */
 
 
 template<>
@@ -13660,7 +13661,7 @@ present but invalid.
     result = name_of_decl(value);
   }  /* if */
   return result;
-}  /* scope */
+}  /* name_of_decl */
 
 
 static Opt<a_string> name_of_decl(an_ifc_decl_index decl_idx)
