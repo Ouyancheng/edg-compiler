@@ -30,9 +30,7 @@ lower_name.c -- Do name mangling for IL lowering.
 /* Only include this code if it is needed: */
 #if NEED_NAME_MANGLING
 #include "il_walk.h"
-#if IA64_ABI
 #include "templates.h"
-#endif /* IA64_ABI */
 #include "exprutil.h"
 #if GNU_FUNCTION_MULTIVERSIONING
 #include "sys_predef.h"
