@@ -11545,7 +11545,7 @@ to unusable variables and class members.
            mode.)  The name is unusable.  However, the value of a constexpr
            variable might be usable. */
         a_boolean result = TRUE;
-        if (kind == iek_variable) {
+        if (kind == iek_variable && sp != NULL) {
           a_constexpr_initializer_ptr cip =
                                         var_init_map->get((a_variable_ptr)scp);
           if (cip != NULL && !cip->being_checked) {
@@ -17457,9 +17457,17 @@ done_with_operation_after_parens:
     case enk_variable:
       { a_variable_ptr              vp = node_variable(expr);
         a_constexpr_initializer_ptr cip;
-        if (vp->source_corresp.enclosing_routine != NULL &&
-            vp->source_corresp.parent_scope != NULL &&
-            !scope_is_in_name_context_stack(vp->source_corresp.parent_scope) &&
+        a_scope_ptr                 local_scope = NULL;
+        if (vp->source_corresp.enclosing_routine != NULL) {
+          if (vp->source_corresp.parent_scope != NULL) {
+            local_scope = vp->source_corresp.parent_scope;
+          } else {
+            local_scope =
+               scope_for_routine_or_null(vp->source_corresp.enclosing_routine);
+          }  /* if */
+        }  /* if */
+        if (local_scope != NULL &&
+            !scope_is_in_name_context_stack(local_scope) &&
             (cip = var_init_map->get(vp)) != NULL) {
           /* The name of the variable is not in scope, but we can use its
              value instead.  The type is already that of the variable; copy
