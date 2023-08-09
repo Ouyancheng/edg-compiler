@@ -17458,6 +17458,7 @@ done_with_operation_after_parens:
       { a_variable_ptr              vp = node_variable(expr);
         a_constexpr_initializer_ptr cip;
         if (vp->source_corresp.enclosing_routine != NULL &&
+            vp->source_corresp.parent_scope != NULL &&
             !scope_is_in_name_context_stack(vp->source_corresp.parent_scope) &&
             (cip = var_init_map->get(vp)) != NULL) {
           /* The name of the variable is not in scope, but we can use its
