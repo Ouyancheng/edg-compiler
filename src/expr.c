@@ -39668,8 +39668,22 @@ done_with_requirements:
     } else {
       a_subst_pairs_array  subst_pairs = get_current_subst_pairs();
       a_boolean            val;
+      a_pack_expansion_stack_entry_ptr
+                           saved_pesep = pack_expansion_stack;
       push_instantiation_scope_for_rescan(/*template_sym=*/NULL);
+      if (saved_pesep != NULL) {
+        /* The call to push_instantiation_scope_for_rescan clears the pack
+           expansion stack because usually such a call corresponds to a
+           change of parameterization context.  However, if we are in an
+           ordinary instantiation context we want the preserve the
+           parameterization (and thus the expansion state) in the substitution
+           that we are about to perform. */
+        pack_expansion_stack = saved_pesep;
+      }  /* if */
       val = requires_expr_satisfied(rrd.requires_expr, subst_pairs);
+      if (saved_pesep != NULL) {
+        pack_expansion_stack = NULL;
+      }  /* if */
       pop_instantiation_scope_for_rescan();
       make_integer_constant_operand(result, (a_host_large_integer)val);
       result->type = bool_type();
@@ -53390,6 +53404,8 @@ Complete the scan of one of the following forms:
   ( <cast-expr> OP ... )
   ( <cast-expr> OP ... OP <cast-expr> )
 
+where OP is a binary operator.
+
 In the first case, tok_ellipsis is the current token and empty_pack is FALSE.
 If the leading <cast-expr> in the other cases corresponds to an empty pack,
 empty_pack is TRUE.  Otherwise, the first OP (a binary operator) is the
@@ -53404,7 +53420,7 @@ In a prototype instantiation, return in *result an enk_fold expression that
 represents the fold expression.  In real instantiations, return in *result an
 expression tree (possibly folded to a constant) that represents the expanded
 form of the fold expression; in some rare cases, the result may be a bound
-function operand: The selector is then return in *bound_function_selector.
+function operand: The selector is then returned in *bound_function_selector.
 */
 {
   a_boolean          unary, left_associative = FALSE, generic = FALSE;

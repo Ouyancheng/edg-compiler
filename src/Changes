@@ -1,5 +1,22 @@
 Version 6.6
 
+8/9/23   [EDGcpfe/26540]
+Pack expansions over requires-expressions
+
+Consider:
+
+  template<int I, typename T> void g(T);
+  template<typename T, typename... Ts> struct S {
+    template<class U, int... I> static constexpr bool v =
+                     (requires(const S& c, const U& u) { ::g<I>(c); } && ...);
+  };
+  static_assert(S<int, int>::v<int, 1, 2>);  // Previously failed.  Now okay.
+
+This previously failed because of some subtle interaction between ordinary
+variadic template instantiation and the substitution of requires-expressions.
+That is now fixed.
+
+
 8/9/23   [EDGcpfe/26572]
 Spurious "error: not a class or struct name" diagnostics
 

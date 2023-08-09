@@ -20965,8 +20965,7 @@ lookup options.
       con_copy = con;
     }  /* if */
   } else {
-    /* The template parameter type is unknown.  Just copy the constant with
-       substitution. */
+    /* Just copy the constant with substitution. */
     con_copy = copy_template_param_con(con,
                                        template_arg_list,
                                        template_param_list,
