@@ -1,5 +1,23 @@
 Version 6.6
 
+8/9/23   [EDGcpfe/26572]
+Spurious "error: not a class or struct name" diagnostics
+
+Previously, the front end would emit a spurious additional error when an
+invalid alias template is used in a base specifier:
+
+   template<typename C>
+   struct A {};
+
+   template<typename AT>
+   using A_alias = typename A<AT>::X; // errors on instantiation
+
+   struct B : A_alias<int> { // previously, a spurious additional error
+   };
+
+This is now fixed.
+
+
 8/9/23   [EDGcpfe/26339]
 C++-generating back end: template arguments involving local constexpr variables
 

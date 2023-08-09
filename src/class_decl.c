@@ -10271,7 +10271,8 @@ can only contain CLI interfaces.
             /* Not a class symbol.  In most cases, issue an error and skip it.
                When a template param is involved, just skip it. */
             if (sym != NULL) {
-              if (sym->is_error) {
+              if (sym->is_error || (sym->kind == sk_type &&
+                                    is_error_type(sym->variant.type.ptr))) {
                 expect_error();
                 goto skip_base_class;
               } else if (sym->kind == (a_symbol_kind)sk_type) {
