@@ -415,6 +415,8 @@ typedef int an_equiv_templ_param_options_set;
 			   a template template parameter.  Some flexibility
 			   is provided in such cases (e.g., for matching
 			   parameter packs). */
+#define ETP_DEFAULT_ARGUMENT_MATCH_REQUIRED 0x8
+			/* TRUE if default arguments need to match. */
 
 /*
 Flags used to specify options to set_instance_required and
@@ -1094,6 +1096,8 @@ extern a_boolean reconcile_template_param_lists(
 			a_boolean	      checking_parent_params,
 			a_boolean	      allow_missing_member_constraint,
 			an_error_severity     error_severity);
+
+extern a_template_ptr skip_simple_alias_templates(a_template_ptr  templ);
 
 /*
 Flags used to specify options to equiv_templates and

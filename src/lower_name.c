@@ -7770,7 +7770,7 @@ Add to the mangled name the encoding for the template template argument
 given by tap.
 */
 {
-  a_template_ptr temp = tap->variant.templ.ptr;
+  a_template_ptr temp = skip_simple_alias_templates(tap->variant.templ.ptr);
 
   if (temp->template_info != NULL && temp->template_info->is_error) {
     /* Don't get confused on error cases. */

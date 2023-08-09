@@ -6981,6 +6981,19 @@ correspondence entry.
 }  /* hash_name */
 
 
+static a_hash_value hash_template(a_template_ptr templ)
+/*
+Return a hash value for the indicated template.
+*/
+{
+  a_hash_value       hash_value = 0;
+
+  templ = skip_simple_alias_templates(templ);
+  hash_value += hash_name(&templ->source_corresp);
+  return hash_value;
+}  /* hash_template */
+
+
 /* Forward declarations. */
 static a_hash_value hash_type(a_type_ptr type);
 
@@ -7018,7 +7031,7 @@ Return a hash value for the indicated template argument list.
         break;
       case tak_template:
         if (tap->variant.templ.ptr != NULL) {
-          hash_value += hash_name(&tap->variant.templ.ptr->source_corresp);
+          hash_value += hash_template(tap->variant.templ.ptr);
           hash_value = hash_value + (hash_value * (pos+1));
         }  /* if */
         break;

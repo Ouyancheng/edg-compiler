@@ -7849,13 +7849,11 @@ called from this routine.
       /* Nonreal templates have no parameter lists. */
       compare_parameters = FALSE;
       if (strcmp(templ1->source_corresp.name,
-                 templ2->source_corresp.name) == 0) {
-        /* They have the same names. */
-        if (!identical_types(parent_class_of(templ1),
-                            parent_class_of(templ2))) {
-          /* Their parent types are the different. */
-          okay_so_far = FALSE;
-        }  /* if */
+                 templ2->source_corresp.name) != 0 ||
+          !identical_types(parent_class_of(templ1),
+                           parent_class_of(templ2))) {
+        /* Their names or parent types are different. */
+        okay_so_far = FALSE;
       }  /* if */
     } else if (tssp1->variant.class_template.template_template_param &&
                tssp2->variant.class_template.template_template_param) {
@@ -7890,6 +7888,102 @@ called from this routine.
 }  /* equiv_templates_given_supplement */
 
 
+a_template_ptr skip_simple_alias_templates(a_template_ptr  templ)
+/*
+Skip over any alias templates that are equivalent to the aliased template.
+
+According to the direction of Core issue 1286, an alias template is equivalent
+to the aliased template if the template parameter lists (including default
+arguments) are equivalent and the template argument list consists of a list of
+identifiers naming each template parameter in the order they appear in the
+template parameter list.
+*/
+{
+  if (C_mode() || ms_version_is(any_version) ||
+      clang_version_is(any_version) || gnu_version_is(<40900)) {
+    /* MSVC and Clang don't implement this yet, neither does GCC prior to
+       version 4.9. */
+  } else if (templ->kind == templk_class &&
+             templ->prototype_instantiation.type != NULL) {
+    a_type_ptr                type = templ->prototype_instantiation.type;
+    a_template_param_ptr      templ_params;
+    a_template_nesting_depth  initial_depth;
+
+    templ_params = symbol_for(templ)->variant.template_info->cache.decl_info
+                                                           ->parameters;
+    /* Keep the initial parameter depth as template arguments will need to
+       refer to the initial template parameter list. */
+    initial_depth = coordinates_of_template_param(templ_params)->depth;
+    while (templ->kind == templk_class && type->kind == tk_typeref &&
+           is_typeref_kind(type, trk_is_template_alias)) {
+      a_template_ptr        aliased_templ;
+      a_template_arg_ptr    aliased_args, tap;
+      a_template_param_ptr  tpp;
+      a_type_ptr            aliased_type = type->variant.typeref.type;
+
+      if (is_immediate_class_type(aliased_type) &&
+          assoc_template_of(aliased_type) != NULL) {
+        /* The alias template names a class template. */
+        aliased_templ = assoc_template_of(aliased_type);
+        aliased_args = class_type_supp(aliased_type)->template_arg_list;
+      } else if (aliased_type->kind == tk_typeref &&
+                 is_typeref_kind(aliased_type, trk_is_template_alias)) {
+        /* The alias template names another alias template. */
+        a_typeref_type_supplement_ptr  ttsp;
+        ttsp = aliased_type->variant.typeref.extra_info;
+        aliased_templ = ttsp->assoc_template;
+        aliased_args = ttsp->template_arg_list;
+      } else {
+        break;
+      }  /* if */
+      /* The template arguments need to name each template parameter in
+         order. */
+      begin_template_arg_list_traversal(templ_params, aliased_args,
+                                        &tpp, &tap);
+      for (; tap != NULL && tpp != NULL;
+           advance_to_next_template_arg(&tpp, &tap)) {
+        a_template_param_coordinate_ptr
+                                     coords = coordinates_of_template_arg(tap);
+        if (coords == NULL || coords->depth != initial_depth ||
+            coords->position != tpp->param_num) {
+          break;
+        }  /* if */
+      }  /* for */
+      if (tap == NULL && tpp == NULL) {
+        a_template_symbol_supplement_ptr  aliased_tssp;
+        a_template_decl_info_ptr          tdip, aliased_tdip;
+
+        aliased_tssp = symbol_for(aliased_templ)->variant.template_info;
+        tdip = symbol_for(templ)->variant.template_info->cache.decl_info;
+        templ_params = tdip->parameters;
+        aliased_tdip = aliased_tssp->cache.decl_info;
+        if (aliased_tdip != NULL &&
+            tdip->template_decl->constraint.requires_clause == NULL &&
+            equiv_template_param_lists(templ_params,
+                                       aliased_tdip->parameters,
+                                       /*issue_errors=*/FALSE,
+                                       (ETP_NESTING_DEPTH_MISMATCH_OKAY |
+                                        ETP_DEFAULT_ARGUMENT_MATCH_REQUIRED),
+                                       (a_source_position*)NULL, es_error)) {
+          /* The template parameter lists match; we can use the aliased
+             template instead. */
+          templ = aliased_templ;
+          type = aliased_type;
+        } else {
+          break;
+        }  /* if */
+      } else {
+        /* The length of the template argument list doesn't match the number of
+           template parameters. */
+        break;
+      }  /* if */
+    }  /* while */
+  }  /* if */
+
+  return templ;
+}  /* skip_simple_alias_templates */
+
+
 a_boolean equiv_templates(a_template_ptr			templ1,
 			  a_template_ptr			templ2,
 			  an_equiv_templates_options_set	options)
@@ -7906,8 +8000,8 @@ for more information.
   a_boolean				result = FALSE;
 
   if (templ1 != NULL && templ2 != NULL) {
-    templ1 = canonical_template_entry_of(templ1);
-    templ2 = canonical_template_entry_of(templ2);
+    templ1 = skip_simple_alias_templates(canonical_template_entry_of(templ1));
+    templ2 = skip_simple_alias_templates(canonical_template_entry_of(templ2));
     tssp1 = template_supplement_for_template(templ1);
     tssp2 = template_supplement_for_template(templ2);
     result = equiv_templates_given_supplement(tssp1, tssp2, options,
@@ -21394,6 +21488,15 @@ old_list can match zero or more parameters from new_list.
                                       old_constraint->variant.concept_id.args,
                                       ETA_IS_NONREAL_MEMBER);
         }  /* if */
+        if (!err && (options & ETP_DEFAULT_ARGUMENT_MATCH_REQUIRED) != 0) {
+          a_type_ptr old_default_tp = old_tpp->default_arg.type;
+          a_type_ptr new_default_tp = new_tpp->default_arg.type;
+          if (old_default_tp == NULL || new_default_tp == NULL) {
+            err = new_default_tp != old_default_tp;
+          } else {
+            err = !identical_types(old_default_tp, new_default_tp);
+          }  /* if */
+        }  /* if */
       }  /* if */
     } else if (old_sym->kind == (a_symbol_kind)sk_constant) {
       a_compare_constants_options_set	cc_options = CC_NO_OPTIONS;
@@ -21423,6 +21526,15 @@ old_list can match zero or more parameters from new_list.
                          &new_sym->decl_position, old_sym);
         }  /* if */
       }  /* if */
+      if (!err && (options & ETP_DEFAULT_ARGUMENT_MATCH_REQUIRED) != 0) {
+        a_constant_ptr old_default_constant = old_tpp->default_arg.constant;
+        a_constant_ptr new_default_constant = new_tpp->default_arg.constant;
+        if (old_default_constant == NULL || new_default_constant == NULL) {
+          err = new_default_constant != old_default_constant;
+        } else {
+          err = !eq_constants(old_default_constant, new_default_constant);
+        }  /* if */
+      }  /* if */
     } else {
       /* Template template parameters.  Compare the two templates. */
       an_equiv_templates_options_set et_options;
@@ -21432,6 +21544,16 @@ old_list can match zero or more parameters from new_list.
       err = !equiv_templates_given_supplement(old_tpp->variant.templ,
                                               new_tpp->variant.templ,
                                               et_options, options);
+      if (!err && (options & ETP_DEFAULT_ARGUMENT_MATCH_REQUIRED) != 0) {
+        a_template_ptr old_default_templ = old_tpp->default_arg.templ;
+        a_template_ptr new_default_templ = new_tpp->default_arg.templ;
+        if (old_default_templ == NULL || new_default_templ == NULL) {
+          err = new_default_templ != old_default_templ;
+        } else {
+          err = !equiv_templates(old_default_templ, new_default_templ,
+                                 ET_NO_OPTIONS);
+        }  /* if */
+      }  /* if */
     }  /* if */
     if (err) {
       if (issue_errors) {
