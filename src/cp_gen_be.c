@@ -598,6 +598,62 @@ otherwise, return NULL.
 
 
 /*
+Declarations supporting use of the initializer of a constexpr local
+variable in place of the variable itself.  This can be needed when a
+template is instantiated using the variable in a non-type template argument
+and the instance is referenced in a context outside the scope of the
+variable: if the variable's initializer does not use local names, the
+initializer expression can be used in place of the variable in references
+to the template instance.
+*/
+/*
+The following struct is the value in a Ptr_map associating a local
+constexpr variable with its initializer.
+*/
+struct a_constexpr_initializer {
+  a_boolean	being_checked;
+			/* TRUE if the initializer is currently being
+			   examined for usability, allowing detection of
+			   circular references in order to prevent
+			   unbounded recursion. */
+  an_expr_node	initializer;
+			/* An enk_temp_init expression node referring to
+			   the initializer.dynamic pointer of the
+			   associated local constexpr variable. */
+  inline a_constexpr_initializer(a_type_ptr         tp,
+                                 a_dynamic_init_ptr dip);
+  a_boolean operator==(const a_constexpr_initializer &other)
+    { return initializer.variant.initializer.dyn_init ==
+                              other.initializer.variant.initializer.dyn_init; }
+  a_boolean operator!=(const a_constexpr_initializer &other)
+    { return !operator==(other); }
+};  /* a_constexpr_initializer */
+typedef a_constexpr_initializer *a_constexpr_initializer_ptr;
+
+
+inline a_constexpr_initializer::a_constexpr_initializer(a_type_ptr         tp,
+                                                        a_dynamic_init_ptr dip)
+/*
+Set the initializer expression node to be an enk_temp_init with the
+supplied type and dynamic initializer and clear the being_checked flag.
+*/
+{
+  being_checked = FALSE;
+  clear_expr_node(&initializer, enk_temp_init);
+  initializer.type = tp;
+  initializer.variant.init.dynamic_init = dip;
+}  /* a_dynamic_initializer_ptr::a_dynamic_initializer_ptr */
+
+
+/*
+A map associating local constexpr variables with their initializers.
+*/
+typedef Ptr_map<a_variable_ptr, a_constexpr_initializer_ptr, General_allocator>
+                                                         a_var_initializer_map;
+a_var_initializer_map *var_init_map;
+
+
+/*
 If e is an enk_constant node and the constant has an associated expression
 (backing expression or template parameter expression) that will be put out,
 return that expression; otherwise return e.
@@ -11486,9 +11542,22 @@ to unusable variables and class members.
       if (sp == NULL || !scope_is_in_name_context_stack(sp)) {
         /* This is something like a local variable referenced from outside
            the scope in which it is declared.  (This cannot occur in C
-           mode.)  The name is unusable. */
-        tblock->result = TRUE;
-        tblock->terminate = TRUE;
+           mode.)  The name is unusable.  However, the value of a constexpr
+           variable might be usable. */
+        a_boolean result = TRUE;
+        if (kind == iek_variable) {
+          a_constexpr_initializer_ptr cip =
+                                        var_init_map->get((a_variable_ptr)scp);
+          if (cip != NULL && !cip->being_checked) {
+            /* The enk_variable node will be usable if its initializer
+               is. */
+            cip->being_checked = TRUE;
+            result = expr_is_unusable(&cip->initializer);
+            cip->being_checked = FALSE;
+          }  /* if */
+        }  /* if */
+        tblock->result = result;
+        tblock->terminate = result;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -17386,7 +17455,22 @@ done_with_operation_after_parens:
       }
       break;
     case enk_variable:
-      gen_name_from_variable_node(expr);
+      { a_variable_ptr              vp = node_variable(expr);
+        a_constexpr_initializer_ptr cip;
+        if (vp->source_corresp.enclosing_routine != NULL &&
+            !scope_is_in_name_context_stack(vp->source_corresp.parent_scope) &&
+            (cip = var_init_map->get(vp)) != NULL) {
+          /* The name of the variable is not in scope, but we can use its
+             value instead.  The type is already that of the variable; copy
+             the value category of the enk_variable node we are
+             replacing and put out the variable's initializer. */
+          cip->initializer.is_lvalue = expr->is_lvalue;
+          cip->initializer.is_xvalue = expr->is_xvalue;
+          gen_expression(&cip->initializer);
+        } else {
+          gen_name_from_variable_node(expr);
+        }  /* if */
+      }
       break;
     case enk_routine:
       gen_name_from_routine_node(expr, /*only_found_by_adl=*/FALSE,
@@ -21455,6 +21539,22 @@ handle_dynamic_init:
               write_tok_ch(')');
             }  /* if */
           }  /* if */
+          if (var->is_constexpr &&
+              var->source_corresp.enclosing_routine != NULL) {
+            a_scope_ptr sp =
+                      scope_for_routine(var->source_corresp.enclosing_routine);
+            if (sp->expr_node_refs != NULL) {
+              /* This is a constexpr local variable appearing in a function
+                 with local expr node references, so it might be referenced
+                 outside its scope (e.g., via a non-type template
+                 argument).  Record its initializer in case it can be used
+                 in place of the variable's name. */
+              a_constexpr_initializer_ptr cip =
+                                alloc_general_of_type(a_constexpr_initializer);
+              new (cip) a_constexpr_initializer(var->type, dip);
+              var_init_map->map(var, cip);
+            }  /* if */
+          }  /* if */
           if (restore_init) {
             *dip = saved_init;
           }  /* if */
@@ -23679,8 +23779,10 @@ handle_as_definition:
     pop_name_context();
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
     /* Now that we're done with the function, free its IL information if it
-       is the top-level function of a memory region. */
-    if (rout->is_top_level_in_mem_region) {
+       is the top-level function of a memory region and if there are no
+       local expr node refs that we may need in the future. */
+    if (rout->is_top_level_in_mem_region &&
+        scope->expr_node_refs == NULL) {
       free_memory_region(scope_region_number);
     }  /* if */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
@@ -24143,6 +24245,16 @@ Initialize for the C++/C-generating back end.
   available_type_scan_records = NULL;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   avail_access_cache_entries = NULL;
+  if (var_init_map != NULL) {
+    /* Free the map from the previous translation unit. */
+    delete var_init_map;
+  }  /* if */
+  /* We don't expect many entries in the variable initializer map, since
+     they are only recorded for constexpr local variables defined in scopes
+     in which local expr ref nodes exist, so start out with a small table
+     size. */
+  var_init_map =
+    new a_var_initializer_map(/*mask_width=*/6);
 }  /* init_cp_gen_be */
 
 #if STANDALONE_CP_GEN_BE
