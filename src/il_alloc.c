@@ -196,7 +196,7 @@ with the module interface importing the entity (if any).
   /* Mark this declaration as imported from the current module interface. */
   a_module_entity_stack_state *state = curr_mep_state;
   if (state != NULL) {
-    scp->module_iface = state->mep->module_info->module_interface;
+    scp->module_entity = state->mep;
   }  /* if */
 }  /* set_default_source_corresp */
 
@@ -6185,7 +6185,7 @@ in il_alloc_init.)
   def_source_corresp.trans_unit_corresp = NULL;
   def_source_corresp.parent_scope = NULL;
   def_source_corresp.enclosing_routine = NULL;
-  def_source_corresp.module_iface = NULL;
+  def_source_corresp.module_entity = NULL;
   def_source_corresp.decl_position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   def_source_corresp.decl_pos_info = NULL;

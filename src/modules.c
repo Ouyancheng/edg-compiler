@@ -1014,62 +1014,6 @@ it exists).
   }  /* if */
 }  /* set_name */
 
-#if !USE_VIRTUAL_FUNCTIONS
-#if DEBUG
-
-void a_module_interface::debug() const
-/*
-Dispatch the debug() call to the variant for the actual object.
-*/
-{
-  switch (mod_kind) {
-    case mk_none:
-      /* This is the actual object. */
-      break;
-    case mk_edg:
-      ((an_edg_module*)this)->debug();
-      break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case mk_ifc:
-      ((an_ifc_module*)this)->debug();
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    case mk_header:
-    case mk_any:
-      unexpected_condition();
-      break;
-    default_is_unexpected();
-  }  /* switch */
-}  /* debug */
-
-
-void a_module_interface::db_module_entity(a_module_entity_ptr mep) const
-/*
-Dispatch the db_module_entity() call to the variant for the actual object.
-*/
-{
-  switch (mod_kind) {
-    case mk_none:
-      /* This is the actual object. */
-      break;
-    case mk_edg:
-      ((an_edg_module*)this)->db_module_entity(mep);
-      break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case mk_ifc:
-      ((an_ifc_module*)this)->db_module_entity(mep);
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    case mk_header:
-    case mk_any:
-      unexpected_condition();
-      break;
-    default_is_unexpected();
-  }  /* switch */
-}  /* db_module_entity */
-
-#endif /* DEBUG */
-#endif /* !USE_VIRTUAL_FUNCTIONS */
 
 void a_module_interface::report_suppressed_diagnostics() const
 /*
@@ -1410,40 +1354,110 @@ a module token cache pointer.
   db_tokens(cache->as_canonical());
 }  /* db_tokens */
 
+a_string s_db_module(a_module_ptr mod)
+/*
+Return a string containing debug information about the given module.
+*/
+{
+  a_string               result = "";
+  a_module_kind          m_kind = mk_none;
+
+  if (mod != NULL) {
+    a_module_interface_ptr m_iface = mod->module_interface;
+
+    if (m_iface != NULL) {
+      m_kind = m_iface->mod_kind;
+    }  /* if */
+  }  /* if */
+  result.append("module name: ");
+  if (mod != NULL && mod->name != NULL) {
+    result.append(mod->name);
+  } else {
+    result.append("<NULL>");
+  }  /* if */
+  result.append(", file: ");
+  if (mod != NULL && mod->full_name != NULL) {
+    result.append(mod->full_name);
+  } else {
+    result.append("<NULL>");
+  }  /* if */
+  result.append(", kind: ");
+  switch (m_kind) {
+    case mk_ifc:
+      result.append("ifc");
+      break;
+    default:
+      result.append("UNKNOWN");
+      break;
+  }  /* switch */
+  result.append(", version: ");
+  switch (m_kind) {
+    case mk_ifc:
+      result.append(s_db_version_of_ifc_module(mod));
+      break;
+    default:
+      result.append("UNKNOWN");
+      break;
+  }  /* switch */
+  return result;
+}  /* s_db_module */
+
 
 void db_module(a_module_ptr mod)
 /*
 Display debug information about the specified module.
 */
 {
-  if (mod != NULL) {
-    (void)fprintf(f_debug, "Module name: %s ",
-                  (mod->name == NULL) ? "<NULL>" : mod->name);
-    if (mod->module_interface == NULL) {
-      (void)fprintf(f_debug, "NULL interface");
-    } else {
-      mod->module_interface->debug();
-    }  /* if */
-  }  /* if */
+  print(s_db_module(mod), f_debug);
 }  /* db_module */
 
 
-/*lint -esym(714,*db_module_entity)*/
-void db_module_entity(a_module_entity_ptr mep)
+a_string s_basic_db_mep(a_module_entity_ptr mep)
 /*
-Display information about a module entity.
+Return a string containing debug information about the given module entity.
+This string does not contain extensive information about the module.
 */
 {
-  (void)fprintf(f_debug, "module \"%s\"", mep->module_info->name);
-  if (mep->module_info->module_interface != NULL) {
-    mep->module_info->module_interface->db_module_entity(mep);
-  } else {
-    (void)fprintf(f_debug, "\n");
+  a_string               result = s_db_module(mep->module_info);
+  a_module_interface_ptr m_iface = NULL;
+  a_module_kind          m_kind = mk_none;
+
+  if (mep->module_info != NULL) {
+    m_iface = mep->module_info->module_interface;
+    if (m_iface != NULL) {
+      m_kind = m_iface->mod_kind;
+    }  /* if */
   }  /* if */
-  if (mep->entity.ptr != NULL) {
-    db_entity_info(mep->entity.ptr, (an_il_entry_kind)mep->entity.kind);
+  result.append(", entity id: ");
+  switch (m_kind) {
+    case mk_ifc:
+      result.append(s_db_id_of_ifc_mep(mep));
+      break;
+    default:
+      result.append("UNKNOWN");
+      break;
+  }  /* switch */
+  result.append(", valid: ", (mep->invalid ? "FALSE" : "TRUE"));
+  return result;
+}  /* s_basic_db_mep */
+
+
+void db_mep(a_module_entity_ptr mep)
+/*
+Display debug information about a module entity.
+*/
+{
+  print(s_basic_db_mep(mep), f_debug);
+  if (mep->entity.kind != iek_none) {
+    (void)fputs("source location: ", f_debug);
+    db_scp((a_source_correspondence*)mep->entity.ptr);
+  }
+  if (mep->scope != NULL) {
+    (void)fputs("scope: ", f_debug);
+    db_scope(mep->scope);
+    (void)fputs("\n", f_debug);
   }  /* if */
-}  /* db_module_entity */
+}  /* db_mep */
 
 #endif /* DEBUG */
 

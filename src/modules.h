@@ -135,10 +135,6 @@ struct a_module_interface {
   void set_name(a_const_char *module_name,
                 a_boolean    header_unit);
   void report_suppressed_diagnostics() const;
-#if DEBUG
-  VIRTUAL void debug() const ABSTRACT;
-  VIRTUAL void db_module_entity(a_module_entity_ptr mep) const ABSTRACT;
-#endif /* DEBUG */
 };  /* a_module_interface */
 
 #if DEBUG
@@ -549,9 +545,13 @@ the module entity rescan.
 
 extern void db_tokens(a_module_token_cache_ptr cache);
 
+extern a_string s_db_module(a_module_ptr mod);
+
 extern void db_module(a_module_ptr mod);
 
-extern void db_module_entity(a_module_entity_ptr mep);
+extern a_string s_basic_db_mep(a_module_entity_ptr mep);
+
+extern void db_mep(a_module_entity_ptr mep);
 
 #endif /* DEBUG */
 

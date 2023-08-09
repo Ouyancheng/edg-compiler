@@ -701,6 +701,18 @@ and indentation is the indentation desired.
     put_string(buffer);
   }  /* if */
 
+  /* Display information about the module entity (if relevant). */
+  {
+    a_source_correspondence *src_corresp =
+                                          source_corresp_entry_for_symbol(sym);
+
+    if (src_corresp != NULL && src_corresp->module_entity != NULL) {
+      a_module_entity_ptr m_entity = src_corresp->module_entity;
+
+      put_string(s_basic_db_mep(m_entity).as_temp_characters());
+    }  /* if */
+  }
+
   /* Display the file name (if not the primary source file) and the line
      number of the symbol declaration. */
   {

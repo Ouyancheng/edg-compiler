@@ -374,10 +374,6 @@ public:
                                 an_ifc_decl_index        decl_idx,
                                 a_routine_ptr            rp,
                                 a_func_info_block        *func_info);
-#if DEBUG
-  void debug() const OVERRIDE;
-  void db_module_entity(a_module_entity_ptr mep) const OVERRIDE;
-#endif /* DEBUG */
   a_boolean init_header(a_module_import_decl_ptr midp,
                          a_boolean               issue_diag);
   a_boolean initialize_members_from_ifc_module_file(
@@ -839,7 +835,9 @@ extern void unknown_partition_conversion(
                                       const an_ifc_validation_trace *trace);
 
 #if DEBUG
-extern void db_mep(a_module_entity_ptr mep);
+extern a_string s_db_version_of_ifc_module(a_module_ptr mod);
+
+extern a_string s_db_id_of_ifc_mep(a_module_entity_ptr mep);
 
 extern void db_mep_stack();
 

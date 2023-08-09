@@ -10496,60 +10496,30 @@ definition.
 
 #if DEBUG
 
-void an_ifc_module::debug() const
+a_string s_db_version_of_ifc_module(a_module_ptr mod)
 /*
-Print debug information for an IFC module
+Given an IFC module entity pointer, return a string representing the IFC
+version information.
 */
 {
-  (void)fprintf(f_debug, ", kind: mk_ifc, version: %u.%u\n",
-                (an_ifc_version_storage)get_ifc_major_version(header),
-                (an_ifc_version_storage)get_ifc_minor_version(header));
-}  /* an_ifc_module::debug */
+  an_ifc_module      *m_iface = (an_ifc_module*)mod->module_interface;
+  an_ifc_file_header &header = m_iface->header;
+
+  /* Cast the version to uint32_t as an_ifc_version_storage is too small. */
+  return a_string((uint32_t)get_ifc_major_version(header),
+                  ".",
+                  (uint32_t)get_ifc_minor_version(header));
+}  /* s_db_version_of_ifc_module */
 
 
-void an_ifc_module::db_module_entity(a_module_entity_ptr mep) const
+a_string s_db_id_of_ifc_mep(a_module_entity_ptr mep)
 /*
-Print debug information related to a module entity that refers to this module.
+Given an IFC module entity pointer, return a string representing the
+corresponding IFC identity (i.e., index) information.
 */
 {
-  check_assertion(mep->module_info->module_interface == this);
-  if (mep->variant.ifc_partition != ifc_pk_none) {
-    const an_ifc_partition_metadata &part =
-                            get_partition_metadata(mep->variant.ifc_partition);
-    (void)fprintf(f_debug, " IFC partition \"%s\", index %lu\n", part.name,
-                  (unsigned long)(mep->file_offset - part.offset) /
-                                                              part.entry_size);
-  } else {
-    (void)fprintf(f_debug, "\n");
-  }  /* if */
-}  /* an_ifc_module::db_module_entity */
-
-
-void db_mep(a_module_entity_ptr mep)
-/*
-Print information about the module entity pointer.
-*/
-{
-  a_string summary_line = "NULL";
-
-  if (mep->module_info != NULL) {
-    summary_line = index_to_str(decl_index_of(mep));
-    summary_line.append(" from ", mep->module_info->name);
-  }  /* if */
-  if (mep->invalid) {
-    summary_line.append(" (Invalid)");
-  }  /* if */
-  print(summary_line, f_debug);
-  if (mep->entity.kind != iek_none) {
-    (void)fputs("Source location: ", f_debug);
-    db_scp((a_source_correspondence*)mep->entity.ptr);
-  }
-  if (mep->scope != NULL) {
-    (void)fputs("Scope: ", f_debug);
-    db_scope(mep->scope);
-    (void)fprintf(f_debug, "\n");
-  }  /* if */
-}  /* db_mep */
+  return index_to_str(decl_index_of(mep));
+}  /* s_db_id_of_ifc_mep */
 
 
 void db_mep_stack()

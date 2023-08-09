@@ -3129,10 +3129,15 @@ typedef struct a_source_correspondence {
 			/* If the current entity is a member of a function or
 			   block scope, this points to the entry representing
 			   the enclosing routine.  Otherwise, NULL. */
-  a_module_interface_ptr
-		module_iface;
+  a_module_entity_ptr
+		module_entity;
 			/* If the current entity was imported from a module,
-			   this points to the importing interface. */
+			   this points to the corresponding module entity.
+			   (Note: multiple source correspondences can point to
+			   the same module entity.  The module entity is
+			   determined via the current module entity on the
+			   module entity stack when this source correspondence
+			   was created)*/
   a_source_position
 		decl_position;
 			/* The source position at which this entity is
