@@ -39675,7 +39675,7 @@ done_with_requirements:
         /* The call to push_instantiation_scope_for_rescan clears the pack
            expansion stack because usually such a call corresponds to a
            change of parameterization context.  However, if we are in an
-           ordinary instantiation context we want the preserve the
+           ordinary instantiation context we want to preserve the
            parameterization (and thus the expansion state) in the substitution
            that we are about to perform. */
         pack_expansion_stack = saved_pesep;
