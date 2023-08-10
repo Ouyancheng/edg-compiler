@@ -7916,10 +7916,13 @@ template parameter list.
     initial_depth = coordinates_of_template_param(templ_params)->depth;
     while (templ->kind == templk_class && type->kind == tk_typeref &&
            is_typeref_kind(type, trk_is_template_alias)) {
-      a_template_ptr        aliased_templ;
-      a_template_arg_ptr    aliased_args, tap;
-      a_template_param_ptr  tpp;
-      a_type_ptr            aliased_type = type->variant.typeref.type;
+      a_template_ptr            aliased_templ;
+      a_template_arg_ptr        aliased_args, tap;
+      a_template_param_ptr      tpp;
+      a_template_symbol_supplement_ptr
+                                aliased_tssp;
+      a_template_decl_info_ptr  aliased_tdip;
+      a_type_ptr                aliased_type = type->variant.typeref.type;
 
       if (is_immediate_class_type(aliased_type) &&
           assoc_template_of(aliased_type) != NULL) {
@@ -7936,6 +7939,13 @@ template parameter list.
       } else {
         break;
       }  /* if */
+      aliased_tssp = symbol_for(aliased_templ)->variant.template_info;
+      aliased_tdip = aliased_tssp->cache.decl_info;
+      /* The aliased template must not be nested inside another template. */
+      if (aliased_tdip == NULL ||
+          coordinates_of_template_param(aliased_tdip->parameters)->depth != 1){
+        break;
+      }  /* if */
       /* The template arguments need to name each template parameter in
          order. */
       begin_template_arg_list_traversal(templ_params, aliased_args,
@@ -7950,17 +7960,12 @@ template parameter list.
         }  /* if */
       }  /* for */
       if (tap == NULL && tpp == NULL) {
-        a_template_symbol_supplement_ptr  aliased_tssp;
-        a_template_decl_info_ptr          tdip, aliased_tdip;
+        a_template_decl_info_ptr  tdip;
 
-        aliased_tssp = symbol_for(aliased_templ)->variant.template_info;
         tdip = symbol_for(templ)->variant.template_info->cache.decl_info;
         templ_params = tdip->parameters;
-        aliased_tdip = aliased_tssp->cache.decl_info;
-        if (aliased_tdip != NULL &&
-            tdip->template_decl->constraint.requires_clause == NULL &&
-            equiv_template_param_lists(templ_params,
-                                       aliased_tdip->parameters,
+        if (tdip->template_decl->constraint.requires_clause == NULL &&
+            equiv_template_param_lists(templ_params, aliased_tdip->parameters,
                                        /*issue_errors=*/FALSE,
                                        (ETP_NESTING_DEPTH_MISMATCH_OKAY |
                                         ETP_DEFAULT_ARGUMENT_MATCH_REQUIRED),
