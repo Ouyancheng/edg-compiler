@@ -6986,10 +6986,10 @@ static a_hash_value hash_template(a_template_ptr templ)
 Return a hash value for the indicated template.
 */
 {
-  a_hash_value       hash_value = 0;
+  a_hash_value hash_value;
 
   templ = skip_simple_alias_templates(templ);
-  hash_value += hash_name(&templ->source_corresp);
+  hash_value = hash_name(&templ->source_corresp);
   return hash_value;
 }  /* hash_template */
 
