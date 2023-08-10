@@ -299,11 +299,6 @@ extern a_dynamic_init_ptr load_variable_init_from_module(
                                          a_type_ptr                    tp,
                                          a_lexical_ifc_index_reference *index);
 
-extern a_boolean extract_tokens_for_module_expr(
-                              a_lexical_ifc_index_reference *index,
-                              a_token_sequence_number       *expected_end_tsn);
-
-
 /*
 An internal token cache wrapper structure that represents additional state for
 modules.

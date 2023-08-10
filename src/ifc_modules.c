@@ -4924,6 +4924,11 @@ already_mapped:
 }  /* symbol_for_decl_index */
 
 
+static void cache_expr(a_module_token_cache_ptr cache,
+                       an_ifc_expr_index        expr,
+                       const an_ifc_cache_info  &cinfo);
+
+
 static a_symbol_ptr load_ifc_entity_ref(an_ifc_expr_index  expr_idx)
 /*
 Load the entity referred to by expr_idx (currently, this handles a "named
@@ -4961,7 +4966,6 @@ error occurs, return NULL.
         /* Obtain the primary template and resolve it to a front end symbol. */
         an_ifc_expr_template_id  template_id = *opt_template_id;
         an_ifc_expr_index        primary = get_ifc_primary(template_id);
-        an_ifc_module            *mod = module_of(primary);
         templ_sym = load_ifc_entity_ref(primary);
         if (templ_sym == NULL) goto invalid;
 
@@ -4974,7 +4978,7 @@ error occurs, return NULL.
         a_boolean                   err = FALSE;
         long                        first_defaulted_arg = -1;
         if (!is_null_index(args)) {
-          mod->cache_expr(&arg_cache, args, /*cinfo=*/{});
+          cache_expr(&arg_cache, args, /*cinfo=*/{});
         }  /* if */
         cache_token(&arg_cache, tok_gt);
         if (!arg_cache.is_valid()) {
@@ -5544,6 +5548,12 @@ a_boolean cache_direct_decl(a_module_token_cache_ptr cache,
                             const an_ifc_Node_type   &node,
                             const an_ifc_cache_info  &cinfo) DELETED_FN_DEF
 
+static uint32_t cache_sentence(
+                         a_module_token_cache_ptr cache,
+                         an_ifc_sentence_index    sentence,
+                         uint32_t                 offset = 0,
+                         a_boolean                look_for_stop_token = FALSE);
+
 
 template<>
 a_boolean cache_direct_decl(a_module_token_cache_ptr  cache,
@@ -5555,7 +5565,6 @@ the current cache context to help inform decisions about what to cache.  Return
 TRUE if caching succeeds, FALSE otherwise.
 */
 {
-  an_ifc_module               *mod = module_of(idc);
   an_ifc_source_location      locus = get_ifc_locus(idc);
   an_ifc_source_position_hint pos_hint(cache, locus);
 
@@ -5563,12 +5572,12 @@ TRUE if caching succeeds, FALSE otherwise.
   cache_token(cache, tok_template);
   cache_template_param_chart(cache, get_ifc_chart(idc), cinfo);
   /* Generate "concept <concept-name>". */
-  mod->cache_sentence(cache, get_ifc_head(idc));
+  (void)cache_sentence(cache, get_ifc_head(idc));
   if (cinfo.ignore_definition) {
     cache_token(cache, tok_semicolon);
   } else {
     /* Generate "= <constraint-expression> ;". */
-    mod->cache_sentence(cache, get_ifc_body(idc));
+    (void)cache_sentence(cache, get_ifc_body(idc));
   }  /* if */
   return TRUE;
 }  /* cache_direct_decl */
@@ -5602,7 +5611,7 @@ TRUE if caching succeeds, FALSE otherwise.
     cache_identifier(cache, name.as_temp_characters());
     if (!is_null_index(initializer)) {
       cache_token(cache, tok_assign);
-      module_of(ide)->cache_expr(cache, initializer, /*cinfo=*/{});
+      cache_expr(cache, initializer, /*cinfo=*/{});
     }  /* if */
   }
   goto done;
@@ -5612,6 +5621,18 @@ done:
   return result;
 }  /* cache_direct_decl */
 
+
+static void cache_type_first_part(a_module_token_cache_ptr cache,
+                                  an_ifc_type_index        type,
+                                  const an_ifc_cache_info  &cinfo);
+
+static void cache_type_second_part(a_module_token_cache_ptr cache,
+                                   an_ifc_type_index        type,
+                                   const an_ifc_cache_info  &cinfo);
+
+static void cache_type(a_module_token_cache_ptr cache,
+                       an_ifc_type_index        type,
+                       const an_ifc_cache_info  &cinfo);
 
 template<>
 a_boolean cache_direct_decl(a_module_token_cache_ptr    cache,
@@ -5651,7 +5672,7 @@ TRUE if caching succeeds, FALSE otherwise.
       defer_initializer_expr = TRUE;
       FALLTHROUGH
     case ifc_ps_non_type:
-      mod->cache_type_first_part(cache, type, cinfo);
+      cache_type_first_part(cache, type, cinfo);
       need_second_pass = TRUE;
       break;
     case ifc_ps_template:
@@ -5665,7 +5686,7 @@ TRUE if caching succeeds, FALSE otherwise.
         cache_token(cache, tok_gt);
         cache_token(cache, tok_typename);
       } else {
-        mod->cache_type(cache, type, cinfo);
+        cache_type(cache, type, cinfo);
       }  /* if */
       break;
     default_is_unexpected_str("Unexpected ParameterSort");
@@ -5682,7 +5703,7 @@ TRUE if caching succeeds, FALSE otherwise.
   }  /* if */
   {
     if (need_second_pass) {
-      mod->cache_type_second_part(cache, type, cinfo);
+      cache_type_second_part(cache, type, cinfo);
     }  /* if */
 
     a_boolean is_template_param = param_sort != ifc_ps_object;
@@ -5693,7 +5714,7 @@ TRUE if caching succeeds, FALSE otherwise.
       if (defer_initializer_expr) {
         cache_pending_expr_token(cache, initializer);
       } else {
-        mod->cache_expr(cache, initializer, /*cinfo=*/{});
+        cache_expr(cache, initializer, /*cinfo=*/{});
       }  /* if */
     }  /* if */
   }
@@ -5776,7 +5797,7 @@ Return TRUE if caching succeeds, FALSE otherwise.
       an_ifc_expr_index parent = get_ifc_parent(using_decl);
 
       cache_token(cache, tok_using);
-      module_of(parent)->cache_expr(cache, parent, cinfo);
+      cache_expr(cache, parent, cinfo);
       cache_token(cache, tok_colon_colon);
       cache_identifier(cache, decl_name.as_temp_characters());
     } else {
@@ -5917,7 +5938,7 @@ about what to cache.
   cache_token(cache, tok_gt);
   if (!is_null_index(constraint)) {
     /* The template parameter list is followed by a requires-clause. */
-    module_of(constraint)->cache_expr(cache, constraint, cinfo);
+    cache_expr(cache, constraint, cinfo);
   }  /* if */
   goto done;
 invalid:
@@ -9138,7 +9159,7 @@ strongly preferred over calling this function directly.
             const a_string &name = *opt_name;
             cache_identifier(&cache, name.as_temp_characters());
             cache_token(&cache, tok_assign);
-            mod->cache_type(&cache, get_ifc_subject(itf), /*cinfo=*/{});
+            cache_type(&cache, get_ifc_subject(itf), /*cinfo=*/{});
             cache_token(&cache, tok_semicolon);
             if (!cache.is_valid()) {
               goto invalid;
@@ -10363,7 +10384,7 @@ Complete the definition of the class referred to by mep (if needed).
       if (!is_null_index(base)) {
         /* There are base classes: Cache source code for them. */
         cache_token(&cache, tok_colon);
-        this->cache_type(&cache, base, /*cinfo=*/{});
+        cache_type(&cache, base, /*cinfo=*/{});
       }  /* if */
       if (opt_class_members.has_value()) {
         an_ifc_scope_descriptor class_members = *opt_class_members;
@@ -11511,7 +11532,7 @@ position of the function declaration if not.
         an_ifc_sentence_index words = get_ifc_words(eh_spec);
 
         result->indeterminate = TRUE;
-        module_of(words)->cache_sentence(&cache, words);
+        (void)cache_sentence(&cache, words);
         if (!cache.is_valid()) {
           /* FIXME: Should we issue a diagnostic here? */
           result->variant.noexcept_arg = alloc_error_constant();
@@ -12287,7 +12308,7 @@ corresponding type, return an error type.
       case ifc_ts_type_typename:
         { a_module_token_cache cache;
 
-          module_of(type_idx)->cache_type(&cache, type_idx, /*cinfo=*/{});
+          cache_type(&cache, type_idx, /*cinfo=*/{});
           if (!cache.is_valid()) {
             goto invalid;
           }  /* if */
@@ -12335,7 +12356,7 @@ corresponding type, return an error type.
       case ifc_ts_type_decltype:
         { a_module_token_cache cache;
 
-          module_of(type_idx)->cache_type(&cache, type_idx, /*cinfo=*/{});
+          cache_type(&cache, type_idx, /*cinfo=*/{});
 
           a_module_entity_rescan rescan(&cache);
           if (curr_token == tok_decltype) {
@@ -12408,7 +12429,7 @@ non-type template argument with an error constant.
     case ifc_es_expr_template_id:
       { a_module_token_cache cache;
 
-        module_of(expr_idx)->cache_expr(&cache, expr_idx, /*cinfo=*/{});
+        cache_expr(&cache, expr_idx, /*cinfo=*/{});
         if (!cache.is_valid()) {
           goto invalid;
         }  /* if */
@@ -14699,7 +14720,7 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
         }  /* if */
         check_assertion(tp != NULL);
         complete_type_is_needed(tp);
-        cache_sentence(&cache, get_ifc_words(iet));
+        (void)cache_sentence(&cache, get_ifc_words(iet));
         if (!cache.is_valid()) {
           goto invalid;
         }  /* if */
@@ -15337,6 +15358,32 @@ with the initializer expression referred to by init_expr.
 }  /* load_variable_init_from_ifc_module */
 
 
+a_boolean extract_tokens_for_ifc_module_expr(
+                               a_lexical_ifc_index_reference *index,
+                               a_token_sequence_number       *expected_end_tsn)
+/*
+Extract the tokens corresponding to the expression referred to by index and
+insert them into the token stream.  The expected ending token sequence number
+will be written to expected_end_tsn.  The caller is responsible for calling
+exit_ifc_rescan with the associated expected_end_tsn value.  Return TRUE if the
+token extraction was successful, tokens were rescanned, and a call to
+exit_ifc_rescan is required; otherwise, return FALSE.
+*/
+{
+  a_boolean            result = FALSE;
+  a_module_token_cache cache;
+  an_ifc_expr_index    expr_index =
+                                 from_lexical_index<an_ifc_expr_index>(*index);
+
+  cache_expr(&cache, expr_index, /*cinfo=*/{});
+  if (cache.is_valid()) {
+    *expected_end_tsn = enter_module_token_rescan(&cache);
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* extract_tokens_for_ifc_module_expr */
+
+
 static void cache_pragma(a_module_token_cache_ptr cache,
                          a_pragma_kind            kind,
                          a_source_position_ptr    pos = NULL)
@@ -15417,9 +15464,86 @@ Add tokens corresponding to access (if any) to cache.
 }  /* cache_access_specifier */
 
 
-void an_ifc_module::cache_source_directive(
-                                       a_module_token_cache_ptr      cache,
-                                       an_ifc_source_directive_sort  directive)
+template<typename an_ifc_Index_type>
+static void diagnose_ifc_string_null_removal(an_ifc_Index_type   idx,
+                                             const an_ifc_string &str)
+/*
+Emit a warning for an IFC string from the given index from which null
+characters have been removed.  str is the IFC string value which has had null
+bytes removed.
+*/
+{
+  check_assertion(str.contains_null_characters());
+  an_ifc_module    *mod = module_of(idx);
+  a_diagnostic_ptr diag = start_warning(ec_ifc_null_char_in_string,
+                                        mod->assoc_module_info->name);
+
+  add_diag_info(diag, ec_ifc_null_char_in_string_removal_info,
+                str.length, str.ifc_length);
+  add_partition_element_diag_info(diag, ec_ifc_null_char_in_string_info, idx);
+  end_diagnostic(diag);
+}  /* diagnose_ifc_string_null_removal */
+
+
+static void cache_string(a_module_token_cache_ptr     cache,
+                         an_ifc_string_index          string)
+/*
+Add a string literal (with the appropriate character kind) corresponding to
+string to cache.
+*/
+{
+  a_character_kind kind;
+
+  switch (string.sort) {
+    case ifc_ss_ordinary:
+      kind = (a_character_kind)chk_char;
+      break;
+    case ifc_ss_utf8:
+      kind = (a_character_kind)chk_char8_t;
+      break;
+    case ifc_ss_char16:
+      kind = (a_character_kind)chk_char16_t;
+      break;
+    case ifc_ss_char32:
+      kind = (a_character_kind)chk_char32_t;
+      break;
+    case ifc_ss_wide:
+      kind = (a_character_kind)chk_wchar_t;
+      break;
+    default_is_unexpected_str("Unexpected StringSort");
+  }  /* switch */
+
+  Opt<an_ifc_const_str>       opt_ics;
+  an_ifc_partition_kind_index string_part_idx{string.file, ifc_pk_const_str,
+                                              string.value};
+  construct_node(&opt_ics, string_part_idx);
+  if (opt_ics.has_value()) {
+    an_ifc_const_str   ics = *opt_ics;
+    an_ifc_text_offset start = get_ifc_start(ics);
+    size_t             length = get_ifc_length(ics);
+    a_string           raw_str = get_string_at_offset(start, length);
+
+    an_ifc_string str(kind, raw_str.to_allocated_storage(IL_allocator<char>()),
+                      raw_str.length());
+    if (str.contains_null_characters()) {
+      diagnose_ifc_string_null_removal(string_part_idx, str);
+    }  /* if */
+
+    an_ifc_text_offset suffix = get_ifc_suffix(ics);
+    if (suffix == 0) {
+      cache_string_literal(cache, str);
+    } else {
+      a_string suffix_str = get_string_at_offset(suffix);
+
+      cache_ud_literal(cache, str, suffix_str.as_temp_characters());
+    }  /* if */
+  }  /* if */
+}  /* cache_string */
+
+
+static void cache_source_directive(an_ifc_module                 *mod,
+                                   a_module_token_cache_ptr      cache,
+                                   an_ifc_source_directive_sort  directive)
 /*
 Add tokens corresponding to directive to cache.
 */
@@ -15512,12 +15636,12 @@ Add tokens corresponding to directive to cache.
       break;
     default_is_unexpected_str("Unknown SourceDirective");
   }  /* switch */
-}  /* an_ifc_module::cache_source_directive */
+}  /* cache_source_directive */
 
 
-void an_ifc_module::cache_source_punctuator(
-                                      a_module_token_cache_ptr      cache,
-                                      an_ifc_source_punctuator_sort punctuator)
+static void cache_source_punctuator(an_ifc_module                 *mod,
+                                    a_module_token_cache_ptr      cache,
+                                    an_ifc_source_punctuator_sort punctuator)
 /*
 Add tokens corresponding to punctuator to cache.
 */
@@ -15527,8 +15651,12 @@ Add tokens corresponding to punctuator to cache.
     case ifc_sps_msvc:
       { a_string err_msg("Unexpected ", str_for(punctuator));
 
-        ifc_unexpected(this, err_msg);
+        ifc_unexpected(mod, err_msg);
       }
+      goto invalid;
+    case ifc_sps_msvc_default_argument_start:
+      issue_unsupported_construct_error(mod, str_for(punctuator),
+                                        &error_position);
       goto invalid;
     case ifc_sps_left_parenthesis:
       cache_token(cache, tok_lparen);
@@ -15569,13 +15697,6 @@ Add tokens corresponding to punctuator to cache.
     case ifc_sps_msvc_nested_template_start:
       cache_token(cache, tok_template);
       break;
-    case ifc_sps_msvc_default_argument_start:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(
-                                  this,
-                                  "SourcePunctuator::MsvcDefaultArgumentStart",
-                                  &error_position);
-      goto invalid;
     case ifc_sps_msvc_alignas_edict_start:
       break;
     case ifc_sps_msvc_default_init_start:
@@ -15589,10 +15710,10 @@ invalid:
   expect_error_str("expected errors for bad source punctuator cache");
   cache->invalidate();
 done:;
-}  /* an_ifc_module::cache_source_punctuator */
+}  /* cache_source_punctuator */
 
 
-void an_ifc_module::cache_source_literal(
+static void cache_source_literal(an_ifc_module                        *mod,
                                  a_module_token_cache_ptr             cache,
                                  const an_ifc_source_literal_category &literal)
 /*
@@ -15604,7 +15725,7 @@ file for the additional information needed, depending on the kind of literal.
     case ifc_sls_unknown:
       { a_string err_msg("Unexpected ", str_for(literal.sort));
 
-        ifc_unexpected(this, err_msg);
+        ifc_unexpected(mod, err_msg);
       }
       goto invalid;
     case ifc_sls_scalar:
@@ -15640,7 +15761,7 @@ file for the additional information needed, depending on the kind of literal.
         } else {
           a_string err_msg("unexpected MSVC function name macro: ", name);
 
-          ifc_unexpected(this, err_msg.as_temp_characters());
+          ifc_unexpected(mod, err_msg.as_temp_characters());
           goto invalid;
         }  /* if */
         cache_token(cache, tok);
@@ -15669,7 +15790,7 @@ file for the additional information needed, depending on the kind of literal.
         } else {
           a_string err_msg("unexpected MSVC string prefix macro: ", prefix);
 
-          ifc_unexpected(this, err_msg.as_temp_characters());
+          ifc_unexpected(mod, err_msg.as_temp_characters());
           goto invalid;
         }  /* if */
         cache_token(cache, tok);
@@ -15705,7 +15826,7 @@ file for the additional information needed, depending on the kind of literal.
             { a_string err_msg("Unexpected ", str_for(binding_expr.sort),
                                " for ", str_for(literal.sort));
 
-              ifc_unexpected(this, err_msg);
+              ifc_unexpected(mod, err_msg);
             }
             goto invalid;
         }  /* switch */
@@ -15731,11 +15852,12 @@ invalid:
   expect_error_str("expected errors for bad source literal cache");
   cache->invalidate();
 done:;
-}  /* an_ifc_module::cache_source_literal */
+}  /* cache_source_literal */
 
 
-void an_ifc_module::cache_source_operator(a_module_token_cache_ptr     cache,
-                                          an_ifc_source_operator_sort  op)
+static void cache_source_operator(an_ifc_module                *mod,
+                                  a_module_token_cache_ptr     cache,
+                                  an_ifc_source_operator_sort  op)
 /*
 Add tokens corresponding to op to cache.
 */
@@ -15744,7 +15866,7 @@ Add tokens corresponding to op to cache.
     case ifc_sos_unknown:
       { a_string err_msg("Unexpected ", str_for(op));
 
-        ifc_unexpected(this, err_msg);
+        ifc_unexpected(mod, err_msg);
       }
       goto invalid;
     case ifc_sos_equal:
@@ -15874,11 +15996,12 @@ invalid:
   expect_error_str("expected errors for bad source operator cache");
   cache->invalidate();
 done:;
-}  /* an_ifc_module::cache_source_operator */
+}  /* cache_source_operator */
 
 
-void an_ifc_module::cache_source_keyword(a_module_token_cache_ptr   cache,
-                                         an_ifc_source_keyword_sort keyword)
+static void cache_source_keyword(an_ifc_module              *mod,
+                                 a_module_token_cache_ptr   cache,
+                                 an_ifc_source_keyword_sort keyword)
 /*
 Add tokens corresponding to keyword to cache.
 */
@@ -15888,8 +16011,25 @@ Add tokens corresponding to keyword to cache.
     case ifc_sks_msvc:
       { a_string err_msg("Unexpected ", str_for(keyword));
 
-        ifc_unexpected(this, err_msg);
+        ifc_unexpected(mod, err_msg);
       }
+      goto invalid;
+    case ifc_sks_msvc_eabi:
+    case ifc_sks_msvc_hook:
+    case ifc_sks_msvc_is_nothrow_copy_assignable:
+    case ifc_sks_msvc_is_nothrow_copy_constructible:
+    case ifc_sks_msvc_is_nothrow_move_assignable:
+    case ifc_sks_msvc_is_trivially_copy_constructible:
+    case ifc_sks_msvc_is_trivially_move_assignable:
+    case ifc_sks_msvc_is_trivially_move_constructible:
+    case ifc_sks_msvc_multiple_inheritance:
+    case ifc_sks_msvc_novtordisp:
+    case ifc_sks_msvc_pragma:
+    case ifc_sks_msvc_single_inheritance:
+    case ifc_sks_msvc_unhook:
+    case ifc_sks_msvc_virtual_inheritance:
+      issue_unsupported_construct_error(mod, str_for(keyword),
+                                        &error_position);
       goto invalid;
     case ifc_sks_alignas:
       cache_token(cache, tok_alignas);
@@ -16003,7 +16143,7 @@ Add tokens corresponding to keyword to cache.
       cache_token(cache, tok_for);
       break;
     case ifc_sks_friend:
-      if (this->suppress_friend_token) {
+      if (mod->suppress_friend_token) {
         /* Do not cache the "friend" keyword.  (Friends are loaded via class
            traits and the keyword will presumably already have been emitted
            when the trait is processed as part of the class definition). */
@@ -16049,7 +16189,7 @@ Add tokens corresponding to keyword to cache.
       break;
     case ifc_sks_pragma:
       /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SourceKeyword::Pragma",
+      issue_unsupported_construct_error(mod, "SourceKeyword::Pragma",
                                         &error_position);
       goto invalid;
     case ifc_sks_private:
@@ -16172,11 +16312,6 @@ Add tokens corresponding to keyword to cache.
     case ifc_sks_msvc_declspec:
       cache_token(cache, tok_declspec);
       break;
-    case ifc_sks_msvc_eabi:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SourceKeyword::MsvcEabi",
-                                        &error_position);
-      goto invalid;
     case ifc_sks_msvc_event:
       cache_token(cache, tok_event);
       break;
@@ -16192,11 +16327,6 @@ Add tokens corresponding to keyword to cache.
     case ifc_sks_msvc_forceinline:
       cache_token(cache, tok_forceinline);
       break;
-    case ifc_sks_msvc_hook:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SourceKeyword::MsvcHook",
-                                        &error_position);
-      goto invalid;
     case ifc_sks_msvc_identifier:
       cache_token(cache, tok_microsoft_identifier);
       break;
@@ -16229,26 +16359,9 @@ Add tokens corresponding to keyword to cache.
     case ifc_sks_msvc_leave:
       cache_token(cache, tok_leave);
       break;
-    case ifc_sks_msvc_multiple_inheritance:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(
-                                      this,
-                                      "SourceKeyword::MsvcMultipleInheritance",
-                                      &error_position);
-      goto invalid;
     case ifc_sks_msvc_nullptr:
       cache_token(cache, tok_nullptr);
       break;
-    case ifc_sks_msvc_novtordisp:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SourceKeyword::MsvcNovtordisp",
-                                          &error_position);
-      goto invalid;
-    case ifc_sks_msvc_pragma:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SourceKeyword::MsvcPragma",
-                                        &error_position);
-      goto invalid;
     case ifc_sks_msvc_ptr32:
       cache_token(cache, tok_microsoft_ptr32);
       break;
@@ -16258,12 +16371,6 @@ Add tokens corresponding to keyword to cache.
     case ifc_sks_msvc_restrict:
       cache_token(cache, tok_restrict);
       break;
-    case ifc_sks_msvc_single_inheritance:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "SourceKeyword::MsvcSingleInheritance",
-                                        &error_position);
-      goto invalid;
     case ifc_sks_msvc_sptr:
       cache_token(cache, tok_microsoft_sptr);
       break;
@@ -16288,21 +16395,9 @@ Add tokens corresponding to keyword to cache.
     case ifc_sks_msvc_unaligned:
       cache_token(cache, tok_unaligned);
       break;
-    case ifc_sks_msvc_unhook:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "SourceKeyword::MsvcUnhook",
-                                        &error_position);
-      goto invalid;
     case ifc_sks_msvc_vectorcall:
       cache_token(cache, tok_vectorcall);
       break;
-    case ifc_sks_msvc_virtual_inheritance:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(
-                                       this,
-                                       "SourceKeyword::MsvcVirtualInheritance",
-                                       &error_position);
-      goto invalid;
     case ifc_sks_msvc_w64:
       cache_token(cache, tok_microsoft_w64);
       break;
@@ -16327,13 +16422,6 @@ Add tokens corresponding to keyword to cache.
     case ifc_sks_msvc_is_trivially_constructible:
       cache_token(cache, tok_is_trivially_constructible);
       break;
-    case ifc_sks_msvc_is_trivially_copy_constructible:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(
-                             this,
-                             "SourceKeyword::MsvcIsTriviallyCopyConstructible",
-                             &error_position);
-      goto invalid;
     case ifc_sks_msvc_is_trivially_copy_assignable:
       cache_token(cache, tok_is_trivially_copy_assignable);
       break;
@@ -16346,20 +16434,6 @@ Add tokens corresponding to keyword to cache.
     case ifc_sks_msvc_is_nothrow_constructible:
       cache_token(cache, tok_is_nothrow_constructible);
       break;
-    case ifc_sks_msvc_is_nothrow_copy_constructible:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(
-                               this,
-                               "SourceKeyword::MsvcIsNothrowCopyConstructible",
-                               &error_position);
-      goto invalid;
-    case ifc_sks_msvc_is_nothrow_copy_assignable:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(
-                                  this,
-                                  "SourceKeyword::MsvcIsNothrowCopyAssignable",
-                                  &error_position);
-      goto invalid;
     case ifc_sks_msvc_is_pod:
       cache_token(cache, tok_is_pod);
       break;
@@ -16384,30 +16458,9 @@ Add tokens corresponding to keyword to cache.
     case ifc_sks_msvc_is_literal_type:
       cache_token(cache, tok_is_literal_type);
       break;
-    case ifc_sks_msvc_is_trivially_move_constructible:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(
-                             this,
-                             "SourceKeyword::MsvcIsTriviallyMoveConstructible",
-                             &error_position);
-      goto invalid;
     case ifc_sks_msvc_has_trivial_move_assign:
       cache_token(cache, tok_has_trivial_move_assign);
       break;
-    case ifc_sks_msvc_is_trivially_move_assignable:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(
-                                this,
-                                "SourceKeyword::MsvcIsTriviallyMoveAssignable",
-                                &error_position);
-      goto invalid;
-    case ifc_sks_msvc_is_nothrow_move_assignable:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(
-                                  this,
-                                  "SourceKeyword::MsvcIsNothrowMoveAssignable",
-                                  &error_position);
-      goto invalid;
     case ifc_sks_msvc_is_constructible:
       cache_token(cache, tok_is_constructible);
       break;
@@ -16509,7 +16562,7 @@ invalid:
   expect_error_str("expected errors for bad source keyword cache");
   cache->invalidate();
 done:;
-}  /* an_ifc_module::cache_source_keyword */
+}  /* cache_source_keyword */
 
 
 static a_boolean
@@ -16538,7 +16591,8 @@ return FALSE.
 }  /* is_source_identifier_ud_literal */
 
 
-void an_ifc_module::cache_source_identifier(
+static void cache_source_identifier(
+                                 an_ifc_module                           *mod,
                                  a_module_token_cache_ptr                cache,
                                  const an_ifc_source_identifier_category &id)
 /*
@@ -16552,7 +16606,7 @@ for the additional information needed, depending on the kind of id.
     case ifc_sis_msvc:
       { a_string err_msg("Unexpected ", str_for(id.sort));
 
-        ifc_unexpected(this, err_msg);
+        ifc_unexpected(mod, err_msg);
       }
       goto invalid;
     case ifc_sis_plain:
@@ -16609,94 +16663,17 @@ invalid:
   expect_error_str("expected errors for bad source identifier cache");
   cache->invalidate();
 done:;
-}  /* an_ifc_module::cache_source_identifier */
-
-
-template<typename an_ifc_Index_type>
-static void diagnose_ifc_string_null_removal(an_ifc_Index_type   idx,
-                                             const an_ifc_string &str)
-/*
-Emit a warning for an IFC string from the given index from which null
-characters have been removed.  str is the IFC string value which has had null
-bytes removed.
-*/
-{
-  check_assertion(str.contains_null_characters());
-  an_ifc_module    *mod = module_of(idx);
-  a_diagnostic_ptr diag = start_warning(ec_ifc_null_char_in_string,
-                                        mod->assoc_module_info->name);
-
-  add_diag_info(diag, ec_ifc_null_char_in_string_removal_info,
-                str.length, str.ifc_length);
-  add_partition_element_diag_info(diag, ec_ifc_null_char_in_string_info, idx);
-  end_diagnostic(diag);
-}  /* diagnose_ifc_string_null_removal */
-
-
-void an_ifc_module::cache_string(a_module_token_cache_ptr     cache,
-                                 an_ifc_string_index          string)
-/*
-Add a string literal (with the appropriate character kind) corresponding to
-string to cache.
-*/
-{
-  a_character_kind kind;
-
-  switch (string.sort) {
-    case ifc_ss_ordinary:
-      kind = (a_character_kind)chk_char;
-      break;
-    case ifc_ss_utf8:
-      kind = (a_character_kind)chk_char8_t;
-      break;
-    case ifc_ss_char16:
-      kind = (a_character_kind)chk_char16_t;
-      break;
-    case ifc_ss_char32:
-      kind = (a_character_kind)chk_char32_t;
-      break;
-    case ifc_ss_wide:
-      kind = (a_character_kind)chk_wchar_t;
-      break;
-    default_is_unexpected_str("Unexpected StringSort");
-  }  /* switch */
-
-  Opt<an_ifc_const_str>       opt_ics;
-  an_ifc_partition_kind_index string_part_idx{string.file, ifc_pk_const_str,
-                                              string.value};
-  construct_node(&opt_ics, string_part_idx);
-  if (opt_ics.has_value()) {
-    an_ifc_const_str   ics = *opt_ics;
-    an_ifc_text_offset start = get_ifc_start(ics);
-    size_t             length = get_ifc_length(ics);
-    a_string           raw_str = get_string_at_offset(start, length);
-
-    an_ifc_string str(kind, raw_str.to_allocated_storage(IL_allocator<char>()),
-                      raw_str.length());
-    if (str.contains_null_characters()) {
-      diagnose_ifc_string_null_removal(string_part_idx, str);
-    }  /* if */
-
-    an_ifc_text_offset suffix = get_ifc_suffix(ics);
-    if (suffix == 0) {
-      cache_string_literal(cache, str);
-    } else {
-      a_string suffix_str = get_string_at_offset(suffix);
-
-      cache_ud_literal(cache, str, suffix_str.as_temp_characters());
-    }  /* if */
-  }  /* if */
-}  /* an_ifc_module::cache_string */
+}  /* cache_source_identifier */
 
 
 template<typename an_ifc_Word_type>
-static void cache_word(an_ifc_module            *mod,
-                       a_module_token_cache_ptr cache,
+static void cache_word(a_module_token_cache_ptr cache,
                        const an_ifc_Word_type   &word)
 /*
 Add the token(s) corresponding to word to cache.
 */
 {
+  an_ifc_module               *mod = module_of(word);
   an_ifc_source_location      locus = get_ifc_locus(word);
   an_ifc_source_position_hint pos_hint(cache, locus);
   an_ifc_word_category        category = get_ifc_category(word);
@@ -16705,53 +16682,32 @@ Add the token(s) corresponding to word to cache.
     case ifc_ws_unknown:
       break;
     case ifc_ws_source_directive:
-      mod->cache_source_directive(cache, category.variant.source_directive);
+      cache_source_directive(mod, cache, category.variant.source_directive);
       break;
     case ifc_ws_source_punctuator:
-      mod->cache_source_punctuator(cache, category.variant.source_punctuator);
+      cache_source_punctuator(mod, cache, category.variant.source_punctuator);
       break;
     case ifc_ws_source_literal:
-      mod->cache_source_literal(cache, category.variant.source_literal);
+      cache_source_literal(mod, cache, category.variant.source_literal);
       break;
     case ifc_ws_source_operator:
-      mod->cache_source_operator(cache, category.variant.source_operator);
+      cache_source_operator(mod, cache, category.variant.source_operator);
       break;
     case ifc_ws_source_keyword:
-      mod->cache_source_keyword(cache, category.variant.source_keyword);
+      cache_source_keyword(mod, cache, category.variant.source_keyword);
       break;
     case ifc_ws_source_identifier:
-      mod->cache_source_identifier(cache, category.variant.source_identifier);
+      cache_source_identifier(mod, cache, category.variant.source_identifier);
       break;
     default_is_unexpected_str("Unknown WordSort");
   }  /* switch */
 }  /* cache_word */
 
 
-void an_ifc_module::cache_word(a_module_token_cache_ptr cache,
-                               const an_ifc_source_word &word)
-/*
-Add token(s) corresponding to word to cache.
-*/
-{
-  EDG_PREFIX::cache_word(this, cache, word);
-}  /* an_ifc_module::cache_word */
-
-
-void an_ifc_module::cache_word(a_module_token_cache_ptr   cache,
-                               const an_ifc_nestable_word &word)
-/*
-Add token(s) corresponding to word to cache.
-*/
-{
-  EDG_PREFIX::cache_word(this, cache, word);
-}  /* an_ifc_module::cache_word */
-
-
-uint32_t an_ifc_module::cache_sentence(
-                                  a_module_token_cache_ptr cache,
-                                  an_ifc_sentence_index    sentence,
-                                  uint32_t                 offset,
-                                  a_boolean                look_for_stop_token)
+static uint32_t cache_sentence(a_module_token_cache_ptr cache,
+                               an_ifc_sentence_index    sentence,
+             /* Defaulted: */  uint32_t                 offset,
+             /* Defaulted: */  a_boolean                look_for_stop_token)
 /*
 Given a SentenceIndex, populate cache with the corresponding tokens.  offset is
 the offset into the words to start caching.  If look_for_stop_token is TRUE
@@ -16779,7 +16735,7 @@ return the index of that token.  Otherwise the return value is meaningless.
       }  /* if */
 
       a_cached_token_ptr ctp = cache->get_last_token();
-      this->cache_word(cache, *indexed_isw);
+      cache_word(cache, *indexed_isw);
       if (look_for_stop_token && ctp != cache->get_last_token() &&
           curr_stop_token_stack_entry->
                        stop_tokens[(int)cache->get_last_token()->token] != 0) {
@@ -16796,7 +16752,7 @@ invalid:
   cache->invalidate();
 done:
   return idx;
-}  /* an_ifc_module::cache_sentence */
+}  /* cache_sentence */
 
 
 /* FIXME: Codegen this? */
@@ -16949,7 +16905,7 @@ Cache the alignment-specifier for the given variable-like declaration.
   if (!is_null_index(alignment)) {
     cache_token(cache, tok_alignas);
     cache_token(cache, tok_lparen);
-    module_of(alignment)->cache_expr(cache, alignment, /*cinfo=*/{});
+    cache_expr(cache, alignment, /*cinfo=*/{});
     cache_token(cache, tok_rparen);
   }  /* if */
 }  /* cache_var_alignment */
@@ -16991,7 +16947,7 @@ the variable name.
 {
   an_ifc_type_index type = get_ifc_type(decl);
 
-  module_of(type)->cache_type_first_part(cache, type, /*cinfo=*/{});
+  cache_type_first_part(cache, type, /*cinfo=*/{});
 }  /* cache_var_type_declarator_lhs */
 
 
@@ -17021,7 +16977,7 @@ the variable name.
 {
   an_ifc_type_index type = get_ifc_type(decl);
 
-  module_of(type)->cache_type_second_part(cache, type, /*cinfo=*/{});
+  cache_type_second_part(cache, type, /*cinfo=*/{});
 }  /* cache_var_type_declarator_rhs */
 
 
@@ -17052,7 +17008,7 @@ Cache the initializer for the given variable-like declaration.
       if (cache_braces) {
         cache_token(cache, tok_lbrace);
       }  /* if */
-      module_of(initializer)->cache_expr(cache, initializer, /*cinfo=*/{});
+      cache_expr(cache, initializer, /*cinfo=*/{});
       if (cache_braces) {
         cache_token(cache, tok_rbrace);
       }  /* if */
@@ -17118,7 +17074,7 @@ Cache the noexcept-specifier for the given noexcept specification.
       case ifc_ns_expression:
         { an_ifc_sentence_index word_idx = get_ifc_words(eh_spec);
 
-          module_of(word_idx)->cache_sentence(cache, word_idx);
+          (void)cache_sentence(cache, word_idx);
         }
         break;
       case ifc_ns_unenforced:
@@ -17220,7 +17176,7 @@ Cache the return type declarator for the given function-like type.
 {
   an_ifc_type_index return_type = get_ifc_target(type);
 
-  module_of(return_type)->cache_type(cache, return_type, /*cinfo=*/{});
+  cache_type(cache, return_type, /*cinfo=*/{});
 }  /* cache_func_type_return_type */
 
 
@@ -17235,7 +17191,7 @@ Cache the parameter-declaration-clause for the given function-like type.
   an_ifc_type_index source_params = get_ifc_source(type);
 
   if (!is_null_index(source_params)) {
-    module_of(source_params)->cache_type(cache, source_params, /*cinfo=*/{});
+    cache_type(cache, source_params, /*cinfo=*/{});
   }  /* if */
 }  /* cache_func_type_parameter_declaration_clause */
 
@@ -18332,7 +18288,7 @@ context to help inform decisions about what to cache.
 
     an_ifc_parameterized_entity entity = get_ifc_entity(decl_templ);
     an_ifc_sentence_index       head = get_ifc_head(entity);
-    module_of(head)->cache_sentence(&templ_cache, head);
+    (void)cache_sentence(&templ_cache, head);
 
     a_module_token_cache name_cache(infer_next_source_position(cache));
     an_ifc_name_index    name_idx = get_ifc_name(decl_templ);
@@ -18454,7 +18410,7 @@ context to help inform decisions about what to cache.
       if (is_null_index(arg_type)) {
         goto invalid;
       }  /* if */
-      module_of(arg_type)->cache_type_first_part(cache, arg_type, cinfo);
+      cache_type_first_part(cache, arg_type, cinfo);
       if (!is_variadic_parameter_declaration_clause_type(arg_type)) {
         an_ifc_name_index name_idx = param_context.get_name(i);
 
@@ -18466,7 +18422,7 @@ context to help inform decisions about what to cache.
           cache_name(cache, name_idx);
         }  /* if */
       }  /* if */
-      module_of(arg_type)->cache_type_second_part(cache, arg_type, cinfo);
+      cache_type_second_part(cache, arg_type, cinfo);
       /* Cache the default argument if we're not ignoring default arguments in
          this context, and a default argument is found. */
       if (!cinfo.ignore_default_arguments) {
@@ -18594,9 +18550,9 @@ decisions about what to cache.
 }  /* an_ifc_module::cache_scope_decl */
 
 
-void an_ifc_module::cache_type_first_part(a_module_token_cache_ptr cache,
-                                          an_ifc_type_index        type,
-                                          const an_ifc_cache_info  &cinfo)
+static void cache_type_first_part(a_module_token_cache_ptr cache,
+                                  an_ifc_type_index        type,
+                                  const an_ifc_cache_info  &cinfo)
 /*
 Add the tokens to cache corresponding to the portion of the given type that
 precedes an identifier.  cinfo contains information about the current cache
@@ -18613,9 +18569,13 @@ See form_type_first_part and form_type_second_part for more details as to why
 this is needed.
 */
 {
+  an_ifc_module *mod = module_of(type);
+
   switch (type.sort) {
     case ifc_ts_type_vendor_extension:
-      issue_unsupported_construct_error(this, "TypeSort::VendorExtension",
+    case ifc_ts_type_method:
+    case ifc_ts_type_unaligned:
+      issue_unsupported_construct_error(mod, str_for(type.sort),
                                         &error_position);
       goto invalid;
     case ifc_ts_type_fundamental:
@@ -18642,6 +18602,14 @@ this is needed.
           default_is_unexpected_str("Unexpected TypeSign");
         }  /* if */
         switch (basis) {
+          case ifc_tbs_segment_type:
+          case ifc_tbs_function:
+          case ifc_tbs_variable_template:
+          case ifc_tbs_concept:
+          case ifc_tbs_overload:
+            issue_unsupported_construct_error(mod, str_for(basis),
+                                              &error_position);
+            goto invalid;
           case ifc_tbs_void:
             check_assertion(precision == ifc_tps_default);
             cache_token(cache, tok_void);
@@ -18668,7 +18636,7 @@ this is needed.
                 { a_string err_msg("Unexpected ", str_for(precision),
                                    " for ", str_for(basis));
 
-                  ifc_unexpected(this, err_msg);
+                  ifc_unexpected(mod, err_msg);
                 }
                 goto invalid;
             }  /* switch */
@@ -18727,11 +18695,6 @@ this is needed.
             check_assertion(precision == ifc_tps_default);
             cache_token(cache, tok_ellipsis);
             break;
-          case ifc_tbs_segment_type:
-            /* FIXME: Currently unsupported. */
-            issue_unsupported_construct_error(this, "TypeBasis::SegmentType",
-                                              &error_position);
-            goto invalid;
           case ifc_tbs_class:
             check_assertion(precision == ifc_tps_default);
             cache_token(cache, tok_class);
@@ -18760,19 +18723,8 @@ this is needed.
             check_assertion(precision == ifc_tps_default);
             cache_token(cache, tok_interface);
             break;
-          case ifc_tbs_function:
-            /* FIXME: Currently unsupported. */
-            issue_unsupported_construct_error(this, "TypeBasis::Function",
-                                              &error_position);
-            goto invalid;
           case ifc_tbs_empty:
             break;
-          case ifc_tbs_variable_template:
-            /* FIXME: Currently unsupported. */
-            issue_unsupported_construct_error(this,
-                                              "TypeBasis::VariableTemplate",
-                                              &error_position);
-            goto invalid;
           case ifc_tbs_auto:
             check_assertion(precision == ifc_tps_default);
             cache_token(cache, tok_auto_type);
@@ -18784,17 +18736,6 @@ this is needed.
             cache_token(cache, tok_auto_type);
             cache_token(cache, tok_rparen);
             break;
-          case ifc_tbs_concept:
-            /* FIXME: Currently unsupported. */
-            issue_unsupported_construct_error(this,
-                                              "TypeBasis::Concept",
-                                              &error_position);
-            goto invalid;
-          case ifc_tbs_overload:
-            /* FIXME: Currently unsupported. */
-            issue_unsupported_construct_error(this, "TypeBasis::Overload",
-                                              &error_position);
-            goto invalid;
           default_is_unexpected_str("Unexpected TypeBasis");
         }  /* switch */
       }
@@ -18976,11 +18917,6 @@ this is needed.
         cache_calling_convention(cache, get_ifc_convention(itf));
       }
       break;
-    case ifc_ts_type_method:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "TypeSort::Method",
-                                        &error_position);
-      goto invalid;
     case ifc_ts_type_array:
       { Opt<an_ifc_type_array> opt_ita;
 
@@ -19054,7 +18990,7 @@ this is needed.
         /* decltype constructs are currently represented as token sequences. */
         an_ifc_type_decltype decltype_type = *opt_decltype_type;
         an_ifc_syntax_index  syntax_idx = get_ifc_expr(decltype_type);
-        cache_syntax(cache, syntax_idx, /*cinfo=*/{});
+        mod->cache_syntax(cache, syntax_idx, /*cinfo=*/{});
       }
       break;
     case ifc_ts_type_placeholder:
@@ -19113,15 +19049,11 @@ this is needed.
         if (!opt_itfa.has_value()) {
           goto invalid;
         }  /* if */
-        cache_template_head(cache, get_ifc_chart(*opt_itfa), /*cinfo=*/{});
+        mod->cache_template_head(cache, get_ifc_chart(*opt_itfa),
+                                 /*cinfo=*/{});
         cache_type(cache, get_ifc_subject(*opt_itfa), cinfo);
       }
       break;
-    case ifc_ts_type_unaligned:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "TypeSort::Unaligned",
-                                        &error_position);
-      goto invalid;
     case ifc_ts_type_syntax_tree:
       { Opt<an_ifc_type_syntax_tree> opt_tst;
 
@@ -19129,7 +19061,7 @@ this is needed.
         if (!opt_tst.has_value()) {
           goto invalid;
         }  /* if */
-        cache_syntax(cache, get_ifc_syntax(*opt_tst), /*cinfo=*/{});
+        mod->cache_syntax(cache, get_ifc_syntax(*opt_tst), /*cinfo=*/{});
       }
       break;
     default_is_unexpected_str("Unexpected TypeSort");
@@ -19139,12 +19071,12 @@ invalid:
   expect_error_str("expected errors for bad type cache");
   cache->invalidate();
 done:;
-}  /* an_ifc_module::cache_type_first_part */
+}  /* cache_type_first_part */
 
 
-void an_ifc_module::cache_type_second_part(a_module_token_cache_ptr cache,
-                                           an_ifc_type_index        type,
-                                           const an_ifc_cache_info  &cinfo)
+static void cache_type_second_part(a_module_token_cache_ptr cache,
+                                   an_ifc_type_index        type,
+                                   const an_ifc_cache_info  &cinfo)
 /*
 Add the tokens to cache corresponding to the portion of the given type that
 follows an identifier.  cinfo contains information about the current cache
@@ -19161,13 +19093,16 @@ See form_type_first_part and form_type_second_part for more details as to why
 this is needed.
 */
 {
+  an_ifc_module *mod = module_of(type);
+
   switch (type.sort) {
     case ifc_ts_type_tor:
+    case ifc_ts_type_vendor_extension:
       /* This type should only be encountered when processing a constructor,
          and that is directly handled with that constructor declaration.*/
       { a_string err_msg("Unexpected ", str_for(type.sort));
 
-        ifc_unexpected(this, err_msg);
+        ifc_unexpected(mod, err_msg);
       }
       goto invalid;
     case ifc_ts_type_pointer:
@@ -19323,10 +19258,6 @@ this is needed.
     case ifc_ts_type_syntax_tree:
       /* All of these were completely handled by the first pass. */
       break;
-    case ifc_ts_type_vendor_extension:
-      issue_unsupported_construct_error(this, str_for(type.sort),
-                                        &error_position);
-      goto invalid;
     default_is_unexpected_str("Unexpected TypeSort");
   }  /* switch */
   goto done;
@@ -19334,12 +19265,12 @@ invalid:
   expect_error_str("expected errors for bad type cache");
   cache->invalidate();
 done:;
-}  /* an_ifc_module::cache_type_second_part */
+}  /* cache_type_second_part */
 
 
-void an_ifc_module::cache_type(a_module_token_cache_ptr cache,
-                               an_ifc_type_index        type,
-                               const an_ifc_cache_info  &cinfo)
+static void cache_type(a_module_token_cache_ptr cache,
+                       an_ifc_type_index        type,
+                       const an_ifc_cache_info  &cinfo)
 /*
 Add the tokens to cache corresponding to the given type.  cinfo contains
 information about the current cache context to help inform decisions about what
@@ -19351,7 +19282,7 @@ cache_type_first_part and cache_type_second_part should be used instead.
 {
   cache_type_first_part(cache, type, cinfo);
   cache_type_second_part(cache, type, cinfo);
-}  /* an_ifc_module::cache_type */
+}  /* cache_type */
 
 
 void an_ifc_module::cache_operator(a_module_token_cache_ptr     cache,
@@ -20091,7 +20022,7 @@ there is no offset/the offset is not needed.
          was done for functions below).  Variable template declarations are
          still a mess, and deduction guides are unimplemented, but we can avoid
          updating them for now. */
-      cache_sentence(cache, get_ifc_head(entity));
+      (void)cache_sentence(cache, get_ifc_head(entity));
     } else {
       an_ifc_cache_info decl_cinfo = cinfo;
 
@@ -20154,7 +20085,7 @@ spec (form_idx) to the cache.
   if (opt_ifs.has_value()) {
     an_ifc_expr_index arg_expr_idx = get_ifc_arguments(*opt_ifs);
 
-    module_of(arg_expr_idx)->cache_expr(cache, arg_expr_idx, /*cinfo=*/{});
+    cache_expr(cache, arg_expr_idx, /*cinfo=*/{});
   }  /* if */
   cache_token(cache, tok_gt);
 }  /* cache_template_argument_list */
@@ -20252,7 +20183,7 @@ about the current cache context to help inform decisions about what to cache.
 
           if (body != 0) {
             /* We have a body for this declaration, cache it. */
-            cache_sentence(cache, body);
+            (void)cache_sentence(cache, body);
           }  /* if */
         };
         cache_scope_decl(cache, decl_idx, get_ifc_type(ids), cache_name_fn,
@@ -20285,7 +20216,7 @@ about the current cache context to help inform decisions about what to cache.
         an_ifc_sentence_index body = get_ifc_body(get_ifc_entity(decl));
         if (body != 0) {
           /* We have a body for this declaration, cache it. */
-          cache_sentence(cache, body);
+          (void)cache_sentence(cache, body);
         }  /* if */
         cache_token(cache, tok_semicolon);
       }
@@ -21353,7 +21284,7 @@ expression being cached.
   if (args.sort != ifc_es_expr_expression_list) {
     cache_token(cache, tok_lparen);
   }  /* if */
-  module_of(args)->cache_expr(cache, args, cinfo);
+  cache_expr(cache, args, cinfo);
   if (args.sort != ifc_es_expr_expression_list) {
     cache_token(cache, tok_rparen);
   }  /* if */
@@ -21498,9 +21429,9 @@ done:
 }  /* is_broken_indirect_reference_to_template_parameter */
 
 
-void an_ifc_module::cache_expr(a_module_token_cache_ptr cache,
-                               an_ifc_expr_index        expr,
-                               const an_ifc_cache_info  &cinfo)
+static void cache_expr(a_module_token_cache_ptr cache,
+                       an_ifc_expr_index        expr,
+                       const an_ifc_cache_info  &cinfo)
 /*
 Add the tokens corresponding to the given expression (expr) to cache.  cinfo
 contains information about the current cache context to help inform decisions
@@ -21508,14 +21439,42 @@ about what to cache.  For example, if cinfo.qualified_name is TRUE, separate
 tuple elements by '::' instead of ','.
 */
 {
+  an_ifc_module               *mod = module_of(expr);
   an_ifc_source_position_hint pos_hint(cache, expr);
 
   switch (expr.sort) {
-    case ifc_es_expr_vendor_extension:
+    case ifc_es_expr_alignof:
+    case ifc_es_expr_array_value:
+    case ifc_es_expr_assign_initializer:
+    case ifc_es_expr_binary_fold:
+    case ifc_es_expr_compound_string:
+    case ifc_es_expr_condition:
     case ifc_es_expr_delete:
-    case ifc_es_expr_new:
+    case ifc_es_expr_designated_initializer:
+    case ifc_es_expr_destructor_call:
+    case ifc_es_expr_dynamic_dispatch:
+    case ifc_es_expr_expansion:
+    case ifc_es_expr_function_string:
+    case ifc_es_expr_generic:
+    case ifc_es_expr_hierarchy_conversion:
+    case ifc_es_expr_inheritance_path:
+    case ifc_es_expr_initializer:
+    case ifc_es_expr_initializer_list:
     case ifc_es_expr_label:
-      issue_unsupported_construct_error(this, str_for(expr.sort),
+    case ifc_es_expr_lambda:
+    case ifc_es_expr_new:
+    case ifc_es_expr_placeholder:
+    case ifc_es_expr_push_state:
+    case ifc_es_expr_string_sequence:
+    case ifc_es_expr_subobject_value:
+    case ifc_es_expr_sum_type_value:
+    case ifc_es_expr_this:
+    case ifc_es_expr_type_trait_intrinsic:
+    case ifc_es_expr_typeid:
+    case ifc_es_expr_unary_fold:
+    case ifc_es_expr_vendor_extension:
+    case ifc_es_expr_virtual_function_conversion:
+      issue_unsupported_construct_error(mod, str_for(expr.sort),
                                         &error_position);
       goto invalid;
     case ifc_es_expr_empty:
@@ -21560,15 +21519,10 @@ tuple elements by '::' instead of ','.
           if (cp == NULL) {
             goto invalid;
           }  /* if */
-          cache_literal(this, cache, cp);
+          cache_literal(mod, cache, cp);
         }  /* if */
       }
       break;
-    case ifc_es_expr_lambda:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "ExprSort::Lambda",
-                                        &error_position);
-      goto invalid;
     case ifc_es_expr_type:
       { Opt<an_ifc_expr_type> opt_iet;
 
@@ -21592,7 +21546,7 @@ tuple elements by '::' instead of ','.
 
         an_ifc_expr_named_decl named_decl = *opt_named_decl;
         an_ifc_decl_index      resolution = get_ifc_resolution(named_decl);
-        cache_name_of_decl(cache, resolution);
+        module_of(resolution)->cache_name_of_decl(cache, resolution);
       } else {
         cache_token_with_index(cache, tok_ifc_entity_ref, expr);
       }  /* if */
@@ -21772,8 +21726,7 @@ tuple elements by '::' instead of ','.
         an_ifc_expr_monad            iem = *opt_iem;
         an_ifc_expr_index            argument = get_ifc_argument(iem);
         an_ifc_monadic_operator_sort assoc = get_ifc_assoc(iem);
-        auto                         cache_arg =
-                                              [this, cache, cinfo, &argument] {
+        auto                         cache_arg = [cache, cinfo, &argument] {
           cache_token(cache, tok_lparen);
           if (!is_null_index(argument)) {
             cache_expr(cache, argument, cinfo);
@@ -21787,11 +21740,11 @@ tuple elements by '::' instead of ','.
           case opkind_c_cast:
           case opkind_cpp_cast:
           case opkind_new:
-            ifc_unexpected(this, "Unexpected operator kind");
+            ifc_unexpected(mod, "Unexpected operator kind");
             goto invalid;
           case opkind_basic:
           case opkind_func_like:
-            cache_operator(cache, assoc);
+            mod->cache_operator(cache, assoc);
             if (assoc == ifc_mos_lookup_globally) {
               /* Do not produce parentheses after a "::". */
               cache_expr(cache, argument, cinfo);
@@ -21801,7 +21754,7 @@ tuple elements by '::' instead of ','.
             break;
           case opkind_post:
             cache_arg();
-            cache_operator(cache, assoc);
+            mod->cache_operator(cache, assoc);
             break;
           case opkind_other:
             { a_token_kind ltok, rtok;
@@ -21814,7 +21767,7 @@ tuple elements by '::' instead of ','.
               } else {
                 a_string err_msg("Unexpected ", str_for(assoc));
 
-                ifc_unexpected(this, err_msg);
+                ifc_unexpected(mod, err_msg);
                 goto invalid;
               }  /* if */
               cache_token(cache, ltok);
@@ -21844,7 +21797,7 @@ tuple elements by '::' instead of ','.
           case opkind_error:
           case opkind_post:
           case opkind_other:
-            ifc_unexpected(this, "Unexpected operator kind");
+            ifc_unexpected(mod, "Unexpected operator kind");
             goto invalid;
           case opkind_basic:
             { an_ifc_cache_info  cache_info = cinfo;
@@ -21861,7 +21814,7 @@ tuple elements by '::' instead of ','.
                 an_ifc_cache_info lhs_cache_info = cache_info;
                 lhs_cache_info.possible_temporary_decl = TRUE;
                 cache_expr(cache, arg_0, lhs_cache_info);
-                cache_operator(cache, assoc);
+                mod->cache_operator(cache, assoc);
               }  /* if */
               cache_expr(cache, arg_1, cache_info);
               if (cache_info.nested_expr) {
@@ -21876,7 +21829,7 @@ tuple elements by '::' instead of ','.
                  EDG IL.  So just cache the second argument. */
               cache_expr(cache, arg_1, cinfo);
             } else {
-              cache_operator(cache, assoc);
+              mod->cache_operator(cache, assoc);
               cache_token(cache, tok_lparen);
               cache_expr(cache, arg_0, cinfo);
               cache_token(cache, tok_comma);
@@ -21885,7 +21838,7 @@ tuple elements by '::' instead of ','.
             }  /* if */
             break;
           case opkind_cpp_cast:
-            cache_operator(cache, assoc);
+            mod->cache_operator(cache, assoc);
             FALLTHROUGH
           case opkind_c_cast:
             if (opkind == opkind_c_cast) {
@@ -21932,13 +21885,13 @@ tuple elements by '::' instead of ','.
         switch (assoc) {
           case ifc_tos_choice:
             cache_expr(cache, arg_0, cinfo);
-            cache_operator(cache, assoc);
+            mod->cache_operator(cache, assoc);
             cache_expr(cache, arg_1, cinfo);
             cache_token(cache, tok_colon);
             cache_expr(cache, arg_2, cinfo);
             break;
           case ifc_tos_construct_at:
-            cache_operator(cache, assoc);
+            mod->cache_operator(cache, assoc);
             cache_token(cache, tok_lparen);
             cache_expr(cache, arg_0, cinfo);
             cache_token(cache, tok_rparen);
@@ -21948,7 +21901,7 @@ tuple elements by '::' instead of ','.
             }  /* if */
             break;
           default:
-            issue_unsupported_construct_error(this, "TriadicOperator::???",
+            issue_unsupported_construct_error(mod, "TriadicOperator::???",
                                               &error_position);
             goto invalid;
         }  /* switch */
@@ -22025,7 +21978,7 @@ tuple elements by '::' instead of ','.
           cache_type(cache, base, cinfo);
         } else {
           /* A delegating constructor. */
-          issue_unsupported_construct_error(this,
+          issue_unsupported_construct_error(mod,
                                             "ExprSort::MemberInitializer",
                                             &error_position);
           goto invalid;
@@ -22057,16 +22010,6 @@ tuple elements by '::' instead of ','.
         cache_identifier(cache, name.as_temp_characters());
       }
       break;
-    case ifc_es_expr_inheritance_path:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "ExprSort::InheritancePath",
-                                        &error_position);
-      goto invalid;
-    case ifc_es_expr_initializer_list:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "ExprSort::InitializerList",
-                                        &error_position);
-      goto invalid;
     case ifc_es_expr_cast:
       { Opt<an_ifc_expr_cast> opt_iec;
 
@@ -22120,17 +22063,12 @@ common_cast:
             { a_string err_msg("Unexpected ", str_for(op_sort),
                                " for ", str_for(expr.sort));
 
-              ifc_unexpected(this, err_msg);
+              ifc_unexpected(mod, err_msg);
             }
             break;
         }  /* switch */
       }
       break;
-    case ifc_es_expr_condition:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "ExprSort::Condition",
-                                        &error_position);
-      goto invalid;
     case ifc_es_expr_expression_list:
       { Opt<an_ifc_expr_expression_list> opt_eel;
 
@@ -22176,21 +22114,6 @@ common_cast:
         cache_token(cache, tok_rparen);
       }
       break;
-    case ifc_es_expr_alignof:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "ExprSort::Alignof",
-                                        &error_position);
-      goto invalid;
-    case ifc_es_expr_typeid:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "ExprSort::Typeid",
-                                        &error_position);
-      goto invalid;
-    case ifc_es_expr_destructor_call:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "ExprSort::DestructorCall",
-                                        &error_position);
-      goto invalid;
     case ifc_es_expr_syntax_tree:
       { Opt<an_ifc_expr_syntax_tree> opt_iest;
 
@@ -22198,29 +22121,9 @@ common_cast:
         if (!opt_iest.has_value()) {
           goto invalid;
         }  /* if */
-        cache_syntax(cache, get_ifc_syntax(*opt_iest), cinfo);
+        mod->cache_syntax(cache, get_ifc_syntax(*opt_iest), cinfo);
       }
       break;
-    case ifc_es_expr_function_string:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "ExprSort::FunctionString",
-                                        &error_position);
-      goto invalid;
-    case ifc_es_expr_compound_string:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "ExprSort::CompoundString",
-                                        &error_position);
-      goto invalid;
-    case ifc_es_expr_string_sequence:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "ExprSort::StringSequence",
-                                        &error_position);
-      goto invalid;
-    case ifc_es_expr_initializer:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "ExprSort::Initializer",
-                                        &error_position);
-      goto invalid;
     case ifc_es_expr_requires:
       { Opt<an_ifc_expr_requires> opt_ier;
 
@@ -22233,31 +22136,16 @@ common_cast:
         an_ifc_syntax_index  parameters = get_ifc_parameters(ier);
         cache_token(cache, tok_requires);
         if (!is_null_index(parameters)) {
-          cache_syntax(cache, parameters, cinfo);
+          mod->cache_syntax(cache, parameters, cinfo);
         }  /* if */
         /* FIXME: Is it necessary to set requires_body = TRUE here, or will
            this always be a SyntaxSort::RequirementsBody? */
         { an_ifc_cache_info    cache_info = cinfo;
           cache_info.requires_body = TRUE;
-          cache_syntax(cache, get_ifc_body(ier), cache_info);
+          mod->cache_syntax(cache, get_ifc_body(ier), cache_info);
         }
       }
       break;
-    case ifc_es_expr_unary_fold:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "ExprSort::UnaryFold",
-                                        &error_position);
-      goto invalid;
-    case ifc_es_expr_binary_fold:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "ExprSort::BinaryFold",
-                                        &error_position);
-      goto invalid;
-    case ifc_es_expr_hierarchy_conversion:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "ExprSort::HierarchyConversion",
-                                        &error_position);
-      goto invalid;
     case ifc_es_expr_product_type_value:
       { Opt<an_ifc_expr_product_type_value> opt_ieptv;
 
@@ -22270,51 +22158,10 @@ common_cast:
         a_type_ptr                     tp;
         a_constant_ptr                 cp;
         tp = type_for_type_index(get_ifc_type(ieptv));
-        cp = constant_for_expr_index(expr, tp);
+        cp = mod->constant_for_expr_index(expr, tp);
         cache_aggr_constant(cache, cp);
       }
       break;
-    case ifc_es_expr_sum_type_value:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "ExprSort::SumTypeValue",
-                                        &error_position);
-      goto invalid;
-    case ifc_es_expr_subobject_value:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "ExprSort::SubobjectValue",
-                                        &error_position);
-      goto invalid;
-    case ifc_es_expr_array_value:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "ExprSort::ArrayValue",
-                                        &error_position);
-      goto invalid;
-    case ifc_es_expr_dynamic_dispatch:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "ExprSort::DynamicDispatch",
-                                        &error_position);
-      goto invalid;
-    case ifc_es_expr_virtual_function_conversion:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "ExprSort::VirtualFunctionConversion",
-                                        &error_position);
-      goto invalid;
-    case ifc_es_expr_placeholder:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "ExprSort::Placeholder",
-                                        &error_position);
-      goto invalid;
-    case ifc_es_expr_expansion:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "ExprSort::Expansion",
-                                        &error_position);
-      goto invalid;
-    case ifc_es_expr_generic:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "ExprSort::Generic",
-                                        &error_position);
-      goto invalid;
     case ifc_es_expr_tuple:
       { Opt<an_ifc_expr_tuple> opt_iet;
 
@@ -22363,11 +22210,6 @@ common_cast:
         cache_literal(module_of(type_idx), cache, cp);
       }
       break;
-    case ifc_es_expr_this:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "ExprSort::This",
-                                        &error_position);
-      goto invalid;
     case ifc_es_expr_template_reference:
       { Opt<an_ifc_expr_template_reference> opt_ietr;
 
@@ -22396,22 +22238,6 @@ common_cast:
         }  /* if */
       }
       break;
-    case ifc_es_expr_push_state:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "ExprSort::PushState",
-                                        &error_position);
-      goto invalid;
-    case ifc_es_expr_type_trait_intrinsic:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this, "ExprSort::TypeTraitIntrinsic",
-                                        &error_position);
-      goto invalid;
-    case ifc_es_expr_designated_initializer:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "ExprSort::DesignatedInitializer",
-                                        &error_position);
-      goto invalid;
     case ifc_es_expr_packed_template_arguments:
       { Opt<an_ifc_expr_packed_template_arguments> opt_iepta;
 
@@ -22429,15 +22255,9 @@ common_cast:
         if (!opt_iet.has_value()) {
           goto invalid;
         }  /* if */
-        cache_sentence(cache, get_ifc_words(*opt_iet));
+        (void)cache_sentence(cache, get_ifc_words(*opt_iet));
       }
       break;
-    case ifc_es_expr_assign_initializer:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_construct_error(this,
-                                        "ExprSort::AssignInitializer",
-                                        &error_position);
-      goto invalid;
     default_is_unexpected_str("Unknown ExprSort");
   }  /* switch */
   goto done;
@@ -22445,7 +22265,7 @@ invalid:
   expect_error_str("expected errors for bad expr cache");
   cache->invalidate();
 done:;
-}  /* an_ifc_module::cache_expr */
+}  /* cache_expr */
 
 
 static void cache_syntactic_type_qualifiers(
@@ -22652,7 +22472,7 @@ Otherwise, parameter references should only include the parameter name.
         an_ifc_sentence_index            declspec = get_ifc_declspec(isdss);
         /* FIXME: Handle storage_class field. */
         if (declspec != 0) {
-          cache_sentence(cache, declspec);
+          (void)cache_sentence(cache, declspec);
         }  /* if */
 
         an_ifc_syntax_index explicit_kw = get_ifc_explicit_kw(isdss);

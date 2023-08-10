@@ -40214,8 +40214,8 @@ see expr.h).
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (curr_token == tok_pending_ifc_expr) {
     (void)get_token();
-    if (extract_tokens_for_module_expr(&ifc_index_for_curr_token,
-                                       &expected_ifc_rescan_end_tsn)) {
+    if (extract_tokens_for_ifc_module_expr(&ifc_index_for_curr_token,
+                                           &expected_ifc_rescan_end_tsn)) {
       scanning_deferred_module_expr = TRUE;
     } else {
       goto end_of_routine;

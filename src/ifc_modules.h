@@ -432,15 +432,6 @@ public:
                         an_ifc_type_index            base,
                         an_ifc_scope_offset          scope,
                         const an_ifc_cache_info      &cinfo);
-  void cache_type_first_part(a_module_token_cache_ptr cache,
-                             an_ifc_type_index        type,
-                             const an_ifc_cache_info  &cinfo);
-  void cache_type_second_part(a_module_token_cache_ptr cache,
-                              an_ifc_type_index        type,
-                              const an_ifc_cache_info  &cinfo);
-  void cache_type(a_module_token_cache_ptr cache,
-                  an_ifc_type_index        type,
-                  const an_ifc_cache_info  &cinfo);
   void cache_type_param_introducer(a_module_token_cache_ptr cache,
                                    an_ifc_expr_index        constraint,
                                    a_boolean                is_pack);
@@ -458,9 +449,6 @@ public:
                                  const an_ifc_source_location &pos);
   void cache_decl(a_module_token_cache_ptr cache,
                   an_ifc_decl_index        decl,
-                  const an_ifc_cache_info  &cinfo);
-  void cache_expr(a_module_token_cache_ptr cache,
-                  an_ifc_expr_index        expr,
                   const an_ifc_cache_info  &cinfo);
   void cache_statement(a_module_token_cache_ptr cache,
                        an_ifc_stmt_index        stmt_idx,
@@ -482,30 +470,7 @@ public:
                       an_ifc_storage_instruction_operator_sort op);
   void cache_operator(a_module_token_cache_ptr      cache,
                       an_ifc_variadic_operator_sort op);
-  uint32_t cache_sentence(
-                         a_module_token_cache_ptr cache,
-                         an_ifc_sentence_index    sentence,
-                         uint32_t                 offset = 0,
-                         a_boolean                look_for_stop_token = FALSE);
   a_boolean sentence_is_deleted(an_ifc_sentence_index sentence);
-  void cache_word(a_module_token_cache_ptr cache,
-                  const an_ifc_source_word &word);
-  void cache_word(a_module_token_cache_ptr   cache,
-                  const an_ifc_nestable_word &word);
-  void cache_source_directive(a_module_token_cache_ptr     cache,
-                              an_ifc_source_directive_sort directive);
-  void cache_source_punctuator(a_module_token_cache_ptr      cache,
-                               an_ifc_source_punctuator_sort punctuator);
-  void cache_source_literal(a_module_token_cache_ptr             cache,
-                            const an_ifc_source_literal_category &literal);
-  void cache_source_operator(a_module_token_cache_ptr     cache,
-                             an_ifc_source_operator_sort  op);
-  void cache_source_keyword(a_module_token_cache_ptr     cache,
-                            an_ifc_source_keyword_sort   keyword);
-  void cache_source_identifier(a_module_token_cache_ptr                cache,
-                               const an_ifc_source_identifier_category &id);
-  void cache_string(a_module_token_cache_ptr     cache,
-                    an_ifc_string_index          string);
   uint32_t try_cache_class_attributes_from_body(
                                        a_module_token_cache_ptr cache,
                                        an_ifc_sentence_index    body_sentence);
@@ -739,6 +704,10 @@ extern a_boolean load_type_definition_from_ifc_module(a_type_ptr  ty);
 extern a_dynamic_init_ptr load_variable_init_from_ifc_module(
                                                 a_type_ptr        tp,
                                                 an_ifc_expr_index init_expr);
+
+extern a_boolean extract_tokens_for_ifc_module_expr(
+                              a_lexical_ifc_index_reference *index,
+                              a_token_sequence_number       *expected_end_tsn);
 
 extern void record_symbol_for_ifc_decl(a_symbol_ptr  sym);
 

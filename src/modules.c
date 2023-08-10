@@ -1315,34 +1315,6 @@ initializer.
   return result;
 }  /* load_variable_init_from_module */
 
-
-a_boolean extract_tokens_for_module_expr(
-                    ARG_UNUSED a_lexical_ifc_index_reference *index,
-                    ARG_UNUSED a_token_sequence_number       *expected_end_tsn)
-/*
-Extract the tokens corresponding to the expression referred to by index and
-insert them into the token stream.  The expected ending token sequence number
-will be written to expected_end_tsn.  The caller is responsible for calling
-exit_ifc_rescan with the associated expected_end_tsn value.  Return TRUE if the
-token extraction was successful, tokens were rescanned, and a call to
-exit_ifc_rescan is required; otherwise, return FALSE.
-*/
-{
-  a_boolean            result = FALSE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  a_module_token_cache cache;
-  an_ifc_expr_index    expr_index =
-                                 from_lexical_index<an_ifc_expr_index>(*index);
-
-  module_of(expr_index)->cache_expr(&cache, expr_index, /*cinfo=*/{});
-  if (cache.is_valid()) {
-    *expected_end_tsn = enter_module_token_rescan(&cache);
-    result = TRUE;
-  }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  return result;
-}  /* extract_tokens_for_module_expr */
-
 #if DEBUG
 
 void db_tokens(a_module_token_cache_ptr cache)
