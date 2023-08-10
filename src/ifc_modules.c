@@ -268,6 +268,71 @@ missing source location; otherwise, return FALSE.
 }  /* is_missing_source_location */
 
 
+static a_boolean source_position_from_module(
+                                           a_source_position          *pos,
+                                           an_ifc_module              *mod,
+                                           an_ifc_index_type          file_idx,
+                                           an_ifc_line_number_storage line,
+                                           an_ifc_column_storage      column)
+/*
+Map the given IFC file index (the index of the file in the IFC
+"name.source-file" partition), line (starting at 1; 0 is not accepted, a line
+number must be given), and column (0 can be used for an unknown column number;
+1 and above for the known column number) information for the given module, into
+the source position at pos.  Return TRUE if processing succeeded, otherwise
+return FALSE.
+*/
+{
+  /* IFC LineNumbers start at one, a line number of zero means the source line
+     isn't known.  As the front end (at the time of writing) doesn't support
+     source locations for a file without a line, the caller is required to
+     provide a line number. */
+  check_assertion(line > 0);
+  a_boolean       result = TRUE;
+  an_ifc_module::a_module_sequence_number_mapping
+                  *msnmp = &mod->sequence_numbers[file_idx];
+
+  /* See if this file has been used before. */
+  if (msnmp->starting_sequence_number == 0) {
+    /* First time accessing this source file; record the start of a new
+       source file.  Note that this may be out-of-order as it depends on the
+       order that entities are used, but the full tree of source file
+       references isn't available in the IFC file. */
+    an_ifc_name_index src_file_idx(&mod->file, ifc_ns_name_source_file,
+                                   file_idx);
+    Opt<a_string>     opt_file_name = name_from_index(src_file_idx);
+
+    if (!opt_file_name.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    a_string     file_name = *opt_file_name;
+    a_const_char *copied_file_name = copy_string_to_region(
+                                               FILE_SCOPE_REGION_NUMBER,
+                                               file_name.as_temp_characters());
+    record_inclusion_of_module_source_file(copied_file_name, pos,
+                                           mod->assoc_module_info,
+                                           msnmp->max_line_number);
+    msnmp->starting_sequence_number = pos->seq;
+  }  /* if */
+  /* If this assertion fails, the initial source position scan when the
+     module is imported did not properly account for it. */
+  check_assertion(line <= msnmp->max_line_number);
+  pos->seq = msnmp->starting_sequence_number + line;
+  /* Add one to map 0-based IFC column numbers to 1-based EDG numbers. */
+  pos->column = column;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  pos->orig_seq = pos->seq;
+  pos->orig_column = pos->column;
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
+}  /* source_position_from_module */
+
+
 static a_boolean source_position_from_locus(
                                            a_source_position            *pos,
                                            const an_ifc_source_location &locus)
@@ -303,39 +368,10 @@ Return TRUE if processing succeeded, otherwise return FALSE.
         goto invalid;
       }  /* if */
 
-      /* See if this file has been used before. */
-      an_ifc_module::a_module_sequence_number_mapping *msnmp =
-                                        &mod->sequence_numbers[file_idx.value];
-      if (msnmp->starting_sequence_number == 0) {
-        /* First time accessing this source file; record the start of a new
-           source file.  Note that this may be out-of-order as it depends on
-           the order that entities are used, but the full tree of source file
-           references isn't available in the IFC file. */
-        Opt<a_string> opt_file_name = name_from_index(file_idx);
-        if (!opt_file_name.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        const a_string &file_name = *opt_file_name;
-        a_const_char   *copied_file_name = copy_string_to_region(
-                                               FILE_SCOPE_REGION_NUMBER,
-                                               file_name.as_temp_characters());
-
-        record_inclusion_of_module_source_file(copied_file_name, pos,
-                                               mod->assoc_module_info,
-                                               msnmp->max_line_number);
-        msnmp->starting_sequence_number = pos->seq;
-      }  /* if */
-      /* If this assertion fails, the initial source position scan when the
-         module is imported did not properly account for it. */
-      check_assertion(line <= msnmp->max_line_number);
-      pos->seq = msnmp->starting_sequence_number + line;
       /* Add one to map 0-based IFC column numbers to 1-based EDG numbers. */
-      pos->column = get_ifc_column(locus) + 1;
-#if FULLY_RESOLVED_MACRO_POSITIONS
-      pos->orig_seq = pos->seq;
-      pos->orig_column = pos->column;
-#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+      an_ifc_column_storage column = get_ifc_column(locus) + 1;
+      result = source_position_from_module(pos, mod, file_idx.value,
+                                           line, column);
     }  /* if */
   }  /* if */
   goto done;
@@ -826,6 +862,19 @@ Given an IFC partition kind index, return an IFC decl index.
 
   return an_ifc_decl_index{index.file, sort, index.value};
 }  /* to_decl_index */
+
+
+static inline uintptr_t hash_ptr(an_ifc_partition_kind_index  idx)
+/*
+Return a hash value for the given IFC partition index.
+*/
+{
+  uintptr_t  result = 17*31 + hash_ptr((void*)idx.file);
+
+  result = result*31 + (uintptr_t)idx.partition_kind;
+  result = result*31 + (uintptr_t)idx.value;
+  return result;
+}  /* hash_ptr */
 
 
 static inline uintptr_t hash_ptr(an_ifc_decl_index  idx)
@@ -1395,10 +1444,10 @@ name can be determined, return an empty optional.
 namespace {
 
 template<typename an_ifc_Node_type>
-struct Sequence_traverser;
+struct Node_sequence;
 
 /*
-A struct representing a traversed node's value and index.
+A struct representing a sequenced node's value and index.
 */
 template<typename an_ifc_Node_type>
 struct Indexed {
@@ -1409,10 +1458,10 @@ struct Indexed {
     { return *node_value; }
   Opt<an_ifc_Node_type>
                   node_value;
-                          /* The traversed node's value (if any). */
+                          /* The sequenced node's value (if any). */
   an_ifc_partition_kind_index
                   node_idx;
-                          /* The traversed node's index information. */
+                          /* The sequenced node's index information. */
 };  /* Indexed */
 
 
@@ -1431,79 +1480,83 @@ the given index.
 
 
 /*
-An internal iterator type for Sequence_traverser.  This type should only be
+An internal iterator type for Node_sequence.  This type should only be
 constructed after its index has been validated to point to a (possibly invalid,
 but still present) node.
 */
 template<typename an_ifc_Node_type>
-struct Sequence_traversal_iterator {
-  Sequence_traversal_iterator()
+struct Node_sequence_iterator {
+  Node_sequence_iterator()
     : mod(NULL), index(0)
     {}
 
-  inline Sequence_traversal_iterator<an_ifc_Node_type> operator++();
+  inline Node_sequence_iterator<an_ifc_Node_type> operator++();
   inline Indexed<an_ifc_Node_type> operator*() const;
 
   a_boolean
-  operator==(const Sequence_traversal_iterator<an_ifc_Node_type>& other) const
+  operator==(const Node_sequence_iterator<an_ifc_Node_type>& other) const
     { return this->mod == other.mod && this->index == other.index; }
   a_boolean
-  operator!=(const Sequence_traversal_iterator<an_ifc_Node_type>& other) const
+  operator!=(const Node_sequence_iterator<an_ifc_Node_type>& other) const
     { return !(*this == other); }
 private:
-  Sequence_traversal_iterator(an_ifc_module     *mod_val,
-                              an_ifc_index_type index_val)
+  Node_sequence_iterator(an_ifc_module     *mod_val,
+                         an_ifc_index_type index_val)
     : mod(mod_val), index(index_val)
     {}
 
   an_ifc_module *mod;   /* The module owning the sequence. */
   an_ifc_index_type
                 index;  /* The current position in the sequence. */
-  friend Sequence_traverser<an_ifc_Node_type>;
-};  /* Sequence_traversal_iterator */
+  friend Node_sequence<an_ifc_Node_type>;
+};  /* Node_sequence_iterator */
 
 
 template<typename an_ifc_Node_type>
-inline Sequence_traversal_iterator<an_ifc_Node_type>
-Sequence_traversal_iterator<an_ifc_Node_type>::operator++()
+inline Node_sequence_iterator<an_ifc_Node_type>
+Node_sequence_iterator<an_ifc_Node_type>::operator++()
 /*
 Increment the current iterator and return the iterator state.
 */
 {
   ++this->index;
   return *this;
-}  /* operator++ */
+}  /* Node_sequence_iterator::operator++ */
 
 
 template<typename an_ifc_Node_type>
 inline Indexed<an_ifc_Node_type>
-Sequence_traversal_iterator<an_ifc_Node_type>::operator*() const
+Node_sequence_iterator<an_ifc_Node_type>::operator*() const
 /*
 Return the current iterator value.
 */
 {
   return Indexed<an_ifc_Node_type>(this->mod, this->index);
-}  /* operator* */
+}  /* Node_sequence_iterator::operator* */
 
 
 /*
-A structure for quickly implementing validated IFC sequence traversals.
+A structure for quickly interacting with validated IFC node sequences.
 */
 template<typename an_ifc_Node_type>
-struct Sequence_traverser {
-  Sequence_traverser(an_ifc_module              *mod_val,
-                     an_ifc_index_type          start_val,
-                     an_ifc_cardinality_storage cardinality_val);
-  Sequence_traverser(an_ifc_module              *mod_val,
-                     an_ifc_index_type          start_val);
+struct Node_sequence {
+  Node_sequence(an_ifc_module              *mod_val,
+                an_ifc_index_type          start_val,
+                an_ifc_cardinality_storage cardinality_val);
+  Node_sequence(an_ifc_module              *mod_val,
+                an_ifc_index_type          start_val);
   template<typename an_ifc_Traversal_node_type>
-  Sequence_traverser(const an_ifc_Traversal_node_type &node,
-                     an_ifc_index_type                offset = 0)
-    : Sequence_traverser(module_of(node), get_ifc_start(node) + offset,
+  Node_sequence(const an_ifc_Traversal_node_type &node,
+                an_ifc_index_type                offset = 0)
+    : Node_sequence(module_of(node), get_ifc_start(node) + offset,
                          get_ifc_cardinality(node) - offset)
     { check_assertion(get_ifc_cardinality(node) >= offset); }
-  inline Sequence_traversal_iterator<an_ifc_Node_type> begin() const;
-  inline Sequence_traversal_iterator<an_ifc_Node_type> end() const;
+  inline Node_sequence_iterator<an_ifc_Node_type> begin() const;
+  inline Node_sequence_iterator<an_ifc_Node_type> end() const;
+
+  inline Opt<an_ifc_Node_type> operator[](an_ifc_index_type idx) const;
+  an_ifc_index_type length() const
+    { return cardinality; }
 
   an_ifc_index_type get_start_index() const
     { return start; }
@@ -1516,19 +1569,19 @@ private:
   an_ifc_cardinality_storage
                 cardinality;
                         /* The number of elements in the sequence. */
-};  /* Sequence_traverser */
+};  /* Node_sequence */
 
 
 template<typename an_ifc_Node_type>
-Sequence_traverser<an_ifc_Node_type>::Sequence_traverser(
+Node_sequence<an_ifc_Node_type>::Node_sequence(
                                     an_ifc_module              *mod_val,
                                     an_ifc_index_type          start_val,
                                     an_ifc_cardinality_storage cardinality_val)
   : mod(mod_val), start(start_val), cardinality(cardinality_val)
 /*
-Construct a sequence traversal object that will traverse the partition
-associated with an_ifc_Node_type in the given module from start_val through
-start_val + cardinality_val (exclusive).
+Construct a node sequence object that will represents a sequence in the
+partition associated with an_ifc_Node_type in the given module from start_val
+through start_val + cardinality_val (exclusive).
 */
 {
   if (this->cardinality > 0) {
@@ -1544,11 +1597,11 @@ start_val + cardinality_val (exclusive).
       this->cardinality = 0;
     }  /* if */
   }  /* if */
-}  /* Sequence_traverser */
+}  /* Node_sequence::Node_sequence */
 
 
 template<typename an_ifc_Node_type>
-Sequence_traverser<an_ifc_Node_type>::Sequence_traverser(
+Node_sequence<an_ifc_Node_type>::Node_sequence(
                                     an_ifc_module              *mod_val,
                                     an_ifc_index_type          start_val)
   : mod(mod_val), start(start_val),
@@ -1556,58 +1609,80 @@ Sequence_traverser<an_ifc_Node_type>::Sequence_traverser(
              mod->get_num_entries(get_ifc_partition_kind<an_ifc_Node_type>()) -
              start_val)
 /*
-Construct a sequence traversal object that will traverse the partition
-associated with an_ifc_Node_type in the given module from start_val through
-the end of the partition.
+Construct a node sequence object that will represent a sequence in the
+partition associated with an_ifc_Node_type in the given module from start_val
+through the end of the partition.
 */
 {
-}  /* Sequence_traverser */
+}  /* Node_sequence::Node_sequence */
 
 
 template<typename an_ifc_Node_type>
-inline Sequence_traversal_iterator<an_ifc_Node_type>
-Sequence_traverser<an_ifc_Node_type>::begin() const
+Node_sequence_iterator<an_ifc_Node_type>
+Node_sequence<an_ifc_Node_type>::begin() const
 /*
 Return an iterator to the start of the sequence, or an invalid iterator if the
 sequence is not valid.
 */
 {
-  Sequence_traversal_iterator<an_ifc_Node_type> result;
+  Node_sequence_iterator<an_ifc_Node_type> result;
 
   if (this->cardinality != 0) {
     result = {mod, start};
   }  /* if */
   return result;
-}  /* begin */
+}  /* Node_sequence::begin */
 
 
 template<typename an_ifc_Node_type>
-inline Sequence_traversal_iterator<an_ifc_Node_type>
-Sequence_traverser<an_ifc_Node_type>::end() const
+inline Node_sequence_iterator<an_ifc_Node_type>
+Node_sequence<an_ifc_Node_type>::end() const
 /*
 Return an iterator to the end of the sequence, or an invalid iterator if the
 sequence is not valid.
 */
 {
-  Sequence_traversal_iterator<an_ifc_Node_type> result;
+  Node_sequence_iterator<an_ifc_Node_type> result;
 
   if (this->cardinality != 0) {
     result = {mod, start + cardinality};
   }  /* if */
   return result;
-}  /* end */
+}  /* Node_sequence::end */
 
 
 template<typename an_ifc_Node_type>
-inline an_ifc_index_type
-get_relative_index(const Sequence_traverser<an_ifc_Node_type> &traverser,
-                   const Indexed<an_ifc_Node_type>         &indexed_value)
+Opt<an_ifc_Node_type>
+Node_sequence<an_ifc_Node_type>::operator[](an_ifc_index_type idx) const
 /*
-Given a traverser and a derived indexed value, return the relative index of the
-indexed value from the start of the traverser.
+Return a the node at the given relative index in the sequence, or an empty
+optional if the node is not valid.
 */
 {
-  an_ifc_index_type start_idx = traverser.get_start_index();
+  Opt<an_ifc_Node_type> result;
+  an_ifc_index_type     element_index = this->get_start_index() + idx;
+
+  check_assertion(element_index < this->get_end_index());
+
+  an_ifc_partition_kind_index node_idx(
+                                    &mod->file,
+                                    get_ifc_partition_kind<an_ifc_Node_type>(),
+                                    element_index);
+  construct_node(&result, node_idx);
+  return result;
+}  /* Node_sequence::operator[] */
+
+
+template<typename an_ifc_Node_type>
+an_ifc_index_type
+get_relative_index(const Node_sequence<an_ifc_Node_type> &sequence,
+                   const Indexed<an_ifc_Node_type>       &indexed_value)
+/*
+Given a node sequence and a derived indexed value, return the relative index of
+the indexed value from the start of the sequence.
+*/
+{
+  an_ifc_index_type start_idx = sequence.get_start_index();
   an_ifc_index_type node_idx = indexed_value.node_idx.value;
 
 #if EXPENSIVE_CHECKING
@@ -1619,37 +1694,37 @@ indexed value from the start of the traverser.
 
 template<typename an_ifc_Node_type>
 inline a_boolean
-is_first(const Sequence_traverser<an_ifc_Node_type> &traverser,
-         const Indexed<an_ifc_Node_type>         &indexed_value)
+is_first(const Node_sequence<an_ifc_Node_type> &sequence,
+         const Indexed<an_ifc_Node_type>       &indexed_value)
 /*
-Given a traverser and a derived indexed value, return TRUE if the indexed value
-is the first value; otherwise, return FALSE.
+Given a node sequence and a derived indexed value, return TRUE if the indexed
+value is the first value; otherwise, return FALSE.
 */
 {
-  an_ifc_index_type rel_idx = get_relative_index(traverser, indexed_value);
+  an_ifc_index_type rel_idx = get_relative_index(sequence, indexed_value);
 
   return rel_idx == 0;
 }  /* is_first */
 
 }  /* namespace */
 
-/* Convenience aliases for Sequence_traverser. */
-using a_attr_heap_traverser = Sequence_traverser<an_ifc_heap_attr>;
-using a_decl_enumerator_traverser = Sequence_traverser<an_ifc_decl_enumerator>;
-using a_decl_heap_traverser = Sequence_traverser<an_ifc_heap_decl>;
-using a_decl_parameter_traverser = Sequence_traverser<an_ifc_decl_parameter>;
-using a_decl_partial_specialization_traverser =
-                        Sequence_traverser<an_ifc_decl_partial_specialization>;
-using a_decl_specialization_traverser =
-                                Sequence_traverser<an_ifc_decl_specialization>;
-using a_decl_temploid_traverser = Sequence_traverser<an_ifc_decl_temploid>;
-using an_expr_heap_traverser = Sequence_traverser<an_ifc_heap_expr>;
-using a_pp_heap_traverser = Sequence_traverser<an_ifc_heap_pp_form>;
-using a_scope_member_traverser = Sequence_traverser<an_ifc_scope_member>;
-using a_source_word_traverser = Sequence_traverser<an_ifc_source_word>;
-using a_stmt_heap_traverser = Sequence_traverser<an_ifc_heap_stmt>;
-using a_syntax_heap_traverser = Sequence_traverser<an_ifc_heap_syntax>;
-using a_type_heap_traverser = Sequence_traverser<an_ifc_heap_type>;
+/* Convenience aliases for Node_sequence. */
+using a_attr_heap_sequence = Node_sequence<an_ifc_heap_attr>;
+using a_decl_enumerator_sequence = Node_sequence<an_ifc_decl_enumerator>;
+using a_decl_heap_sequence = Node_sequence<an_ifc_heap_decl>;
+using a_decl_parameter_sequence = Node_sequence<an_ifc_decl_parameter>;
+using a_decl_partial_specialization_sequence =
+                             Node_sequence<an_ifc_decl_partial_specialization>;
+using a_decl_specialization_sequence =
+                                     Node_sequence<an_ifc_decl_specialization>;
+using a_decl_temploid_sequence = Node_sequence<an_ifc_decl_temploid>;
+using an_expr_heap_sequence = Node_sequence<an_ifc_heap_expr>;
+using a_pp_heap_sequence = Node_sequence<an_ifc_heap_pp_form>;
+using a_scope_member_sequence = Node_sequence<an_ifc_scope_member>;
+using a_source_word_sequence = Node_sequence<an_ifc_source_word>;
+using a_stmt_heap_sequence = Node_sequence<an_ifc_heap_stmt>;
+using a_syntax_heap_sequence = Node_sequence<an_ifc_heap_syntax>;
+using a_type_heap_sequence = Node_sequence<an_ifc_heap_type>;
 
 using an_ifc_decl_lookup_table = Ptr_map<an_ifc_decl_index, a_symbol_ptr>;
                         /* The type of a table that maps IFC declaration
@@ -4332,11 +4407,11 @@ previously constructed parameters, e.g.:
         *result = alloc_template_decl_info();
         (*result)->template_decl = alloc_template_decl();
         an_ifc_chart_unilevel      param_chart = *opt_param_chart;
-        a_decl_parameter_traverser traverser(param_chart);
+        a_decl_parameter_sequence  sequence(param_chart);
         a_template_param_ptr       *sym_next = &((*result)->parameters);
         a_template_parameter_ptr   il_start;
         a_template_parameter_ptr   *il_next = &il_start;
-        for (Indexed<an_ifc_decl_parameter> indexed_idp : traverser) {
+        for (Indexed<an_ifc_decl_parameter> indexed_idp : sequence) {
           if (!indexed_idp.has_value()) {
             goto invalid;
           }  /* if */
@@ -4352,7 +4427,7 @@ previously constructed parameters, e.g.:
           /* Check to ensure the parameter number read from the IFC matches the
              logical expectation (i.e., 1, 2, ..., n). */
           an_ifc_index_type computed_param_num =
-                                get_relative_index(traverser, indexed_idp) + 1;
+                                 get_relative_index(sequence, indexed_idp) + 1;
           if (new_sym_param->param_num != computed_param_num) {
             an_ifc_decl_index param_idx = to_decl_index(indexed_idp.node_idx);
             a_string          err_msg(index_to_str(param_idx),
@@ -4833,10 +4908,10 @@ the concrete "sub-entities" is imminent, return TRUE; otherwise, return FALSE.
 
     construct_node(&opt_tuple_decl, decl_idx);
     if (opt_tuple_decl.has_value()) {
-      an_ifc_decl_tuple     tuple_decl = *opt_tuple_decl;
-      a_decl_heap_traverser traverser(tuple_decl);
+      an_ifc_decl_tuple    tuple_decl = *opt_tuple_decl;
+      a_decl_heap_sequence sequence(tuple_decl);
 
-      for (Indexed<an_ifc_heap_decl> indexed_ihd : traverser) {
+      for (Indexed<an_ifc_heap_decl> indexed_ihd : sequence) {
         if (!indexed_ihd.has_value()) {
           continue;
         }  /* if */
@@ -5370,13 +5445,13 @@ braces for a compound statement).
           goto invalid;
         }  /* if */
 
-        a_stmt_heap_traverser traverser(*opt_isb);
+        a_stmt_heap_sequence sequence(*opt_isb);
         if (!cinfo.func_body) {
           cache_token(cache, tok_lbrace);
         }  /* if */
         { an_ifc_cache_info cache_info = cinfo;
           cache_info.func_body = FALSE;
-          for (Indexed<an_ifc_heap_stmt> indexed_ihs : traverser) {
+          for (Indexed<an_ifc_heap_stmt> indexed_ihs : sequence) {
             if (!indexed_ihs.has_value()) {
               goto invalid;
             }  /* if */
@@ -5893,9 +5968,9 @@ about what to cache.
         }  /* if */
         constraint = get_ifc_constraint(*opt_icu);
 
-        a_decl_parameter_traverser traverser(*opt_icu);
-        a_boolean                  first = TRUE;
-        for (Indexed<an_ifc_decl_parameter> indexed_idp : traverser) {
+        a_decl_parameter_sequence sequence(*opt_icu);
+        a_boolean                 first = TRUE;
+        for (Indexed<an_ifc_decl_parameter> indexed_idp : sequence) {
           if (!indexed_idp.has_value()) {
             goto invalid;
           }  /* if */
@@ -5919,9 +5994,9 @@ about what to cache.
           goto invalid;
         }  /* if */
 
-        a_decl_temploid_traverser traverser(*opt_icm);
-        a_boolean                 first = TRUE;
-        for (Indexed<an_ifc_decl_temploid> indexed_idt : traverser) {
+        a_decl_temploid_sequence sequence(*opt_icm);
+        a_boolean                first = TRUE;
+        for (Indexed<an_ifc_decl_temploid> indexed_idt : sequence) {
           if (!first) {
             cache_token(cache, tok_comma);
           }  /* if */
@@ -6052,9 +6127,9 @@ otherwise, return FALSE.
 {
   a_boolean                  valid_data = TRUE;
   an_ifc_cardinality_storage used_param_count = 0;
-  a_decl_parameter_traverser traverser(icul);
+  a_decl_parameter_sequence  sequence(icul);
 
-  for (Indexed<an_ifc_decl_parameter> indexed_idp : traverser) {
+  for (Indexed<an_ifc_decl_parameter> indexed_idp : sequence) {
     if (!indexed_idp.has_value()) {
       valid_data = FALSE;
       break;
@@ -6101,16 +6176,16 @@ equivalent; otherwise, return FALSE.
       add_bad_parameter_count_info(diag_ptr, chart_param_count,
                                    decl_param_count);
 
-      a_decl_parameter_traverser traverser(icul);
-      General_allocator<char>    allocator;
-      for (Indexed<an_ifc_decl_parameter> indexed_idp : traverser) {
+      a_decl_parameter_sequence sequence(icul);
+      General_allocator<char>   allocator;
+      for (Indexed<an_ifc_decl_parameter> indexed_idp : sequence) {
         /* Already constructed by check_for_param_count_correction, which
            fails if there was a problem. */
         check_assertion(indexed_idp.has_value());
         if (is_bad_ifc_parameter(*indexed_idp)) {
           an_ifc_text_offset name_idx = get_ifc_name(*indexed_idp);
           a_string           name = get_string_at_offset(name_idx);
-          an_ifc_index_type  relative_idx = get_relative_index(traverser,
+          an_ifc_index_type  relative_idx = get_relative_index(sequence,
                                                                indexed_idp);
 
           /* FIXME: Eventually this should be reworked so we don't allocate on
@@ -6219,9 +6294,9 @@ added successfully, return FALSE otherwise.
     a_param_type_ptr  ptp = params;
     func_info->scope_number = scope_stack_top().number;
 
-    a_param_id_ptr             last_param_id = nullptr;
-    a_decl_parameter_traverser traverser(icul);
-    for (Indexed<an_ifc_decl_parameter> indexed_idp : traverser) {
+    a_param_id_ptr            last_param_id = nullptr;
+    a_decl_parameter_sequence sequence(icul);
+    for (Indexed<an_ifc_decl_parameter> indexed_idp : sequence) {
       if (!indexed_idp.has_value()) {
         result = FALSE;
         goto done;
@@ -6885,11 +6960,11 @@ template parameter list (excluding names and default arguments) to the given IL
 parameter list; otherwise, return FALSE.
 */
 {
-  a_boolean                  result = TRUE;
-  a_template_param_ptr       curr = il_param_list;
-  a_decl_parameter_traverser traverser(param_chart);
+  a_boolean                 result = TRUE;
+  a_template_param_ptr      curr = il_param_list;
+  a_decl_parameter_sequence sequence(param_chart);
 
-  for (Indexed<an_ifc_decl_parameter> idxd_param : traverser) {
+  for (Indexed<an_ifc_decl_parameter> idxd_param : sequence) {
     if (curr == NULL) {
       /* If there are no more IL template parameters, fail. */
       goto no_match;
@@ -7063,9 +7138,9 @@ FALSE.
               goto invalid;
             }  /* if */
 
-            an_ifc_chart_unilevel      params = *opt_params;
-            a_decl_parameter_traverser traverser(params);
-            for (Indexed<an_ifc_decl_parameter> idxd_param : traverser) {
+            an_ifc_chart_unilevel     params = *opt_params;
+            a_decl_parameter_sequence sequence(params);
+            for (Indexed<an_ifc_decl_parameter> idxd_param : sequence) {
               if (curr == NULL) {
                 /* If there are no more IL function parameters, fail. */
                 goto no_match;
@@ -7882,10 +7957,10 @@ explicit instantiations and specializations.
   /* Process the specializations directly associated with the template declared
      in the same IFC file. */
   if (spec_sequence.has_value()) {
-    an_ifc_sequence          seq = *spec_sequence;
-    a_scope_member_traverser traverser(seq);
+    an_ifc_sequence         seq = *spec_sequence;
+    a_scope_member_sequence sequence(seq);
 
-    for (Indexed<an_ifc_scope_member> indexed_scope_mem : traverser) {
+    for (Indexed<an_ifc_scope_member> indexed_scope_mem : sequence) {
       if (!indexed_scope_mem.has_value()) {
         continue;
       }  /* if */
@@ -9354,9 +9429,9 @@ strongly preferred over calling this function directly.
           kind = iek_type;
 
           /* Process the enumerators. */
-          an_ifc_sequence             initializer = get_ifc_initializer(ide);
-          a_decl_enumerator_traverser traverser(initializer);
-          for (Indexed<an_ifc_decl_enumerator> idxed_enmtr : traverser) {
+          an_ifc_sequence            initializer = get_ifc_initializer(ide);
+          a_decl_enumerator_sequence sequence(initializer);
+          for (Indexed<an_ifc_decl_enumerator> idxed_enmtr : sequence) {
             if (!idxed_enmtr.has_value()) {
               goto invalid;
             }  /* if */
@@ -9804,9 +9879,9 @@ strongly preferred over calling this function directly.
 
         /* Collect the entries of the overload set in a list of IL entries
            (an_il_entity_list_entry_ptr). */
-        a_decl_heap_traverser  traverser(*opt_idt);
-        a_scope_ptr            scope = mep->scope;
-        for (Indexed<an_ifc_heap_decl> indexed_ihd : traverser) {
+        a_decl_heap_sequence sequence(*opt_idt);
+        a_scope_ptr          scope = mep->scope;
+        for (Indexed<an_ifc_heap_decl> indexed_ihd : sequence) {
           if (!indexed_ihd.has_value()) {
             goto invalid;
           }  /* if */
@@ -10037,8 +10112,8 @@ contains information about the current cache context to help inform decisions
 about what to cache.
 */
 {
-  a_scope_member_traverser traverser(seq);
-  for (Indexed<an_ifc_scope_member> indexed_scope_mem : traverser) {
+  a_scope_member_sequence sequence(seq);
+  for (Indexed<an_ifc_scope_member> indexed_scope_mem : sequence) {
     if (!indexed_scope_mem.has_value()) {
       goto invalid;
     }  /* if */
@@ -10099,10 +10174,10 @@ of the class type.
   find_trait(&opt_friends, class_idx);
   if (opt_friends.has_value()) {
     /* There are friends: Record them. */
-    an_ifc_sequence          friends = get_ifc_trait(*opt_friends);
-    a_scope_member_traverser traverser(friends);
+    an_ifc_sequence         friends = get_ifc_trait(*opt_friends);
+    a_scope_member_sequence sequence(friends);
 
-    for (Indexed<an_ifc_scope_member> indexed_scope_mem : traverser) {
+    for (Indexed<an_ifc_scope_member> indexed_scope_mem : sequence) {
       if (!indexed_scope_mem.has_value()) {
         continue;
       }  /* if */
@@ -10190,11 +10265,11 @@ member scope descriptor into the given cache.
 */
 {
   Small_dyn_array<a_class_member_descriptor, 20> class_members;
-  a_scope_member_traverser                       traverser(scope_desc);
+  a_scope_member_sequence                        sequence(scope_desc);
 
   /* Traverse the scope members, clean up the data, and create a "plan" from it
      describing what needs to be cached (i.e., populate class_members). */
-  for (Indexed<an_ifc_scope_member> indexed_scope_mem : traverser) {
+  for (Indexed<an_ifc_scope_member> indexed_scope_mem : sequence) {
     if (!indexed_scope_mem.has_value()) {
       goto invalid;
     }  /* if */
@@ -10272,9 +10347,9 @@ diagnostic count snapshot of diagnostics that were emitted during class
 parsing; this is used to diagnose unprocessed tok_ifc_decl tokens.
 */
 {
-  a_scope_member_traverser traverser(class_members);
+  a_scope_member_sequence sequence(class_members);
 
-  for (Indexed<an_ifc_scope_member> indexed_scope_mem : traverser) {
+  for (Indexed<an_ifc_scope_member> indexed_scope_mem : sequence) {
     if (!indexed_scope_mem.has_value()) {
       continue;
     }  /* if */
@@ -11092,9 +11167,9 @@ diagnostics if issue_diag is TRUE.
     uint32_t num_specializations = get_num_entries(ifc_pk_decl_specialization);
 
     if (num_specializations > 0) {
-      a_decl_specialization_traverser traverser(this, 0);
+      a_decl_specialization_sequence sequence(this, 0);
 
-      for (Indexed<an_ifc_decl_specialization> indexed_spec : traverser) {
+      for (Indexed<an_ifc_decl_specialization> indexed_spec : sequence) {
         if (!indexed_spec.has_value()) {
           continue;
         }  /* if */
@@ -11120,8 +11195,8 @@ diagnostics if issue_diag is TRUE.
        specializations need to be processed now.  Note this code is only
        relevant for eager loading mode, which is a feature that is hidden
        behind EXPENSIVE_CHECKING (hence the surrounding preprocessor block). */
-    a_decl_specialization_traverser spec_traverser(this, /*start=*/0);
-    for (an_indexed_spec indexed_spec : spec_traverser) {
+    a_decl_specialization_sequence spec_sequence(this, /*start=*/0);
+    for (an_indexed_spec indexed_spec : spec_sequence) {
       if (indexed_spec.has_value()) {
         an_ifc_decl_index decl_idx = to_decl_index(indexed_spec.node_idx);
 
@@ -11129,9 +11204,9 @@ diagnostics if issue_diag is TRUE.
       }  /* if */
     }  /* for */
 
-    a_decl_partial_specialization_traverser part_spec_traverser(this,
+    a_decl_partial_specialization_sequence part_spec_sequence(this,
                                                                 /*start=*/0);
-    for (an_indexed_partial_spec indexed_spec : part_spec_traverser) {
+    for (an_indexed_partial_spec indexed_spec : part_spec_sequence) {
       if (indexed_spec.has_value()) {
         an_ifc_decl_index decl_idx = to_decl_index(indexed_spec.node_idx);
 
@@ -11351,9 +11426,9 @@ be deferred until they are referenced.
       goto done;
     }  /* if */
 
-    an_ifc_scope_descriptor  scope_desc = *opt_scope_desc;
-    a_scope_member_traverser traverser(scope_desc);
-    for (Indexed<an_ifc_scope_member> indexed_scope_mem : traverser) {
+    an_ifc_scope_descriptor scope_desc = *opt_scope_desc;
+    a_scope_member_sequence sequence(scope_desc);
+    for (Indexed<an_ifc_scope_member> indexed_scope_mem : sequence) {
       if (!indexed_scope_mem.has_value()) {
         continue;
       }  /* if */
@@ -11608,16 +11683,16 @@ otherwise, return FALSE.
         goto invalid;
       }  /* if */
 
-      an_ifc_type_tuple     itt = *opt_itt;
-      a_type_heap_traverser traverser(itt);
-      a_param_type_ptr      *prev = &rtsp->param_type_list;
-      for (Indexed<an_ifc_heap_type> indexed_iht : traverser) {
+      an_ifc_type_tuple    itt = *opt_itt;
+      a_type_heap_sequence sequence(itt);
+      a_param_type_ptr     *prev = &rtsp->param_type_list;
+      for (Indexed<an_ifc_heap_type> indexed_iht : sequence) {
         if (!indexed_iht.has_value()) {
           goto invalid;
         }  /* if */
 
         an_ifc_heap_type  iht = *indexed_iht;
-        an_ifc_index_type idx = get_relative_index(traverser, indexed_iht);
+        an_ifc_index_type idx = get_relative_index(sequence, indexed_iht);
         an_ifc_type_index indexed_type = get_ifc_value(iht);
         a_param_type_ptr  ptp = make_param_type_from_ifc(rtsp, indexed_type);
         if (ptp != NULL) {
@@ -12982,10 +13057,10 @@ are appended successfully; otherwise, return FALSE.
 
   construct_node(&opt_iet, arguments);
   if (opt_iet.has_value()) {
-    an_ifc_expr_tuple      iet = *opt_iet;
-    an_expr_heap_traverser traverser(iet);
+    an_ifc_expr_tuple     iet = *opt_iet;
+    an_expr_heap_sequence sequence(iet);
 
-    for (Indexed<an_ifc_heap_expr> indexed_ihe : traverser) {
+    for (Indexed<an_ifc_heap_expr> indexed_ihe : sequence) {
       if (!indexed_ihe.has_value()) {
         goto invalid;
       }  /* if */
@@ -14679,10 +14754,10 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
           goto invalid;
         }  /* if */
 
-        an_ifc_expr_tuple      iet = *opt_iet;
-        an_expr_heap_traverser traverser(iet);
-        a_constant_ptr         *curr_const_ptr = &result;
-        for (Indexed<an_ifc_heap_expr> traversed_ihe : traverser) {
+        an_ifc_expr_tuple     iet = *opt_iet;
+        an_expr_heap_sequence sequence(iet);
+        a_constant_ptr        *curr_const_ptr = &result;
+        for (Indexed<an_ifc_heap_expr> traversed_ihe : sequence) {
           if (!traversed_ihe.has_value()) {
             goto invalid;
           }  /* if */
@@ -14887,14 +14962,14 @@ successful, FALSE if any errors were encountered.
   check_assertion(params.sort == ifc_cs_chart_unilevel);
   construct_node(&opt_icu, params);
   if (opt_icu.has_value()) {
-    an_ifc_chart_unilevel      icu = *opt_icu;
-    a_decl_parameter_traverser traverser(icu);
+    an_ifc_chart_unilevel     icu = *opt_icu;
+    a_decl_parameter_sequence sequence(icu);
 
-    for (Indexed<an_ifc_decl_parameter> indexed_param : traverser) {
+    for (Indexed<an_ifc_decl_parameter> indexed_param : sequence) {
       if (ptp == NULL) {
         /* This should only be possible to encounter when the function has
            an ellipsis parameter. */
-        check_assertion((get_relative_index(traverser, indexed_param) ==
+        check_assertion((get_relative_index(sequence, indexed_param) ==
                          get_ifc_cardinality(icu) - 1) &&
                         rtsp->has_ellipsis);
         break;
@@ -15434,7 +15509,7 @@ Add the preprocessor token contained in text with the given length to cache.
   cache_token(cache, tok_identifier);
 
   a_cached_token_ptr last_token = cache->get_last_token();
-  last_token->extra_info_kind =(a_token_extra_info_kind)teik_pp_token;
+  last_token->extra_info_kind = (a_token_extra_info_kind)teik_pp_token;
   last_token->variant.pp_token_descr.token_start = (char*)text;
   last_token->variant.pp_token_descr.token_end = (char*)text + len;
 }  /* cache_pp_token */
@@ -15485,14 +15560,25 @@ bytes removed.
 }  /* diagnose_ifc_string_null_removal */
 
 
-static void cache_string(a_module_token_cache_ptr     cache,
-                         an_ifc_string_index          string)
+using an_ifc_partition_index_set = Ptr_set<an_ifc_partition_kind_index>;
+                        /* The type of a string set that contains IFC partition
+                           indexes. */
+
+static an_ifc_partition_index_set
+                *ifc_diagnosed_null_strings;
+                        /* A hash set that contains the index of any encoded
+                           IFC string which contains null characters that's
+                           already been diagnosed for containing null
+                           characters. */
+
+
+static Opt<an_ifc_string> get_encoded_string(an_ifc_string_index string)
 /*
-Add a string literal (with the appropriate character kind) corresponding to
-string to cache.
+Given an IFC string index, return the corresponding encoded string value.
 */
 {
-  a_character_kind kind;
+  Opt<an_ifc_string> result;
+  a_character_kind   kind;
 
   switch (string.sort) {
     case ifc_ss_ordinary:
@@ -15522,121 +15608,100 @@ string to cache.
     an_ifc_text_offset start = get_ifc_start(ics);
     size_t             length = get_ifc_length(ics);
     a_string           raw_str = get_string_at_offset(start, length);
+    an_ifc_string      str(kind,
+                           raw_str.to_allocated_storage(IL_allocator<char>()),
+                           raw_str.length());
 
-    an_ifc_string str(kind, raw_str.to_allocated_storage(IL_allocator<char>()),
-                      raw_str.length());
-    if (str.contains_null_characters()) {
+    /* If the string contains null characters and hasn't previously been
+       diagnosed, diagnose it now. */
+    if (str.contains_null_characters() &&
+        !ifc_diagnosed_null_strings->contains(string_part_idx)) {
+      ifc_diagnosed_null_strings->add(string_part_idx);
       diagnose_ifc_string_null_removal(string_part_idx, str);
     }  /* if */
+    result = str;
+  }  /* if */
+  return result;
+}  /* get_encoded_string */
 
+
+static Opt<a_string> get_string_suffix(an_ifc_string_index string)
+/*
+Given an IFC string index, return the corresponding string suffix value.
+*/
+{
+  Opt<a_string>               result;
+  Opt<an_ifc_const_str>       opt_ics;
+  an_ifc_partition_kind_index string_part_idx{string.file, ifc_pk_const_str,
+                                              string.value};
+
+  construct_node(&opt_ics, string_part_idx);
+  if (opt_ics.has_value()) {
+    an_ifc_const_str   ics = *opt_ics;
     an_ifc_text_offset suffix = get_ifc_suffix(ics);
-    if (suffix == 0) {
-      cache_string_literal(cache, str);
-    } else {
-      a_string suffix_str = get_string_at_offset(suffix);
 
-      cache_ud_literal(cache, str, suffix_str.as_temp_characters());
+    result = get_string_at_offset(suffix);
+  }  /* if */
+  return result;
+}  /* get_string_suffix */
+
+
+static void cache_string(a_module_token_cache_ptr     cache,
+                         an_ifc_string_index          string)
+/*
+Add a string literal (with the appropriate character kind) corresponding to
+string to cache.
+*/
+{
+  Opt<an_ifc_string> opt_ifc_str = get_encoded_string(string);
+
+  if (opt_ifc_str.has_value()) {
+    an_ifc_string ifc_str = *opt_ifc_str;
+    Opt<a_string> opt_suffix_str = get_string_suffix(string);
+
+    if (!opt_suffix_str.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    a_string suffix_str = *opt_suffix_str;
+    if (suffix_str.is_empty()) {
+      cache_string_literal(cache, ifc_str);
+    } else {
+      cache_ud_literal(cache, ifc_str, suffix_str.as_temp_characters());
     }  /* if */
   }  /* if */
+  goto done;
+invalid:
+  cache->invalidate();
+  expect_error_str("expected errors for bad string");
+done:;
 }  /* cache_string */
 
 
-static void cache_source_directive(an_ifc_module                 *mod,
-                                   a_module_token_cache_ptr      cache,
-                                   an_ifc_source_directive_sort  directive)
+static void cache_unmarked_source_directive(
+                                       an_ifc_module                 *mod,
+                                       a_module_token_cache_ptr      cache,
+                                       an_ifc_source_directive_sort  directive)
 /*
-Add tokens corresponding to directive (from the given module) to cache.
+Add tokens corresponding to unmarked (not contained within an
+ifc_sds_msvc_directive_start and ifc_sds_msvc_directive_end word) directive
+(from the given module) to cache.
 */
 {
   switch (directive) {
-    case ifc_sds_msvc:
-      break;
-    case ifc_sds_msvc_pragma_comment:
-      cache_pragma(cache, pk_comment);
-      break;
-    case ifc_sds_msvc_pragma_conform:
-      cache_pragma(cache, pk_conform);
-      break;
-    case ifc_sds_msvc_pragma_ident:
-#if IDENT_DIRECTIVE_AND_PRAGMA
-      cache_pragma(cache, pk_ident_pragma);
-#endif /* IDENT_DIRECTIVE_AND_PRAGMA */
-      break;
-    case ifc_sds_msvc_pragma_include_alias:
-      cache_pragma(cache, pk_include_alias);
-      break;
-    case ifc_sds_msvc_pragma_pack:
-      cache_pragma(cache, pk_pack);
-      break;
-    case ifc_sds_msvc_pragma_pop_macro:
-      cache_pragma(cache, pk_pop_macro);
-      break;
-    case ifc_sds_msvc_pragma_push_macro:
-      cache_pragma(cache, pk_push_macro);
-      break;
-    case ifc_sds_msvc_pragma_setlocale:
-#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
-      cache_pragma(cache, pk_setlocale);
-#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
-      break;
-    case ifc_sds_msvc_pragma_start_map_region:
-      cache_pragma(cache, pk_start_map_region);
-      break;
-    case ifc_sds_msvc_pragma_stop_map_region:
-      cache_pragma(cache, pk_stop_map_region);
-      break;
     case ifc_sds_msvc_pragma_push:
     case ifc_sds_msvc_pragma_pop:
-    case ifc_sds_msvc_directive_start:
-    case ifc_sds_msvc_directive_end:
-    case ifc_sds_msvc_pragma_alloc_text:
-    case ifc_sds_msvc_pragma_auto_inline:
-    case ifc_sds_msvc_pragma_bss_seg:
-    case ifc_sds_msvc_pragma_check_stack:
-    case ifc_sds_msvc_pragma_code_seg:
-    case ifc_sds_msvc_pragma_component:
-    case ifc_sds_msvc_pragma_const_seg:
-    case ifc_sds_msvc_pragma_data_seg:
-    case ifc_sds_msvc_pragma_deprecated:
-    case ifc_sds_msvc_pragma_detect_mismatch:
-    case ifc_sds_msvc_pragma_endregion:
-    case ifc_sds_msvc_pragma_execution_character_set:
-    case ifc_sds_msvc_pragma_fenv_access:
-    case ifc_sds_msvc_pragma_file_hash:
-    case ifc_sds_msvc_pragma_float_control:
-    case ifc_sds_msvc_pragma_fp_contract:
-    case ifc_sds_msvc_pragma_function:
-    case ifc_sds_msvc_pragma_bgi:
-    case ifc_sds_msvc_pragma_implementation_key:
-    case ifc_sds_msvc_pragma_init_seq:
-    case ifc_sds_msvc_pragma_inline_depth:
-    case ifc_sds_msvc_pragma_inline_recursion:
-    case ifc_sds_msvc_pragma_intrinsic:
-    case ifc_sds_msvc_pragma_loop:
-    case ifc_sds_msvc_pragma_make_public:
-    case ifc_sds_msvc_pragma_managed:
-    case ifc_sds_msvc_pragma_message:
-    case ifc_sds_msvc_pragma_omp:
-    case ifc_sds_msvc_pragma_optimize:
-    case ifc_sds_msvc_pragma_pointer_to_members:
-    case ifc_sds_msvc_pragma_prefast:
-    case ifc_sds_msvc_pragma_region:
-    case ifc_sds_msvc_pragma_runtime_checks:
-    case ifc_sds_msvc_pragma_same_seg:
-    case ifc_sds_msvc_pragma_section:
-    case ifc_sds_msvc_pragma_segment:
-    case ifc_sds_msvc_pragma_strict_gs_check:
-    case ifc_sds_msvc_pragma_system_header:
-    case ifc_sds_msvc_pragma_unmanaged:
-    case ifc_sds_msvc_pragma_vtordisp:
-    case ifc_sds_msvc_pragma_warning:
-    case ifc_sds_msvc_pragma_p0include:
-    case ifc_sds_msvc_pragma_p0line:
-      /* These pragmas have no corresponding EDG pragma. */
+      /* FIXME: Do we need to do something with these? */
       break;
-    default_is_unexpected_str("Unknown SourceDirective");
+    default:
+      { a_string err_msg("unknown unmarked word source directive ",
+                         str_for(directive));
+
+        ifc_unexpected(mod, err_msg.as_temp_characters());
+      }
+      break;
   }  /* switch */
-}  /* cache_source_directive */
+}  /* cache_unmarked_source_directive */
 
 
 static void cache_source_punctuator(an_ifc_module                 *mod,
@@ -16566,30 +16631,50 @@ done:;
 }  /* cache_source_keyword */
 
 
-static a_boolean
-is_source_identifier_ud_literal(a_module_token_cache_ptr cache,
-                                const a_string           &name)
+static Opt<a_string> get_source_identifier(
+                                  an_ifc_module                           *mod,
+                                  const an_ifc_source_identifier_category &id)
 /*
-Given the current token cache state and the name of a source identifier, return
-TRUE if a correction should be made to form a tok_ud_literal token; otherwise,
-return FALSE.
 */
 {
-  a_boolean          result = TRUE;
-  a_cached_token_ptr last_tok = cache->get_last_token();
+  Opt<a_string> result;
 
-  if (name.is_empty() || name[0] != '_') {
-    /* The first character of the name was not an underscore. */
-    result = FALSE;
-  } else if (last_tok == NULL || last_tok->token != tok_string_literal) {
-    /* The last token was not a string literal. */
-    result = FALSE;
-  } else if (last_tok->variant.constant->variant.string.length != 1) {
-    /* There was more than a null terminator present. */
-    result = FALSE;
-  }  /* if */
+  switch (id.sort) {
+    case ifc_sis_msvc:
+      { a_string err_msg("Unexpected ", str_for(id.sort));
+
+        ifc_unexpected(mod, err_msg);
+      }
+      goto invalid;
+    case ifc_sis_plain:
+      result = name_from_index(id.variant.plain);
+      break;
+    case ifc_sis_msvc_builtin_huge_val:
+      result = "__builtin_huge_val";
+      break;
+    case ifc_sis_msvc_builtin_huge_valf:
+      result = "__builtin_huge_valf";
+      break;
+    case ifc_sis_msvc_builtin_nan:
+      result = "__builtin_nan";
+      break;
+    case ifc_sis_msvc_builtin_nanf:
+      result = "__builtin_nanf";
+      break;
+    case ifc_sis_msvc_builtin_nans:
+      result = "__builtin_nans";
+      break;
+    case ifc_sis_msvc_builtin_nansf:
+      result = "__builtin_nansf";
+      break;
+    default_is_unexpected_str("Unknown SourceIdentifier");
+  }  /* switch */
+  goto done;
+invalid:
+  result.clear();
+done:
   return result;
-}  /* is_source_identifier_ud_literal */
+}  /* get_source_identifier */
 
 
 static void cache_source_identifier(
@@ -16602,38 +16687,8 @@ index into the IFC file for the additional information needed, depending on the
 kind of id.
 */
 {
-  Opt<a_string> opt_name;
+  Opt<a_string> opt_name = get_source_identifier(mod, id);
 
-  switch (id.sort) {
-    case ifc_sis_msvc:
-      { a_string err_msg("Unexpected ", str_for(id.sort));
-
-        ifc_unexpected(mod, err_msg);
-      }
-      goto invalid;
-    case ifc_sis_plain:
-      opt_name = name_from_index(id.variant.plain);
-      break;
-    case ifc_sis_msvc_builtin_huge_val:
-      opt_name = "__builtin_huge_val";
-      break;
-    case ifc_sis_msvc_builtin_huge_valf:
-      opt_name = "__builtin_huge_valf";
-      break;
-    case ifc_sis_msvc_builtin_nan:
-      opt_name = "__builtin_nan";
-      break;
-    case ifc_sis_msvc_builtin_nanf:
-      opt_name = "__builtin_nanf";
-      break;
-    case ifc_sis_msvc_builtin_nans:
-      opt_name = "__builtin_nans";
-      break;
-    case ifc_sis_msvc_builtin_nansf:
-      opt_name = "__builtin_nansf";
-      break;
-    default_is_unexpected_str("Unknown SourceIdentifier");
-  }  /* switch */
   if (!opt_name.has_value()) {
     goto invalid;
   }  /* if */
@@ -16645,19 +16700,7 @@ kind of id.
     if (name == "default") {
       cache_token(cache, tok_default);
     } else {
-      if (is_source_identifier_ud_literal(cache, name)) {
-        /* FIXME: This an extremely brittle hack. */
-        a_module_token_cache tmp_cache(infer_next_source_position(cache));
-        a_string             composed("\"\"", name);
-
-        cache_tokens_from_string(composed.as_temp_characters(), &tmp_cache);
-        check_assertion((tmp_cache.get_last_token() != NULL &&
-                         (tmp_cache.get_first_token() ==
-                          tmp_cache.get_last_token())));
-        *cache->get_last_token() = *tmp_cache.get_last_token();
-      } else {
-        cache_identifier(cache, name.as_temp_characters());
-      }  /* if */
+      cache_identifier(cache, name.as_temp_characters());
     }  /* if */
   }
   goto done;
@@ -16684,7 +16727,8 @@ Add the token(s) corresponding to word to cache.
     case ifc_ws_unknown:
       break;
     case ifc_ws_source_directive:
-      cache_source_directive(mod, cache, category.variant.source_directive);
+      cache_unmarked_source_directive(mod, cache,
+                                      category.variant.source_directive);
       break;
     case ifc_ws_source_punctuator:
       cache_source_punctuator(mod, cache, category.variant.source_punctuator);
@@ -16705,6 +16749,569 @@ Add the token(s) corresponding to word to cache.
   }  /* switch */
 }  /* cache_word */
 
+namespace {
+
+/*
+This structure represents a stream of IFC SourceWords.  This is conceptually
+similar to front end's the token stream.  However, unlike the token stream, the
+IFC word stream is used to form tokens, and is not directly parsed into IL
+entities.
+*/
+struct an_ifc_word_stream {
+  an_ifc_word_stream(const a_source_word_sequence &sequence_val)
+    : sequence(sequence_val), curr_word_idx(0), curr_word()
+    {}
+
+  inline a_boolean get_word();
+  inline an_ifc_source_word& current_word();
+  inline a_boolean has_next_word(unsigned lookahead = 0);
+  inline Opt<an_ifc_source_word> next_word(unsigned lookahead = 0);
+
+  uint32_t num_words_read() const
+    { return this->curr_word_idx - 1; }
+private:
+  a_source_word_sequence
+                sequence;
+                        /* The underlying sequence of IFC SourceWords. */
+  an_ifc_index_type
+                curr_word_idx;
+                        /* The relative index of the current word in the
+                           sequence. */
+  an_ifc_source_word
+                curr_word;
+                        /* The current IFC SourceWord in the stream of
+                           SourceWords. */
+};  /* an_ifc_word_stream */
+
+
+a_boolean an_ifc_word_stream::get_word()
+/*
+Attempt to fetch the next word from the sequence, updating the return value of
+current_word in the process.  Return TRUE if a valid word was fetched,
+otherwise, return FALSE.
+*/
+{
+  a_boolean               result = FALSE;
+  Opt<an_ifc_source_word> opt_word = this->sequence[this->curr_word_idx++];
+
+  if (opt_word.has_value()) {
+    this->curr_word = *opt_word;
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* an_ifc_word_stream::get_word */
+
+
+an_ifc_source_word& an_ifc_word_stream::current_word()
+/*
+Return the current word node.
+*/
+{
+  return this->curr_word;
+}  /* an_ifc_word_stream::current_word */
+
+
+a_boolean an_ifc_word_stream::has_next_word(
+                          /* Defaulted: */  unsigned lookahead)
+/*
+Given the number of words to look ahead, return TRUE if the word sequence has
+an appropriate number of additional words; otherwise, return FALSE.
+*/
+{
+  return this->curr_word_idx + lookahead < this->sequence.length();
+}  /* an_ifc_word_stream::has_next_word */
+
+
+Opt<an_ifc_source_word> an_ifc_word_stream::next_word(
+                                    /* Defaulted: */  unsigned lookahead)
+/*
+Given the number of words to look ahead, return the corresponding word node, or
+an empty optional if the node is not valid.
+*/
+{
+  check_assertion(this->has_next_word(lookahead));
+  return this->sequence[this->curr_word_idx + lookahead];
+}  /* an_ifc_word_stream::next_word */
+
+}  /* namespace */
+
+static a_boolean is_source_directive(const an_ifc_source_word     &word,
+                                     an_ifc_source_directive_sort sort)
+/*
+Return TRUE if the given source word is a source directive of the given sort;
+otherwise, return FALSE.
+*/
+{
+  a_boolean            result = TRUE;
+  an_ifc_word_category category = get_ifc_category(word);
+
+  if (category.sort != ifc_ws_source_directive) {
+    goto not_found;
+  }  /* if */
+  {
+    an_ifc_source_directive_sort
+                    directive = category.variant.source_directive;
+
+    if (directive != sort) {
+      goto not_found;
+    }  /* if */
+  }  /* if */
+  goto done;
+not_found:
+  result = FALSE;
+done:
+  return result;
+}  /* is_source_directive */
+
+
+static a_boolean is_source_directive_start(const an_ifc_source_word &word)
+/*
+Return TRUE if the given source word is the start of a series of source
+directive words; otherwise, return FALSE.
+*/
+{
+  return is_source_directive(word, ifc_sds_msvc_directive_start);
+}  /* is_source_directive_start */
+
+
+static a_boolean is_source_directive_end(const an_ifc_source_word &word)
+/*
+Return TRUE if the given source word is the end of a series of source directive
+words; otherwise, return FALSE.
+*/
+{
+  return is_source_directive(word, ifc_sds_msvc_directive_end);
+}  /* is_source_directive_end */
+
+
+static a_boolean find_end_of_source_directive(an_ifc_index_type  *words,
+                                              an_ifc_word_stream &word_stream)
+/*
+Given a word stream currently on the start of a source directive, count the
+number of words between the start and end directives and store the result in
+*words.  If the end of the directive is found, return TRUE; otherwise, return
+FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  for (*words = 0; word_stream.has_next_word(*words); ++(*words)) {
+    Opt<an_ifc_source_word> opt_next_word = word_stream.next_word(*words);
+
+    if (!opt_next_word.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    an_ifc_source_word next_word = *opt_next_word;
+    if (is_source_directive_end(next_word)) {
+      break;
+    }  /* if */
+  }  /* for */
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
+}  /* find_end_of_source_directive */
+
+
+static void update_cache_pos_from_word(a_module_token_cache     *cache,
+                                       a_source_position        *pos_hint,
+                                       const an_ifc_source_word &word)
+/*
+Given the cache, pointer to the corresponding position hint storage, and the
+word to read locus information from, if the word's locus can be decoded into a
+front end source position update *pos_hint to this value and set the position
+hint for the cache to said value.
+*/
+{
+  a_source_position      loc_pos;
+  an_ifc_source_location locus = get_ifc_locus(word);
+
+  if (source_position_from_locus(&loc_pos, locus)) {
+    *pos_hint = loc_pos;
+    cache->set_position_hint(pos_hint);
+  }  /* if */
+}  /* update_cache_pos_from_word */
+
+
+static a_boolean handle_one_word_source_directive(
+                                           a_module_token_cache      *cache,
+                                           a_source_position         *pos_hint,
+                                           const an_ifc_source_word  &word)
+/*
+Given the cache, pointer to the corresponding position hint storage, and the
+word of this single word source directive, act on the source directive.  If
+processing succeeds, return TRUE; otherwise, return FALSE.
+*/
+{
+  a_boolean            result = TRUE;
+  an_ifc_word_category category = get_ifc_category(word);
+  update_cache_pos_from_word(cache, pos_hint, word);
+
+  if (category.sort == ifc_ws_source_directive) {
+    an_ifc_source_directive_sort directive = category.variant.source_directive;
+    switch (directive) {
+      case ifc_sds_msvc_pragma_comment:
+        cache_pragma(cache, pk_comment);
+        break;
+      case ifc_sds_msvc_pragma_conform:
+        cache_pragma(cache, pk_conform);
+        break;
+      case ifc_sds_msvc_pragma_ident:
+#if IDENT_DIRECTIVE_AND_PRAGMA
+        cache_pragma(cache, pk_ident_pragma);
+#endif /* IDENT_DIRECTIVE_AND_PRAGMA */
+        break;
+      case ifc_sds_msvc_pragma_include_alias:
+        cache_pragma(cache, pk_include_alias);
+        break;
+      case ifc_sds_msvc_pragma_pack:
+        cache_pragma(cache, pk_pack);
+        break;
+      case ifc_sds_msvc_pragma_pop_macro:
+        cache_pragma(cache, pk_pop_macro);
+        break;
+      case ifc_sds_msvc_pragma_push_macro:
+        cache_pragma(cache, pk_push_macro);
+        break;
+      case ifc_sds_msvc_pragma_setlocale:
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+        cache_pragma(cache, pk_setlocale);
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+        break;
+      case ifc_sds_msvc_pragma_start_map_region:
+        cache_pragma(cache, pk_start_map_region);
+        break;
+      case ifc_sds_msvc_pragma_stop_map_region:
+        cache_pragma(cache, pk_stop_map_region);
+        break;
+      case ifc_sds_msvc_pragma_p0line:
+        /* See the comment for this source directive in
+           handle_two_word_source_directive. */
+        break;
+      default:
+        { a_string err_msg("unknown single word source directive ",
+                           str_for(directive));
+
+          ifc_unexpected(module_of(word), err_msg.as_temp_characters());
+        }
+        goto invalid;
+    }  /* switch */
+  } else {
+    a_string err_msg("unknown single word source directive category ",
+                     str_for(category.sort));
+
+    ifc_unexpected(module_of(word), err_msg.as_temp_characters());
+    goto invalid;
+  }  /* if */
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
+}  /* handle_one_word_source_directive */
+
+
+static a_boolean handle_two_word_source_directive(
+                                             a_module_token_cache      *cache,
+                                             const an_ifc_source_word  &word_0,
+                                             const an_ifc_source_word  &word_1)
+/*
+Given the cache, and the words of this two word source directive, act on the
+source directive.  If processing succeeds, return TRUE; otherwise, return
+FALSE.
+*/
+{
+  a_boolean            result = TRUE;
+  an_ifc_word_category category_0 = get_ifc_category(word_0);
+
+  if (category_0.sort == ifc_ws_source_directive) {
+    an_ifc_source_directive_sort directive =
+                                           category_0.variant.source_directive;
+
+    switch (directive) {
+      case ifc_sds_msvc_pragma_p0line:
+        /* This pragma seems to be more trouble than it's worth.  It's
+           effectively:
+
+             #line "somepath"
+
+           This is redundant as words already have source position information.
+
+           There are a number of problems preventing this from being
+           practically useful:
+
+             - The front end needs a sequential mapping of line numbers to
+               token sequence numbers, this poses a problem as IFC entities are
+               (potentially) loaded out of order.  The front end upon loading
+               the IFC file computes the line count of a given source file
+               represented in the IFC as a workaround.  Unfortunately, the
+               spelling of the file in the line directive (e.g., "somepath")
+               does not always match the information in the IFC named source
+               file partition.  As The #line directive both cannot be treated
+               as a #line directive would during parsing (as this would result
+               in non-linear -- and thus broken -- token sequence numbers for
+               the file) and the file cannot be resolved to use the front end's
+               existing workaround, there's a major implementation issue here.
+             - The front end cannot represent a source position without a line
+               number.  As there's no line information in this representation,
+               the front end would have to invent one (or steal it from the
+               locus anyways).
+        */
+        break;
+      default:
+        { a_string err_msg("unknown two word source directive ",
+                           str_for(directive));
+
+          ifc_unexpected(module_of(word_0), err_msg.as_temp_characters());
+        }
+        goto invalid;
+    }  /* switch */
+  } else {
+    a_string err_msg("unknown source directive category ",
+                     str_for(category_0.sort),
+                     " for first of two word source directive");
+
+    ifc_unexpected(module_of(word_0), err_msg.as_temp_characters());
+    goto invalid;
+  }
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
+}  /* handle_two_word_source_directive */
+
+
+static a_boolean handle_source_directive(a_module_token_cache *cache,
+                                         a_source_position    *pos_hint,
+                                         an_ifc_word_stream   &word_stream,
+                                         an_ifc_index_type    num_words)
+/*
+Given the cache, pointer to the corresponding position hint storage, and the
+corresponding word stream, and the number of words (not including the start and
+end delimiting words -- determined by is is_source_directive_start and
+is_source_directive_end respectively), act on the source directive.  If
+processing succeeds, return TRUE; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  switch (num_words) {
+    case 1:
+      { Opt<an_ifc_source_word> opt_next_word = word_stream.next_word();
+
+        /* The caller should've already validated this. */
+        check_assertion(opt_next_word.has_value());
+
+        an_ifc_source_word next_word = *opt_next_word;
+        if (!handle_one_word_source_directive(cache, pos_hint, next_word)) {
+          goto invalid;
+        }  /* if */
+      }
+      break;
+    case 2:
+      { Opt<an_ifc_source_word> opt_word_0 = word_stream.next_word(0);
+        Opt<an_ifc_source_word> opt_word_1 = word_stream.next_word(1);
+
+        /* The caller should've already validated this. */
+        check_assertion(opt_word_0.has_value());
+        check_assertion(opt_word_1.has_value());
+
+        an_ifc_source_word word_0 = *opt_word_0;
+        an_ifc_source_word word_1 = *opt_word_1;
+        if (!handle_two_word_source_directive(cache, word_0, word_1)) {
+          goto invalid;
+        }  /* if */
+      }
+      break;
+    default:
+      { a_string err_msg("unexpected ", num_words, " word source directive");
+
+        ifc_unexpected(module_of(word_stream.current_word()), err_msg);
+      }
+      break;
+  }  /* switch */
+  for (an_ifc_index_type i = 0; i < num_words; ++i) {
+    word_stream.get_word();
+  }  /* for */
+  /* Consume the end of directive word. */
+  word_stream.get_word();
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
+}  /* handle_source_directive */
+
+
+static a_boolean is_empty_string_word(const an_ifc_source_word &word)
+/*
+Given a word, return TRUE if the word represents an empty string literal;
+otherwise, return FALSE.
+*/
+{
+  a_boolean            result = FALSE;
+  an_ifc_word_category category = get_ifc_category(word);
+
+  if (category.sort == ifc_ws_source_literal) {
+    an_ifc_source_literal_category literal = category.variant.source_literal;
+
+    if (literal.sort == ifc_sls_string) {
+      an_ifc_string_index string = literal.variant.string;
+      Opt<an_ifc_string>  opt_ifc_str = get_encoded_string(string);
+
+      if (opt_ifc_str.has_value()) {
+        an_ifc_string ifc_str = *opt_ifc_str;
+
+        if (ifc_str.length == 0) {
+          result = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_empty_string_word */
+
+
+static a_boolean is_user_defined_literal(const an_ifc_source_word &word,
+                                         const an_ifc_source_word &next_word)
+/*
+Given a word and the word that follows it, return TRUE if these words combined
+represent a user defined literal; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (!is_empty_string_word(word)) {
+    goto no_match;
+  }  /* if */
+  {
+    an_ifc_word_category category = get_ifc_category(next_word);
+
+    if (category.sort != ifc_ws_source_identifier) {
+      goto no_match;
+    }  /* if */
+
+    an_ifc_source_identifier_category
+                    identifier = category.variant.source_identifier;
+    an_ifc_module   *mod = module_of(next_word);
+    Opt<a_string>   opt_name = get_source_identifier(mod, identifier);
+
+    if (!opt_name.has_value()) {
+      goto no_match;
+    }  /* if */
+
+    a_string name = *opt_name;
+    if (name.length() < 2 || name[0] != '_') {
+      goto no_match;
+    }  /* if */
+    result = TRUE;
+  }
+  goto done;
+no_match:
+  result = FALSE;
+done:
+  return result;
+}  /* is_user_defined_literal */
+
+
+static void cache_user_defined_literal(a_module_token_cache     *cache,
+                                       const an_ifc_source_word &word,
+                                       const an_ifc_source_word &next_word)
+/*
+Cache a user defined literal described by the given word and the word that
+follows it into the given cache.
+*/
+{
+  an_ifc_word_category
+                  category = get_ifc_category(next_word);
+  an_ifc_source_identifier_category
+                  id = category.variant.source_identifier;
+  Opt<a_string>   opt_name = get_source_identifier(module_of(word), id);
+
+  check_assertion(opt_name.has_value());
+
+  a_string name = *opt_name;
+  a_string composed("\"\"", name);
+  cache_tokens_from_string(composed.as_temp_characters(), cache);
+}  /* cache_user_defined_literal */
+
+
+static a_boolean cache_sentence(a_module_token_cache_ptr cache,
+                                an_ifc_word_stream       &word_stream,
+                                a_boolean                look_for_stop_token)
+/*
+Given a word stream, cache all the corresponding tokens into the given cache.
+If look_for_stop_token is TRUE and a cached token matches a stop token, stop
+processing.
+*/
+{
+  a_boolean         result = TRUE;
+  a_source_position pos_hint;
+
+  while (word_stream.has_next_word()) {
+    if (!word_stream.get_word()) {
+      goto invalid;
+    }  /* if */
+
+    a_cached_token_ptr ctp = cache->get_last_token();
+    an_ifc_source_word &word = word_stream.current_word();
+    update_cache_pos_from_word(cache, &pos_hint, word);
+    if (is_source_directive_start(word)) {
+      /* Handle source directives (which are marked by a start and end
+         word). */
+      an_ifc_index_type num_words;
+
+      if (!find_end_of_source_directive(&num_words, word_stream)) {
+        goto invalid;
+      }  /* if */
+      if (!handle_source_directive(cache, &pos_hint, word_stream, num_words)) {
+        goto invalid;
+      }  /* if */
+      goto done_with_token;
+    } else if (word_stream.has_next_word()) {
+      Opt<an_ifc_source_word> opt_next_word = word_stream.next_word();
+
+      if (!opt_next_word.has_value()) {
+        goto invalid;
+      }  /* if */
+
+      an_ifc_source_word next_word = *opt_next_word;
+      if (is_user_defined_literal(word, next_word)) {
+        cache_user_defined_literal(cache, word, next_word);
+      } else {
+        goto normal_token;
+      }  /* if */
+      /* Consume "word", "next_word" will be consumed by the next loop. */
+      word_stream.get_word();
+      goto done_with_token;
+    }  /* if */
+normal_token:
+    cache_word(cache, word);
+done_with_token:
+    if (look_for_stop_token && ctp != cache->get_last_token() &&
+        curr_stop_token_stack_entry->
+                       stop_tokens[(int)cache->get_last_token()->token] != 0) {
+      remove_token_from_cache(cache->get_last_token(), &ctp,
+                              cache->as_canonical());
+      break;
+    }  /* if */
+  }  /* while */
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  if (cache->get_position_hint() == &pos_hint) {
+    /* There were no tokens cached after the cache position hint was set.
+       Thus, to protect downstream control flow (from the cache from having a
+       garbage position hint value), clear the hint now. */
+    cache->set_position_hint(NULL);
+  }  /* if */
+  return result;
+}  /* cache_sentence */
+
 
 static uint32_t cache_sentence(a_module_token_cache_ptr cache,
                                an_ifc_sentence_index    sentence,
@@ -16717,7 +17324,7 @@ and a cached token matches a stop token, remove that token from the cache and
 return the index of that token.  Otherwise the return value is meaningless.
 */
 {
-  an_ifc_cardinality_storage idx = offset;
+  uint32_t num_words_read = 0;
 
   if (sentence != 0) {
     Opt<an_ifc_source_sentence> opt_iss;
@@ -16729,31 +17336,22 @@ return the index of that token.  Otherwise the return value is meaningless.
       goto invalid;
     }  /* if */
 
-    an_ifc_source_sentence  iss = *opt_iss;
-    a_source_word_traverser traverser(iss, idx);
-    for (Indexed<an_ifc_source_word> indexed_isw : traverser) {
-      if (!indexed_isw.has_value()) {
-        goto invalid;
-      }  /* if */
-
-      a_cached_token_ptr ctp = cache->get_last_token();
-      cache_word(cache, *indexed_isw);
-      if (look_for_stop_token && ctp != cache->get_last_token() &&
-          curr_stop_token_stack_entry->
-                       stop_tokens[(int)cache->get_last_token()->token] != 0) {
-        remove_token_from_cache(cache->get_last_token(), &ctp,
-                                cache->as_canonical());
-        break;
-      }  /* if */
-      ++idx;
-    }  /* for */
+    an_ifc_source_sentence iss = *opt_iss;
+    a_source_word_sequence sequence(iss, offset);
+    an_ifc_word_stream     word_stream(sequence);
+    a_boolean              valid = cache_sentence(cache, word_stream,
+                                                  look_for_stop_token);
+    num_words_read = word_stream.num_words_read();
+    if (!valid) {
+      goto invalid;
+    }  /* if */
   }  /* if */
   goto done;
 invalid:
   expect_error_str("expected errors for bad sentence cache");
   cache->invalidate();
 done:
-  return idx;
+  return num_words_read + offset;
 }  /* cache_sentence */
 
 
@@ -16814,9 +17412,9 @@ Otherwise, return FALSE.
       goto done;
     }  /* if */
 
-    an_ifc_source_sentence  iss = *opt_iss;
-    a_source_word_traverser traverser(iss);
-    for (Indexed<an_ifc_source_word> indexed_isw : traverser) {
+    an_ifc_source_sentence iss = *opt_iss;
+    a_source_word_sequence sequence(iss);
+    for (Indexed<an_ifc_source_word> indexed_isw : sequence) {
       if (!indexed_isw.has_value()) {
         goto done;
       }  /* if */
@@ -17887,10 +18485,10 @@ IFC decl parameter (if possible); otherwise, return an empty optional.
        provides a much simplified validation scheme vs rolling out all the
        loading code for the element "manually".  We should have a better
        way to get a single element out of a heap. */
-    an_ifc_index_type          element_idx = start_idx + param_idx;
-    a_decl_parameter_traverser traverser(module_of(start_idx), element_idx, 1);
+    an_ifc_index_type         element_idx = start_idx + param_idx;
+    a_decl_parameter_sequence sequence(module_of(start_idx), element_idx, 1);
     /* coverity[unreachable] */ /* See FIXME above. */
-    for (Indexed<an_ifc_decl_parameter> indexed_idp : traverser) {
+    for (Indexed<an_ifc_decl_parameter> indexed_idp : sequence) {
       if (!indexed_idp.has_value()) {
         goto invalid;
       }  /* if */
@@ -17954,9 +18552,9 @@ This class implements a "function parameter context" which abstracts away the
 various locations the IFC stores parameter information to provide a consistent
 view of the "best" information the IFC provides.
 
-This type is implemented in terms of relative indexes vs something more like
-the Sequence_traverser type to allow for maximum flexibility (given the current
-IFC status-quo's potential for mismatched information).
+This type is implemented in terms of relative indexes to allow for maximum
+flexibility (given the current IFC status-quo's potential for mismatched
+information).
 */
 struct an_ifc_func_param_context {
   template<typename an_ifc_Node_type>
@@ -18076,22 +18674,19 @@ valid type can be found, return a null type index.
           goto invalid;
         }  /* if */
 
-        /* FIXME: This is a bit of an abuse of the traverser, but the traverser
-           provides a much simplified validation scheme vs rolling out all the
-           loading code for the element "manually".  We should have a better
-           way to get a single element out of a heap. */
+        /* FIXME: This is a bit of an abuse of the Node_sequence structure, but
+           the it provides a much simplified validation scheme vs rolling out
+           all the loading code for the element "manually".  We should have a
+           better way to get a single element out of a heap. */
         an_ifc_index_type     element_idx = start_idx + param_idx;
-        a_type_heap_traverser traverser(module_of(start_idx), element_idx, 1);
-        /* coverity[unreachable] */ /* See FIXME above. */
-        for (Indexed<an_ifc_heap_type> indexed_iht : traverser) {
-          if (!indexed_iht.has_value()) {
-            goto invalid;
-          }  /* if */
+        a_type_heap_sequence  seq(module_of(start_idx), element_idx, 1);
+        Opt<an_ifc_heap_type> opt_heap_type = seq[0];
+        if (!opt_heap_type.has_value()) {
+          goto invalid;
+        }  /* if */
 
-          an_ifc_heap_type heap_type = *indexed_iht;
-          result = get_ifc_value(heap_type);
-          goto done;
-        }  /* for */
+        an_ifc_heap_type heap_type = *opt_heap_type;
+        result = get_ifc_value(heap_type);
       }  /* if */
     } else {
       result = this->params_type;
@@ -19030,9 +19625,9 @@ this is needed.
           goto invalid;
         }  /* if */
 
-        a_type_heap_traverser traverser(*opt_itt);
-        a_boolean             first = TRUE;
-        for (Indexed<an_ifc_heap_type> indexed_iht : traverser) {
+        a_type_heap_sequence sequence(*opt_itt);
+        a_boolean            first = TRUE;
+        for (Indexed<an_ifc_heap_type> indexed_iht : sequence) {
           if (!indexed_iht.has_value()) {
             goto invalid;
           }  /* if */
@@ -20714,10 +21309,10 @@ is responsible for ensuring that the brackets are cached appropriately.
           goto invalid;
         }  /* if */
 
-        a_attr_heap_traverser traverser(*opt_iat);
+        a_attr_heap_sequence sequence(*opt_iat);
         /* Retrieve the attribute indexes from the attribute heap, then recurse
            to process the attributes at the retrieved indexes. */
-        for (Indexed<an_ifc_heap_attr> indexed_iha : traverser) {
+        for (Indexed<an_ifc_heap_attr> indexed_iha : sequence) {
           if (!indexed_iha.has_value()) {
             goto invalid;
           }  /* if */
@@ -20957,14 +21552,14 @@ about what to cache.
         an_ifc_sequence    initializer = get_ifc_initializer(ide);
         an_ifc_cardinality cardinality = get_ifc_cardinality(initializer);
         if (cardinality != 0) {
-          a_decl_enumerator_traverser traverser(initializer);
+          a_decl_enumerator_sequence sequence(initializer);
 
           cache_token(cache, tok_lbrace);
-          for (Indexed<an_ifc_decl_enumerator> indexed_iden : traverser) {
+          for (Indexed<an_ifc_decl_enumerator> indexed_iden : sequence) {
             if (!indexed_iden.has_value()) {
               goto invalid;
             }  /* if */
-            if (!is_first(traverser, indexed_iden)) {
+            if (!is_first(sequence, indexed_iden)) {
               cache_token(cache, tok_comma);
             }  /* if */
             if (!cache_direct_decl(cache, *indexed_iden, cinfo)) {
@@ -22172,13 +22767,13 @@ common_cast:
           goto invalid;
         }  /* if */
 
-        an_ifc_expr_tuple      iet = *opt_iet;
-        an_expr_heap_traverser traverser(iet);
-        for (Indexed<an_ifc_heap_expr> indexed_ihe : traverser) {
+        an_ifc_expr_tuple     iet = *opt_iet;
+        an_expr_heap_sequence sequence(iet);
+        for (Indexed<an_ifc_heap_expr> indexed_ihe : sequence) {
           if (!indexed_ihe.has_value()) {
             goto invalid;
           }  /* if */
-          if (!is_first(traverser, indexed_ihe)) {
+          if (!is_first(sequence, indexed_ihe)) {
             a_token_kind sep = cinfo.qualified_name ? tok_colon_colon
                                                     : tok_comma;
             cache_token(cache, sep);
@@ -23224,9 +23819,9 @@ Otherwise, parameter references should only include the parameter name.
           goto invalid;
         }  /* if */
 
-        an_ifc_syntax_tuple     ist = *opt_ist;
-        a_syntax_heap_traverser traverser(ist);
-        for (Indexed<an_ifc_heap_syntax> indexed_ihs : traverser) {
+        an_ifc_syntax_tuple    ist = *opt_ist;
+        a_syntax_heap_sequence sequence(ist);
+        for (Indexed<an_ifc_heap_syntax> indexed_ihs : sequence) {
           if (!indexed_ihs.has_value()) {
             goto invalid;
           }  /* if */
@@ -23693,13 +24288,13 @@ raw-text spelling.
           goto invalid;
         }  /* if */
 
-        a_pp_heap_traverser traverser(*opt_ift);
-        for (Indexed<an_ifc_heap_pp_form> indexed_ihpf : traverser) {
+        a_pp_heap_sequence sequence(*opt_ift);
+        for (Indexed<an_ifc_heap_pp_form> indexed_ihpf : sequence) {
           if (!indexed_ihpf.has_value()) {
             goto invalid;
           }  /* if */
 
-          if (!is_first(traverser, indexed_ihpf)) {
+          if (!is_first(sequence, indexed_ihpf)) {
             /* FIXME: Find a proper source position for these. */
             if (is_parameter_form) {
               cache_token(cache, tok_comma);
@@ -24057,10 +24652,10 @@ Display the contents of the specified scope.
 
   construct_node(&opt_scope_members, scope);
   if (opt_scope_members.has_value()) {
-    an_ifc_scope_descriptor  scope_members = *opt_scope_members;
-    a_scope_member_traverser traverser(scope_members);
+    an_ifc_scope_descriptor scope_members = *opt_scope_members;
+    a_scope_member_sequence sequence(scope_members);
 
-    for (Indexed<an_ifc_scope_member> indexed_scope_mem : traverser) {
+    for (Indexed<an_ifc_scope_member> indexed_scope_mem : sequence) {
       if (!indexed_scope_mem.has_value()) {
         continue;
       }  /* if */
@@ -24222,6 +24817,8 @@ for each compilation.
   bad_operator_name_encodings->push_back("++");
   bad_operator_name_encodings->push_back("--");
   bad_operator_name_encodings->push_back(",");
+  ifc_diagnosed_null_strings = alloc_fe_of_type(an_ifc_partition_index_set);
+  construct(ifc_diagnosed_null_strings, /*mask_width=*/10);
 }  /* ifc_modules_init */
 
 /*lint -restore*/ /* FIXME: temporary */

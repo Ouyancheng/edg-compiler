@@ -497,6 +497,7 @@ INST_CONSTRUCT_NODE(an_ifc_module_export_reference,
                     an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_module_import_reference,
                     an_ifc_partition_kind_index)
+INST_CONSTRUCT_NODE(an_ifc_name_source_file, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_scope_member, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_source_line, an_ifc_partition_kind_index)
 INST_CONSTRUCT_NODE(an_ifc_source_sentence, an_ifc_partition_kind_index)

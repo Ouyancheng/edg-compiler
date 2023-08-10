@@ -593,12 +593,20 @@ An index type representing an index to a partition element for an associated
 module and partition kind.
 */
 struct an_ifc_partition_kind_index : public an_ifc_module_entity {
+  an_ifc_partition_kind_index()
+    : an_ifc_module_entity(NULL), partition_kind(ifc_pk_none),
+      value(0)
+    {}
   an_ifc_partition_kind_index(an_ifc_module_file    *file_val,
                               an_ifc_partition_kind partition_kind_val,
                               an_ifc_index_type     value_val)
     : an_ifc_module_entity(file_val), partition_kind(partition_kind_val),
       value(value_val)
     {}
+
+  inline a_boolean operator==(const an_ifc_partition_kind_index &other) const;
+  a_boolean operator!=(const an_ifc_partition_kind_index &other) const
+    { return !(*this == other); }
 
   an_ifc_partition_kind
                 partition_kind;
@@ -609,6 +617,27 @@ struct an_ifc_partition_kind_index : public an_ifc_module_entity {
                            "sort" for this index.  Represented as the largest
                            common underlying type for all partition kinds. */
 };  /* an_ifc_partition_kind_index */
+
+
+a_boolean an_ifc_partition_kind_index::operator==(
+                                      const an_ifc_partition_kind_index &other)
+                                                                          const
+/*
+Return TRUE if two an_ifc_partition_kind_index structures refer to the same
+partition element in the same file; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (this->file != other.file) {
+    result = FALSE;
+  } else if (this->partition_kind != other.partition_kind) {
+    result = FALSE;
+  } else if (this->value != other.value) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* an_ifc_partition_kind_index::operator== */
 
 
 inline a_boolean is_null_index(an_ifc_partition_kind_index idx)
