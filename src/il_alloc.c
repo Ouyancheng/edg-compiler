@@ -30,8 +30,8 @@ il_alloc.c -- Allocation of intermediate language entries.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
-#if DEBUG
 #if !STANDALONE_UTILITY_PROGRAM
+#if DEBUG
 /*
 Counts of tables allocated, to track total use of memory.
 */
@@ -176,7 +176,6 @@ static unsigned long
 static unsigned long
 		asm_function_body_space_allocated;
 #endif /* ASM_SUPPORT_NEEDED */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* DEBUG */
 
 /* Static variable and macro for quickly initializing the source_corresp
@@ -227,12 +226,12 @@ static int	non_file_scope_entry_prefix_alignment_offset;
 Macro to increment the entry prefix allocation count only if DEBUG
 is TRUE.  Used in do_alloc.
 */
-#if DEBUG && !STANDALONE_UTILITY_PROGRAM
+#if DEBUG
 #define incr_num_il_entry_prefixes_allocated()                        \
   num_il_entry_prefixes_allocated++
-#else /* !(DEBUG && ...) */
+#else /* !DEBUG */
 #define incr_num_il_entry_prefixes_allocated() /* Nothing */
-#endif /* DEBUG && ... */
+#endif /* DEBUG */
 
 
 /*
@@ -258,23 +257,23 @@ happens that it is usually known by the caller).
 Macro to increment the count of next-orphan pointers allocated only if
 DEBUG is TRUE.  Used in do_fs_alloc.
 */
-#if ORPHAN_PROCESSING_NEEDED && DEBUG && !STANDALONE_UTILITY_PROGRAM
+#if ORPHAN_PROCESSING_NEEDED && DEBUG
 #define incr_num_fs_orphan_pointers_allocated()                       \
   num_fs_orphan_pointers_allocated++
-#else /* !(ORPHAN_PROCESSING_NEEDED && ...) */
+#else /* !(ORPHAN_PROCESSING_NEEDED && DEBUG) */
 #define incr_num_fs_orphan_pointers_allocated() /* Nothing */
-#endif /* ORPHAN_PROCESSING_NEEDED && ... */
+#endif /* ORPHAN_PROCESSING_NEEDED && DEBUG */
 
 /*
 Macro to increment the count of translation unit copy address pointers
 allocated.  When not generating debugging code, this expands to nothing.
 */
-#if DEBUG && !STANDALONE_UTILITY_PROGRAM
+#if DEBUG
 #define incr_num_trans_unit_copy_address_pointers_allocated()              \
   num_trans_unit_copy_address_pointers_allocated++
-#else /* !(DEBUG && !STANDALONE_UTILITY_PROGRAM) */
+#else /* !DEBUG */
 #define incr_num_trans_unit_copy_address_pointers_allocated() /* Nothing */
-#endif /* DEBUG && !STANDALONE_UTILITY_PROGRAM */
+#endif /* DEBUG */
 
 /*
 Macro that clears the orphan pointer, increments the count of orphan
@@ -453,7 +452,6 @@ of the secondary translation unit identified by tup.
   return ptr;
 }  /* alloc_secondary_file_scope_il */
 
-#if !STANDALONE_UTILITY_PROGRAM
 
 static char *alloc_cil(sizeof_t size)
 /*
@@ -573,7 +571,6 @@ region, file scope region, or NO_MEMORY_REGION_NUMBER for general memory).
 }  /* copy_string_of_length_to_region */
 
 
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
 
 a_scope_orphaned_list_header_ptr alloc_scope_orphaned_list_header(
@@ -588,9 +585,9 @@ routine and scope number, and return a pointer to it.
 
   solhp = (a_scope_orphaned_list_header_ptr)
                                 alloc_il(sizeof(a_scope_orphaned_list_header));
-#if DEBUG && !STANDALONE_UTILITY_PROGRAM
+#if DEBUG
   num_scope_orphaned_list_headers_allocated++;
-#endif /* DEBUG  && !STANDALONE_UTILITY_PROGRAM */
+#endif /* DEBUG */
   solhp->assoc_routine = assoc_routine;
   solhp->scope_number = scope_number;
   solhp->orphaned_types = NULL;
@@ -3456,6 +3453,7 @@ node, initialize it, and return a pointer to it.
   return ptr;
 }  /* alloc_local_expr_node_ref */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 void set_expr_node_kind(an_expr_node_ptr  node,
                         an_expr_node_kind kind)
@@ -3545,6 +3543,11 @@ fields to default values.
       node->variant.init.source.type = NULL;
       break;
     case enk_new_delete:
+#if STANDALONE_UTILITY_PROGRAM
+      /* Allocation of IL entries is not available in standalone utility
+         programs. */
+      node->variant.new_delete = NULL;
+#else /* !STANDALONE_UTILITY_PROGRAM */
       /* Allocate the supplement for new/delete. */
       ndsp = (a_new_delete_supplement_ptr)
                                     alloc_cil(sizeof(a_new_delete_supplement));
@@ -3552,6 +3555,7 @@ fields to default values.
 #if DEBUG
       num_new_delete_supplements_allocated++;
 #endif /* DEBUG */
+#endif /* STANDALONE_UTILITY_PROGRAM */
       ndsp->is_new                          = TRUE;
       ndsp->placement_new                   = FALSE;
       ndsp->aligned_version                 = FALSE;
@@ -3570,11 +3574,17 @@ fields to default values.
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case enk_gcnew:
+#if STANDALONE_UTILITY_PROGRAM
+      /* Allocation of IL entries is not available in standalone utility
+         programs. */
+      node->variant.gcnew_info = NULL;
+#else /* !STANDALONE_UTILITY_PROGRAM */
       gnsp = (a_gcnew_supplement_ptr)alloc_cil(sizeof(a_gcnew_supplement));
       node->variant.gcnew_info = gnsp;
 #if DEBUG
       num_gcnew_supplements_allocated++;
 #endif /* DEBUG */
+#endif /* STANDALONE_UTILITY_PROGRAM */
       gnsp->has_new_initializer         = FALSE;
       gnsp->is_cli_array                = FALSE;
       gnsp->type                        = NULL;
@@ -3583,12 +3593,18 @@ fields to default values.
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case enk_throw:
+#if STANDALONE_UTILITY_PROGRAM
+      /* Allocation of IL entries is not available in standalone utility
+         programs. */
+      node->variant.throw_info = NULL;
+#else /* !STANDALONE_UTILITY_PROGRAM */
       /* Allocate the supplement for a throw. */
       tsp = (a_throw_supplement_ptr)alloc_cil(sizeof(a_throw_supplement));
       node->variant.throw_info = tsp;
 #if DEBUG
       num_throw_supplements_allocated++;
 #endif /* DEBUG */
+#endif /* STANDALONE_UTILITY_PROGRAM */
       tsp->type         = NULL;
       tsp->dynamic_init = NULL;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
@@ -3600,12 +3616,18 @@ fields to default values.
       tsp->destructor   = NULL;
       break;
     case enk_condition:
+#if STANDALONE_UTILITY_PROGRAM
+      /* Allocation of IL entries is not available in standalone utility
+         programs. */
+      node->variant.condition = NULL;
+#else /* !STANDALONE_UTILITY_PROGRAM */
       csp = (a_condition_supplement_ptr)
                                  alloc_cil(sizeof(a_condition_supplement));
       node->variant.condition = csp;
 #if DEBUG
       num_condition_supplements_allocated++;
 #endif /* DEBUG */
+#endif /* STANDALONE_UTILITY_PROGRAM */
       csp->scope          = NULL;
       csp->dynamic_init   = NULL;
       csp->expr           = NULL;
@@ -3773,6 +3795,7 @@ its kind to the indicated kind.
   set_expr_node_kind(node, kind);
 }  /* clear_expr_node */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 an_expr_node_ptr alloc_expr_node(an_expr_node_kind kind)
 /*
@@ -6630,6 +6653,7 @@ initializations that are done for each compilation.
   local_constants_in_use                 = 0;
 #endif /* CHECKING */
 }  /* il_alloc_init */
+#endif /* STANDALONE_UTILITY_PROGRAM */
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
