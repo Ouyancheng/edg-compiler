@@ -1,5 +1,25 @@
 Version 6.6
 
+8/10/23  [EDGcpfe/26213]
+__is_trivially_copyable and constrained special members
+
+Consider:
+
+  template<typename T> concept C = true;
+  template<typename T> concept D = C<T> && true;
+  template<typename T> struct X {
+    X(X<T> const&) requires D<T> = default;
+    X(X<T> const&) requires C<T>;  // (1)
+  };
+  static_assert(__is_trivially_copyable(X<int>));
+
+Previously, the front end failed the static assertion because the copy
+constructor declared by (1) is nontrivial.  However, (1) should not be
+considered in determining trivial copyability because the defaulted constructor
+of X<int> (which is trivial) is more constrained and thus always preferred.
+That is now fixed: The assertion is now accepted.
+
+
 8/10/23  [EDGcpfe/26575]
 Pack expansion failure for concept used in requires clause
 

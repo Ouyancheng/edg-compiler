@@ -2022,7 +2022,7 @@ Return TRUE if the given type is trivially copyable.
     } else if (is_immediate_class_type(tp)) {
       /* A class type is trivially copyable if (N4878 [class.prop]/1):
           - it has at least one eligible move/copy function, and
-          - it has no nontrivial move/copy functions, and
+          - it has no eligible nontrivial move/copy functions, and
           - it has a trivial non-deleted destructor.
         "Eligible" here means that the special member is not deleted,
         its constraints are satisfied, and no other matching special
@@ -2036,17 +2036,14 @@ Return TRUE if the given type is trivially copyable.
         cssp = class_symbol_supp(symbol_for(tp));
       }  /* if */
       if (!has_nontrivial_destructor(cssp) &&
-          !cssp->has_user_provided_copy_constructor &&
-          !cssp->has_user_provided_move_constructor &&
-          !cssp->has_user_provided_move_assign_operator &&
           !(tp->variant.class_struct_union.any_volatile_member &&
             microsoft_mode && microsoft_version <= 1910)) {
         a_symbol_ptr  sym;
         a_boolean     is_list, has_trivial_copy_function = FALSE;
+        Small_dyn_array<a_symbol_ptr, 5>
+                      trivials, nontrivials;
         result = TRUE;
-        /* Check for nontrivial copy/move constructors.  We already checked
-           that none are user-provided, so we can just check the compiler-
-           generated constructors. */
+        /* Check for eligible nontrivial copy/move constructors. */
         sym = cssp->constructor;
         if (sym != NULL && symbol_is(sym, sk_overloaded_function)) {
           is_list = TRUE;
@@ -2063,38 +2060,70 @@ Return TRUE if the given type is trivially copyable.
              as if they have a trivial copy constructor. */
           has_trivial_copy_function = TRUE;
         }  /* if */
+        /* Collect eligible trivial and nontrivial copy/move constructors.
         for (; sym != NULL; sym = is_list ? sym->next : NULL) {
           a_routine_ptr	    rp;
           a_param_type_ptr  ptp;
           a_boolean         one_param;
           if (symbol_is(sym, sk_function_template)) continue;
           check_assertion(symbol_is(sym, sk_member_function));
+          if (is_ineligible(sym)) continue;
           rp = sym->variant.routine.ptr;
           if (rp->is_trivial_copy_function) {
             /* Having a trivial copy function is necessary (but not sufficient)
                to make the type trivially copyable. */
             has_trivial_copy_function = TRUE;
+            trivials.push_back(sym);
             continue;
           } else if (rp->is_deleted && !ms_version_is(<1927)) {
             /* Deleted copy functions don't affect trivial copyability. */
             continue;
           }  /* if */
           ptp = function_type_params(rp->type);
-          one_param = ptp != NULL && ptp->next == NULL;
-          /* A generated constructor with one parameter that is not an
-             inheriting constructor is always a copy constructor.  For deleted
-             constructors a more expensive check is needed. */
-          if ((((rp->compiler_generated || rp->is_defaulted) &&
-                !rp->is_inheriting_ctor && one_param) ||
-               (rp->is_deleted &&
-                is_copy_constructor(rp, tp, (a_type_qualifier_set*)NULL,
-                                    /*include_move_ctors=*/TRUE,
-                                    /*is_declarative_context=*/TRUE))) &&
-                !rp->is_trivial_copy_function) {
-            result = FALSE;
-            break;
+          one_param = ptp != NULL &&
+                      (ptp->next == NULL || ptp->has_default_arg);;
+          /* Identify nontrivial copy/move constructors, which often make the
+             type not trivially copyable. */
+          if (one_param &&
+              is_copy_constructor(rp, tp, (a_type_qualifier_set*)NULL,
+                                  /*include_move_ctors=*/TRUE,
+                                  /*is_declarative_context=*/TRUE)) {
+            nontrivials.push_back(sym);
           }  /* if */
         }  /* for */
+        /* Check that any nontrivial candidate is less constrained than a
+           matching trivial candidate.  For example:
+               template<typename T> concept C = true;
+               template<typename T> concept D = C<T> && true;
+               template<typename T> struct X {
+                 X(X<T> const&) requires D<T> = default;
+                 X(X<T> const&) requires C<T>;  // (1)
+               };
+               static_assert(__is_trivially_copyable(X<int>));
+           Copy constructor (1) is nontrivial, but the defaulted constructor
+           is trivial and its constraint subsumes that of (1), thereby making
+           (1) neutral in the determination of trivial copyability.  */
+        if (trivials.is_empty() && !nontrivials.is_empty()) {
+          result = FALSE;
+          goto done;
+        } else {
+          for (a_symbol_ptr  nontrivial: nontrivials) {
+            a_boolean  masked_nontrivial = FALSE;
+            for (a_symbol_ptr trivial: trivials) {
+              if (compare_constraints(trivial, nontrivial) > 0 &&
+                  identical_types(nontrivial->variant.routine.ptr->type,
+                                  trivial->variant.routine.ptr->type)) {
+                /* This nontrivial candidate is "masked" by a more constrained
+                   trivial candidate. */
+                masked_nontrivial = TRUE;
+              }  /* if */
+            }  /* for */
+            if (!masked_nontrivial) {
+              result = FALSE;
+              goto done;
+            }  /* if */
+          }  /* for */
+        }  /* if */
         if (result) {
           /* Now check for assignment operators.  Unlike the copy/move
              constructor, there is currently no quick way to eliminate the
@@ -2106,6 +2135,8 @@ Return TRUE if the given type is trivially copyable.
           } else {
             is_list = FALSE;
           }  /* if */
+          trivials.clear();
+          nontrivials.clear();
           for (; sym != NULL; sym = is_list ? sym->next : NULL) {
             a_routine_ptr         rp;
             a_boolean             is_move;
@@ -2118,20 +2149,43 @@ Return TRUE if the given type is trivially copyable.
               /* Having a trivial copy function is necessary (but not
                  sufficient) to make the type trivially copyable. */
               has_trivial_copy_function = TRUE;
+              trivials.push_back(sym);
               continue;
             } else if (rp->is_deleted && !ms_version_is(<1927)) {
               /* Deleted copy functions don't affect trivial copyability. */
               continue;
-            } else if (rp->compiler_generated ||
-                       routine_is_copy_or_move_assign_operator(
+            } else if (routine_is_copy_or_move_assign_operator(
                                                         rp, &tqs, &is_move)) {
-              result = FALSE;
+              nontrivials.push_back(sym);
               break;
             }  /* if */
           }  /* for */
         }  /* if */
         if (!has_trivial_copy_function) {
           result = FALSE;
+        }  /* if */
+        /* Check that any nontrivial candidate is less constrained than a
+           matching trivial candidate. */
+        if (trivials.is_empty() && !nontrivials.is_empty()) {
+          result = FALSE;
+          goto done;
+        } else {
+          for (a_symbol_ptr  nontrivial: nontrivials) {
+            a_boolean  masked_nontrivial = FALSE;
+            for (a_symbol_ptr trivial: trivials) {
+              if (compare_constraints(trivial, nontrivial) > 0 &&
+                  identical_types(nontrivial->variant.routine.ptr->type,
+                                  trivial->variant.routine.ptr->type)) {
+                /* This nontrivial candidate is "masked" by a more constrained
+                   trivial candidate. */
+                masked_nontrivial = TRUE;
+              }  /* if */
+            }  /* for */
+            if (!masked_nontrivial) {
+              result = FALSE;
+              goto done;
+            }  /* if */
+          }  /* for */
         }  /* if */
         if (result && clang_mode &&
             tp->variant.class_struct_union.any_const_member) {
