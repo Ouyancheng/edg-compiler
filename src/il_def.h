@@ -3137,7 +3137,7 @@ typedef struct a_source_correspondence {
 			   the same module entity.  The module entity is
 			   determined via the current module entity on the
 			   module entity stack when this source correspondence
-			   was created)*/
+			   was created). */
   a_source_position
 		decl_position;
 			/* The source position at which this entity is
