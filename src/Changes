@@ -78,7 +78,7 @@ example, with --c++17:
   }
 
 
-8/9/23   [EDGcpfe/26449]
+8/9/23   [EDGcpfe/26160,EDGcpfe/26449]
 Equivalence of alias templates
 
 The direction of Core issue 1286 specifies that an alias template is equivalent
