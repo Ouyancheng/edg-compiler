@@ -2019,9 +2019,8 @@ Process the IFC module entity declaration specified at the given declaration
 index by creating the appropriate IL entity.
 
 This function should be preferred if the entity should be processed
-immediately.  request_entity_at_index should be preferred in contexts when
-immediate processing is not required (i.e., the exact entity doesn't need to be
-known).
+immediately.  request_entity_at_index should be preferred when immediate
+processing is not required (i.e., the exact entity doesn't need to be known).
 */
 {
   /* Get the associated IFC module entity pointer, and then use it to
@@ -2061,9 +2060,9 @@ Request that the given module entity be processed (if not already being
 processed).  If the entity's processing is complete, return TRUE; otherwise,
 return FALSE.
 
-This function should be preferred in contexts where it's important that the
-entity be processed at some point.  process_ifc_declaration should be preferred
-if the entity should be processed immediately.
+This function should be preferred when immediate processing is not required
+(i.e., the exact entity doesn't need to be known).  process_ifc_declaration
+should be preferred if the entity should be processed immediately.
 */
 {
   if (!is_entity_resolved(mep) && !is_entity_imminent(mep)) {
@@ -2079,9 +2078,9 @@ Request that the given module entity specified at the given declaration index
 be processed (if not already being processed).  If the entity's processing is
 complete, return TRUE; otherwise, return FALSE.
 
-This function should be preferred in contexts where it's important that the
-entity be processed at some point.  process_decl_at_index should be preferred
-if the entity should be processed immediately.
+This function should be preferred when immediate processing is not required
+(i.e., the exact entity doesn't need to be known).  process_decl_at_index
+should be preferred if the entity should be processed immediately.
 */
 {
   /* Get the associated IFC module entity pointer, and then use it to
@@ -9921,8 +9920,8 @@ definition that can be lazily loaded, information to support lazy loading will
 be mapped to the IL entity.
 
 This function should be preferred if the entity should be processed
-immediately.  request_entity should be preferred in contexts when immediate
-processing is not required (i.e., the exact entity doesn't need to be known).
+immediately.  request_entity should be preferred when immediate processing is
+not required (i.e., the exact entity doesn't need to be known).
 */
 {
   a_module_entity_stack_state mep_state(mep);
