@@ -10794,14 +10794,17 @@ is the template of which sym is an instance.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean requires_constraint_satisfied(
-                                          a_symbol_ptr           template_sym,
-                                          a_requires_clause_ptr  rcp,
-                                          a_template_arg_ptr     args,
-                                          a_boolean              diagnose)
+                            a_symbol_ptr           template_sym,
+                            a_requires_clause_ptr  rcp,
+                            a_template_arg_ptr     args,
+                            a_boolean              diagnose,
+                            a_boolean              is_trailing_requires_clause)
 /*
 Return TRUE if the given requires clause (associated with template_sym) is
 satisfied by the given template argument list.  Otherwise, return FALSE and
-issue a diagnostic if diagnose is TRUE.
+issue a diagnostic if diagnose is TRUE.  If is_trailing_requires_clause is
+TRUE, function parameters are in scope and parameter pack information for these
+is added to the substitution state.
 */
 {
   a_boolean             result = TRUE, fatal = FALSE;
@@ -10814,8 +10817,9 @@ issue a diagnostic if diagnose is TRUE.
   push_instantiation_scope_for_rescan(template_sym);
   clear_diag_list(&diag_list);
   init_ctws_state(&ctws_state);
-  if (template_sym->kind == sk_function_template ||
-      template_sym->kind == sk_member_function) {
+  if (is_trailing_requires_clause &&
+      (template_sym->kind == sk_function_template ||
+       template_sym->kind == sk_member_function)) {
     /* Add function parameter pack information to the substitution state. */
     a_template_symbol_supplement_ptr
                         tssp = template_supplement_for_symbol(template_sym);
@@ -10959,8 +10963,9 @@ TRUE, issue a diagnostic explaining the failure.
              parameter type constraints and type constraints resulting from
              abbreviated function template "auto" parameters. */
           if (rcp != NULL) {
-            if (!requires_constraint_satisfied(template_sym, rcp, args,
-                                               diagnose)) {
+            if (!requires_constraint_satisfied(
+                                      template_sym, rcp, args, diagnose,
+                                      /*is_trailing_requires_clause=*/FALSE)) {
               result = FALSE;
               break;
             }  /* if */
@@ -10983,7 +10988,8 @@ TRUE, issue a diagnostic explaining the failure.
   if (!result) {
     /* Nothing more to check. */
   } else if (rcp != NULL && !requires_constraint_satisfied(
-                                         template_sym, rcp, args, diagnose)) {
+                                      template_sym, rcp, args, diagnose,
+                                      /*is_trailing_requires_clause=*/FALSE)) {
     /* If there were no type constraints introduced by function "auto"
        parameters, the template requires clause is checked here.  Otherwise,
        it would have been checked above. */
@@ -10994,7 +11000,8 @@ TRUE, issue a diagnostic explaining the failure.
     if (rp->trailing_requires_clause != NULL &&
         !requires_constraint_satisfied(template_sym,
                                        rp->trailing_requires_clause,
-                                       args, diagnose)) {
+                                       args, diagnose,
+                                       /*is_trailing_requires_clause=*/TRUE)) {
       result = FALSE;
     }  /* if */
   }  /* if */

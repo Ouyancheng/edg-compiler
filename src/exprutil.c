@@ -25930,7 +25930,7 @@ p_fatal and p_copy_error are NULL by default.
       an_expr_node_ptr  expr = templ->prototype_instantiation.constraint;
       /* Evaluate the resulting constraint. */
       result = constraint_satisfied(expr, new_args, params, diag_list, options,
-                                    ctws_state, p_fatal);
+                                    NULL, p_fatal);
       if (!result && !*p_fatal) {
         /* Insert a diagnostic before the ones detailing the constraint
            failure. */

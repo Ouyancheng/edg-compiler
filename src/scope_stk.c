@@ -11579,9 +11579,9 @@ Return the number of actual arguments in *elements.
       if (vpip->orig_param_type->param_num == param_num &&
           strcmp(vpip->orig_param_type->name,
                  prp->symbol->header->identifier) == 0) {
-          result_vpip = vpip;
-          result_ptp = vpip->param_type;
-        break;
+        result_vpip = vpip;
+        result_ptp = vpip->param_type;
+        /* Continue searching for a closer (more recently added) pack. */
       }  /* if */
     }  /* for */
     if (result_ptp != NULL) {
