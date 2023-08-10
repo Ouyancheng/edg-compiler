@@ -642,7 +642,7 @@ supplied type and dynamic initializer and clear the being_checked flag.
   clear_expr_node(&initializer, enk_temp_init);
   initializer.type = tp;
   initializer.variant.init.dynamic_init = dip;
-}  /* a_dynamic_initializer_ptr::a_dynamic_initializer_ptr */
+}  /* a_constexpr_initializer::a_constexpr_initializer */
 
 
 /*
