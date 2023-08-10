@@ -6653,7 +6653,7 @@ initializations that are done for each compilation.
   local_constants_in_use                 = 0;
 #endif /* CHECKING */
 }  /* il_alloc_init */
-#endif /* STANDALONE_UTILITY_PROGRAM */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

@@ -648,9 +648,11 @@ supplied type and dynamic initializer and clear the being_checked flag.
 /*
 A map associating local constexpr variables with their initializers.
 */
-typedef Ptr_map<a_variable_ptr, a_constexpr_initializer_ptr, General_allocator>
-                                                         a_var_initializer_map;
-a_var_initializer_map *var_init_map;
+typedef
+Ptr_map<a_variable_ptr, a_constexpr_initializer_ptr, General_allocator>
+		a_var_initializer_map;
+a_var_initializer_map
+		*var_init_map;
 
 
 /*
@@ -24262,8 +24264,7 @@ Initialize for the C++/C-generating back end.
      they are only recorded for constexpr local variables defined in scopes
      in which local expr ref nodes exist, so start out with a small table
      size. */
-  var_init_map =
-    new a_var_initializer_map(/*mask_width=*/6);
+  var_init_map = new a_var_initializer_map(/*mask_width=*/6);
 }  /* init_cp_gen_be */
 
 #if STANDALONE_CP_GEN_BE
