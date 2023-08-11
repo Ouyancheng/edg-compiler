@@ -2081,7 +2081,7 @@ Return TRUE if the given type is trivially copyable.
           }  /* if */
           ptp = function_type_params(rp->type);
           one_param = ptp != NULL &&
-                      (ptp->next == NULL || ptp->has_default_arg);;
+                      (ptp->next == NULL || ptp->has_default_arg);
           /* Identify nontrivial copy/move constructors, which often make the
              type not trivially copyable. */
           if (one_param &&
