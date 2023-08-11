@@ -15545,7 +15545,7 @@ static void cache_source_directive(an_ifc_module                 *mod,
                                    a_module_token_cache_ptr      cache,
                                    an_ifc_source_directive_sort  directive)
 /*
-Add tokens corresponding to directive to cache.
+Add tokens corresponding to directive (from the given module) to cache.
 */
 {
   switch (directive) {
@@ -15643,7 +15643,7 @@ static void cache_source_punctuator(an_ifc_module                 *mod,
                                     a_module_token_cache_ptr      cache,
                                     an_ifc_source_punctuator_sort punctuator)
 /*
-Add tokens corresponding to punctuator to cache.
+Add tokens corresponding to punctuator (from the given module) to cache.
 */
 {
   switch (punctuator) {
@@ -15717,8 +15717,9 @@ static void cache_source_literal(an_ifc_module                        *mod,
                                  a_module_token_cache_ptr             cache,
                                  const an_ifc_source_literal_category &literal)
 /*
-Add tokens corresponding to literal to cache.  index is the index into the IFC
-file for the additional information needed, depending on the kind of literal.
+Add tokens corresponding to literal (from the given module) to cache.  index is
+the index into the IFC file for the additional information needed, depending on
+the kind of literal.
 */
 {
   switch (literal.sort) {
@@ -15859,7 +15860,7 @@ static void cache_source_operator(an_ifc_module                *mod,
                                   a_module_token_cache_ptr     cache,
                                   an_ifc_source_operator_sort  op)
 /*
-Add tokens corresponding to op to cache.
+Add tokens corresponding to op (from the given module) to cache.
 */
 {
   switch (op) {
@@ -16003,7 +16004,7 @@ static void cache_source_keyword(an_ifc_module              *mod,
                                  a_module_token_cache_ptr   cache,
                                  an_ifc_source_keyword_sort keyword)
 /*
-Add tokens corresponding to keyword to cache.
+Add tokens corresponding to keyword (from the given module) to cache.
 */
 {
   switch (keyword) {
@@ -16596,8 +16597,9 @@ static void cache_source_identifier(
                                  a_module_token_cache_ptr                cache,
                                  const an_ifc_source_identifier_category &id)
 /*
-Add tokens corresponding to id to cache.  index is the index into the IFC file
-for the additional information needed, depending on the kind of id.
+Add tokens corresponding to id (from the given module) to cache.  index is the
+index into the IFC file for the additional information needed, depending on the
+kind of id.
 */
 {
   Opt<a_string> opt_name;
