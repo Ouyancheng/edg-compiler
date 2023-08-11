@@ -159,7 +159,7 @@ static Opt<a_string> name_of_decl(an_ifc_decl_index decl_idx);
 template<typename an_ifc_Decl_type>
 a_boolean is_named_decl(an_ifc_Decl_type decl)
 /*
-Given an IFC declaration node, return true if the node is named declaration.
+Given an IFC declaration node, return true if the node is a named declaration.
 */
 {
   Opt<a_string> opt_name = name_of_decl(decl);
@@ -1846,7 +1846,7 @@ otherwise, return FALSE.
     an_ifc_type_fundamental fundamental_type = *opt_fundamental_type;
     an_ifc_type_basis_sort  basis = get_ifc_basis(fundamental_type);
     result = (basis == ifc_tbs_interface);
-  }  /* if */
+  }
   goto done;
 invalid:
   result = FALSE;
@@ -1990,7 +1990,7 @@ return FALSE.
   }  /* if */
 done:
   return result;
-}  /* is_namespace_scope */
+}  /* is_std_namespace_scope */
 
 
 static inline void ensure_type_has_scope(a_type_ptr tp)
@@ -8579,7 +8579,7 @@ exists, return the associated symbol; otherwise, return NULL.
     } else {
       /* Attempt to find the namespace by name. */
       result = curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
-    }
+    }  /* if */
   } else {
     /* Attempt to find an existing anonymous namespace in the current scope's
        pointers block. */
