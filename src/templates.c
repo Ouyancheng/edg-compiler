@@ -7924,11 +7924,14 @@ template parameter list.
       a_template_decl_info_ptr  aliased_tdip;
       a_type_ptr                aliased_type = type->variant.typeref.type;
 
-      if (is_immediate_class_type(aliased_type) &&
-          assoc_template_of(aliased_type) != NULL) {
-        /* The alias template names a class template. */
+      if (is_immediate_class_type(aliased_type)) {
         aliased_templ = assoc_template_of(aliased_type);
-        aliased_args = class_type_supp(aliased_type)->template_arg_list;
+        if (aliased_templ != NULL && aliased_templ->kind == templk_class) {
+          /* The alias template names a class template. */
+          aliased_args = class_type_supp(aliased_type)->template_arg_list;
+        } else {
+          break;
+        }  /* if */
       } else if (aliased_type->kind == tk_typeref &&
                  is_typeref_kind(aliased_type, trk_is_template_alias)) {
         /* The alias template names another alias template. */
