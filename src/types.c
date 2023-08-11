@@ -2060,7 +2060,7 @@ Return TRUE if the given type is trivially copyable.
              as if they have a trivial copy constructor. */
           has_trivial_copy_function = TRUE;
         }  /* if */
-        /* Collect eligible trivial and nontrivial copy/move constructors.
+        /* Collect eligible trivial and nontrivial copy/move constructors. */
         for (; sym != NULL; sym = is_list ? sym->next : NULL) {
           a_routine_ptr	    rp;
           a_param_type_ptr  ptp;
