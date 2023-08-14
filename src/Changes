@@ -1,5 +1,32 @@
 Version 6.6
 
+8/14/23  [EDGcpfe/26508]
+Microsoft compatibility: Looking up qualified names in templates
+
+In permissive Microsoft modes, dependent name processing is disabled and all
+qualified names appearing in templates are looked up in the instantiation
+context.  However, in non-permissive Microsoft modes, dependent name processing
+is enabled which normally causes namespace-qualified names to be looked up at
+the point of template definition.  However, even in non-permissive modes MSVC
+defers the lookup of some non-dependent qualified names to the point of
+instantiation.  For example:
+
+  template<typename T> T &&declval();
+  template<typename T> struct A {};
+  template<typename T> void f(A<T> const&);
+  template<typename T> struct B {
+    int g() noexcept(noexcept(::f(declval<B<T>>())));  // Previously an error.
+  };                                                   // Now okay.
+  template<typename T> void f(B<T> const&);
+  int i = B<int>().g();
+
+When the exception specification operand in B<int> is instantiated, the lookup
+::f should only find the first declaration of ::f, and since that is not a
+match for the call it should elicit an error.  However, MSVC accepts this
+example because it defers the lookup of ::f to instantiation time.  The front
+end now emulates that behavior.
+
+
 8/10/23  [EDGcpfe/26213]
 __is_trivially_copyable and constrained special members
 

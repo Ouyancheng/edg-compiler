@@ -7264,9 +7264,11 @@ are expected to be NULL in that case.
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
   if (overloaded_function_case) {
-    an_operand        orig_operand;
-    a_boolean         name_reference_was_saved = FALSE;
-    a_name_reference  saved_name_reference = null_name_reference;
+    an_operand           orig_operand;
+    a_boolean            name_reference_was_saved = FALSE;
+    a_name_reference     saved_name_reference = null_name_reference;
+    an_overload_context  ovl_context = oc_default;
+    if (operand->is_microsoft_deferred_name) ovl_context = oc_deferred;
     orig_operand = *operand;
     if (operand->name_reference_set) {
       /* We have recorded the form of reference of the function name.  Save
@@ -7290,7 +7292,7 @@ are expected to be NULL in that case.
                                           try_surrogate_functions,
                                           /*is_property=*/FALSE,
                                           /*compiler_generated=*/FALSE,
-                                          oc_default,
+                                          ovl_context,
                                           &orig_operand,
                                           &call_position,
                                           opening_paren_tok_seq_number,
@@ -37740,10 +37742,31 @@ type_identifier_case:
      parenthesized: x is an id-expression, but (x) is not). */
   result->is_id_expression = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (allow_addr_of_managed_member) {
-    /* A managed class member function in a C++/CLI delegate gcnew can
-       have its address taken. */
-    result->allow_addr_of_managed_member = TRUE;
+  if (microsoft_mode) {
+    if (do_dependent_name_processing && microsoft_bugs &&
+        rescan_operand == NULL) {
+      /* In non-permissive mode, MSVC performs some dependent name processing.
+         However, it defers the resolution of some template-dependent names
+         until instantiation.  That includes file-scope-qualified names
+         (apparently in all dependent contexts) and namespace-qualified names
+         in function template scopes. */
+      if (locator.is_file_scope_qualified_name) {
+        result->is_microsoft_deferred_name = TRUE;
+      } else if (locator.is_qualified_name && !locator.is_class_member) {
+        if (innermost_function_scope != NULL &&
+            current_routine_entry()->template_arg_list != NULL) {
+          result->is_microsoft_deferred_name = TRUE;
+        } else if (scope_is(&scope_stack_top(), sck_func_prototype) &&
+                   scope_stack_top().template_param_decl_scope) {
+          result->is_microsoft_deferred_name = TRUE;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (allow_addr_of_managed_member) {
+      /* A managed class member function in a C++/CLI delegate gcnew can
+         have its address taken. */
+      result->allow_addr_of_managed_member = TRUE;
+    }  /* if */
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Remember whether or not an access control error was reported on the

@@ -3403,6 +3403,7 @@ values.
   operand->is_address_of_id_expression = FALSE;
   operand->id_expression_was_parenthesized = FALSE;
   operand->is_qualified_name = FALSE;
+  operand->is_microsoft_deferred_name = FALSE;
   operand->access_control_error_reported = FALSE;
   operand->is_operand_of_address_of = FALSE;
   operand->has_required_ptr_to_member_form = FALSE;

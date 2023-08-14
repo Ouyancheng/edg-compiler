@@ -161,6 +161,10 @@ the call resolution (such as lookup).
 enum an_overload_context {
   oc_default,                 /* Ordinary function or member function calls
                                  (e.g., scan_function_call). */
+  oc_deferred,                /* A syntactically-ordinary call in a template
+                                 context whose resolution should be deferred
+                                 until instantiation.  This is used to
+                                 emulate a Microsoft bug. */
   oc_constructor,             /* Calls to constructors (see
                                  scan_ctor_arguments). */
   oc_new_expression,          /* Calls to allocation functions generated for
@@ -397,6 +401,11 @@ typedef struct an_operand {
   a_bit_field	is_qualified_name:1;
 			/* TRUE if the operand was generated from a qualified
 			   name. */
+  a_bit_field	is_microsoft_deferred_name:1;
+			/* TRUE if the operand represents a name that would
+			   normally not be considered template-dependent, but
+			   whose resolution the Microsoft compiler defers until
+			   template instantiation.*/
   a_bit_field	access_control_error_reported:1;
 			/* TRUE if an access control error was reported
 			   on the base identifier for this operand.  This
