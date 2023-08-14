@@ -40198,6 +40198,8 @@ see expr.h).
   a_boolean         has_discarded_typename = FALSE;
   a_source_position typename_position;
   a_boolean         scanning_deferred_module_expr = FALSE;
+  a_const_char      *saved_start_of_curr_token;
+  a_const_char      *saved_end_of_curr_token;
   a_token_sequence_number
                     expected_ifc_rescan_end_tsn;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -40214,6 +40216,8 @@ see expr.h).
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (curr_token == tok_pending_ifc_expr) {
     (void)get_token();
+    saved_start_of_curr_token = start_of_curr_token;
+    saved_end_of_curr_token = end_of_curr_token;
     if (extract_tokens_for_ifc_module_expr(&ifc_index_for_curr_token,
                                            &expected_ifc_rescan_end_tsn)) {
       scanning_deferred_module_expr = TRUE;
@@ -41712,7 +41716,9 @@ end_of_routine:
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (scanning_deferred_module_expr) {
     /* Cleanup the module token rescan. */
-    exit_module_token_rescan(expected_ifc_rescan_end_tsn);
+    exit_module_token_rescan(saved_start_of_curr_token,
+                             saved_end_of_curr_token,
+                             expected_ifc_rescan_end_tsn);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   db_exit();
