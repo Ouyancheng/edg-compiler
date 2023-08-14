@@ -677,7 +677,7 @@ if it turns out that no IL pragma entry is created).
           (binding_kind == pbk_none ||
            binding_kind == ppp->descr_ptr->binding_kind)) {
         ppp->source_sequence_entry = add_empty_src_seq_entry_for_pragma(ppp);
-        if (ppp->il_pragma_entry != NULL && 0) {
+        if (ppp->il_pragma_entry != NULL) {
           /* This pragma was already processed.  Associate the source sequence
              entry with it. */
           update_source_sequence_list((char*)ppp->il_pragma_entry,
