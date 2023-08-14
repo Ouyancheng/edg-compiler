@@ -1,5 +1,16 @@
 Version 6.6
 
+8/14/23  [EDGcpfe/26580]
+Corruption of start/end_of_curr_token
+
+A change in version 6.5 introduced a regression that resulted in values of
+start_of_curr_token and end_of_curr_token being reused in a context where
+they're no longer valid.  This is not known to affect the front end in any end
+user facing way, though it may affect customers that have made source level
+modifications which depend on the value of start_of_curr_token or
+end_of_curr_token.
+
+
 8/14/23  [EDGcpfe/26508]
 Microsoft compatibility: Looking up qualified names in templates
 
