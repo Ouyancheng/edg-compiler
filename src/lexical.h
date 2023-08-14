@@ -2120,14 +2120,8 @@ enum a_token_extra_info_kind : a_byte {
   teik_asm_string,	/* Extra information for a Microsoft asm block. */
   teik_insert_string,   /* Extra information for an inserted token string. */
   teik_ud_lit,          /* Extra information for a user-defined literal. */
-  teik_ifc_index,       /* Extra information for a pseudo-token referring to a
+  teik_ifc_index        /* Extra information for a pseudo-token referring to a
                            an IFC module node. */
-  teik_curr_token_chars /* Extra information for a token that needs to be
-                           restored with the previous textual token
-                           representation.  This information typically isn't
-                           cached, however it is necessary for token rescans to
-                           restore the previous state of the current token when
-                           resuming normal parsing. */
 };
 
 
@@ -2279,15 +2273,6 @@ typedef struct a_cached_token {
 			/* An index into the IFC module containing additional
 			   information. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* When extra_info_kind == teik_curr_token_chars: */
-    struct {
-      a_const_char
-		*start; /* The previous value of start_of_curr_token. */
-      a_const_char
-		*end;   /* The previous value of start_of_curr_token. */
-      sizeof_t
-		len;    /* The previous value of len_of_curr_token. */
-    } curr_token_chars;
   } variant;
 } a_cached_token;
 

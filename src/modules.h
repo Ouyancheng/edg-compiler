@@ -433,10 +433,16 @@ calls to exit_module_token_rescan automatically upon destruction.
 
 
 inline void exit_module_token_rescan(
-                    ARG_UNUSED a_token_sequence_number expected_end_tsn,
-                    ARG_UNUSED a_token_kind            final_token = tok_error)
+                             a_const_char            *orig_start_of_curr_token,
+                             a_const_char            *orig_end_of_curr_token,
+                  ARG_UNUSED a_token_sequence_number expected_end_tsn,
+                  ARG_UNUSED a_token_kind            final_token = tok_error)
 /*
 Restore the token stream state after processing a module token cache.
+
+The given start_of_curr_token value (orig_start_of_curr_token) and
+end_of_curr_token value (orig_end_of_curr_token) are the original start and end
+of the current token prior to the start of the rescan.
 
 The given expected_end_tsn argument is the expected token sequence number for
 the associated terminator (end of source) token.  If upon clearing any
@@ -484,6 +490,23 @@ private:
                            tok_error should be passed to
                            exit_module_token_rescan. */
 #if CHECKING
+  a_const_char*
+                expected_curr_source_line;
+                        /* The value of curr_source_line when the rescan was
+                           started and thus, the expected value of
+                           curr_source_line when the rescan ends. */
+#endif /* CHECKING */
+  a_const_char*
+                save_start_of_curr_token;
+                        /* The value of start_of_curr_token when the rescan was
+                           started that will be restored to the current token
+                           when the rescan ends. */
+  a_const_char*
+                save_end_of_curr_token;
+                        /* The value of end_of_curr_token when the rescan was
+                           started that will be restored to the current token
+                           when the rescan ends. */
+#if CHECKING
   a_token_sequence_number
                 expected_end_tsn;
                         /* The expected ending token sequence number. */
@@ -494,13 +517,18 @@ private:
 a_module_entity_rescan::a_module_entity_rescan(
                                  a_module_token_cache_ptr cache,
                                  a_token_kind             *final_token_ptr_val)
-  : valid(cache->is_valid()), final_token_ptr(final_token_ptr_val)
 /*
 Apply the appropriate initialization logic to set up the parser for parsing the
 tokens specified in the given cache.  final_token_ptr_val should be a pointer
 to the expected token kind upon a correct parse, or NULL if no specific token
 is expected.
 */
+  : valid(cache->is_valid()), final_token_ptr(final_token_ptr_val),
+#if CHECKING
+    expected_curr_source_line(curr_source_line),
+#endif /* CHECKING */
+    save_start_of_curr_token(start_of_curr_token),
+    save_end_of_curr_token(end_of_curr_token)
 {
   if (this->valid) {
 #if CHECKING
@@ -532,9 +560,17 @@ the module entity rescan.
 #if CHECKING
     end_tsn = this->expected_end_tsn;
 #endif /* CHECKING */
-    exit_module_token_rescan(end_tsn, final_token);
+#if CHECKING
+    /* If this assertion fails, something has altered the current source line.
+       Said thing needs to be modified to ensure it restores the original
+       curr_source_line value. */
+    check_assertion(this->expected_curr_source_line == curr_source_line);
+#endif /* CHECKING */
+    exit_module_token_rescan(this->save_start_of_curr_token,
+                             this->save_end_of_curr_token,
+                             end_tsn, final_token);
   }
-}  /* ~a_module_entity_rescan */
+}  /* a_module_entity_rescan::~a_module_entity_rescan */
 
 #if DEBUG
 

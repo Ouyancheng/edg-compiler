@@ -3268,11 +3268,6 @@ This is used to save tokens for later rescanning.
     ctp->variant.ud_lit.suffix = ud_suffix_from_literal_operator_id(
                                 locator_for_curr_id.symbol_header->identifier);
     ctp->variant.ud_lit.type = ud_lit_type_for_curr_token;
-  } else if (curr_token == tok_assign) {
-    ctp->extra_info_kind = teik_curr_token_chars;
-    ctp->variant.curr_token_chars.start = start_of_curr_token;
-    ctp->variant.curr_token_chars.end = end_of_curr_token;
-    ctp->variant.curr_token_chars.len = len_of_curr_token;
   } else {
     /* No extra information needed for this token. */
     ctp->extra_info_kind = (a_token_extra_info_kind)teik_none;
@@ -4356,10 +4351,6 @@ set to TRUE in that case, FALSE otherwise.
   } else if (ctp->extra_info_kind == teik_ifc_index) {
     ifc_index_for_curr_token = ctp->variant.ifc_index;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  } else if (ctp->extra_info_kind == teik_curr_token_chars) {
-    start_of_curr_token = ctp->variant.curr_token_chars.start;
-    end_of_curr_token = ctp->variant.curr_token_chars.end;
-    len_of_curr_token = ctp->variant.curr_token_chars.len;
   }  /* if */
   free_cached_token(ctp);
 done:
@@ -4522,10 +4513,6 @@ equivalent change.
   } else if (ctp->extra_info_kind == teik_ifc_index) {
     ifc_index_for_curr_token = ctp->variant.ifc_index;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  } else if (ctp->extra_info_kind == teik_curr_token_chars) {
-    start_of_curr_token = ctp->variant.curr_token_chars.start;
-    end_of_curr_token = ctp->variant.curr_token_chars.end;
-    len_of_curr_token = ctp->variant.curr_token_chars.len;
   }  /* if */
   /* Check whether we have reached the end of this cache. */
   while (reusable_cache_stack->next_cached_token == NULL &&
@@ -25151,13 +25138,119 @@ that tokens should be fetched from the insertion string.
   free_cached_token(ctp);
 }  /* pop_string_insert_cache_entry */
 
+namespace {
+
+/*
+This structure captures and restores the lexer state values that need restored
+when escaping normal lexing to process a string into tokens.
+*/
+struct a_lexical_state_capture {
+  inline a_lexical_state_capture();
+  inline ~a_lexical_state_capture();
+private:
+  a_boolean     save_in_token_insertion_from_string;
+                        /* The saved original value of
+                           in_token_insertion_from_string. */
+  a_const_char  *save_curr_source_line;
+                        /* The saved original value of curr_source_line. */
+  a_boolean     save_treat_newline_as_token;
+                        /* The saved original value of
+                           treat_newline_as_token. */
+  a_boolean     save_no_modifs_to_curr_source_line;
+                        /* The saved original value of
+                           no_modifs_to_curr_source_line. */
+  a_const_char  *save_after_end_of_curr_source_line;
+                        /* The saved original value of
+                           after_end_of_curr_source_line. */
+  a_boolean     save_caching_tokens;
+                        /* The saved original value of caching_tokens. */
+  a_boolean     save_expand_macros;
+                        /* The saved original value of expand_macros. */
+  a_source_position
+                save_token_insertion_position;
+                        /* The saved original value of
+                           token_insertion_position. */
+  a_pointer_registration
+                *save_registered_pointers;
+                        /* The saved original value of registered_pointers. */
+  a_const_char  *save_curr_char_loc;
+                        /* The saved original value of curr_char_loc. */
+  a_pointer_registration
+                save_curr_char_loc_reg;
+                        /* The pointer registration used to register
+                           save_curr_char_loc. */
+};  /* a_lexical_saved_state */
+
+
+a_lexical_state_capture::a_lexical_state_capture()
+/*
+Capture the current state values.
+*/
+  : save_in_token_insertion_from_string(in_token_insertion_from_string),
+    save_curr_source_line(curr_source_line),
+    save_treat_newline_as_token(treat_newline_as_token),
+    save_no_modifs_to_curr_source_line(no_modifs_to_curr_source_line),
+    save_after_end_of_curr_source_line(after_end_of_curr_source_line),
+    save_caching_tokens(caching_tokens), save_expand_macros(expand_macros),
+    save_token_insertion_position(token_insertion_position),
+    save_registered_pointers(registered_pointers),
+    save_curr_char_loc(NULL), save_curr_char_loc_reg()
+{
+  /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
+     are dangerous, since those things can be reallocated.  Such pointers
+     must be registered by calling register_pointer_variable so that they
+     can be updated on any reallocation. */
+  register_pointer_variable(this->save_curr_char_loc,
+                            this->save_curr_char_loc_reg);
+  this->save_curr_char_loc = curr_char_loc;
+}  /* a_lexical_state_capture::a_lexical_state_capture */
+
+
+a_lexical_state_capture::~a_lexical_state_capture()
+/*
+Restore the original state values.
+*/
+{
+  curr_char_loc = this->save_curr_char_loc;
+  registered_pointers = this->save_registered_pointers;
+  token_insertion_position = this->save_token_insertion_position;
+  expand_macros = this->save_expand_macros;
+  caching_tokens = this->save_caching_tokens;
+  after_end_of_curr_source_line = this->save_after_end_of_curr_source_line;
+  no_modifs_to_curr_source_line = this->save_no_modifs_to_curr_source_line;
+  treat_newline_as_token = this->save_treat_newline_as_token;
+  curr_source_line = this->save_curr_source_line;
+  in_token_insertion_from_string = this->save_in_token_insertion_from_string;
+}  /* a_lexical_state_capture::~a_lexical_state_capture */
+
+}  /* namespace */
+
+static a_string create_token_buffer_from_string(a_const_char *string)
+/*
+Given an unprocessed string form and return a string appropriate for scanning.
+*/
+{
+  char            lex_esc_line_esc[] = {
+    /* Add the lexical escape for a newline. */
+    LE_ESCAPE, LE_NEWLINE,
+    /* Add the end of line escape. */
+    LE_ESCAPE, LE_END_OF_LINE
+  };
+  a_string_view   lex_esc_line_esc_view(
+                                      lex_esc_line_esc,
+                                      sizeof(lex_esc_line_esc) / sizeof(char));
+
+  /* Form a temporary buffer of the string followed by the escape sequence. */
+  return a_string(string, lex_esc_line_esc_view);
+}  /* create_token_buffer_from_string */
+
 
 void insert_string_into_token_stream(
-                     a_const_char	*string,
-                     a_boolean		insert_after,
-                     a_boolean		p_expand_macros,
-                     a_boolean		suspend_caching,
-                     a_source_position	position_for_tokens/*lint !e1746*/)
+                         a_const_char       *string,
+                         a_boolean          insert_after,
+                         a_boolean          p_expand_macros,
+                         a_boolean          suspend_caching,
+                         a_source_position  position_for_tokens/*lint !e1746*/)
 /*
 Scan "string" as a sequence of tokens.  Build a token cache and insert it
 into the token stream at the current position.  "insert_after" is TRUE
@@ -25167,127 +25260,82 @@ if macros should be expanded while processing the tokens.  position_for_tokens
 is used as the beginning and end source position for each token in the string.
 If suspend_caching is TRUE, background caching of tokens is disabled while
 the tokens from the string are processed.
+
+Note this function must be carefully used when current token's
+start_of_curr_token and end_of_curr_token values are potentially relevant.  It
+internally uses token caches which will not preserve the start_of_curr_token
+and end_of_curr_token values unless fetch_pp_tokens is TRUE, so this
+information could be lost during insertion of the given string.  See the
+documentation of start_of_curr_token and end_of_curr_token for more
+information.
 */
 {
-  a_boolean		save_treat_newline_as_token;
-  a_text_buffer_ptr	buffer;
-  a_token_cache		cache;
-  a_token_cache		curr_token_cache;
-  a_boolean		save_no_modifs_to_curr_source_line;
-  a_const_char		*save_curr_source_line;
-  a_const_char		*save_after_end_of_curr_source_line;
-  a_boolean		save_caching_tokens;
-  a_boolean		save_expand_macros;
-  a_boolean		save_suspend_caching_tokens;
-  /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
-     are dangerous, since those things can be reallocated.  Such pointers
-     must be registered by calling register_pointer_variable so that they
-     can be updated on any reallocation. */
-  a_const_char		*save_curr_char_loc = NULL;
-  a_pointer_registration
-			save_curr_char_loc_reg;
-  a_pointer_registration_ptr
-			save_registered_pointers = registered_pointers;
-  a_source_position     save_pos_curr_token = pos_curr_token;
+  a_token_cache   cache;
+  a_token_cache   curr_token_cache;
+  a_boolean       save_suspend_caching_tokens =
+                        curr_lexical_state_stack_entry->suspend_caching_tokens;
+
+  { /* Use a_lexical_state_capture to capture and restore the lexer state. */
+    a_lexical_state_capture state;
+
+    /* Reset the information used by get_token to fetch the tokens from the
+       string in the buffer. */
+    token_insertion_position = position_for_tokens;
+    curr_lexical_state_stack_entry->suspend_caching_tokens = suspend_caching;
+    treat_newline_as_token = TRUE;
+    no_modifs_to_curr_source_line = FALSE;
+
+    /* Form a temporary buffer of the string followed by the escape
+       sequence. */
+    a_string     buffer = create_token_buffer_from_string(string);
+    a_const_char *buff_str = buffer.as_temp_characters();
+    curr_char_loc = buff_str;
+    curr_source_line = curr_char_loc;
+    after_end_of_curr_source_line = &buff_str[buffer.length()];
+    in_token_insertion_from_string = TRUE;
+    caching_tokens = TRUE;
+    expand_macros = p_expand_macros;
+    clear_token_cache(&cache, /*reusable=*/FALSE);
+    /* Push a marker into the cached token rescan list indicating that tokens
+       should be fetched from the insert string. */
+    push_string_insert_cache_entry();
+    /* Put the current token in the cache.  When the token string is inserted
+       after the current token we just put the current token at the start of
+       the cache to be rescanned.  When inserting before the current token we
+       create a separate cache containing the current token. */
+    if (insert_after) {
+      cache_curr_token(&cache);
+    } else {
+      clear_token_cache(&curr_token_cache, /*reusable=*/FALSE);
+      cache_curr_token(&curr_token_cache);
+    }  /* if */
+    /* Fetch tokens from the buffer.  Stop on a newline. */
+    for (;;) {
+      /* All of the tokens should have begin and end positions as specified by
+         the caller. */
+      pos_curr_token = position_for_tokens;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position     save_end_pos_curr_token = end_pos_curr_token;
+      end_pos_curr_token = position_for_tokens;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-
-  register_pointer_variable(save_curr_char_loc, save_curr_char_loc_reg);
-  if (token_insertion_buffer == NULL) {
-    token_insertion_buffer = alloc_text_buffer(1024);
-  }  /* if */
-  /* Copy the string to the buffer. */
-  buffer = token_insertion_buffer;
-  reset_text_buffer(buffer);
-  add_string_to_text_buffer(buffer, string);
-  /* Add the lexical escape for a newline. */
-  add_char_to_text_buffer(buffer, LE_ESCAPE);
-  add_char_to_text_buffer(buffer, LE_NEWLINE);
-  /* Add the end of line escape. */
-  add_char_to_text_buffer(buffer, LE_ESCAPE);
-  add_char_to_text_buffer(buffer, LE_END_OF_LINE);
-
-  /* Save the current token position. */
-  save_curr_char_loc = curr_char_loc;
-  save_treat_newline_as_token = treat_newline_as_token;
-  token_insertion_position = position_for_tokens;
-  save_no_modifs_to_curr_source_line = no_modifs_to_curr_source_line;
-  save_curr_source_line = curr_source_line;
-  save_after_end_of_curr_source_line = after_end_of_curr_source_line;
-  save_caching_tokens = caching_tokens;
-  save_expand_macros = expand_macros;
-  save_suspend_caching_tokens =
-                      curr_lexical_state_stack_entry->suspend_caching_tokens;
-  curr_lexical_state_stack_entry->suspend_caching_tokens = suspend_caching;
-
-  /* Reset the information used by get_token to fetch the tokens from
-     the string in the text buffer. */
-  treat_newline_as_token = TRUE;
-  no_modifs_to_curr_source_line = FALSE;
-  curr_char_loc = buffer->buffer;
-  curr_source_line = curr_char_loc;
-  after_end_of_curr_source_line = &buffer->buffer[buffer->size];
-  in_token_insertion_from_string = TRUE;
-  caching_tokens = TRUE;
-  expand_macros = p_expand_macros;
-  clear_token_cache(&cache, /*reusable=*/FALSE);
-  /* Push a marker into the cached token rescan list indicating that
-     tokens should be fetched from the insert string. */
-  push_string_insert_cache_entry();
-  /* Put the current token in the cache.  When the token string is inserted
-     after the current token we just put the current token at the start
-     of the cache to be rescanned.  When inserting before the current token
-     we create a separate cache containing the current token. */
-  if (insert_after) {
-    cache_curr_token(&cache);
-  } else {
-    clear_token_cache(&curr_token_cache, /*reusable=*/FALSE);
-    cache_curr_token(&curr_token_cache);
-  }  /* if */
-
-  /* Fetch tokens from the buffer.  Stop on a newline. */
-  for (;;) {
-    /* All of the tokens should have begin and end positions as specified by
-       the caller. */
-    pos_curr_token = position_for_tokens;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    end_pos_curr_token = position_for_tokens;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    if (get_token() == tok_newline) break;
-    cache_curr_token(&cache);
-  }  /* for */
-
-  /* Restore the original position from which tokens are being fetched. */
-  curr_char_loc = save_curr_char_loc;
-  after_end_of_curr_source_line = save_after_end_of_curr_source_line;
-  treat_newline_as_token = save_treat_newline_as_token;
-  no_modifs_to_curr_source_line = save_no_modifs_to_curr_source_line;
-  in_token_insertion_from_string = FALSE;
-  curr_source_line = save_curr_source_line;
-  caching_tokens = save_caching_tokens;
-  expand_macros = save_expand_macros;
-  pos_curr_token = save_pos_curr_token;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  end_pos_curr_token = save_end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-
+      if (get_token() == tok_newline) break;
+      cache_curr_token(&cache);
+    }  /* for */
+  }
   /* Resume fetching tokens from the previous source. */
   pop_string_insert_cache_entry();
   /* Get the next token from the normal input stream.  This is needed because
      the correct current token must be available for rescan_cached_tokens. */
   (void)get_token();
-  if (!insert_after) {  
+  if (!insert_after) {
     /* If the string is inserted before the current token, rescan the current
        token. */
     rescan_cached_tokens(&curr_token_cache);
   }  /* if */
   /* Scan the tokens from the cache. */
   rescan_cached_tokens(&cache);
-  /* Drop any local pointer registrations. */
-  registered_pointers = save_registered_pointers;
+  /* Restore the original token caching state. */
   curr_lexical_state_stack_entry->suspend_caching_tokens =
-                                                  save_suspend_caching_tokens;
+                                                   save_suspend_caching_tokens;
 }  /* insert_string_into_token_stream */
 
 
@@ -25300,105 +25348,64 @@ giving each token the given position (both the start and end position of
 those tokens).  Macros are not expanded.
 */
 {
-  a_boolean		save_treat_newline_as_token;
-  a_text_buffer_ptr	buffer;
-  a_token_cache		curr_token_cache;
-  a_boolean		save_no_modifs_to_curr_source_line;
-  a_const_char		*save_curr_source_line;
-  a_const_char		*save_after_end_of_curr_source_line;
-  a_boolean		save_caching_tokens;
-  a_boolean		save_expand_macros;
-  /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
-     are dangerous, since those things can be reallocated.  Such pointers
-     must be registered by calling register_pointer_variable so that they
-     can be updated on any reallocation. */
-  a_const_char		*save_curr_char_loc = NULL;
-  a_pointer_registration
-			save_curr_char_loc_reg;
-  a_pointer_registration_ptr
-			save_registered_pointers = registered_pointers;
-  a_source_position     save_pos_curr_token = pos_curr_token;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position     save_end_pos_curr_token = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_const_char    *save_start_of_curr_token = start_of_curr_token;
+  a_const_char    *save_end_of_curr_token = end_of_curr_token;
+  a_token_cache   curr_token_cache;
 
-  register_pointer_variable(save_curr_char_loc, save_curr_char_loc_reg);
-  if (token_insertion_buffer == NULL) {
-    token_insertion_buffer = alloc_text_buffer(1024);
-  }  /* if */
-  /* Copy the string to the buffer. */
-  buffer = token_insertion_buffer;
-  reset_text_buffer(buffer);
-  add_string_to_text_buffer(buffer, string);
-  /* Add the lexical escape for a newline. */
-  add_char_to_text_buffer(buffer, LE_ESCAPE);
-  add_char_to_text_buffer(buffer, LE_NEWLINE);
-  /* Add the end of line escape. */
-  add_char_to_text_buffer(buffer, LE_ESCAPE);
-  add_char_to_text_buffer(buffer, LE_END_OF_LINE);
-  /* Save the current token position. */
-  save_curr_char_loc = curr_char_loc;
-  save_treat_newline_as_token = treat_newline_as_token;
-  token_insertion_position = *position_for_tokens;
-  save_no_modifs_to_curr_source_line = no_modifs_to_curr_source_line;
-  save_curr_source_line = curr_source_line;
-  save_after_end_of_curr_source_line = after_end_of_curr_source_line;
-  save_caching_tokens = caching_tokens;
-  save_expand_macros = expand_macros;
-  /* Create a new lexical state for processing of the buffer. */
-  push_lexical_state_stack();
-  /* Reset the information used by get_token to fetch the tokens from
-     the string in the text buffer. */
-  treat_newline_as_token = TRUE;
-  no_modifs_to_curr_source_line = FALSE;
-  curr_char_loc = buffer->buffer;
-  curr_source_line = curr_char_loc;
-  after_end_of_curr_source_line = &buffer->buffer[buffer->size];
-  in_token_insertion_from_string = TRUE;
-  caching_tokens = TRUE;
-  expand_macros = FALSE;
-  /* Push a marker into the cached token rescan list indicating that
-     tokens should be fetched from the insert string. */
-  push_string_insert_cache_entry();
-  /* Cache the current token so it can be restored when we're done. */
-  clear_token_cache(&curr_token_cache, /*reusable=*/FALSE);
-  cache_curr_token(&curr_token_cache);
-  /* Fetch tokens from the buffer.  Stop on a newline. */
-  for (;;) {
-    /* All of the tokens should have begin and end positions as specified by
-       the caller. */
-    pos_curr_token = *position_for_tokens;
+  { /* Use a_lexical_state_capture to capture and restore the lexer state. */
+    a_lexical_state_capture state;
+
+    /* Adjust the insertion position */
+    token_insertion_position = *position_for_tokens;
+    /* Cache the current token so it can be restored when we're done. */
+    clear_token_cache(&curr_token_cache, /*reusable=*/FALSE);
+    cache_curr_token(&curr_token_cache);
+    /* Create a new lexical state for processing of the buffer. */
+    push_lexical_state_stack();
+    /* Reset the information used by get_token to fetch the tokens from the
+       string in the buffer. */
+    treat_newline_as_token = TRUE;
+    no_modifs_to_curr_source_line = FALSE;
+
+    /* Form a temporary buffer of the string followed by the escape
+       sequence. */
+    a_string     buffer = create_token_buffer_from_string(string);
+    a_const_char *buff_str = buffer.as_temp_characters();
+    curr_char_loc = buff_str;
+    curr_source_line = curr_char_loc;
+    after_end_of_curr_source_line = &buff_str[buffer.length()];
+    in_token_insertion_from_string = TRUE;
+    caching_tokens = TRUE;
+    expand_macros = FALSE;
+    /* Push a marker into the cached token rescan list indicating that tokens
+       should be fetched from the insert string. */
+    push_string_insert_cache_entry();
+
+    /* Fetch tokens from the buffer.  Stop on a newline. */
+    for (;;) {
+      /* All of the tokens should have begin and end positions as specified by
+         the caller. */
+      pos_curr_token = *position_for_tokens;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    end_pos_curr_token = *position_for_tokens;
+      end_pos_curr_token = *position_for_tokens;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    if (get_token() == tok_newline) break;
-    cache_curr_token(cache);
-  }  /* for */
-  /* Restore the original position from which tokens are being fetched. */
-  curr_char_loc = save_curr_char_loc;
-  after_end_of_curr_source_line = save_after_end_of_curr_source_line;
-  treat_newline_as_token = save_treat_newline_as_token;
-  no_modifs_to_curr_source_line = save_no_modifs_to_curr_source_line;
-  in_token_insertion_from_string = FALSE;
-  curr_source_line = save_curr_source_line;
-  caching_tokens = save_caching_tokens;
-  expand_macros = save_expand_macros;
-  pos_curr_token = save_pos_curr_token;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-  end_pos_curr_token = save_end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      if (get_token() == tok_newline) break;
+      cache_curr_token(cache);
+    }  /* for */
+  }
   /* Resume fetching tokens from the previous source. */
   pop_string_insert_cache_entry();
-  /* Get the next token from the normal input stream.  This is needed because
-     the correct current token must be available for rescan_cached_tokens. */
-  (void)get_token();
-  /* If the string is inserted before the current token, rescan the current
-     token. */
-  rescan_cached_tokens(&curr_token_cache);
+  /* Rescan the original current token, discarding the current token state
+     (which is already copied into the given cache). */
+  f_rescan_cached_tokens(&curr_token_cache, /*discard=*/TRUE);
+  /* Restore the start and end of the current token.  This ensures that this
+     function doesn't have an observable affect on parsing outside of the
+     cached tokens.  This must be done after the rescan as the rescan will wipe
+     out the start and end values. */
+  end_of_curr_token = save_end_of_curr_token;
+  start_of_curr_token = save_start_of_curr_token;
   /* Return to the original lexical state. */
   pop_lexical_state_stack();
-  /* Drop any local pointer registrations. */
-  registered_pointers = save_registered_pointers;
 }  /* cache_tokens_from_string */
 
 

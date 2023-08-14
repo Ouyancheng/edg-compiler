@@ -258,7 +258,20 @@ need to be reset after a call to this routine.
       locator->symbol_header->deferred_module_entities != NULL) {
     if (scope_is(scope, sck_file) ||
         scope_is(scope, sck_namespace)) {
+#if CHECKING
+      a_const_char *orig_curr_source_line = curr_source_line;
+      a_const_char *orig_start_of_curr_token = start_of_curr_token;
+      a_const_char *orig_end_of_curr_token = end_of_curr_token;
+#endif /* CHECKING */
+
       define_names_from_scope(scope, locator->symbol_header);
+#if CHECKING
+      /* If these assertions fail, modules code has failed to preserve the
+         lexical state of the current token and needs corrected to do so. */
+      check_assertion(orig_curr_source_line == curr_source_line);
+      check_assertion(orig_start_of_curr_token == start_of_curr_token);
+      check_assertion(orig_end_of_curr_token == end_of_curr_token);
+#endif /* CHECKING */
     }  /* if */
   }  /* if */
 }  /* load_lazy_symbols_if_needed */
