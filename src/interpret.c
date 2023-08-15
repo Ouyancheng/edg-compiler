@@ -8873,6 +8873,28 @@ encountered, the pointee of p_result will be set to FALSE.
 }  /* do_constexpr_write_source_function */
 
 
+static void do_constexpr_write_source_funcsig(
+                                          an_interpreter_state *ips,
+                                          a_source_position    *use_pos,
+                                          a_byte               *result_storage,
+                                          a_boolean            *p_result)
+/*
+Given the associated storage and interpreter state for the resulting const char
+pointer data (c-string), convert and store the source function signature
+associated with the given position (use_pos).  When the given position doesn't
+have an associated function, an empty c-string is instead stored.  If any
+problems are encountered, the pointee of p_result will be set to FALSE.
+*/
+{
+  /* Use the same string as if using __FUNCSIG__. */
+  a_const_char  *func_sig = get_string_for_function_name(
+                                                      tok_pretty_function_name,
+                                                      /*include_quote=*/FALSE);
+
+  do_constexpr_write_cstring(ips, func_sig, result_storage, p_result);
+}  /* do_constexpr_write_source_funcsig */
+
+
 static inline a_boolean check_constexpr_source_pos_deferred(
                                                      an_interpreter_state *ips)
 /*
@@ -8978,6 +9000,13 @@ when the expression is being copied to set up a constructor's initializers.
       case bfk_FUNCTION:
         do_constexpr_write_source_function(ips, use_pos, result_storage,
                                            p_result);
+        if (p_result) {
+          mark_complete_object_initialized(result_storage);
+        }  /* if */
+        break;
+      case bufk_FUNCSIG:
+        do_constexpr_write_source_funcsig(ips, use_pos, result_storage,
+                                          p_result);
         if (p_result) {
           mark_complete_object_initialized(result_storage);
         }  /* if */
@@ -9665,6 +9694,7 @@ to FALSE and the reason for the failure is recorded in *ips.
     case bfk_LINE:
     case bfk_FILE:
     case bfk_FUNCTION:
+    case bufk_FUNCSIG:
       /* Handle source location intrinsics. */
       interpreted = FALSE;
       if (args != NULL) {

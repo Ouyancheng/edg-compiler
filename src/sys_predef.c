@@ -254,6 +254,7 @@ consteval builtin.
     case bfk_LINE:
     case bfk_FILE:
     case bfk_FUNCTION:
+    case bufk_FUNCSIG:
       result = TRUE;
       break;
     default:

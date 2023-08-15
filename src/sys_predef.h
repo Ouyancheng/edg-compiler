@@ -229,6 +229,7 @@ enum a_builtin_user_function_kind {
   bufk_u8memchr,                  /* __builtin_u8memchr */
   bufk_u8memcmp,                  /* __builtin_u8memcmp */
   bufk_u8strlen,                  /* __builtin_u8strlen */
+  bufk_FUNCSIG,                   /* __builtin_FUNCSIG */
   bufk_last                       /* final entry */
 };
 
@@ -434,6 +435,11 @@ EXTERN a_builtin_user_descr builtin_user_table[]
     "const char*(void) __edg_throw__()", bfk_FILE },
   { "__builtin_FUNCTION", "Lx(90000-)s+(202002-)m+(1927-)",
     "const char*(void) __edg_throw__()", bfk_FUNCTION },
+
+  /* Microsoft supports __builtin_FUNCSIG (which returns the same as their
+     __FUNCSIG__ macro) beginning with version 19.35. */
+  { "__builtin_FUNCSIG", "m+(1935-)",
+    "const char*(void) __edg_throw__()", bufk_FUNCSIG },
 
   { NULL, NULL, 0, bfk_none }   /* end of table marker */
 }
