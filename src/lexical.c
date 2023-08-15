@@ -2275,11 +2275,6 @@ static a_boolean
 			   trivial modifications).  If so, it must be
 			   displayed. */
 
-static a_text_buffer_ptr
-		token_insertion_buffer;
-			/* A buffer used by the mechanism that inserts strings
-			   into the token stream. */
-
 static a_boolean
 		in_token_insertion_from_string;
 			/* TRUE during the initial scan of tokens that are
@@ -27577,7 +27572,6 @@ of the front end.
   avail_stop_token_stack_entries = NULL;
   avail_lexical_state_stack_entries = NULL;
   avail_pending_pragmas = NULL;
-  token_insertion_buffer = NULL;
 #if GET_DEFINITION_OF_CLASS_NEEDED
   class_def_buffer = NULL;
 #endif /* GET_DEFINITION_OF_CLASS_NEEDED */
