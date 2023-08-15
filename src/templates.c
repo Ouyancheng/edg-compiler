@@ -10365,6 +10365,13 @@ error type is used.
       /* Reactivate any pragmas that should be bound to the generated
          instance. */
       reactivate_curr_construct_pragmas(tssp->pragmas_bound_to_template);
+
+      /* Save the lexer state and restore it after the rescan to preserve the
+         full lexical state of the current token. */
+      Value_saver<a_const_char*>
+                      saved_start_of_curr_token(&start_of_curr_token);
+      Value_saver<a_const_char*>
+                      saved_end_of_curr_token(&end_of_curr_token);
       /* Rescan the tokens of the alias. */
       rescan_reusable_cache(&body_cache->tokens);
       record_symbol_declaration(SRK_DEFINITION | SRK_TEMPLATE_INSTANTIATION,
