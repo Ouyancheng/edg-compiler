@@ -25230,13 +25230,13 @@ static a_string create_token_buffer_from_string(a_const_char *string)
 Given an unprocessed string, return a string appropriate for scanning.
 */
 {
-  char            line_end_lex_escapes[] = {
+  char          line_end_lex_escapes[] = {
     /* Add the lexical escape for a newline. */
     LE_ESCAPE, LE_NEWLINE,
     /* Add the end of line escape. */
     LE_ESCAPE, LE_END_OF_LINE
   };
-  a_string_view   line_end_lex_escapes_view(
+  a_string_view line_end_lex_escapes_view(
                                   line_end_lex_escapes,
                                   sizeof(line_end_lex_escapes) / sizeof(char));
 
