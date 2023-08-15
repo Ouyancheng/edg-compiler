@@ -25237,8 +25237,8 @@ Given an unprocessed string, return a string appropriate for scanning.
     LE_ESCAPE, LE_END_OF_LINE
   };
   a_string_view   line_end_lex_escapes_view(
-                                      lex_esc_line_esc,
-                                      sizeof(lex_esc_line_esc) / sizeof(char));
+                                  line_end_lex_escapes,
+                                  sizeof(line_end_lex_escapes) / sizeof(char));
 
   /* Form a temporary buffer of the string followed by the escape sequence. */
   return a_string(string, line_end_lex_escapes_view);
