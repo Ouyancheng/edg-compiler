@@ -1,5 +1,35 @@
 Version 6.6
 
+8/15/23  [EDGcpfe/26583]
+Spurious errors on use of C++23 explicit-this members
+
+Consider (in C++23 mode):
+
+  struct B {
+    void f(this B &self) {}
+  };
+  struct D: B {
+    void g() { this->f(); }  // Previously an error.  Now okay.
+  };
+
+Previously, this elicited an error because the object argument in this->f() was
+tested as if it were a prvalue, and that cannot match the type B& of the C++23
+explicit-this parameter.  Also, for the example:
+
+  struct B {
+    template<typename T> void f(this T &self) {}
+  };
+  struct D: B {
+    void g() { f(); }  // Previously an error.  Now okay.
+  };
+
+the front end incorrectly synthesized an implicit object argument of type B
+after (correctly) deducing T to be type D.  That resulted in a spurious error
+since B cannot be implicitly converted to D.
+
+Both these bugs are now fixed.
+
+
 8/14/23  [EDGcpfe/26585]
 Microsoft compatibility: __builtin_FUNCSIG
 

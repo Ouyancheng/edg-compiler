@@ -5787,6 +5787,7 @@ in a new-expression).
       if (is_pointer_type(this_object->variant.expr.arg_op->operand.type)) {
         this_object->variant.expr.arg_op->operand.type =
           type_pointed_to(this_object->variant.expr.arg_op->operand.type);
+        this_object->variant.expr.arg_op->operand.state = os_glvalue;
       }  /* if */
 #if DEBUG
       if (debug_level >= 4 || db_flag_is_set("overload")) {
@@ -12078,106 +12079,209 @@ the case where the left operand is a C++/CLI handle.
 */
 {
   a_type_ptr       desired_class = sym_parent_class(projection_member_sym);
-  a_type_ptr       class_struct_union_type;
+  a_type_ptr       class_struct_union_type, explicit_this_class = NULL;
   a_base_class_ptr bcp;
+  a_symbol_ptr     base_sym = fundamental_symbol_of(member_sym);
 
   /* Leave an error operand alone. */
-  if (!is_error_operand(operand_1)) {
-    class_struct_union_type = operand_1->type;
-    if (is_arrow_operator) {
-      if (is_template_param_or_nonreal_class_type(class_struct_union_type)) {
-        /* Pointer type is unknown, in a prototype instantiation.  Or, the
-           selector has a nonreal class type, which might have an operator->
-           function. */
-        class_struct_union_type = type_of_unknown_templ_param_nontype;
-      } else {
-        /* Normal case.  Go from the pointer type to the underlying class
-           type. */
-        class_struct_union_type = type_pointed_to(class_struct_union_type);
+  if (is_error_operand(operand_1)) goto done;
+  if (is_simple_function_symbol(base_sym)) {
+    /* Check the case of selecting an explicit-this function: For that case,
+       the "desired class" is determined by its first parameter, not the
+       enclosing class type. */
+    a_type_ptr  rtp = skip_typerefs(routine_symbol_type(base_sym));
+    if (has_explicit_this_parameter(rtp)) {
+      explicit_this_class = rout_type_supp(rtp)->param_type_list->type;
+      if (is_any_reference_type(explicit_this_class)) {
+        explicit_this_class = skip_typerefs(
+                                        type_pointed_to(explicit_this_class));
+        desired_class = explicit_this_class;
       }  /* if */
     }  /* if */
-    /* Drop any typedefs on the class type. */
-    class_struct_union_type = skip_typerefs(class_struct_union_type);
-    check_assertion(is_immediate_class_type(class_struct_union_type) ||
-                    class_struct_union_type->kind ==
-                                               (a_type_kind)tk_template_param);
-    if (is_template_dependent_context() &&
-        (is_template_param_type(class_struct_union_type) ||
-         class_struct_union_type->variant.class_struct_union.is_nonreal_class||
-         desired_class->variant.class_struct_union.is_nonreal_class) &&
-        (projection_member_sym->kind == (a_symbol_kind)sk_projection ||
-         (!same_entities(class_struct_union_type, desired_class) &&
-          (is_template_param_type(class_struct_union_type) ||
-           find_base_class_of(class_struct_union_type,
-                              desired_class) == NULL)))) {
-      /* Don't do any checking on nonreal classes in prototype
-         instantiations, unless it does happen that there is a relationship. */
-      prep_generic_operand(operand_1);
+  }  /* if */
+  class_struct_union_type = operand_1->type;
+  if (is_arrow_operator) {
+    if (is_template_param_or_nonreal_class_type(class_struct_union_type)) {
+      /* Pointer type is unknown, in a prototype instantiation.  Or, the
+         selector has a nonreal class type, which might have an operator->
+         function. */
+      class_struct_union_type = type_of_unknown_templ_param_nontype;
     } else {
-      /* If the member is protected, it can only be accessed through an object
-         or pointer of a type to which we have member access (ARM 11.5). */
-      if (do_protected_member_check && !access_control_error_reported &&
-          expr_access_checking_should_be_done()) {
-        a_boolean error_detected = FALSE;
-        a_boolean *p_error_detected = NULL;
-        /* If errors are suppressed, get a returned variable instead of issuing
-           any error. */
+      /* Normal case.  Go from the pointer type to the underlying class
+         type. */
+      class_struct_union_type = type_pointed_to(class_struct_union_type);
+    }  /* if */
+  }  /* if */
+  /* Drop any typedefs on the class type. */
+  class_struct_union_type = skip_typerefs(class_struct_union_type);
+  check_assertion(is_immediate_class_type(class_struct_union_type) ||
+                  type_is(class_struct_union_type, tk_template_param));
+  if (is_template_dependent_context() &&
+      (is_template_param_type(class_struct_union_type) ||
+       class_struct_union_type->variant.class_struct_union.is_nonreal_class||
+       desired_class->variant.class_struct_union.is_nonreal_class) &&
+      (projection_member_sym->kind == (a_symbol_kind)sk_projection ||
+       (!same_entities(class_struct_union_type, desired_class) &&
+        (is_template_param_type(class_struct_union_type) ||
+         find_base_class_of(class_struct_union_type,
+                            desired_class) == NULL)))) {
+    /* Don't do any checking on nonreal classes in prototype
+       instantiations, unless it does happen that there is a relationship. */
+    prep_generic_operand(operand_1);
+  } else {
+    /* If the member is protected, it can only be accessed through an object
+       or pointer of a type to which we have member access (ARM 11.5). */
+    if (do_protected_member_check && !access_control_error_reported &&
+        expr_access_checking_should_be_done()) {
+      a_boolean error_detected = FALSE;
+      a_boolean *p_error_detected = NULL;
+      /* If errors are suppressed, get a returned variable instead of issuing
+         any error. */
+      if (expr_stack->suppress_diagnostics) {
+        p_error_detected = &error_detected;
+      }  /* if */
+      (void)check_protected_member_access(member_sym, projection_member_sym,
+                                          member_pos,
+                                          class_struct_union_type,
+                                          p_error_detected);
+      if (error_detected) record_suppressed_error();
+    }  /* if */
+    /* Do nothing if the type is already okay (which it almost always
+       will be; only in cases involving qualified names can it be
+       different). */
+    if (!same_entities(class_struct_union_type, desired_class)) {
+      /* Some adjustment is required.  Find out how the classes are
+         related to one another. */
+      bcp = find_base_class_of(class_struct_union_type, desired_class);
+      if (bcp == NULL) {
+        /* In a rescan context we could end up with unrelated types and
+           this should be treated as a SFINAE case. */
         if (expr_stack->suppress_diagnostics) {
-          p_error_detected = &error_detected;
-        }  /* if */
-        (void)check_protected_member_access(member_sym, projection_member_sym,
-                                            member_pos,
-                                            class_struct_union_type,
-                                            p_error_detected);
-        if (error_detected) record_suppressed_error();
-      }  /* if */
-      /* Do nothing if the type is already okay (which it almost always
-         will be; only in cases involving qualified names can it be
-         different). */
-      if (!same_entities(class_struct_union_type, desired_class)) {
-        /* Some adjustment is required.  Find out how the classes are
-           related to one another. */
-        bcp = find_base_class_of(class_struct_union_type, desired_class);
-        if (bcp == NULL) {
-          /* In a rescan context we could end up with unrelated types and
-             this should be treated as a SFINAE case. */
-          if (expr_stack->suppress_diagnostics) {
-            record_suppressed_error();
-          } else {
-            check_assertion(is_at_least_one_error());
-          }  /* if */
+          record_suppressed_error();
         } else {
-          /* Cast the left operand to the proper type.  In Microsoft bugs
-             mode, an ambiguity is ignored (with a warning).  See
-             add_base_class_casts for more information. */
-          base_class_cast_operand(operand_1, bcp, (a_type_ptr)NULL,
-                                  /*check_cast_access=*/
-                                                !access_control_error_reported,
-                                  /*allow_ambiguity=*/microsoft_bugs,
-                                  /*is_implicit_cast=*/TRUE,
-                                  /*implicit_in_naming=*/FALSE,
-                                  /*is_object_pointer=*/TRUE);
+          check_assertion(is_at_least_one_error());
         }  /* if */
-        class_struct_union_type = desired_class;
+      } else {
+        /* Cast the left operand to the proper type.  In Microsoft bugs
+           mode, an ambiguity is ignored (with a warning).  See
+           add_base_class_casts for more information. */
+        base_class_cast_operand(operand_1, bcp, (a_type_ptr)NULL,
+                                /*check_cast_access=*/
+                                               !access_control_error_reported,
+                                /*allow_ambiguity=*/microsoft_bugs,
+                                /*is_implicit_cast=*/TRUE,
+                                /*implicit_in_naming=*/FALSE,
+                                /*is_object_pointer=*/TRUE);
       }  /* if */
-      /* If the member symbol is a projection symbol (i.e., it's inherited
-         into the class where it is being referenced), cast the left operand
-         down to the base class in which the fundamental symbol is defined.
-         There's no access check on this part of the cast because the access
-         to the fundamental base class was checked as part of determining
-         access to the symbol. */
-      if (projection_member_sym->kind == (a_symbol_kind)sk_projection
+      class_struct_union_type = desired_class;
+    }  /* if */
+    /* If the member symbol is a projection symbol (i.e., it's inherited
+       into the class where it is being referenced), cast the left operand
+       down to the base class in which the fundamental symbol is defined.
+       There's no access check on this part of the cast because the access
+       to the fundamental base class was checked as part of determining
+       access to the symbol. */
+    if (symbol_is(projection_member_sym, sk_projection) &&
+        explicit_this_class == NULL
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          /* If C++/CLI hide-by-sig lookup applies, you can't trust the
-             base class in the projection symbol.  But you have to for a
-             __super reference. */
-          && (!cli_or_cx_enabled ||
-              projection_member_sym->is_super_reference ||
-              !hide_by_sig_lookup_applies(projection_member_sym))
+        /* If C++/CLI hide-by-sig lookup applies, you can't trust the
+           base class in the projection symbol.  But you have to for a
+           __super reference. */
+        && (!cli_or_cx_enabled ||
+            projection_member_sym->is_super_reference ||
+            !hide_by_sig_lookup_applies(projection_member_sym))
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                                 ) {
-        bcp = projection_member_sym->variant.projection.extra_info->
-                                                        fundamental_base_class;
+                                                               ) {
+      bcp = projection_member_sym->variant.projection.extra_info
+                                 ->fundamental_base_class;
+      /* Normally, when a projection symbol is used it means the name was
+         specified as a simple name.  This is not the case for a projection
+         symbol created for a Microsoft __super lookup. */
+      base_class_cast_operand(operand_1, bcp, (a_type_ptr)NULL,
+                              /*check_cast_access=*/FALSE,
+                              /*allow_ambiguity=*/FALSE,
+                              /*is_implicit_cast=*/TRUE,
+                              /*implicit_in_naming=*/
+                                if_microsoft_extensions_else(
+                                   !projection_member_sym->is_super_reference,
+                                   TRUE),
+                              /*is_object_pointer=*/TRUE);
+      class_struct_union_type = bcp->type;
+    }  /* if */
+    if (projection_member_sym != member_sym && explicit_this_class == NULL) {
+      if (!same_entities(sym_parent_class(member_sym),
+                         class_struct_union_type)) {
+        /* In some cases, the member_sym and the projection_member_sym
+           don't quite meet up -- there's a gap in the base class
+           sequence.  This happens, for example, when a template
+           instance is generated; it is generated in the fundamental
+           class and no projection symbol exists for it.  Look for the
+           member of the overload set of projection_member_sym that is
+           the appropriate projection symbol. */
+        a_symbol_ptr  fund_member_sym = fundamental_symbol_of(member_sym),
+                      sym, fund_sym = NULL;
+        an_overload_set_traversal_block
+                      ostblock;
+        member_sym = NULL;
+        for (sym = set_up_overload_set_traversal_simple(projection_member_sym,
+                                                        &ostblock);
+             sym != NULL;
+             sym = next_symbol_in_overload_set(&ostblock)) {
+          fund_sym = fundamental_symbol_of(sym);
+          /* If the symbol is a member function template, see if the
+             function_symbol is an instance of the template. */
+          if (fund_sym->kind == (a_symbol_kind)sk_function_template &&
+              fund_member_sym->variant.routine.instance_ptr != NULL &&
+              fund_member_sym->variant.routine.instance_ptr
+                             ->template_sym == fund_sym) {
+            member_sym = sym;
+            break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          } else if (cli_or_cx_enabled &&
+                     fund_sym == fund_member_sym) {
+            /* In C++/CLI mode, a symbol can be picked off the hide-by-sig
+               list, and we won't have a projection symbol leading to it. */
+            check_assertion(ostblock.hide_by_sig_list != NULL);
+            member_sym = sym;
+            break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          }  /* if */
+        }  /* for */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (cli_or_cx_enabled && ostblock.hide_by_sig_list != NULL) {
+          /* For a C++/CLI symbol found through hide-by-sig lookup,
+             cast down to the base class where the symbol was found. */
+          a_hide_by_sig_list_entry_ptr list = ostblock.hide_by_sig_list;
+          check_assertion(list->base_class != NULL);
+          base_class_cast_operand(operand_1,
+                                  list->base_class,
+                                  (a_type_ptr)NULL,
+                                  /*check_cast_access=*/FALSE,
+                                  /*allow_ambiguity=*/FALSE,
+                                  /*is_implicit_cast=*/TRUE,
+                                  /*implicit_in_naming=*/TRUE,
+                                  /*is_object_pointer=*/TRUE);
+          /* By choosing fund_sym here, we ensure that the code below
+             that deals with projections will do nothing. */
+          member_sym = fund_sym;
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        if (member_sym == NULL) {
+          expect_error();
+          goto done;
+        }  /* if */
+        /* Remove any namespace projection symbols. */
+        check_assertion(sym != NULL);
+        while (member_sym->kind == (a_symbol_kind)sk_namespace_projection) {
+          member_sym = namespace_projection_fundamental_symbol(sym);
+        }  /* while */
+      }  /* if */
+      if (member_sym->kind == (a_symbol_kind)sk_projection) {
+        /* This comes up with overload sets that contain using-declarations.
+           Cast from the using-declaration class to the class of the
+           member. */
+        bcp = member_sym->variant.projection.extra_info
+                        ->fundamental_base_class;
         /* Normally, when a projection symbol is used it means the name was
            specified as a simple name.  This is not the case for a projection
            symbol created for a Microsoft __super lookup. */
@@ -12186,101 +12290,10 @@ the case where the left operand is a C++/CLI handle.
                                 /*allow_ambiguity=*/FALSE,
                                 /*is_implicit_cast=*/TRUE,
                                 /*implicit_in_naming=*/
-                                    if_microsoft_extensions_else(
-                                       !projection_member_sym->
-                                                           is_super_reference,
-                                       TRUE),
+                                  if_microsoft_extensions_else(
+                                     !member_sym->is_super_reference,
+                                     TRUE),
                                 /*is_object_pointer=*/TRUE);
-        class_struct_union_type = bcp->type;
-      }  /* if */
-      if (projection_member_sym != member_sym) {
-        if (!same_entities(sym_parent_class(member_sym),
-                           class_struct_union_type)) {
-          /* In some cases, the member_sym and the projection_member_sym
-             don't quite meet up -- there's a gap in the base class
-             sequence.  This happens, for example, when a template
-             instance is generated; it is generated in the fundamental
-             class and no projection symbol exists for it.  Look for the
-             member of the overload set of projection_member_sym that is
-             the appropriate projection symbol. */
-          a_symbol_ptr  fund_member_sym = fundamental_symbol_of(member_sym),
-                        sym, fund_sym = NULL;
-          an_overload_set_traversal_block
-                        ostblock;
-          member_sym = NULL;
-          for (sym = set_up_overload_set_traversal_simple(
-                                                        projection_member_sym,
-                                                        &ostblock);
-               sym != NULL;
-               sym = next_symbol_in_overload_set(&ostblock)) {
-            fund_sym = fundamental_symbol_of(sym);
-            /* If the symbol is a member function template, see if the
-               function_symbol is an instance of the template. */
-            if (fund_sym->kind == (a_symbol_kind)sk_function_template &&
-                fund_member_sym->variant.routine.instance_ptr != NULL &&
-                fund_member_sym->variant.routine.instance_ptr
-                               ->template_sym == fund_sym) {
-              member_sym = sym;
-              break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-            } else if (cli_or_cx_enabled &&
-                       fund_sym == fund_member_sym) {
-              /* In C++/CLI mode, a symbol can be picked off the hide-by-sig
-                 list, and we won't have a projection symbol leading to it. */
-              check_assertion(ostblock.hide_by_sig_list != NULL);
-              member_sym = sym;
-              break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-            }  /* if */
-          }  /* for */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          if (cli_or_cx_enabled && ostblock.hide_by_sig_list != NULL) {
-            /* For a C++/CLI symbol found through hide-by-sig lookup,
-               cast down to the base class where the symbol was found. */
-            a_hide_by_sig_list_entry_ptr list = ostblock.hide_by_sig_list;
-            check_assertion(list->base_class != NULL);
-            base_class_cast_operand(operand_1,
-                                    list->base_class,
-                                    (a_type_ptr)NULL,
-                                    /*check_cast_access=*/FALSE,
-                                    /*allow_ambiguity=*/FALSE,
-                                    /*is_implicit_cast=*/TRUE,
-                                    /*implicit_in_naming=*/TRUE,
-                                    /*is_object_pointer=*/TRUE);
-            /* By choosing fund_sym here, we ensure that the code below
-               that deals with projections will do nothing. */
-            member_sym = fund_sym;
-          }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          if (member_sym == NULL) {
-            expect_error();
-            goto done;
-          }  /* if */
-          /* Remove any namespace projection symbols. */
-          check_assertion(sym != NULL);
-          while (member_sym->kind == (a_symbol_kind)sk_namespace_projection) {
-            member_sym = namespace_projection_fundamental_symbol(sym);
-          }  /* while */
-        }  /* if */
-        if (member_sym->kind == (a_symbol_kind)sk_projection) {
-          /* This comes up with overload sets that contain using-declarations.
-             Cast from the using-declaration class to the class of the
-             member. */
-          bcp = member_sym->variant.projection.extra_info->
-                                                        fundamental_base_class;
-          /* Normally, when a projection symbol is used it means the name was
-             specified as a simple name.  This is not the case for a projection
-             symbol created for a Microsoft __super lookup. */
-          base_class_cast_operand(operand_1, bcp, (a_type_ptr)NULL,
-                                  /*check_cast_access=*/FALSE,
-                                  /*allow_ambiguity=*/FALSE,
-                                  /*is_implicit_cast=*/TRUE,
-                                  /*implicit_in_naming=*/
-                                    if_microsoft_extensions_else(
-                                       !member_sym->is_super_reference,
-                                       TRUE),
-                                  /*is_object_pointer=*/TRUE);
-        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -15100,7 +15113,7 @@ in C++ mode.  arg_list is not freed by this routine.
       a_type_ptr      this_type;
       if (variable_this_exists(&this_var, &this_type)) {
         a_type_ptr this_class = skip_typerefs(type_pointed_to(this_type));
-        a_type_ptr member_class = sym_parent_class(overloaded_function_symbol);
+        a_type_ptr member_class = sym_parent_class(base_function_symbol);
         if (same_entities(this_class, member_class)) {
           /* We are selecting a member of the type of "*this" proper (no base
              class cast needed). */
