@@ -468,6 +468,8 @@ expected token, tok_error can be used to safely skip this check.
   check_assertion(curr_token_sequence_number == expected_end_tsn ||
                   curr_token_sequence_number == NO_TOKEN_SEQUENCE_NUMBER);
   (void)get_token();
+  start_of_curr_token = orig_start_of_curr_token;
+  end_of_curr_token = orig_end_of_curr_token;
 }  /* exit_module_token_rescan */
 
 
