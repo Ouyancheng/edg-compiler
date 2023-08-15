@@ -563,8 +563,8 @@ the module entity rescan.
     end_tsn = this->expected_end_tsn;
 #endif /* CHECKING */
 #if CHECKING
-    /* If this assertion fails, something has altered the current source line.
-       Said thing needs to be modified to ensure it restores the original
+    /* If this assertion fails, something has altered the current source line
+       and needs to be modified to ensure it restores the original
        curr_source_line value. */
     check_assertion(this->expected_curr_source_line == curr_source_line);
 #endif /* CHECKING */

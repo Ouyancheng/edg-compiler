@@ -267,7 +267,8 @@ need to be reset after a call to this routine.
       define_names_from_scope(scope, locator->symbol_header);
 #if CHECKING
       /* If these assertions fail, modules code has failed to preserve the
-         lexical state of the current token and needs corrected to do so. */
+         lexical state of the current token and needs to be corrected to do
+         so. */
       check_assertion(orig_curr_source_line == curr_source_line);
       check_assertion(orig_start_of_curr_token == start_of_curr_token);
       check_assertion(orig_end_of_curr_token == end_of_curr_token);

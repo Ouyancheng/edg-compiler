@@ -25227,21 +25227,21 @@ Restore the original state values.
 
 static a_string create_token_buffer_from_string(a_const_char *string)
 /*
-Given an unprocessed string form and return a string appropriate for scanning.
+Given an unprocessed string, return a string appropriate for scanning.
 */
 {
-  char            lex_esc_line_esc[] = {
+  char            line_end_lex_escapes[] = {
     /* Add the lexical escape for a newline. */
     LE_ESCAPE, LE_NEWLINE,
     /* Add the end of line escape. */
     LE_ESCAPE, LE_END_OF_LINE
   };
-  a_string_view   lex_esc_line_esc_view(
+  a_string_view   line_end_lex_escapes_view(
                                       lex_esc_line_esc,
                                       sizeof(lex_esc_line_esc) / sizeof(char));
 
   /* Form a temporary buffer of the string followed by the escape sequence. */
-  return a_string(string, lex_esc_line_esc_view);
+  return a_string(string, line_end_lex_escapes_view);
 }  /* create_token_buffer_from_string */
 
 
@@ -25261,9 +25261,9 @@ is used as the beginning and end source position for each token in the string.
 If suspend_caching is TRUE, background caching of tokens is disabled while
 the tokens from the string are processed.
 
-Note this function must be carefully used when current token's
+Note this function must be carefully used when the current token's
 start_of_curr_token and end_of_curr_token values are potentially relevant.  It
-internally uses token caches which will not preserve the start_of_curr_token
+internally uses token caches, which will not preserve the start_of_curr_token
 and end_of_curr_token values unless fetch_pp_tokens is TRUE, so this
 information could be lost during insertion of the given string.  See the
 documentation of start_of_curr_token and end_of_curr_token for more
