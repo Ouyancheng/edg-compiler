@@ -24257,14 +24257,16 @@ Initialize for the C++/C-generating back end.
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   avail_access_cache_entries = NULL;
   if (var_init_map != NULL) {
-    /* Free the map from the previous translation unit. */
-    delete var_init_map;
+    /* Free the entries from the previous translation unit. */
+    var_init_map->~a_var_initializer_map();
+  } else {
+    var_init_map = alloc_general_of_type(a_var_initializer_map);
   }  /* if */
   /* We don't expect many entries in the variable initializer map, since
      they are only recorded for constexpr local variables defined in scopes
      in which local expr ref nodes exist, so start out with a small table
      size. */
-  var_init_map = new a_var_initializer_map(/*mask_width=*/6);
+  construct(var_init_map, /*mask_width=*/6);
 }  /* init_cp_gen_be */
 
 #if STANDALONE_CP_GEN_BE
