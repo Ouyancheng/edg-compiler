@@ -40221,8 +40221,8 @@ see expr.h).
   a_boolean         has_discarded_typename = FALSE;
   a_source_position typename_position;
   a_boolean         scanning_deferred_module_expr = FALSE;
-  a_const_char      *saved_start_of_curr_token;
-  a_const_char      *saved_end_of_curr_token;
+  a_const_char      *saved_start_of_curr_token = NULL;
+  a_const_char      *saved_end_of_curr_token = NULL;
   a_token_sequence_number
                     expected_ifc_rescan_end_tsn;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
