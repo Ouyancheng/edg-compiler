@@ -1,5 +1,31 @@
 Version 6.6
 
+8/16/23  [EDGcpfe/26586]
+Deduced incomplete class parameter type not always treated as a SFINAE failure
+
+Consider:
+
+  template<typename T> T&& val();
+  template<typename T> struct W {};
+  template<typename T> void g(T);
+  template <typename T, typename = decltype(g<T>(val<T>()))>
+    int f(W<T>);  // (1)
+  template<typename T>
+    int f(W<T>);  // (2)
+  struct I;
+  int main() {
+     W<I const> wi;
+     f(wi);  // (3)  Previously an error in some GNU modes.  Now okay.
+  }
+  struct I { virtual int p() const = 0; };  // Abstract.
+
+Normally, candidate (1) is discarded for the call (3) because it involves
+deducing a call to g(T) with a parameter of incomplete type I.  However, in
+some GNU C++ modes, the candidate (1) was discarded too late, causing a hard
+error to be issued when type I is later completed as an abstract class type.
+That is now fixed.
+
+
 8/15/23  [EDGcpfe/26583]
 Spurious errors on use of C++23 explicit-this members
 

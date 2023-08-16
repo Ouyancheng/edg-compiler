@@ -5645,6 +5645,61 @@ constant.
 }  /* conditionally_explicit_confirmed */
 
 
+static a_boolean check_deduced_parameters(a_type_ptr       routine_type,
+                                          a_symbol_ptr     function_symbol,
+                                          a_diag_list_ptr  notes)
+/*
+routine_type is a function type deduced for a call to the function template
+represented by function_symbol.  Check that any parameters of class type are
+complete and non-abstract, and if so return TRUE.  Otherwise, return FALSE and
+record the issue in notes if notes is non-NULL.
+*/
+{
+  a_boolean     result = TRUE;
+  a_param_type  *ptp = function_type_params(routine_type);
+
+  for (; ptp != NULL; ptp = ptp->next) {
+    a_type_ptr  tp = skip_typerefs(ptp->type);
+    if (is_immediate_class_type(tp)) {
+      if (tp->incomplete) {
+        a_boolean  copy_error = FALSE;
+        f_instantiate_template_class(tp, &copy_error);
+        if (copy_error) {
+          if (notes != NULL) {
+            more_info_sym_num_ty_diagnostic(ec_param_cannot_be_completed,
+                                            &function_symbol->decl_position,
+                                            function_symbol, ptp->param_num,
+                                            tp, notes);
+          }  /* if */
+          result = FALSE;
+          break;
+        }  /* if */
+      }  /* if */
+      if (tp->incomplete) {
+        if (notes != NULL) {
+          more_info_sym_num_ty_diagnostic(ec_param_is_incomplete,
+                                          &function_symbol->decl_position,
+                                          function_symbol, ptp->param_num, tp,
+                                          notes);
+        }  /* if */
+        result = FALSE;
+        break;
+      } else if (tp->variant.class_struct_union.abstract) {
+        if (notes != NULL) {
+          more_info_sym_num_ty_diagnostic(ec_param_is_abstract,
+                                          &function_symbol->decl_position,
+                                          function_symbol, ptp->param_num, tp,
+                                          notes);
+        }  /* if */
+        result = FALSE;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* check_deduced_parameters */
+
+
 static void determine_function_viability(
                  a_symbol_ptr             proj_function_symbol,
                  a_symbol_ptr             overloaded_function_symbol,
@@ -5956,6 +6011,10 @@ in a new-expression).
                                      function_symbol, template_arg_list,
                                      notes);
           }  /* if */
+          goto reject_function;
+        } else if (!check_deduced_parameters(routine_type, function_symbol,
+                                             notes)) {
+          /* A deduced parameter type is either incomplete or abstract. */
           goto reject_function;
         }  /* if */
       }  /* if */

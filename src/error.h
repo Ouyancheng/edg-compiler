@@ -905,6 +905,13 @@ extern void more_info_sym_num_diagnostic(an_error_code     error_code,
                                          int32_t           num,
                                          a_diag_list_ptr   diag_list);
 
+extern void more_info_sym_num_ty_diagnostic(an_error_code     error_code,
+                                            a_source_position *error_pos,
+                                            struct a_symbol   *sym,
+                                            int32_t           num,
+                                            struct a_type     *tp,
+                                            a_diag_list_ptr   diag_list);
+
 extern void more_info_st_num_diagnostic(an_error_code     error_code,
                                         a_source_position *error_pos,
                                         a_const_char      *fill_in_str,
