@@ -1,5 +1,12 @@
 Version 6.6
 
+8/16/23  [EDGcpfe/26595]
+C++-generating back end: Calls to explicit-this member functions
+
+The C++-generating back end previously did not correctly render calls to
+explicit-this member functions.  That is now fixed.
+
+
 8/16/23  [EDGcpfe/26586]
 Deduced incomplete class parameter type not always treated as a SFINAE failure
 
