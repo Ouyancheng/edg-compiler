@@ -8858,9 +8858,9 @@ static void do_constexpr_write_source_function(
 /*
 Given the associated storage and interpreter state for the resulting const char
 pointer data (c-string), convert and store the source function name associated
-with curr_function_scope.  When the given position doesn't have an associated
-function, an empty c-string is instead stored.  If any problems are
-encountered, the pointee of p_result will be set to FALSE.
+with curr_function_scope.  When there is no "current function", an empty
+c-string is instead stored.  If any problems are encountered, the pointee of
+p_result will be set to FALSE.
 */
 {
   /* Use the same string as if using __func__. */
@@ -8879,9 +8879,9 @@ static void do_constexpr_write_source_funcsig(
 /*
 Given the associated storage and interpreter state for the resulting const char
 pointer data (c-string), convert and store the source function signature
-associated with curr_function_scope.  When the given position doesn't
-have an associated function, an empty c-string is instead stored.  If any
-problems are encountered, the pointee of p_result will be set to FALSE.
+associated with curr_function_scope.  When there is no "current function",
+an empty c-string is instead stored.  If any problems are encountered, the
+pointee of p_result will be set to FALSE.
 */
 {
   /* Use the same string as if using __FUNCSIG__. */
