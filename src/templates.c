@@ -22929,26 +22929,6 @@ class.  If so, issue an error.
 }  /* check_local_class_template_friend */
 
 
-static a_boolean is_constant_with_dependent_type(a_constant_ptr	cp)
-/*
-This routine is used to check the validity of a nontype template argument
-used in a partial specialization declaration.  A specialized nontype
-template argument (one that is an actual constant value and not a template
-parameter) cannot have a type that depends on a template parameter.  This
-routine returns TRUE if "cp" is a constant that violates this rule.
-*/
-{
-  a_boolean	result = FALSE;
-
-  if (cp->kind != (a_constant_repr_kind)ck_template_param ||
-      cp->variant.template_param.kind !=
-                                  (a_template_param_constant_kind)tpck_param) {
-    result = TRUE;
-  }  /* if */
-  return result;
-}  /* is_constant_with_depdendent_type */
-
-
 static void check_partial_spec_template_param_usage(
 					a_tmpl_decl_state_ptr	decl_state,
 					a_symbol_ptr		sym)
@@ -22957,12 +22937,14 @@ This routine performs various checks to ensure that the template parameter
 list and template argument list of a partial specialization are valid.
 */
 {
-  a_template_param_ptr	templ_param_list;
+  a_template_param_ptr	templ_param_list, primary_templ_param_list;
   a_template_param_ptr	tpp;
-  a_symbol_ptr		prototype_sym;
+  a_symbol_ptr		prototype_sym, primary_templ_sym;
   a_type_ptr		prototype_type;
   a_template_arg_ptr	templ_arg_list;
   a_template_arg_ptr	tap;
+  a_template_decl_info_ptr
+			tdip;
 
   templ_param_list = decl_state->decl_info->parameters;
   /* Get the primary template argument list from the prototype instantiation
@@ -22992,9 +22974,19 @@ list and template argument list of a partial specialization are valid.
     }  /* if */
   }  /* for */
   /* Go through the arguments and make sure they are valid. */
-  templ_arg_list = prototype_type->
-                     variant.class_struct_union.extra_info->template_arg_list;
-  for (tap = templ_arg_list; tap != NULL; tap = tap->next) {
+  templ_arg_list = class_type_supp(prototype_type)->template_arg_list;
+  primary_templ_sym = sym->variant.template_info->primary_template_sym;
+  tdip = primary_templ_sym->variant.template_info->cache.decl_info;
+  /* In some error cases the parameter list of the primary template might not
+     be available. */
+  if (tdip == NULL) {
+    expect_error();
+    goto done;
+  }  /* if */
+  primary_templ_param_list = tdip->parameters;
+  for (tap = templ_arg_list, tpp = primary_templ_param_list;
+       tap != NULL;
+       tap = tap->next) {
     /* A pack must be the last template argument in a partial
        specialization. */
     if (tap->is_pack && tap->next != NULL) {
@@ -23003,28 +22995,56 @@ list and template argument list of a partial specialization are valid.
       decl_state->decl_scope_err = TRUE;
     }  /* if */
     if (is_nontype_templ_arg(tap) &&
+        !is_error_constant(tap->variant.constant) &&
         !is_nonreal_instantiation_context()) {
       a_constant_ptr	cp = tap->variant.constant;
+      a_boolean		is_specialized_arg;
       /* If this is a cast of a template parameter constant, use the constant
          under the cast. */
       cp = strip_implicit_casts_if_template_param_constant(cp);
-      if (cp->kind == (a_constant_repr_kind)ck_template_param &&
-          cp->variant.template_param.kind !=
-                                  (a_template_param_constant_kind)tpck_param) {
-        /* This case indicates one of two errors: Either a specialized
-           parameter (e.g., an integer constant) has a dependent type, or
-           the parameter involves an expression.  Determine which case it is,
-           and issue the appropriate diagnostic. */
-        if (is_constant_with_dependent_type(cp)) {
+      /* A non-type argument is specialized if it is not the name of a non-type
+         parameter. */
+      is_specialized_arg = !(cp->kind == ck_template_param &&
+                             tpck_is(cp, tpck_param));
+      if (is_specialized_arg) {
+        /* N4659 [temp.class.spec]/8.1: "The type of a template parameter
+           corresponding to a specialized non-type argument shall not be
+           dependent on a parameter of the specialization." */
+        a_boolean  depends_on_templ_param = FALSE;
+        if (gnu_version_is(<120000) || clang_version_is(<40000) ||
+            ms_version_is(any_version)) {
+          /* MSVC, GCC prior to 12.0, and Clang prior to 4.0 don't implement
+             the resolution of Core issue 1315 and therefore additionally
+             restrict the argument expression from involving a template
+             parameter. */
+          depends_on_templ_param = cp->kind == ck_template_param;
+        } else if (tpp->uses_auto) {
+          depends_on_templ_param = is_template_dependent_type(cp->type);
+        } else {
+          a_type_ptr    type = tpp->variant.constant.ptr->type;
+          a_ctws_state  ctws_state;
+          a_boolean     copy_error = FALSE;
+          /* Substitute the template arguments from the partial specialization
+             into the template parameter type.  We can then check if we still
+             have a dependent type after substitution. */
+          init_ctws_state(&ctws_state);
+          type = copy_type_with_substitution(type, templ_arg_list,
+                                             primary_templ_param_list, NULL,
+                                             CTWS_NO_OPTIONS, &copy_error,
+                                             &ctws_state);
+          depends_on_templ_param = !copy_error &&
+                                   is_template_dependent_type(type);
+        }  /* if */
+        if (depends_on_templ_param) {
           pos_error(ec_partial_spec_arg_depends_on_templ_param,
                     &sym->decl_position);
-        } else {
-          pos_error(ec_partial_spec_nontype_expr, &sym->decl_position);
+          tap->variant.constant = alloc_error_constant();
         }  /* if */
-        tap->variant.constant = alloc_error_constant();
       }  /* if */
-    }  /* for */
-  }  /* if */
+    }  /* if */
+    if (!tpp->is_pack) tpp = tpp->next;
+  }  /* for */
+done:;
 }  /* check_partial_spec_template_param_usage */
 
 
