@@ -5810,6 +5810,14 @@ returned set to TRUE.
       if (dtor != NULL || !var_has_static_or_thread_storage_duration(vp)) {
         init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
         init_dip->variant.constant.ptr = init_con;
+        if (init_con->expr != NULL && init_con->expr->kind == enk_temp_init) {
+          /* Propagate the original dynamic initializer's
+             suppress_template_arguments_for_cast flag. */
+          a_dynamic_init_ptr orig_dip =
+                                     init_con->expr->variant.init.dynamic_init;
+          init_dip->suppress_template_arguments_for_cast =
+                                orig_dip->suppress_template_arguments_for_cast;
+        }  /* if */
         init_dip->is_braced_initializer = (first_token == tok_lbrace);
         if (dps->init_state.partial_initializer) {
           init_dip->is_partially_initialized = TRUE;

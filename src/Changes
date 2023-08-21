@@ -1,5 +1,25 @@
 Version 6.6
 
+8/21/23  [EDGcpfe/26584]
+C++-generating back end: CTAD with lambda and constexpr constructor
+
+In some cases involving class template argument deduction (CTAD) where the
+constructor being invoked is constexpr, the C++-generating back end
+incorrectly transformed a function-style cast into a C-style cast.  When
+the initializer is a lambda expression, the generated code could not be
+compiled: because the lambda closure type has no name, the generated code
+used an undeclared temporary name (of the form __T12345678) as the template
+argument in the cast.  This is now fixed.  For example, with --c++20:
+
+  template<typename T> struct S {
+    T m;
+    constexpr S(const T &a) : m(a) { }
+  };
+  void f() {
+    auto s = S([]{});  // Previously generated as (S<class __T12345678>)([]{})
+  }
+
+
 8/17/23  [EDGcpfe/19237,EDGcpfe/25886,EDGcpfe/26582]
 Partially-specialized non-type template argument involving a template parameter
 
