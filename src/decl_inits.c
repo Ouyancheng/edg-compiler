@@ -8723,23 +8723,37 @@ fields but not have any constructor initializers generated).  If end_of_list is
 non-NULL, set *end_of_list to the last initializer in the list.
 */
 {
-  a_symbol_ptr                  class_sym, sym;
+  a_field_ptr                   field;
   a_class_symbol_supplement_ptr cssp;
   a_constructor_init_ptr        result = NULL;
   a_constructor_init_ptr        *next_cip = &result;
 
   check_assertion(is_immediate_class_type(class_type));
-  /* Loop through the symbol list for the class, not the field list, since
-     the symbol list contains only user-defined fields whereas the field
-     list may also include compiler-generated field entries. */
-  class_sym = symbol_for(class_type);
-  for (sym = class_symbol_supp(class_sym)->symbols;
-       sym != NULL;
-       sym = sym->next_in_scope) {
-    if (sym->kind == (a_symbol_kind)sk_field) {
-      /* sym represents a field.  Determine whether constructor initialization
-         is required. */
-      a_field_ptr field = sym->variant.field.ptr;
+  /* Loop through the field list for the class.  Note that we can't use the
+     symbol list, as in the case of an init capture pack, the primary symbol
+     representing the pack might point to the field corresponding to the
+     current pack expansion instead of the initial field of the pack. */
+  for (field = class_type->variant.class_struct_union.field_list;
+       field != NULL;
+       field = field->next) {
+    if (field->is_anonymous_parent_object) {
+      /* Recursively loop through the fields of the anonymous object. */
+      a_constructor_init_ptr  nested_end_of_list = NULL;
+      *next_cip = ctor_inits_for_fields(ctor_rout, field->type, all_fields,
+                                        only_init_fields, has_field,
+                                        &nested_end_of_list);
+      if (nested_end_of_list != NULL) {
+        next_cip = &(nested_end_of_list->next);
+        if (end_of_list != NULL) {
+          *end_of_list = nested_end_of_list;
+        }  /* if */
+      }  /* if */
+    } else if (!field->compiler_generated) {
+      a_symbol_ptr  sym = symbol_for(field);
+      if (sym == NULL || sym->is_error || sym == unnamed_field_symbol()) {
+        /* Skip over any error and unnamed fields. */
+        continue;
+      }  /* if */
       if (ms_extensions && field_is_property_or_event(field)) {
         /* Property and event fields are not really data members and should
            not be explicitly initialized. */
@@ -8815,9 +8829,8 @@ non-NULL, set *end_of_list to the last initializer in the list.
         }  /* if */
       }  /* if */
       /* A constructor init entry is required for this field. */
-      a_constructor_init_ptr cip =
-                           alloc_ctor_init((a_constructor_init_kind)cik_field);
-      cip->variant.field = sym->variant.field.ptr;
+      a_constructor_init_ptr cip = alloc_ctor_init(cik_field);
+      cip->variant.field = field;
       /* Mark the constructor initializer as compiler-generated (i.e., not
          representing an explicit entry in the ctor-initializer list); clear
          the flag later if appropriate. */
