@@ -16753,8 +16753,8 @@ namespace {
 
 /*
 This structure represents a stream of IFC SourceWords.  This is conceptually
-similar to front end's the token stream.  However, unlike the token stream, the
-IFC word stream is used to form tokens, and is not directly parsed into IL
+similar to the front end's the token stream.  However, unlike the token stream,
+the IFC word stream is used to form tokens, and is not directly parsed into IL
 entities.
 */
 struct an_ifc_word_stream {
@@ -16921,7 +16921,7 @@ static void update_cache_pos_from_word(a_module_token_cache     *cache,
 /*
 Given the cache, pointer to the corresponding position hint storage, and the
 word to read locus information from, if the word's locus can be decoded into a
-front end source position update *pos_hint to this value and set the position
+front end source position, update *pos_hint to this value and set the position
 hint for the cache to said value.
 */
 {
@@ -16941,7 +16941,7 @@ static a_boolean handle_one_word_source_directive(
                                            const an_ifc_source_word  &word)
 /*
 Given the cache, pointer to the corresponding position hint storage, and the
-word of this single word source directive, act on the source directive.  If
+word of this single-word source directive, act on the source directive.  If
 processing succeeds, return TRUE; otherwise, return FALSE.
 */
 {
@@ -16991,7 +16991,7 @@ processing succeeds, return TRUE; otherwise, return FALSE.
            handle_two_word_source_directive. */
         break;
       default:
-        { a_string err_msg("unknown single word source directive ",
+        { a_string err_msg("unknown single-word source directive ",
                            str_for(directive));
 
           ifc_unexpected(module_of(word), err_msg.as_temp_characters());
@@ -16999,7 +16999,7 @@ processing succeeds, return TRUE; otherwise, return FALSE.
         goto invalid;
     }  /* switch */
   } else {
-    a_string err_msg("unknown single word source directive category ",
+    a_string err_msg("unknown single-word source directive category ",
                      str_for(category.sort));
 
     ifc_unexpected(module_of(word), err_msg.as_temp_characters());
@@ -17018,7 +17018,7 @@ static a_boolean handle_two_word_source_directive(
                                              const an_ifc_source_word  &word_0,
                                              const an_ifc_source_word  &word_1)
 /*
-Given the cache, and the words of this two word source directive, act on the
+Given the cache and the words of this two-word source directive, act on the
 source directive.  If processing succeeds, return TRUE; otherwise, return
 FALSE.
 */
@@ -17043,25 +17043,18 @@ FALSE.
            practically useful:
 
              - The front end needs a sequential mapping of line numbers to
-               token sequence numbers, this poses a problem as IFC entities are
-               (potentially) loaded out of order.  The front end upon loading
-               the IFC file computes the line count of a given source file
-               represented in the IFC as a workaround.  Unfortunately, the
+               token sequence numbers.  This poses a problem as IFC entities
+               are (potentially) loaded out of order.  Upon loading the IFC
+               file the front end computes the line count of a given source
+               file represented in the IFC as a workaround.  Unfortunately, the
                spelling of the file in the line directive (e.g., "somepath")
                does not always match the information in the IFC named source
-               file partition.  As The #line directive both cannot be treated
-               as a #line directive would during parsing (as this would result
-               in non-linear -- and thus broken -- token sequence numbers for
-               the file) and the file cannot be resolved to use the front end's
-               existing workaround, there's a major implementation issue here.
-             - The front end cannot represent a source position without a line
-               number.  As there's no line information in this representation,
-               the front end would have to invent one (or steal it from the
-               locus anyways).
+               file partition.  Together, these issues preclude transforming
+               this pragma into a #line directive.
         */
         break;
       default:
-        { a_string err_msg("unknown two word source directive ",
+        { a_string err_msg("unknown two-word source directive ",
                            str_for(directive));
 
           ifc_unexpected(module_of(word_0), err_msg.as_temp_characters());
@@ -17071,7 +17064,7 @@ FALSE.
   } else {
     a_string err_msg("unknown source directive category ",
                      str_for(category_0.sort),
-                     " for first of two word source directive");
+                     " for first of two-word source directive");
 
     ifc_unexpected(module_of(word_0), err_msg.as_temp_characters());
     goto invalid;
@@ -17089,9 +17082,9 @@ static a_boolean handle_source_directive(a_module_token_cache *cache,
                                          an_ifc_word_stream   &word_stream,
                                          an_ifc_index_type    num_words)
 /*
-Given the cache, pointer to the corresponding position hint storage, and the
+Given the cache, pointer to the corresponding position hint storage, the
 corresponding word stream, and the number of words (not including the start and
-end delimiting words -- determined by is is_source_directive_start and
+end delimiting words -- determined by is_source_directive_start and
 is_source_directive_end respectively), act on the source directive.  If
 processing succeeds, return TRUE; otherwise, return FALSE.
 */
@@ -17179,7 +17172,7 @@ static a_boolean is_user_defined_literal(const an_ifc_source_word &word,
                                          const an_ifc_source_word &next_word)
 /*
 Given a word and the word that follows it, return TRUE if these words combined
-represent a user defined literal; otherwise, return FALSE.
+represent a user-defined literal; otherwise, return FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -17221,7 +17214,7 @@ static void cache_user_defined_literal(a_module_token_cache     *cache,
                                        const an_ifc_source_word &word,
                                        const an_ifc_source_word &next_word)
 /*
-Cache a user defined literal described by the given word and the word that
+Cache a user-defined literal described by the given word and the word that
 follows it into the given cache.
 */
 {
@@ -18675,8 +18668,8 @@ valid type can be found, return a null type index.
         }  /* if */
 
         /* FIXME: This is a bit of an abuse of the Node_sequence structure, but
-           the it provides a much simplified validation scheme vs rolling out
-           all the loading code for the element "manually".  We should have a
+           it provides a much simplified validation scheme vs rolling out all
+           the loading code for the element "manually".  We should have a
            better way to get a single element out of a heap. */
         an_ifc_index_type     element_idx = start_idx + param_idx;
         a_type_heap_sequence  seq(module_of(start_idx), element_idx, 1);
