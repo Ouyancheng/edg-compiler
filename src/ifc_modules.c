@@ -22251,26 +22251,21 @@ This has been observed with code like the following:
                               ^
 */
 {
-  a_boolean                result = FALSE;
-  an_ifc_lit_index         value = get_ifc_value(literal_expr);
-  an_ifc_encoded_lit_index encoded_value = to_encoded(value.file, value);
+  a_boolean         result = FALSE;
+  an_ifc_type_index type = get_ifc_type(literal_expr);
 
-  if (encoded_value == 0) {
-    an_ifc_type_index type = get_ifc_type(literal_expr);
+  if (type.sort == ifc_ts_type_designated) {
+    Opt<an_ifc_type_designated> opt_designated_ty;
 
-    if (type.sort == ifc_ts_type_designated) {
-      Opt<an_ifc_type_designated> opt_designated_ty;
+    construct_node(&opt_designated_ty, type);
+    if (!opt_designated_ty.has_value()) {
+      goto done;
+    }  /* if */
 
-      construct_node(&opt_designated_ty, type);
-      if (!opt_designated_ty.has_value()) {
-        goto done;
-      }  /* if */
-
-      an_ifc_type_designated designated_ty = *opt_designated_ty;
-      an_ifc_decl_index      decl = get_ifc_decl(designated_ty);
-      if (decl.sort == ifc_ds_decl_parameter) {
-        result = TRUE;
-      }  /* if */
+    an_ifc_type_designated designated_ty = *opt_designated_ty;
+    an_ifc_decl_index      decl = get_ifc_decl(designated_ty);
+    if (decl.sort == ifc_ds_decl_parameter) {
+      result = TRUE;
     }  /* if */
   }  /* if */
 done:
@@ -22300,26 +22295,21 @@ the following type being represented as an IFC literal expression:
                                  ^^^^^^^^^^^^^^^^^^^^^
 */
 {
-  a_boolean                result = FALSE;
-  an_ifc_lit_index         value = get_ifc_value(literal_expr);
-  an_ifc_encoded_lit_index encoded_value = to_encoded(value.file, value);
+  a_boolean         result = FALSE;
+  an_ifc_type_index type = get_ifc_type(literal_expr);
 
-  if (encoded_value == 0) {
-    an_ifc_type_index type = get_ifc_type(literal_expr);
+  if (type.sort == ifc_ts_type_syntactic) {
+    Opt<an_ifc_type_syntactic> opt_syntactic_ty;
 
-    if (type.sort == ifc_ts_type_syntactic) {
-      Opt<an_ifc_type_syntactic> opt_syntactic_ty;
+    construct_node(&opt_syntactic_ty, type);
+    if (!opt_syntactic_ty.has_value()) {
+      goto done;
+    }  /* if */
 
-      construct_node(&opt_syntactic_ty, type);
-      if (!opt_syntactic_ty.has_value()) {
-        goto done;
-      }  /* if */
-
-      an_ifc_type_syntactic syntactic_ty = *opt_syntactic_ty;
-      an_ifc_expr_index     expr = get_ifc_expr(syntactic_ty);
-      if (expr.sort == ifc_es_expr_template_id) {
-        result = TRUE;
-      }  /* if */
+    an_ifc_type_syntactic syntactic_ty = *opt_syntactic_ty;
+    an_ifc_expr_index     expr = get_ifc_expr(syntactic_ty);
+    if (expr.sort == ifc_es_expr_template_id) {
+      result = TRUE;
     }  /* if */
   }  /* if */
 done:
