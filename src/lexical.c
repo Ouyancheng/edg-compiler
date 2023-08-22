@@ -21080,7 +21080,7 @@ is the one actually associated with this reference.
   }  /* if */
   /* Set source position for error reporting. */
   error_position = start_position;
-  *err = any_errors;
+  *err = *err || any_errors;
   db_exit();
   return template_sym;
 }  /* coalesce_template_function_reference */
