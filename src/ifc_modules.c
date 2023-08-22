@@ -19452,9 +19452,9 @@ this is needed.
           cache_type(cache, get_ifc_scope(itm), cinfo);
           cache_token(cache, tok_colon_colon);
         } else {
+          cache_type(cache, member, cinfo);
           cache_type(cache, get_ifc_scope(itptm), cinfo);
           cache_token(cache, tok_colon_colon);
-          cache_type(cache, member, cinfo);
         }  /* if */
         cache_token(cache, tok_star);
       }
