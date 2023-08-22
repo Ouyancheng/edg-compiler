@@ -2797,6 +2797,9 @@ enum an_operator_kind : uint8_t {
   opkind_c_cast,    /* A C-style cast (e.g., (X*)Y). */
   opkind_cpp_cast,  /* A C++-style cast (e.g., reinterpret_cast<X*>Y). */
   opkind_new,       /* A new-expression operator. */
+  opkind_annotative,/* An operator representing an annotative characteristic,
+                       e.g., that the IFC generating compiler was unsure of the
+                       expression's dependence. */
   opkind_other,     /* Something else. */
   opkind_error      /* Invalid/error operator value. */
 };
@@ -2842,7 +2845,6 @@ Return the kind of operator described by op in the context of the given module.
   switch (op) {
     case ifc_mos_msvc:
     case ifc_mos_msvc_confused_aggregate_return:
-    case ifc_mos_msvc_confused_dependent_expression:
     case ifc_mos_msvc_confused_dtor_action:
     case ifc_mos_msvc_confused_pop_state:
     case ifc_mos_msvc_confused_substitution:
@@ -2880,6 +2882,9 @@ Return the kind of operator described by op in the context of the given module.
     case ifc_mos_paren:
     case ifc_mos_brace:
       kind = opkind_other;
+      break;
+    case ifc_mos_msvc_confused_dependent_expression:
+      kind = opkind_annotative;
       break;
     case ifc_mos_truncate:
     case ifc_mos_ceil:
@@ -19813,14 +19818,17 @@ this is needed.
       }
       break;
     case ifc_ts_type_typename:
-      { Opt<an_ifc_type_typename> opt_itt;
+      { Opt<an_ifc_type_typename> opt_typename_type;
 
-        construct_node(&opt_itt, type);
-        if (!opt_itt.has_value()) {
+        construct_node(&opt_typename_type, type);
+        if (!opt_typename_type.has_value()) {
           goto invalid;
         }  /* if */
+
+        an_ifc_type_typename typename_type = *opt_typename_type;
+        an_ifc_expr_index    path = get_ifc_path(typename_type);
         cache_token(cache, tok_typename);
-        cache_expr(cache, get_ifc_path(*opt_itt), /*cinfo=*/{});
+        cache_expr(cache, path, /*cinfo=*/{});
       }
       break;
     case ifc_ts_type_qualified:
@@ -22557,20 +22565,23 @@ tuple elements by '::' instead of ','.
           goto invalid;
         }  /* if */
 
-        an_ifc_expr_path iep = *opt_iep;
+        an_ifc_expr_path  iep = *opt_iep;
+        an_ifc_expr_index member = get_ifc_member(iep);
         if (is_broken_reference_to_global_scope(iep)) {
-          cache_expr(cache, get_ifc_member(iep), cinfo);
+          cache_expr(cache, member, cinfo);
         } else {
           /* If this is part of a qualified name, the scope is presumed cached
              already. */
           if (!cinfo.qualified_name) {
-            cache_expr(cache, get_ifc_scope(iep), cinfo);
+            an_ifc_expr_index scope = get_ifc_scope(iep);
+
+            cache_expr(cache, scope, cinfo);
             cache_token(cache, tok_colon_colon);
           }  /* if */
 
           an_ifc_cache_info member_cinfo = cinfo;
           member_cinfo.dependent_name = TRUE;
-          cache_expr(cache, get_ifc_member(iep), member_cinfo);
+          cache_expr(cache, member, member_cinfo);
         }  /* if */
       }
       break;
@@ -22646,6 +22657,26 @@ tuple elements by '::' instead of ','.
             cache_arg();
             mod->cache_operator(cache, assoc);
             break;
+          case opkind_annotative:
+            /* Note that this differs from the normal cache_arg as otherwise
+               spurious parenthesis can be added.  While extra parens are not
+               normally a problem, for cases where the original source is
+               something like:
+
+                 sizeof(some-type)
+
+               this can result in a reconstruction that looks:
+
+                 sizeof((some-type))
+
+               Thus, with the surrounding parens, the front end will then
+               attempt to parse "some-type" as an expression resulting in a
+               parsing error.
+            */
+            if (!is_null_index(argument)) {
+              cache_expr(cache, argument, cinfo);
+            }  /* if */
+            break;
           case opkind_other:
             { a_token_kind ltok, rtok;
               if (assoc == ifc_mos_paren) {
@@ -22686,6 +22717,7 @@ tuple elements by '::' instead of ','.
         switch (opkind) {
           case opkind_error:
           case opkind_post:
+          case opkind_annotative:
           case opkind_other:
             ifc_unexpected(mod, "Unexpected operator kind");
             goto invalid;
