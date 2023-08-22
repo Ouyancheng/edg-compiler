@@ -1655,7 +1655,7 @@ template<typename an_ifc_Node_type>
 Opt<an_ifc_Node_type>
 Node_sequence<an_ifc_Node_type>::operator[](an_ifc_index_type idx) const
 /*
-Return a the node at the given relative index in the sequence, or an empty
+Return the node at the given relative index in the sequence, or an empty
 optional if the node is not valid.
 */
 {
@@ -16753,7 +16753,7 @@ namespace {
 
 /*
 This structure represents a stream of IFC SourceWords.  This is conceptually
-similar to the front end's the token stream.  However, unlike the token stream,
+similar to the front end's token stream.  However, unlike the token stream,
 the IFC word stream is used to form tokens, and is not directly parsed into IL
 entities.
 */
