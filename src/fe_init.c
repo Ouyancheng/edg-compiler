@@ -1258,7 +1258,7 @@ Install the keywords in the symbol table.
       enter_gnu_keyword((a_token_kind)tok_builtin_has_attribute,
                         "__builtin_has_attribute");
     }  /* if */
-    if (gnu_version >= 130000) {
+    if (gcc_version_is(>=70000) || gpp_version_is(>= 130000)) {
       enter_keyword(tok_float32, "_Float32");
       enter_keyword(tok_float32x, "_Float32x");
       enter_keyword(tok_float64, "_Float64");

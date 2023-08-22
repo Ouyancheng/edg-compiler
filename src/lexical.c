@@ -10888,7 +10888,8 @@ the kind of token.
   an_error_severity
                 sev = es_error;
   a_boolean     accept_f_suffix = extended_float_types ||
-                                  (gnu_mode && gnu_version >= 130000);
+                                  (gcc_version_is(>=70000) ||
+                                   gpp_version_is(>= 130000));
 
 /*
 Macro to skip over an optional C++14 digit separator (apostrophe).  Reports

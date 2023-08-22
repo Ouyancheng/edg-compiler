@@ -1,5 +1,19 @@
 Version 6.6
 
+8/22/23  [EDGcpfe/26564]
+GNU compatibility: gcc version support for _Float* types
+
+The changes for EDGcpfe/26221 and
+EDGcpfe/18316,EDGcpfe/22881,EDGcpfe/26290,EDGcpfe/26308,EDGcpfe/26332
+added support in the front end for various _Float* types in gcc and g++
+modes when gnu_version is at least 130000.  This version test is correct
+for g++ mode; however, gcc began supporting these types in version 7.0.0.
+The front end has now been updated to use the correct version test when
+emulating gcc.  For example, with --gcc --gnu_version=70000:
+
+  _Float32 f32 = 0.0f32;   // Previously an error, now okay
+
+
 8/21/23  [EDGcpfe/26601]
 Incorrectly generated copy/move constructor for lambda with init capture pack
 
