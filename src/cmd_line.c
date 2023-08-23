@@ -5197,6 +5197,9 @@ This function is also called in clang mode.
       std_thread_local_storage_specifier_enabled = TRUE;
       c11_atomic_enabled = TRUE;
     }  /* if */
+    if (gnu_version >= 50000) {
+      raw_string_literals_enabled = TRUE;
+    }  /* if */
     if (gnu_version >= 60000) {
       enumerator_attributes_enabled = TRUE;
     }  /* if */

@@ -1,5 +1,15 @@
 Version 6.6
 
+8/23/23  [EDGcpfe/26623]
+GNU compatibility: raw string literals in gcc mode
+
+Although raw string literals are a C++ feature, gcc has accepted them since
+version 5.1.  The front end has now been updated to support them in the
+relevant GNU C modes as well.  For example, with --gcc --gnu_version=50100:
+
+  const char* str = R"(test")";   // Previously an error, now okay
+
+
 8/23/23  [EDGcpfe/26622]
 C++-generating back end: init-capture with brace-enclosed initializer
 
