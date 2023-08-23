@@ -1,5 +1,19 @@
 Version 6.6
 
+8/23/23  [EDGcpfe/26622]
+C++-generating back end: init-capture with brace-enclosed initializer
+
+The C++-generating back end previously incorrectly added an extra set of
+braces in some cases where the initializer of a lambda init-capture is
+enclosed in braces, resulting in code that could not be compiled.  This is
+now fixed.  For example, with --c++17:
+
+  template<typename> void f();
+  template<typename T> void g() {
+    [x{f<T>}]{};   // Previously generated as "[{{f<T>}}]{}"
+  }
+
+
 8/22/23  [EDGcpfe/26564]
 GNU compatibility: gcc version support for _Float* types
 

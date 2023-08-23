@@ -16029,25 +16029,34 @@ Render the list of lambda captures, including the delimiting brackets.
            initializer. */
         a_field_ptr        fp = lcp->closure_field;
         a_dynamic_init_ptr dip = lcp->captured.initializer;
-        a_boolean          saved_braced_init = dip->is_braced_initializer;
+        a_const_char       *left_delim;
+        a_const_char       *right_delim;
 
+        if (!lcp->direct_init) {
+          left_delim = " = ";
+          right_delim = "";
+        } else if (lcp->parenthesized_init) {
+          left_delim = "(";
+          right_delim = ")";
+        } else if (!dip->is_braced_initializer) {
+          /* gen_dynamic_init won't supply braces, so we need to do so
+             here. */
+          left_delim = "{";
+          right_delim = "}";
+        } else {
+          /* Let gen_dynamic_init supply the braces. */
+          left_delim = "";
+          right_delim = "";
+        }  /* if */
         if (lcp->is_pack_expansion) {
           write_tok_str("...");
         }  /* if */
         gen_bare_name(&fp->source_corresp, (an_il_entry_kind)iek_field);
-        write_tok_str(!lcp->direct_init       ? " = " :
-                      lcp->parenthesized_init ? "(" :
-                                                "{");
-        /* If we put out braces here, make sure gen_dynamic_init does not
-           do so. */
-        dip->is_braced_initializer = FALSE;
+        write_tok_str(left_delim);
         gen_dynamic_init(dip, fp->type, (an_expr_node_ptr)NULL,
                          /*avoid_top_level_comma=*/TRUE,
                          /*obj_expr_of_mfunc_operator=*/FALSE);
-        write_tok_str(!lcp->direct_init       ? "" :
-                      lcp->parenthesized_init ? ")" :
-                                                "}");
-        dip->is_braced_initializer = saved_braced_init;
+        write_tok_str(right_delim);
       } else if (lcp->capture_info.source_closure_field != NULL) {
         /* The entity captured is already captured up one level, so the
            reference is by way of a field of the parent lambda's closure
