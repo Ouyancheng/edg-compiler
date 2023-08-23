@@ -10,7 +10,7 @@ now fixed.  For example, with --c++17:
 
   template<typename> void f();
   template<typename T> void g() {
-    [x{f<T>}]{};   // Previously generated as "[{{f<T>}}]{}"
+    [x{f<T>}]{};   // Previously generated as "[x{{f<T>}}]{}"
   }
 
 
