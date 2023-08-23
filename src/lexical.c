@@ -10888,7 +10888,7 @@ the kind of token.
   an_error_severity
                 sev = es_error;
   a_boolean     accept_f_suffix = extended_float_types ||
-                                  (gcc_version_is(>=70000) ||
+                                  (gcc_version_is(>= 70000) ||
                                    gpp_version_is(>= 130000));
 
 /*
