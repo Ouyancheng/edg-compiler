@@ -35990,8 +35990,9 @@ a_boolean check_var_for_lambda_capture(a_variable_ptr  var,
 The given variable is being captured for the current lambda; the capture is
 implicit if implicit is TRUE and is "by reference" if by_ref is TRUE.  Check
 that this capture is valid, and return TRUE if it is; *diag is set to a value
-other that ec_no_error if a warning corresponding to *diag should be issued.
-If it is not, return FALSE, and set *diag to an appropriate error code.
+other than ec_no_error if a warning corresponding to *diag should be issued.
+If the binding is not valid, return FALSE, and set *diag to an appropriate
+error code.
 */
 {
   a_boolean  okay = FALSE;
