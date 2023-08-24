@@ -18854,6 +18854,96 @@ appears in code like the following:
 }  /* is_variadic_parameter_declaration_clause_type */
 
 
+template<typename ...a_Token_kind>
+static a_boolean token_is_one_of(a_cached_token_ptr ctp,
+                                 a_Token_kind       ...token_kinds)
+/*
+Given a cached tokens and a number of token kinds, return TRUE if the cached
+token is one of the given token kinds; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+  a_boolean match_states[] = {(ctp->token == token_kinds)...};
+
+  for (size_t i = 0; i < sizeof...(token_kinds); ++i) {
+    if (match_states[i]) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* token_is_one_of */
+
+
+template<typename ...a_Token_kind>
+static inline a_boolean both_tokens_one_of(a_cached_token_ptr a,
+                                           a_cached_token_ptr b,
+                                           a_Token_kind       ...tokens)
+/*
+Given two cached tokens (a & b) and the compatible token kinds (tokens), return
+TRUE if cached token a has a token kind is in tokens and cached token b has a
+token kind in tokens; otherwise, return FALSE.
+*/
+{
+  a_boolean any_a_matches = token_is_one_of(a, tokens...);
+  a_boolean any_b_matches = token_is_one_of(b, tokens...);
+
+  return any_a_matches && any_b_matches;
+}  /* both_tokens_one_of */
+
+
+static inline a_boolean both_tokens_are_identifiers(a_cached_token_ptr a,
+                                                    a_cached_token_ptr b)
+/*
+Return TRUE if the given tokens both individually represent an identifier (in
+some form); otherwise, return FALSE.
+*/
+{
+  return both_tokens_one_of(a, b, tok_identifier, tok_ifc_decl_ref);
+}  /* both_tokens_are_identifiers */
+
+
+static Opt<a_string> text_of_identifier_token(a_cached_token_ptr ctp)
+/*
+Given a token that represents an identifier (in some form), return the
+associated identifier text.  If the token does not represent an identifier or
+could not be converted its corresponding identifier text (e.g., because it was
+invalid) return an empty optional.
+*/
+{
+  Opt<a_string> result;
+
+  switch (ctp->extra_info_kind) {
+    case teik_identifier:
+      { a_symbol_header_ptr sym_hdr = ctp->variant.locator.symbol_header;
+        a_const_char        *sym_hdr_chars = sym_hdr->identifier;
+        sizeof_t            sym_hdr_len = sym_hdr->identifier_length;
+        a_string_view       sym_hdr_str_view(sym_hdr_chars, sym_hdr_len);
+
+        result = a_string(sym_hdr_str_view);
+      }
+      break;
+    case teik_ifc_index:
+      { a_lexical_ifc_index_reference ifc_idx = ctp->variant.ifc_index;
+
+        if (ifc_idx.reference_kind == liik_decl_index) {
+          an_ifc_decl_index decl_idx =
+                                from_lexical_index<an_ifc_decl_index>(ifc_idx);
+
+          result = name_of_decl(decl_idx);
+        }  /* if */
+      }
+      break;
+    default:
+      /* If this is reached, the given cached token is unsupported and either
+         needs added or the caller needs updated to guard against entering this
+         function. */
+      unexpected_condition();
+  }  /* switch */
+  return result;
+}  /* text_of_identifier_token */
+
+
 template<typename an_ifc_Node_type>
 static void cache_func_parameter_declaration_clause(
                                              a_module_token_cache_ptr cache,
@@ -18895,28 +18985,33 @@ context to help inform decisions about what to cache.
         a_cached_token_ptr lookahead_ctp = ctp;
         for (; name_ctp != NULL && lookahead_ctp != NULL;
              name_ctp = name_ctp->next, lookahead_ctp = lookahead_ctp->next) {
-          if (name_ctp->token != lookahead_ctp->token) {
-            goto next_tok;
-          }  /* if */
-
-          if (name_ctp->token == tok_identifier) {
-            a_symbol_header_ptr name_sym_hdr =
-                                       name_ctp->variant.locator.symbol_header;
-            sizeof_t            name_id_len = name_sym_hdr->identifier_length;
-            a_symbol_header_ptr la_sym_hdr =
-                                  lookahead_ctp->variant.locator.symbol_header;
-            sizeof_t            la_id_len = la_sym_hdr->identifier_length;
-
-            if (name_id_len != la_id_len) {
+          if (both_tokens_are_identifiers(name_ctp, lookahead_ctp)) {
+            /* Both tokens are known to represent some kind of identifier,
+               retrieve the respective textual version of the identifiers, and
+               compare them for equality. */
+            Opt<a_string> opt_name_str = text_of_identifier_token(name_ctp);
+            if (!opt_name_str.has_value()) {
               goto next_tok;
             }  /* if */
 
-            a_const_char *name_id = name_sym_hdr->identifier;
-            a_const_char *la_id = la_sym_hdr->identifier;
-            if (strncmp(name_id, la_id, name_id_len) != 0) {
+            Opt<a_string> opt_lookahead_str =
+                                       text_of_identifier_token(lookahead_ctp);
+            if (!opt_lookahead_str.has_value()) {
               goto next_tok;
             }  /* if */
+
+            a_string name_str = *opt_name_str;
+            a_string lookahead_str = *opt_lookahead_str;
+            if (name_str != lookahead_str) {
+              goto next_tok;
+            }  /* if */
+            /* Both tokens have equivalent spellings, consider them equal. */
+            continue;
+          } else if (name_ctp->token == lookahead_ctp->token) {
+            /* Both tokens have the same token kind, consider them equal. */
+            continue;
           }  /* if */
+          goto next_tok;
         }  /* for */
         /* The name matched, now attempt to see if there's an lparen (or rparen
            followed by a lparen), which should introduce the
