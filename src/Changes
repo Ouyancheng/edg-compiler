@@ -1,7 +1,7 @@
 Version 6.6
 
-8/23/23  [EDGcpfe/26248,EDGcpfe/26570,EDGcpfe/25465,EDGcpfe/23925,
-          EDGcpfe/23736,EDGcpfe/20107]
+8/23/23  [EDGcpfe/20107,EDGcpfe/23736,EDGcpfe/23925,EDGcpfe/25465,
+          EDGcpfe/26248,EDGcpfe/26570]
 GNU/Clang/Microsoft compatibility: Structured bindings and language modes
 
 In GNU C++ mode with gnu_version >= 70000 and Clang C++ mode with
