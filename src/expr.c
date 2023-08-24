@@ -35989,8 +35989,9 @@ a_boolean check_var_for_lambda_capture(a_variable_ptr  var,
 /*
 The given variable is being captured for the current lambda; the capture is
 implicit if implicit is TRUE and is "by reference" if by_ref is TRUE.  Check
-that this capture is valid, and return TRUE if it is.  If it is not, return
-FALSE, and set *diag to an appropriate error code.
+that this capture is valid, and return TRUE if it is; *diag is set to a value
+other that ec_no_error if a warning corresponding to *diag should be issued.
+If it is not, return FALSE, and set *diag to an appropriate error code.
 */
 {
   a_boolean  okay = FALSE;
@@ -36027,10 +36028,17 @@ FALSE, and set *diag to an appropriate error code.
     /* Lambdas inside default argument expressions can't refer to local
        variables at all. */
     *diag = ec_ref_to_nested_function_var;
-  } else if (!cpp20_mode && var->is_struct_binding) {
-    /* C++17 disallows capturing structured bindings. */
+  } else if (var->is_struct_binding && !cpp20_mode &&
+            !clangcpp_version_is(>= 160000) &&
+            !gpp_version_is(>= 70000) &&
+            !microsoft_mode) {
+    /* C++17 disallows capturing structured bindings, but several compilers
+       accept it in their C++17 modes. */
     *diag = ec_lambda_capture_structured_binding;
   } else {
+    if (var->is_struct_binding && !cpp20_mode) {
+      *diag = ec_capturing_struct_bindings_is_cpp20;
+    }  /* if */
     okay = TRUE;
   }  /* if */
   return okay;

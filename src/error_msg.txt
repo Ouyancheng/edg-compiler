@@ -3436,6 +3436,8 @@ ec_unknown_ifc_partition_conversion;;"module %sq1 requests index %u of an unsupp
 ec_param_cannot_be_completed;;"parameter number %d of %n has type %t which cannot be completed"
 ec_param_is_incomplete;;"parameter number %d of %n has incomplete type %t"
 ec_param_is_abstract;;"parameter number %d of %n has abstract type %t"
+ec_struct_bindings_is_cpp17;;"structured bindings is a C++17 feature"
+ec_capturing_struct_bindings_is_cpp20;;"capturing structured bindings is a C++20 feature"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

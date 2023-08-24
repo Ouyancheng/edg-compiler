@@ -7112,6 +7112,10 @@ and record it in *dps.  Also update positions in decl_pos_block.
     } else {
       pos_error(ec_invalid_struct_binding_specifier, &dps->specifiers_pos);
     }  /* if */
+  } else {
+    if (!struct_bindings_enabled) {
+      pos_warning(ec_struct_bindings_is_cpp17, &pos_curr_token);
+    }  /* if */
   }  /* if */
   /* Check some constraints early.  In C++20 mode, structured bindings can have
      the static or thread_local storage classes. */
@@ -7636,7 +7640,10 @@ etc.).
                       (complete_type != NULL &&
                        is_or_contains_error_type(complete_type)));
       parenthesized_initializer_allowed = FALSE;
-    } else if (curr_token == tok_lbracket && struct_bindings_enabled &&
+    } else if (curr_token == tok_lbracket &&
+               (struct_bindings_enabled ||
+                (cpp11_mode && gpp_version_is(>= 70000)) ||
+                (cpp11_mode && clangcpp_version_is(>= 40000))) &&
                specifiers_type != NULL && !abstract_declarator_allowed &&
                !state->in_class_scope) {
       /* This looks like the bracket introducing a list of structured

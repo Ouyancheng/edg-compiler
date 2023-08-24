@@ -2500,12 +2500,22 @@ created return NULL and:
   if (lcp == NULL) {
     /* No existing capture.  See if one can be created. */
     an_error_code  err_code = ec_no_error;
-    a_boolean      by_ref = lambda->default_is_by_reference;
+    a_boolean      by_ref = lambda->default_is_by_reference, okay = TRUE;
     a_routine_ptr  rp = current_routine_entry();
     check_assertion(rp != NULL && rp->is_lambda_body);
-    if (vp != NULL &&
-        !check_var_for_lambda_capture(vp, /*implicit=*/TRUE, by_ref,
-                                      &err_code)) {
+
+    if (vp != NULL) {
+      okay = check_var_for_lambda_capture(vp, /*implicit=*/TRUE, by_ref,
+                                          &err_code);
+      if (okay && err_code != ec_no_error && !no_diag) {
+        /* Issue a warning at this point. */
+        pos_warning(err_code, pos);
+        /* Clear err_code to avoid having the warning re-emitted as an error
+           later on. */
+        err_code = ec_no_error;
+      }  /* if */
+    }  /* if */
+    if (!okay) {
       /* The variable is not valid.  err_code explains why. */
     } else if (!lambda->has_capture_default) {
       /* No capture default, so implicit captures are not allowed.  However,
@@ -33844,6 +33854,8 @@ caller has already moved past the '[', and this routine leaves the trailing
                                                   by_ref, &diag)) {
                   pos_error(diag, &error_position);
                   var = NULL;
+                } else if (diag != ec_no_error) {
+                  pos_warning(diag, &error_position);
                 }  /* if */
               } else if (symbol_is(sym, sk_field) &&
                          sym->variant.field.ptr->is_init_capture) {

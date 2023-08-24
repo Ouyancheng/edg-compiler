@@ -1,5 +1,18 @@
 Version 6.6
 
+8/23/23  [EDGcpfe/26248,EDGcpfe/26570,EDGcpfe/25465,EDGcpfe/23925,
+          EDGcpfe/23736,EDGcpfe/20107]
+GNU/Clang/Microsoft compatibility: Structured bindings and language modes
+
+In GNU C++ mode with gnu_version >= 70000 and Clang C++ mode with
+clang_version >= 40000, the front end now accepts structured binding
+declarations with a warning in C++11 and C++14 modes.  Furthermore,
+in GNU C++ mode with gnu_version >= 70000, Clang C++ mode with
+clang_version >= 160000, and Microsoft modes that accept structured
+bindings, lambdas capturing structured bindings are accepted with a
+warning when C++20 mode is not enabled.
+
+
 8/23/23  [EDGcpfe/26623]
 GNU compatibility: raw string literals in gcc mode
 
