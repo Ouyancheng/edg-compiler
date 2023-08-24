@@ -16,10 +16,11 @@ warning when C++20 mode is not enabled.
 8/23/23  [EDGcpfe/26623]
 GNU compatibility: raw string literals in C mode
 
-Although raw string literals are a C++ feature, gcc has accepted them in C
-mode since version 5.1.  The front end has now been updated to support them
-in the relevant GNU C modes as well.  For example, with --gcc
---gnu_version=50100:
+Although raw string literals are a C++ feature, gcc has accepted them since
+version 5.1 in non-strict C mode (i.e., with a default language standard or
+with -std=gnu*, but not with -std=c*).  The front end has now been updated
+to support them in the relevant GNU C modes as well.  For example, with
+--gcc --gnu_version=50100 (but not with --c11 or --strict_gnu):
 
   const char *str = R"(test")";   // Previously an error, now okay
 

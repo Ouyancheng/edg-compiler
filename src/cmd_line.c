@@ -5197,9 +5197,6 @@ This function is also called in clang mode.
       std_thread_local_storage_specifier_enabled = TRUE;
       c11_atomic_enabled = TRUE;
     }  /* if */
-    if (gnu_version >= 50000) {
-      raw_string_literals_enabled = TRUE;
-    }  /* if */
     if (gnu_version >= 60000) {
       enumerator_attributes_enabled = TRUE;
     }  /* if */
@@ -12443,6 +12440,12 @@ enable_microsoft_mode:
     gnu_imaginary_literals_allowed = TRUE;
   }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+  if (!strict_gnu && gcc_version_is(>= 50000)) {
+    /* In default and std=gnu* modes, gcc versions beginning with 5.1
+       accept raw string literals in C mode.  We had to wait until the
+       value of strict_gnu was set above to make that determination here. */
+    raw_string_literals_enabled = TRUE;
+  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* proc_command_line */
 
