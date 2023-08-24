@@ -16038,7 +16038,9 @@ Render the list of lambda captures, including the delimiting brackets.
         } else if (lcp->parenthesized_init) {
           left_delim = "(";
           right_delim = ")";
-        } else if (!dip->is_braced_initializer) {
+        } else if (!dip->is_braced_initializer ||
+                   (dip->kind == dik_constant &&
+                    dip->variant.constant.ptr->kind != ck_aggregate)) {
           /* gen_dynamic_init won't supply braces, so we need to do so
              here. */
           left_delim = "{";
