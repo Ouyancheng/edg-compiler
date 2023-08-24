@@ -14,13 +14,14 @@ warning when C++20 mode is not enabled.
 
 
 8/23/23  [EDGcpfe/26623]
-GNU compatibility: raw string literals in gcc mode
+GNU compatibility: raw string literals in C mode
 
-Although raw string literals are a C++ feature, gcc has accepted them since
-version 5.1.  The front end has now been updated to support them in the
-relevant GNU C modes as well.  For example, with --gcc --gnu_version=50100:
+Although raw string literals are a C++ feature, gcc has accepted them in C
+mode since version 5.1.  The front end has now been updated to support them
+in the relevant GNU C modes as well.  For example, with --gcc
+--gnu_version=50100:
 
-  const char* str = R"(test")";   // Previously an error, now okay
+  const char *str = R"(test")";   // Previously an error, now okay
 
 
 8/23/23  [EDGcpfe/26622]
