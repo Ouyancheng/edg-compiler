@@ -10688,6 +10688,37 @@ function template and have a nonreal parent class.
 }  /* candidates_include_constraints_and_nonreal_parent */
 
 
+a_boolean selector_type_is_dependent(an_operand  *selector)
+/*
+Return TRUE if in a call of the form x->f(...) or x.f(...), where selector
+represents x, the selector type should be considered "dependent".  Mostly,
+this corresponds to the type of x being dependent.  However, if the type of x
+is a prototype instantiation (which happens if the call is in the context of
+the prototype instantiation itself), then the target of the call can be known
+exactly and the selector should not be treated as dependent.  Also, closure
+types defined in template contexts are marked as nonreal, but for the purpose
+of determining a member of the closure to call, the closure type should not be
+considered dependent.
+*/
+{
+  a_boolean   result = FALSE;
+  a_type_ptr  tp = skip_typerefs(selector->type);
+
+  if (type_is(tp, tk_pointer)) {
+    tp = skip_typerefs(type_pointed_to(tp));
+  }  /* if */
+  if (is_immediate_class_type(tp)) {
+    result = tp->variant.class_struct_union.is_nonreal_class &&
+             !tp->variant.class_struct_union.is_prototype_instantiation &&
+             !class_type_supp(tp)->is_lambda_closure_class;
+  } else {
+    check_assertion(is_template_dependent_type(tp));
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* selector_type_is_dependent */
+
+
 a_symbol_ptr select_overloaded_function(
                         a_symbol_ptr             overloaded_function_symbol,
                         a_boolean                is_template_id,
@@ -10847,45 +10878,50 @@ reprocess_with_notes:
     a_boolean defer_overload_resolution = FALSE;
     /* In a prototype instantiation.  See whether the call is dependent
        (i.e., has arguments of dependent types). */
-    for (arg_list_elem = arg_list;
-         arg_list_elem != NULL;
-         arg_list_elem = next_elem(arg_list_elem)) {
-      an_expr_node_ptr expr;
-      an_operand       *arg = NULL;
-      if (is_expression_component(arg_list_elem)) {
-        arg = operand_of_arg_list_elem(arg_list_elem);
-      }  /* if */
-      if (arg != NULL ? operand_is_dependent(arg) :
-                        arg_list_elem_is_type_dependent(arg_list_elem)) {
-        dependent_call = TRUE;
-        break;
-      } else if (gpp_mode && arg != NULL && is_constant_operand(arg) &&
-                 is_possible_dependent_null_pointer_constant(
-                                                     &arg->variant.constant)) {
-        /* g++ seems to make a call dependent if one of the arguments might
-           be a null pointer constant given the right choice of template
-           arguments.  In other modes, we disallow use of such constants
-           as null pointer constants in argument matching. */
-        dependent_call = TRUE;
-        break;
-      } else if ((gpp_mode || clang_mode) && arg != NULL &&
-                 is_gpp_falsely_dependent_argument(arg)) {
-        /* Prior to version 4.7.x, GCC incorrectly treats something like
-           "this->x" in a member function of a template as dependent even if
-           the type of x is not dependent. */
-        dependent_call = TRUE;
-        break;
-      } else if (is_variadic_template_context() &&
-                 (arg_list_elem->pack_expansion_descr != NULL ||
-                  (arg != NULL &&
-                   (expr = expr_node_from_operand(arg)) != NULL &&
-                   expr->is_pack_expansion))) {
-        /* If the argument list contains a pack expansion, treat the call
-           as dependent because the number of arguments is unknown. */
-        dependent_call = TRUE;
-        break;
-      }  /* if */
-    }  /* for */
+    if (bound_function_selector != NULL &&
+        selector_type_is_dependent(bound_function_selector)) {
+      dependent_call = TRUE;
+    } else {
+      for (arg_list_elem = arg_list;
+           arg_list_elem != NULL;
+           arg_list_elem = next_elem(arg_list_elem)) {
+        an_expr_node_ptr expr;
+        an_operand       *arg = NULL;
+        if (is_expression_component(arg_list_elem)) {
+          arg = operand_of_arg_list_elem(arg_list_elem);
+        }  /* if */
+        if (arg != NULL ? operand_is_dependent(arg) :
+                          arg_list_elem_is_type_dependent(arg_list_elem)) {
+          dependent_call = TRUE;
+          break;
+        } else if (gpp_mode && arg != NULL && is_constant_operand(arg) &&
+                   is_possible_dependent_null_pointer_constant(
+                                                    &arg->variant.constant)) {
+          /* g++ seems to make a call dependent if one of the arguments might
+             be a null pointer constant given the right choice of template
+             arguments.  In other modes, we disallow use of such constants
+             as null pointer constants in argument matching. */
+          dependent_call = TRUE;
+          break;
+        } else if ((gpp_mode || clang_mode) && arg != NULL &&
+                   is_gpp_falsely_dependent_argument(arg)) {
+          /* Prior to version 4.7.x, GCC incorrectly treats something like
+             "this->x" in a member function of a template as dependent even if
+             the type of x is not dependent. */
+          dependent_call = TRUE;
+          break;
+        } else if (is_variadic_template_context() &&
+                   (arg_list_elem->pack_expansion_descr != NULL ||
+                    (arg != NULL &&
+                     (expr = expr_node_from_operand(arg)) != NULL &&
+                     expr->is_pack_expansion))) {
+          /* If the argument list contains a pack expansion, treat the call
+             as dependent because the number of arguments is unknown. */
+          dependent_call = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
     if (!dependent_call &&
         ((is_template_id &&
           template_arg_list_is_dependent(template_arg_list)) ||

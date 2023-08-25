@@ -2722,8 +2722,9 @@ the fields implied by the lambda's capture list).
   sym->variant.class_struct_union.type = type;
   if (is_template_dependent_context()) {
     /* If the lambda appears in a template-dependent context, mark it as a
-       nonreal class.  (Local classes in such contexts are not marked as
-       prototype instantiations.  However, their member functions are.) */
+       nonreal class.  (Local classes in such contexts are marked as
+       nonreal but not as prototype instantiations.  However, their
+       member functions are marked as prototype instantiations.) */
     type->variant.class_struct_union.is_nonreal_class = TRUE;
     is_nonreal = TRUE;
   }  /* if */

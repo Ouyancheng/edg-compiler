@@ -1,5 +1,35 @@
 Version 6.6
 
+8/25/23  [EDGcpfe/26587]
+Template-dependence of calls to nonstatic member functions
+
+Consider:
+
+  struct X {};
+  struct Y {};
+  struct C {
+    X f() const;
+    Y f();
+  };
+  void g(X);
+  void g(Y);
+  template<typename T> struct S {
+    T t;
+    void h() const {
+      g(t.C::f());  // Previously recorded as nondependent, triggering an
+    }               // error during real instantiation.
+  };
+  int main() {
+    S<C> d;
+    d.h();
+  }
+
+The front end previously recorded the call g(t.C::f()) as nondependent because
+the dependence of t on the template parameter T was ignored.  During the real
+instantiation of S<C> that resulted in the wrong member of C being selected and
+a spurious conversion error to be emitted.  That is now fixed.
+
+
 8/25/23  [EDGcpfe/24031,EDGcpfe/26439,EDGcpfe/26621]
 Object lifetime information for coroutines
 
