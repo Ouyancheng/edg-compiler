@@ -34,7 +34,8 @@ Although raw string literals are a C++ feature, gcc has accepted them since
 version 5.1 in non-strict C mode (i.e., with a default language standard or
 with -std=gnu*, but not with -std=c*).  The front end has now been updated
 to support them in the relevant GNU C modes as well.  For example, with
---gcc --gnu_version=50100 (but not with --c11 or --strict_gnu):
+--gcc --gnu_version=50100 (but not with --strict_gnu or, e.g., --c11, which
+set strict gnu mode - see EDGcpfe/18999,EDGcpfe/23905,EDGcpfe/23995):
 
   const char *str = R"(test")";   // Previously an error, now okay
 
