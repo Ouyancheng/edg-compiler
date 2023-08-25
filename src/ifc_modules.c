@@ -18858,7 +18858,7 @@ template<typename ...a_Token_kind>
 static a_boolean token_is_one_of(a_cached_token_ptr ctp,
                                  a_Token_kind       ...token_kinds)
 /*
-Given a cached tokens and a number of token kinds, return TRUE if the cached
+Given a cached token and a number of token kinds, return TRUE if the cached
 token is one of the given token kinds; otherwise, return FALSE.
 */
 {
@@ -18881,8 +18881,8 @@ static inline a_boolean both_tokens_one_of(a_cached_token_ptr a,
                                            a_Token_kind       ...tokens)
 /*
 Given two cached tokens (a & b) and the compatible token kinds (tokens), return
-TRUE if cached token a has a token kind is in tokens and cached token b has a
-token kind in tokens; otherwise, return FALSE.
+TRUE if the token kinds of cached tokens a and b are both in tokens; otherwise,
+return FALSE.
 */
 {
   a_boolean any_a_matches = token_is_one_of(a, tokens...);
@@ -18933,8 +18933,8 @@ invalid) return an empty optional.
       break;
     default:
       /* If this is reached, the given cached token is unsupported and either
-         needs added or the caller needs updated to guard against entering this
-         function. */
+         needs to be added or the caller needs to be updated to guard against
+         entering this function. */
       unexpected_condition();
   }  /* switch */
   return result;
@@ -18983,8 +18983,8 @@ context to help inform decisions about what to cache.
         for (; name_ctp != NULL && lookahead_ctp != NULL;
              name_ctp = name_ctp->next, lookahead_ctp = lookahead_ctp->next) {
           if (both_tokens_are_identifiers(name_ctp, lookahead_ctp)) {
-            /* Both tokens are known to represent some kind of identifier,
-               retrieve the respective textual version of the identifiers, and
+            /* Both tokens are known to represent some kind of identifier.
+               Retrieve the respective textual version of the identifiers and
                compare them for equality. */
             Opt<a_string> opt_name_str = text_of_identifier_token(name_ctp);
             if (!opt_name_str.has_value()) {
@@ -19002,10 +19002,10 @@ context to help inform decisions about what to cache.
             if (name_str != lookahead_str) {
               goto next_tok;
             }  /* if */
-            /* Both tokens have equivalent spellings, consider them equal. */
+            /* Both tokens have equivalent spellings; consider them equal. */
             continue;
           } else if (name_ctp->token == lookahead_ctp->token) {
-            /* Both tokens have the same token kind, consider them equal. */
+            /* Both tokens have the same token kind; consider them equal. */
             continue;
           }  /* if */
           goto next_tok;
