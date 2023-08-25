@@ -1,5 +1,31 @@
 Version 6.6
 
+8/25/23  [EDGcpfe/26360]
+C++-generating back end: form of non-type template arguments
+
+When there are multiple references to a template instance involving a
+non-type template argument, the C++-generating back end could use a
+different form for the argument in subsequent references from that used in
+the initial reference.  In general, the initial reference reflects the
+constant expression appearing in the source, while subsequent references
+used the value of the constant expression.  In certain obscure cases, this
+difference could cause g++ to issue spurious errors when matching an
+out-of-class definition of a member template with its definition in the
+class.  The front end has now been changed to put out the original source
+form of the constant expression whenever possible, using the constant
+value only when names appearing in the expression are out of scope or
+inaccessible.  For example:
+
+  template <unsigned, unsigned, typename> struct A { };
+  template <typename T> struct B {
+    template <unsigned N> A<0, N, T>* f();   // int 0 converted to unsigned
+  };
+  template <typename T> template <unsigned N>
+  A<0, N, T>* B<T>::f() {   // Previously put out as "A<0U, N, T>"
+    return 0;
+  }
+
+
 8/25/23  [EDGcpfe/26587]
 Template-dependence of calls to nonstatic member functions
 
