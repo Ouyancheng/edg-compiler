@@ -1,5 +1,26 @@
 Version 6.6
 
+8/25/23  [EDGcpfe/24031,EDGcpfe/26439,EDGcpfe/26621]
+Object lifetime information for coroutines
+
+Consider, with --c++20:
+
+  #include <coroutine>
+  struct C {
+    ~C();
+  };
+  std::task<int> coro() {
+    C c1, c2;    // Previously aborted during lowering.  Now okay.
+    co_return 0;
+  }
+
+Previously, the front end did not correctly transfer object lifetime
+information when transforming the coroutine body, as described in
+[dcl.fct.def.coroutine].  In configurations that do IL lowering, this later
+triggered an internal error in lower_dynamic_init (lower_init.c).  That is now
+fixed.
+
+
 8/25/23  [EDGcpfe/26624]
 Abort on in-class explicit specialization with deduced type
 

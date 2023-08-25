@@ -4917,17 +4917,27 @@ the relationships appropriately.
 
   check_assertion(lifetime->next == NULL);
   check_assertion(lifetime->parent_destruction_sublist == NULL);
-  new_lifetime->next = NULL;
-  new_lifetime->child_lifetime = orig_child_lifetime;
+  if (exceptions_enabled) {
+    /* When exceptions are enabled, the try block also needs to be skipped. */
+    check_assertion(new_lifetime->kind == olk_try_block);
+    new_lifetime = new_lifetime->child_lifetime;
+  }  /* if */
+  /* Transfer the original child lifetime. */
   for (olp = orig_child_lifetime; olp != NULL; olp = olp->next) {
     olp->parent_lifetime = new_lifetime;
   }  /* for */
-  for (dip = lifetime->destructions; dip != NULL; dip = dip->next) {
+  new_lifetime->child_lifetime = orig_child_lifetime;
+  lifetime->child_lifetime->next = NULL;
+  lifetime->child_lifetime->parent_destruction_sublist = NULL;
+  /* Transfer destructions to the new lifetime, adjusting lifetime references
+     in dynamic init entries. */
+  for (dip = lifetime->destructions;
+       dip != NULL;
+       dip = dip->next_in_destruction_list) {
     dip->lifetime = new_lifetime;
   }  /* for */
   new_lifetime->destructions = lifetime->destructions;
   lifetime->destructions = NULL;
-  new_lifetime->parent_destruction_sublist = NULL;
   new_lifetime->has_block_after_label_child_lifetime =
                                 lifetime->has_block_after_label_child_lifetime;
   lifetime->has_block_after_label_child_lifetime = FALSE;
@@ -5013,10 +5023,11 @@ Return the statement for the try/catch.
                          (an_object_lifetime_kind)olk_try_block);
   } else {
     try_catch_stmt = func_body;
-    push_object_lifetime(iek_block, (char*)func_body->variant.block.extra_info,
-                         (an_object_lifetime_kind)olk_block);
   }  /* if */
+  push_object_lifetime(iek_block, (char*)func_body->variant.block.extra_info,
+                       olk_block);
   transfer_coroutine_lifetime(sp->lifetime);
+  (void)pop_object_lifetime();
   if (exceptions_enabled) {
     /* Create the handler for the try. */
     (void)push_scope((a_scope_kind)sck_block, NO_SCOPE_NUMBER,
@@ -5027,8 +5038,8 @@ Return the statement for the try/catch.
     handler->statement->parent = try_catch_stmt;
     pop_scope();
     coroutine->contains_try_block = TRUE;
+    (void)pop_object_lifetime();
   }  /* if */
-  (void)pop_object_lifetime();
   return try_catch_stmt;
 }  /* wrap_coroutine_body_in_try_block */
 

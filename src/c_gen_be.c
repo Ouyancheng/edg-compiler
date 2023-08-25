@@ -9920,6 +9920,7 @@ Generate C for a statement.
          be dumped next).  This may *not* be statement->next, however,
          depending on how the IL has been lowered up until this point. */
       dump_expression(statement->expr);
+      write_tok_ch(';');
       break;
     default:
       unexpected_condition_str("dump_statement: bad statement kind");
