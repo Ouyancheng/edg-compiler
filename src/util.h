@@ -2624,7 +2624,7 @@ such element is found.
 A struct representing a char*-based string of a given length.
 */
 struct a_string_view {
-  a_const_char* const
+  a_const_char * const
                 start;  /* The start of the string. */
   const size_t  length; /* The length of the string (not including the null
                            terminator). */
