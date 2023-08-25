@@ -18913,8 +18913,8 @@ invalid) return an empty optional.
 {
   Opt<a_string> result;
 
-  switch (ctp->extra_info_kind) {
-    case teik_identifier:
+  switch (ctp->token) {
+    case tok_identifier:
       { a_symbol_header_ptr sym_hdr = ctp->variant.locator.symbol_header;
         a_const_char        *sym_hdr_chars = sym_hdr->identifier;
         sizeof_t            sym_hdr_len = sym_hdr->identifier_length;
@@ -18923,15 +18923,12 @@ invalid) return an empty optional.
         result = a_string(sym_hdr_str_view);
       }
       break;
-    case teik_ifc_index:
+    case tok_ifc_decl_ref:
       { a_lexical_ifc_index_reference ifc_idx = ctp->variant.ifc_index;
-
-        if (ifc_idx.reference_kind == liik_decl_index) {
-          an_ifc_decl_index decl_idx =
+        an_ifc_decl_index decl_idx =
                                 from_lexical_index<an_ifc_decl_index>(ifc_idx);
 
-          result = name_of_decl(decl_idx);
-        }  /* if */
+        result = name_of_decl(decl_idx);
       }
       break;
     default:
