@@ -578,15 +578,6 @@ Output the indicated template argument in the way described by octl.
           }  /* if */
           con->expr = saved_expr;
           con->local_expr_ref = saved_local_expr_ref;
-#if BACK_END_IS_CP_GEN_BE
-          if (octl->gen_compilable_code) {
-            /* We only want to generate an expression, rather than a
-               constant value, for the first reference to a given template
-               instance, because the expression might use names that will
-               not be in scope in later references to the instance. */
-            con->expr = NULL;
-          }  /* if */
-#endif /* BACK_END_IS_CP_GEN_BE */
         }  /* if */
       }
       octl->processing_nontype_template_argument = FALSE;
