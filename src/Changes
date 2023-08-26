@@ -8,13 +8,13 @@ non-type template argument, the C++-generating back end could use a
 different form for the argument in subsequent references from that used in
 the initial reference.  In general, the initial reference reflects the
 constant expression appearing in the source, while subsequent references
-used the value of the constant expression.  In certain obscure cases, this
-difference could cause g++ to issue spurious errors when matching an
+used the value of the constant expression.  When compiling the generated
+code with g++, this difference could result in g++ failing to match an
 out-of-class definition of a member template with its definition in the
 class.  The front end has now been changed to put out the original source
-form of the constant expression whenever possible, using the constant
-value only when names appearing in the expression are out of scope or
-inaccessible.  For example:
+form of the constant expression in all references to the template instance
+whenever possible, using the constant value only when names appearing in
+the expression are out of scope or inaccessible.  For example:
 
   template <unsigned, unsigned, typename> struct A { };
   template <typename T> struct B {
