@@ -56,7 +56,7 @@ instantiation of S<C> that resulted in the wrong member of C being selected and
 a spurious conversion error to be emitted.  That is now fixed.
 
 
-8/25/23  [EDGcpfe/24031,EDGcpfe/26439,EDGcpfe/26621]
+8/25/23  [EDGcpfe/24031,EDGcpfe/25546,EDGcpfe/26439,EDGcpfe/26621]
 Object lifetime information for coroutines
 
 Consider, with --c++20:
