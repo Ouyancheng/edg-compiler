@@ -10,7 +10,7 @@ the initial reference.  In general, the initial reference reflects the
 constant expression appearing in the source, while subsequent references
 used the value of the constant expression.  When compiling the generated
 code with g++, this difference could result in g++ failing to match an
-out-of-class definition of a member template with its definition in the
+out-of-class definition of a member template with its declaration in the
 class.  The front end has now been changed to put out the original source
 form of the constant expression in all references to the template instance
 whenever possible, using the constant value only when names appearing in
