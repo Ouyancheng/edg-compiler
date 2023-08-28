@@ -2796,27 +2796,12 @@ caller may have to set it directly.
   num_searches_for_symbols++;
 #endif /* DEBUG */
 
-  /* Hash the symbol's identifier.  This involves taking the identifier's
-     first 3, last 3, and middle 3 characters.  Of course, if the identifier
-     has 9 or fewer characters, take the entire identifier. */
+  /* Hash the symbol's identifier.  This is not a particularly strong hash,
+     but it does well-enough on most inputs. */
   ptr = identifier;
-  if (length > 9) {
-    hash_value = (unsigned char)*ptr++;
+  for (a = 0; a < length; a++) {
     hash_value = (hash_value * HASH_FACTOR) + (unsigned char)*ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + (unsigned char)*ptr;
-    ptr = identifier + (length >> 1) - 1;
-    hash_value = (hash_value * HASH_FACTOR) + (unsigned char)*ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + (unsigned char)*ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + (unsigned char)*ptr;
-    ptr = identifier + length - 3;
-    hash_value = (hash_value * HASH_FACTOR) + (unsigned char)*ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + (unsigned char)*ptr++;
-    hash_value = (hash_value * HASH_FACTOR) + (unsigned char)*ptr;
-  } else {
-    for (a = 0; a < length; a++) {
-      hash_value = (hash_value * HASH_FACTOR) + (unsigned char)*ptr++;
-    }  /* for */
-  }  /* if */
+  }  /* for */
 
   /* Look in the symbol bucket saving the position in case this symbol needs
      to be added. */

@@ -4423,9 +4423,12 @@ void mark_builtin_loaded(a_symbol_header *sym_hdr);
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
-#define SYMBOL_TABLE_SIZE 16381
+#define SYMBOL_TABLE_SIZE 262133
 	  		/* The number of buckets in the symbol table.  This
-			   number should be prime. */
+			   number should be prime.  (262133 is a prime close
+			   to 2^18 and the optimized code to compute a
+			   remainder modulo-262133 is slightly more efficient
+			   than for other nearby primes.) */
 
 /*
 Top level structure for the hash-table portion of the symbol table.  Each

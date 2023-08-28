@@ -1,5 +1,18 @@
 Version 6.6
 
+8/28/23  [EDGcpfe/26629]
+Symbol table tuning
+
+Two changes have been made to tune the main symbol table used for name lookup.
+First, the length of the main array (which is a prime number) has been
+increased from 16381 to 262133 to accommodate very large input sources.
+Second, the hash function previously only hashed up to 9 characters of any
+identifier.  That could lead to pathological behavior when the input contained
+large numbers of identifiers following a certain pattern where the chosen 9
+characters do not change.  Now, the hash function uses all characters of the
+identifiers it is applied to.
+
+
 8/28/23  [EDGcpfe/26596]
 Spurious error in GNU mode on aggregate initialization in template
 
