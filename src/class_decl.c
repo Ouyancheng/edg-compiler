@@ -20834,6 +20834,10 @@ be entered.
                                        &locator->source_position);
       /* Adjust the decl_scope given by make_unnamed_symbol. */
       member_sym->decl_scope = decl_scope_depth;
+      /* Don't call set_source_corresp since we don't want to record a name
+         in the IL entry. */
+      field->source_corresp.assoc_info = (char*)member_sym;
+      field->source_corresp.decl_position = decl_state->start_pos;
     } else {
       /* A named field.  C++/CLI property fields are treated specially since
          they can be "overloaded". */
