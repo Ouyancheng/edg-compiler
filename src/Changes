@@ -15,8 +15,9 @@ Consider, in GNU C++17 mode:
     f(42);
   }
 
-This example previously elicited a spurious error (claiming excess initializer
-elements) in GNU modes.  That is now fixed.
+The changes for EDGcpfe/25550 introduced a regression in version 6.5 of the
+front end, causing this example to elicit a spurious error in GNU modes
+(claiming excess initializer elements).  That is now fixed.
 
 
 8/25/23  [EDGcpfe/26360]
