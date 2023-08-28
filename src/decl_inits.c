@@ -4640,12 +4640,13 @@ initializer, already copied and substituted.
       /* Do not insert code here. */
       if (dtype->variant.class_struct_union.is_nonreal_class ||
           (is_prototype_instantiation_context() &&
-           arg_list_is_dependent(icp))) {
+           (gpp_mode || arg_list_is_dependent(icp)))) {
         /* Treat nonreal classes like a template parameter since we don't
            really know their structure.  Similarly, do not try to match up a
            dependent initializer list since we cannot distinguish a whole-
            object initialization from ordinary aggregate element
-           initialization. */
+           initialization.  GCC doesn't attempt to match initializers to class
+           types in template definitions. */
         is_aggregate = TRUE;
         aggr_init_generic_element(icp, dtype, is, &is->init_con);
       } else {

@@ -1,5 +1,24 @@
 Version 6.6
 
+8/28/23  [EDGcpfe/26596]
+Spurious error in GNU mode on aggregate initialization in template
+
+Consider, in GNU C++17 mode:
+
+  struct B { int x, y, z; };
+  struct D: B {};
+  template<typename T> int f(T) {
+    D d = { 1, 2, 3 };  // Previously an error.  Now okay.
+    return d.y;
+  }
+  int main() {
+    f(42);
+  }
+
+This example previously elicited a spurious error (claiming excess initializer
+elements) in GNU modes.  That is now fixed.
+
+
 8/25/23  [EDGcpfe/26360]
 C++-generating back end: form of non-type template arguments
 
