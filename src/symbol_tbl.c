@@ -2797,7 +2797,7 @@ caller may have to set it directly.
 #endif /* DEBUG */
 
   /* Hash the symbol's identifier.  This is not a particularly strong hash,
-     but it does well-enough on most inputs. */
+     but it does well enough on most inputs. */
   ptr = identifier;
   for (a = 0; a < length; a++) {
     hash_value = (hash_value * HASH_FACTOR) + (unsigned char)*ptr++;
