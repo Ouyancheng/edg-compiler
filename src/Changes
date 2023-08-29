@@ -1,5 +1,28 @@
 Version 6.6
 
+8/29/23  [EDGcpfe/26615]
+C++-generating back end: template arguments involving member function calls
+
+In some cases when a template instance is first named in a class definition
+and one of the template arguments involves a call to a member function of
+that class, the C++-generating back end put out a subsequent reference to
+that template instance in which the member function call was written using
+"this->", even though the reference appears outside the class definition.
+This is now fixed.  For example, with --c++11:
+
+  template <typename> struct B {
+    int f() { return 0; }
+  };
+  template <typename T> struct A {
+    using U = int;
+    U &u();
+    auto r() -> B<decltype(u())>;       // First reference to B<int &>
+  };
+  template int B<A<float>::U &>::f();   // Template argument for B previously
+                                        // put out as "decltype(this->u())",
+                                        // now as "int &"
+
+
 8/29/23  [EDGcpfe/26613]
 Uninitialized statement position in error cases
 

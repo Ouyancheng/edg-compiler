@@ -8302,13 +8302,11 @@ al_tag_name attributes (if any).
 static void check_for_enk_param_ref(an_expr_node_ptr expr,
                                     an_expr_or_stmt_traversal_block_ptr tblock)
 /*
-Set tblock->result and tblock->terminate to TRUE if expr is an enk_param_ref
-node that designates a non-this parameter.  Called via traverse_expr from
-expr_has_enk_param_ref.
+Set tblock->result and tblock->terminate to TRUE if expr is an
+enk_param_ref node.  Called via traverse_expr from expr_has_enk_param_ref.
 */
 {
-  if (expr->kind == (an_expr_node_kind)enk_param_ref &&
-      expr->variant.param_ref.param_num != 0) {
+  if (expr->kind == (an_expr_node_kind)enk_param_ref) {
     tblock->result = TRUE;
     tblock->terminate = TRUE;
   }  /* if */
@@ -8317,13 +8315,13 @@ expr_has_enk_param_ref.
 
 static a_boolean expr_has_enk_param_ref(an_expr_node_ptr expr)
 /*
-Return TRUE if expr or one of its subexpressions is a non-this
-enk_param_ref.  Used to avoid attempting to generate such an expression
-when there is no function prototype against which to evaluate the
-reference, which can happen in template argument lists and types derived
-from such arguments (because the template arguments are captured from the
-first reference, which might be in a function prototype context, but
-another reference to the same instance might not be).
+Return TRUE if expr or one of its subexpressions is an enk_param_ref.  Used
+to avoid attempting to generate such an expression when there is no
+function prototype against which to evaluate the reference, which can
+happen in template argument lists and types derived from such arguments
+(because the template arguments are captured from the first reference,
+which might be in a function prototype context, but another reference to
+the same instance might not be).
 */
 {
   an_expr_or_stmt_traversal_block tblock;
