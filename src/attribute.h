@@ -38,6 +38,11 @@ extern unsigned long show_attribute_space_used(void);
 
 #if GNU_EXTENSIONS_ALLOWED
 
+extern 
+a_type_ptr get_type_with_mode(a_type_ptr        type,
+                              a_type_mode_kind  mode,
+                              a_source_position *pos);
+
 extern void record_asm_name_for_lookup(a_symbol_ptr  sym);
 
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED

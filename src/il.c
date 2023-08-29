@@ -14401,8 +14401,28 @@ However, if the field was declared mutable, "const" in the qualifier set is
 ignored.
 */
 {
-  a_type_ptr  type;
+  a_type_ptr  type = field->type;
 
+#if GNU_EXTENSIONS_ALLOWED
+  if (gcc_mode && field->is_bit_field && targ_char_bit == 8) {
+    /* GCC treats bit fields that are the exact width of an integer type as
+       having a corresponding integer type.  For example, with:
+         struct S { unsigned u:8; } s;
+       the expression u.s has type unsigned char. */
+    a_type_mode_kind  mode;
+    switch (field->bit_size) {
+      case 8:   mode = tmk_QI;   break;
+      case 16:  mode = tmk_HI;   break;
+      case 32:  mode = tmk_SI;   break;
+      case 64:  mode = tmk_DI;   break;
+      case 128: mode = tmk_TI;   break;
+      default:  mode = tmk_none; break;
+    }  /* switch */
+    if (mode != tmk_none) {
+      type = get_type_with_mode(type, mode, (a_source_position*)NULL);
+    }  /* if */
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
   /* The selected field has all the type qualifiers of both the field
      and the selecting pointer -- except that const is removed if the
      field was declared to be mutable. */
@@ -14412,12 +14432,12 @@ ignored.
      shared.  If the field is an array, the type must be constructed
      so that all elements are on the same thread.  This is, by
      definition, infinite block size, so specify that here. */
-  type = f_make_qualified_type(field->type, qualifiers,
+  type = f_make_qualified_type(type, qualifiers,
                                ((qualifiers & TQ_UPC_SHARED) != 0) ?
                                                     UPC_BLOCK_SIZE_INDEFINITE
                                                   : UPC_BLOCK_SIZE_NONE);
 #else /* UPC_EXTENSIONS_ALLOWED */
-  type = make_qualified_type(field->type, qualifiers);
+  type = make_qualified_type(type, qualifiers);
 #endif /* UPC_EXTENSIONS_ALLOWED */
   return type;
 }  /* make_field_selection_type */

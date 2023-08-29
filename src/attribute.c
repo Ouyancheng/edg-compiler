@@ -6481,13 +6481,13 @@ given "may_alias" attribute to it.
 }  /* apply_may_alias_attr */
 
 
-static a_type_ptr get_type_with_mode(a_type_ptr        type,
-                                     a_type_mode_kind  mode,
-                                     a_source_position *pos)
+a_type_ptr get_type_with_mode(a_type_ptr        type,
+                              a_type_mode_kind  mode,
+                              a_source_position *pos)
 /*
 Return a type, similar to the type provided, but with the indicated machine
 mode.  The source position at which any errors should be emitted is given by
-pos.
+pos; is pos is NULL, no error is emitted.
 */
 {
   an_integer_kind  ikind;
@@ -6571,13 +6571,17 @@ pos.
        of the variable. */
     type = skip_typerefs(type);
     if (type->kind != type_kind) {
-      pos_ty_error(ec_mode_incompatible_with_type, pos, type);
+      if (pos != NULL) {
+        pos_ty_error(ec_mode_incompatible_with_type, pos, type);
+      }  /* if */
       type = error_type();
     } else if (type->kind == (a_type_kind)tk_integer) {
       ikind = int_kind_for_bit_size((unsigned int)(size * targ_char_bit),
                                     is_signed_integral_type(type));
       if (ikind == (an_integer_kind)ik_none) {
-        pos_error(ec_no_type_of_specified_width, pos);
+        if (pos != NULL) {
+          pos_error(ec_no_type_of_specified_width, pos);
+        }  /* if */
         type = error_type();
       } else {
         type = integer_type(ikind);
@@ -6596,7 +6600,9 @@ pos.
           }  /* if */
         }  /* for */
         if (fkind == (a_float_kind)fk_first_extended_type) {
-          pos_error(ec_no_type_of_specified_width, pos);
+          if (pos != NULL) {
+            pos_error(ec_no_type_of_specified_width, pos);
+          }  /* if */
           type = error_type();
         }  /* if */
 #if !FLOAT80_ENABLING_POSSIBLE
@@ -6605,12 +6611,16 @@ pos.
                  && fkind != float_kind_for_float128
 #endif /* FLOAT128_ENABLING_POSSIBLE */
                                                     ) {
-        pos_error(ec_no_float80, pos);
+        if (pos != NULL) {
+          pos_error(ec_no_float80, pos);
+        }  /* if */
         type = error_type();
 #endif /* !FLOAT80_ENABLING_POSSIBLE */
 #if !FLOAT128_ENABLING_POSSIBLE
       } else if (fkind == float_kind_for_float128) {
-        pos_error(ec_no_float128, pos);
+        if (pos != NULL) {
+          pos_error(ec_no_float128, pos);
+        }  /* if */
         type = error_type();
 #endif /* !FLOAT128_ENABLING_POSSIBLE */
       }  /* if */

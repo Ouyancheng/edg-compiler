@@ -1,5 +1,30 @@
 Version 6.6
 
+8/29/23  [EDGcpfe/26614]
+GNU C compatibility: Type of some bit-field expressions
+
+Consider, in GNU C11 mode:
+
+  extern int printf(char const*, ...);
+  struct {
+    unsigned u: 8;
+  } s;
+  int main() {
+    printf("%s\n", _Generic((s.u),
+                            unsigned char: "uchar",
+                            unsigned int: "uint",
+                            default: "unknown"));
+  }
+
+GCC treats a bit field whose width exactly matches that of an integer type
+(8 bits for char types, 16 bits for short types, etc.) as if they are fields
+of that type.  That type might be different from the type the bit field is
+declared with.  In the example above, the bit field is declared as "unsigned",
+but the type of s.u is "unsigned char" (the signedness is carried over).
+Thus, the output of this program is "uchar".  The front end now emulates that
+behavior.
+
+
 8/28/23  [EDGcpfe/26629]
 Symbol table tuning
 
