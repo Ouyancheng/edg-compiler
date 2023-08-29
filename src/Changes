@@ -1,5 +1,22 @@
 Version 6.6
 
+8/29/23  [EDGcpfe/26613]
+Uninitialized statement position in error cases
+
+A return statement returning a braced-initializer-list without a terminating
+semicolon could have an uninitialized end position (in configurations with
+EXTRA_SOURCE_POSITIONS_IN_IL set to TRUE).  For example:
+
+  struct S { int x; };
+  S f() {
+    return { 0 }  // Missing semicolon.  The end position recorded for the
+  }               // statement was previously generated from an uninitialized
+                  // value.
+
+That is now fixed: The recorded end position is now a valid token position
+even in this error situation.
+
+
 8/29/23  [EDGcpfe/26614]
 GNU C compatibility: Type of some bit-field expressions
 

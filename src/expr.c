@@ -47274,6 +47274,14 @@ make_coroutine_result_expression.)
     scope_stack[depth_innermost_function_scope].il_scope
                                ->variant.routine.return_value_variable = NULL;
     icp = parse_braced_init_list(/*bundle=*/FALSE);
+    /* The list initializer case doesn't normally use "result" for its
+       representation (except in some error cases), but "result" is still
+       used to carry position information. */
+    make_error_operand(&result);
+    result.position = *init_component_pos(icp);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    result.end_position = *init_component_end_pos(icp);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     if (scope_stack_top().in_discarded_statement) {
       expression = make_expr_from_argument(icp);
       expression = wrap_up_full_expression(expression);
@@ -47297,11 +47305,6 @@ make_coroutine_result_expression.)
         !curr_routine->is_prototype_instantiation) {
       /* A braced-init-list cannot be used for a lambda with an implicit
          return type, as it does not provide a type. */
-      make_error_operand(&result);
-      result.position = *init_component_pos(icp);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      result.end_position = *init_component_end_pos(icp);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       expr_pos_error(curr_routine->is_lambda_body ?
                                      ec_braced_list_for_implicit_lambda_type
                                    : ec_braced_list_for_implicit_return_type,
@@ -47324,17 +47327,14 @@ make_coroutine_result_expression.)
       wrap_up_dynamic_init_full_expression(*dip);
       expression = NULL;
     } else {
-      a_source_position  *pos = init_component_pos(icp);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      a_source_position  *end_pos = init_component_end_pos(icp);
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       if (init_state.init_error) {
         expression = error_node();
       } else {
         check_assertion(init_state.init_con != NULL);
         expression = alloc_node_for_allocated_constant(init_state.init_con);
       }  /* if */
-      set_expr_position(expression, pos, end_pos, (a_source_position *)NULL);
+      set_expr_position(expression, &result.position, &result.end_position,
+                        (a_source_position *)NULL);
       expression = wrap_up_full_expression(expression);
       if (is_void_type(required_type)) set_expr_result_not_used(expression);
       /* Use a dynamic init instead of an expression so we can record that the
