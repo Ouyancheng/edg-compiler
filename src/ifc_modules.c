@@ -7770,6 +7770,141 @@ modules.
 }  /* check_and_set_partial_specialization_redeclaration */
 
 
+static a_boolean
+is_redeclared_concept_entity(a_symbol            *sym,
+                              a_module_entity_ptr mep,
+                              char                **redecl_entity,
+                              an_il_entry_kind    *redecl_kind)
+/*
+For a given module entity's potentially previously-declared symbol and module
+entity pointer, check to see if the symbol is indeed a redeclaration.  If the
+symbol is a redeclaration, return TRUE and set *redecl_entity and *redecl_kind
+to the redeclared entity and its associated kind; otherwise, return FALSE.
+
+This function should not be used directly in modules code, instead see
+check_and_set_concept_redeclaration.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (sym->kind == sk_concept_template) {
+    an_il_entry_kind kind;
+    char             *entity = il_entry_for_symbol_null_okay(sym, &kind);
+
+    if (entity != NULL && kind == iek_template) {
+      a_source_correspondence_ptr scp =
+                                     source_corresp_for_il_entry(entity, kind);
+
+      if (scp != NULL) {
+        a_scope_ptr scope = get_parent_scope_of(scp);
+
+        if (mep->scope == scope) {
+          result = TRUE;
+          *redecl_entity = entity;
+          *redecl_kind = kind;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_redeclared_concept_entity */
+
+
+static a_boolean
+find_redeclared_concept_entity_in_list(a_symbol            *sym_list,
+                                        a_module_entity_ptr mep,
+                                        char                **redecl_entity,
+                                        an_il_entry_kind    *redecl_kind)
+/*
+For a given module entity's associated symbol list and module entity pointer,
+search the symbols for a redeclaration.  If a redeclaration is found, return
+TRUE and set *redecl_entity and *redecl_kind to the redeclared entity and its
+associated kind; otherwise, return FALSE.
+
+This function should not be used directly in modules code, instead see
+check_and_set_concept_redeclaration.
+*/
+{
+  a_boolean                result = FALSE;
+  a_symbol_traversal_stack traverser(sym_list);
+
+  while (traverser.has_next()) {
+    a_symbol_ptr sym = traverser.next();
+
+    if (is_redeclared_concept_entity(sym, mep, redecl_entity, redecl_kind)) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* while */
+  return result;
+}  /* find_redeclared_concept_entity_in_list */
+
+
+static a_boolean
+find_redeclared_concept_entity(a_symbol_header     *sym_header,
+                                a_module_entity_ptr mep,
+                                char                **redecl_entity,
+                                an_il_entry_kind    *redecl_kind)
+/*
+For a given module entity's symbol header and module entity pointer, search the
+active and inactive symbols for a redeclaration.  If a redeclaration is found,
+return TRUE and set *redecl_entity and *redecl_kind to the redeclared entity
+and its associated kind; otherwise, return FALSE.
+
+This function should not be used directly in modules code, instead see
+check_and_set_concept_redeclaration.
+*/
+{
+  a_boolean    result = FALSE;
+  a_symbol_ptr active_symbols = sym_header->symbol;
+  a_symbol_ptr inactive_symbols = sym_header->inactive_symbols;
+
+  if (find_redeclared_concept_entity_in_list(active_symbols, mep,
+                                              redecl_entity, redecl_kind) ||
+      find_redeclared_concept_entity_in_list(inactive_symbols, mep,
+                                              redecl_entity, redecl_kind)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* find_redeclared_concept_entity */
+
+
+static a_boolean check_and_set_concept_redeclaration(
+                              a_symbol_locator                 *loc,
+                              a_module_entity_ptr              mep,
+                              ARG_UNUSED a_source_position_ptr pos,
+                              char                             **redecl_entity,
+                              an_il_entry_kind                 *redecl_kind)
+/*
+Given an IFC module entity's symbol locator, module entity pointer, and source
+position, check for a redeclaration of a concept.  If a redeclaration is found,
+return TRUE and set *redecl_entity and *redecl_kind to the redeclared entity
+and its associated kind; otherwise, return FALSE.
+
+The caller is responsible for handling any required merging of the
+declarations.  In the case of duplicate definitions the caller is responsible
+for ignoring the latter definition for header units and erroring for named
+modules.
+*/
+{
+  a_boolean result = find_redeclared_concept_entity(loc->symbol_header, mep,
+                                                    redecl_entity,
+                                                    redecl_kind);
+
+  if (result) {
+    /* This is a redeclaration of an existing symbol. */
+    /* FIXME: This should also trigger if the redecl_sym's module is a named
+       module. */
+#if 0
+    if (!is_header_unit(mep->module_info)) {
+      pos_error(ec_module_entity_redeclaration, pos);
+    }  /* if */
+#endif /* 0 */
+  }  /* if */
+  return result;
+}  /* check_and_set_concept_redeclaration */
+
+
 static a_boolean has_default_arguments(char *entity_ptr, an_il_entry_kind kind)
 /*
 Given an entity pointer and its corresponding tag (kind), return TRUE if the
@@ -9935,8 +10070,8 @@ strongly preferred over calling this function directly.
 
           a_module_token_cache cache;
           an_ifc_cache_info    cache_info;
-          if (check_and_set_redeclaration(&loc, mep, &error_position,
-                                          iek_template, &il_entity, &kind)) {
+          if (check_and_set_concept_redeclaration(&loc, mep, &error_position,
+                                                  &il_entity, &kind)) {
             goto done;
           }  /* if */
           cache_direct_decl(&cache, idc, cache_info);
