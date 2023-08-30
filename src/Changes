@@ -1,5 +1,13 @@
 Version 6.6
 
+8/29/23  [EDGcpfe/25906]
+GNU compatibility: decltype(auto) and type qualifiers
+
+The GNU compatibility changes for EDGcpfe/17385 (which permit type qualifiers
+to appear alongside decltype(auto)) are now limited to GNU C++ modes with
+gnu_version < 110000.  This corresponds to GCC 11.x dropping that behavior.
+
+
 8/29/23  [EDGcpfe/26615]
 C++-generating back end: template arguments involving member function calls
 

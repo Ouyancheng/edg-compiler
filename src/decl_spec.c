@@ -8154,7 +8154,9 @@ by *type_ptr.  This function is called from decl_specifiers only.
         }  /* if */
         qualifiers = TQ_NONE;
       } else if (state->decltype_auto_specifier_seen &&
-                 !(gpp_mode && !clang_mode)) {
+                 !gpp_version_is(<110000)) {
+        /* Something like "volatile decltype(auto) x = y;" is invalid, but
+           earlier versions of GCC did permit it. */
         pos_error(ec_decltype_auto_cannot_be_qualified, &state->auto_pos);
         qualifiers = TQ_NONE;
       }  /* if */
