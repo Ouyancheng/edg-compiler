@@ -8306,7 +8306,7 @@ Set tblock->result and tblock->terminate to TRUE if expr is an
 enk_param_ref node.  Called via traverse_expr from expr_has_enk_param_ref.
 */
 {
-  if (expr->kind == enk_param_ref) {
+  if (expr->kind == (an_expr_node_kind)enk_param_ref) {
     tblock->result = TRUE;
     tblock->terminate = TRUE;
   }  /* if */
