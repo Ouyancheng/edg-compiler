@@ -6,9 +6,10 @@ C++-generating back end: template arguments involving member function calls
 In some cases when a template instance is first named in a class definition
 and one of the template arguments involves a call to a member function of
 that class, the C++-generating back end put out a subsequent reference to
-that template instance in which the member function call was written using
-"this->", even though the reference appears outside the class definition.
-This is now fixed.  For example, with --c++11:
+that template instance using a template argument in which the member
+function call was written using "this->", even though the reference appears
+outside the class definition.  This is now fixed.  For example, with
+--c++11:
 
   template <typename> struct B {
     int f() { return 0; }
