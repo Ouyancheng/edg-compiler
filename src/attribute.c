@@ -6487,7 +6487,7 @@ a_type_ptr get_type_with_mode(a_type_ptr        type,
 /*
 Return a type, similar to the type provided, but with the indicated machine
 mode.  The source position at which any errors should be emitted is given by
-pos; is pos is NULL, no error is emitted.
+pos; if pos is NULL, no error is emitted.
 */
 {
   an_integer_kind  ikind;

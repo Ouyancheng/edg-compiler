@@ -14408,7 +14408,7 @@ ignored.
     /* GCC treats bit fields that are the exact width of an integer type as
        having a corresponding integer type.  For example, with:
          struct S { unsigned u:8; } s;
-       the expression u.s has type unsigned char. */
+       the expression s.u has type unsigned char. */
     a_type_mode_kind  mode;
     switch (field->bit_size) {
       case 8:   mode = tmk_QI;   break;
