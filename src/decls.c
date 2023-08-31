@@ -19491,6 +19491,7 @@ if one is present.
     if (state->is_struct_binding_decl) {
       /* Record that this is a structured binding container variable. */
       var_ptr->is_struct_binding_container = TRUE;
+      var_ptr->variant.bindings = NULL;
       /* Declare (but do not yet define) the structured binding variables. */
       declare_struct_bindings(state);
     }  /* if */
