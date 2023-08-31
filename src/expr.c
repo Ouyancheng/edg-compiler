@@ -50616,16 +50616,29 @@ constants; assumes copy-initialization ("="-form).
          an unknown-bound array, the type is updated here to the proper
          size array and then discarded.  The caller does the adjustment
          of the variable type later. */
-      a_constant_ptr string_con;
+      a_constant_ptr  string_con;
+      a_boolean       string_excess = FALSE, *p_string_excess = NULL;
       check_assertion(is_constant_operand(&result));
       string_con = &result.variant.constant;
-      check_assertion(string_con->kind == (a_constant_repr_kind)ck_string);
+      check_assertion(string_con->kind == ck_string);
+      if (gcc_version_is(any_version) || clangc_version_is(any_version)) {
+        p_string_excess = &string_excess;
+      }  /* if */
       if (!is_string_type(required_type) ||
-          !check_string_constant_initializer(&required_type, string_con)) {
+          !check_string_constant_initializer_full(&required_type, string_con,
+                                                  p_string_excess)) {
         expr_pos_ty2_error(ec_bad_initializer_type, &result.position,
                            result.type, required_type);
         set_error_constant(constant);
       } else {
+        if (string_excess) {
+          /* Note that for excess string elements, the constant will have been
+             trimmed. */
+          expr_pos_ty2_diagnostic(es_warning, ec_bad_initializer_type,
+                                  &result.position, result.type,
+                                  required_type);
+          result.type = string_con->type;
+        }  /* if */
         copy_constant(string_con, constant);
       }  /* if */
     } else {
