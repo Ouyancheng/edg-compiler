@@ -14848,7 +14848,10 @@ the value representation of the integer value.
                                            *(a_constexpr_address*)opnd1_value;
               } else if (type_is(tp, tk_ptr_to_member)) {
                 if (!expr->variant.operation.is_reinterpret_cast &&
-                    !expr->variant.operation.is_reinterpret_like_cast) {
+                    (!expr->variant.operation.is_reinterpret_like_cast ||
+                     ((gpp_version_is(<140000) &&
+                       ips->allow_reinterpret_cast) ||
+                      ms_version_is(any_version)))) {
                   *(a_constexpr_ptr_to_mem*)result_storage =
                                         *(a_constexpr_ptr_to_mem*)opnd1_value;
                 } else {
