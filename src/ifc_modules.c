@@ -1827,9 +1827,11 @@ occurred.
   }  /* if */
 }  /* find_trait */
 
+
 using an_ifc_attr_index_array = Small_dyn_array<an_ifc_attr_index, 2>;
                         /* The type of an array of IFC attribute index
                            values. */
+
 
 static inline an_ifc_attr_index_array
 attr_indexes_of(an_ifc_decl_index decl_idx)
