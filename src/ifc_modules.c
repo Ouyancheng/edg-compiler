@@ -1730,11 +1730,72 @@ using an_ifc_decl_lookup_table = Ptr_map<an_ifc_decl_index, a_symbol_ptr>;
                         /* The type of a table that maps IFC declaration
                            indices to corresponding front end symbols. */
 
-
 static an_ifc_decl_lookup_table
                 *ifc_decl_lookup_table;
                         /* A hash table to map IFC declaration indices to
                            corresponding front end symbols. */
+
+template<typename an_ifc_Node_type>
+using Trait_array = Small_dyn_array<Opt<an_ifc_Node_type>, 2>;
+                        /* The type of an array of IFC trait nodes retrieved
+                           from the trait table. */
+
+
+template<typename an_ifc_Node_type>
+static void find_traits(Trait_array<an_ifc_Node_type> *result,
+                        an_ifc_decl_index             decl)
+/*
+Given the declaration index (decl) to use as a trait table key (for the trait
+table associated with the given trait type), find and return the associated
+traits as optional values in an array.  If the returned array is empty the
+trait doesn't exist.  If the returned array contains an empty trait, a trait
+existed but was invalid.
+*/
+{
+  /* If this check fails, the validator needs additional validation to prevent
+     a required IFC field from being 0 (i.e., "NULL"), or there's a logic
+     bug. */
+  check_assertion(!is_null_index(decl));
+  an_ifc_partition_kind
+                  trait_part_kind = get_ifc_partition_kind<an_ifc_Node_type>();
+  an_ifc_module
+                  *mod = module_of(decl);
+  an_ifc_module_file
+                  *file = &mod->file;
+  ptrdiff_t       num_traits = mod->get_num_entries(trait_part_kind);
+  /* Provide a value function for retrieving the trait at the given trait
+     partition index. */
+  auto            value_lambda = [file, trait_part_kind](ptrdiff_t idx) {
+    an_ifc_partition_kind_index part_idx{file, trait_part_kind,
+                                         (an_ifc_index_type)idx};
+    an_ifc_Node_type            trait;
+
+    /* As the binary search used by this value is only doing comparisons (not
+       attempting to operate on the returned DeclIndex) and the result will
+       be fully validated anyways, to improve performance construct the node
+       unchecked. */
+    construct_node_unchecked(&trait, part_idx);
+    return get_ifc_encoded_decl(trait);
+  };
+  an_ifc_encoded_decl_index
+                  trait_key = to_encoded(&mod->file, decl);
+  /* Get the partition index (if any) for decl. */
+  ptrdiff_t       partition_idx = bin_search(num_traits, trait_key,
+                                             value_lambda);
+
+  if (partition_idx != -1) {
+    /* One or more traits was found for decl.  Load all matching traits and add
+       them to the array. */
+    do {
+      an_ifc_partition_kind_index part_idx{file, trait_part_kind,
+                                           (an_ifc_index_type)partition_idx};
+
+      result->push_back(Opt<an_ifc_Node_type>());
+      construct_node(&result->back_elem(), part_idx);
+    } while (++partition_idx < num_traits &&
+             value_lambda(partition_idx) == trait_key);
+  }  /* if */
+}  /* find_traits */
 
 
 template<typename an_ifc_Node_type>
@@ -1748,66 +1809,49 @@ wasn't found (because it doesn't exist), or a diagnosed validation error
 occurred.
 */
 {
-  /* If this check fails, the validator needs additional validation to prevent
-     a required IFC field from being 0 (i.e., "NULL"), or there's a logic
-     bug. */
-  check_assertion(!is_null_index(decl));
-  an_ifc_partition_kind trait_part_kind =
-                                    get_ifc_partition_kind<an_ifc_Node_type>();
-  an_ifc_module         *mod = module_of(decl);
-  an_ifc_module_file    *file = &mod->file;
-  size_t                num_traits = mod->get_num_entries(trait_part_kind);
-  /* Provide a value function for retrieving the trait at the given trait
-     partition index. */
-  auto                  value_lambda = [file, trait_part_kind](ptrdiff_t idx) {
-    an_ifc_partition_kind_index part_idx{file, trait_part_kind,
-                                         (an_ifc_index_type)idx};
-    an_ifc_Node_type            trait;
+  Trait_array<an_ifc_Node_type> traits;
+  find_traits(&traits, decl);
 
-    /* As the binary search used by this value is only doing comparisons (not
-       attempting to operate on the returned DeclIndex) and the result will
-       be fully validated anyways, to improve performance construct the node
-       unchecked. */
-    construct_node_unchecked(&trait, part_idx);
-    return get_ifc_encoded_decl(trait);
-  };
-  /* Get the partition index (if any) for decl. */
-  ptrdiff_t             partition_idx =
-            bin_search(num_traits, to_encoded(&mod->file, decl), value_lambda);
+  if (traits.length() > 1) {
+    an_ifc_partition_kind
+                  part_kind = get_ifc_partition_kind<an_ifc_Node_type>();
+    a_const_char  *part_name = get_partition_name_from_kind(part_kind);
+    a_string      err_msg("found ", traits.length(), " traits in the ",
+                          part_name, " partition for ", index_to_str(decl),
+                          " when at most one trait was expected");
 
-  if (partition_idx != -1) {
-    an_ifc_partition_kind_index part_idx{file, trait_part_kind,
-                                         (an_ifc_index_type)partition_idx};
-
-    /* A trait was found for decl.  Load the trait (again) to retrieve the
-       trait.
-
-       Note that the implementation of bin_search at the time of writing does
-       not guarantee that the last read value is the one whose index is
-       returned.  Thus, we cannot (as an optimization) share a variable with
-       the value_lambda to prevent double reading (though this is unlikely to
-       ever represent a significant cost in terms of CPU time). */
-    construct_node(result, part_idx);
+    ifc_unexpected(module_of(decl), err_msg);
+  }  /* if */
+  if (traits.length() >= 1) {
+    *result = traits[0];
   }  /* if */
 }  /* find_trait */
 
+using an_ifc_attr_index_array = Small_dyn_array<an_ifc_attr_index, 2>;
+                        /* The type of an array of IFC attribute index
+                           values. */
 
-static inline an_ifc_attr_index attr_index_of(an_ifc_decl_index decl_idx)
+static inline an_ifc_attr_index_array
+attr_indexes_of(an_ifc_decl_index decl_idx)
 /*
 Search the ".msvc.trait.vendor-traits" partition for any attribute associated
 with a given ifc_DeclIndex (decl_idx).  If a matching attribute is found return
-its ifc_AttrIndex.
+the corresponding IFC AttrIndexes.
 */
 {
-  an_ifc_attr_index                 result = {};
-  Opt<an_ifc_trait_msvc_decl_attrs> opt_itmda;
+  an_ifc_attr_index_array                   result;
+  Trait_array<an_ifc_trait_msvc_decl_attrs> attr_traits;
 
-  find_trait(&opt_itmda, decl_idx);
-  if (opt_itmda.has_value()) {
-    result = get_ifc_trait(*opt_itmda);
+  find_traits(&attr_traits, decl_idx);
+  for (Opt<an_ifc_trait_msvc_decl_attrs> opt_trait : attr_traits) {
+    if (opt_trait.has_value()) {
+      an_ifc_trait_msvc_decl_attrs trait = *opt_trait;
+
+      result.push_back(get_ifc_trait(trait));
+    }  /* if */
   }  /* if */
   return result;
-}  /* attr_index_of */
+}  /* attr_indexes_of */
 
 
 static Opt<a_scope_kind> get_scope_kind(const an_ifc_decl_scope &scope_decl)
@@ -21423,10 +21467,12 @@ Add the tokens corresponding to the attributes of the given declaration at
 decl_idx to the cache.
 */
 {
-  an_ifc_attr_index attr_idx = attr_index_of(decl_idx);
+  an_ifc_attr_index_array attr_idxs = attr_indexes_of(decl_idx);
 
-  if (!is_null_index(attr_idx)) {
-    cache_attr(cache, attr_idx, /*cache_brackets=*/TRUE);
+  for (an_ifc_attr_index attr_idx : attr_idxs) {
+    if (!is_null_index(attr_idx)) {
+      cache_attr(cache, attr_idx, /*cache_brackets=*/TRUE);
+    }  /* if */
   }  /* if */
 }  /* an_ifc_module::cache_attrs */
 
