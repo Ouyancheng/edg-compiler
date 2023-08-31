@@ -2435,8 +2435,8 @@ Sort the elements of the given sequence.
   sort(p_seq->begin(), p_seq->end(), cmp);
 }  /* sort */
 
-
 #if DEBUG
+
 template<typename T>
 void db_f_print_t(FILE *stream, ARG_UNUSED const T &value)
 /*
@@ -2445,16 +2445,17 @@ Provide a generic printing interface for generic function diagnostics.
 {
   fprintf(stream, "unspecified");
 }  /* db_f_print_t */
+
 #endif /* DEBUG */
-
-
 #if EXPENSIVE_CHECKING
+
 template<typename a_Value_Fn>
 inline void validate_elements_in_order(ptrdiff_t  num_elements,
                                        a_Value_Fn value_fn)
 /*
 Validate that the input container of num_elements elements is in order for a
-binary search.
+binary search.  This is implemented in terms of operator< and operator== to
+minimize the number of operators that need implemented.
 */
 {
   a_boolean any_out_of_order = FALSE;
@@ -2462,7 +2463,7 @@ binary search.
 
   for (ptrdiff_t i = 1; i < num_elements; ++i) {
     auto &&curr_value = value_fn(i);
-    if (!(last_value < curr_value)) {
+    if (!(last_value < curr_value || last_value == curr_value)) {
       fprintf(stderr, "Binary search element %td (", i);
 #if DEBUG
       db_f_print_t(stderr, curr_value);
@@ -2478,8 +2479,8 @@ binary search.
      order errors can be reported first. */
   check_assertion(!any_out_of_order);
 }  /* validate_elements_in_order */
-#endif /* EXPENSIVE_CHECKING */
 
+#endif /* EXPENSIVE_CHECKING */
 
 template<typename T, typename a_Value_Fn>
 inline ptrdiff_t lower_bound(ptrdiff_t  num_elements,
