@@ -18881,7 +18881,7 @@ error cases.
       } else if (rout->is_deleted && rout->has_deducible_return_type) {
         /* Avoid having the "auto" type (which looks like a template parameter)
            leak into the expression IL. */
-        expect_error();
+        check_assertion_or_expect_error(expr_stack->suppress_diagnostics);
         return_type = error_type();
       }  /* if */
     }  /* if */
