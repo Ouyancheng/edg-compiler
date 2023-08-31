@@ -680,9 +680,14 @@ if it turns out that no IL pragma entry is created).
         if (ppp->il_pragma_entry != NULL) {
           /* This pragma was already processed.  Associate the source sequence
              entry with it. */
+          a_source_sequence_entry_ptr  prev_ssep = 
+                                  ppp->il_pragma_entry->source_sequence_entry;
           update_source_sequence_list((char*)ppp->il_pragma_entry,
                                       (an_il_entry_kind)iek_pragma,
                                       ppp->source_sequence_entry);
+          if (prev_ssep != NULL) {
+            remove_src_seq_entry(prev_ssep);
+          }  /* if */
           ppp->source_sequence_entry = NULL;
         }  /* if */
       }  /* if */
