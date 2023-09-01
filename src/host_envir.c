@@ -3612,11 +3612,13 @@ to be used if a diagnostic is issued.  Returns the mapped address (or issues
 a catastrophic error).
 */
 {
-  a_void_ptr	result_addr;
+  a_void_ptr    result_addr;
+  LARGE_INTEGER large_file_offset = offset;
 
   result_addr = MapViewOfFileEx(map_object,
                                 read_only ? FILE_MAP_READ : FILE_MAP_COPY,
-                                (DWORD)0, (DWORD)offset, size, address);
+                                large_file_offset.HighPart,
+                                large_file_offset.LowPart, size, address);
 #if DEBUG
   if (db_flag_is_set("mmap") || debug_level >= 4) {
     fprintf(f_debug,

@@ -1,5 +1,12 @@
 Version 6.6
 
+9/1/23   [EDGcpfe/26630]
+Corrupted PCH files on Windows when file is greater than 4GB
+
+PCH files on Windows could be corrupted when their size exceeds 4GB.  Now
+fixed.
+
+
 8/31/23  [EDGcpfe/26610]
 GNU and Clang C compatibility: Overlong string initializers
 
