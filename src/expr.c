@@ -998,8 +998,12 @@ swallowed); otherwise, it's "="-form or "{...}" form.
                                         &dps->type,
                                         &deduced_auto_type,
                                         &still_dependent)) {
-      if (still_dependent) {
-        /* Deduction was not done because the types are still dependent. */
+      if (still_dependent ||
+          ((gpp_version_is(any_version) || ms_version_is(any_version)) &&
+           scope_stack_top().in_prototype_instantiation)) {
+        /* Deduction was not done because the types are still dependent.
+           GCC and Microsoft appear to not diagnose failed deductions in
+           template definitions (until such templates are instantiated). */
         dps->type = undeduced_type;
         dps->deduced_auto_type = unknown_type();
       } else {

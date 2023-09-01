@@ -1,5 +1,23 @@
 Version 6.6
 
+9/1/23   [EDGcpfe/26611]
+GNU and Microsoft C++ compatibility: auto-deduction in templates
+
+Consider in C++17 mode:
+
+  #include <initializer_list>
+  template<typename> void g() {
+    auto [b] = {};
+  }
+
+This is ordinarily an error because deduction of "auto" from "{}" is invalid.
+However, GCC and MSVC accept this because they do not perform full deduction
+in templates.  The front end accepted this in the corresponding modes if
+deferral of prototype instantiations is enabled, but not otherwise.  Now, such
+cases are accepted in GNU and Microsoft C++17 modes even when prototype
+instantiations are not deferred.
+
+
 9/1/23   [EDGcpfe/26630]
 Corrupted PCH files on Windows when file is greater than 4GB
 
