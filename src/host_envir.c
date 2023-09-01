@@ -3613,8 +3613,9 @@ a catastrophic error).
 */
 {
   a_void_ptr    result_addr;
-  LARGE_INTEGER large_file_offset = offset;
+  LARGE_INTEGER large_file_offset;
 
+  large_file_offset.QuadPart = offset;
   result_addr = MapViewOfFileEx(map_object,
                                 read_only ? FILE_MAP_READ : FILE_MAP_COPY,
                                 large_file_offset.HighPart,
