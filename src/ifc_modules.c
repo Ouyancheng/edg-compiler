@@ -16901,7 +16901,7 @@ otherwise, return FALSE.
     if (directive != sort) {
       goto not_found;
     }  /* if */
-  }  /* if */
+  }
   goto done;
 not_found:
   result = FALSE;
