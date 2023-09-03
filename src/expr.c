@@ -1000,7 +1000,8 @@ swallowed); otherwise, it's "="-form or "{...}" form.
                                         &still_dependent)) {
       if (still_dependent ||
           ((gpp_version_is(any_version) || ms_version_is(any_version)) &&
-           scope_stack_top().in_prototype_instantiation)) {
+           scope_stack_top().in_prototype_instantiation &&
+           innermost_function_scope != NULL)) {
         /* Deduction was not done because the types are still dependent.
            GCC and Microsoft appear to not diagnose failed deductions in
            template definitions (until such templates are instantiated). */
