@@ -39568,9 +39568,9 @@ Record the representation or the requires-expression in *result.
     a_source_position   lbrace_pos;
     a_boolean           saved_possible_rescan_context =
                                           expr_stack->possible_rescan_context;
-    /* Requires-expression are assumed to require substitution in all contexts.
-       (Technically, in non-parameterized contexts that is not needed, but
-       it doesn't hurt.) */
+    /* Requires-expressions are assumed to require substitution in all
+       contexts.  (Technically, in non-parameterized contexts that is not
+       needed, but it doesn't hurt.) */
     expr_stack->possible_rescan_context = TRUE;
     add_stop_token(tok_rbrace);
     init_decl_parse_state(&dps);
