@@ -1,5 +1,20 @@
 Version 6.6
 
+9/2/23   [EDGcpfe/26631]
+Abort in substitution of requires-expression in certain contexts
+
+Consider, in C++20 mode:
+
+  template<typename> struct X;
+  template<> struct X<int> {
+    template<typename U> explicit(requires(U p) { p; }) X(U);
+  };
+  X<int> x{ 0 };  // Previously aborted.  Now okay.
+
+This example previously aborted with an internal error in get_expr_rescan_info
+(exprutil.c, "missing default rescan info").  That is now fixed.
+
+
 9/1/23   [EDGcpfe/26611]
 GNU and Microsoft C++ compatibility: auto-deduction in templates
 

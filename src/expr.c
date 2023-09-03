@@ -39566,6 +39566,12 @@ Record the representation or the requires-expression in *result.
        it. */
     a_decl_parse_state  dps;
     a_source_position   lbrace_pos;
+    a_boolean           saved_possible_rescan_context =
+                                          expr_stack->possible_rescan_context;
+    /* Requires-expression are assumed to require substitution in all contexts.
+       (Technically, in non-parameterized contexts that is not needed, but
+       it doesn't hurt.) */
+    expr_stack->possible_rescan_context = TRUE;
     add_stop_token(tok_rbrace);
     init_decl_parse_state(&dps);
     dps.for_requires_expr_params = TRUE;
@@ -39642,7 +39648,7 @@ done_with_requirements:
       (void)required_token(tok_rbrace, ec_exp_rbrace, ec_matching_lbrace,
                            &lbrace_pos);
       if (!is_template_dependent_context() &&
-          !expr_stack->possible_rescan_context) {
+          !scope_stack_top().in_template_deduction_context) {
         /* A non-dependent requires-expression is usually a "true" constant,
            but it can be "false" if a noexcept constraint failed. */
         a_boolean  val;
@@ -39656,7 +39662,7 @@ done_with_requirements:
       } else {
         make_expression_operand(node, result);
       }  /* if */
-      if (scope_stack_top().in_prototype_instantiation) {
+      if (is_template_dependent_context()) {
         /* Associate with the token sequence number of the "requires" token
            the sequence number of the right brace closing the requires
            expression and with the generic requires-expression node.  The
@@ -39681,12 +39687,12 @@ done_with_requirements:
     }  /* if */
     pop_scope();
     remove_stop_token(tok_rbrace);
+    expr_stack->possible_rescan_context = saved_possible_rescan_context;
   } else {
     /* This is a previously parsed requires-expression that we are encountering
        during an instantiation.  Rather than instantiating it (i.e., parsing it
        with template parameters mapped to real arguments), we substitute it. */
-    check_assertion(rrd.next_tsn != a_token_sequence_number() &&
-                    is_nonspecialized_instantiation_context());
+    check_assertion(rrd.next_tsn != a_token_sequence_number());
     do {
       (void)get_token();
     } while (curr_token_sequence_number <= rrd.next_tsn &&
