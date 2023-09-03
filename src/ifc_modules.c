@@ -1784,8 +1784,8 @@ existed but was invalid.
                                              value_lambda);
 
   if (partition_idx != -1) {
-    /* One or more traits was found for decl.  Load all matching traits and add
-       them to the array. */
+    /* One or more traits were found for decl.  Load all matching traits
+       and add them to the array. */
     do {
       an_ifc_partition_kind_index part_idx{file, trait_part_kind,
                                            (an_ifc_index_type)partition_idx};
