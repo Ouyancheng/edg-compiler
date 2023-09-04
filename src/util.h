@@ -3230,11 +3230,9 @@ template<typename a_Ptr_key, typename a_Value>
 struct Ptr_map_entry {
   typedef a_Ptr_key a_key;
   typedef a_Value a_value;
-  a_key		ptr;
-			/* The pointer value mapped by this entry.  (A "key" in
-			   the hash table.) */
-  a_value	value;
-			/* A value associated with ptr. */
+  a_key         ptr;    /* The pointer value mapped by this entry.  (A "key" in
+                           the hash table.) */
+  a_value       value;  /* A value associated with ptr. */
   inline a_boolean key_set() const
     { return ptr != a_key(); }
 };  /* Ptr_map_entry */
@@ -3288,14 +3286,14 @@ struct Ptr_map: private Allocator<Ptr_map_entry<a_Ptr_key, a_Value>> {
     { return &table[hash_mask+1]; }
 private:
   typedef typename an_allocator::an_allocation an_allocation;
-  an_entry	*table;
-			/* Pointer to the hash table. */
-  an_index	hash_mask;
-			/* The mask to apply to the hash value before indexing
-			   in the table.  This mask is increased as the table
-			   grows. */
-  an_index	n_elements;
-			/* The number of elements stored in the table. */
+  an_entry      *table;
+                        /* Pointer to the hash table. */
+  an_index      hash_mask;
+                        /* The mask to apply to the hash value before indexing
+                           in the table.  This mask is increased as the table
+                           grows. */
+  an_index      n_elements;
+                        /* The number of elements stored in the table. */
   void map_colliding_key(a_key          new_key,
                          const a_value  &new_value,
                          an_index       idx);
@@ -3370,17 +3368,17 @@ if not found.  hash is the precomputed hash value for the key.
       break;
     }  /* if */
     idx = (idx+1) & mask;
-  }  /* for */       
+  }  /* for */
   return result;
 }  /* Ptr_map::get_with_hash */
 
 
 #ifdef TRACE_PTR_MAP
-static void	*traced_key_ptr = NULL;
-			/* Pointer that is checked for mapping activity.
-			   Intended to be set from within a debugger and
-			   watched by setting a breakpoint on function
-			   ptr_map_intercept. */
+static void     *traced_key_ptr = NULL;
+                        /* Pointer that is checked for mapping activity.
+                           Intended to be set from within a debugger and
+                           watched by setting a breakpoint on function
+                           ptr_map_intercept. */
 
 inline void ptr_map_intercept(a_const_char  *msg)
 /*
@@ -3423,7 +3421,7 @@ value of that key.
   this->n_elements += 1;
   if (this->n_elements*2 > mask) {
     this->expand_table();
-  }  /* if */ 
+  }  /* if */
 }  /* Ptr_map::map_with_hash */
 
 
@@ -3452,7 +3450,7 @@ the precomputed hash of that key.
       idx = (idx+1) & mask;
       ptr = tbl[idx].ptr;
     }  /* if */
-  }  /* for */                                                               
+  }  /* for */
 }  /* Ptr_map::replace_with_hash */
 
 
@@ -3505,7 +3503,7 @@ precomputed hash of that key.
         }  /* if */
       }  /* if */
     }  /* for */
-  }  /* if */ 
+  }  /* if */
   return old_value;
 }  /* Ptr_map::map_or_replace_with_hash */
 
@@ -3535,7 +3533,7 @@ Remove the given key from the table (it must exist).
   if (tbl[(idx+1) & mask].ptr != a_key()) {
     this->check_deleted_slot(idx);
   }  /* if */
-  this->n_elements -= 1;                                                    
+  this->n_elements -= 1;
 }  /* Ptr_map::unmap */
 
 
@@ -3629,7 +3627,7 @@ we know that the subsequent slot is not empty.
   an_index  mask = this->hash_mask;
   an_index  idx, ridx;
   a_key     rptr;
-  
+
   idx = (idx0+1) & mask;
   rptr = tbl[idx].ptr;
   for (;;) {
@@ -3688,6 +3686,166 @@ Output some information about the map's key contents to f_debug.
 }  /* Ptr_map::db_ptrs */
 
 #endif /* DEBUG */
+
+/*
+A template type used to map a given Ptr_map compatible key type to an array of
+associated value types (each with the given default initial capacity).
+*/
+template<typename a_Ptr_key, typename a_Value, unsigned a_Capacity,
+         template<typename> class Allocator = FE_allocator>
+struct Ptr_multi_map {
+  typedef a_Ptr_key a_key;
+  typedef a_Value a_value;
+  typedef Small_dyn_array<a_Value, a_Capacity> a_multi_value;
+  typedef Allocator<a_multi_value> a_value_allocator;
+  typedef Allocator<Ptr_map_entry<a_Ptr_key, a_multi_value*>> a_map_allocator;
+
+  inline Ptr_multi_map(unsigned int            mask_width,
+                       const a_map_allocator   &ma = a_map_allocator(),
+                       const a_value_allocator &va = a_value_allocator());
+  inline ~Ptr_multi_map();
+
+  inline auto get(a_Ptr_key key) -> a_multi_value*;
+  inline auto get_or_alloc(a_Ptr_key key) -> a_multi_value*;
+  inline auto take(a_Ptr_key key) -> a_multi_value;
+  inline void remove(a_Ptr_key key);
+private:
+  inline void dealloc(a_multi_value *values);
+  Ptr_map<a_Ptr_key, a_multi_value*, Allocator>
+                backing_map;
+                        /* A table that maps pointer keys to multi-value
+                           containers. */
+  a_value_allocator
+                multi_value_allocator;
+                        /* The allocator used to allocate multi-value
+                           containers. */
+};  /* Ptr_multi_map */
+
+
+template<typename a_Ptr_key, typename a_Value, unsigned a_Capacity,
+         template<typename> class Allocator>
+Ptr_multi_map<a_Ptr_key, a_Value, a_Capacity, Allocator>::Ptr_multi_map(
+                                            unsigned int            mask_width,
+                                            const a_map_allocator   &ma,
+                                            const a_value_allocator &va)
+/*
+Construct a new Ptr_multi_map using the given mask_width, map allocator (to
+allocate the underlying Ptr_map) and value allocator (to allocate the
+associated multi-value containers).
+*/
+  : backing_map(mask_width, ma), multi_value_allocator(va)
+{
+}  /* Ptr_multi_map::Ptr_multi_map */
+
+
+template<typename a_Ptr_key, typename a_Value, unsigned a_Capacity,
+         template<typename> class Allocator>
+Ptr_multi_map<a_Ptr_key, a_Value, a_Capacity, Allocator>::~Ptr_multi_map()
+/*
+Destruct the Ptr_multi_map tearing down any allocated multi-values.
+*/
+{
+  using an_entry = Ptr_map_entry<a_Ptr_key, a_multi_value*>;
+  /* Deallocate the underlying allocated multi-value objects. */
+  for (an_entry entry : this->backing_map) {
+    this->dealloc(entry.value);
+  }  /* for */
+}  /* Ptr_multi_map::~Ptr_multi_map */
+
+
+template<typename a_Ptr_key, typename a_Value, unsigned a_Capacity,
+         template<typename> class Allocator>
+auto
+Ptr_multi_map<a_Ptr_key, a_Value, a_Capacity, Allocator>::get(a_Ptr_key key)
+                                                          -> a_multi_value*
+/*
+Return a dynamic array of index values for the given index forming the key if
+it exists; otherwise, return NULL.
+*/
+{
+  return this->backing_map.get(key);
+}  /* Ptr_multi_map::get */
+
+
+template<typename a_Ptr_key, typename a_Value, unsigned a_Capacity,
+         template<typename> class Allocator>
+auto
+Ptr_multi_map<a_Ptr_key, a_Value, a_Capacity, Allocator>::get_or_alloc(
+                                                                 a_Ptr_key key)
+                                                          -> a_multi_value*
+/*
+Return a dynamic array of index values for the given index forming the key
+(creating the dynamic array if it does not already exist).
+*/
+{
+  a_multi_value *values = this->backing_map.get(key);
+
+  if (values == NULL) {
+    typename a_value_allocator::an_allocation
+                    values_alloc = multi_value_allocator.alloc(1);
+
+    /* It's expected that the allocation only contains one element.  This is
+       important as the count is discarded and deallocation assumes only one
+       element was allocated. */
+    check_assertion(values_alloc.n_allocated == 1);
+    values = values_alloc.start;
+    construct(values);
+    this->backing_map.map(key, values);
+  }  /* if */
+  return values;
+}  /* Ptr_multi_map::get_or_alloc */
+
+
+template<typename a_Ptr_key, typename a_Value, unsigned a_Capacity,
+         template<typename> class Allocator>
+auto
+Ptr_multi_map<a_Ptr_key, a_Value, a_Capacity, Allocator>::take(a_Ptr_key key)
+                                                          -> a_multi_value
+/*
+Return a copy of the dynamic array value of index values for the given index
+forming the key.  The value must exist in the map and will be unregistered
+after being copied.
+*/
+{
+  check_assertion(this->get(key) != NULL);
+  a_multi_value result = *this->backing_map.get(key);
+
+  this->remove(key);
+  return result;
+}  /* Ptr_multi_map::take */
+
+
+template<typename a_Ptr_key, typename a_Value, unsigned a_Capacity,
+         template<typename> class Allocator>
+void Ptr_multi_map<a_Ptr_key, a_Value, a_Capacity, Allocator>::remove(
+                                                                 a_Ptr_key key)
+/*
+Give the index forming the key, remove the associated list from the map, and
+deconstruct and deallocate the associated multi-value (if any).
+*/
+{
+  a_multi_value *values = this->backing_map.get(key);
+
+  if (values != NULL) {
+    this->dealloc(values);
+    this->backing_map.unmap(key);
+  }  /* if */
+}  /* Ptr_multi_map::remove */
+
+
+template<typename a_Ptr_key, typename a_Value, unsigned a_Capacity,
+         template<typename> class Allocator>
+void Ptr_multi_map<a_Ptr_key, a_Value, a_Capacity, Allocator>::dealloc(
+                                                         a_multi_value *values)
+/*
+Give the multi-value, deconstruct, and deallocate the multi-value list.
+*/
+{
+  destroy(values);
+
+  typename a_value_allocator::an_allocation values_alloc{values, 1};
+  this->multi_value_allocator.dealloc(values_alloc);
+}  /* Ptr_multi_map::dealloc */
 
 
 /*
