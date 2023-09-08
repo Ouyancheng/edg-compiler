@@ -12872,6 +12872,22 @@ done:
 }  /* is_instantiated_template_template_argument */
 
 
+static a_boolean is_type_pack_expansion(an_ifc_type_index type_idx)
+/*
+Given an IFC type index, return TRUE if the type index in the context of
+template argument resolution represents an expanded template type argument
+pack; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (type_idx.sort == ifc_ts_type_expansion) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_type_pack_expansion */
+
+
 static a_boolean is_empty_type_pack_argument(an_ifc_type_index type_idx)
 /*
 Given an IFC type index, return TRUE if the type index in the context of
@@ -13035,6 +13051,19 @@ represented by the expression.
           a_type_ptr     new_arg_type = type_symbol_type(new_arg_sym);
           a_template_arg *new_arg = alloc_template_arg(tak_type);
           new_arg->variant.type = new_arg_type;
+          if (!state->append_argument(new_arg, expr_idx)) {
+            goto invalid;
+          }  /* if */
+        } else if (is_type_pack_expansion(denotation)) {
+          a_type_ptr type = type_for_type_index(denotation);
+
+          if (is_error_type(type)) {
+            goto invalid;
+          }  /* if */
+
+          a_template_arg *new_arg = alloc_template_arg(tak_type);
+          new_arg->is_pack = TRUE;
+          new_arg->variant.type = type;
           if (!state->append_argument(new_arg, expr_idx)) {
             goto invalid;
           }  /* if */
