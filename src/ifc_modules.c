@@ -12543,72 +12543,36 @@ non-type template argument with an error constant.
   a_template_arg_ptr result = NULL;
 
   check_assertion(param->kind == tpk_nontype);
-  switch (expr_idx.sort) {
-    case ifc_es_expr_cast:
-    case ifc_es_expr_monad:
-    case ifc_es_expr_path:
-    case ifc_es_expr_template_id:
-      { a_module_token_cache cache;
 
-        cache_expr(&cache, expr_idx, /*cinfo=*/{});
-        if (!cache.is_valid()) {
-          goto invalid;
-        }  /* if */
-        /* Allocate the constant. */
-        result = alloc_template_arg(tak_nontype);
-        result->variant.constant = fs_constant((a_constant_repr_kind)ck_error);
+  a_module_token_cache cache;
+  cache_expr(&cache, expr_idx, /*cinfo=*/{});
+  if (!cache.is_valid()) {
+    goto invalid;
+  }  /* if */
+  {
+    /* Allocate the constant. */
+    result = alloc_template_arg(tak_nontype);
+    result->variant.constant = fs_constant((a_constant_repr_kind)ck_error);
 
-        /* Start a potential pack expansion. */
-        a_pack_expansion_stack_entry_ptr
-                        pesep;
-        (void)begin_potential_pack_expansion_context_full(
+    /* Start a potential pack expansion. */
+    a_pack_expansion_stack_entry_ptr pesep;
+    (void)begin_potential_pack_expansion_context_full(
                                                   &pesep,
                                                   /*p_pedp=*/NULL,
                                                   /*is_lookahead=*/FALSE,
                                                   /*allow_empty_list=*/FALSE,
                                                   /*ignore_suppression=*/TRUE);
 
-        /* Perform the expression scan to form the constant from tokens. */
-        a_type_ptr             type = param->variant.nontype.constant->type;
-        a_module_entity_rescan rescan(&cache);
-        scan_template_argument_constant_expression(type,
-                                                   result->variant.constant);
-        /* End the potential pack expansion; this ensures any packs that are
-           reference are not diagnosed. */
-        result->pack_expansion_descr =
+    /* Perform the expression scan to form the constant from tokens. */
+    a_type_ptr             type = param->variant.nontype.constant->type;
+    a_module_entity_rescan rescan(&cache);
+    scan_template_argument_constant_expression(type, result->variant.constant);
+    /* End the potential pack expansion; this ensures any packs that are
+       reference are not diagnosed. */
+    result->pack_expansion_descr =
                  end_potential_pack_expansion_context(pesep,
                                                       /*is_declarator=*/FALSE);
-      }
-      break;
-    case ifc_es_expr_read:
-      { Opt<an_ifc_expr_read> opt_read_expr;
-
-        construct_node(&opt_read_expr, expr_idx);
-        if (!opt_read_expr.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_expr_read  read_expr = *opt_read_expr;
-        an_ifc_expr_index address = get_ifc_address(read_expr);
-        result = create_nontype_template_arg_from_expr(param, address);
-        /* FIXME: Update the constant with the appropriate read sort
-           transformation applied (i.e., perform things like LvalueToRvalue
-           conversion on the non-type constant).
-
-           Note: This code is largely shared (the only difference is the
-           function used for recursion) with constant_for_expr_index. */
-      }
-      break;
-    default:
-      { a_type_ptr    type = param->variant.nontype.constant->type;
-        an_ifc_module *mod = module_of(expr_idx);
-
-        result = alloc_template_arg(tak_nontype);
-        result->variant.constant =
-                                  mod->constant_for_expr_index(expr_idx, type);
-      }
-      break;
-  }  /* switch */
+  }
   goto done;
 invalid:
   if (result == NULL) {
