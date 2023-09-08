@@ -1281,8 +1281,11 @@ before setting it if there are unused bits.
         (void)memcpy((char *)float_value, (char *)&float16_temp,
                      sizeof(EDG_float16_t));
       }  /* if */
-    } else if (kind == fk_float || kind == fk_std_float32) {
-      /* Converting to float or std::float32_t. */
+    } else if (kind == fk_float || kind == fk_std_float32 ||
+               kind == fk_std_bfloat16) {
+      /* Converting to float or std::float32_t.  (Although std::bfloat16
+         is a 16-bit type, it is internally represented as a float, so it
+         is handled here also.) */
       float	float_temp;
       conv_host_fp_to_float(temp, err, &float_temp);
       if (!*err) {
@@ -1345,9 +1348,12 @@ Fetch the value from float_value (of kind kind) and return it.
 #else /* !USE_SOFTFLOAT */
     temp = float16_temp;
 #endif /* USE_SOFTFLOAT */
-  } else if (kind == fk_float || kind == fk_std_float32) {
+  } else if (kind == fk_float || kind == fk_std_float32 ||
+             kind == fk_std_bfloat16) {
     float	float_temp;
-    /* Convert from float or std::float32_t to a_host_fp_value. */
+    /* Convert from float or std::float32_t to a_host_fp_value.  (Although
+       std::bfloat16 is a 16-bit type, it is represented internally as a
+       float, so it is handled here also.) */
     /* Use memcpy to copy the value since float_value might not be correctly
        aligned. */
     (void)memcpy((char *)&float_temp, (char *)float_value, sizeof(float));
@@ -1460,7 +1466,7 @@ float and 11 bits for _Float16).
     part = (an_fp_value_part *)&value->bytes[0];
     if (!host_little_endian) {
       /* Use the last word. */
-      if (kind_is_binary16(kind)) {
+      if (kind_is_16bit(kind)) {
         size = 2;
       } else if (kind == fk_float) {
         size = targ_sizeof_float;
@@ -1494,7 +1500,7 @@ float and 11 bits for _Float16).
     } else
 #endif /* HOST_HAS_FLOAT16_TYPE || USE_SOFTFLOAT */
     /* Do not insert code here. */
-    if (kind_is_binary16(kind) ||
+    if (kind_is_16bit(kind) ||
         kind == fk_float || kind == fk_std_float32) {
       /* Don't disturb non-mantissa bits. */
       val = val | (mantissa & 0x7fffff);
@@ -1593,7 +1599,7 @@ Otherwise, return FALSE.
   } else
 #endif /* HOST_HAS_FLOAT16_TYPE || USE_SOFTFLOAT */
   /* Do not insert code here. */
-  if (kind_is_binary16(kind) ||
+  if (kind_is_16bit(kind) ||
       kind == fk_float || kind == fk_std_float32) {
     /* A single-precision floating-point value. */
     memcpy((char*)&fp_part, fp_bytes, sizeof(fp_part));
@@ -2747,7 +2753,8 @@ before setting it if there are unused bits.
         db_binary_float((unsigned char *)&float_value_temp);
       }  /* if */
 #endif /* DEBUG */
-    } else if (kind == fk_float || kind == fk_std_float32) {
+    } else if (kind == fk_float || kind == fk_std_float32 ||
+               kind == fk_std_bfloat16) {
       res = read_float((unsigned char *)&float_value_temp, str,
                        (int)strlen(str));
 #if DEBUG
@@ -2915,7 +2922,7 @@ be NULL if the corresponding return value is not needed.
        into temp. */
 #if USE_HOST_FP_CONVERSION_ROUTINES
 #if USE_FLOAT128_FOR_HOST_FP_VALUE && USE_QUADMATH_LIBRARY
-    if (kind_is_binary16(kind)) {
+    if (kind_is_16bit(kind)) {
       (void)quadmath_snprintf(str, sizeof(str), "%.8Qg", temp);
     } else if (kind == fk_float || kind == fk_std_float32) {
       (void)quadmath_snprintf(str, sizeof(str), "%.10Qg", temp);
@@ -2942,7 +2949,7 @@ be NULL if the corresponding return value is not needed.
 #if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || APPROXIMATE_QUADMATH
     /* Make sure we have a long double value (temp can be a __float128). */
     long double  fpval = (long double)temp;
-    if (kind_is_binary16(kind)) {
+    if (kind_is_16bit(kind)) {
       (void)sprintf(str, "%.8Lg", fpval);
     } else if (kind == fk_float || kind == fk_std_float32) {
       (void)sprintf(str, "%.10Lg", fpval);
@@ -2965,7 +2972,7 @@ be NULL if the corresponding return value is not needed.
     }  /* if */
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || APPROXIMATE_QUADMATH */
 #if USE_DOUBLE_FOR_HOST_FP_VALUE
-    if (kind_is_binary16(kind)) {
+    if (kind_is_16bit(kind)) {
       (void)sprintf(str, "%.8g", temp);
     } else if (kind == fk_float || kind == fk_std_float32) {
       (void)sprintf(str, "%.10g", temp);
@@ -2996,7 +3003,8 @@ be NULL if the corresponding return value is not needed.
         fprintf(f_debug, "  %s\n", str);
       }  /* if */
 #endif /* DEBUG */
-    } else if (kind == fk_float || kind == fk_std_float32) {
+    } else if (kind == fk_float || kind == fk_std_float32 ||
+               kind == fk_std_bfloat16) {
       res = write_float(str, sizeof(str), (unsigned char *)float_value);
 #if DEBUG
       if (db_flag_is_set("fp")) {
@@ -3114,7 +3122,8 @@ corresponding return value is not needed.
                    sizeof(EDG_float16_t));
       (void)sprintf(str, "%a", (double)float16_temp);
 #endif /* USE_SOFTFLOAT */
-    } else if (kind == fk_float || kind == fk_std_float32) {
+    } else if (kind == fk_float || kind == fk_std_float32 ||
+               kind == fk_std_bfloat16) {
       float  float_temp;
       (void)memcpy((char *)&float_temp, (char *)float_value, sizeof(float));
       (void)sprintf(str, "%a", float_temp);
@@ -3172,7 +3181,7 @@ for the representation of floating-point values in mangled names.
   int         data_size;
 
   /* Determine the size of the data in the floating-point value. */
-  if (kind_is_binary16(kind)) {
+  if (kind_is_16bit(kind)) {
     data_size = 2;
   } else if (kind == fk_float) {
     data_size = sizeof(float);
@@ -3909,7 +3918,7 @@ Returns TRUE if the sign bit of the floating-point value represented by
     kind = (a_float_kind)fk_double;
   }  /* if */
   fp_ptr = &fp_temp[0];
-  if (kind_is_binary16(kind) ||
+  if (kind_is_16bit(kind) ||
       kind == fk_float || kind == fk_std_float32) {
     memcpy((char*)&val, (char*)value, sizeof(val));
     is_negative = (val & 0x80000000) != 0;
