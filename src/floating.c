@@ -2691,6 +2691,12 @@ END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 #undef FPT_FLOAT16
 
+#define FPT_BFLOAT16
+END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
+#include "float_type.h"
+BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
+#undef FPT_BFLOAT16
+
 #define FPT_FLOAT
 END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 #include "float_type.h" /*lint !e451 included more than once. */
