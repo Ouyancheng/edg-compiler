@@ -834,11 +834,7 @@ of the resulting diagnostic.
                (actual_end[-2] == 'f' || actual_end[-2] == 'F')) {
       if ((actual_end[-3] == 'b' || actual_end[-3] == 'B') &&
           actual_end[-1] == '1' && *actual_end == '6') {
-        /* std::bfloat16 is not yet supported. */
-        *err_code = ec_std_bfloat16_not_supported;
-        *err_pos = actual_end - 3;
-        *severity = strict_ansi_mode ? strict_ansi_error_severity : es_warning;
-        kind = fk_std_float32;
+        kind = fk_std_bfloat16;
         actual_end -= 4;
       } else {
         switch (actual_end[-1]) {

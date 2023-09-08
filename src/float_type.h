@@ -12,11 +12,12 @@
 float_type.h -- Definitions related to a specific floating-point type.
 
 This header file, when included from a .c file, defines routines that are
-specific to one of six floating-point types: _Float16, float, double, long
-double, __float80, or __float128 depending which of FPT_FLOAT16, FPT_FLOAT,
-FPT_DOUBLE, FPT_LONG_DOUBLE, FPT_FLOAT80, or FPT_FLOAT128 are defined
-respectively.  To define routines for all six floating-point types, this
-file must be included six times, once for each type.
+specific to one of seven floating-point types: _Float16, bfloat16, float,
+double, long double, __float80, or __float128 depending which of
+FPT_FLOAT16, FPT_BFLOAT16, FPT_FLOAT, FPT_DOUBLE, FPT_LONG_DOUBLE,
+FPT_FLOAT80, or FPT_FLOAT128 are defined respectively.  To define routines
+for all seven floating-point types, this file must be included seven times,
+once for each type.
 
 Aside from those main configuration macros, the following configuration
 macros can be defined to modify the default behavior:
@@ -49,14 +50,15 @@ macros accordingly:
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
-#if defined(FPT_FLOAT16) || defined(FPT_FLOAT) || defined(FPT_DOUBLE) || \
-    defined(FPT_LONG_DOUBLE) || defined(FPT_FLOAT80) || defined(FPT_FLOAT128)
+#if defined(FPT_FLOAT16) || defined(FPT_BFLOAT16) || defined(FPT_FLOAT) || \
+    defined(FPT_DOUBLE) || defined(FPT_LONG_DOUBLE) || \
+    defined(FPT_FLOAT80) || defined(FPT_FLOAT128)
 
 #if defined(FPT_FLOAT16)
-#if defined(FPT_FLOAT) || defined(FPT_DOUBLE) || defined(FPT_LONG_DOUBLE) || \
-    defined(FPT_FLOAT80) || defined(FPT_FLOAT128)
+#if defined(FPT_BFLOAT16) || defined(FPT_FLOAT) || defined(FPT_DOUBLE) || \
+    defined(FPT_LONG_DOUBLE) || defined(FPT_FLOAT80) || defined(FPT_FLOAT128)
 #error Cannot specify more than a single FPT_* macro in float_type.h
-#else /* !(defined(FPT_FLOAT) || defined(FPT_DOUBLE) || ...) */
+#else /* !(defined(FPT_BFLOAT16) || ...) */
 #define FPT_TYPE EDG_float16_t
 #define FPT_NAME float16
 #if HOST_HAS_FLOAT16_TYPE
@@ -74,14 +76,32 @@ BEGIN_EDG_NAMESPACE
 #define FPT_HAS_HIDDEN FPT_FLOAT_HAS_HIDDEN
 #endif /* FPT_FLOAT_HAS_HIDDEN */
 #endif /* HOST_HAS_FLOAT16_TYPE */
-#endif /* defined(FPT_FLOAT) || defined(FPT_DOUBLE) || ... */
+#endif /* defined(FPT_BFLOAT16) || ... */
 #endif /* defined(FPT_FLOAT16) */
 
-#if defined(FPT_FLOAT)
-#if defined(FPT_FLOAT16) || defined(FPT_DOUBLE) || defined(FPT_LONG_DOUBLE) \
-    || defined(FPT_FLOAT80) || defined(FPT_FLOAT128)
+#if defined(FPT_BFLOAT16)
+#if defined(FPT_FLOAT16) || defined(FPT_FLOAT) || defined(FPT_DOUBLE) || \
+    defined(FPT_LONG_DOUBLE) || defined(FPT_FLOAT80) || defined(FPT_FLOAT128)
 #error Cannot specify more than a single FPT_* macro in float_type.h
-#else /* !(defined(FPT_FLOAT16) || defined(FPT_DOUBLE) || ...) */
+#else /* !(defined(FPT_FLOAT16) || ...) */
+#define FPT_TYPE EDG_bfloat16_t
+#define FPT_NAME bfloat16
+/* bfloat16 representation will be host "float". */
+#define FPT_VALUE_BITS FPT_FLOAT_VALUE_BITS
+#ifdef FPT_FLOAT_PRECISION
+#define FPT_PRECISION FPT_FLOAT_PRECISION
+#endif /* FPT_FLOAT_PRECISION */
+#ifdef FPT_FLOAT_HAS_HIDDEN
+#define FPT_HAS_HIDDEN FPT_FLOAT_HAS_HIDDEN
+#endif /* FPT_FLOAT_HAS_HIDDEN */
+#endif /* defined(FPT_FLOAT16) || ... */
+#endif /* defined(FPT_BFLOAT16) */
+
+#if defined(FPT_FLOAT)
+#if defined(FPT_FLOAT16) || defined(FPT_BFLOAT16) || defined(FPT_DOUBLE) || \
+    defined(FPT_LONG_DOUBLE) || defined(FPT_FLOAT80) || defined(FPT_FLOAT128)
+#error Cannot specify more than a single FPT_* macro in float_type.h
+#else /* !(defined(FPT_FLOAT16) || ...) */
 #define FPT_TYPE float
 #define FPT_NAME float
 #define FPT_VALUE_BITS FPT_FLOAT_VALUE_BITS
@@ -91,14 +111,14 @@ BEGIN_EDG_NAMESPACE
 #ifdef FPT_FLOAT_HAS_HIDDEN
 #define FPT_HAS_HIDDEN FPT_FLOAT_HAS_HIDDEN
 #endif /* FPT_FLOAT_HAS_HIDDEN */
-#endif /* defined(FPT_FLOAT16) || defined(FPT_DOUBLE) || ... */
+#endif /* defined(FPT_FLOAT16) || ... */
 #endif /* defined(FPT_FLOAT) */
 
 #if defined(FPT_DOUBLE)
-#if defined(FPT_FLOAT16) || defined(FPT_FLOAT) || defined(FPT_LONG_DOUBLE) || \
-    defined(FPT_FLOAT80) || defined(FPT_FLOAT128)
+#if defined(FPT_FLOAT16) || defined(FPT_BFLOAT16) || defined(FPT_FLOAT) || \
+    defined(FPT_LONG_DOUBLE) || defined(FPT_FLOAT80) || defined(FPT_FLOAT128)
 #error Cannot specify more than a single FPT_* macro in float_type.h
-#else /* !(defined(FPT_FLOAT16) || defined(FPT_float) || ...) */
+#else /* !(defined(FPT_FLOAT16) || ...) */
 #define FPT_TYPE double
 #define FPT_NAME double
 #define FPT_VALUE_BITS FPT_DOUBLE_VALUE_BITS
@@ -108,14 +128,14 @@ BEGIN_EDG_NAMESPACE
 #ifdef FPT_DOUBLE_HAS_HIDDEN
 #define FPT_HAS_HIDDEN FPT_DOUBLE_HAS_HIDDEN
 #endif /* FPT_DOUBLE_HAS_HIDDEN */
-#endif /* defined(FPT_FLOAT16) || defined(FPT_FLOAT) || ... */
+#endif /* defined(FPT_FLOAT16) || ... */
 #endif /* defined(FPT_DOUBLE) */
 
 #if defined(FPT_LONG_DOUBLE)
-#if defined(FPT_FLOAT16) || defined(FPT_FLOAT) || defined(FPT_DOUBLE) || \
-    defined(FPT_FLOAT80) || defined(FPT_FLOAT128)
+#if defined(FPT_FLOAT16) || defined(FPT_BFLOAT16) || defined(FPT_FLOAT) || \
+    defined(FPT_DOUBLE) || defined(FPT_FLOAT80) || defined(FPT_FLOAT128)
 #error Cannot specify more than a single FPT_* macro in float_type.h
-#else /* !(defined(FPT_FLOAT16) || defined(FPT_FLOAT) || ...) */
+#else /* !(defined(FPT_FLOAT16) || ...) */
 #define FPT_TYPE        long double
 #define FPT_NAME        long_double
 #define FPT_VALUE_BITS  FPT_LONG_DOUBLE_VALUE_BITS
@@ -125,14 +145,14 @@ BEGIN_EDG_NAMESPACE
 #ifdef FPT_LONG_DOUBLE_HAS_HIDDEN
 #define FPT_HAS_HIDDEN FPT_LONG_DOUBLE_HAS_HIDDEN
 #endif /* FPT_LONG_DOUBLE_HAS_HIDDEN */
-#endif /* defined(FPT_FLOAT16) || defined(FPT_FLOAT) || ... */
+#endif /* defined(FPT_FLOAT16) || ... */
 #endif /* defined(FPT_LONG_DOUBLE) */
 
 #if defined(FPT_FLOAT80)
-#if defined(FPT_FLOAT16) || defined(FPT_FLOAT) || defined(FPT_DOUBLE) || \
-    defined(FPT_LONG_DOUBLE) || defined(FPT_FLOAT128)
+#if defined(FPT_FLOAT16) || defined(FPT_BFLOAT16) || defined(FPT_FLOAT) || \
+    defined(FPT_DOUBLE) || defined(FPT_LONG_DOUBLE) || defined(FPT_FLOAT128)
 #error Cannot specify more than a single FPT_* macro in float_type.h
-#else /* !(defined(FPT_FLOAT16) || defined(FPT_FLOAT) || ...) */
+#else /* !(defined(FPT_FLOAT16) || ...) */
 #define FPT_TYPE        __float80
 #define FPT_NAME        float80
 #define FPT_VALUE_BITS  FPT_FLOAT80_VALUE_BITS
@@ -142,14 +162,14 @@ BEGIN_EDG_NAMESPACE
 #ifdef FPT_FLOAT80_HAS_HIDDEN
 #define FPT_HAS_HIDDEN FPT_FLOAT80_HAS_HIDDEN
 #endif /* FPT_FLOAT80_HAS_HIDDEN */
-#endif /* defined(FPT_FLOAT16) || defined(FPT_FLOAT) || ... */
+#endif /* defined(FPT_FLOAT16) || ... */
 #endif /* defined(FPT_FLOAT80) */
 
 #if defined(FPT_FLOAT128)
-#if defined(FPT_FLOAT16) || defined(FPT_FLOAT) || defined(FPT_DOUBLE) || \
-    defined(FPT_LONG_DOUBLE) || defined(FPT_FLOAT80)
+#if defined(FPT_FLOAT16) || defined(FPT_BFLOAT16) || defined(FPT_FLOAT) || \
+    defined(FPT_DOUBLE) || defined(FPT_LONG_DOUBLE) || defined(FPT_FLOAT80)
 #error Cannot specify more than a single FPT_* macro in float_type.h
-#else /* !(defined(FPT_FLOAT15) || defined(FPT_FLOAT) || ...) */
+#else /* !(defined(FPT_FLOAT15) || ...) */
 #define FPT_TYPE        __float128
 #define FPT_NAME        float128
 #define FPT_VALUE_BITS  FPT_FLOAT128_VALUE_BITS
@@ -159,13 +179,13 @@ BEGIN_EDG_NAMESPACE
 #ifdef FPT_FLOAT128_HAS_HIDDEN
 #define FPT_HAS_HIDDEN FPT_FLOAT128_HAS_HIDDEN
 #endif /* FPT_FLOAT128_HAS_HIDDEN */
-#endif /* defined(FPT_FLOAT16) || defined(FPT_FLOAT || ... */
+#endif /* defined(FPT_FLOAT16) || ... */
 #endif /* defined(FPT_FLOAT128) */
 
-#else /* !(defined(FPT_FLOAT16) || defined(FPT_FLOAT) || ...) */
-#error Must define exactly one of FPT_FLOAT16, FPT_FLOAT, FPT_DOUBLE, \
-       FPT_LONG_DOUBLE, or FPT_FLOAT80, or FPT_FLOAT128.
-#endif /* defined(FPT_FLOAT16) || defined(FPT_float) || ... */
+#else /* !(defined(FPT_FLOAT16) || ...) */
+#error Must define exactly one of FPT_FLOAT16, FPT_BFLOAT16, FPT_FLOAT, \
+       FPT_DOUBLE, FPT_LONG_DOUBLE, or FPT_FLOAT80, or FPT_FLOAT128.
+#endif /* defined(FPT_FLOAT16) || ... */
 
 /*
 Definitions of derived properties for floating-point types.

@@ -1,5 +1,19 @@
 Version 6.6
 
+9/7/23   [EDGcpfe/26466]
+C++23: std::bfloat16 type
+
+The std::bfloat16 type is now supported by the front end in C++23 modes
+(see the entry for EDGcpfe/25100,EDGcpfe/25170,EDGcpfe/25515).  For
+example, with --c++23:
+
+  using bf16_t = decltype(0.0bf16);   // Previously treated as std::float32_t
+  using f32_t = decltype(0.0f32);
+  template<typename> struct S {};
+  template<> struct S<f32_t> {};
+  template<> struct S<bf16_t> {};     // Previously a redefinition, now okay
+
+
 9/2/23   [EDGcpfe/26631]
 Abort in substitution of requires-expression in certain contexts
 
