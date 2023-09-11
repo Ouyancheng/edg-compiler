@@ -2745,6 +2745,7 @@ Do one-time initialization of variables related to floating-point.
   init_bigints();
   large_fives_inited = 0;
   initialize_tens_float16();
+  initialize_tens_bfloat16();
   initialize_tens_float();
   initialize_tens_double();
 #if FP_HAS_LONG_DOUBLE
