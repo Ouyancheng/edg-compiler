@@ -2455,7 +2455,7 @@ inline void validate_elements_in_order(ptrdiff_t  num_elements,
 /*
 Validate that the input container of num_elements elements is in order for a
 binary search.  This is implemented in terms of operator< and operator== to
-minimize the number of operators that need implemented.
+minimize the number of operators that need to be implemented.
 */
 {
   a_boolean any_out_of_order = FALSE;
