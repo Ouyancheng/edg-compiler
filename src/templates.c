@@ -31933,6 +31933,11 @@ parameter lists that were scanned.
       if (!decl_state->is_alias_redecl) {
         alias_prototype_instantiation(decl_state, sym);
       } else {
+        /* Use the redeclaration token cache instead of the one for the
+           initial declaration in case the parameter names are different. */
+        a_template_symbol_supplement_ptr redecl_tssp =
+                  template_supplement_for_symbol(decl_state->new_alias_symbol);
+        p_template_body_cache = &cache_for_template(redecl_tssp)->tokens;
         /* For an alias redeclaration, do a prototype instantiation of the
            new declaration so that the types can be compared. */
         alias_prototype_instantiation(decl_state,

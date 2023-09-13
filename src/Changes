@@ -1,5 +1,20 @@
 Version 6.6
 
+9/13/23  [EDGcpfe/26666]
+C++-generating back end: parameter names in redeclarations of alias templates
+
+In configurations and modes in which the C++-generating back end puts out
+template definitions using the string form of the template (as opposed to
+generating them from their prototype instantiation IL), the generated code
+was incorrect in cases where an alias template is redeclared using a
+different template parameter name from that in the original template
+definition.  This is now fixed.  For example, with --microsoft --c++11:
+
+  template<typename> struct A { };
+  template<typename T> using B = A<T>;
+  template<typename U> using B = A<U>;  // Previously put out as "A<T>"
+
+
 9/13/23  [EDGcpfe/26153,EDGcpfe/26653]
 Assertion failure in unscan_attributes
 
