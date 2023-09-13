@@ -161,7 +161,7 @@ excludes characters classified as digits, while the C++11 and C11 Standards
 have explicit ranges of excluded characters.  The UAX44 values are based on
 the XID_Start and XID_Continue Derived Properties in
 www.unicode.org/Public/UCD/latest/ucd/DerivedCoreProperties.txt for Unicode
-version 15.0.0, dated 2022-08-05.
+version 15.1.0, dated 2023-08-07.
 */
 static a_UCN_range
 		UCN_table[] = {
@@ -1024,7 +1024,8 @@ static a_UCN_range
   { 0x01ff5, 0x01ff5,   _   |  _  | CPP11 |   _  ,   _   |   _   |   _   },
   { 0x01ff6, 0x01ffc, CPP03 | C99 | CPP11 | UAX44,   _   |   _   |   _   },
   { 0x01ffd, 0x01fff,   _   |  _  | CPP11 |   _  ,   _   |   _   |   _   },
-  { 0x0200b, 0x0200d,   _   |  _  | CPP11 |   _  ,   _   |   _   |   _   },
+  { 0x0200b, 0x0200b,   _   |  _  | CPP11 |   _  ,   _   |   _   |   _   },
+  { 0x0200c, 0x0200d,   _   |  _  | CPP11 | UAX44,   _   |   _   | UAX44 },
   { 0x0202a, 0x0202e,   _   |  _  | CPP11 |   _  ,   _   |   _   |   _   },
   { 0x0203f, 0x02040,   _   | C99 | CPP11 | UAX44,   _   |   _   | UAX44 },
   { 0x02054, 0x02054,   _   |  _  | CPP11 | UAX44,   _   |   _   | UAX44 },
@@ -1130,7 +1131,7 @@ static a_UCN_range
   { 0x030a0, 0x030a0,   _   |  _  | CPP11 |   _  ,   _   |   _   |   _   },
   { 0x030a1, 0x030f6, CPP03 | C99 | CPP11 | UAX44,   _   |   _   |   _   },
   { 0x030f7, 0x030fa, CPP03 |  _  | CPP11 | UAX44,   _   |   _   |   _   },
-  { 0x030fb, 0x030fb, CPP03 | C99 | CPP11 |   _  ,   _   |   _   |   _   },
+  { 0x030fb, 0x030fb, CPP03 | C99 | CPP11 | UAX44,   _   |   _   | UAX44 },
   { 0x030fc, 0x030fc, CPP03 | C99 | CPP11 | UAX44,   _   |   _   |   _   },
   { 0x030fd, 0x030fe, CPP03 |  _  | CPP11 | UAX44,   _   |   _   |   _   },
   { 0x030ff, 0x030ff,   _   |  _  | CPP11 | UAX44,   _   |   _   |   _   },
@@ -1357,7 +1358,8 @@ static a_UCN_range
   { 0x0ff3f, 0x0ff3f,   _   |  _  | CPP11 | UAX44,   _   |   _   | UAX44 },
   { 0x0ff40, 0x0ff40,   _   |  _  | CPP11 |   _  ,   _   |   _   |   _   },
   { 0x0ff41, 0x0ff5a, CPP03 |  _  | CPP11 | UAX44,   _   |   _   |   _   },
-  { 0x0ff5b, 0x0ff65,   _   |  _  | CPP11 |   _  ,   _   |   _   |   _   },
+  { 0x0ff5b, 0x0ff64,   _   |  _  | CPP11 |   _  ,   _   |   _   |   _   },
+  { 0x0ff65, 0x0ff65,   _   |  _  | CPP11 | UAX44,   _   |   _   | UAX44 },
   { 0x0ff66, 0x0ff9d, CPP03 |  _  | CPP11 | UAX44,   _   |   _   |   _   },
   { 0x0ff9e, 0x0ff9f, CPP03 |  _  | CPP11 | UAX44,   _   |   _   | UAX44 },
   { 0x0ffa0, 0x0ffbe, CPP03 |  _  | CPP11 | UAX44,   _   |   _   |   _   },
@@ -2123,7 +2125,9 @@ static a_UCN_range
   { 0x2b820, 0x2cea1,   _   |  _  | CPP11 | UAX44,   _   |   _   |   _   },
   { 0x2cea2, 0x2ceaf,   _   |  _  | CPP11 |   _  ,   _   |   _   |   _   },
   { 0x2ceb0, 0x2ebe0,   _   |  _  | CPP11 | UAX44,   _   |   _   |   _   },
-  { 0x2ebe1, 0x2f7ff,   _   |  _  | CPP11 |   _  ,   _   |   _   |   _   },
+  { 0x2ebe1, 0x2ebef,   _   |  _  | CPP11 |   _  ,   _   |   _   |   _   },
+  { 0x2ebf0, 0x2ee5d,   _   |  _  | CPP11 | UAX44,   _   |   _   |   _   },
+  { 0x2ee5e, 0x2f7ff,   _   |  _  | CPP11 |   _  ,   _   |   _   |   _   },
   { 0x2f800, 0x2fa1d,   _   |  _  | CPP11 | UAX44,   _   |   _   |   _   },
   { 0x2fa1e, 0x2fffd,   _   |  _  | CPP11 |   _  ,   _   |   _   |   _   },
   { 0x30000, 0x3134a,   _   |  _  | CPP11 | UAX44,   _   |   _   |   _   },

@@ -1,5 +1,11 @@
 Version 6.6
 
+9/13/23  [EDGcpfe/26667]
+Unicode 15.1.0 characters
+
+The front end now supports the Unicode 15.1.0 character set.
+
+
 9/7/23   [EDGcpfe/26466]
 C++23: std::bfloat16 type
 
