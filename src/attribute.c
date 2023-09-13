@@ -2706,7 +2706,7 @@ is made.
 {
   an_attribute_ptr  attributes = NULL, *p_attributes = &attributes;
 
-  if (unscanned_attributes_active) {
+  if (unscanned_attributes != NULL) {
     /* Return previously scanned attributes. */
     an_attribute_ptr  ap;
     attributes = unscanned_attributes;
@@ -2715,7 +2715,6 @@ is made.
       ap->syntactic_location = loc;
     }  /* for */
     unscanned_attributes = NULL;
-    unscanned_attributes_active = FALSE;
   } else {
     a_boolean  new_attr_seen;
     do {
@@ -2788,10 +2787,10 @@ attributes.
 
 a_boolean unscanned_attributes_pending(void)
 /*
-Return unscanned_attributes_active.
+Return TRUE if there are unscanned attributes pending.
 */
 {
-  return unscanned_attributes_active;
+  return unscanned_attributes != NULL;
 }  /* unscanned_attributes_pending */
 
 #endif /* CHECKING */
@@ -2806,10 +2805,8 @@ processing.  Record the given pointer to be returned by the next call to
 scan_attributes.
 */
 {
-  check_assertion(!unscanned_attributes_active &&
-                  unscanned_attributes == NULL);
+  check_assertion(unscanned_attributes == NULL);
   unscanned_attributes = attributes;
-  unscanned_attributes_active = TRUE;
 }  /* unscan_attributes */
 
 
@@ -10181,7 +10178,6 @@ attributes.
   register_trans_unit_variable(asm_name_map);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   register_trans_unit_variable(unscanned_attributes);
-  register_trans_unit_variable(unscanned_attributes_active);
   register_trans_unit_variable(already_diagnosed_using);
 }  /* attribute_one_time_init */
 
@@ -10199,7 +10195,6 @@ translation unit.
                                   fn_for_function(compare_for_asm_name_map));
 #endif /* GNU_EXTENSIONS_ALLOWED */
   unscanned_attributes = NULL;
-  unscanned_attributes_active = FALSE;
 #if USE_X86_FUNCTION_MULTIVERSIONING && DO_IL_LOWERING
   mv_builtins_loaded = FALSE;
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING && DO_IL_LOWERING */

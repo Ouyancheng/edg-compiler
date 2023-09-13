@@ -1,5 +1,13 @@
 Version 6.6
 
+9/13/23  [EDGcpfe/26153]
+Assertion failure in unscan_attributes
+
+An assertion failure in unscan_attributes had occurred in some Clang emulation
+modes as a result of the changes for EDGcpfe/25930 (in version 6.5).  That
+is now fixed.
+
+
 9/13/23  [EDGcpfe/26667]
 Unicode 15.1.0 characters
 

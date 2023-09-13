@@ -33082,15 +33082,15 @@ classes.
           } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
-          { a_boolean save = unscanned_attributes_active;
-            unscanned_attributes_active = FALSE;
+          { an_attribute_ptr save_unscanned_attributes = unscanned_attributes;
+            unscanned_attributes = FALSE;
             /* Temporarily hide any unscanned attributes so they aren't
                mistakenly scanned when parsing conversion operators with
                type declarators, e.g.:
                  __attribute__((__visibility__("hidden"))) operator T& ();
                */
             a_boolean is_decl_qualified_name = is_decl_qualified_name_start();
-            unscanned_attributes_active = save;
+            unscanned_attributes = save_unscanned_attributes;
             if (is_decl_qualified_name &&
                 !f_same_entities(qualifier_class_type(locator_for_curr_id),
                                  class_type) &&

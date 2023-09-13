@@ -165,12 +165,8 @@ EXTERN an_attribute_ptr
 		unscanned_attributes;
 			/* A pointer to previously-scanned attributes that
 			   should be returned from the next call to
-			   scan_attributes instead. */
-
-EXTERN a_boolean
-		unscanned_attributes_active;
-			/* TRUE if a call to scan_attributes should return
-			   unscanned_attributes. */
+			   scan_attributes instead.  NULL indicates that no
+			   unscanned attributes are present. */
 
 extern void skip_over_attributes(void);
 
