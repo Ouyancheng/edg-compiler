@@ -1851,7 +1851,7 @@ the corresponding IFC AttrIndexes.
 
       result.push_back(get_ifc_trait(trait));
     }  /* if */
-  }  /* if */
+  }  /* for */
   return result;
 }  /* attr_indexes_of */
 
@@ -21475,7 +21475,7 @@ decl_idx to the cache.
     if (!is_null_index(attr_idx)) {
       cache_attr(cache, attr_idx, /*cache_brackets=*/TRUE);
     }  /* if */
-  }  /* if */
+  }  /* for */
 }  /* an_ifc_module::cache_attrs */
 
 
