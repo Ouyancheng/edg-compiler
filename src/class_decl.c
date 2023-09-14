@@ -33083,7 +33083,7 @@ classes.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           /* Do not insert code here. */
           { an_attribute_ptr save_unscanned_attributes = unscanned_attributes;
-            unscanned_attributes = FALSE;
+            unscanned_attributes = NULL;
             /* Temporarily hide any unscanned attributes so they aren't
                mistakenly scanned when parsing conversion operators with
                type declarators, e.g.:
