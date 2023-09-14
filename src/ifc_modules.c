@@ -5264,7 +5264,7 @@ NULL, and issue a diagnostic.
     diagnose_ifc_entity_load_failure(decl_idx);
   }  /* if */
   return result;
-}  /* load_tok_ifc_template_param */
+}  /* load_tok_ifc_decl_ref */
 
 
 template<typename an_ifc_Index_type>
