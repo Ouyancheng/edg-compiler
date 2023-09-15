@@ -16101,6 +16101,8 @@ Render code for the given lambda.
     /* No lambda routine is recorded if this is a generic lambda and
        prototype instantiations are not recorded in the IL.  Render the
        lambda from the text form. */
+    gen_attributes(rp->source_corresp.attributes, al_lambda_expression,
+                   /*primary_only=*/FALSE);
     a_template_ptr  call_op_template = closure_scope->templates;
     write_code_string(call_op_template->text);
   } else {
@@ -16169,7 +16171,7 @@ Render code for the given lambda.
           last_expl_param->next = next;
         }  /* if */
       }  /* if */
-      gen_attributes(rp->source_corresp.attributes, al_prefix,
+      gen_attributes(rp->source_corresp.attributes, al_lambda_expression,
                      /*primary_only=*/FALSE);
       gen_function_declarator_with_scope(rp->type, scope,
                                          /*top_level_decl=*/TRUE,

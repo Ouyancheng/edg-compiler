@@ -29665,6 +29665,15 @@ class type.  Check that dps->type is a valid type for such a declaration.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static a_boolean lambda_attributes_allowed(void)
+/*
+Return TRUE if attributes are allowed in a lambda-expression.
+*/
+{
+  return cpp23_mode || gnu_version_is(>=100000) || clang_version_is(>=130000);
+}  /* lambda_attributes_allowed */
+
+
 static a_symbol_ptr class_member_declaration(
              a_class_def_state_ptr              class_state,
              a_tmpl_decl_state_ptr              templ_state,
@@ -29843,7 +29852,11 @@ block of information that is provided if this is a member template declaration.
     dso_flags = dps->dso_flags;
     remove_stop_token(tok_colon);
   } else {
-    /* A lambda operator: There are no attributes or explicit specifiers. */
+    /* A lambda operator. */
+    if (lambda_attributes_allowed()) {
+      /* Lambda attributes are allowed in C++23 (and some emulation modes). */
+      dps->prefix_attributes = scan_attributes(al_lambda_expression);
+    }  /* if */
     dps->specifiers_type = make_auto_type(&pos_curr_token,
                                           /*is_decltype_auto=*/FALSE);
     dps->type = dps->specifiers_type;
@@ -34025,14 +34038,18 @@ proper.
       lambda->is_generic = TRUE;
     }  /* if */
   }  /* if */
-  /* Check for the presence of attributes. */
-  if (std_attribute_tokens_next() ||
-      (gnu_version_is(>=100000) && curr_token == tok_attribute)) {
-    pos_diagnostic(strict_ansi_mode ? es_discretionary_error
-                                    : es_warning,
-                   ec_nonstandard_lambda_attributes, &pos_curr_token);
-    dps->prefix_attributes = scan_attributes(al_prefix);
-  }  /* if */
+  { a_source_position save_pos_curr_token = pos_curr_token;
+    /* Check for the presence of attributes.  Attributes in this location are
+       non-standard until C++23.  Such attributes appertain to the function
+       call operator or operator template. */
+    check_assertion(dps->prefix_attributes == NULL);
+    dps->prefix_attributes = scan_attributes(al_lambda_expression);
+    if (dps->prefix_attributes != NULL && !lambda_attributes_allowed()) {
+      pos_diagnostic(strict_ansi_mode ? es_discretionary_error
+                                      : es_warning,
+                     ec_nonstandard_lambda_attributes, &save_pos_curr_token);
+    }  /* if */
+  }
   if (curr_token != tok_lparen && curr_token != tok_lbrace &&
       (cpp23_mode || gpp_version_is(>= 110000) ||
        clang_version_is(>=130000))) {

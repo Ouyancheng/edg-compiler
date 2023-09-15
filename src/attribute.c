@@ -5121,7 +5121,8 @@ entity.
        first declaration of that routine. */
     a_routine_ptr       rp = (a_routine_ptr)entity;
     a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
-    if (dps != NULL && !dps->first_decl) {
+    if (ap->syntactic_location != al_lambda_expression &&
+        dps != NULL && !dps->first_decl) {
       /* A redeclaration: The attribute should have appeared on the first
          declaration.  (It is tempting to use rp->type to test whether the
          [[noreturn]] attribute appeared previously.  However, that doesn't
