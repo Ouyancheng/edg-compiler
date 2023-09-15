@@ -7413,8 +7413,8 @@ modules.
 
 
 static a_template_arg_ptr
-template_args_for_expr_list(const a_template_parameter *param_list,
-                            an_ifc_expr_index          arguments);
+template_args_for_expr_list(a_symbol_ptr      template_sym,
+                            an_ifc_expr_index arguments);
 
 
 template<typename an_ifc_Decl_type>
@@ -7433,12 +7433,11 @@ problem is encountered during reconstruction, NULL is returned instead.
 
   construct_node(&opt_form_spec, form_offset);
   if (opt_form_spec.has_value()) {
-    an_ifc_form_spec         form_spec = *opt_form_spec;
-    an_ifc_expr_index        form_arg_idx = get_ifc_arguments(form_spec);
-    a_template_decl_ptr      template_decl = primary_template->template_decl;
-    a_template_parameter_ptr il_param_list = template_decl->param_list;
+    an_ifc_form_spec  form_spec = *opt_form_spec;
+    an_ifc_expr_index form_arg_idx = get_ifc_arguments(form_spec);
+    a_symbol_ptr      template_sym = symbol_for(primary_template);
 
-    result = template_args_for_expr_list(il_param_list, form_arg_idx);
+    result = template_args_for_expr_list(template_sym, form_arg_idx);
   }  /* if */
   return result;
 }  /* create_templ_args_for_comparison */
@@ -12531,16 +12530,70 @@ done:;
 }  /* type_for_type_index */
 
 
+static a_template_param*
+get_sym_template_parameters(a_symbol_ptr template_sym)
+/*
+Given the symbol corresponding to a template, return the symbol table's
+template parameter list.
+*/
+{
+  /* If this assertion fails the caller passed a symbol that was not a template
+     and should be updated to protect against this case. */
+  check_assertion(is_template_symbol(template_sym));
+  a_template_symbol_supplement_ptr
+                  tssp = template_sym->variant.template_info;
+
+  return tssp->cache.decl_info->parameters;
+}  /* get_sym_template_parameters */
+
+namespace {
+
+/*
+This class is used to encapsulate the state associated with a template argument
+list reconstruction for a given template's parameters.
+*/
+struct a_template_argument_append_state {
+  a_template_argument_append_state(a_symbol_ptr template_sym)
+    : head(NULL), tail(NULL), templ_sym(template_sym),
+      param_sym(get_sym_template_parameters(template_sym))
+    {}
+  a_symbol_ptr template_sym() const
+    { return this->templ_sym; }
+  a_template_arg *arg_list() const
+    { return this->head; }
+  inline a_template_parameter *curr_param() const;
+  a_template_param *curr_param_sym() const
+    { return this->param_sym; }
+  inline a_boolean append_argument(a_template_arg    *new_arg,
+                                   an_ifc_expr_index expr_idx);
+  inline a_boolean terminate_pack();
+private:
+  a_template_arg
+                *head;  /* The first template argument in the list. */
+  a_template_arg
+                *tail;  /* The last template argument added to the list. */
+  a_symbol_ptr  templ_sym;
+                        /* The symbol for the template that the constructed
+                           template arguments are being constructed against. */
+  a_template_param
+                *param_sym;
+                        /* The symbol table template parameter corresponding to
+                           the current template parameter. */
+};  /* a_template_argument_append_state */
+
+}  /* namespace */
+
 static a_template_arg_ptr create_nontype_template_arg_from_expr(
-                                           const a_template_parameter *param,
-                                           an_ifc_expr_index          expr_idx)
+                                     a_template_argument_append_state *state,
+                                     an_ifc_expr_index                expr_idx)
 /*
 Create and return a non-type template argument for the given non-type template
 parameter from the given expression.  If processing fails, instead return a
 non-type template argument with an error constant.
 */
 {
-  a_template_arg_ptr result = NULL;
+  a_template_arg_ptr         result = NULL;
+  const a_template_parameter *param = state->curr_param();
 
   check_assertion(param->kind == tpk_nontype);
 
@@ -12554,8 +12607,18 @@ non-type template argument with an error constant.
     result = alloc_template_arg(tak_nontype);
     result->variant.constant = fs_constant((a_constant_repr_kind)ck_error);
 
+    /* Rescan the constant type so any template arguments are properly factored
+       in. */
+    a_type_ptr      type = rescan_template_constant_parameter(
+                                         state->template_sym(),
+                                         state->curr_param_sym()->param_symbol,
+                                         state->curr_param_sym(),
+                                         state->arg_list(),
+                                         /*do_default_arg=*/FALSE,
+                                         /*constant=*/NULL);
+    a_pack_expansion_stack_entry_ptr
+                    pesep;
     /* Start a potential pack expansion. */
-    a_pack_expansion_stack_entry_ptr pesep;
     (void)begin_potential_pack_expansion_context_full(
                                                   &pesep,
                                                   /*p_pedp=*/NULL,
@@ -12564,8 +12627,10 @@ non-type template argument with an error constant.
                                                   /*ignore_suppression=*/TRUE);
 
     /* Perform the expression scan to form the constant from tokens. */
-    a_type_ptr             type = param->variant.nontype.constant->type;
     a_module_entity_rescan rescan(&cache);
+    /* FIXME: If the cache contains references to template parameters that have
+       instantiated values, those likely need to be addressed here (similar to
+       how the constant's type is rescanned above). */
     scan_template_argument_constant_expression(type, result->variant.constant);
     /* End the potential pack expansion; this ensures any packs that are
        reference are not diagnosed. */
@@ -12583,34 +12648,18 @@ done:
   return result;
 }  /* create_nontype_template_arg_from_expr */
 
-namespace {
 
+a_template_parameter *a_template_argument_append_state::curr_param() const
 /*
-This class is used to encapsulate the state associated with a template argument
-list reconstruction for a given template parameter list.
+Return a pointer to the current IL template parameter a template argument is
+being constructed for.  If there's no current parameter (i.e., there are no
+further template arguments that need constructed) instead return NULL.
 */
-struct a_template_argument_append_state {
-  a_template_argument_append_state(const a_template_parameter *params)
-    : head(NULL), tail(NULL), param(params)
-    {}
-  a_template_arg *arg_list() const
-    { return this->head; }
-  const a_template_parameter *curr_param() const
-    { return this->param; }
-  inline a_boolean append_argument(a_template_arg    *new_arg,
-                                   an_ifc_expr_index expr_idx);
-  inline a_boolean terminate_pack();
-private:
-  a_template_arg
-                *head;  /* The first template argument in the list. */
-  a_template_arg
-                *tail;  /* The last template argument added to the list. */
-  const a_template_parameter
-                *param; /* The template parameter corresponding to the current
-                           template parameter. */
-};  /* a_template_argument_append_state */
+{
+  return this->param_sym == NULL ?
+                            NULL : this->param_sym->il_template_parameter;
+}  /* a_template_argument_append_state::curr_param */
 
-}  /* namespace */
 
 a_boolean
 a_template_argument_append_state::append_argument(a_template_arg    *new_arg,
@@ -12623,7 +12672,7 @@ the template argument list; otherwise, return FALSE.
 {
   a_boolean result = FALSE;
 
-  if (this->param != NULL) {
+  if (this->curr_param() != NULL) {
     if (this->head == NULL) {
       this->head = new_arg;
     } else {
@@ -12637,12 +12686,12 @@ the template argument list; otherwise, return FALSE.
 
        Note for packs, the transition to the next template parameter will be
        handled upon a call to terminate_pack. */
-    if (this->param->is_pack) {
+    if (this->curr_param()->is_pack) {
       if (new_arg->kind != tak_start_of_pack_expansion) {
         new_arg->is_pack_element = TRUE;
       }  /* if */
     } else {
-      this->param = this->param->next;
+      this->param_sym = this->param_sym->next;
     }  /* if */
     result = TRUE;
   } else {
@@ -12667,11 +12716,12 @@ TRUE if the pack expansion was successfully terminated; otherwise, return
 FALSE.
 */
 {
-  a_boolean result = FALSE;
+  a_boolean                result = FALSE;
+  a_template_parameter_ptr curr_param = this->curr_param();
 
-  if (this->param != NULL) {
-    if (this->param->is_pack) {
-      this->param = this->param->next;
+  if (curr_param != NULL) {
+    if (curr_param->is_pack) {
+      this->param_sym = this->param_sym->next;
       result = TRUE;
     }  /* if */
   }  /* if */
@@ -12962,20 +13012,13 @@ represented by the expression.
             goto invalid;
           }  /* if */
 
-          /* Retrieve the inner template parameter list from the template
-             template parameter. */
-          a_template_symbol_supplement_ptr
-                          tssp = template_sym->variant.template_info;
-          a_template_parameter_ptr
-                          il_param_list =
-                      tssp->cache.decl_info->parameters->il_template_parameter;
-          an_ifc_expr_index
-                          arguments = get_ifc_arguments(template_id_expr);
           /* Create the template argument list for use with the parameter
              list. */
+          an_ifc_expr_index
+                          arguments = get_ifc_arguments(template_id_expr);
           a_template_arg_ptr
                           il_arguments =
-                         template_args_for_expr_list(il_param_list, arguments);
+                          template_args_for_expr_list(template_sym, arguments);
           if (il_arguments == NULL) {
             goto invalid;
           }  /* if */
@@ -13030,8 +13073,8 @@ represented by the expression.
     default:
       { /* The non-type template argument case. */
         a_template_arg *new_arg = create_nontype_template_arg_from_expr(
-                                                           state->curr_param(),
-                                                           expr_idx);
+                                                                     state,
+                                                                     expr_idx);
         if (!state->append_argument(new_arg, expr_idx)) {
           goto invalid;
         }  /* if */
@@ -13187,16 +13230,19 @@ done:
 
 
 static a_template_arg_ptr
-template_args_for_expr_list(const a_template_parameter *param_list,
-                            an_ifc_expr_index          arguments)
+template_args_for_expr_list(a_symbol_ptr      template_sym,
+                            an_ifc_expr_index arguments)
 /*
 Given an IFC expression list (that may or may not cover multiple template
-parameters), construct and return corresponding template arguments for
-param_list.
+parameters), construct and return corresponding template arguments for the
+template corresponding to the given symbol.
 */
 {
+  /* If this assertion fails the caller passed a symbol that was not a template
+     and should be updated to protect against this case. */
+  check_assertion(is_template_symbol(template_sym));
   a_template_arg_ptr               result = NULL;
-  a_template_argument_append_state state(param_list);
+  a_template_argument_append_state state(template_sym);
 
   if (append_template_args(&state, arguments)) {
     if (state.curr_param() != NULL) {
@@ -13257,15 +13303,16 @@ module file.
   a_template_ptr templ = get_template_from_id_expr(templ_id);
 
   if (templ != NULL && templ->kind != templk_none) {
+    a_symbol_ptr       template_sym = symbol_for(templ);
     an_ifc_expr_index  arguments = get_ifc_arguments(templ_id);
     a_template_arg_ptr arg_list =
-                  template_args_for_expr_list(templ->template_decl->param_list,
-                                              arguments);
+                          template_args_for_expr_list(template_sym, arguments);
+
     if (arg_list == NULL) {
       goto invalid;
     }  /* if */
-    a_symbol_ptr       inst_sym;
 
+    a_symbol_ptr inst_sym;
     switch (templ->kind) {
       case templk_function:
       case templk_member_function:
