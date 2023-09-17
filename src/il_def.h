@@ -2780,9 +2780,10 @@ enum an_attribute_location : a_byte {
 			   non-standard and is used only for the Clang
 			   using_if_exists attribute currently. */
   al_lambda_expression,	/* The attribute appears in a lambda-expression prior
-			   to the lambda-declarator (valid only in C++23).
-			   These attributes appertain to the operator call
-			   function or operator template. */
+			   to the lambda-declarator (valid in C++23 and recent
+			   GNU and Clang emulation modes).  These attributes
+			   appertain to the operator call function or operator
+			   template. */
   al_last
 };
 
