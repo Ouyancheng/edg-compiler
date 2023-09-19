@@ -1,6 +1,6 @@
 Version 6.6
 
-9/15/23  [EDGcpfe/26487]
+9/15/23  [EDGcpfe/25076,EDGcpfe/26487]
 C++23: Add support for attributes in lambda-expressions
 
 The C++23 standard allows attributes in lambda-expressions; such attributes
@@ -10,6 +10,8 @@ For example (with --c++23):
 
   auto a = [] [[noreturn]] (auto z) { throw z; };
   auto b = [] <class T> [[noreturn]] (T z) { throw z; };
+
+See P2173R1 for more information.
 
 
 9/13/23  [EDGcpfe/26666]

@@ -17108,6 +17108,11 @@ typedef struct a_lambda {
 			   lambda appeared explicitly in the input.  (If no
 			   parameter list appeared, the effect is equivalent
 			   to an empty parameter list.) */
+  a_bit_field	has_template_param_list:1;
+			/* TRUE if the lambda has an explicit template
+			   parameter list.  In cases where this is TRUE, any
+			   lambda attributes are present in token cache of
+			   the template. */
   a_source_position
 		start_position;
 			/* Position of the "[" that begins the lambda. */

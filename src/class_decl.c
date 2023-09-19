@@ -29665,13 +29665,30 @@ class type.  Check that dps->type is a valid type for such a declaration.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static a_boolean lambda_attributes_allowed(void)
+static an_attribute_ptr scan_lambda_attributes(void)
 /*
-Return TRUE if attributes are allowed in a lambda-expression.
+Scan and return any attributes that appertain to a lambda function (they are
+applied to the lambda's function call operator).  Issue an appropriate
+diagnostic if attributes appear in a mode where they are not allowed (and
+discard such attributes).
 */
 {
-  return cpp23_mode || gnu_version_is(>=100000) || clang_version_is(>=130000);
-}  /* lambda_attributes_allowed */
+  an_attribute_ptr  attrs = NULL;
+  a_source_position save_pos_curr_token = pos_curr_token;
+  a_boolean         lambda_attributes_allowed =
+          cpp23_mode || gnu_version_is(>=100000) || clang_version_is(>=130000);
+
+  attrs = scan_attributes(al_lambda_expression);
+  if (attrs != NULL && !lambda_attributes_allowed) {
+    /* Give a diagnostic on unexpected attributes (and ignore them). */
+    pos_diagnostic(strict_ansi_mode ? es_discretionary_error
+                                    : es_warning,
+                   ec_nonstandard_lambda_attributes,
+                   &save_pos_curr_token);
+    attrs = NULL;
+  }  /* if */
+  return attrs;
+}  /* scan_lambda_attributes */
 
 
 static a_symbol_ptr class_member_declaration(
@@ -29853,10 +29870,8 @@ block of information that is provided if this is a member template declaration.
     remove_stop_token(tok_colon);
   } else {
     /* A lambda operator. */
-    if (lambda_attributes_allowed()) {
-      /* Lambda attributes are allowed in C++23 (and some emulation modes). */
-      dps->prefix_attributes = scan_attributes(al_lambda_expression);
-    }  /* if */
+    /* Lambda attributes are allowed in C++23 (and some emulation modes).*/
+    dps->prefix_attributes = scan_lambda_attributes();
     dps->specifiers_type = make_auto_type(&pos_curr_token,
                                           /*is_decltype_auto=*/FALSE);
     dps->type = dps->specifiers_type;
@@ -34034,22 +34049,14 @@ proper.
                      &pos_curr_token);
     }  /* if */
     scan_lambda_template_param_list(templ_state, dps);
+    lambda->has_template_param_list = TRUE;
     if (scope_stack_top().is_generic_lambda) {
       lambda->is_generic = TRUE;
     }  /* if */
   }  /* if */
-  { a_source_position save_pos_curr_token = pos_curr_token;
-    /* Check for the presence of attributes.  Attributes in this location are
-       non-standard until C++23.  Such attributes appertain to the function
-       call operator or operator template. */
-    check_assertion(dps->prefix_attributes == NULL);
-    dps->prefix_attributes = scan_attributes(al_lambda_expression);
-    if (dps->prefix_attributes != NULL && !lambda_attributes_allowed()) {
-      pos_diagnostic(strict_ansi_mode ? es_discretionary_error
-                                      : es_warning,
-                     ec_nonstandard_lambda_attributes, &save_pos_curr_token);
-    }  /* if */
-  }
+  /* Lambda attributes are allowed in C++23 (and some emulation modes).*/
+  check_assertion(dps->prefix_attributes == NULL);
+  dps->prefix_attributes = scan_lambda_attributes();
   if (curr_token != tok_lparen && curr_token != tok_lbrace &&
       (cpp23_mode || gpp_version_is(>= 110000) ||
        clang_version_is(>=130000))) {

@@ -5903,6 +5903,9 @@ Display the indicated lambda entry.
   if (ptr->has_parameter_decl) {
     disp_boolean("has_parameter_decl", TRUE);
   }  /* if */
+  if (ptr->has_template_param_list) {
+    disp_boolean("has_template_param_list", TRUE);
+  }  /* if */
   disp_source_position("start_position", &ptr->start_position);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_position("capture_end_position", &ptr->capture_end_position);

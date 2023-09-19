@@ -16101,8 +16101,13 @@ Render code for the given lambda.
     /* No lambda routine is recorded if this is a generic lambda and
        prototype instantiations are not recorded in the IL.  Render the
        lambda from the text form. */
-    gen_attributes(rp->source_corresp.attributes, al_lambda_expression,
-                   /*primary_only=*/FALSE);
+    if (!lambda->has_template_param_list) {
+      /* If an explicit template parameter list was scanned, the lambda
+         attributes are already part of the text of the template emitted
+         below, so skip emitting them here. */
+      gen_attributes(rp->source_corresp.attributes, al_lambda_expression,
+                     /*primary_only=*/FALSE);
+    }  /* if */
     a_template_ptr  call_op_template = closure_scope->templates;
     write_code_string(call_op_template->text);
   } else {
