@@ -1,4 +1,13 @@
-Version 6.5, June 21, 2023
+Version 6.6
+
+9/19/23  [EDGcpfe/26466]
+C++23, gcc, and clang compatibility: complex bfloat16 types
+
+c99_complex.c has been updated to provide support for complex types based on
+the bfloat16 floating-point type (C++23 std::bfloat16_t and __bf16 in gcc
+and clang).  This code is only enabled when the host compiler supports the
+bfloat16 type.
+
 
 -------------------------------------------------------------------------------
 Version 6.4, October 25, 2022
