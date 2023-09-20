@@ -12396,19 +12396,21 @@ corresponding type, return an error type.
             goto invalid;
           }  /* if */
 
-          /* Form the IL type. */
-          an_ifc_type_expansion expansion_type = *opt_expansion_type;
-          an_ifc_type_index     pack = get_ifc_pack(expansion_type);
-          result = type_for_type_index(pack);
-
+          an_ifc_type_expansion
+                          expansion_type = *opt_expansion_type;
+          an_ifc_type_index
+                          pack = get_ifc_pack(expansion_type);
           /* Start a potential pack expansion. */
-          a_pack_expansion_stack_entry_ptr pesep;
+          a_pack_expansion_stack_entry_ptr
+                          pesep;
           (void)begin_potential_pack_expansion_context_full(
                                                   &pesep,
                                                   /*p_pedp=*/NULL,
                                                   /*is_lookahead=*/FALSE,
                                                   /*allow_empty_list=*/FALSE,
                                                   /*ignore_suppression=*/TRUE);
+          /* Form the IL type. */
+          result = type_for_type_index(pack);
 
           /* This is a bit of a hack: a token cache is created and
              rescanned containing an ellipsis.  This allows
@@ -12421,6 +12423,7 @@ corresponding type, return an error type.
           a_module_entity_rescan rescan(&cache);
           (void)end_potential_pack_expansion_context(pesep,
                                                      /*is_declarator=*/FALSE);
+          (void)advance_to_next_pack_element(pesep);
         }
         break;
       case ifc_ts_type_typename:
@@ -12635,6 +12638,7 @@ non-type template argument with an error constant.
     result->pack_expansion_descr =
                  end_potential_pack_expansion_context(pesep,
                                                       /*is_declarator=*/FALSE);
+    (void)advance_to_next_pack_element(pesep);
   }
   goto done;
 invalid:
