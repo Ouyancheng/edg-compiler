@@ -548,9 +548,20 @@ External conversion functions.
 
 extern void floating_one_time_init(void);
 
+extern an_fp_return_type write_bfloat16(char          *tgt,
+                                        int           size,
+                                        unsigned char *val);
+extern an_fp_return_type write_bfloat16_n(char          *tgt,
+                                          int           size,
+                                          unsigned char *val,
+                                          int           ndigits);
 extern an_fp_return_type write_float16(char          *tgt,
                                        int           size,
                                        unsigned char *val);
+extern an_fp_return_type write_float16_n(char          *tgt,
+                                         int           size,
+                                         unsigned char *val,
+                                         int           ndigits);
 extern an_fp_return_type write_float(char          *tgt,
                                      int           size,
                                      unsigned char *val);

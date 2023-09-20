@@ -56,6 +56,20 @@ typedef struct _Complex_float16 {
 } _Complex_float16;
 #endif /* __EDG_HOST_HAS_FLOAT16_TYPE */
 
+#if defined(__STDCPP_BFLOAT16_T__) ||                               \
+    (defined(__GNUC__) && !defined(__clang__) && __GNUC__ >= 10) || \
+    (defined(__clang__) && __clang_major__ >= 11)
+#define __EDG_HAS_BFLOAT16_TYPE 1
+using _EDG_bfloat16_t = decltype(0.0bf16);
+typedef struct _Complex_bfloat16 {
+  /* Lowered representation of the C99/C++23 type with two bfloat16
+     entities. */
+  _EDG_bfloat16_t _Vals[2];
+} _Complex_bfloat16;
+#else /* !(defined(__STDCPP_BFLOAT16_T__) || ...) */
+#define __EDG_HAS_BFLOAT16_TYPE 0
+#endif /* defined(__STDCPP_BFLOAT16_T__) || ... */
+
 #if __EDG_FLOAT80_ENABLING_POSSIBLE
 typedef struct _Complex_float80 {
   /* Lowered representation of the C99 type with two __float80 entities. */
@@ -231,23 +245,64 @@ ITOC    (__c99_ifloat16_to_cfloat16, _Complex_float16, _Float16)
 RTOC    (__c99_float16_to_cfloat16, _Complex_float16, _Float16)
 CTOI    (__c99_cfloat16_to_ifloat16, _Float16, _Complex_float16)
 CTOR    (__c99_cfloat16_to_float16, _Float16, _Complex_float16)
+#if __EDG_HAS_BFLOAT16_TYPE
+CAST    (__c99_cfloat16_to_cbfloat16, _Complex_bfloat16, _Complex_float16,
+                                      _EDG_bfloat16)
+#endif /* __EDG_HAS_BFLOAT16_TYPE */
 CAST    (__c99_cfloat16_to_cfloat, _Complex_float, _Complex_float16, float)
 CAST    (__c99_cfloat16_to_cdouble, _Complex_double, _Complex_float16, double)
 CAST    (__c99_cfloat16_to_clong_double, _Complex_long_double,
                                          _Complex_float16, long double)
 #endif /* __EDG_HOST_HAS_FLOAT16_TYPE */
 
+#if __EDG_HAS_BFLOAT16_TYPE
+/* bfloat16 complex routines. */
+NEGATE  (__c99_complex_bfloat16_negate, _Complex_bfloat16, _Complex_bfloat16)
+CONJ    (__c99_complex_bfloat16_conj, _Complex_bfloat16, _Complex_bfloat16)
+ADD     (__c99_complex_bfloat16_add, _Complex_bfloat16, _Complex_bfloat16,
+                                     _Complex_bfloat16)
+SUBTRACT(__c99_complex_bfloat16_subtract, _Complex_bfloat16, _Complex_bfloat16,
+                                          _Complex_bfloat16)
+MULTIPLY(__c99_complex_bfloat16_multiply, _Complex_bfloat16, _Complex_bfloat16,
+                                          _Complex_bfloat16)
+DIVIDE  (__c99_complex_bfloat16_divide, _Complex_bfloat16, _Complex_bfloat16,
+                                        _Complexb_float16, _EDG_bfloat16_t)
+EQ      (__c99_complex_bfloat16_eq, int, _Complex_bfloat16, _Complex_bfloat16)
+NE      (__c99_complex_bfloat16_ne, int, _Complex_bfloat16, _Complex_bfloat16)
+ITOC    (__c99_ibfloat16_to_cbfloat16, _Complex_bfloat16, _EDG_bfloat16_t)
+RTOC    (__c99_bfloat16_to_cbfloat16, _Complex_bfloat16, _EDG_bfloat16_t)
+CTOI    (__c99_cbfloat16_to_ibfloat16, _EDG_bfloat16_t, _Complex_bfloat16)
+CTOR    (__c99_cbfloat16_to_bfloat16, _EDG_bfloat16_t, _Complex_bfloat16)
+#if __EDG_HOST_HAS_FLOAT16_TYPE */
+CAST    (__c99_cbfloat16_to_cfloat16, _Complex_float16, _Complex_bfloat16,
+                                      _Float16)
+#endif /* __EDG_HOST_HAS_FLOAT16_TYPE */
+CAST    (__c99_cbfloat16_to_cfloat, _Complex_float, _Complex_bfloat16, float)
+CAST    (__c99_cbfloat16_to_cdouble, _Complex_double, _Complex_bfloat16,
+                                     double)
+CAST    (__c99_cbfloat16_to_clong_double, _Complex_long_double,
+                                          _Complex_bfloat16, long double)
+#endif /* __EDG_HAS_BFLOAT16_TYPE */
+
 #if __EDG_FLOAT80_ENABLING_POSSIBLE
 #if __EDG_HOST_HAS_FLOAT16_TYPE
 CAST    (__c99_cfloat16_to_cfloat80, _Complex_float80, _Complex_float16,
                                      __float80)
 #endif /* __EDG_HOST_HAS_FLOAT16_TYPE */
+#if __EDG_HAS_BFLOAT16_TYPE
+CAST    (__c99_cbfloat16_to_cfloat80, _Complex_float80, _Complex_bfloat16,
+                                      __float80)
+#endif /* __EDG_HAS_BFLOAT16_TYPE */
 #endif /* __EDG_FLOAT80_ENABLING_POSSIBLE */
 #if __EDG_FLOAT128_ENABLING_POSSIBLE
 #if __EDG_HOST_HAS_FLOAT16_TYPE
 CAST    (__c99_cfloat16_to_cfloat128, _Complex_float128, _Complex_float16,
                                       __float128)
 #endif /* __EDG_HOST_HAS_FLOAT16_TYPE */
+#if __EDG_HAS_BFLOAT16_TYPE
+CAST    (__c99_cbfloat16_to_cfloat128, _Complex_float128, _Complex_bfloat16,
+                                       __float128)
+#endif /* __EDG_HAS_BFLOAT16_TYPE */
 #endif /* __EDG_FLOAT128_ENABLING_POSSIBLE */
 
 /* Single precision (float) complex routines. */
@@ -270,6 +325,10 @@ CTOR    (__c99_cfloat_to_float, float, _Complex_float)
 #if __EDG_HOST_HAS_FLOAT16_TYPE
 CAST    (__c99_cfloat_to_cfloat16, _Complex_float16, _Complex_float, _Float16)
 #endif /* __EDG_HOST_HAS_FLOAT16_TYPE */
+#if __EDG_HAS_BFLOAT16_TYPE
+CAST    (__c99_cfloat_to_cbfloat16, _Complex_bfloat16, _Complex_float,
+                                    _EDG_bfloat16_t)
+#endif /* __EDG_HAS_BFLOAT16_TYPE */
 CAST    (__c99_cfloat_to_cdouble, _Complex_double, _Complex_float, double)
 CAST    (__c99_cfloat_to_clong_double, _Complex_long_double, _Complex_float,
                                        long double)
@@ -302,6 +361,10 @@ CTOR    (__c99_cdouble_to_double, double, _Complex_double)
 CAST    (__c99_cdouble_to_cfloat16, _Complex_float16, _Complex_double,
                                     _Float16)
 #endif /* __EDG_HOST_HAS_FLOAT16_TYPE */
+#if __EDG_HAS_BFLOAT16_TYPE
+CAST    (__c99_cdouble_to_cbfloat16, _Complex_bfloat16, _Complex_double,
+                                     _EDG_bfloat16_t)
+#endif /* __EDG_HAS_BFLOAT16_TYPE */
 CAST    (__c99_cdouble_to_cfloat, _Complex_float, _Complex_double, float)
 CAST    (__c99_cdouble_to_clong_double, _Complex_long_double, _Complex_double,
                                         long double)
@@ -343,6 +406,11 @@ CTOR    (__c99_clong_double_to_long_double, long double, _Complex_long_double)
 CAST    (__c99_clong_double_to_cfloat16, _Complex_float16,
                                          _Complex_long_double, _Float16)
 #endif /* __EDG_HOST_HAS_FLOAT16_TYPE */
+#if __EDG_HAS_BFLOAT16_TYPE
+CAST    (__c99_clong_double_to_cbfloat16, _Complex_bfloat16,
+                                          _Complex_long_double,
+                                          _EDG_bfloat16_t)
+#endif /* __EDG_HAS_BFLOAT16_TYPE */
 CAST    (__c99_clong_double_to_cfloat, _Complex_float, _Complex_long_double,
                                        float)
 CAST    (__c99_clong_double_to_cdouble, _Complex_double, _Complex_long_double,
@@ -378,6 +446,10 @@ CTOR    (__c99_cfloat80_to_float80, __float80, _Complex_float80)
 CAST    (__c99_cfloat80_to_cfloat16, _Complex_float16, _Complex_float80,
                                      _Float16)
 #endif /* __EDG_HOST_HAS_FLOAT16_TYPE */
+#if __EDG_HAS_BFLOAT16_TYPE
+CAST    (__c99_cfloat80_to_cbfloat16, _Complex_bfloat16, _Complex_float80,
+                                      _EDG_bfloat16_t)
+#endif /* __EDG_HAS_BFLOAT16_TYPE */
 CAST    (__c99_cfloat80_to_cfloat, _Complex_float, _Complex_float80, float)
 CAST    (__c99_cfloat80_to_cdouble, _Complex_double, _Complex_float80, double)
 CAST    (__c99_cfloat80_to_clong_double, _Complex_long_double,
@@ -410,6 +482,10 @@ CTOR    (__c99_cfloat128_to_float128, __float128, _Complex_float128)
 CAST    (__c99_cfloat128_to_cfloat16, _Complex_float16, _Complex_float128,
                                       _Float16)
 #endif /* __EDG_HOST_HAS_FLOAT16_TYPE */
+#if __EDG_HAS_BFLOAT16_TYPE
+CAST    (__c99_cfloat128_to_cbfloat16, _Complex_bfloat16, _Complex_float128,
+                                       _EDG_bfloat16_t)
+#endif /* __EDG_HAS_BFLOAT16_TYPE */
 CAST    (__c99_cfloat128_to_cfloat, _Complex_float, _Complex_float128, float)
 CAST    (__c99_cfloat128_to_cdouble, _Complex_double, _Complex_float128,
                                      double)

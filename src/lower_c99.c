@@ -1233,11 +1233,11 @@ Typedef for a list of library routine names that perform the same function
 but on complex types with different underlying floating-point types.  Used
 when calling select_name_from_float_kind.  The order of elements
 corresponds to _Float16, __fp16, float, _Float32x, double, _Float64x, long
-double, __float80, and __float128 types (where _Complex __fp16 is currently
-unsupported).  _Float32x is implemented as double, and _Float64x is
-implemented as long double.
+double, __float80, __float128, and __bf16/std::bfloat116 types (where
+_Complex __fp16 is currently unsupported).  _Float32x is implemented as
+double, and _Float64x is implemented as long double.
 */
-typedef a_const_char *a_library_name_array[(int)fk_first_extended_type];
+typedef a_const_char *a_library_name_array[(int)fk_first_extended_type+1];
 
 static a_const_char* select_name_from_float_kind(a_float_kind         fkind,
                                                  a_library_name_array names)
@@ -1248,7 +1248,7 @@ Return names[fkind] (a string naming the given floating-point precision).
   a_const_char *result;
 
   fkind = map_extended_float_kinds(fkind);
-  check_assertion((int)fkind < (int)fk_first_extended_type);
+  check_assertion((int)fkind < (int)fk_first_extended_type+1);
   result = names[(int)fkind];
   check_assertion(result != NULL);
   return result;
@@ -1374,26 +1374,26 @@ single field in the struct for the lowered version of the type.
 
 
 /* Complex arithmetic and comparison routines. */
-static a_routine_ptr  xnegate_routine[(int)fk_first_extended_type];
-static a_routine_ptr  xadd_routine[(int)fk_first_extended_type];
-static a_routine_ptr  xsubtract_routine[(int)fk_first_extended_type];
-static a_routine_ptr  xmultiply_routine[(int)fk_first_extended_type];
-static a_routine_ptr  xdivide_routine[(int)fk_first_extended_type];
-static a_routine_ptr  xeq_routine[(int)fk_first_extended_type];
-static a_routine_ptr  xne_routine[(int)fk_first_extended_type];
-static a_routine_ptr  rtoc_routine[(int)fk_first_extended_type];
-static a_routine_ptr  ctor_routine[(int)fk_first_extended_type];
-static a_routine_ptr  itoc_routine[(int)fk_first_extended_type];
-static a_routine_ptr  ctoi_routine[(int)fk_first_extended_type];
-static a_routine_ptr  cast_float16_routine[(int)fk_first_extended_type];
-static a_routine_ptr  cast_float_routine[(int)fk_first_extended_type];
-static a_routine_ptr  cast_double_routine[(int)fk_first_extended_type];
-static a_routine_ptr  cast_long_double_routine[(int)fk_first_extended_type];
+static a_routine_ptr  xnegate_routine[(int)fk_first_extended_type+1];
+static a_routine_ptr  xadd_routine[(int)fk_first_extended_type+1];
+static a_routine_ptr  xsubtract_routine[(int)fk_first_extended_type+1];
+static a_routine_ptr  xmultiply_routine[(int)fk_first_extended_type+1];
+static a_routine_ptr  xdivide_routine[(int)fk_first_extended_type+1];
+static a_routine_ptr  xeq_routine[(int)fk_first_extended_type+1];
+static a_routine_ptr  xne_routine[(int)fk_first_extended_type+1];
+static a_routine_ptr  rtoc_routine[(int)fk_first_extended_type+1];
+static a_routine_ptr  ctor_routine[(int)fk_first_extended_type+1];
+static a_routine_ptr  itoc_routine[(int)fk_first_extended_type+1];
+static a_routine_ptr  ctoi_routine[(int)fk_first_extended_type+1];
+static a_routine_ptr  cast_float16_routine[(int)fk_first_extended_type+1];
+static a_routine_ptr  cast_float_routine[(int)fk_first_extended_type+1];
+static a_routine_ptr  cast_double_routine[(int)fk_first_extended_type+1];
+static a_routine_ptr  cast_long_double_routine[(int)fk_first_extended_type+1];
 #if FLOAT80_ENABLING_POSSIBLE
-static a_routine_ptr  cast_float80_routine[(int)fk_first_extended_type];
+static a_routine_ptr  cast_float80_routine[(int)fk_first_extended_type+1];
 #endif /* FLOAT80_ENABLING_POSSIBLE */
 #if FLOAT128_ENABLING_POSSIBLE
-static a_routine_ptr  cast_float128_routine[(int)fk_first_extended_type];
+static a_routine_ptr  cast_float128_routine[(int)fk_first_extended_type+1];
 #endif /* FLOAT128_ENABLING_POSSIBLE */
 
 
@@ -1407,7 +1407,8 @@ static a_library_name_array itoc_routine_name = {
                                           "__c99_ilong_double_to_clong_double",
                                           "__c99_ilong_double_to_clong_double",
                                           "__c99_ifloat80_to_cfloat80",
-                                          "__c99_ifloat128_to_cfloat128"};
+                                          "__c99_ifloat128_to_cfloat128",
+                                          "__c99_ibfloat16_to_cbfloat16"};
 
 /* Complex to imaginary library routines. */
 static a_library_name_array ctoi_routine_name = {
@@ -1419,7 +1420,8 @@ static a_library_name_array ctoi_routine_name = {
                                           "__c99_clong_double_to_ilong_double",
                                           "__c99_clong_double_to_ilong_double",
                                           "__c99_cfloat80_to_ifloat80",
-                                          "__c99_cfloat128_to_ifloat128"};
+                                          "__c99_cfloat128_to_ifloat128",
+                                          "__c99_cbfloat16_to_ibfloat16"};
 
 /* Floating-point to complex library routines. */
 static a_library_name_array rtoc_routine_name = {
@@ -1431,7 +1433,8 @@ static a_library_name_array rtoc_routine_name = {
                                           "__c99_long_double_to_clong_double",
                                           "__c99_long_double_to_clong_double",
                                           "__c99_float80_to_cfloat80",
-                                          "__c99_float128_to_cfloat128"};
+                                          "__c99_float128_to_cfloat128",
+                                          "__c99_bfloat16_to_cbfloat16"};
 
 /* Complex to floating-point to library routines. */
 static a_library_name_array ctor_routine_name = {
@@ -1443,7 +1446,8 @@ static a_library_name_array ctor_routine_name = {
                                           "__c99_clong_double_to_long_double",
                                           "__c99_clong_double_to_long_double",
                                           "__c99_cfloat80_to_float80",
-                                          "__c99_cfloat128_to_float128"};
+                                          "__c99_cfloat128_to_float128",
+                                          "__c99_cbfloat16_to_bfloat16"};
 
 /* Library routines for complex casts. */
 static a_library_name_array cast_float16_routine_name = {
@@ -1455,7 +1459,8 @@ static a_library_name_array cast_float16_routine_name = {
                                           "__c99_cfloat16_to_clong_double",
                                           "__c99_cfloat16_to_clong_double",
                                           "__c99_cfloat16_to_cfloat80",
-                                          "__c99_cfloat16_to_cfloat128"};
+                                          "__c99_cfloat16_to_cfloat128",
+                                          "__c99_cfloat16_to_cbfloat16"};
 static a_library_name_array cast_float_routine_name = {
                                           "__c99_cfloat_to_cfloat16",
                                           NULL, /* fk_fp16 */
@@ -1465,7 +1470,8 @@ static a_library_name_array cast_float_routine_name = {
                                           "__c99_cfloat_to_clong_double",
                                           "__c99_cfloat_to_clong_double",
                                           "__c99_cfloat_to_cfloat80",
-                                          "__c99_cfloat_to_cfloat128"};
+                                          "__c99_cfloat_to_cfloat128",
+                                          "__c99_cfloat_to_cbfloat16"};
 
 static a_library_name_array cast_double_routine_name = {
                                           "__c99_cdouble_to_cfloat16",
@@ -1476,7 +1482,8 @@ static a_library_name_array cast_double_routine_name = {
                                           "__c99_cdouble_to_clong_double",
                                           "__c99_cdouble_to_clong_double",
                                           "__c99_cdouble_to_cfloat80",
-                                          "__c99_cdouble_to_cfloat128"};
+                                          "__c99_cdouble_to_cfloat128",
+                                          "__c99_cdouble_to_cbfloat16"};
 
 static a_library_name_array cast_long_double_routine_name = {
                                           "__c99_clong_double_to_cfloat16",
@@ -1487,7 +1494,8 @@ static a_library_name_array cast_long_double_routine_name = {
                                           NULL,
                                           NULL,
                                           "__c99_clong_double_to_cfloat80",
-                                          "__c99_clong_double_to_cfloat128"};
+                                          "__c99_clong_double_to_cfloat128",
+                                          "__c99_clong_double_to_cbfloat16"};
 
 #if FLOAT80_ENABLING_POSSIBLE
 static a_library_name_array cast_float80_routine_name = {
@@ -1499,7 +1507,8 @@ static a_library_name_array cast_float80_routine_name = {
                                           "__c99_cfloat80_to_clong_double",
                                           "__c99_cfloat80_to_clong_double",
                                           NULL,
-                                          "__c99_cfloat80_to_cfloat128"};
+                                          "__c99_cfloat80_to_cfloat128",
+                                          "__c99_cfloat80_t0_cbfloat16"};
 #endif /* FLOAT80_ENABLING_POSSIBLE */
 
 #if FLOAT128_ENABLING_POSSIBLE
@@ -1512,7 +1521,8 @@ static a_library_name_array cast_float128_routine_name = {
                                           "__c99_cfloat128_to_clong_double",
                                           "__c99_cfloat128_to_clong_double",
                                           "__c99_cfloat128_to_cfloat80",
-                                          NULL};
+                                          NULL,
+                                          "__c99_cfloat128_to_cbfloat16"};
 #endif /* FLOAT128_ENABLING_POSSIBLE */
 
 /* Names of the complex negate runtime routines. */
@@ -1525,7 +1535,8 @@ static a_library_name_array xnegate_routine_name = {
                                           "__c99_complex_long_double_negate",
                                           "__c99_complex_long_double_negate",
                                           "__c99_complex_float80_negate",
-                                          "__c99_complex_float128_negate"};
+                                          "__c99_complex_float128_negate",
+                                          "__c99_complex_bfloat16_negate"};
 
 
 void lower_c99_xnegate(an_expr_node_ptr  expr)
@@ -1560,7 +1571,8 @@ static a_library_name_array xadd_routine_name = {
                                                "__c99_complex_long_double_add",
                                                "__c99_complex_long_double_add",
                                                "__c99_complex_float80_add",
-                                               "__c99_complex_float128_add"};
+                                               "__c99_complex_float128_add",
+                                               "__c99_complex_bfloat16_add"};
 
 
 void lower_c99_xadd(an_expr_node_ptr  expr)
@@ -1595,7 +1607,8 @@ static a_library_name_array xsubtract_routine_name = {
                                          "__c99_complex_long_double_subtract",
                                          "__c99_complex_long_double_subtract",
                                          "__c99_complex_float80_subtract",
-                                         "__c99_complex_float128_subtract"};
+                                         "__c99_complex_float128_subtract",
+                                         "__c99_complex_bfloat16_subtract"};
 
 
 void lower_c99_xsubtract(an_expr_node_ptr  expr)
@@ -1630,7 +1643,8 @@ static a_library_name_array xmultiply_routine_name = {
                                          "__c99_complex_long_double_multiply",
                                          "__c99_complex_long_double_multiply",
                                          "__c99_complex_float80_multiply",
-                                         "__c99_complex_float128_multiply"};
+                                         "__c99_complex_float128_multiply",
+                                         "__c99_complex_bfloat16_multiply"};
 
 
 void lower_c99_xmultiply(an_expr_node_ptr  expr)
@@ -1665,7 +1679,8 @@ static a_library_name_array xdivide_routine_name = {
                                            "__c99_complex_long_double_divide",
                                            "__c99_complex_long_double_divide",
                                            "__c99_complex_float80_divide",
-                                           "__c99_complex_float128_divide"};
+                                           "__c99_complex_float128_divide",
+                                           "__c99_complex_bfloat16_divide"};
 
 
 void lower_c99_xdivide(an_expr_node_ptr  expr)
@@ -1699,7 +1714,8 @@ static a_library_name_array xeq_routine_name = {"__c99_complex_float16_eq",
                                                 "__c99_complex_long_double_eq",
                                                 "__c99_complex_long_double_eq",
                                                 "__c99_complex_float80_eq",
-                                                "__c99_complex_float128_eq"};
+                                                "__c99_complex_float128_eq",
+                                                "__c99_complex_bfloat16_eq"};
 
 
 void lower_c99_xeq(an_expr_node_ptr  expr)
@@ -1734,7 +1750,8 @@ static a_library_name_array xne_routine_name = {"__c99_complex_float16_ne",
                                                 "__c99_complex_long_double_ne",
                                                 "__c99_complex_long_double_ne",
                                                 "__c99_complex_float80_ne",
-                                                "__c99_complex_float128_ne"};
+                                                "__c99_complex_float128_ne",
+                                                "__c99_complex_bfloat16_ne"};
 
 
 void lower_c99_xne(an_expr_node_ptr  expr)
@@ -2068,7 +2085,7 @@ negating one part in the "-" case.
 #if C99_IL_EXTENSIONS_SUPPORTED
 
 /* Complex conjugation routines. */
-static a_routine_ptr  xconj_routine[(int)fk_first_extended_type];
+static a_routine_ptr  xconj_routine[(int)fk_first_extended_type+1];
 
 /* Names of the complex conjugation runtime routines. */
 static a_library_name_array xconj_routine_name = {
@@ -2080,7 +2097,8 @@ static a_library_name_array xconj_routine_name = {
                                              "__c99_complex_long_double_conj",
                                              "__c99_complex_long_double_conj",
                                              "__c99_complex_float80_conj",
-                                             "__c99_complex_float128_conj"};
+                                             "__c99_complex_float128_conj",
+                                             "__c99_complex_bfloat16_conj"};
 
 void lower_xconj(an_expr_node_ptr  expr)
 /*
@@ -2566,8 +2584,9 @@ static a_library_name_array float_fixed_conv_routine_name = {
                                                          "_Fixed_from_ldouble",
                                                          "_Fixed_from_ldouble",
                                                          NULL,
+                                                         NULL,
                                                          NULL};
-static a_routine_ptr float_fixed_conv_routine[(int)fk_first_extended_type];
+static a_routine_ptr float_fixed_conv_routine[(int)fk_first_extended_type+1];
 static a_library_name_array fixed_float_conv_routine_name = {
                                                            NULL,
                                                            NULL, /* fk_fp16 */
@@ -2577,8 +2596,9 @@ static a_library_name_array fixed_float_conv_routine_name = {
                                                            "_Fixed_to_ldouble",
                                                            "_Fixed_to_ldouble",
                                                            NULL,
+                                                           NULL,
                                                            NULL};
-static a_routine_ptr fixed_float_conv_routine[(int)fk_first_extended_type];
+static a_routine_ptr fixed_float_conv_routine[(int)fk_first_extended_type+1];
 
 
 static void lower_c99_fixed_point_cast(an_expr_node_ptr expr)
@@ -5115,7 +5135,7 @@ for each translation unit.
 {
 #if LOWER_COMPLEX
   { int k;
-    for (k = 0; k < (int)fk_first_extended_type; ++k) {
+    for (k = 0; k < (int)fk_first_extended_type+1; ++k) {
       xnegate_routine[k] = NULL;
       xadd_routine[k] = NULL;
       xsubtract_routine[k] = NULL;
@@ -5167,7 +5187,7 @@ for each translation unit.
   fixed_incr_routine = NULL;
   fixed_decr_routine = NULL;
   { int k;
-    for (k = 0; k < (int)fk_first_extended_type; ++k) {
+    for (k = 0; k < (int)fk_first_extended_type+1; ++k) {
       float_fixed_conv_routine[k] = NULL;
       fixed_float_conv_routine[k] = NULL;
     }  /* for */

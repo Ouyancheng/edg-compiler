@@ -5409,6 +5409,8 @@ enum a_float_kind : a_byte {
   fk_float80,		/* __float80, if distinct. */
   fk_float128,		/* __float128, if distinct. */
   fk_first_extended_type,
+  /* The bfloat16 type must be the first extended type, as the
+     select_name_from_float_kind() routines depend on it. */
   fk_std_bfloat16 = fk_first_extended_type,
   fk_std_float16,
   fk_std_float32,
