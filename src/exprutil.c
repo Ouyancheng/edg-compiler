@@ -704,6 +704,18 @@ field.
           (new_kind & (SRK_ADDRESS_TAKEN | SRK_USE))) {
         record_reference(rep);
       }  /* if */
+      if ((new_kind & SRK_PROTO_INST_REF) != 0 &&
+          rep->symbol != NULL && is_local_symbol(rep->symbol)) {
+        /* Prototype instantiations should not mark non-local scope entities as
+           referenced or used, and that is what SRK_PROTO_INST_REF is for.
+           However, for local entities, we do want to mark them since otherwise
+           we may produce spurious warnings about unreferenced and/or unused
+           local variables. */
+        if (!in_unevaluated_expr_context()) {
+          rep->kind |= SRK_USE;
+        }  /* if */
+        record_reference(rep);
+      }  /* if */
       /* Set the new reference kind. Turn off all old bits, then turn on
          new bits.  SRK_REFERENCE remains set in all cases. */
       rep->kind = (old_kind & ~SRK_ALL_REFERENCES) | new_kind;

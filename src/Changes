@@ -1,5 +1,13 @@
 Version 6.6
 
+9/21/23  [EDGcpfe/26638]
+Spurious "declared but never referenced" warnings in templates
+
+The front end sometimes considered local variables in templates not to be
+referenced even though they potentially are.  This caused some spurious
+warnings to be issued in such contexts.  That is now fixed.
+
+
 9/15/23  [EDGcpfe/25076,EDGcpfe/26487]
 C++23: Add support for attributes in lambda-expressions
 
