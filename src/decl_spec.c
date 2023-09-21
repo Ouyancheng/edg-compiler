@@ -7412,6 +7412,32 @@ modified by sign and/or size specifiers.  E.g.:
 #define current_mode_allows_typedef_with_adjectives()                       \
   (C_dialect == C_dialect_pcc || gpp_mode || (gcc_mode && gnu_version < 30400))
 
+static a_basic_type basic_float_type(a_float_kind fkind)
+/*
+Return the basic type corresponding to the given floating-point kind.
+*/
+{
+  a_basic_type basic_type = bt_double;
+
+  if (fkind == fk_std_bfloat16) {
+    basic_type = bt_bfloat16;
+  } else if (fkind == fk_float16) {
+    basic_type = bt_float16;
+  } else if (fkind == fk_fp16) {
+    basic_type = bt_fp16;
+  } else if (fkind == fk_float) {
+    basic_type = bt_float;
+  } else if (fkind == fk_float32x) {
+    basic_type = bt_float32x;
+  } else if (fkind == fk_double) {
+    basic_type = bt_double;
+  } else if (fkind == fk_float64x) {
+    basic_type = bt_float64x;
+  }  /* if */
+  return basic_type;
+}  /* basic_float_type */
+
+
 static a_basic_type basic_type_from_typedef(a_decl_parse_state  *dps,
                                             a_type_sign         *sign,
                                             a_type_size         *size)
@@ -7429,7 +7455,6 @@ unchanged.
   a_basic_type     basic_type = bt_typedef;
   a_type_ptr       temp_type = skip_typerefs(dps->specifiers_type);
   an_integer_kind  ikind;
-  a_float_kind     fkind;
 
   if (temp_type->kind == (a_type_kind)tk_integer) {
     if (temp_type->variant.integer.enum_type ||
@@ -7577,22 +7602,7 @@ unchanged.
       }  /* switch */
     }  /* if */
   } else if (temp_type->kind == (a_type_kind)tk_float) {
-    fkind = temp_type->variant.float_kind;
-    if (fkind == fk_std_bfloat16) {
-      basic_type = bt_bfloat16;
-    } else if (fkind == fk_float16) {
-      basic_type = bt_float16;
-    } else if (fkind == fk_fp16) {
-      basic_type = bt_fp16;
-    } else if (fkind == fk_float) {
-      basic_type = bt_float;
-    } else if (fkind == fk_float32x) {
-      basic_type = bt_float32x;
-    } else if (fkind == fk_double) {
-      basic_type = bt_double;
-    } else if (fkind == fk_float64x) {
-      basic_type = bt_float64x;
-    }  /* if */
+    basic_type = basic_float_type(temp_type->variant.float_kind);
   }  /* if */
   if (basic_type != bt_typedef) dps->specifiers_type = NULL;
   return basic_type;
@@ -12613,11 +12623,12 @@ exit_loop:
         /* _Complex _Float16 */
         basic_type = bt_float16;
         bad_complex_combination = FALSE;
-      } else if (basic_type == bt_typedef &&
-                 type_is(skip_typerefs(*type_ptr), tk_float) &&
-                 skip_typerefs(*type_ptr)->variant.float_kind ==
-                                                             fk_std_bfloat16) {
-        basic_type = bt_bfloat16;
+      } else if (type_is(*type_ptr, tk_typeref) &&
+                 gpp_version_is(any_version) &&
+                 typeref_is_type_operator(*type_ptr) &&
+                 type_is(skip_typerefs(*type_ptr), tk_float)) {
+        basic_type = basic_float_type(skip_typerefs(*type_ptr)->
+                                                           variant.float_kind);
         bad_complex_combination = FALSE;
       } else {
         /* An invalid type was specified as the basic type for an
