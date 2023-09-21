@@ -27586,23 +27586,27 @@ is TRUE, then the default argument constant is processed too.  A pointer to
 the resulting constant is stored in the pointer pointed to by "constant".
 */
 {
-  a_type_ptr				constant_type;
-  a_symbol_locator   			param_locator;
-  a_source_position  			saved_pos_curr_token;
-  a_source_position  			saved_error_position;
+  a_type_ptr               constant_type;
+  a_symbol_locator         param_locator;
+  a_source_position        saved_pos_curr_token;
+  a_const_char             *saved_start_of_curr_token;
+  a_const_char             *saved_end_of_curr_token;
+  a_source_position        saved_error_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  a_source_position           saved_curr_construct_end_position;
+  a_source_position        saved_curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  a_boolean				type_involves_template_param;
-  a_boolean				constant_involves_template_param;
-  a_boolean				dependent_arg_list;
-  a_push_scope_options_set		ps_options = PS_NO_OPTIONS;
+  a_boolean                type_involves_template_param;
+  a_boolean                constant_involves_template_param;
+  a_boolean                dependent_arg_list;
+  a_push_scope_options_set ps_options = PS_NO_OPTIONS;
 
   type_involves_template_param =
                param_ptr->variant.constant.type_involves_template_param;
   constant_involves_template_param =
             param_ptr->def_arg_involves_template_param;
   saved_pos_curr_token = pos_curr_token;
+  saved_start_of_curr_token = start_of_curr_token;
+  saved_end_of_curr_token = end_of_curr_token;
   saved_error_position = error_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   saved_curr_construct_end_position = curr_construct_end_position;
@@ -27711,6 +27715,8 @@ the resulting constant is stored in the pointer pointed to by "constant".
     }  /* if */
   }  /* if */
   error_position = saved_error_position;
+  end_of_curr_token = saved_end_of_curr_token;
+  start_of_curr_token = saved_start_of_curr_token;
   pos_curr_token = saved_pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = saved_curr_construct_end_position;
