@@ -12719,10 +12719,10 @@ FALSE.
 */
 {
   a_boolean                result = FALSE;
-  a_template_parameter_ptr curr_param = this->curr_param();
+  a_template_parameter_ptr curr_param_ptr = this->curr_param();
 
-  if (curr_param != NULL) {
-    if (curr_param->is_pack) {
+  if (curr_param_ptr != NULL) {
+    if (curr_param_ptr->is_pack) {
       this->param_sym = this->param_sym->next;
       result = TRUE;
     }  /* if */
