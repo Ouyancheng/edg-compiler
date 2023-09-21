@@ -12623,8 +12623,8 @@ exit_loop:
         /* _Complex _Float16 */
         basic_type = bt_float16;
         bad_complex_combination = FALSE;
-      } else if (type_is(*type_ptr, tk_typeref) &&
-                 gpp_version_is(any_version) &&
+      } else if (basic_type == bt_typedef && gpp_version_is(any_version) &&
+                 *type_ptr != NULL && type_is(*type_ptr, tk_typeref) &&
                  typeref_is_type_operator(*type_ptr) &&
                  type_is(skip_typerefs(*type_ptr), tk_float)) {
         basic_type = basic_float_type(skip_typerefs(*type_ptr)->
