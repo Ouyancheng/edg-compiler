@@ -1259,6 +1259,7 @@ Return names[fkind] (a string naming the given floating-point precision).
 
 /* Pointers to lowered versions of complex types, once allocated. */
 static a_type_ptr lowered_complex_float16;
+static a_type_ptr lowered_complex_bfloat16;
 static a_type_ptr lowered_complex_float;
 static a_type_ptr lowered_complex_double;
 static a_type_ptr lowered_complex_long_double;
@@ -1305,22 +1306,31 @@ lowered IL.
     case fk_float16:
       if (lowered_complex_float16 == NULL) {
         lowered_complex_float16 = make_lowered_complex_type(
-                                                    fkind, "_complex_float16");
+                                                    fkind, "_Complex_float16");
       }  /* if */
       result = lowered_complex_float16;
       break;
+    case fk_std_bfloat16:
+      if (lowered_complex_bfloat16 == NULL) {
+        lowered_complex_bfloat16 = make_lowered_complex_type(
+                                                   fkind, "_Complex_bfloat16");
+      }  /* if */
+      result = lowered_complex_bfloat16;
+      break;
+    case fk_std_float32:
     case fk_float:
       if (lowered_complex_float == NULL) {
         lowered_complex_float = make_lowered_complex_type(
-                                                     fkind, "_Complex_float");
+                                                   fk_float, "_Complex_float");
       }  /* if */
       result = lowered_complex_float;
       break;
     case fk_float32x:
+    case fk_std_float64:
     case fk_double:
       if (lowered_complex_double == NULL) {
         lowered_complex_double = make_lowered_complex_type(
-                                                    fkind, "_Complex_double");
+                                                 fk_double, "_Complex_double");
       }  /* if */
       result = lowered_complex_double;
       break;
@@ -1328,7 +1338,7 @@ lowered IL.
     case fk_long_double:
       if (lowered_complex_long_double == NULL) {
         lowered_complex_long_double = make_lowered_complex_type(
-                                               fkind, "_Complex_long_double");
+                                       fk_long_double, "_Complex_long_double");
       }  /* if */
       result = lowered_complex_long_double;
       break;
@@ -1339,10 +1349,11 @@ lowered IL.
       }  /* if */
       result = lowered_complex_float80;
       break;
+    case fk_std_float128:
     case fk_float128:
       if (lowered_complex_float128 == NULL) {
         lowered_complex_float128 = make_lowered_complex_type(
-                                                   fkind, "_Complex_float128");
+                                             fk_float128, "_Complex_float128");
       }  /* if */
       result = lowered_complex_float128;
       break;
@@ -1386,6 +1397,7 @@ static a_routine_ptr  ctor_routine[(int)fk_first_extended_type+1];
 static a_routine_ptr  itoc_routine[(int)fk_first_extended_type+1];
 static a_routine_ptr  ctoi_routine[(int)fk_first_extended_type+1];
 static a_routine_ptr  cast_float16_routine[(int)fk_first_extended_type+1];
+static a_routine_ptr  cast_bfloat16_routine[(int)fk_first_extended_type+1];
 static a_routine_ptr  cast_float_routine[(int)fk_first_extended_type+1];
 static a_routine_ptr  cast_double_routine[(int)fk_first_extended_type+1];
 static a_routine_ptr  cast_long_double_routine[(int)fk_first_extended_type+1];
@@ -1461,6 +1473,17 @@ static a_library_name_array cast_float16_routine_name = {
                                           "__c99_cfloat16_to_cfloat80",
                                           "__c99_cfloat16_to_cfloat128",
                                           "__c99_cfloat16_to_cbfloat16"};
+static a_library_name_array cast_bfloat16_routine_name = {
+                                          "__c99_cbfloat16_to_cfloat16",
+                                          "__c99_cbfloat16_to_cfloat16",
+                                          "__c99_cbfloat16_to_cfloat",
+                                          "__c99_cbfloat16_to_cdouble",
+                                          "__c99_cbfloat16_to_cdouble",
+                                          "__c99_cbfloat16_to_clong_double",
+                                          "__c99_cbfloat16_to_clong_double",
+                                          "__c99_cbfloat16_to_cfloat80",
+                                          "__c99_cbfloat16_to_cfloat128",
+                                          NULL};
 static a_library_name_array cast_float_routine_name = {
                                           "__c99_cfloat_to_cfloat16",
                                           NULL, /* fk_fp16 */
@@ -2175,6 +2198,14 @@ Transform the given complex cast expression into a function call
          a cast to struct type. */
       overwrite_node(expr, src);
     }  /* if */
+  } else if (is_complex_type(src_type) && is_complex_type(dst_type) &&
+             map_extended_float_kinds(src_type->variant.float_kind) ==
+                      map_extended_float_kinds(dst_type->variant.float_kind)) {
+    /* Effectively a do-nothing cast, mapping complex types with equivalent
+       underlying floating-point types.  Eliminate the cast and just change
+       the type of the node. */
+    overwrite_node(expr, src);
+    expr->type = dst_type;
   } else if (is_complex_type(dst_type)) {
     if (is_complex_type(src_type)) {
       /* A change in floating-point precision, complex to complex. */
@@ -2187,6 +2218,10 @@ Transform the given complex cast expression into a function call
         case fk_float16:
           library_routine_name = /*line -e(545)*/&cast_float16_routine_name;
           routine_ptr = cast_float16_routine;
+          break;
+        case fk_std_bfloat16:
+          library_routine_name = /*line -e(545)*/&cast_bfloat16_routine_name;
+          routine_ptr = cast_bfloat16_routine;
           break;
         case fk_float:
           library_routine_name = /*lint -e(545)*/&cast_float_routine_name;
@@ -4812,7 +4847,11 @@ The lowered type is given the name indicated by "name".
 #endif /* MAINTAIN_NEEDED_FLAGS */
     /* Link the types into the IL (in the right order). */
     add_to_front_of_file_scope_types_list(cmplx_type);
-    add_to_front_of_file_scope_types_list(cmplx_type->variant.typeref.type);
+    if (lowered_repr->next == NULL) {
+      /* More than one complex type can be mapped to the same lowered
+         type, so be sure to add the lowered type only once. */
+      add_to_front_of_file_scope_types_list(lowered_repr);
+    }  /* if */
   }  /* if */
 }  /* lower_c99_complex_type */
 
@@ -4830,6 +4869,7 @@ Replace the imaginary and complex C99 types by their lowered representations.
   lower_c99_imaginary_type((a_float_kind)fk_long_double,
                            "_Imaginary_long_double");
   lower_c99_complex_type((a_float_kind)fk_float16, "_Complex_float16");
+  lower_c99_complex_type((a_float_kind)fk_std_bfloat16, "_Complex_bfloat16");
   lower_c99_complex_type((a_float_kind)fk_float, "_Complex_float");
   lower_c99_complex_type((a_float_kind)fk_float32x, "_Complex_double");
   lower_c99_complex_type((a_float_kind)fk_double, "_Complex_double");
@@ -4837,6 +4877,9 @@ Replace the imaginary and complex C99 types by their lowered representations.
   lower_c99_complex_type((a_float_kind)fk_long_double, "_Complex_long_double");
   lower_c99_complex_type((a_float_kind)fk_float80, "_Complex_float80");
   lower_c99_complex_type((a_float_kind)fk_float128, "_Complex_float128");
+  lower_c99_complex_type((a_float_kind)fk_std_float32, "_Complex_float");
+  lower_c99_complex_type((a_float_kind)fk_std_float64, "_Complex_double");
+  lower_c99_complex_type((a_float_kind)fk_std_float128, "_Complex_float128");
 }  /* lower_c99_nonreal_float_types */
 
 #endif /* LOWER_COMPLEX */
@@ -5003,6 +5046,7 @@ Do one-time initialization of variables related to C99 IL lowering.
     static a_pch_saved_variable saved_vars[] = {
 #if LOWER_COMPLEX
       pch_saved_var_array_elem(lowered_complex_float16),
+      pch_saved_var_array_elem(lowered_complex_bfloat16),
       pch_saved_var_array_elem(lowered_complex_float),
       pch_saved_var_array_elem(lowered_complex_double),
       pch_saved_var_array_elem(lowered_complex_long_double),
@@ -5023,6 +5067,7 @@ Do one-time initialization of variables related to C99 IL lowering.
       pch_array_saved_var_array_elem(itoc_routine),
       pch_array_saved_var_array_elem(ctoi_routine),
       pch_array_saved_var_array_elem(cast_float16_routine),
+      pch_array_saved_var_array_elem(cast_bfloat16_routine),
       pch_array_saved_var_array_elem(cast_float_routine),
       pch_array_saved_var_array_elem(cast_double_routine),
       pch_array_saved_var_array_elem(cast_long_double_routine),
@@ -5078,6 +5123,7 @@ Do one-time initialization of variables related to C99 IL lowering.
   register_trans_unit_array(itoc_routine);
   register_trans_unit_array(ctoi_routine);
   register_trans_unit_array(cast_float16_routine);
+  register_trans_unit_array(cast_bfloat16_routine);
   register_trans_unit_array(cast_float_routine);
   register_trans_unit_array(cast_double_routine);
   register_trans_unit_array(cast_long_double_routine);
@@ -5088,6 +5134,7 @@ Do one-time initialization of variables related to C99 IL lowering.
   register_trans_unit_array(cast_float128_routine);
 #endif /* FLOAT128_ENABLING_POSSIBLE */
   register_trans_unit_variable(lowered_complex_float16),
+  register_trans_unit_variable(lowered_complex_bfloat16),
   register_trans_unit_variable(lowered_complex_float);
   register_trans_unit_variable(lowered_complex_double);
   register_trans_unit_variable(lowered_complex_long_double);
@@ -5151,6 +5198,7 @@ for each translation unit.
       itoc_routine[k] = NULL;
       ctoi_routine[k] = NULL;
       cast_float16_routine[k] = NULL;
+      cast_bfloat16_routine[k] = NULL;
       cast_float_routine[k] = NULL;
       cast_double_routine[k] = NULL;
       cast_long_double_routine[k] = NULL;
@@ -5163,6 +5211,7 @@ for each translation unit.
     }  /* for */
   }
   lowered_complex_float16 = NULL;
+  lowered_complex_bfloat16 = NULL;
   lowered_complex_float = NULL;
   lowered_complex_double = NULL;
   lowered_complex_long_double = NULL;

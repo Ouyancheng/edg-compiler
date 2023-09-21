@@ -12589,7 +12589,7 @@ exit_loop:
         basic_type != bt_float && basic_type != bt_double &&
         basic_type != bt_float32 && basic_type != bt_float32x &&
         basic_type != bt_float64 && basic_type != bt_float64x &&
-        basic_type != bt_float128) {
+        basic_type != bt_float128 && basic_type != bt_bfloat16) {
       /* _Complex and _Imaginary usually require "float" or "double".  GNU C
          mode is an exception: If no type specifier is mentioned, "double" is
          implied.  In some GNU and clang versions, "_Float16" is also
@@ -12612,6 +12612,12 @@ exit_loop:
                                                              fk_std_float16)) {
         /* _Complex _Float16 */
         basic_type = bt_float16;
+        bad_complex_combination = FALSE;
+      } else if (basic_type == bt_typedef &&
+                 type_is(skip_typerefs(*type_ptr), tk_float) &&
+                 skip_typerefs(*type_ptr)->variant.float_kind ==
+                                                             fk_std_bfloat16) {
+        basic_type = bt_bfloat16;
         bad_complex_combination = FALSE;
       } else {
         /* An invalid type was specified as the basic type for an

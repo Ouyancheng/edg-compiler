@@ -94,6 +94,11 @@ BEGIN_EDG_NAMESPACE
 #define MANGLING_STRING_FOR_COMPLEX_LONG_DOUBLE "Ce"
 #define MANGLING_STRING_FOR_COMPLEX_FLOAT80 "Cu7float80"
 #define MANGLING_STRING_FOR_COMPLEX_FLOAT128 "Cg"
+#define MANGLING_STRING_FOR_COMPLEX_STD_BFLOAT16_X86 "CDF16b"
+#define MANGLING_STRING_FOR_COMPLEX_STD_BFLOAT16_ARM "Cu6__bf16"
+#define MANGLING_STRING_FOR_COMPLEX_STD_FLOAT32 "CDF32_"
+#define MANGLING_STRING_FOR_COMPLEX_STD_FLOAT64 "CDF64_"
+#define MANGLING_STRING_FOR_COMPLEX_STD_FLOAT128 "CDF128_"
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #define MANGLING_STRING_FOR_REFERENCE "R"
 #define MANGLING_STRING_FOR_RVALUE_REFERENCE "O"
@@ -354,6 +359,10 @@ type in the std namespace.
 #define MANGLING_STRING_FOR_COMPLEX_LONG_DOUBLE "xr"
 #define MANGLING_STRING_FOR_COMPLEX_FLOAT80 "xmf10"
 #define MANGLING_STRING_FOR_COMPLEX_FLOAT128 "xmf16"
+#define MANGLING_STRING_FOR_COMPLEX_STD_BFLOAT16 "xQ2_3std8bfloat16"
+#define MANGLING_STRING_FOR_COMPLEX_STD_FLOAT32 "xQ2_3std7float32"
+#define MANGLING_STRING_FOR_COMPLEX_STD_FLOAT64 "xQ2_3std7float64"
+#define MANGLING_STRING_FOR_COMPLEX_STD_FLOAT128 "xQ2_3std8float128"
 #if C99_IL_EXTENSIONS_SUPPORTED
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #define MANGLING_STRING_FOR_REFERENCE "R"
@@ -10357,6 +10366,28 @@ top_of_loop:
             break;
           case fk_float128:
             s = MANGLING_STRING_FOR_COMPLEX_FLOAT128;
+            break;
+          case fk_std_bfloat16:
+#if IA64_ABI
+            if (clang_mode || (gnu_mode && target_is_arm_based())) {
+              /* Use "u6__bf16" mangling. */
+              s = MANGLING_STRING_FOR_COMPLEX_STD_BFLOAT16_ARM;
+            } else {
+              /* Use "DF16b" mangling. */
+              s = MANGLING_STRING_FOR_COMPLEX_STD_BFLOAT16_X86;
+            }  /* if */
+#else /* !IA64_ABI */
+            s = MANGLING_STRING_FOR_COMPLEX_STD_BFLOAT16;
+#endif /* IA64_ABI */
+            break;
+          case fk_std_float32:
+            s = MANGLING_STRING_FOR_COMPLEX_STD_FLOAT32;
+            break;
+          case fk_std_float64:
+            s = MANGLING_STRING_FOR_COMPLEX_STD_FLOAT64;
+            break;
+          case fk_std_float128:
+            s = MANGLING_STRING_FOR_COMPLEX_STD_FLOAT128;
             break;
           default:
             unexpected_condition_str(
