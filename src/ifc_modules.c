@@ -12554,9 +12554,9 @@ This class is used to encapsulate the state associated with a template argument
 list reconstruction for a given template's parameters.
 */
 struct a_template_argument_append_state {
-  a_template_argument_append_state(a_symbol_ptr template_sym)
-    : head(NULL), tail(NULL), templ_sym(template_sym),
-      param_sym(get_sym_template_parameters(template_sym))
+  a_template_argument_append_state(a_symbol_ptr templ_sym_val)
+    : head(NULL), tail(NULL), templ_sym(templ_sym_val),
+      param_sym(get_sym_template_parameters(templ_sym_val))
     {}
   a_symbol_ptr template_sym() const
     { return this->templ_sym; }
