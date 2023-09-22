@@ -1,5 +1,17 @@
 Version 6.6
 
+9/22/23  [EDGcpfe/25541,EDGcpfe/26642]
+Variable template declared with "inline" not marked as such
+
+Consider:
+
+  template<typename T> inline constexpr bool vt = true;
+
+The front end previously failed to reflect the presence of the "inline" keyword
+in the IL.  That, e.g., resulted in the C++-generating back end not rendering
+the keyword in its output.  That bug is now fixed.
+
+
 9/21/23  [EDGcpfe/24461,EDGcpfe/26638]
 Spurious "declared but never referenced" warnings in templates
 

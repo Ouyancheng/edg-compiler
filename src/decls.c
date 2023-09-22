@@ -7131,6 +7131,9 @@ current declaration.  is_definition is TRUE if this is a aefinition
 of the variable.
 */
 {
+  if (dps->dso_flags & DSO_INLINE) {
+    mark_inline_variable(vp, is_definition);
+  }  /* if */
   if (dps->dso_flags & DSO_CONSTEXPR) {
     if (is_definition || vp->initializer_in_class ||
         (vp->is_prototype_instantiation &&
