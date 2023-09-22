@@ -17113,7 +17113,7 @@ typedef struct a_lambda {
   a_bit_field	has_template_param_list:1;
 			/* TRUE if the lambda has an explicit template
 			   parameter list.  In cases where this is TRUE, any
-			   lambda attributes are present in token cache of
+			   lambda attributes are present in the token cache of
 			   the template. */
   a_source_position
 		start_position;
