@@ -1864,6 +1864,7 @@ source file's compilation.
   layout_init();
   def_arg_init();
   templates_init();
+  types_init();
   corresp_init();
   exprutil_init();
   lookup_init();

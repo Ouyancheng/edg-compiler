@@ -7183,6 +7183,7 @@ Display the indicated base class entry.
 */
 {
   disp_ptr("next", (char *)ptr->next, iek_base_class);
+  disp_ptr("next_direct", (char *)ptr->next_direct, iek_base_class);
 #if IA64_ABI
   disp_ptr("next_preorder", (char *)ptr->next_preorder, iek_base_class);
   disp_ptr("primary_base_class", (char *)ptr->primary_base_class, 
@@ -7269,6 +7270,8 @@ Display the indicated class type supplement entry.
 */
 {
   disp_ptr("base_classes", (char *)ptr->base_classes, iek_base_class);
+  disp_ptr("direct_base_classes", (char *)ptr->direct_base_classes,
+           iek_base_class);
 #if IA64_ABI
   disp_ptr("preorder_base_classes", (char *)ptr->preorder_base_classes,
            iek_base_class);

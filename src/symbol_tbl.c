@@ -483,7 +483,7 @@ function param list -- called from db_symbol.
 
 
 static char *str_path(char               buffer[],
-                      a_derivation_step  *path,
+                      a_derivation_path  path,
                       a_const_char       *initial_string,
                       a_const_char       *separator)
 /*
@@ -497,7 +497,7 @@ from db_symbol.
   a_const_char       *sep = initial_string;
 
   buffer[0] = '\0';
-  for (dsp = path; dsp != NULL; dsp = dsp->next) {
+  for (dsp = path.head; dsp != path.tail->next; dsp = dsp->next) {
     bcp = dsp->base_class;
     (void)sprintf(&buffer[strlen(buffer)],
                   "%s%s",
@@ -1089,15 +1089,12 @@ do_variable:
         put_string("intervening using decl");
       }  /* if */
       { a_projection_descr_ptr pdp = sym->variant.projection.extra_info;
-        if (pdp->fundamental_base_class != NULL &&
-            pdp->fundamental_base_class->derivation != NULL) {
-          a_derivation_step_ptr  step;
-          step = pdp->fundamental_base_class->derivation->path;
-          if (pdp->fundamental_base_class->is_virtual) {
-            /* For virtual base classes show just the last "hop". */
-            while (step->next != NULL) step = step->next;
-          }  /* if */
-          put_string(str_path(buffer, step, "path = ==>", "==>"));
+        a_base_class_ptr       bcp = pdp->fundamental_base_class;
+        if (bcp != NULL && bcp->derivation != NULL) {
+          put_string(str_path(buffer,
+                              { cast_derivation_path_of(bcp),
+                                bcp->derivation->path_tail },
+                              "path = ==>", "==>"));
         }  /* if */
       }
       break;
@@ -12620,37 +12617,33 @@ to by "path".  This path is part of the path for the base class derivation
 bcdp.
 */
 {
-  a_base_class_ptr            bcp;
-  a_base_class_derivation_ptr pref_bcdp;
-
   if (path != NULL) {
-    /* Use a recursive call to compute the access over all the steps
-       after the first one. */
-    if (path->next != NULL) {  /* Test is for speed. */
-      sym_access = access_to_end_of_path(sym_access, path->next, bcdp);
-    }  /* if */
-    /* Now modify the access to account for the first step. */
-    /* Virtual base classes get special handling, but not when they appear as
-       the last step of derivations. */
-    bcp = path->base_class;
-    if (path->next == NULL) {
-      /* This is the last step in the derivation for a base class.
-         Add the effect of this step into the accumulated access.
-         Use the derivation access specified in the header for the base
-         class derivation (important for virtual base classes). */
-      sym_access = compute_access(sym_access, bcdp->access);
-    } else if (is_virtual_but_not_simple_direct_base_class(bcp)) {
-      /* The first step is a virtual step which is more than a direct base
-         class with a single derivation.  Compute the access over the
-         preferred derivation (which has the best access). */
-      pref_bcdp = preferred_virtual_derivation_of(bcp);
-      sym_access = access_to_end_of_path(sym_access, pref_bcdp->path,
-                                         pref_bcdp);
-    } else {
-      /* The first step is a nonvirtual step, or it's a simple virtual
-         step.  Add the effect of this step into the accumulated access. */
-      sym_access = compute_access(sym_access, bcp->derivation->access);
-    }  /* if */
+    a_derivation_step_ptr  dsp = bcdp->path_tail;
+
+    /* This is the last step in the derivation for a base class.
+       Add the effect of this step into the accumulated access.
+       Use the derivation access specified in the header for the base
+       class derivation (important for virtual base classes). */
+    sym_access = compute_access(sym_access, bcdp->access);
+    dsp = dsp->prev;
+    for (; dsp != path->prev; dsp = dsp->prev) {
+      a_base_class_ptr  bcp = dsp->base_class;
+
+      /* Virtual base classes get special handling. */
+      if (is_virtual_but_not_simple_direct_base_class(bcp)) {
+        /* This is a virtual step which is more than a direct base class with a
+           single derivation.  Compute the access over the preferred derivation
+           (which has the best access). */
+        a_base_class_derivation_ptr  pref_bcdp;
+        pref_bcdp = preferred_virtual_derivation_of(bcp);
+        sym_access = access_to_end_of_path(sym_access, pref_bcdp->path,
+                                           pref_bcdp);
+      } else {
+        /* This is a nonvirtual step, or it's a simple virtual step.  Add the
+           effect of this step into the accumulated access. */
+        sym_access = compute_access(sym_access, bcp->derivation->access);
+      }  /* if */
+    }  /* for */
   }  /* if */
   return sym_access;
 }  /* access_to_end_of_path */
@@ -13262,7 +13255,7 @@ this one.
          step to that base class. */
       bcp = path->base_class;
       virtual_step = FALSE;
-      if (bcp->is_virtual && path->next != NULL) {
+      if (bcp->is_virtual && path != bcdp->path_tail) {
         /* Virtual step.  We have to examine the various derivations for
            the virtual base class.  Add an entry to the stack of virtual step
            entries being processed.  This stack is used when the other end of
@@ -13293,11 +13286,12 @@ this one.
         /* Get the derivation access for this derivation step.  If this step
            is the last on a derivation, get the access from the base class
            derivation entry (important for virtual base classes). */
-        path_next = path->next;
-        if (path_next == NULL) {
+        if (path == bcdp->path_tail) {
           base_class_deriv = bcdp->access;
+          path_next = NULL;
         } else {
           base_class_deriv = path->base_class->derivation->access;
+          path_next = path->next;
         }  /* if */
         base_class_accessible = FALSE;
         if (base_class_deriv == (an_access_specifier)as_public) {
@@ -14378,15 +14372,16 @@ the base class bcp.
 {
   a_boolean                   have_access = FALSE;
   a_base_class_derivation_ptr bcdp;
-  a_derivation_step_ptr       dsp;
+  a_derivation_step_ptr       dsp, tail;
 
   /* For each derivation (virtual base classes can have more than one): */
   for (bcdp = bcp->derivation; bcdp != NULL; bcdp = bcdp->next) {
     /* For each step on the derivation path, check to see if we have
        member access to the class. */
-    for (dsp = bcdp->path; dsp != NULL; dsp = dsp->next) {
+    tail = bcdp->path_tail;
+    for (dsp = bcdp->path; dsp != tail->next; dsp = dsp->next) {
       a_base_class_ptr base_class = dsp->base_class;
-      if (dsp->next != NULL && base_class->is_virtual) {
+      if (dsp != tail && base_class->is_virtual) {
         /* Virtual base class.  Do a recursive call to process the
            derivations of the virtual base class. */
         if (have_member_access_to_some_class_on_derivation(base_class)) {
@@ -14519,7 +14514,7 @@ class.
 */
 {
   a_boolean                   accessible = TRUE;
-  a_derivation_step_ptr       dsp;
+  a_derivation_step_ptr       dsp, tail;
   a_base_class_ptr            base_class;
   a_type_ptr                  curr_type;
 
@@ -14529,7 +14524,8 @@ class.
     accessible = is_accessible_virtual_base_class(bcp, curr_type);
   } else {
     /* Non-virtual base class. */
-    for (dsp = bcp->derivation->path; dsp != NULL; dsp = dsp->next) {
+    tail = bcp->derivation->path_tail;
+    for (dsp = bcp->derivation->path; dsp != tail->next; dsp = dsp->next) {
       base_class = dsp->base_class;
       if (!is_accessible_imm_base_class(base_class, curr_type, bcp)) {
         accessible = FALSE;
@@ -14611,15 +14607,16 @@ the current point in the program, relative to viewpoint_class.
   /* A virtual base class can have multiple derivations.  Loop through
      each derivation in turn. */
   for (bcdp = bcp->derivation; bcdp != NULL; bcdp = bcdp->next) {
+    a_derivation_step_ptr  tail = bcdp->path_tail;
     curr_type = viewpoint_class;
     /* Look through the path of the derivation. */
-    for (dsp = bcdp->path; dsp != NULL; dsp = dsp->next) {
+    for (dsp = bcdp->path; dsp != tail->next; dsp = dsp->next) {
       base_class = dsp->base_class;
       /* See if the base class at this step is accessible. */
       /* Virtual steps cause recursive calls, but treat the last step
          as a direct base class and as the specific derivation of the base
          class even if it is virtual. */
-      last_step = (dsp->next == NULL);
+      last_step = (dsp == tail);
       step_bcdp = last_step ? bcdp : base_class->derivation;
       if ((!last_step &&
            is_virtual_but_not_simple_direct_base_class(base_class)) ?
@@ -14874,9 +14871,10 @@ the lookup should consider C++/CLI interface classes.
        unless it is only a single step.  This is consistent with the way
        derivations are constructed for base classes: the steps between the
        most derived class and an intermediate virtual base class are elided. */
-    if (pp->path == NULL || pp->path->next == NULL ||
-        !pp->path->base_class->is_virtual) {
-      pp->path = make_derivation_step(base_class, pp->path);
+    a_derivation_step_ptr  dsp = pp->path;
+    if (dsp == NULL || dsp->next == NULL || !dsp->base_class->is_virtual) {
+      pp->path = make_derivation_step(base_class, dsp);
+      if (dsp != NULL) dsp->prev = pp->path;
     }  /* if */
     if (using_decl_sym != NULL) {
       pp->access = enum_cast<an_access_specifier>(
@@ -14890,7 +14888,7 @@ the lookup should consider C++/CLI interface classes.
 }  /* find_progenitor_in_base_class */
 
 
-static a_derivation_step_ptr path_to_fundamental_symbol_base_class
+static a_derivation_path path_to_fundamental_symbol_base_class
                                               (a_symbol_ptr      sym,
                                                a_base_class_ptr  disambiguator)
 /*
@@ -14903,7 +14901,7 @@ fundamental symbol.  Return the preferred derivation of that base class.
 {
   a_type_ptr             tp;
   a_base_class_ptr       bcp;
-  a_derivation_step_ptr  path = NULL;
+  a_derivation_path      path = { NULL, NULL };
 
   db_enter(4, "path_to_fundamental_symbol_base_class");
   /* Note that corresponding_base_class is not called, since it is hard to
@@ -14916,12 +14914,15 @@ fundamental symbol.  Return the preferred derivation of that base class.
       /* A base class with the right type. */
       if (!bcp->ambiguous || is_on_any_derivation_of(bcp, disambiguator)) {
         /* Either unambiguous or disambiguated. */
-        path = preferred_derivation_of(bcp)->path;
+        a_base_class_derivation_ptr  preferred_derivation;
+        preferred_derivation = preferred_derivation_of(bcp);
+        path = { preferred_derivation->path,
+                 preferred_derivation->path_tail };
         break;
       }  /* if */
     }  /* if */
   }  /* for */
-  check_assertion_str(path != NULL,
+  check_assertion_str(path.head != NULL && path.tail != NULL,
                       "path_to_fundamental_symbol_base_class: not found");
   db_exit();
   return path;
@@ -14961,7 +14962,7 @@ equivalent derivations).
 */
 {
   a_symbol_ptr           sym1 = progenitor1->sym, sym2 = progenitor2->sym;
-  a_derivation_step_ptr  path1 = progenitor1->path, path2 = progenitor2->path;
+  a_derivation_step_ptr  dsp1 = progenitor1->path, dsp2 = progenitor2->path;
   a_boolean              equiv = FALSE;
   a_symbol_ptr           fundamental_sym1;
   a_symbol_ptr           fundamental_sym2;
@@ -15053,17 +15054,26 @@ check_rout_type:
       /* If sym1 or sym2 is a projection symbol, use a path that goes all the
          way to the corresponding fundamental symbol instead of a path to the
          projection. */
+      a_derivation_path  path1, path2;
       if (sym1->kind == (a_symbol_kind)sk_projection) {
         /* Find the path to the base class to which sym1 belongs. */
-        path1 = path_to_fundamental_symbol_base_class(sym1, path1->base_class);
+        path1 = path_to_fundamental_symbol_base_class(sym1, dsp1->base_class);
+        tail1 = path1.tail;
+      } else {
+        /* Find the end of the path. */
+        for (tail1 = dsp1; tail1->next != NULL; tail1 = tail1->next) {}
+        path1 = { dsp1, tail1 };
       }  /* if */
       if (sym2->kind == (a_symbol_kind)sk_projection) {
         /* Find the path to the base class to which sym1 belongs. */
-        path2 = path_to_fundamental_symbol_base_class(sym2, path2->base_class);
+        path2 = path_to_fundamental_symbol_base_class(sym2, dsp2->base_class);
+        tail2 = path2.tail;
+      } else {
+        /* Find the end of the path. */
+        for (tail2 = dsp2; tail2->next != NULL; tail2 = tail2->next) {}
+        path2 = { dsp2, tail2 };
       }  /* if */
       /* Find the end of each path. */
-      for (tail1 = path1; tail1->next != NULL; tail1 = tail1->next) {}
-      for (tail2 = path2; tail2->next != NULL; tail2 = tail2->next) {}
       if (same_entities(tail1->base_class->type, tail2->base_class->type)) {
         if (tail1->base_class->is_virtual) {
           /* If the ends of the paths refer to the same virtual base class,

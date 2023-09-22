@@ -16310,8 +16310,10 @@ are traversed while searching for the matching constant).
            r_bcp != NULL;
            r_bcp = r_bcp->next) {
         if (identical_types(r_bcp->type, bcp->type) &&
-            congruent_paths(r_bcp->derivation->path,
-                            bcp->derivation->path->next)) {
+            congruent_paths({ r_bcp->derivation->path,
+                              r_bcp->derivation->path_tail },
+                            { bcp->derivation->path->next,
+                              bcp->derivation->path_tail })) {
           break;
         }  /* if */
       }  /* for */

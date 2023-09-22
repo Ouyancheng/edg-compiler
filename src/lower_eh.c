@@ -1900,7 +1900,6 @@ typeinfo variable in a COMDAT group.
             aggr_con->variant.aggregate.last_constant = base_con;
           } else {
             a_base_class_derivation_ptr  derivation;
-            a_base_class_sequence_number next_base = 1;
             /* Compute the flags that describe the inheritance hierarchy.
                These flags are used by the runtime to optimize the search
                for a base class. */
@@ -1909,22 +1908,9 @@ typeinfo variable in a COMDAT group.
             base_count = 0;
             base_array_con = alloc_constant(
                                          (a_constant_repr_kind)ck_aggregate);
-            base = base_classes_of(type);
-            for (next_base = 1; ; next_base++) {
-              a_base_class_ptr start = base;
-              /* Look for the base with the next sequence number. */
-              while (base->direct_base_number != next_base) {
-                base = base->next;
-                if (base == NULL) {
-                  base = base_classes_of(type);
-                }  /* if */
-                /* If we get back to the place where we started, then there is
-                   no next base.  */
-                if (base == start) break;
-              }  /* while */
-              /* If there was no base with the next sequence number then we
-                 have reached the end of the list.  */
-              if (base->direct_base_number != next_base) break;
+            for (base = direct_base_classes_of(type);
+                 base != NULL;
+                 base = base->next_direct) {
               /* Keep track of how many entries are in the array. */
               ++base_count;
               /* Base field. */

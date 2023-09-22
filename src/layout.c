@@ -1848,12 +1848,8 @@ virtual base of a class directly derived from it.
 
   check_assertion(bcp->is_virtual);
   do {
-    a_derivation_step_ptr  sp = dp->path;
-    while (sp->next != NULL && sp->next->next != NULL) {
-      sp = sp->next;
-    }  /* while */
-    if (sp->next != NULL) {
-      if (sp->base_class->primary_base_class == bcp) {
+    if (dp->path != dp->path_tail) {
+      if (dp->path_tail->prev->base_class->primary_base_class == bcp) {
         result = TRUE;
       }  /* if */
     }  /* if */
@@ -3799,7 +3795,7 @@ derivation path of the base class in class_type that corresponds to bcp.
 {
   a_boolean                    is_best_path;
   a_base_class_derivation_ptr  bcdp;
-  a_derivation_step_ptr        step;
+  a_derivation_step_ptr        step, tail;
 
   if (derived_bcp == NULL) {
 #if CHECKING
@@ -3819,9 +3815,10 @@ derivation path of the base class in class_type that corresponds to bcp.
       /* Return TRUE if a step pointing to derived_bcp is on the derivation
          for bcp. */
       bcdp = bcp->derivation;
+      tail = bcdp->path_tail;
       is_best_path = FALSE;
       while (!bcdp->direct) {
-        for (step = bcdp->path; step != NULL; step = step->next) {
+        for (step = bcdp->path; step != tail->next; step = step->next) {
           if (step->base_class == derived_bcp) {
             is_best_path = TRUE;
             goto done;

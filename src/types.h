@@ -1626,6 +1626,13 @@ may be called only for class, struct, and union types and only in C++ mode.
 #define base_classes_of(tp) \
   ((tp)->variant.class_struct_union.extra_info->base_classes)
 
+/*
+Extract a pointer to a direct base classes list for a class type.  This macro
+may be called only for class, struct, and union types and only in C++ mode.
+*/
+#define direct_base_classes_of(tp) \
+  ((tp)->variant.class_struct_union.extra_info->direct_base_classes)
+
 #if IA64_ABI
 
 /*
@@ -1911,6 +1918,8 @@ an explicit "this" parameter.
   ptp = function_type_params(rtp);
   return ptp != NULL && ptp->is_explicit_this;
 }  /* has_explicit_this_parameter */
+
+extern void types_init(void);
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

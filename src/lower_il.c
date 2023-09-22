@@ -3248,7 +3248,7 @@ pointer to the new node.
 */
 {
   a_type_ptr            class_type, step_class_type, node_class_type;
-  a_derivation_step_ptr dsp;
+  a_derivation_step_ptr dsp, tail;
   a_base_class_ptr      derivation_bcp, step_bcp;
 
   check_assertion(node->is_lvalue);
@@ -3269,6 +3269,7 @@ pointer to the new node.
        derivation). */
     step_class_type = class_type;
     dsp = bcp->derivation->path;
+    tail = bcp->derivation->path_tail;
     /* See if there are any virtual steps in the derivation of the base class.
        If so, the first step is to a virtual base class (the front end
        standardizes the derivation steps up to the last virtual step into
@@ -3290,7 +3291,7 @@ pointer to the new node.
        of the base class itself (that's what node_class_type will contain)
        and the base class entries have the type of the base class itself
        (that's what step_class_type will contain). */
-    for (; dsp != NULL; dsp = dsp->next) {
+    for (; dsp != tail->next; dsp = dsp->next) {
       /* The base class entry pointed to by dsp->base_class is the base
          class entry relative to the original class type.  Find the base
          class entry for this step relative to the intermediate class we
@@ -5473,9 +5474,10 @@ function.
           has_override = TRUE;
           break;
         } else {
-          a_derivation_step_ptr step;
+          a_derivation_step_ptr step, tail;
+          tail = bcp->derivation->path_tail;
           for (step = bcp->derivation->path;
-               step != NULL;
+               step != tail->next;
                step = step->next) {
             if (step->base_class->type == overriding_bcp->type) {
               /* We encountered the overriding class, so there is no
@@ -6050,12 +6052,13 @@ FALSE means either the base class does not need a virtual function table
       a_base_class_ptr      sharing_bcp =
                              bcp->type->variant.class_struct_union.extra_info->
                                               virtual_function_info_base_class;
-      a_derivation_step_ptr dsp;
+      a_derivation_step_ptr dsp, tail;
       /* A virtual function table can't be shared with a virtual base, so
          there can only be one derivation. */
       check_assertion(sharing_bcp->derivation->next == NULL);
+      tail = sharing_bcp->derivation->path_tail;
       for (dsp = sharing_bcp->derivation->path;
-           dsp != NULL;
+           dsp != tail->next;
            dsp = dsp->next) {
         a_base_class_ptr other_bcp = corresp_base_class(dsp->base_class, bcp);
         if (other_bcp->variant.overriding_virtual_functions != NULL) {
@@ -7293,11 +7296,12 @@ save the caller from searching for this routine.
       derived_bcp = NULL;
       break;
     }  /* if */
-    /* Find the immediate derived class of the derived_bcp.  Since
+    /* Get the immediate derived class of the derived_bcp.  Since
        derived_bcp is neither virtual nor direct, there are at least two
        steps in the derivation. */
-    step = derived_bcp->derivation->path;
-    while (step->next->next != NULL) step = step->next;
+    step = derived_bcp->derivation->path_tail;
+    check_assertion(step != derived_bcp->derivation->path);
+    step = step->prev;
     derived_bcp = step->base_class;
   }  /* while */
   if (derived_bcp != overriding_bcp) {

@@ -7429,8 +7429,16 @@ typedef struct a_derivation_step {
      fundamental class. */
   a_derivation_step_ptr
                 next;
-			/* The next step in the derivation path.  If next
-			   is NULL, this is the end of the derivation. */
+			/* The next step in the derivation path.  If next is
+			   NULL, this is the end of the list.  Note that a
+			   derivation step may be shared amongst different base
+			   class derivations, in which case the last step of
+			   the derivation path is denoted by path_tail in
+			   a_base_class_derivation. */
+  a_derivation_step_ptr
+                prev;
+			/* Previous entry in a doubly linked list; NULL for
+			   the first entry on the list. */
   a_base_class_ptr
                 base_class;
 			/* A pointer to the base class entry representing
@@ -7503,6 +7511,10 @@ typedef struct a_base_class_derivation {
 			   virtual indirect base class, the part of the path
 			   from the derived class to that indirect base class
 			   has been elided. */
+  a_derivation_step_ptr
+		path_tail;
+			/* Pointer to the end of the path from the derived
+			   class to the associated base class. */
   a_bit_field	direct:1;
 			/* TRUE if the associated base class is a direct
 			   base class as a result of this derivation. */
@@ -7546,6 +7558,10 @@ typedef struct a_base_class {
                 next;
 			/* Next in linked list of base class entries (in
 			   postorder traversal order). */
+  a_base_class_ptr
+                next_direct;
+			/* Next in linked list of direct base class entries (in
+			   declaration order). */
 #if IA64_ABI
   a_base_class_ptr
 		next_preorder;
@@ -8257,6 +8273,10 @@ typedef struct a_class_type_supplement {
                         /* A linked list of entries describing all the base
                            classes, both directly and indirectly inherited,
 			   that are included within this class. */
+  a_base_class_ptr
+                direct_base_classes;
+                        /* A linked list of the direct base classes in
+                           declaration order. */
 #if IA64_ABI
   a_base_class_ptr
 		preorder_base_classes;

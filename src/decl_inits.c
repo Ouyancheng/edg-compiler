@@ -2693,13 +2693,9 @@ Return TRUE if the given class type has an initializable field or base.
   a_boolean    result = FALSE;
   a_field_ptr  fp = class_type->variant.class_struct_union.field_list;
 
-  if (next_initializable_field(fp) != NULL) {
+  if (next_initializable_field(fp) != NULL ||
+      direct_base_classes_of(class_type) != NULL) {
     result = TRUE;
-  } else {
-    a_base_class_ptr  bcp = base_classes_of(class_type);
-    if (next_direct_base(bcp) != NULL) {
-      result = TRUE;
-    }  /* if */
   }  /* if */
   return result;
 }  /* has_initializable_subobject */
@@ -2742,7 +2738,7 @@ members up to end_field, but not including end_field, should be initialized.
      initialization is trivial). */
   if (next_bcp != NULL) {
     check_assertion(aggregate_classes_can_have_bases && next_bcp->direct);
-    for (bcp = next_bcp; bcp != NULL; bcp = next_direct_base(bcp->next)) {
+    for (bcp = next_bcp; bcp != NULL; bcp = bcp->next_direct) {
       a_type_ptr      btp = bcp->type;
       a_constant_ptr  init_con = NULL;
       a_class_symbol_supplement_ptr
@@ -3572,7 +3568,7 @@ position is available).
     add_constant_to_aggregate(elem_con, aggr_con, bcp, (a_field_ptr)NULL);
   }  /* if */
   if (!is->pack_expansion_handled) {
-    *p_bcp = next_direct_base(bcp->next);
+    *p_bcp = bcp->next_direct;
   }  /* if */
 }  /* aggr_init_base */
 
@@ -3625,8 +3621,7 @@ issued if no more specific position is available.
       /* C++17 permits aggregate classes with base classes.  However, C++/CLI's
          value classes are aggregate classes that should ignore their base
          class (System::ValueType). */
-      bcp = base_classes_of(class_type);
-      bcp = next_direct_base(bcp);
+      bcp = direct_base_classes_of(class_type);
     }  /* if */
     if (is->check_validity_only) {
       *init_con = NULL;
@@ -6622,9 +6617,8 @@ constraint (or the union must be empty).
       }  /* if */
     }  /* for */
     if (result) {
-      a_base_class_ptr  bcp = base_classes_of(tp);
-      for (; bcp != NULL; bcp = bcp->next) {
-        if (!bcp->direct) continue;
+      a_base_class_ptr  bcp = direct_base_classes_of(tp);
+      for (; bcp != NULL; bcp = bcp->next_direct) {
         if (!is_const_default_initializable(bcp->type)) {
           result = FALSE;
           break;
@@ -9874,8 +9868,9 @@ derivation paths.
   a_boolean result = FALSE;
 
   for (; derivation != NULL; derivation = derivation->next) {
-    a_derivation_step_ptr path = derivation->path;
-    for (; path != NULL; path = path->next) {
+    a_derivation_step_ptr path = derivation->path,
+                          tail = derivation->path_tail;
+    for (; path != tail->next; path = path->next) {
       if (path->base_class == base) {
         result = TRUE;
         goto done;

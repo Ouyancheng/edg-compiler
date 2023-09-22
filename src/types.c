@@ -31,6 +31,7 @@ types.c -- Utility routines that check types.
 #include "symbol_ref.h"
 #include "templates.h"
 #include "func_def.h"
+#include "mem_manage.h"
 #include "lookup.h"
 #if DO_IL_LOWERING
 #include "lower_il.h"
@@ -4524,6 +4525,76 @@ done:
 }  /* is_on_any_derivation_of */
 
 
+/*
+Structure used to represent keys for the hash table of corresponding base
+classes.  This is used to avoid repeated iterations in
+corresponding_base_class.
+*/
+struct a_corresponding_base_class_lookup_key {
+  a_base_class_ptr
+                base_class;
+                        /* Pointer to the base class. */
+
+  a_type_ptr    new_class;
+                        /* Pointer to the new class type. */
+
+  a_base_class_ptr
+                disambiguator;
+                        /* Pointer to a disambiguator base class.  May be
+                           NULL. */
+};  /* a_corresponding_base_class_lookup_key */
+
+
+static inline uintptr_t hash_ptr(a_corresponding_base_class_lookup_key  key)
+/*
+Return a hash value for the given lookup key.
+*/
+{
+  uintptr_t  result = 17;
+
+  result = result*31 + hash_ptr(key.base_class);
+  result = result*31 + hash_ptr(key.new_class);
+  result = result*31 + hash_ptr(key.disambiguator);
+  return result;
+}  /* hash_ptr */
+
+
+static inline
+a_boolean operator==(const a_corresponding_base_class_lookup_key &lhs,
+                     const a_corresponding_base_class_lookup_key &rhs)
+/*
+Return TRUE if the two lookup keys are equal; otherwise, return FALSE.
+*/
+{
+  return lhs.base_class == rhs.base_class &&
+         lhs.new_class == rhs.new_class &&
+         lhs.disambiguator == rhs.disambiguator;
+}  /* operator== */
+
+
+static inline
+a_boolean operator!=(const a_corresponding_base_class_lookup_key &lhs,
+                     const a_corresponding_base_class_lookup_key &rhs)
+/*
+Return TRUE if the two lookup keys are not equal; otherwise, return FALSE.
+*/
+{
+  return !(lhs == rhs);
+}  /* operator!= */
+
+
+using a_corresponding_base_class_map =
+                               Ptr_map<a_corresponding_base_class_lookup_key,
+                                       a_base_class_ptr>;
+                        /* The type of a table that maps a base class to a
+                           corresponding base class in a new class type. */
+
+static a_corresponding_base_class_map
+                *corresponding_base_class_cache;
+                        /* A hash table that maps a base class to a
+                           corresponding base class in a new class type. */
+
+
 a_base_class_ptr corresponding_base_class(a_base_class_ptr  base_class,
                                           a_type_ptr        new_class,
                                           a_base_class_ptr  disambiguator)
@@ -4537,7 +4608,10 @@ step on the derivation list serves to confirm the match.
 */
 {
   a_base_class_ptr       new_base_class, bcp;
-  a_derivation_step_ptr  step;
+  a_derivation_step_ptr  step, tail;
+  uintptr_t              hash;
+  a_corresponding_base_class_lookup_key
+                         key;
 
   db_enter(4, "corresponding_base_class");
 #if CHECKING
@@ -4550,7 +4624,7 @@ step on the derivation list serves to confirm the match.
   if (same_entities(base_class->derived_class, new_class)) {
     /* base_class is already a base class of new_class.  Just return it. */
     new_base_class = base_class;
-    goto done;
+    goto found_in_cache;
   }  /* if */
 #if DEBUG
   if (debug_level >= 4) {
@@ -4564,6 +4638,13 @@ step on the derivation list serves to confirm the match.
     }  /* if */
   }  /* if */
 #endif /* DEBUG */
+  /* Look for a match in the cache. */
+  key = { base_class, new_class, disambiguator };
+  hash = hash_ptr(key);
+  new_base_class = corresponding_base_class_cache->get_with_hash(key, hash);
+  if (new_base_class != NULL) {
+    goto found_in_cache;
+  }  /* if */
   /* Look for a match among the base classes of new_class. */
   for (bcp = base_classes_of(new_class); bcp != NULL; bcp = bcp->next) {
     /* The first requirement of a match is that the type of the matching
@@ -4600,8 +4681,7 @@ step on the derivation list serves to confirm the match.
           /* Find the immediate predecessor in bcp's derivation path.  Note
              that bcp is nonvirtual, so we don't need to worry about multiple
              paths in looking for its immediate predecessor. */
-          step = bcp->derivation->path;
-          for (; step->next->base_class != bcp; step = step->next) {}
+          step = bcp->derivation->path_tail->prev;
           if (same_entities(step->base_class->type,
                             base_class->derived_class)) {
             /* If bcp is ambiguous use the disambiguator to determine whether
@@ -4648,8 +4728,11 @@ step on the derivation list serves to confirm the match.
              derivation -- for instance, if the derivation of bcp is A==>B==>C
              and the derivation of base_class is B==>C. */
           step = bcp->derivation->path;
-          for (; step != NULL; step = step->next) {
-            if (congruent_paths(step, base_class->derivation->path)) {
+          tail = bcp->derivation->path_tail;
+          for (; step != tail->next; step = step->next) {
+            if (congruent_paths({ step, tail },
+                                { base_class->derivation->path,
+                                  base_class->derivation->path_tail })) {
               new_base_class = bcp;
               goto done;
             }  /* if */
@@ -4680,6 +4763,10 @@ step on the derivation list serves to confirm the match.
   internal_error("corresponding_base_class: base class not found");
 #endif /* CHECKING */
 done:
+  if (new_base_class != NULL) {
+    corresponding_base_class_cache->map_with_hash(key, new_base_class, hash);
+  }  /* if */
+found_in_cache:
 #if DEBUG
   if (debug_level >= 4 &&
       !same_entities(base_class->derived_class, new_class)) {
@@ -17710,6 +17797,20 @@ conventions of Microsoft's bit-field allocation scheme.
   }  /* if */
   return compat;
 }  /* compatible_ms_bit_field_container_types */
+
+
+void types_init(void)
+/*
+Initialize static variables related to this file that must be initialized
+for each compilation.
+*/
+{
+#if !STANDALONE_UTILITY_PROGRAM
+  corresponding_base_class_cache = alloc_fe_of_type(
+                                               a_corresponding_base_class_map);
+  construct(corresponding_base_class_cache, /*mask_width=*/10);
+#endif /* STANDALONE_UTILITY_PROGRAM */
+}  /* types_init */
 
 
 /* Conditionally close the "edg" namespace. */

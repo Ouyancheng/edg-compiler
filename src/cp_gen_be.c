@@ -7727,8 +7727,7 @@ for which constant is the value.
                           "gen_initializer_constant: bad aggregate type");
       /* A class, struct, or union.  The constants will fill nonstatic data
          members of the class, and, possibly, direct base classes. */
-      bcp = base_classes_of(type);
-      bcp = next_direct_base(bcp);
+      bcp = direct_base_classes_of(type);
       field = next_initializable_field(
                                   type->variant.class_struct_union.field_list);
     }  /* if */
@@ -7790,7 +7789,7 @@ for which constant is the value.
         } else if (!array_case) {
           if (bcp != NULL && !after_designator) {
             sub_type = bcp->type;
-            bcp = next_direct_base(bcp->next);
+            bcp = bcp->next_direct;
           } else {
             check_assertion_str(field != NULL,
                                 "gen_initializer_constant: ran out of fields");
@@ -10629,109 +10628,61 @@ Put out the list of direct base classes of the class associated with ctsp
 (in declaration order).
 */
 {
-  a_base_class_ptr              bcp = ctsp->base_classes;
-  a_base_class_sequence_number  next_base;
+  a_base_class_ptr              bcp;
   a_boolean                     first_base = TRUE;
 
-  for (next_base = 1; ; next_base++) {
-    /* Care must be taken to traverse the direct base classes in declaration
-       order.  In particular, it is not sufficient to simply traverse the
-       base class list and act on the direct bases.  Consider the following
-       example:
-         struct V {};
-         struct B: virtual V {};
-         struct D: virtual B, virtual V {};
-       The base class list for D will first list the virtual base V because
-       it is the "leftmost" base class of B, but it is also marked "direct".
-       This for-loop therefore enumerates the direct base numbers which we
-       then search for using an additional loop.  In most cases, this will
-       only require a single traversal of the base class list, but in some
-       unusual hierarchies the cost of the nested loops could be quadratic
-       in the length of the base class list. */
-    a_base_class_ptr  start = bcp;
-    /* Look for the base with the next sequence number. */
-    while (bcp->direct_base_number != next_base) {
-      bcp = bcp->next;
-      if (bcp == NULL) {
-        bcp = ctsp->base_classes;
-      }  /* if */
-      /* If we get back to the place where we started, then there is no next
-         base.  */
-      if (bcp == start) break;
-    }  /* while */
-    /* If there was no base with the next sequence number then we have reached
-       the end of the list.  */
-    if (bcp->direct_base_number != next_base) {
-      /* We're done. */
-      break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (bcp->is_implicit_direct_base) {
-      /* System::Object and System::ValueType are usually implicit bases.
-         If this is such a case, do not render the derivation explicitly. */
-      continue;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Traverse the direct base classes in declaration order. */
+  for (bcp = ctsp->direct_base_classes; bcp != NULL; bcp = bcp->next_direct) {
+    a_base_class_derivation_ptr bcdp = bcp->derivation;
+    /* Output the appropriate separator. */
+    if (first_base) {
+      write_tok_str(": ");
+      first_base = FALSE;
     } else {
-      /* If there are multiple base classes with the same number because of
-         a pack expansion, loop to put out all of them.  They will be
-         adjacent in the list. */
-      for (;;) {
-        a_base_class_derivation_ptr bcdp = bcp->derivation;
-        /* Output the appropriate separator. */
-        if (first_base) {
-          write_tok_str(": ");
-          first_base = FALSE;
-        } else {
-          write_tok_str(", ");
-        }  /* if */
-        gen_attributes(bcp->attributes, al_base_specifier,
-                       /*primary_only=*/TRUE);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        if (bcp->ms_attributes != NULL) {
-          gen_ms_attribute_block(bcp->ms_attributes);
-        }  /* if */
-        if (ctsp->cli_class_type_kind !=
-                                       (a_cli_class_type_kind)cctk_standard) {
-          /* Managed classes cannot specify access for base classes, nor can
-             they explicitly specify "virtual" (even though interface
-             derivation is treated as virtual inheritance). */
-        } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        /* Do not insert code here. */
-        {
-          if (bcp->is_virtual) {
-            write_tok_str("virtual ");
-            /* Find the direct derivation for a virtual base class. */
-            for (; !bcdp->direct; bcdp = bcdp->next) {}
-          }  /* if */
-          /* Display the derivation access. */
-          gen_access_specifier(bcdp->access);
-        }  /* if */
-        write_space();
-#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-        if (bcp->orig_type != NULL && !bcp->orig_type->has_been_defined) {
-          /* We cannot use the original specifier for the base class type
-             because it has not yet been defined.  Use the class type, or
-             the type for which it is a proxy, in the case of a dependent
-             type, instead. */
-          a_type_ptr base_type = class_type_supp(bcp->type)->proxy_of_type;
-          if (base_type == NULL) {
-            /* Not a proxy. */
-            base_type = bcp->type;
-          }  /* if */
-          gen_name(&base_type->source_corresp, iek_type,
-                   GN_BASE_SPECIFIER, (a_boolean *)NULL);
-        } else
-#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-        /* Do not insert code here. */
-        gen_name(&bcp->orig_type->source_corresp, iek_type,
-                 GN_BASE_SPECIFIER, (a_boolean *)NULL);
-        if (bcp->is_pack_expansion) write_tok_str("...");
-        if (bcp->next == NULL || bcp->next->direct_base_number != next_base) {
-          break;
-        }  /* if */
-        bcp = bcp->next;
-      }  /* for */
+      write_tok_str(", ");
     }  /* if */
+    gen_attributes(bcp->attributes, al_base_specifier,
+                   /*primary_only=*/TRUE);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (bcp->ms_attributes != NULL) {
+      gen_ms_attribute_block(bcp->ms_attributes);
+    }  /* if */
+    if (ctsp->cli_class_type_kind != cctk_standard) {
+      /* Managed classes cannot specify access for base classes, nor can
+         they explicitly specify "virtual" (even though interface
+         derivation is treated as virtual inheritance). */
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
+    {
+      if (bcp->is_virtual) {
+        write_tok_str("virtual ");
+        /* Find the direct derivation for a virtual base class. */
+        for (; !bcdp->direct; bcdp = bcdp->next) {}
+      }  /* if */
+      /* Display the derivation access. */
+      gen_access_specifier(bcdp->access);
+    }  /* if */
+    write_space();
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+    if (bcp->orig_type != NULL && !bcp->orig_type->has_been_defined) {
+      /* We cannot use the original specifier for the base class type
+         because it has not yet been defined.  Use the class type, or
+         the type for which it is a proxy, in the case of a dependent
+         type, instead. */
+      a_type_ptr base_type = class_type_supp(bcp->type)->proxy_of_type;
+      if (base_type == NULL) {
+        /* Not a proxy. */
+        base_type = bcp->type;
+      }  /* if */
+      gen_name(&base_type->source_corresp, iek_type,
+               GN_BASE_SPECIFIER, (a_boolean *)NULL);
+    } else
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+    /* Do not insert code here. */
+    gen_name(&bcp->orig_type->source_corresp, iek_type,
+             GN_BASE_SPECIFIER, (a_boolean *)NULL);
+    if (bcp->is_pack_expansion) write_tok_str("...");
   }  /* for */
 }  /* gen_base_class_list */
 

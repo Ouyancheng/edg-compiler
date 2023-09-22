@@ -1255,6 +1255,7 @@ Allocate and initialize a derivation step entry and return a pointer to it.
   num_derivation_steps_allocated++;
 #endif /* DEBUG */
   dsp->next       = NULL;
+  dsp->prev       = NULL;
   dsp->base_class = NULL;
 
   db_exit();
@@ -1278,6 +1279,7 @@ to it.
 #endif /* DEBUG */
   bcdp->next       = NULL;
   bcdp->path       = NULL;
+  bcdp->path_tail  = NULL;
   bcdp->preferred  = FALSE;
   bcdp->direct     = FALSE;
   bcdp->access     = (an_access_specifier)as_public;
@@ -1539,6 +1541,7 @@ to it.
   num_base_classes_allocated++;
 #endif /* DEBUG */
   bcp->next                            = NULL;
+  bcp->next_direct                     = NULL;
 #if IA64_ABI
   bcp->next_preorder                   = NULL;
   bcp->primary_base_class              = NULL;
@@ -1757,6 +1760,7 @@ class is available.
 */
 {
   ctsp->base_classes                      = NULL;
+  ctsp->direct_base_classes               = NULL;
 #if IA64_ABI
   ctsp->preorder_base_classes             = NULL;
   ctsp->primary_base_class                = NULL;

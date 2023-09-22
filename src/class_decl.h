@@ -357,8 +357,8 @@ extern a_derivation_step_ptr make_derivation_step(
 
 extern void free_derivation_step(a_derivation_step_ptr  step);
 
-extern a_boolean congruent_paths(a_derivation_step_ptr  dsp1,
-                                 a_derivation_step_ptr  dsp2);
+extern a_boolean congruent_paths(a_derivation_path  path1,
+                                 a_derivation_path  path2);
 
 #if IA64_ABI
 
@@ -428,7 +428,7 @@ extern unsigned long db_show_covariant_overrides_used(
                                                    unsigned long grand_total);
 #endif /* IA64_ABI */
 
-extern void db_path(a_derivation_step_ptr dsp,
+extern void db_path(a_derivation_path     path,
                     a_boolean             show_offset);
 
 extern void db_abbreviated_base_class(a_base_class_ptr  bcp);

@@ -14054,7 +14054,7 @@ necessarily "same type."
 
 #endif /* ABI_COMPATIBILITY_VERSION >= 230 && ... */
 
-static void mangled_derivation_name(a_derivation_step_ptr    dsp,
+static void mangled_derivation_name(a_derivation_path        path,
                                     a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the name of the indicated
@@ -14062,38 +14062,40 @@ derivation.  This is used for the base class part of virtual function
 table names.
 */
 {
-  a_type_ptr class_type;
+  a_derivation_step_ptr  dsp = path.tail;
 
-  /* The name must be put out backwards, so use recursion to get to the
-     bottom of the list. */
-  if (dsp->next != NULL) {
-    mangled_derivation_name(dsp->next, mctl);
-#if !IA64_ABI
-    /* Add two underscores to separate names. */
-    add_str_to_mangled_name("__", mctl);
-#endif /* !IA64_ABI */
-  }  /* if */
-  /* Put out the name on the first derivation step. */
-  class_type = dsp->base_class->type;
+  /* The name must be put out backwards, so iterate through the list
+     backwards. */
+  do {
+    /* Put out the name on the first derivation step. */
+    a_type_ptr  class_type = dsp->base_class->type;
 #if ABI_COMPATIBILITY_VERSION >= 230 && CFRONT_OBJECT_CODE_COMPATIBILITY
-  /* cfront doesn't encode nested class information in base class names.
-     This doesn't work in general, because it is possible to have base
-     classes with the same basic name and different qualified names (e.g.,
-     "A" and "A::B").  cfront doesn't seem to work right on all the cases
-     with repeated basic names, so it gets away with it.  We use the
-     cfront-compatible mangling only if there is no other base class
-     with the same name. */
-  if (!base_class_of_same_name_exists(dsp->base_class)) {
-    mangled_basic_class_name(class_type, mctl);
-  } else
+    /* cfront doesn't encode nested class information in base class names.
+       This doesn't work in general, because it is possible to have base
+       classes with the same basic name and different qualified names (e.g.,
+       "A" and "A::B").  cfront doesn't seem to work right on all the cases
+       with repeated basic names, so it gets away with it.  We use the
+       cfront-compatible mangling only if there is no other base class
+       with the same name. */
+    if (!base_class_of_same_name_exists(dsp->base_class)) {
+      mangled_basic_class_name(class_type, mctl);
+    } else
 #endif /* ABI_COMPATIBILITY_VERSION >= 230  && ... */
-  /* Do not insert code here -- this is the "else" of an "if". */
-  {
-    /* Note the use of mangled_class_name_internal instead of
-       mangled_vtbl_class_name because we do not want two lengths on
-       the front of nested class names. */
-    mangled_class_name_internal(class_type, mctl);
-  }
+    /* Do not insert code here -- this is the "else" of an "if". */
+    {
+      /* Note the use of mangled_class_name_internal instead of
+         mangled_vtbl_class_name because we do not want two lengths on
+         the front of nested class names. */
+      mangled_class_name_internal(class_type, mctl);
+    }
+#if !IA64_ABI
+    if (dsp != path.head) {
+      /* Add two underscores to separate names. */
+      add_str_to_mangled_name("__", mctl);
+    }  /* if */
+#endif /* !IA64_ABI */
+    dsp = dsp->prev;
+  } while (dsp != path.head->prev);
 }  /* mangled_derivation_name */
 
 
@@ -14170,7 +14172,6 @@ Add to the mangled name the encoding for the name of a base class in
 a virtual function table.  The name describes the base class given by bcp.
 */
 {
-  a_derivation_step_ptr dsp;
 #if !IA64_ABI
   a_length_reservation  length_reservation;
 #endif /* !IA64_ABI */
@@ -14187,13 +14188,13 @@ a virtual function table.  The name describes the base class given by bcp.
      (This is not part of the ABI spec, because the names of the tables
      pointed to by the VTT are not prescribed.)
   */
-  dsp = cast_derivation_path_of(bcp);
 #if !IA64_ABI
   /* Put out the name length. */
   reserve_space_for_length(&length_reservation, mctl);
 #endif /* !IA64_ABI */
   /* Put out the sequence of base class names for the derivation. */
-  mangled_derivation_name(dsp, mctl);
+  mangled_derivation_name({ cast_derivation_path_of(bcp),
+                            bcp->derivation->path_tail }, mctl);
 #if !IA64_ABI
   fill_in_length(&length_reservation, mctl);
 #endif /* !IA64_ABI */

@@ -3193,8 +3193,10 @@ do_set_proper_definition_needed_flag:
     case iek_derivation_step:
       {
 #define eptr ((a_derivation_step_ptr)entry_ptr)
-        remap_next_ptr(eptr->next, a_derivation_step_ptr,
+        remap_next_ptr(eptr->prev, a_derivation_step_ptr,
                        iek_derivation_step);
+        remap_ptr_not_needed(eptr->next, a_derivation_step_ptr,
+                             iek_derivation_step);
         remap_ptr(eptr->base_class, a_base_class_ptr, iek_base_class);
 #undef eptr
       }
@@ -3204,7 +3206,12 @@ do_set_proper_definition_needed_flag:
 #define eptr ((a_base_class_derivation_ptr)entry_ptr)
         remap_next_ptr(eptr->next, a_base_class_derivation_ptr,
                        iek_base_class_derivation);
-        walk_list(eptr->path, a_derivation_step_ptr, iek_derivation_step);
+        /* Walk the list in reverse order, starting from path_tail, to ensure
+           we only walk the list between path and path_tail. */
+        walk_list_on_link_field(eptr->path_tail, a_derivation_step_ptr,
+                                iek_derivation_step, prev);
+        remap_ptr_not_needed(eptr->path, a_derivation_step_ptr,
+                             iek_derivation_step);
 #undef eptr
       }
       break;
@@ -3213,6 +3220,8 @@ do_set_proper_definition_needed_flag:
       {
 #define eptr ((a_base_class_ptr)entry_ptr)
         remap_next_ptr(eptr->next, a_base_class_ptr, iek_base_class);
+        remap_ptr_not_needed(eptr->next_direct, a_base_class_ptr,
+                             iek_base_class);
 #if IA64_ABI
         remap_ptr_not_needed(eptr->next_preorder, a_base_class_ptr, 
                              iek_base_class);
@@ -3340,6 +3349,8 @@ handle_class_type_supplement_for_class:
           /* Fields to be processed only if the definition of the class
              is to be processed: */
           walk_list(ctsp->base_classes, a_base_class_ptr, iek_base_class);
+          remap_ptr_not_needed(ctsp->direct_base_classes, a_base_class_ptr,
+                               iek_base_class);
 #if IA64_ABI
           remap_ptr_not_needed(ctsp->preorder_base_classes, a_base_class_ptr,
                                iek_base_class);

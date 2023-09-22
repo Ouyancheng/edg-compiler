@@ -2165,8 +2165,6 @@ extern void add_temporary_to_front_of_variables_list(a_variable_ptr temp,
 extern a_variable_ptr alloc_temporary_variable(a_type_ptr temp_type,
                                                a_boolean  force_static);
 
-extern a_base_class_ptr next_direct_base(a_base_class_ptr  bcp);
-
 /*
 Flags used to specify options to next_applicable_field.
 */
@@ -3304,14 +3302,11 @@ classes, be contingent on the derivation selected.
   ((bcp)->derivation->direct)
 
 
-extern a_derivation_step_ptr cast_virtual_derivation_path_of(
-                                                         a_base_class_ptr bcp);
-
 /* Return a derivation path to be used for a cast to the indicated base
    class.  For virtual base classes, this is a single step to the virtual
    base class. */
 #define cast_derivation_path_of(bcp)                                  \
-  ((bcp)->is_virtual ? cast_virtual_derivation_path_of(bcp) :         \
+  ((bcp)->is_virtual ? (bcp)->derivation->path_tail :                 \
                        (bcp)->derivation->path)
 
 /* Return TRUE if the given base class is virtual or if there is a virtual
@@ -3801,6 +3796,19 @@ Utility that returns TRUE if the two ck_string constants have the same value.
    ((con1)->variant.string.length == (con2)->variant.string.length &&         \
     memcmp((con1)->variant.string.value, (con2)->variant.string.value,        \
            size_t_arg((con1)->variant.string.length)) == 0))
+
+/*
+Structure used to represent a derivation path.
+*/
+struct a_derivation_path {
+  a_derivation_step_ptr
+		head;   /* Pointer to the first entry in the derivation
+                           path. */
+
+  a_derivation_step_ptr
+		tail;   /* Pointer to the last entry in the derivation
+                           path. */
+};
 
 /* Bit vector used to pass flags into walk_parents.  Each bit represents a
    flag. */

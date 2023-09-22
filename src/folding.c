@@ -1131,7 +1131,6 @@ is (successfully) folded to another error constant.
 {
   a_boolean             err;
   a_type_ptr            orig_type, curr_type, new_type;
-  a_derivation_step_ptr dsp;
   an_integer_value      base_class_offset;
   a_base_class_ptr      base_class;
 
@@ -1159,8 +1158,9 @@ is (successfully) folded to another error constant.
        the result. */
     set_error_constant(result);
   } else {
-    a_constant_ptr   offset = local_constant();
-    an_expr_node_ptr expr = constant_1->expr;
+    a_constant_ptr         offset = local_constant();
+    an_expr_node_ptr       expr = constant_1->expr;
+    a_derivation_step_ptr  dsp, tail;
     constant_1->expr = NULL;
     copy_constant(constant_1, result);
     /* Loop through the classes between the derived class and the
@@ -1173,7 +1173,10 @@ is (successfully) folded to another error constant.
     }  /* if */
     orig_type = type_pointed_to(constant_1->type);
     curr_type = skip_typerefs(orig_type);
-    for (dsp = cast_derivation_path_of(bcp); dsp != NULL; dsp = dsp->next) {
+    tail = bcp->derivation->path_tail;
+    for (dsp = cast_derivation_path_of(bcp);
+         dsp != tail->next;
+         dsp = dsp->next) {
       base_class = dsp->base_class;
       /* Check that the base class is accessible from the current class.
          Accessibility is not checked if the cast is explicit. */
@@ -1390,12 +1393,13 @@ ec_no_error if there was no error.
           /* No base class recorded yet: A derived-class cast is not possible
              since it would cast beyond the most-derived class. */
         } else {
-          a_derivation_step_ptr  dsp;
+          a_derivation_step_ptr  dsp, tail;
           a_base_class_derivation_ptr
                                  bcdp = spp->variant.base_class->derivation;
           check_assertion(bcdp != NULL && bcdp->next == NULL);
           dsp = bcdp->path;
-          for (; dsp != NULL; dsp = dsp->next) {
+          tail = bcdp->path_tail;
+          for (; dsp != tail->next; dsp = dsp->next) {
             if (identical_types(dsp->base_class->type, new_type)) {
               new_base_class = dsp->base_class;
               break;
@@ -1766,7 +1770,7 @@ the diagnostic, or set it to ec_no_error if there was no error.
 {
   a_type_ptr            new_type = result->type, curr_type;
   a_type_ptr            derived_class_type;
-  a_derivation_step_ptr dsp;
+  a_derivation_step_ptr dsp, tail;
   a_base_class_ptr      base_class;
 
   /* The code here looks like add_pm_derived_class_casts. */
@@ -1803,7 +1807,10 @@ the diagnostic, or set it to ec_no_error if there was no error.
       /* Check the accessibility of the base class.  (Recall that casts
          to derived types can be done implicitly.) */
       curr_type = derived_class_type;
-      for (dsp = cast_derivation_path_of(bcp); dsp != NULL; dsp = dsp->next) {
+      tail = bcp->derivation->path_tail;
+      for (dsp = cast_derivation_path_of(bcp);
+           dsp != tail->next;
+           dsp = dsp->next) {
         /* Check that the base class is accessible from the current class. */
         base_class = dsp->base_class;
         if (!is_accessible_imm_base_class(base_class, curr_type, bcp)) {

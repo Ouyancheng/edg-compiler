@@ -4717,9 +4717,10 @@ variant path.
       /* base_class is not necessarily a direct base class, but we only have
          offset information for direct base classes.  So we use the derivation
          path for base_class to compute the total offset. */
-      a_derivation_step_ptr  dsp = base_class->derivation->path;
+      a_derivation_step_ptr  dsp = base_class->derivation->path,
+                             tail = base_class->derivation->path_tail;
       i_offset = 0;
-      for (; dsp != NULL; dsp = dsp->next) {
+      for (; dsp != tail->next; dsp = dsp->next) {
         a_base_class_ptr  bcp, bcp_step = dsp->base_class;
         a_byte_count  incr;
         if (!bcp_step->direct) {
@@ -4875,11 +4876,12 @@ set *p_dbcp to the direct base class for the last step of the derivation path
 */
 {
   a_byte_count           offset;
-  a_derivation_step_ptr  dsp = bcp->derivation->path;
+  a_derivation_step_ptr  dsp = bcp->derivation->path,
+                         tail = bcp->derivation->path_tail;
   a_type_ptr             prev_type = dsp->base_class->type;
 
   get_mapped_byte_count(&persistent_map, dsp->base_class, offset);
-  for (dsp = dsp->next; dsp != NULL; dsp = dsp->next) {
+  for (dsp = dsp->next; dsp != tail->next; dsp = dsp->next) {
     a_byte_count      step;
     bcp = find_direct_base_class_of(prev_type, dsp->base_class->type);
     prev_type = dsp->base_class->type;
@@ -13626,11 +13628,12 @@ baseward_bcp->derived_class.  Adjust the address so it points to the
 base subobject corresponding to baseward_bcp.
 */
 {
-  a_derivation_step_ptr  dsp = baseward_bcp->derivation->path;
+  a_derivation_step_ptr  dsp = baseward_bcp->derivation->path,
+                         tail = baseward_bcp->derivation->path_tail;
   a_byte                 *subobj = cap->address;
   a_type_ptr             subobj_type = baseward_bcp->derived_class;
 
-  for (; dsp != NULL; dsp = dsp->next) {
+  for (; dsp != tail->next; dsp = dsp->next) {
     a_byte_count  offset;
     a_base_class_ptr  bcp;
     bcp = find_direct_base_class_of(subobj_type, dsp->base_class->type);
@@ -13796,9 +13799,10 @@ represented by an entry of type a_constant (ck_address or ck_integer).
             /* First try to find the destination base subobject on the
                derivation paths. */
             while (bcdp != NULL) {
-              a_derivation_step_ptr  dsp = bcdp->path;
+              a_derivation_step_ptr  dsp = bcdp->path,
+                                     tail = bcdp->path_tail;
               bcdp = bcdp->next;
-              for (; dsp != NULL; dsp = dsp->next) {
+              for (; dsp != tail->next; dsp = dsp->next) {
                 if (same_entities(dsp->base_class->type, tp)) {
                   if (new_bcp == NULL) {
                     new_bcp = dsp->base_class;
@@ -19742,15 +19746,13 @@ subobject path.
                  prev_full_bcp. */
               for (; full_bcp != NULL; full_bcp = full_bcp->next) {
                 if (full_bcp->type == bcp->type && !full_bcp->is_virtual) {
-                  a_derivation_step_ptr  dsp = full_bcp->derivation->path;
+                  a_derivation_step_ptr  dsp = full_bcp->derivation->path_tail;
                   /* Since this is not the first derivation step nor a virtual
                      derivation step, the path must be more than one step. */
-                  check_assertion(dsp->next != NULL);
-                  /* Find the second-to-last entry, which should match
+                  check_assertion(dsp != full_bcp->derivation->path);
+                  /* Get the second-to-last entry, which should match
                      prev_full_bcp. */
-                  while (dsp->next->next != NULL) {
-                    dsp = dsp->next;
-                  }  /* if */
+                  dsp = dsp->prev;
                   if (dsp->base_class == prev_full_bcp) {
                     break;
                   }  /* if */
@@ -19810,10 +19812,11 @@ Return the interpreter offset with the derived class for the given base.
   if (bcp->is_virtual || bcp->direct) {
     get_mapped_byte_count(&persistent_map, bcp, result);
   } else {
-    a_derivation_step_ptr  step = bcp->derivation->path;
+    a_derivation_step_ptr  step = bcp->derivation->path,
+                           tail = bcp->derivation->path_tail;
     a_type_ptr             tp = step->base_class->type;
     get_mapped_byte_count(&persistent_map, step->base_class, result);
-    for (step = step->next; step != NULL; step = step->next) {
+    for (step = step->next; step != tail->next; step = step->next) {
       a_byte_count  offset;
       bcp = find_base_in_type(tp, step->base_class->type);
       get_mapped_byte_count(&persistent_map, bcp, offset);

@@ -5406,9 +5406,10 @@ derived class).
     result = TRUE;
     if (!bcp->direct) {
       a_base_class_derivation_ptr  derivation = bcp->derivation;
-      a_derivation_step_ptr        step;
       for (; derivation != NULL; derivation = derivation->next) {
-        for (step = derivation->path; step != NULL; step = step->next) {
+        a_derivation_step_ptr      step = derivation->path,
+                                   tail = derivation->path_tail;
+        for (; step != tail->next; step = step->next) {
           if (!cli_class_type_kind_is(step->base_class->type,
                                       cctk_interface)) {
             /* At least one derivation path includes a non-interface base
@@ -6862,8 +6863,9 @@ Return TRUE if bcp is on a derivation path involving a "final" base class.
   a_base_class_derivation_ptr  derivation = bcp->derivation;
   
   for (; derivation != NULL; derivation = derivation->next) {
-    a_derivation_step_ptr   ds = derivation->path;
-    for (; ds != NULL; ds = ds->next) {
+    a_derivation_step_ptr   ds = derivation->path,
+                            tail = derivation->path_tail;
+    for (; ds != tail->next; ds = ds->next) {
       if (ds->base_class->type->variant.class_struct_union.final) {
         result = TRUE;
         goto done;
@@ -7887,7 +7889,12 @@ reuse at another time.
 
   /* Find the last entry on the list. */
   for (step_tail = step; step_tail->next != NULL;
-       step_tail = step_tail->next) { step_tail->base_class = NULL; }
+       step_tail = step_tail->next) {
+    step_tail->base_class = NULL;
+    step_tail->prev = NULL;
+  }  /* for */
+  step_tail->base_class = NULL;
+  step_tail->prev = NULL;
   step_tail->next = avail_derivation_steps;
   avail_derivation_steps = step;
 }  /* free_derivation_step */
@@ -7916,16 +7923,17 @@ a pointer to it.
 
 
 #if DEBUG
-void db_path(a_derivation_step_ptr dsp,
+void db_path(a_derivation_path     path,
              a_boolean             show_offset)
 /*
 Dump a linked list of derivation steps, for debug purposes.
 */
 {
-  if (dsp == NULL) {
+  if (path.head == NULL) {
     fputs("<null path>", f_debug);
   } else {
-    for (; dsp != NULL; dsp = dsp->next) {
+    a_derivation_step_ptr  dsp = path.head;
+    for (; dsp != path.tail->next; dsp = dsp->next) {
       fprintf(f_debug, "==>%s", dsp->base_class->is_virtual ? "[v]" : "");
       db_type_name(dsp->base_class->type);
       if (show_offset) {
@@ -8029,7 +8037,7 @@ Dump a base class entry, for debug purposes.
   for (; bcdp != NULL; bcdp = bcdp->next) {
     fprintf(f_debug, "    %sderiv%s: ", (bcdp->direct ? "direct " : ""),
             ((bcp->is_virtual && bcdp->preferred) ? " (pref'd)" : ""));
-    db_path(bcdp->path, show_offset);
+    db_path({ bcdp->path, bcdp->path_tail }, show_offset);
     fputs(" (", f_debug);
     db_access_control(bcdp->access);
     fputs(")\n", f_debug);
@@ -8074,50 +8082,53 @@ want to be sure that the base classes pointed to from the derivation
 path entries are also on the base classes list of class_type.
 */
 {
-  a_derivation_step_ptr        dsp;
-  a_base_class_ptr             bcp;
-  a_base_class_derivation_ptr  bcdp;
-  int                          count;
+  if (!no_very_expensive_checking) {
+    a_derivation_step_ptr        dsp, tail;
+    a_base_class_ptr             bcp;
+    a_base_class_derivation_ptr  bcdp;
+    int                          count;
 
-  /* Only a virtual base class may have more than one derivation. */
-  check_assertion(base_class->is_virtual ||
-                  base_class->derivation->next == NULL);
-  /* Count the number of direct derivations.  There should be exactly one
-     if base_class is marked as direct, none otherwise. */
-  count = 0;
-  for (bcdp = base_class->derivation; bcdp != NULL; bcdp = bcdp->next) {
-    if (bcdp->direct) ++count;
-  }  /* for */
-  check_assertion((a_boolean)base_class->direct == (count == 1));
-  /* There should be exactly one preferred derivation. */
-  count = 0;
-  for (bcdp = base_class->derivation; bcdp != NULL; bcdp = bcdp->next) {
-    if (bcdp->preferred) ++count;
-  }  /* for */
-  check_assertion(count == 1);
-  /* Examine each derivation's path. */
-  for (bcdp = base_class->derivation; bcdp != NULL; bcdp = bcdp->next) {
-    /* The path should not be NULL. */
-    check_assertion(bcdp->path != NULL);
-    /* The first step should be either a direct base class or a virtual base
-       class. */
-    check_assertion(bcdp->path->base_class->derivation->direct ||
-                    bcdp->path->base_class->is_virtual);
-    /* Go through each step of the path. */
-    for (dsp = bcdp->path; dsp != NULL; dsp = dsp->next) {
-      /* Be sure the base class entry pointed to from the step entry is
-         actually on the class type's list of base classes. */
-      for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
-        if (bcp == dsp->base_class) break;
-        check_assertion(bcp->next != NULL);
-      }  /* if */
-      /* The last step (and it alone) should refer to base_class. */
-      check_assertion((dsp->next == NULL) == (dsp->base_class == base_class));
-      /* Only the first step and the last step may be virtual. */
-      check_assertion(!dsp->base_class->is_virtual ||
-                      (dsp->next == NULL || dsp == bcdp->path));
+    /* Only a virtual base class may have more than one derivation. */
+    check_assertion(base_class->is_virtual ||
+                    base_class->derivation->next == NULL);
+    /* Count the number of direct derivations.  There should be exactly one
+       if base_class is marked as direct, none otherwise. */
+    count = 0;
+    for (bcdp = base_class->derivation; bcdp != NULL; bcdp = bcdp->next) {
+      if (bcdp->direct) ++count;
     }  /* for */
-  }  /* for */
+    check_assertion((a_boolean)base_class->direct == (count == 1));
+    /* There should be exactly one preferred derivation. */
+    count = 0;
+    for (bcdp = base_class->derivation; bcdp != NULL; bcdp = bcdp->next) {
+      if (bcdp->preferred) ++count;
+    }  /* for */
+    check_assertion(count == 1);
+    /* Examine each derivation's path. */
+    for (bcdp = base_class->derivation; bcdp != NULL; bcdp = bcdp->next) {
+      /* The path should not be NULL. */
+      check_assertion(bcdp->path != NULL && bcdp->path_tail != NULL);
+      /* The first step should be either a direct base class or a virtual base
+         class. */
+      check_assertion(bcdp->path->base_class->derivation->direct ||
+                      bcdp->path->base_class->is_virtual);
+      /* Go through each step of the path. */
+      tail = bcdp->path_tail;
+      for (dsp = bcdp->path; dsp != tail->next; dsp = dsp->next) {
+        /* Be sure the base class entry pointed to from the step entry is
+           actually on the class type's list of base classes. */
+        for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+          if (bcp == dsp->base_class) break;
+          check_assertion(bcp->next != NULL);
+        }  /* if */
+        /* The last step (and it alone) should refer to base_class. */
+        check_assertion((dsp == tail) == (dsp->base_class == base_class));
+        /* Only the first step and the last step may be virtual. */
+        check_assertion(!dsp->base_class->is_virtual ||
+                        (dsp == bcdp->path || dsp == tail));
+      }  /* for */
+    }  /* for */
+  }  /* if */
 }  /* verify_path_consistency */
 
 
@@ -8168,23 +8179,23 @@ with class_state.
 
 #endif /* EXPENSIVE_CHECKING */
 
-a_boolean congruent_paths(a_derivation_step_ptr  dsp1,
-                          a_derivation_step_ptr  dsp2)
+a_boolean congruent_paths(a_derivation_path  path1,
+                          a_derivation_path  path2)
 /*
-Return TRUE if the class sequence signatures of the paths headed by dsp1 and
-dsp2 are identical.
+Return TRUE if the class sequence signatures of the paths path1 and path2 are
+identical.
 */
 {
   a_boolean              congruent;
-  a_derivation_step_ptr  dsp1_next, dsp2_next;
+  a_derivation_step_ptr  dsp1 = path1.head, dsp2 = path2.head;
 
   db_enter(4, "congruent_paths");
 #if DEBUG
   if (debug_level >= 4) {
     fputs("comparing ", f_debug);
-    db_path(dsp1, /*show_offset=*/FALSE);
+    db_path(path1, /*show_offset=*/FALSE);
     fputs(" and ", f_debug);
-    db_path(dsp2, /*show_offset=*/FALSE);
+    db_path(path2, /*show_offset=*/FALSE);
   }  /* if */
 #endif /* DEBUG */
   congruent = FALSE;
@@ -8197,11 +8208,9 @@ dsp2 are identical.
         break;
       }  /* if */
       /* Advance to the next step. */
-      dsp1_next = dsp1->next;
-      dsp2_next = dsp2->next;
-      if (dsp1_next == NULL) {
+      if (dsp1 == path1.tail) {
         /* At the end of path1.  Terminate the loop after one more check. */
-        if (dsp2_next == NULL) {
+        if (dsp2 == path2.tail) {
           /* At the end of path2 also.  Again, check the end of the derivation
              for matching is_virtual flags. */
           if (dsp1->base_class->is_virtual == dsp2->base_class->is_virtual) {
@@ -8209,13 +8218,13 @@ dsp2 are identical.
           }  /* if */
         }  /* if */
         break;
-      } else if (dsp2_next == NULL) {
+      } else if (dsp2 == path2.tail) {
         /* At the end of path2.  Terminate the loop. */
         break;
       }  /* if */
       /* Both paths have additional steps, so keep checking. */
-      dsp1 = dsp1_next;
-      dsp2 = dsp2_next;
+      dsp1 = dsp1->next;
+      dsp2 = dsp2->next;
     }  /* for */
   }  /* if */
 #if DEBUG
@@ -8228,40 +8237,38 @@ dsp2 are identical.
 }  /* congruent_paths */
 
 
-static a_derivation_step_ptr copy_and_extend_path(a_derivation_step_ptr path,
-                                                  a_derivation_step_ptr step)
+static a_derivation_path copy_and_extend_path(a_derivation_path     path,
+                                              a_derivation_step_ptr step)
 /*
 Given a derivation path "path", make a copy of it and extend by another step
-represented by "step".  Return a pointer to the new path.  When path is
-NULL, a pointer to step is returned.
+represented by "step".  Return the new path.
 */
 {
   a_derivation_step_ptr  dsp, new_dsp;
   a_derivation_step_ptr  new_path = NULL, end_of_new_path = NULL;
 
-  if (path == NULL) {
-    new_path = step;
-  } else {
-    for (dsp = path; dsp != NULL; dsp = dsp->next) {
-      new_dsp = make_derivation_step(dsp->base_class,
-                                     (a_derivation_step_ptr)NULL);
-      if (new_path == NULL) {
-        new_path = new_dsp;
-      } else {
-        check_assertion(end_of_new_path != NULL);
-        end_of_new_path->next = new_dsp;
-      }  /* if */
-      end_of_new_path = new_dsp;
+  check_assertion(path.head != NULL && path.tail != NULL);
+  for (dsp = path.head; dsp != path.tail->next; dsp = dsp->next) {
+    new_dsp = make_derivation_step(dsp->base_class,
+                                   (a_derivation_step_ptr)NULL);
+    new_dsp->prev = end_of_new_path;
+    if (new_path == NULL) {
+      new_path = new_dsp;
+    } else {
+      check_assertion(end_of_new_path != NULL);
+      end_of_new_path->next = new_dsp;
     }  /* if */
-    end_of_new_path->next = step;
-  }  /* if */
-  return new_path;
+    end_of_new_path = new_dsp;
+  }  /* for */
+  end_of_new_path->next = step;
+  step->prev = end_of_new_path;
+  return { new_path, step };
 }  /* copy_and_extend_path */
 
 #if !IA64_ABI
 
 static void set_pointer_base_class(a_base_class_ptr       base_class,
-                                   a_derivation_step_ptr  path)
+                                   a_derivation_path      path)
 /*
 Base class is a virtual base class for which the pointer_base_class field has
 not yet been set.  Set it to point to the nonvirtual base class in its
@@ -8280,16 +8287,16 @@ the pointer_base_class for both V1 and V2 is C.
      class.  In the example above, the path for V2 is ==>V1==>B==>A==>V2,
      but V1 is not a direct base class; therefore, we look at V1's path,
      namely, ==>D==>C==>V1, and find that D is a direct base class. */
-  dsp = path;
-  if (path->base_class->is_virtual) {
-    pointer_base_class = path->base_class->pointer_base_class;
+  dsp = path.head;
+  if (path.head->base_class->is_virtual) {
+    pointer_base_class = path.head->base_class->pointer_base_class;
   } else {
     /* If the head of the derivation is non-virtual, we may have a candidate
        for a pointer base class. */
-    check_assertion(dsp->next != NULL);
-    /* Look for the second-to-last base class in this path segment.  (The
-       last path entry should be either base_class itself. */
-    while (dsp->next->next != NULL) dsp = dsp->next;
+    check_assertion(dsp != path.tail);
+    /* Get the second-to-last base class in this path segment.  (The last path
+       entry should be the base_class itself. */
+    dsp = path.tail->prev;
     pointer_base_class = dsp->base_class;
   }  /* if */
   if (pointer_base_class != NULL) {
@@ -8309,7 +8316,7 @@ the pointer_base_class for both V1 and V2 is C.
           if (bcp->is_virtual && bcp->pointer_base_class == NULL) {
             for (bcdp = bcp->derivation; bcdp != NULL; bcdp = bcdp->next) {
               if (bcdp->path->base_class == base_class) {
-                set_pointer_base_class(bcp, bcdp->path);
+                set_pointer_base_class(bcp, { bcdp->path, bcdp->path_tail });
                 break;
               }  /* if */
             }  /* for */
@@ -8560,11 +8567,12 @@ bcp is a managed base class being added.
   } else if (!is_immediate_cli_interface_type(bcp->type)) {
     /* System::Object. */
     for (; bcdp != NULL; bcdp = bcdp->next) {
-      a_derivation_step_ptr  step = bcdp->path;
+      a_derivation_step_ptr  step = bcdp->path,
+                             tail = bcdp->path_tail;
       bcdp->preferred = TRUE;
       /* If this derivation involves an interface class mark it as not
          preferred. */
-      for (; step != NULL; step = step->next) {
+      for (; step != tail->next; step = step->next) {
         if (is_immediate_cli_interface_type(step->base_class->type)) {
           bcdp->preferred = FALSE;
           break;
@@ -8587,18 +8595,18 @@ bcp is a managed base class being added.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static a_derivation_step_ptr update_base_class_derivation(
+static a_derivation_path update_base_class_derivation(
                                          a_base_class_ptr       base_class,
-                                         a_derivation_step_ptr  path,
+                                         a_derivation_path      path,
                                          an_access_specifier    access)
 /*
-base_class is a direct base class declared explicitly (in which case path is
-NULL) or an indirect base class implied by the declaration of a direct base
-class (in which case path is non-NULL).  access is the access to be applied
-for this derivation, which for indirect base classes corresponds to the access
-of the last step on the path.  This routine allocates a base-class-derivation
-entry for the derivation and supplies it with the appropriate derivation
-path and access.
+base_class is a direct base class declared explicitly (in which case path.head
+is NULL) or an indirect base class implied by the declaration of a direct base
+class (in which case path.head is non-NULL).  access is the access to be
+applied for this derivation, which for indirect base classes corresponds to the
+access of the last step on the path.  This routine allocates a
+base-class-derivation entry for the derivation and supplies it with the
+appropriate derivation path and access.
 */
 {
   a_base_class_derivation_ptr  bcdp, new_bcdp;
@@ -8607,13 +8615,25 @@ path and access.
   /* Allocate the entry and make a step entry. */
   new_bcdp = alloc_base_class_derivation();
   step = make_derivation_step(base_class, (a_derivation_step_ptr)NULL);
-  if (path == NULL) {
+  if (path.head == NULL) {
     /* A direct base class. */
     new_bcdp->direct = TRUE;
     new_bcdp->path = step;
+    new_bcdp->path_tail = step;
   } else {
     /* An indirect base class. */
-    new_bcdp->path = copy_and_extend_path(path, step);
+    if (path.tail->next == NULL) {
+      /* We are able to extend the existing path. */
+      step->prev = path.tail;
+      path.tail->next = step;
+      path.tail = step;
+      new_bcdp->path = path.head;
+      new_bcdp->path_tail = path.tail;
+    } else {
+      a_derivation_path  new_path = copy_and_extend_path(path, step);
+      new_bcdp->path = new_path.head;
+      new_bcdp->path_tail = new_path.tail;
+    }  /* if */
   }  /* if */
   new_bcdp->access = access;
   if (!base_class->is_virtual) {
@@ -8621,7 +8641,7 @@ path and access.
        so it is marked as "preferred" by default. */
     new_bcdp->preferred = TRUE;
     base_class->derivation = new_bcdp;
-    path = new_bcdp->path;
+    path = { new_bcdp->path, new_bcdp->path_tail };
   } else {
     /* For virtual base classes, this may be one derivation among several.
        Add it to the end of the linked list of base-class-derivation
@@ -8637,9 +8657,10 @@ path and access.
 #if !IA64_ABI
     /* Set the pointer-base-class (the nonvirtual base class in which a
        pointer to this virtual base class may be found) if appropriate. */
-    if (path != NULL) {
+    if (path.head != NULL) {
       if (base_class->pointer_base_class == NULL) {
-        set_pointer_base_class(base_class, new_bcdp->path);
+        set_pointer_base_class(base_class, { new_bcdp->path,
+                                             new_bcdp->path_tail });
       }  /* if */
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
       /* In cfront mode set the data section base class, which is where the
@@ -8661,7 +8682,7 @@ path and access.
     /* Return a different path than the one stored in the base-class-
        derivation entry.  This is because each virtual base class is the
        start of a new segment. */
-    path = step;
+    path.head = path.tail = step;
   }  /* if */
   return path;
 }  /* update_base_class_derivation */
@@ -8816,11 +8837,10 @@ associated with T and its base classes.
 
 static void add_indirect_base_class(a_base_class_ptr      base_class_to_copy,
                                     a_base_class_ptr      directly_derived_bcp,
-                                    a_derivation_step_ptr path,
+                                    a_derivation_path     path,
                                     a_base_class_ptr      *p_end_of_add_list,
                                     a_type_ptr            new_class)
 /*
-
 Create a new indirect base class based on base_class_to_copy and,
 typically, add it to the end of the base classes list for new_class.
 directly_derived_bcp points to a recently created (or copied) base class,
@@ -9091,11 +9111,11 @@ information).
                          "no corresp_prototype_tag_sym");
     proto_type = class_state->corresp_prototype_tag_sym
                             ->variant.class_struct_union.type;
-    proto_bcp = base_classes_of(proto_type);
+    proto_bcp = direct_base_classes_of(proto_type);
     /* Find the corresponding prototype base class.  Note that in error cases a
        given sequence number could be missing from the list. */
     while (proto_bcp != NULL && proto_bcp->direct_base_number != proto_num) {
-      proto_bcp = proto_bcp->next;
+      proto_bcp = proto_bcp->next_direct;
     }  /* while */
     if (proto_bcp != NULL) {
       /* Normal case: We find the corresponding base of the prototype
@@ -9130,42 +9150,12 @@ of type_ptr should be added.  *end_of_list points to the end of the preorder
 list.  Returns a pointer to the new end of the list.
 */
 {
-  a_base_class_ptr first_base, bcp, new_base, old_base;
-  a_base_class_sequence_number next_base;
+  a_base_class_ptr bcp, new_base, old_base;
 
-  first_base = base_classes_of((base == NULL) ? type_ptr : base->type);
-  /* Skip to the end if this type has no base classes.  */
-  if (first_base == NULL) goto done;
-  bcp = first_base;
-  for (next_base = 1; ; next_base++) {
-    /* Care must be taken to traverse the direct base classes in declaration
-       order.  In particular, it is not sufficient to simply traverse the
-       base class list and act on the direct bases.  Consider the following
-       example:
-         struct V {};
-         struct B: virtual V {};
-         struct D: virtual B, virtual V {};
-       The base class list for D will first list the virtual base V because
-       it is the "leftmost" base class of B, but it is also marked "direct".
-       This for-loop therefore enumerates the direct base numbers which we
-       then search for using an additional loop.  In most cases, this will
-       only require a single traversal of the base class list, but in some
-       unusual hierarchies the cost of the nested loops could be quadratic
-       in the length of the base class list. */
-    a_base_class_ptr start = bcp;
-    /* Look for the base with the next sequence number. */
-    while (bcp->direct_base_number != next_base) {
-      bcp = bcp->next;
-      if (bcp == NULL) {
-        bcp = first_base;
-      }  /* if */
-      /* If we get back to the place where we started, then there is no next
-         base.  */
-      if (bcp == start) break;
-    }  /* while */
-    /* If there was no base with the next sequence number then we have reached
-       the end of the list.  */
-    if (bcp->direct_base_number != next_base) break;
+  /* Traverse the direct base classes in declaration order. */
+  for (bcp = direct_base_classes_of((base == NULL) ? type_ptr : base->type);
+       bcp != NULL;
+       bcp = bcp->next_direct) {
     /* Find the base of type_ptr that corresponds to bcp. */
     if (base == NULL) {
       new_base = bcp;
@@ -9191,7 +9181,6 @@ list.  Returns a pointer to the new end of the list.
     end_of_list = compute_preorder_base_classes(type_ptr, new_base,
                                                 end_of_list);
   }  /* for */
-done:
   return end_of_list;
 }  /* compute_preorder_base_classes */
 
@@ -9745,13 +9734,16 @@ static void add_new_direct_base(
                 a_class_def_state_ptr  class_state,
                 an_access_specifier    access,
                 a_base_class_ptr       *p_last_base,
+                a_base_class_ptr       *p_last_direct_base,
                 ARG_UNUSED a_boolean   *p_may_be_first_direct_nonvirtual_base)
 /*
 Add direct_bcp as a base class to direct_bcp->derived_class, and recursively
 add any base classes of direct_bcp->type.  class_state describes the class
 definition in progress.  access is the (possibly implicit) access specified on
 the base class.  *p_last_base points to the last base currently recorded for
-the derived class and is updated by this function.
+the derived class and is updated by this function.  *p_last_direct_base points
+to the last direct base currently recorded for the derived class and is updated
+by this function.
 *p_may_be_first_direct_nonvirtual_base is TRUE if this may be the first direct
 nonvirtual base of the direct base (in which case this function sets the flag
 to FALSE before returning).
@@ -9762,7 +9754,7 @@ to FALSE before returning).
   a_type_ptr                     class_type = direct_bcp->derived_class;
   a_class_type_supplement_ptr    ctsp = class_type_supp(class_type);
   a_class_symbol_supplement_ptr  bcp_cssp, cssp;
-  a_derivation_step_ptr          path;
+  a_derivation_path              path;
   a_base_class_ptr               bcp;
   a_boolean                      any_base_class_fixup_required = FALSE;
   a_boolean                      is_value_class = FALSE;
@@ -9895,7 +9887,9 @@ to FALSE before returning).
        instantiation of a function template). */
     cssp->any_nonreal_base_classes = TRUE;
   }  /* if */
-  path = update_base_class_derivation(direct_bcp, (a_derivation_step_ptr)NULL,
+  path = update_base_class_derivation(direct_bcp,
+                                      { (a_derivation_step_ptr)NULL,
+                                        (a_derivation_step_ptr)NULL },
                                       access);
 #if DEBUG
   if (debug_level >= 3 || db_flag_is_set("base_specifiers")) {
@@ -9949,6 +9943,12 @@ to FALSE before returning).
     (*p_last_base)->next = direct_bcp;
   }  /* if */
   *p_last_base = direct_bcp;
+  if (*p_last_direct_base == NULL) {
+    ctsp->direct_base_classes = direct_bcp;
+  } else {
+    (*p_last_direct_base)->next_direct = direct_bcp;
+  }  /* if */
+  *p_last_direct_base = direct_bcp;
   /* Set shares_virtual_function_info for a base class of direct_bcp, if
      appropriate. */
   set_shares_virtual_function_info_flag(class_type, direct_bcp);
@@ -10044,19 +10044,25 @@ to FALSE before returning).
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_base_class_sequence_number largest_direct_base_number(
-                                                    a_base_class_ptr bcp,
-                                                    a_base_class_ptr *last_bcp)
+                                             a_base_class_ptr bcp,
+                                             a_base_class_ptr *last_bcp,
+                                             a_base_class_ptr *last_direct_bcp)
 /*
 A utility to return the largest "direct_base_number" in the base class list
 specified by bcp.  If last_bcp is non-NULL, *last_bcp is set to point to the
-last entry in the list.
+last entry in the list.  If last_direct_bcp is non-NULL, *last_direct_bcp is
+set to point to the last direct base entry in the list.
 */
 {
   a_base_class_sequence_number direct_base_number = 0;
 
   if (last_bcp != NULL) *last_bcp = NULL;
+  if (last_direct_bcp != NULL) *last_direct_bcp = NULL;
   for (; bcp != NULL; bcp = bcp->next) {
     if (bcp->next == NULL && last_bcp != NULL) *last_bcp = bcp;
+    if (bcp->direct && bcp->next_direct == NULL && last_direct_bcp != NULL) {
+      *last_direct_bcp = bcp;
+    }  /* if */
     if (bcp->direct_base_number > direct_base_number) {
       direct_base_number = bcp->direct_base_number;
     }  /* if */
@@ -10085,6 +10091,7 @@ can only contain CLI interfaces.
   a_type_ptr                    type_ptr = class_state->class_type;
   a_class_type_supplement_ptr   ctsp;
   a_base_class_ptr              bcp, end_of_base_classes_list = NULL;
+  a_base_class_ptr              end_of_direct_base_classes_list = NULL;
   a_base_class_ptr              new_direct_bcp;
   an_access_specifier           access;
   a_boolean                     is_virtual;
@@ -10136,8 +10143,10 @@ can only contain CLI interfaces.
     check_assertion(ctsp != NULL);
     end_of_base_classes_list = ctsp->base_classes;
     check_assertion(end_of_base_classes_list != NULL);
-    direct_base_number = largest_direct_base_number(end_of_base_classes_list,
-                                                    &end_of_base_classes_list);
+    direct_base_number = largest_direct_base_number(
+                                             end_of_base_classes_list,
+                                             &end_of_base_classes_list,
+                                             &end_of_direct_base_classes_list);
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
@@ -10442,9 +10451,11 @@ can only contain CLI interfaces.
               /* This virtual base class is already on the list.  Record this
                  derivation as an alternate path; it may turn out to be the
                  preferred path. */
-              (void)update_base_class_derivation(bcp,
-                                                 (a_derivation_step_ptr)NULL,
-                                                 access);
+              (void)update_base_class_derivation(
+                                               bcp,
+                                               { (a_derivation_step_ptr)NULL,
+                                                 (a_derivation_step_ptr)NULL },
+                                               access);
               bcp->orig_type = orig_base_class_type;
               bcp->direct = TRUE;
               bcp->direct_base_number = direct_base_number;
@@ -10453,6 +10464,8 @@ can only contain CLI interfaces.
               bcp->base_specifier_range.start = base_specifier_start_pos;
               bcp->base_specifier_range.end = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+              end_of_direct_base_classes_list->next_direct = bcp;
+              end_of_direct_base_classes_list = bcp;
               if (attributes != NULL) {
                 attach_attributes(attributes, (char*)bcp, iek_base_class);
               }  /* if */
@@ -10498,6 +10511,7 @@ can only contain CLI interfaces.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         add_new_direct_base(new_direct_bcp, class_state, access,
                             &end_of_base_classes_list,
+                            &end_of_direct_base_classes_list,
                             &may_be_first_direct_nonvirtual_base);
 skip_base_class:
         first_base_class = FALSE;
@@ -10575,6 +10589,7 @@ static void add_direct_base_of_type(
                 a_base_class_sequence_number
                                        direct_base_number,
                 a_base_class_ptr       *p_last_base,
+                a_base_class_ptr       *p_last_direct_base,
                 a_boolean              *p_may_be_first_direct_nonvirtual_base)
 /*
 Add a public direct base of the given type to the class described by cdsp.
@@ -10599,7 +10614,8 @@ Add a public direct base of the given type to the class described by cdsp.
   new_direct_bcp->is_implicit_direct_base = TRUE;
   new_direct_bcp->direct_base_number = direct_base_number;
   add_new_direct_base(new_direct_bcp, cdsp, (an_access_specifier)as_public,
-                      p_last_base, p_may_be_first_direct_nonvirtual_base);
+                      p_last_base, p_last_direct_base,
+                      p_may_be_first_direct_nonvirtual_base);
 }  /* add_direct_base_of_type */
 
 
@@ -10653,16 +10669,18 @@ appropriate.
       system_object_base->is_implicit_direct_base = TRUE;
       system_object_base->orig_type = system_object_base->type;
       (void)update_base_class_derivation(system_object_base,
-                                         (a_derivation_step_ptr)NULL,
-                                         (an_access_specifier)as_public);
+                                         { (a_derivation_step_ptr)NULL,
+                                           (a_derivation_step_ptr)NULL },
+                                         as_public);
       /* Find the largest direct base number assigned so far and assign the
          next number to System::Object. */
       bcp = base_classes_of(class_type);
       direct_base_number = largest_direct_base_number(bcp,
+                                                      (a_base_class_ptr*)NULL,
                                                       (a_base_class_ptr*)NULL);
       system_object_base->direct_base_number = direct_base_number+1;
     } else if (!is_cli_system_object_type(class_type)) {
-      a_base_class_ptr              last_bcp = NULL;
+      a_base_class_ptr              last_bcp = NULL, last_direct_bcp = NULL;
       a_boolean                     may_be_first_direct_nonvirtual_base;
       a_base_class_sequence_number  direct_base_number = 0;
       a_type_ptr                    new_base_type;
@@ -10670,7 +10688,8 @@ appropriate.
          number. */
       bcp = base_classes_of(class_type);
       if (bcp != NULL) {
-        direct_base_number = largest_direct_base_number(bcp, &last_bcp);
+        direct_base_number = largest_direct_base_number(bcp, &last_bcp,
+                                                        &last_direct_bcp);
       }  /* if */
       /* System::Object is derived from virtually and so it cannot be the first
          direct nonvirtual base class.  System::ValueType derives directly from
@@ -10689,7 +10708,7 @@ appropriate.
       }  /* if */
       add_direct_base_of_type(
                    new_base_type, class_state, direct_base_number+1, &last_bcp,
-                   &may_be_first_direct_nonvirtual_base);
+                   &last_direct_bcp, &may_be_first_direct_nonvirtual_base);
     }  /* if */
   }  /* if */
 }  /* add_implicit_cli_bases */
@@ -10739,7 +10758,7 @@ attributes are deprecated), but this code does add ATL::CComCoClass<class_type,
       /* Determine the proper uuidof type for the class. */
       uuidof_type = underlying_uuidof_type(class_type, &template_case, &err);
       if (!err) {
-        a_base_class_ptr bcp, last_bcp = NULL;
+        a_base_class_ptr bcp, last_bcp = NULL, last_direct_bcp = NULL;
         a_boolean        may_be_first_direct_nonvirtual_base = TRUE;
         a_base_class_sequence_number direct_base_number = 0;
         /* Create a template argument list for the class template that is to be
@@ -10762,12 +10781,13 @@ attributes are deprecated), but this code does add ATL::CComCoClass<class_type,
            direct base number. */
         bcp = base_classes_of(class_type);
         if (bcp != NULL) {
-          direct_base_number = largest_direct_base_number(bcp, &last_bcp);
+          direct_base_number = largest_direct_base_number(bcp, &last_bcp,
+                                                          &last_direct_bcp);
         }  /* if */
         /* Add ATL::CComCoClass<class_type, &__uuidof(class_type)> as a
            direct base class. */
         add_direct_base_of_type(base_type, class_state, direct_base_number+1,
-                                &last_bcp,
+                                &last_bcp, &last_direct_bcp,
                                 &may_be_first_direct_nonvirtual_base);
       } else {
         release_local_constant(&uuidof_con);
@@ -23652,7 +23672,7 @@ implementation of IDisposable::Dispose().)
 {
   a_type_ptr                     class_type = class_state->class_type;
   a_class_symbol_supplement_ptr  cssp;
-  a_base_class_ptr               bcp, last_bcp = NULL;
+  a_base_class_ptr               bcp, last_bcp = NULL, last_direct_bcp = NULL;
   a_boolean                      may_be_first_direct_nonvirtual_base = TRUE;
   a_base_class_sequence_number   direct_base_number = 0;
 
@@ -23661,7 +23681,8 @@ implementation of IDisposable::Dispose().)
   /* Determine the last base class entry and the last direct base number. */
   bcp = base_classes_of(class_type);
   if (bcp != NULL) {
-    direct_base_number = largest_direct_base_number(bcp, &last_bcp);
+    direct_base_number = largest_direct_base_number(bcp, &last_bcp,
+                                                    &last_direct_bcp);
     /* There are no virtual base classes for managed classes.  So if there
        is already a base class, there must also be a direct nonvirtual
        base class. */
@@ -23669,7 +23690,8 @@ implementation of IDisposable::Dispose().)
   }  /* if */
   add_direct_base_of_type(cli_class_type_for(csk_system_idisposable),
                           class_state, direct_base_number+1,
-                          &last_bcp, &may_be_first_direct_nonvirtual_base);
+                          &last_bcp, &last_direct_bcp,
+                          &may_be_first_direct_nonvirtual_base);
   cssp->is_disposable = TRUE;
   /* Unlike other base classes, this one is added after the body of the class
      is completely parsed: Call wrapup_base_classes again to ensure the base
@@ -27715,7 +27737,7 @@ no other base classes.
 */
 {
   a_type_ptr        type;
-  a_base_class_ptr  last_base = NULL;
+  a_base_class_ptr  last_base = NULL, last_direct_base = NULL;
   a_boolean         may_be_first_direct_nonvirtual_base = TRUE;
 
   check_assertion(base_classes_of(class_state->class_type) == NULL);
@@ -27723,7 +27745,8 @@ no other base classes.
   type = type_symbol_type(base_type_symbol);
   check_assertion(type != NULL && is_class_struct_union_type(type));
   add_direct_base_of_type(type, class_state, /*direct_base_number=*/1,
-                          &last_base, &may_be_first_direct_nonvirtual_base);
+                          &last_base, &last_direct_base,
+                          &may_be_first_direct_nonvirtual_base);
 }  /* add_cli_system_base_class */
 
 
@@ -28921,6 +28944,7 @@ static void apply_constraints_to_complete_type(
 	a_class_def_state_ptr		class_state,
 	a_base_class_sequence_number	*direct_base_number,
 	a_base_class_ptr		*last_bcp,
+	a_base_class_ptr		*last_direct_bcp,
 	a_boolean			*may_be_first_direct_nonvirtual_base,
 	a_boolean			*default_constructible,
 	a_generic_constraint_ptr	gc_list)
@@ -28949,6 +28973,7 @@ constraints.
       }  /* if */
       add_direct_base_of_type(type, class_state,
                               (*direct_base_number)++, last_bcp,
+                              last_direct_bcp,
                               may_be_first_direct_nonvirtual_base);
       if (is_cli_interface_type(type)) {
         proxy_class->variant.class_struct_union.any_interface_constraints =
@@ -28973,7 +28998,7 @@ constraints.
                           ->generic_constraints;
       if (sub_list != NULL) {
         apply_constraints_to_complete_type(
-                   class_state, direct_base_number, last_bcp,
+                   class_state, direct_base_number, last_bcp, last_direct_bcp,
                    may_be_first_direct_nonvirtual_base, default_constructible,
                    sub_list);
       }  /* if */
@@ -28993,7 +29018,7 @@ classes and possibly a default constructor as indicated by the constraints.
   a_type_ptr                    templ_param_type = ctsp->proxy_of_type;
   a_generic_constraint_ptr      gc_list;
   a_class_def_state             class_state;
-  a_base_class_ptr              last_bcp = NULL;
+  a_base_class_ptr              last_bcp = NULL, last_direct_bcp = NULL;
   a_base_class_sequence_number  direct_base_number = 1;
   a_boolean                     may_be_first_direct_nonvirtual_base = TRUE;
   a_boolean                     default_constructible = FALSE;
@@ -29007,14 +29032,14 @@ classes and possibly a default constructor as indicated by the constraints.
   if (gc_list == NULL) {
     /* No constraints: The constraint type derives from System::Object. */
     add_direct_base_of_type(cli_system_object_type(), &class_state,
-                            direct_base_number, &last_bcp,
+                            direct_base_number, &last_bcp, &last_direct_bcp,
                             &may_be_first_direct_nonvirtual_base);
   } else {
     /* Add bases corresponding to the various constraints. */
     apply_constraints_to_complete_type(
                  &class_state, &direct_base_number, &last_bcp,
-                 &may_be_first_direct_nonvirtual_base, &default_constructible,
-                 gc_list);
+                 &last_direct_bcp, &may_be_first_direct_nonvirtual_base,
+                 &default_constructible, gc_list);
   }  /* if */
   add_implicit_cli_bases(&class_state);
   wrapup_base_classes(&class_state);

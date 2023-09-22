@@ -10387,21 +10387,6 @@ set to TRUE.
 #endif /* DEBUG */
 
 
-a_derivation_step_ptr cast_virtual_derivation_path_of(a_base_class_ptr bcp)
-/*
-Return the derivation path that should be used for a cast to the (virtual)
-base class bcp.  This path has a single step to the virtual base class.
-*/
-{
-  a_derivation_step_ptr dsp;
-
-  /* Step to the last derivation step on the path of the first derivation.
-     The last step is always to the virtual base class. */
-  for (dsp = bcp->derivation->path; dsp->next != NULL; dsp = dsp->next) {}
-  return dsp;
-}  /* cast_virtual_derivation_path_of */
-
-
 a_translation_unit_ptr trans_unit_for_source_corresp(
                                                   a_source_correspondence *scp)
 /*
@@ -16621,17 +16606,6 @@ a helper variable.
 }  /* alloc_temporary_variable */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-
-a_base_class_ptr next_direct_base(a_base_class_ptr  bcp)
-/*
-If bcp is a direct base, return it.  Otherwise, return the next direct base on
-the list formed by the "next" links, or NULL if there is no such base.
-*/
-{
-  while (bcp != NULL && !bcp->direct) bcp = bcp->next;
-  return bcp;
-}  /* next_direct_base */
-
 
 a_field_ptr next_applicable_field(a_field_ptr              field,
                                   a_next_field_options_set options)
@@ -23105,15 +23079,16 @@ pointer.
 */
 {
   if (!is_error_node(node) && !is_error_type(node->type)) {
-    a_derivation_step_ptr dsp;
+    a_derivation_step_ptr dsp, tail;
     a_type_qualifier_set  qualifiers;
     a_type_ptr            tp;
     check_assertion(!is_glvalue_node(node) && is_pointer_type(node->type));
     tp = type_pointed_to(node->type);
     qualifiers = get_type_qualifiers(tp);
     /* Add a base class cast for each step in the derivation. */
+    tail = bcp->derivation->path_tail;
     for (dsp = cast_derivation_path_of(bcp);
-         dsp != NULL;
+         dsp != tail->next;
          dsp = dsp->next) {
       tp = make_pointer_type(make_qualified_type(dsp->base_class->type,
                                                  qualifiers));

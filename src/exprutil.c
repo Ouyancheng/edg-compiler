@@ -8639,7 +8639,7 @@ appropriately and error_detected can be NULL.
 */
 {
   a_type_ptr            curr_type, qual_curr_type, orig_type;
-  a_derivation_step_ptr dsp;
+  a_derivation_step_ptr dsp, tail;
   a_base_class_ptr      base_class;
   a_boolean             pointer_case = FALSE;
 
@@ -8684,8 +8684,10 @@ appropriately and error_detected can be NULL.
        e.g., via a using-declaration. */
     if (bcp->derivation == NULL) {
       dsp = NULL;
+      tail = NULL;
     } else {
       dsp = cast_derivation_path_of(bcp);
+      tail = bcp->derivation->path_tail;
     }  /* if */
     for (;;) {
       base_class = (dsp != NULL) ? dsp->base_class : bcp;
@@ -8734,13 +8736,13 @@ appropriately and error_detected can be NULL.
         }  /* if */
         new_node->variant.operation.implicit_in_member_naming =
                                                             implicit_in_naming;
-        if (!is_implicit_cast && dsp != NULL && dsp->next != NULL) {
+        if (!is_implicit_cast && dsp != NULL && dsp != tail) {
           new_node->variant.operation.implicit_step_of_explicit_cast = TRUE;
         }  /* if */
       }
       if (dsp == NULL) break;
       dsp = dsp->next;
-      if (dsp == NULL) break;
+      if (dsp == tail->next) break;
     }  /* for */
   }  /* if */
 }  /* add_base_class_casts */
@@ -8748,13 +8750,13 @@ appropriately and error_detected can be NULL.
 
 static void add_a_derived_class_cast(
                                   a_type_ptr            new_type_pointed_to,
-                                  a_derivation_step_ptr dsp,
+                                  a_derivation_path     path,
                                   a_boolean             requires_runtime_check,
                                   a_source_position_ptr src_pos,
                                   an_expr_node_ptr      *p_node)
 /*
 Helper routine for add_derived_class_casts: adds casts to *p_node to change
-its type to pointer to new_type_pointed_to.  dsp points to the derivation
+its type to pointer to new_type_pointed_to.  path denotes the derivation
 list from the desired type to the current type (i.e., it's backwards from
 what's needed).  requires_runtime_check is TRUE if a C++/CLI runtime
 check is needed.  *src_pos indicates the source position to record for the
@@ -8763,41 +8765,40 @@ rvalues.
 */
 {
   a_type_ptr cast_type;
+  a_derivation_step_ptr dsp;
 
-  /* Use recursion to get to the bottom of the list and work upwards.
-     Add casts to get the type we have to the type just below the type
-     we want. */
-  if (dsp->next != NULL) {
-    cast_type = dsp->base_class->type;
-    cast_type = make_identically_qualified_type(cast_type,
-                                                new_type_pointed_to);
-    add_a_derived_class_cast(cast_type, dsp->next, requires_runtime_check,
-                             src_pos, p_node);
-    check_assertion(is_operation_node(*p_node) &&
-                    (*p_node)->variant.operation.kind ==
-                                (an_expr_operator_kind)eok_derived_class_cast);
-    (*p_node)->variant.operation.implicit_step_of_explicit_cast = TRUE;
-  }  /* if */
-  cast_type = new_type_pointed_to;
-  if (is_pointer_or_handle_type((*p_node)->type)) {
-    cast_type = make_pointer_type_of_same_kind(cast_type, (*p_node)->type);
-  }  /* if */
-  /* Add the node to do the final cast. */
-  { an_expr_node_ptr curr_node = *p_node;
-    an_expr_node_ptr new_node =
-          *p_node = 
-              make_operator_node((an_expr_operator_kind)eok_derived_class_cast,
-                                 cast_type, *p_node);
-    new_node->position = *src_pos;
-    copy_node_value_category(curr_node, new_node);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (requires_runtime_check) {
-      new_node->variant.operation.requires_runtime_cast_check = TRUE;
+  /* Iterate backwards over the path.  Add casts to get the type we have to
+     the type just below the type we want. */
+  for (dsp = path.tail; dsp != path.head->prev; dsp = dsp->prev) {
+    if (dsp != path.head) {
+      cast_type = dsp->prev->base_class->type;
+      cast_type = make_identically_qualified_type(cast_type,
+                                                  new_type_pointed_to);
+    } else {
+      cast_type = new_type_pointed_to;
     }  /* if */
+    if (is_pointer_or_handle_type((*p_node)->type)) {
+      cast_type = make_pointer_type_of_same_kind(cast_type, (*p_node)->type);
+    }  /* if */
+    /* Add the node to do the cast. */
+    { an_expr_node_ptr curr_node = *p_node;
+      an_expr_node_ptr new_node =
+        *p_node = make_operator_node(eok_derived_class_cast,
+                                     cast_type, *p_node);
+      new_node->position = *src_pos;
+      copy_node_value_category(curr_node, new_node);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (requires_runtime_check) {
+        new_node->variant.operation.requires_runtime_cast_check = TRUE;
+      }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* No need to set compiler_generated; a derived class cast is always
-       explicit. */
-  }
+      if (dsp != path.head) {
+        new_node->variant.operation.implicit_step_of_explicit_cast = TRUE;
+      }  /* if */
+      /* No need to set compiler_generated; a derived class cast is always
+         explicit. */
+    }
+  }  /* for */
 }  /* add_a_derived_class_cast */
 
 
@@ -8852,7 +8853,9 @@ NULL.
     *p_node = error_node();
   } else {
     /* Use recursion to process the list backwards to generate casts. */
-    add_a_derived_class_cast(new_type_pointed_to, cast_derivation_path_of(bcp),
+    add_a_derived_class_cast(new_type_pointed_to,
+                             { cast_derivation_path_of(bcp),
+                               bcp->derivation->path_tail },
                              requires_runtime_check, err_pos, p_node);
   }  /* if */
 }  /* add_derived_class_casts */
@@ -8890,12 +8893,15 @@ casts, so checking for accessibility of base classes is not necessary.
                        pm_class_type((*p_node)->type), bcp->type);
     *p_node = error_node();
   } else {
+    a_derivation_step_ptr tail = bcp->derivation->path_tail;
     /* Loop through the classes between the derived class and the
        base class.  Generate the necessary casts. */
-    for (dsp = cast_derivation_path_of(bcp); dsp != NULL; dsp = dsp->next) {
+    for (dsp = cast_derivation_path_of(bcp);
+         dsp != tail->next;
+         dsp = dsp->next) {
       /* Add the cast to the next level. */
       a_type_ptr step_type;
-      if (dsp->next != NULL) {
+      if (dsp != tail) {
         a_type_ptr curr_type = dsp->base_class->type;
         step_type = related_ptr_to_member_type(member_type, curr_type);
       } else {
@@ -8906,7 +8912,7 @@ casts, so checking for accessibility of base classes is not necessary.
                                  step_type,
                                  *p_node);
       /* No need to set compiler_generated; this cast cannot be implicit. */
-      if (dsp->next != NULL) {
+      if (dsp != tail) {
         (*p_node)->variant.operation.implicit_step_of_explicit_cast = TRUE;
       }  /* if */
     }  /* for */
@@ -8916,39 +8922,38 @@ casts, so checking for accessibility of base classes is not necessary.
 
 static void add_a_pm_derived_class_cast(
                                     a_type_ptr            new_class_pointed_to,
-                                    a_derivation_step_ptr dsp,
+                                    a_derivation_path     path,
                                     a_boolean             is_implicit_cast,
                                     an_expr_node_ptr      *p_node)
 /*
 Helper routine for add_pm_derived_class_casts: adds casts to *p_node to change
-its type to pointer to member of new_class_pointed_to.  dsp points to the
+its type to pointer to member of new_class_pointed_to.  path denotes the
 derivation list from the desired type to the current type (i.e., it's
 backwards from what's needed).  is_implicit_cast is TRUE if the cast
 is implicit.
 */
 {
-  a_type_ptr member_type = pm_member_type((*p_node)->type);
+  a_derivation_step_ptr  dsp;
 
-  /* Use recursion to get to the bottom of the list and work upwards.
-     Add casts to get the type we have to the type just below the type
-     we want. */
-  if (dsp->next != NULL) {
-    add_a_pm_derived_class_cast(dsp->base_class->type, dsp->next,
-                                is_implicit_cast, p_node);
-    if (!is_implicit_cast) {
+  /* Iterate backwards over the path.  Add casts to get the type we have to
+     the type just below the type we want. */
+  for (dsp = path.tail; dsp != path.head->prev; dsp = dsp->prev) {
+    a_type_ptr class_type = dsp == path.head ?
+                            new_class_pointed_to : dsp->prev->base_class->type;
+    a_type_ptr member_type = pm_member_type((*p_node)->type);
+    /* Add the node to do the cast. */
+    *p_node = make_operator_node(eok_pm_derived_class_cast,
+                                 related_ptr_to_member_type(member_type,
+                                                            class_type),
+                                 *p_node);
+    (*p_node)->compiler_generated = is_implicit_cast;
+    if (dsp != path.head && !is_implicit_cast) {
       check_assertion(is_operation_node(*p_node) &&
                       (*p_node)->variant.operation.kind ==
-                             (an_expr_operator_kind)eok_pm_derived_class_cast);
+                                                    eok_pm_derived_class_cast);
       (*p_node)->variant.operation.implicit_step_of_explicit_cast = TRUE;
     }  /* if */
-  }  /* if */
-  /* Add the node to do the final cast. */
-  *p_node = make_operator_node(
-                              (an_expr_operator_kind)eok_pm_derived_class_cast,
-                              related_ptr_to_member_type(member_type,
-                                                         new_class_pointed_to),
-                              *p_node);
-  (*p_node)->compiler_generated = is_implicit_cast;
+  }  /* for */
 }  /* add_a_pm_derived_class_cast */
 
 
@@ -8992,10 +8997,13 @@ source position to be used for errors.  This routine is only used in C++ mode.
     *p_node = error_node();
   } else {
     if (check_cast_access) {
+      a_derivation_step_ptr tail = bcp->derivation->path_tail;
       /* Check the accessibility of the base class.  (Recall that casts
          to derived types can be done implicitly.) */
       curr_type = new_class_pointed_to;
-      for (dsp = cast_derivation_path_of(bcp); dsp != NULL; dsp = dsp->next) {
+      for (dsp = cast_derivation_path_of(bcp);
+           dsp != tail->next;
+           dsp = dsp->next) {
         base_class = dsp->base_class;
         /* Check that the base class is accessible from the current class. */
         if (!is_accessible_imm_base_class(base_class, curr_type, bcp)) {
@@ -9014,7 +9022,8 @@ source position to be used for errors.  This routine is only used in C++ mode.
     }  /* if */
     /* Use recursion to process the list backwards to generate casts. */
     add_a_pm_derived_class_cast(new_class_pointed_to,
-                                cast_derivation_path_of(bcp),
+                                { cast_derivation_path_of(bcp),
+                                  bcp->derivation->path_tail },
                                 is_implicit_cast, p_node);
     check_assertion(is_operation_node(*p_node) &&
                     (*p_node)->variant.operation.kind ==
