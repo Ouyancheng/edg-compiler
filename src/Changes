@@ -1,6 +1,6 @@
 Version 6.6
 
-9/21/23  [EDGcpfe/26638]
+9/21/23  [EDGcpfe/24461,EDGcpfe/26638]
 Spurious "declared but never referenced" warnings in templates
 
 The front end sometimes considered local variables in templates not to be

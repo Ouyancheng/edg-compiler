@@ -6573,6 +6573,12 @@ curr_routine points to the routine entry; otherwise, it is NULL.
                is no way for a user to fix such a diagnostic that occurs
                only in some instantiations. */
             suppress_diagnostic = TRUE;
+          } else if (is_prototype_instantiation_context() &&
+                     is_local_symbol(sym) && sym->referenced) {
+            /* In prototype instantiation contexts, it is not always possible
+               to determine the nature of a local variable reference.  Do not
+               warn about them. */
+            suppress_diagnostic = TRUE;
           } else if (var_ptr->is_enhanced_for_iterator) {
             /* Iterator variables of C++/CLI "for each" statements or
                range-based-for statements shouldn't get warnings if
