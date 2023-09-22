@@ -19,7 +19,7 @@ For example (with --c++23):
   auto a = [] [[noreturn]] (auto z) { throw z; };
   auto b = [] <class T> [[noreturn]] (T z) { throw z; };
 
-See P2173R1 for more information.
+See WG21 document P2173R1 for more information.
 
 
 9/13/23  [EDGcpfe/26666]
