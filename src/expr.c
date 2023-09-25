@@ -5353,7 +5353,7 @@ static a_builtin_call_adjustment_callback
 		adjust_sync_atomic_builtin,
 		adjust_builtin_zero_non_value_bits,
 		adjust_elementwise_or_reduce_builtin,
-		adjust_preserve_access_index,
+		adjust_return_type_to_type_of_first_argument,
 		adjust_srcloc_builtin;
 
 /*
@@ -5687,7 +5687,12 @@ be called to check and adjust the argument and routine types as needed.
     case bfk_preserve_access_index:
       bcap->n_args = 1;
       bcap->replace_routine_type = TRUE;
-      bcap->callback = adjust_preserve_access_index;
+      bcap->callback = adjust_return_type_to_type_of_first_argument;
+      break;
+    case bfk_nondeterministic_value:
+      bcap->n_args = 1;
+      bcap->replace_routine_type = TRUE;
+      bcap->callback = adjust_return_type_to_type_of_first_argument;
       break;
     default:
       /* No special processing is needed for most builtins. */
@@ -6399,15 +6404,15 @@ resulting return type is determined for the routine.
 }  /* adjust_elementwise_or_reduce_builtin */
 
 
-static a_routine_ptr adjust_preserve_access_index(
+static a_routine_ptr adjust_return_type_to_type_of_first_argument(
                              an_operand                *target,
                              an_arg_list_elem_ptr      args,
                              a_source_position         *closing_paren_position,
                              a_builtin_call_adjustment *bcap,
                              an_expr_node_ptr          *arg_list)
 /*
-Perform special processing for the __builtin_preserve_access_index builtin.
-This consists of setting the return type to that of the first argument.
+Perform special processing for builtins that take exactly one argument and
+whose return type is the same as the type of the first argument.
 */
 {
   a_type_ptr    arg1_type;
@@ -6457,7 +6462,7 @@ This consists of setting the return type to that of the first argument.
     *arg_list = make_node_from_operand_for_expr_list(op1);
   }  /* if */
   return rout;
-}  /* adjust_preserve_access_index */
+}  /* adjust_return_type_to_type_of_first_argument */
 
 
 static a_routine_ptr adjust_srcloc_builtin(
@@ -6481,7 +6486,7 @@ used in Clang mode to set the correct return type.
   check_assertion(rout != NULL);
   rout->type = rout_type;
   return rout;
-}  /* adjust_preserve_access_index */
+}  /* adjust_srcloc_builtin */
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 

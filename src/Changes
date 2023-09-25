@@ -1,5 +1,11 @@
 Version 6.6
 
+9/25/23  [EDGcpfe/26679]
+Clang compatibility: Add Clang 17.0.1 builtin signatures
+
+Builtin signatures have been updated to reflect Clang 17.0.1 builtins.
+
+
 9/22/23  [EDGcpfe/25541,EDGcpfe/26642]
 Variable template declared with "inline" not marked as such
 

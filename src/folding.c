@@ -10237,6 +10237,7 @@ pseudo_call can be NULL if that information is not needed.
       case bfk_copysign:
       case bfk_copysignf:
       case bfk_copysignl:
+      case bfk_nondeterministic_value:
         result = TRUE;
         break;
       case bfk_assume_aligned:
