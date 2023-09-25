@@ -3193,8 +3193,12 @@ do_set_proper_definition_needed_flag:
     case iek_derivation_step:
       {
 #define eptr ((a_derivation_step_ptr)entry_ptr)
-        remap_next_ptr(eptr->prev, a_derivation_step_ptr,
-                       iek_derivation_step);
+        /* Walk the prev pointer.  This ensures (together with not walking the
+           whole list in iek_base_class_derivation) that the traversal stops
+           once we reach an entry on a shared path that has already been
+           walked. */
+        walk_next_ptr(eptr->prev, a_derivation_step_ptr,
+                      iek_derivation_step);
         remap_ptr_not_needed(eptr->next, a_derivation_step_ptr,
                              iek_derivation_step);
         remap_ptr(eptr->base_class, a_base_class_ptr, iek_base_class);
@@ -3206,10 +3210,12 @@ do_set_proper_definition_needed_flag:
 #define eptr ((a_base_class_derivation_ptr)entry_ptr)
         remap_next_ptr(eptr->next, a_base_class_derivation_ptr,
                        iek_base_class_derivation);
-        /* Walk the list in reverse order, starting from path_tail, to ensure
-           we only walk the list between path and path_tail. */
-        walk_list_on_link_field(eptr->path_tail, a_derivation_step_ptr,
-                                iek_derivation_step, prev);
+        /* Walk the path, starting from path_tail, to ensure we only walk the
+           list between path and path_tail.  We intentionally don't use
+           walk_list_on_link_field as we only want to walk the part of the path
+           that hasn't been walked before. */
+        walk_ptr(eptr->path_tail, a_derivation_step_ptr,
+                 iek_derivation_step);
         remap_ptr_not_needed(eptr->path, a_derivation_step_ptr,
                              iek_derivation_step);
 #undef eptr
