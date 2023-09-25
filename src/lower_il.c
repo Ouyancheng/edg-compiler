@@ -8662,8 +8662,8 @@ TRUE, bcp is a direct or indirect primary base of class_type.
     next_offset = &voep->next;
   }  /* for */
   /* Now, add vcall offsets for bcp's bases. */
-  for (b = base_classes_of(base_type); b != NULL; b = b->next) {
-    if (b->direct && !b->is_virtual && b != base_ctsp->primary_base_class) {
+  for (b = direct_base_classes_of(base_type); b != NULL; b = b->next_direct) {
+    if (!b->is_virtual && b != base_ctsp->primary_base_class) {
       /* Find the base (in the derived class) that corresponds to b. */
       if (bcp != NULL) {
         b_in_derived = corresp_base_class(b, bcp);
