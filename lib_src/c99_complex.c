@@ -285,20 +285,12 @@ CAST    (__c99_cbfloat16_to_clong_double, _Complex_long_double,
 #endif /* __EDG_HAS_BFLOAT16_TYPE */
 
 #if __EDG_FLOAT80_ENABLING_POSSIBLE
-#if __EDG_HOST_HAS_FLOAT16_TYPE
-CAST    (__c99_cfloat16_to_cfloat80, _Complex_float80, _Complex_float16,
-                                     __float80)
-#endif /* __EDG_HOST_HAS_FLOAT16_TYPE */
 #if __EDG_HAS_BFLOAT16_TYPE
 CAST    (__c99_cbfloat16_to_cfloat80, _Complex_float80, _Complex_bfloat16,
                                       __float80)
 #endif /* __EDG_HAS_BFLOAT16_TYPE */
 #endif /* __EDG_FLOAT80_ENABLING_POSSIBLE */
 #if __EDG_FLOAT128_ENABLING_POSSIBLE
-#if __EDG_HOST_HAS_FLOAT16_TYPE
-CAST    (__c99_cfloat16_to_cfloat128, _Complex_float128, _Complex_float16,
-                                      __float128)
-#endif /* __EDG_HOST_HAS_FLOAT16_TYPE */
 #if __EDG_HAS_BFLOAT16_TYPE
 CAST    (__c99_cbfloat16_to_cfloat128, _Complex_float128, _Complex_bfloat16,
                                        __float128)
