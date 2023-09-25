@@ -8927,10 +8927,10 @@ duplicate paths.  The copy will be a base class of new_class.
   /* Add the base classes of the current indirect base class to the base
      classes list of the most-derived-class. */
   any_direct_virtual_base_class_fixup = FALSE;
-  for (bcp = base_classes_of(new_bcp->type); bcp != NULL; bcp = bcp->next) {
-    if (!bcp->direct) {
-      continue;
-    } else if (bcp->is_virtual) {
+  for (bcp = direct_base_classes_of(new_bcp->type);
+       bcp != NULL;
+       bcp = bcp->next_direct) {
+    if (bcp->is_virtual) {
       /* A virtual base class is marked as "direct" if any of its paths
          is direct.  However, for our purposes, the "first" path (first in
          a depth-first left-to-right traversal of the derivation graph)
@@ -8957,8 +8957,10 @@ duplicate paths.  The copy will be a base class of new_class.
     a_base_class_ptr             fixup_bcp;
     a_base_class_derivation_ptr  bcdp;
 
-    for (bcp = base_classes_of(new_bcp->type); bcp != NULL; bcp = bcp->next) {
-      if (bcp->direct && bcp->is_virtual) {
+    for (bcp = direct_base_classes_of(new_bcp->type);
+         bcp != NULL;
+         bcp = bcp->next_direct) {
+      if (bcp->is_virtual) {
         bcdp = bcp->derivation;
         if (!bcdp->direct) {
           /* Add path information about a direct virtual base class of
@@ -9398,9 +9400,9 @@ given by base_type.  Issue a diagnostic if not.
     switch (class_type_supp(type)->cli_class_type_kind) {
       case cctk_ref:
         if (cli_class_type_kind_is(base_type, cctk_ref)) {
-          a_base_class_ptr  bcp = base_classes_of(type);
-          for (; bcp != NULL; bcp = bcp->next) {
-            if (bcp->direct && cli_class_type_kind_is(bcp->type, cctk_ref)) {
+          a_base_class_ptr  bcp = direct_base_classes_of(type);
+          for (; bcp != NULL; bcp = bcp->next_direct) {
+            if (cli_class_type_kind_is(bcp->type, cctk_ref)) {
               pos_ty_error(ec_ref_class_has_multiple_ref_bases,
                            &error_position, bcp->type);
               break;
@@ -22600,9 +22602,10 @@ class type is constexpr (and unambiguous).
   a_boolean         result = TRUE;
   a_base_class_ptr  bcp;
 
-  for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
-    if (bcp->direct &&
-        !type_is_constexpr_default_constructible(bcp->type, class_type)) {
+  for (bcp = direct_base_classes_of(class_type);
+       bcp != NULL;
+       bcp = bcp->next_direct) {
+    if (!type_is_constexpr_default_constructible(bcp->type, class_type)) {
       result = FALSE;
       break;
     }  /* if */
@@ -22976,9 +22979,10 @@ classes in the suppression determination.
     if (check_bases && !gsfd->suppress_default_ctor) {
       /* Now scan through all the direct base classes of this class. */
       a_boolean  abstract = class_type->variant.class_struct_union.abstract;
-      for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
-        if (bcp->direct  &&
-            !(bcp->is_virtual &&
+      for (bcp = direct_base_classes_of(class_type);
+           bcp != NULL;
+           bcp = bcp->next_direct) {
+        if (!(bcp->is_virtual &&
               (abstract ||
                 virtual_base_class_is_indirect(bcp, class_type)))) {
           a_boolean  error_detected, err;
@@ -25316,18 +25320,18 @@ destination type is not yet on the current class's conversion list.
      base classes, and project their conversion functions only if no "masking"
      projection has been projected before.
   */
-  for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
-    if (bcp->direct) {
-      if (bcp->is_virtual) {
-        has_direct_virtual_base = TRUE;
-        continue;
-      }  /* if */
-      /* Examine each conversion list entry in the base class. */
-      check_base_class_conversion_list(class_type, bcp,
-                                       /*is_template_list=*/FALSE, &updated);
-      check_base_class_conversion_list(class_type, bcp,
-                                       /*is_template_list=*/TRUE, &updated);
+  for (bcp = direct_base_classes_of(class_type);
+       bcp != NULL;
+       bcp = bcp->next_direct) {
+    if (bcp->is_virtual) {
+      has_direct_virtual_base = TRUE;
+      continue;
     }  /* if */
+    /* Examine each conversion list entry in the base class. */
+    check_base_class_conversion_list(class_type, bcp,
+                                     /*is_template_list=*/FALSE, &updated);
+    check_base_class_conversion_list(class_type, bcp,
+                                     /*is_template_list=*/TRUE, &updated);
   }  /* for */
   if (has_direct_virtual_base) {
     /* Perform an additional pass to deal with direct virtual bases. */
@@ -25653,7 +25657,7 @@ which the using-declaration appears.  If that is not the case, *err is set to
 TRUE and an error is issued (*err should be passed in as FALSE).
 */
 {
-  a_base_class_ptr  direct_bcp = base_classes_of(class_type);
+  a_base_class_ptr  direct_bcp = direct_base_classes_of(class_type);
   a_symbol_locator  locator;
 
   check_assertion(!*err);
@@ -25665,25 +25669,22 @@ TRUE and an error is issued (*err should be passed in as FALSE).
                                     fundamental_symbol_of(fund_sym), err);
     }  /* for */
   } else {
-    for (; direct_bcp != NULL; direct_bcp = direct_bcp->next) {
-      if (direct_bcp->direct) {
-        a_symbol_ptr  visible_sym;
-        clear_locator(&locator, &locator_for_curr_id.source_position);
-        locator.symbol_header = locator_for_curr_id.symbol_header;
-        visible_sym = class_qualified_id_lookup(&locator, direct_bcp->type,
-                                                IDL_NO_OPTIONS);
-        if (visible_sym == NULL) {
-          /* Nothing to be done. */
-        } else if (visible_sym == fund_sym) {
-          goto search_done;
-        } else if (visible_sym->kind ==
-                                      (a_symbol_kind)sk_overloaded_function &&
-                   in_overload_set(fund_sym, visible_sym)) {
-          goto search_done;
-        }  /* if */
+    for (; direct_bcp != NULL; direct_bcp = direct_bcp->next_direct) {
+      a_symbol_ptr  visible_sym;
+      clear_locator(&locator, &locator_for_curr_id.source_position);
+      locator.symbol_header = locator_for_curr_id.symbol_header;
+      visible_sym = class_qualified_id_lookup(&locator, direct_bcp->type,
+                                              IDL_NO_OPTIONS);
+      if (visible_sym == NULL) {
+        /* Nothing to be done. */
+      } else if (visible_sym == fund_sym) {
+        goto search_done;
+      } else if (visible_sym->kind == sk_overloaded_function &&
+                 in_overload_set(fund_sym, visible_sym)) {
+        goto search_done;
       }  /* if */
     }  /* for */
-  }  /* for */
+  }  /* if */
 search_done:
   if (direct_bcp == NULL) {
     pos_error(ec_member_using_must_be_visible_in_direct_base, &error_position);
@@ -25706,7 +25707,7 @@ Otherwise, *result will be NULL.
 {
   a_type_ptr        class_type = cdsp->class_type;
   a_type_ptr        parent_class = qualifier_class_type(locator_for_curr_id);
-  a_base_class_ptr  bcp = base_classes_of(class_type);
+  a_base_class_ptr  bcp = direct_base_classes_of(class_type);
 
   *result = NULL;
   /* Ensure the name qualifier is a direct base class. */
@@ -25716,8 +25717,8 @@ Otherwise, *result will be NULL.
     parent_class = skip_typerefs_not_dependent_decltypes(parent_class);
     parent_class = proxy_class_for_template_param(parent_class);
   }  /* if */
-  for (; bcp != NULL; bcp = bcp->next) {
-    if (bcp->direct && identical_types(bcp->type, parent_class)) break;
+  for (; bcp != NULL; bcp = bcp->next_direct) {
+    if (identical_types(bcp->type, parent_class)) break;
   }  /* for */
   if (bcp == NULL && !is_nonreal_instantiation_context()) {
     /* Inheriting constructors can only be constructed from direct base class
@@ -30984,10 +30985,9 @@ from such interface-like types.)
       /* Check that all the base classes are nonvirtual and public, with
          interface or interface-like class types.  There must be at least one
          interface-like base class. */
-      a_base_class_ptr  bcp = base_classes_of(type);
+      a_base_class_ptr  bcp = direct_base_classes_of(type);
       a_boolean         interface_like = TRUE, has_interface_like_base = FALSE;
-      for (; bcp != NULL; bcp = bcp->next) {
-        if (!bcp->direct) continue;
+      for (; bcp != NULL; bcp = bcp->next_direct) {
         if (bcp->is_virtual ||
             bcp->derivation->access == (an_access_specifier)as_private ||
             bcp->derivation->access == (an_access_specifier)as_protected) {
@@ -31831,11 +31831,13 @@ differently from other class types in this respect).
   } else {
     a_base_class_ptr  bcp;
     result = FALSE;
-    for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
+    for (bcp = direct_base_classes_of(class_type);
+         bcp != NULL;
+         bcp = bcp->next_direct) {
       /* Check if the base classes include a nonliteral class type.  Exclude
          nonreal bases, and also incomplete bases (which are possible in
          Microsoft-mode nonreal instantiations). */
-      if (bcp->direct && !bcp->type->incomplete &&
+      if (!bcp->type->incomplete &&
           !bcp->type->variant.class_struct_union.is_nonreal_class &&
           !is_literal_type(bcp->type)) {
         result = TRUE;
@@ -32829,10 +32831,9 @@ classes.
         ctsp->is_cli_attribute = TRUE;
       }  /* if */
       if (is_immediate_managed_class_type(class_type)) {
-        a_base_class_ptr  bcp = base_classes_of(class_type);
-        for (; bcp != NULL; bcp = bcp->next) {
-          if (bcp->direct &&
-              is_class_struct_union_type(bcp->type) &&
+        a_base_class_ptr  bcp = direct_base_classes_of(class_type);
+        for (; bcp != NULL; bcp = bcp->next_direct) {
+          if (is_class_struct_union_type(bcp->type) &&
               symbol_supplement_for_class(bcp->type)
                                        ->default_indexed_properties != NULL) {
             /* Inherit default indexed properties from direct base classes
