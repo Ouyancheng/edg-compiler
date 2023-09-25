@@ -7357,6 +7357,7 @@ enum a_basic_type {
   bt_double,
   bt_float64,
   bt_float64x,
+  bt_float80,
   bt_float128,
   bt_typedef,
   bt_struct_union,
@@ -7421,11 +7422,11 @@ Return the basic type corresponding to the given floating-point kind.
 
   if (fkind == fk_std_bfloat16) {
     basic_type = bt_bfloat16;
-  } else if (fkind == fk_float16) {
+  } else if (fkind == fk_float16 || fkind == fk_std_float16) {
     basic_type = bt_float16;
   } else if (fkind == fk_fp16) {
     basic_type = bt_fp16;
-  } else if (fkind == fk_float) {
+  } else if (fkind == fk_float || fkind == fk_std_float32) {
     basic_type = bt_float;
   } else if (fkind == fk_float32x) {
     basic_type = bt_float32x;
@@ -7433,6 +7434,10 @@ Return the basic type corresponding to the given floating-point kind.
     basic_type = bt_double;
   } else if (fkind == fk_float64x) {
     basic_type = bt_float64x;
+  } else if (fkind == fk_float80) {
+    basic_type = bt_float80;
+  } else if (fkind == fk_float128 || fkind == fk_std_float128) {
+    basic_type = bt_float128;
   }  /* if */
   return basic_type;
 }  /* basic_float_type */
@@ -7892,6 +7897,7 @@ _Sat was specified.
     case bt_float32x:
     case bt_float64:
     case bt_float64x:
+    case bt_float80:
     case bt_float128:
       if (sign != sign_none || (size != size_none && size != size_long)) {
         bad_combination = TRUE;
@@ -7916,6 +7922,8 @@ _Sat was specified.
             fkind = (a_float_kind)fk_std_float32;
           } else if (basic_type == bt_float64) {
             fkind = (a_float_kind)fk_std_float64;
+          } else if (basic_type == bt_float80) {
+            fkind = (a_float_kind)fk_float80;
           } else if (basic_type == bt_float128) {
             fkind = (a_float_kind)fk_std_float128;
           } else {
@@ -12599,7 +12607,8 @@ exit_loop:
         basic_type != bt_float && basic_type != bt_double &&
         basic_type != bt_float32 && basic_type != bt_float32x &&
         basic_type != bt_float64 && basic_type != bt_float64x &&
-        basic_type != bt_float128 && basic_type != bt_bfloat16) {
+        basic_type != bt_float80 && basic_type != bt_float128 &&
+        basic_type != bt_bfloat16) {
       /* _Complex and _Imaginary usually require "float" or "double".  GNU C
          mode is an exception: If no type specifier is mentioned, "double" is
          implied.  In some GNU and clang versions, "_Float16" is also
@@ -12615,17 +12624,10 @@ exit_loop:
           pos_error(ec_missing_floating_point_type, &error_position);
         }  /* if */
       } else if (basic_type == bt_typedef &&
-                 (*type_ptr)->variant.typeref.predeclared &&
-                 type_is(skip_typerefs(*type_ptr), tk_float) &&
-                 (skip_typerefs(*type_ptr)->variant.float_kind == fk_float16 ||
-                  skip_typerefs(*type_ptr)->variant.float_kind ==
-                                                             fk_std_float16)) {
-        /* _Complex _Float16 */
-        basic_type = bt_float16;
-        bad_complex_combination = FALSE;
-      } else if (basic_type == bt_typedef && gpp_version_is(any_version) &&
                  *type_ptr != NULL && type_is(*type_ptr, tk_typeref) &&
-                 typeref_is_type_operator(*type_ptr) &&
+                 ((typeref_is_type_operator(*type_ptr) &&
+                   gpp_version_is(any_version)) ||
+                  (*type_ptr)->variant.typeref.predeclared) &&
                  type_is(skip_typerefs(*type_ptr), tk_float)) {
         basic_type = basic_float_type(skip_typerefs(*type_ptr)->
                                                            variant.float_kind);
