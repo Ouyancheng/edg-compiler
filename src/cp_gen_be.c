@@ -10634,6 +10634,13 @@ Put out the list of direct base classes of the class associated with ctsp
   /* Traverse the direct base classes in declaration order. */
   for (bcp = ctsp->direct_base_classes; bcp != NULL; bcp = bcp->next_direct) {
     a_base_class_derivation_ptr bcdp = bcp->derivation;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (bcp->is_implicit_direct_base) {
+      /* System::Object and System::ValueType are usually implicit bases.
+         If this is such a case, do not render the derivation explicitly. */
+      continue;
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Output the appropriate separator. */
     if (first_base) {
       write_tok_str(": ");
