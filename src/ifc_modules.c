@@ -12593,12 +12593,10 @@ parameter from the given expression.  If processing fails, instead return a
 non-type template argument with an error constant.
 */
 {
-  a_template_arg_ptr         result = NULL;
-  const a_template_parameter *param = state->curr_param();
-
-  check_assertion(param->kind == tpk_nontype);
-
+  check_assertion(state->curr_param()->kind == tpk_nontype);
+  a_template_arg_ptr   result = NULL;
   a_module_token_cache cache;
+
   cache_expr(&cache, expr_idx, /*cinfo=*/{});
   if (!cache.is_valid()) {
     goto invalid;
