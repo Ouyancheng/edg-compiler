@@ -12588,9 +12588,10 @@ static a_template_arg_ptr create_nontype_template_arg_from_expr(
                                      a_template_argument_append_state *state,
                                      an_ifc_expr_index                expr_idx)
 /*
-Create and return a non-type template argument for the given non-type template
-parameter from the given expression.  If processing fails, instead return a
-non-type template argument with an error constant.
+Create and return a non-type template argument (for the template parameter
+associated with the given template argument append state) from the given
+expression.  If processing fails, instead return a non-type template argument
+with an error constant.
 */
 {
   check_assertion(state->curr_param()->kind == tpk_nontype);
@@ -12628,11 +12629,11 @@ non-type template argument with an error constant.
     /* Perform the expression scan to form the constant from tokens. */
     a_module_entity_rescan rescan(&cache);
     /* FIXME: If the cache contains references to template parameters that have
-       instantiated values, those likely need to be addressed here (similar to
-       how the constant's type is rescanned above). */
+       substituted values, those likely need to be exposed here (similar to how
+       the constant's type is rescanned above). */
     scan_template_argument_constant_expression(type, result->variant.constant);
     /* End the potential pack expansion; this ensures any packs that are
-       reference are not diagnosed. */
+       referenced are not diagnosed. */
     result->pack_expansion_descr =
                  end_potential_pack_expansion_context(pesep,
                                                       /*is_declarator=*/FALSE);
@@ -12651,9 +12652,10 @@ done:
 
 a_template_parameter *a_template_argument_append_state::curr_param() const
 /*
-Return a pointer to the current IL template parameter a template argument is
-being constructed for.  If there's no current parameter (i.e., there are no
-further template arguments that need constructed) instead return NULL.
+Return a pointer to the current IL template parameter (i.e., the parameter
+corresponding to the next template argument in the template argument list).  If
+there's no current parameter (i.e., there are no further template arguments
+that need to be constructed) instead return NULL.
 */
 {
   return this->param_sym == NULL ?
