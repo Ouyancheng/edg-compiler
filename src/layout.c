@@ -1892,10 +1892,10 @@ Return TRUE if placing bcp at offset would result in a subobject conflict.
       /* The primary base is always at offset zero. */
       result = TRUE;
     } else {
-      for (base_bcp = base_classes_of(base_type); 
-           base_bcp != NULL; 
-           base_bcp = base_bcp->next) {
-        if (base_bcp->direct && !base_bcp->is_virtual) {
+      for (base_bcp = direct_base_classes_of(base_type);
+           base_bcp != NULL;
+           base_bcp = base_bcp->next_direct) {
+        if (!base_bcp->is_virtual) {
           /* A direct base is at a fixed offset. */
           eff_bcp = corresp_base_class(base_bcp, bcp);
           if (bcp->primary_base_class != eff_bcp &&
@@ -3000,14 +3000,16 @@ setting the offset field in the latter.
     /* An indirect nearly-empty virtual base might have been chosen as a
        primary base.  We will therefore have to consider indirect bases. */
     consider_indirect_bases = TRUE;
-  }  /* if */
+    ref_bcp = base_classes_of(proximate_derivation->type);
+  } else
 #endif /* IA64_ABI */
+  /* Do not insert code here. */
   /* Get the first "reference" base class of the root class, which is itself
      a base class of the most derived class.  It is called a reference base
      class because it contains an offset relative to the root base class.
      It is the offset value relative to the most derived class that we need
      to determine and record. */
-  ref_bcp = base_classes_of(proximate_derivation->type);
+  ref_bcp = direct_base_classes_of(proximate_derivation->type);
 #if DEBUG
   if (debug_level >= 4) {
     if (ref_bcp != NULL) {
@@ -3018,7 +3020,13 @@ setting the offset field in the latter.
 #endif /* DEBUG */
   /* Loop through the reference base classes, the direct base classes of
      the proximate_derivation base class. */
-  for (; ref_bcp != NULL; ref_bcp = ref_bcp->next) {
+  for (; ref_bcp != NULL;
+#if IA64_ABI
+       ref_bcp = consider_indirect_bases ? ref_bcp->next : ref_bcp->next_direct
+#else /* !IA64_ABI */
+       ref_bcp = ref_bcp->next
+#endif /* !IA64_ABI */
+      ) {
     a_base_class_ptr  bcp = NULL;
     if (ref_bcp->direct) {
       /* The most common case of interest: ref_bcp is a direct base class
