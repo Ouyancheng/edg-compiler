@@ -705,7 +705,7 @@ field.
         record_reference(rep);
       }  /* if */
       if ((new_kind & SRK_PROTO_INST_REF) != 0 &&
-          rep->symbol != NULL && is_local_symbol(rep->symbol)) {
+          is_local_symbol(rep->symbol)) {
         /* Prototype instantiations should not mark non-local scope entities as
            referenced and that is what SRK_PROTO_INST_REF is for.  However, for
            local entities, we do want to mark them since otherwise we may
