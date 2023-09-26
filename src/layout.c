@@ -1478,8 +1478,27 @@ bugs).
   }  /* if */
   /* Apply these tests recursively to any base and field of atype. */
   if (!result) {
-    a_base_class_ptr bcp = base_classes_of(atype);
-    for (; bcp != NULL; bcp = bcp->next) {
+    a_base_class_ptr bcp;
+#if IA64_ABI
+    a_base_class_ptr a_base_class::*next_ptr;
+    if (consider_virtual_bases &&
+        atype->variant.class_struct_union.any_virtual_base_classes) {
+      bcp = base_classes_of(atype);
+      next_ptr = &a_base_class::next;
+    } else {
+      bcp = direct_base_classes_of(atype);
+      next_ptr = &a_base_class::next_direct;
+    }  /* if */
+#else /* !IA64_ABI */
+    bcp = direct_base_classes_of(atype);
+#endif /* !IA64_ABI */
+    for (; bcp != NULL;
+#if IA64_ABI
+         bcp = bcp->*next_ptr
+#else /* !IA64_ABI */
+         bcp = bcp->next_direct
+#endif /* !IA64_ABI */
+                               ) {
       a_base_class_ptr  eff_bcp;
       a_boolean         consider_fields_in_bcp = consider_fields;
       /* Skip indirect bases -- unless they are virtual and virtual bases are
@@ -3026,7 +3045,7 @@ setting the offset field in the latter.
 #else /* !IA64_ABI */
        ref_bcp = ref_bcp->next
 #endif /* !IA64_ABI */
-      ) {
+                              ) {
     a_base_class_ptr  bcp = NULL;
     if (ref_bcp->direct) {
       /* The most common case of interest: ref_bcp is a direct base class
