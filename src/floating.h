@@ -605,6 +605,9 @@ extern an_fp_return_type write_float128_n(char          *tgt,
 extern an_fp_return_type read_float16(unsigned char *val,
                                       a_const_char  *str,
                                       int           len);
+extern an_fp_return_type read_bfloat16(unsigned char *val,
+                                       a_const_char  *str,
+                                       int           len);
 extern an_fp_return_type read_float(unsigned char *val,
                                     a_const_char  *str,
                                     int           len);
