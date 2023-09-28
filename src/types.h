@@ -765,6 +765,10 @@ extern a_boolean type_has_nontrivial_destructor(a_type_ptr  tp);
 
 extern a_boolean is_on_any_derivation_of(a_base_class_ptr  bcp,
                                          a_base_class_ptr  ref_bcp);
+extern void map_corresponding_base_class(a_base_class_ptr  base_class,
+                                         a_type_ptr        new_class,
+                                         a_base_class_ptr  disambiguator,
+                                         a_base_class_ptr  new_base_class);
 extern a_base_class_ptr corresponding_base_class(
                                             a_base_class_ptr  base_class,
                                             a_type_ptr        new_class,

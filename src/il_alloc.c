@@ -1571,6 +1571,7 @@ to it.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   bcp->is_implicit_direct_base         = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  bcp->has_public_derivation           = FALSE;
   bcp->direct_base_number	       = 0;
   bcp->offset                          = 0;
 #if !IA64_ABI

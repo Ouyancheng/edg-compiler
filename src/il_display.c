@@ -7215,6 +7215,7 @@ Display the indicated base class entry.
                (a_boolean)ptr->shares_virtual_function_info);
   disp_boolean("ignore_during_dependent_lookup",
                (a_boolean)ptr->ignore_during_dependent_lookup);
+  disp_boolean("has_public_derivation", (a_boolean)ptr->has_public_derivation);
   disp_host_large_unsigned("offset", (a_host_large_unsigned)ptr->offset);
   if (ptr->is_virtual) {
 #if CFRONT_OBJECT_CODE_COMPATIBILITY

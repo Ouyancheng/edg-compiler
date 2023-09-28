@@ -7696,6 +7696,11 @@ typedef struct a_base_class {
 			   types (e.g., System::ValueType is usually added
 			   implicitly to value class types). */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_bit_field	has_public_derivation:1;
+			/* TRUE if there is a derivation of derived_class from
+			   this base class with public access for all steps.
+			   In this case, no further access checking needs to be
+			   done. */
   a_base_class_sequence_number
 		direct_base_number;
 			/* For a direct base class, the sequence number of

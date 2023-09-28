@@ -4595,6 +4595,22 @@ static a_corresponding_base_class_map
                            corresponding base class in a new class type. */
 
 
+void map_corresponding_base_class(a_base_class_ptr  base_class,
+                                  a_type_ptr        new_class,
+                                  a_base_class_ptr  disambiguator,
+                                  a_base_class_ptr  new_base_class)
+/*
+Add an entry to the corresponding_base_class_cache.  base_class, new_class and
+disambiguator are the keys for the lookup cache and new_base_class is the value
+for that key.
+*/
+{
+  a_corresponding_base_class_lookup_key
+                key = { base_class, new_class, disambiguator };
+  corresponding_base_class_cache->map(key, new_base_class);
+}  /* map_corresponding_base_class */
+
+
 a_base_class_ptr corresponding_base_class(a_base_class_ptr  base_class,
                                           a_type_ptr        new_class,
                                           a_base_class_ptr  disambiguator)

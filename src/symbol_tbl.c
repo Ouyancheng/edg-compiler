@@ -14518,6 +14518,7 @@ class.
   a_base_class_ptr            base_class;
   a_type_ptr                  curr_type;
 
+  if (bcp->has_public_derivation) goto done;
   curr_type = bcp->derived_class;
   if (bcp->is_virtual) {
     /* Use a special subroutine for a virtual base class. */
@@ -14534,6 +14535,7 @@ class.
       curr_type = base_class->type;
     }  /* for */
   }  /* if */
+done:
   return accessible;
 }  /* is_accessible_base_class */
 

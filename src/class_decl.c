@@ -8880,6 +8880,10 @@ duplicate paths.  The copy will be a base class of new_class.
           fputc('\n', f_debug);
         }  /* if */
 #endif /* DEBUG */
+        if (access == as_public &&
+            directly_derived_bcp->has_public_derivation) {
+          bcp->has_public_derivation = TRUE;
+        }  /* if */
         (void)update_base_class_derivation(bcp, path, access);
         goto done;
       }  /* if */
@@ -8904,6 +8908,12 @@ duplicate paths.  The copy will be a base class of new_class.
   new_bcp->decl_position = directly_derived_bcp->decl_position;
   new_bcp->direct = FALSE;
   if (base_class_to_copy->is_virtual) new_bcp->is_virtual = TRUE;
+  new_bcp->has_public_derivation = access == as_public &&
+                                   directly_derived_bcp->has_public_derivation;
+  if (!base_class_to_copy->is_virtual) {
+    map_corresponding_base_class(base_class_to_copy, new_class,
+                                 directly_derived_bcp, new_bcp);
+  }  /* if */
   path = update_base_class_derivation(new_bcp, path, access);
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
   if (new_bcp->is_virtual) {
@@ -10462,6 +10472,7 @@ can only contain CLI interfaces.
               bcp->direct = TRUE;
               bcp->direct_base_number = direct_base_number;
               bcp->decl_position = base_class_decl_pos;
+              if (access == as_public) bcp->has_public_derivation = TRUE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
               bcp->base_specifier_range.start = base_specifier_start_pos;
               bcp->base_specifier_range.end = end_pos_curr_token;
@@ -10491,6 +10502,7 @@ can only contain CLI interfaces.
         new_direct_bcp->direct = TRUE;
         new_direct_bcp->ambiguous = ambiguous;
         new_direct_bcp->direct_base_number = direct_base_number;
+        new_direct_bcp->has_public_derivation = access == as_public;
         if (is_virtual) new_direct_bcp->is_virtual = TRUE;
         mark_base_dependent_if_needed(new_direct_bcp, class_state,
                                       proto_base_number);
