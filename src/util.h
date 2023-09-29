@@ -4004,6 +4004,154 @@ private:
 };  /* Ptr_set */
 
 
+/*
+This class is used to compare two sequences using a dynamic programming
+approach to the longest common subsequence problem.  The computed alignment
+table can then be examined to yield the diff via traceback.
+
+Notably, this class reverses its view of the given inputs so the diff can be
+returned in order without requiring further allocations or reversing the input
+data beforehand.
+
+The implementation is aimed at debugging operations.  As such it's not fully
+optimized and does not currently do any pruning of the input data; this may be
+added in the future.
+*/
+template<typename an_Elem_a, typename an_Elem_b = an_Elem_a,
+         template<typename> class Allocator = FE_allocator>
+struct Seq_comparator: private Allocator<uint32_t> {
+  typedef Allocator<uint32_t> an_allocator;
+  typedef Allocation<uint32_t> an_allocation;
+
+  inline Seq_comparator(an_Elem_a          *array_a_val,
+                        size_t             array_a_len_val,
+                        an_Elem_b          *array_b_val,
+                        size_t             array_b_len_val,
+                        const an_allocator &a = an_allocator());
+  inline ~Seq_comparator();
+
+  template<typename a_Consumer_fn>
+  void diff(a_Consumer_fn fn);
+private:
+  an_Elem_a& input_a(size_t idx)
+    { return this->array_a[this->array_a_len - (idx + 1)]; }
+  an_Elem_b& input_b(size_t idx)
+    { return this->array_b[this->array_b_len - (idx + 1)]; }
+  unsigned& output(size_t a, size_t b)
+    { return this->lcs_table[(a * this->array_b_len) + b]; }
+  an_Elem_a     *array_a;
+                        /* The given "top row" sequence being compared. */
+  size_t        array_a_len;
+                        /* The length of the given "top row" sequence being
+                           compared. */
+  an_Elem_b     *array_b;
+                        /* The given "left column" sequence being compared. */
+  size_t        array_b_len;
+                        /* The length of the given "left column" sequence being
+                           compared. */
+  uint32_t      *lcs_table;
+                        /* A pointer to the allocated alignment table. */
+};  /* Seq_comparator */
+
+
+template<typename an_Elem_a, typename an_Elem_b,
+         template<typename> class Allocator>
+Seq_comparator<an_Elem_a, an_Elem_b, Allocator>::Seq_comparator(
+                                            an_Elem_a          *array_a_val,
+                                            size_t             array_a_len_val,
+                                            an_Elem_b          *array_b_val,
+                                            size_t             array_b_len_val,
+                                            const an_allocator &alloc)
+/*
+Given two arrays and their sizes, allocate a new alignment table with the given
+allocator.  The allocated alignment table will then be populated.
+*/
+  : an_allocator(alloc), array_a(array_a_val), array_a_len(array_a_len_val),
+    array_b(array_b_val), array_b_len(array_b_len_val),
+    lcs_table(this->alloc(array_a_len_val * array_b_len_val).start)
+{
+  /* Zero the "top" and "left" edge of the comparison. */
+  for (size_t a = 0; a < this->array_a_len; ++a) {
+    this->output(a, 0) = 0;
+  }  /* for */
+  for (size_t b = 0; b < this->array_b_len; ++b) {
+    this->output(0, b) = 0;
+  }  /* for */
+  /* Compute the alignment table. */
+  for (size_t a = 1; a < this->array_a_len; ++a) {
+    for (size_t b = 1; b < this->array_b_len; ++b) {
+      if (this->input_a(a) == this->input_b(b)) {
+        /* The current values match, take the score to the top and left that
+           lead to this point and increase it with another match. */
+        unsigned prev_diag_val = this->output(a - 1, b - 1);
+
+        this->output(a, b) = prev_diag_val + 1;
+      } else {
+        /* The current values do not match, take either the score from the top
+           or the left (which ever scored better). */
+        unsigned prev_b_val = this->output(a, b - 1);
+        unsigned prev_a_val = this->output(a - 1, b);
+
+        this->output(a, b) = max_val(prev_b_val, prev_a_val);
+      }  /* if */
+    }  /* for */
+  }  /* for */
+}  /* Seq_comparator::Seq_comparator */
+
+
+template<typename an_Elem_a, typename an_Elem_b,
+         template<typename> class Allocator>
+Seq_comparator<an_Elem_a, an_Elem_b, Allocator>::~Seq_comparator()
+/*
+Destroy the Seq_comparator instance and its allocated resources.
+*/
+{
+  ptrdiff_t num_elements = (ptrdiff_t)(this->array_a_len * this->array_b_len);
+
+  this->dealloc(an_allocation{this->lcs_table, num_elements});
+}  /* Seq_comparator::~Seq_comparator */
+
+
+template<typename an_Elem_a, typename an_Elem_b,
+         template<typename> class Allocator>
+template<typename a_Consumer_fn>
+void Seq_comparator<an_Elem_a, an_Elem_b, Allocator>::diff(a_Consumer_fn fn)
+/*
+Given a function that accepts two arguments (the first an_Elem_a* type and the
+second an_Elem_b* type), walk back through the computed comparison.
+
+The provided function will be called as follows:
+ - If the values match, both arguments will be supplied.
+ - If there was a deletion, only the left argument will be supplied (the other
+   shall be NULL).
+ - If there was an insertion, only the right argument will be supplied (the
+   other shall be NULL).
+*/
+{
+  ptrdiff_t a = this->array_a_len - 1;
+  ptrdiff_t b = this->array_b_len - 1;
+
+  while (TRUE) {
+    if (a >= 0 && b >= 0 && this->input_a(a) == this->input_b(b)) {
+      /* The values match: reverse the scoring and walk back up and to the left
+         to see what value lead here. */
+      fn(&this->input_a(a--), &this->input_b(b--));
+    } else if (b > 0 && (a == 0 ||
+                         (this->output(a, b - 1) >= this->output(a - 1, b)))) {
+      /* The left value is scoring better: this is an insertion. */
+      fn(NULL, &this->input_b(b--));
+    } else if (a > 0 && (b == 0 ||
+                         (this->output(a, b - 1) < this->output(a - 1, b)))) {
+      /* The right value is scoring better: this is a deletion. */
+      fn(&this->input_a(a--), NULL);
+    } else {
+      /* The root of the comparison has been reached: stop. */
+      break;
+    }  /* if */
+  }  /* while */
+}  /* Seq_comparator::diff */
+
+
 template<typename a_Linked_list_type, typename a_Predicate>
 inline unsigned count_list_elements(a_Linked_list_type list_head,
                                     a_Predicate        predicate)
