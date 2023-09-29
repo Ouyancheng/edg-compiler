@@ -26688,6 +26688,113 @@ Display the contents of a token cache.
 }  /* db_token_cache */
 
 
+static a_string format_token_for_comparison(a_cached_token *token,
+                                            unsigned       max_length)
+/*
+*/
+{
+  a_string result("");
+
+  if (token == NULL) {
+    result.append("NONE");
+  } else {
+    result.append(token_to_string(token));
+  }  /* if */
+  if (result.length() < max_length) {
+    ptrdiff_t needed_len = max_length - result.length();
+
+    for (ptrdiff_t i = 0; i < needed_len; ++i) {
+      result.append(" ");
+    }  /* for */
+  } else if (result.length() > max_length) {
+    a_string_view trimmed_str(result.as_temp_characters(), max_length - 3);
+    a_string      transformed_result(trimmed_str, "...");
+
+    result = transformed_result;
+  }  /* if */
+  return result;
+}  /* token_to_str */
+
+
+extern a_boolean db_compare_token_caches(a_token_cache *cache_a,
+                                         a_token_cache *cache_b)
+/*
+*/
+{
+  a_boolean                 result = TRUE;
+  Dyn_array<a_cached_token> cache_a_toks;
+  Dyn_array<a_cached_token> cache_b_toks;
+  a_cached_token            *tok_a = cache_a->first_token;
+  a_cached_token            *tok_b = cache_b->first_token;
+
+
+  while (tok_a != NULL) {
+    cache_a_toks.push_back(*tok_a);
+    tok_a = tok_a->next;
+  }  /* while */
+  while (tok_b != NULL) {
+    cache_b_toks.push_back(*tok_b);
+    tok_b = tok_b->next;
+  }  /* while */
+
+  Seq_comparator<a_cached_token> comparator(cache_a_toks.begin(),
+                                            cache_a_toks.length(),
+                                            cache_b_toks.begin(),
+                                            cache_b_toks.length());
+  a_line_number prev_line_num = 0;
+  a_boolean     printed_newline = TRUE;
+  auto diff_consumer = [&prev_line_num, &printed_newline](
+                                                   a_cached_token *tok_a_ref,
+                                                   a_cached_token *tok_b_ref) {
+    if (tok_a_ref == NULL || tok_b_ref == NULL) {
+      a_string comparison(format_token_for_comparison(tok_a_ref, 39), " ",
+                          format_token_for_comparison(tok_b_ref, 39));
+
+      if (!printed_newline) {
+        comparison = a_string("\n/* DIFF DETECTED */\n", comparison);
+      }  /* if */
+      if (db_color_flag_is_set()) {
+        a_const_char color_escape = '\033';
+        a_const_char *color_num = tok_a_ref == NULL ? "32" : "31";
+
+        comparison = a_string(a_string_view(&color_escape, 1), "[",
+                              color_num, "m", comparison,
+                              a_string_view(&color_escape, 1), "[0m");
+      }  /* if */
+      print(comparison, f_debug);
+      printed_newline = TRUE;
+    } else {
+      a_line_number     line_num;
+      a_boolean         at_end_of_source;
+      a_source_position *pos = &tok_a_ref->source_position;
+
+      (void)source_file_for_seq(pos->seq, &line_num, &at_end_of_source,
+                                /*physical_line=*/TRUE);
+      if (line_num != prev_line_num && !printed_newline) {
+        a_string padding_str("");
+
+        if (pos->column > 0) {
+          for (a_column_number i = 0; i < pos->column; ++i) {
+            padding_str.append(" ");
+          }  /* for */
+        }  /* if */
+        print(padding_str, f_debug);
+        prev_line_num = line_num;
+      }  /* if */
+
+      a_string token_as_string = token_to_string(tok_a_ref);
+      print(token_as_string, f_debug, /*end=*/" ");
+      printed_newline = FALSE;
+    }  /* if */
+  };
+  comparator.diff(diff_consumer);
+  if (!printed_newline) {
+    print(a_string(""), f_debug);
+  }  /* if */
+  return result;
+}  /* db_compare_token_caches */
+
+
 void db_source_position(a_source_position  *pos)
 /*
 Output the given source position to f_debug, both using a raw sequence number

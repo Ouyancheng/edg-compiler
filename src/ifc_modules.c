@@ -24860,16 +24860,27 @@ out to be needed later on.
   /* Ensure the canonical template IL entity is what's being mapped onto. */
   check_assertion(templ != NULL && templ->canonical_template != NULL);
   templ = templ->canonical_template;
-  if (is_null_index(ifc_template_definitions->get(templ))) {
-    (void)ifc_template_definitions->map(templ, decl_idx);
-  } else {
-    /* This template has already has a definition; map its specializations (if
-       any). */
-    an_ifc_template_spec_info spec_info(decl_idx);
 
-    if (spec_info.has_specs()) {
-      record_pending_ifc_template_specializations(templ, decl_idx);
-    }  /* if */
+  an_ifc_decl_index existing_decl = ifc_template_definitions->get(templ);
+  a_boolean         already_defined = !is_null_index(existing_decl);
+  (void)ifc_template_definitions->map_or_replace(templ, decl_idx);
+  if (already_defined) {
+    a_string decl_idxs(index_to_str(existing_decl), " replaced by ", index_to_str(decl_idx));
+    print(decl_idxs, f_debug);
+
+    a_module_token_cache prev_cache;
+    a_module_token_cache new_cache;
+    module_of(existing_decl)->cache_decl(&prev_cache, existing_decl, /*cinfo=*/{});
+    module_of(decl_idx)->cache_decl(&new_cache, decl_idx, /*cinfo=*/{});
+    db_compare_token_caches(prev_cache.as_canonical(), new_cache.as_canonical());
+  }
+
+  /* This template has already has a definition; map its specializations (if
+     any). */
+  an_ifc_template_spec_info spec_info(decl_idx);
+
+  if (spec_info.has_specs()) {
+    record_pending_ifc_template_specializations(templ, decl_idx);
   }  /* if */
 }  /* record_pending_ifc_template_definition */
 
