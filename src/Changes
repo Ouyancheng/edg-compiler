@@ -81,8 +81,11 @@ The front end now supports the Unicode 15.1.0 character set.
 C++23: std::bfloat16 type
 
 The std::bfloat16 type is now supported by the front end in C++23 modes
-(see the entry for EDGcpfe/25100,EDGcpfe/25170,EDGcpfe/25515).  For
-example, with --c++23:
+(see the entry for EDGcpfe/25100,EDGcpfe/25170,EDGcpfe/25515).  Because of
+currently-limited compiler support for a native bfloat16 type, the internal
+representation of bfloat16 values is a host "float".  (See the comments in
+float_type.h for the FPT_BFLOAT16 case for a more complete discussion of
+the rationale for this choice.)  For example, with --c++23:
 
   using bf16_t = decltype(0.0bf16);   // Previously treated as std::float32_t
   using f32_t = decltype(0.0f32);

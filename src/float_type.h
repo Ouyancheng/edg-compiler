@@ -86,7 +86,15 @@ BEGIN_EDG_NAMESPACE
 #else /* !(defined(FPT_FLOAT16) || ...) */
 #define FPT_TYPE EDG_bfloat16_t
 #define FPT_NAME bfloat16
-/* bfloat16 representation will be host "float". */
+/* Compiler support for the bfloat16 type is, as of this writing, still
+   very limited and, on machine architectures that do not have a native
+   bfloat16 type, involves potentially expensive software emulation.  In
+   view of these considerations, the internal representation for bfloat16
+   values is chosen below to be a host "float".  On architectures for which
+   the "float" type is IEEE binary32, this representation is nearly ideal,
+   as the exponent representation of the two types is identical, yielding
+   the same range of values, and the formats are distinguished only by the
+   greater precision of the mantissa in the "float" value. */
 #define FPT_VALUE_BITS FPT_FLOAT_VALUE_BITS
 #ifdef FPT_FLOAT_PRECISION
 #define FPT_PRECISION FPT_FLOAT_PRECISION
