@@ -7147,7 +7147,8 @@ Display the indicated overriding virtual function entry.
 }  /* disp_overriding_virtual_function */
 
 
-static void disp_derivation_step_list(a_derivation_step_ptr ptr)
+static void disp_derivation_step_list(a_derivation_step_ptr ptr,
+                                      a_derivation_step_ptr tail)
 /*
 Display the indicated derivation step list.
 */
@@ -7157,7 +7158,7 @@ Display the indicated derivation step list.
   } else {
     disp_name("path");
     (void)printf("\n");
-    for (; ptr != NULL; ptr = ptr->next) {
+    for (; ptr != tail->next; ptr = ptr->next) {
       disp_ptr("  base_class", (char *)ptr->base_class, iek_base_class);
     }  /* for */
   }  /* if */
@@ -7172,7 +7173,7 @@ Display the indicated base class derivation entry.
   disp_ptr("next", (char *)ptr->next, iek_base_class_derivation);
   if (ptr->direct) disp_boolean("direct", TRUE);
   if (ptr->preferred) disp_boolean("preferred", TRUE);
-  disp_derivation_step_list(ptr->path);
+  disp_derivation_step_list(ptr->path, ptr->path_tail);
   disp_access("access", (an_access_specifier)ptr->access);
 }  /* disp_base_class_derivation */
 
