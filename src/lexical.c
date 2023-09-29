@@ -26716,6 +26716,55 @@ static a_string format_token_for_comparison(a_cached_token *token,
 }  /* token_to_str */
 
 
+static a_boolean is_tok_equal(const a_cached_token &tok1,
+                              const a_cached_token &tok2)
+/*
+Return TRUE if the cached token represented by tok1 is the same as the cached
+token represented by tok2; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (tok1.token != tok2.token) {
+    result = FALSE;
+  } else if (tok1.extra_info_kind != tok2.extra_info_kind) {
+    result = FALSE;
+  } else {
+    switch (tok1.extra_info_kind) {
+      case teik_none:
+        break;
+      case teik_identifier:
+        { const a_symbol_locator &loc1 = tok1.variant.locator;
+          const a_symbol_locator &loc2 = tok2.variant.locator;
+
+          if (loc1.symbol_header != loc2.symbol_header) {
+            result = FALSE;
+          }  /* if */
+        }
+        break;
+      case teik_constant:
+        { a_constant_ptr const1 = tok1.variant.constant;
+          a_constant_ptr const2 = tok2.variant.constant;
+
+          if (!eq_constants(const1, const2)) {
+            result = FALSE;
+          }  /* if */
+        }
+      case teik_pragma:
+      case teik_pp_token:
+      case teik_extracted_body:
+      case teik_asm_string:
+      case teik_insert_string:
+      case teik_ud_lit:
+      case teik_ifc_index:
+        /* FIXME: Lots more todo. */
+        break;
+    }  /* switch */
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
 extern a_boolean db_compare_token_caches(a_token_cache *cache_a,
                                          a_token_cache *cache_b)
 /*
@@ -26740,22 +26789,23 @@ extern a_boolean db_compare_token_caches(a_token_cache *cache_a,
   Seq_comparator<a_cached_token> comparator(cache_a_toks.begin(),
                                             cache_a_toks.length(),
                                             cache_b_toks.begin(),
-                                            cache_b_toks.length());
+                                            cache_b_toks.length(),
+                                            is_tok_equal);
   a_line_number prev_line_num = 0;
   a_boolean     printed_newline = TRUE;
   auto diff_consumer = [&prev_line_num, &printed_newline](
-                                                   a_cached_token *tok_a_ref,
-                                                   a_cached_token *tok_b_ref) {
-    if (tok_a_ref == NULL || tok_b_ref == NULL) {
-      a_string comparison(format_token_for_comparison(tok_a_ref, 39), " ",
-                          format_token_for_comparison(tok_b_ref, 39));
+                                                   a_cached_token *from_tok,
+                                                   a_cached_token *to_tok) {
+    if (from_tok == NULL || to_tok == NULL) {
+      a_string comparison(format_token_for_comparison(from_tok, 39), " ",
+                          format_token_for_comparison(to_tok, 39));
 
       if (!printed_newline) {
         comparison = a_string("\n/* DIFF DETECTED */\n", comparison);
       }  /* if */
       if (db_color_flag_is_set()) {
         a_const_char color_escape = '\033';
-        a_const_char *color_num = tok_a_ref == NULL ? "32" : "31";
+        a_const_char *color_num = from_tok == NULL ? "32" : "31";
 
         comparison = a_string(a_string_view(&color_escape, 1), "[",
                               color_num, "m", comparison,
@@ -26766,7 +26816,7 @@ extern a_boolean db_compare_token_caches(a_token_cache *cache_a,
     } else {
       a_line_number     line_num;
       a_boolean         at_end_of_source;
-      a_source_position *pos = &tok_a_ref->source_position;
+      a_source_position *pos = &from_tok->source_position;
 
       (void)source_file_for_seq(pos->seq, &line_num, &at_end_of_source,
                                 /*physical_line=*/TRUE);
@@ -26782,7 +26832,7 @@ extern a_boolean db_compare_token_caches(a_token_cache *cache_a,
         prev_line_num = line_num;
       }  /* if */
 
-      a_string token_as_string = token_to_string(tok_a_ref);
+      a_string token_as_string = token_to_string(from_tok);
       print(token_as_string, f_debug, /*end=*/" ");
       printed_newline = FALSE;
     }  /* if */
