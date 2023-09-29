@@ -2279,67 +2279,6 @@ typedef struct a_cached_token {
   } variant;
 } a_cached_token;
 
-
-inline a_boolean operator==(const a_cached_token &tok1,
-                            const a_cached_token &tok2)
-/*
-Return TRUE if the cached token represented by tok1 is the same as the cached
-token represented by tok2; otherwise, return FALSE.
-*/
-{
-  a_boolean result = TRUE;
-
-  if (tok1.token != tok2.token) {
-    result = FALSE;
-  } else if (tok1.extra_info_kind != tok2.extra_info_kind) {
-    result = FALSE;
-  } else {
-    switch (tok1.extra_info_kind) {
-      case teik_none:
-        break;
-      case teik_identifier:
-        { const a_symbol_locator &loc1 = tok1.variant.locator;
-          const a_symbol_locator &loc2 = tok2.variant.locator;
-
-          if (loc1.symbol_header != loc2.symbol_header) {
-            result = FALSE;
-          }  /* if */
-        }
-        break;
-      case teik_constant:
-        { a_constant_ptr const1 = tok1.variant.constant;
-          a_constant_ptr const2 = tok2.variant.constant;
-
-          if (!eq_constants(const1, const2)) {
-            result = FALSE;
-          }  /* if */
-        }
-      case teik_pragma:
-      case teik_pp_token:
-      case teik_extracted_body:
-      case teik_asm_string:
-      case teik_insert_string:
-      case teik_ud_lit:
-      case teik_ifc_index:
-        /* FIXME: Lots more todo. */
-        break;
-    }  /* switch */
-  }  /* if */
-  return result;
-}  /* operator== */
-
-
-inline a_boolean operator!=(const a_cached_token &tok1,
-                            const a_cached_token &tok2)
-/*
-Return TRUE if the cached token represented by tok1 is not the same as the
-cached token represented by tok2; otherwise, return FALSE.
-*/
-{
-  return !(tok1 == tok2);
-}  /* operator!= */
-
-
 /*
 The token cache stack is used to manipulate persistent token caches
 used for template instantiations.
