@@ -1160,16 +1160,75 @@ Dynamically-allocated and expandable buffer used for short-lived text.
 which no parsing or lexical advance is done (no get_token calls, no
 macro expansions, etc.).
 */
-EXTERN char	*temp_text_buffer;
-			/* The buffer itself.  Not allocated on a per-file
-			   basis. */
-EXTERN sizeof_t	size_temp_text_buffer;
-			/* The size of temp_text_buffer, as currently
-			   allocated. */
-EXTERN sizeof_t	pos_in_temp_text_buffer;
-			/* The number of characters actually in
-			   temp_text_buffer currently. */
+EXTERN char     *temp_text_buffer;
+                        /* The buffer itself.  Not allocated on a per-file
+                           basis. */
+EXTERN sizeof_t size_temp_text_buffer;
+                        /* The size of temp_text_buffer, as currently
+                           allocated. */
+EXTERN sizeof_t pos_in_temp_text_buffer;
+                        /* The number of characters actually in
+                           temp_text_buffer currently. */
+EXTERN a_boolean
+                temp_text_buffer_managed;
+                        /* TRUE if temp_text_buffer is managed by an instance
+                           of a_temp_text_buffer_swap; otherwise, FALSE. */
 /* See il.c for TEMP_TEXT_BUFFER_INCREMENTAL_ALLOCATION. */
+
+/*
+This structure is used to create a new temporary text buffer.  The previous
+temporary text buffer is restored upon destruction.
+*/
+struct a_temp_text_buffer_swap {
+  inline a_temp_text_buffer_swap();
+  inline ~a_temp_text_buffer_swap();
+private:
+  char          *prev_temp_text_buffer;
+                        /* The previous temp_text_buffer value. */
+  sizeof_t      prev_size_temp_text_buffer;
+                        /* The previous size_temp_text_buffer value. */
+  sizeof_t      prev_pos_in_temp_text_buffer;
+                        /* The previous temp_text_buffer value. */
+  a_boolean     prev_temp_text_buffer_managed;
+                        /* The previous temp_text_buffer_managed value. */
+};  /* a_temp_text_buffer_swap */
+
+
+a_temp_text_buffer_swap::a_temp_text_buffer_swap()
+/*
+Begin a new temp text buffer state independent of any current state.
+*/
+  : prev_temp_text_buffer(temp_text_buffer),
+    prev_size_temp_text_buffer(size_temp_text_buffer),
+    prev_pos_in_temp_text_buffer(pos_in_temp_text_buffer),
+    prev_temp_text_buffer_managed(temp_text_buffer_managed)
+{
+  temp_text_buffer = NULL;
+  size_temp_text_buffer = 0;
+  pos_in_temp_text_buffer = 0;
+  temp_text_buffer_managed = TRUE;
+}  /* a_temp_text_buffer_swap::a_temp_text_buffer_swap */
+
+
+a_temp_text_buffer_swap::~a_temp_text_buffer_swap()
+/*
+End the current temp text buffer state restoring the previous state.
+*/
+{
+  if (temp_text_buffer != NULL) {
+    /* If this assertion fails, either temp_text_buffer or
+       size_temp_text_buffer were modified and are no longer consistent with
+       each other.  The code that caused this inconsistency should be
+       corrected. */
+    check_assertion(size_temp_text_buffer > 0);
+    free_fe(temp_text_buffer, size_temp_text_buffer);
+  }  /* if */
+  temp_text_buffer_managed = this->prev_temp_text_buffer_managed;
+  pos_in_temp_text_buffer = this->prev_pos_in_temp_text_buffer;
+  size_temp_text_buffer = this->prev_size_temp_text_buffer;
+  temp_text_buffer = this->prev_temp_text_buffer;
+}  /* a_temp_text_buffer_swap::~a_temp_text_buffer_swap */
+
 
 extern void expand_temp_text_buffer(sizeof_t size_needed);
 

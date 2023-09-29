@@ -25999,10 +25999,11 @@ static constexpr unsigned
 #endif /* DEBUG */
 
 static void add_cached_token_to_string(a_cached_token_ptr ctp,
-                                       a_boolean          print_pseudo_tokens)
+                                       a_boolean          expand_pseudo_tokens)
 /*
-Add the given token to the string that is being constructed.  If
-print_pseudo_tokens is TRUE, pseudo tokens will be printed explicitly.
+Append the given token as a string to the temp_text_buffer.  If
+expand_pseudo_tokens is TRUE, details of the pseudo token will be included in
+the string.
 */
 {
   a_token_extra_info_kind teik_kind = ctp->extra_info_kind;
@@ -26011,12 +26012,12 @@ print_pseudo_tokens is TRUE, pseudo tokens will be printed explicitly.
     /* This token entry represents one or more pragmas.  Call a routine to add
        the pragmas to the string. */
     add_pragmas_to_string(ctp->variant.pragmas);
-  } else if (print_pseudo_tokens &&
+  } else if (expand_pseudo_tokens &&
              teik_kind == (a_token_extra_info_kind)teik_extracted_body) {
     put_pseudo_token_start_to_temp_text_buffer(ctp);
     put_pseudo_token_end_to_temp_text_buffer();
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (print_pseudo_tokens && teik_kind == teik_ifc_index) {
+  } else if (expand_pseudo_tokens && teik_kind == teik_ifc_index) {
     put_pseudo_token_start_to_temp_text_buffer(ctp);
 #if DEBUG
     {
@@ -26046,11 +26047,11 @@ print_pseudo_tokens is TRUE, pseudo tokens will be printed explicitly.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
     /* A normal token (including, possibly, a pp-token). */
-    if (print_pseudo_tokens && ctp->token == tok_end_of_source) {
+    if (expand_pseudo_tokens && ctp->token == tok_end_of_source) {
       put_pseudo_token_start_to_temp_text_buffer(ctp);
       put_pseudo_token_end_to_temp_text_buffer();
     } else if (ctp->token == tok_removed_template_body) {
-      if (print_pseudo_tokens) {
+      if (expand_pseudo_tokens) {
         put_pseudo_token_start_to_temp_text_buffer(ctp);
         put_pseudo_token_end_to_temp_text_buffer();
       } else {
@@ -26069,6 +26070,20 @@ print_pseudo_tokens is TRUE, pseudo tokens will be printed explicitly.
     put_str_to_temp_text_buffer(ctp->variant.asm_string);
   }  /* if */
 }  /* add_cached_token_to_string */
+
+
+a_string token_to_string(a_cached_token_ptr ctp,
+                         a_boolean          expand_pseudo_tokens)
+/*
+Return the given token as a string.  If expand_pseudo_tokens is TRUE, details
+of the pseudo token will be included in the returned string.
+*/
+{
+  a_temp_text_buffer_swap tmp_buffer_swap;
+
+  add_cached_token_to_string(ctp, expand_pseudo_tokens);
+  return a_string(a_string_view(temp_text_buffer, pos_in_temp_text_buffer));
+}  /* token_to_string */
 
 
 void add_cached_tokens_to_string(a_cached_token_ptr       first_token,
@@ -26159,7 +26174,7 @@ end_tsn.
     } else {
       /* Otherwise, fallback to the common token printing, ignoring pseudo
          tokens. */
-      add_cached_token_to_string(ctp, /*print_pseudo_tokens=*/FALSE);
+      add_cached_token_to_string(ctp, /*expand_pseudo_tokens=*/FALSE);
     }  /* if */
   }  /* for */
 }  /* add_cached_tokens_to_string */

@@ -3211,6 +3211,10 @@ extern void lexical_cleanup(void);
     (void)get_token();						\
   }
 
+extern a_string token_to_string(
+                               a_cached_token_ptr token,
+                               a_boolean          expand_pseudo_tokens = TRUE);
+
 extern
 void add_cached_tokens_to_string(a_cached_token_ptr      first_token,
                                  a_token_sequence_number start_tsn,

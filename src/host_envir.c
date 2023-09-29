@@ -6027,6 +6027,8 @@ This is done before command line processing.
      get_curr_dir_name on some systems. */
   temp_text_buffer = NULL;
   size_temp_text_buffer = 0;
+  pos_in_temp_text_buffer = 0;
+  temp_text_buffer_managed = FALSE;
   dir_name_list_general = NULL;
   preinclude_file_list = NULL;
   macro_preinclude_file_list = NULL;

@@ -3388,8 +3388,16 @@ is at least size_needed.  Called by ensure_temp_text_buffer_space.
 
   new_size = size_temp_text_buffer + TEMP_TEXT_BUFFER_INCREMENTAL_ALLOCATION;
   if (new_size < size_needed) new_size  = size_needed;
-  temp_text_buffer = realloc_buffer(temp_text_buffer, size_temp_text_buffer,
-                                     new_size);
+  if (temp_text_buffer_managed) {
+    char *old_buffer = temp_text_buffer;
+
+    temp_text_buffer = alloc_fe(new_size);
+    strncpy(temp_text_buffer, old_buffer, size_temp_text_buffer);
+    free_fe(old_buffer, size_temp_text_buffer);
+  } else {
+    temp_text_buffer = realloc_buffer(temp_text_buffer, size_temp_text_buffer,
+                                      new_size);
+  }  /* if */
   size_temp_text_buffer = new_size;
 }  /* expand_temp_text_buffer */
 
