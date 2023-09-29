@@ -4020,13 +4020,15 @@ added in the future.
 template<typename an_Elem_a, typename an_Elem_b = an_Elem_a,
          template<typename> class Allocator = FE_allocator>
 struct Seq_comparator: private Allocator<uint32_t> {
-  typedef Allocator<uint32_t> an_allocator;
-  typedef Allocation<uint32_t> an_allocation;
+  using an_allocator = Allocator<uint32_t>;
+  using an_allocation = Allocation<uint32_t>;
+  using an_equality_fn = a_boolean (*)(const an_Elem_a&,const an_Elem_b&);
 
   inline Seq_comparator(an_Elem_a          *array_a_val,
                         size_t             array_a_len_val,
                         an_Elem_b          *array_b_val,
                         size_t             array_b_len_val,
+                        an_equality_fn     eq_fn_val,
                         const an_allocator &a = an_allocator());
   inline ~Seq_comparator();
 
@@ -4049,6 +4051,8 @@ private:
   size_t        array_b_len;
                         /* The length of the given "left column" sequence being
                            compared. */
+  an_equality_fn
+                eq_fn;  /* The function used to check for equality. */
   uint32_t      *lcs_table;
                         /* A pointer to the allocated alignment table. */
 };  /* Seq_comparator */
@@ -4061,13 +4065,15 @@ Seq_comparator<an_Elem_a, an_Elem_b, Allocator>::Seq_comparator(
                                             size_t             array_a_len_val,
                                             an_Elem_b          *array_b_val,
                                             size_t             array_b_len_val,
+                                            an_equality_fn     eq_fn_val,
                                             const an_allocator &alloc)
 /*
 Given two arrays and their sizes, allocate a new alignment table with the given
-allocator.  The allocated alignment table will then be populated.
+allocator.  The allocated alignment table will then be populated using the
+given equality function to check equality of array elements.
 */
   : an_allocator(alloc), array_a(array_a_val), array_a_len(array_a_len_val),
-    array_b(array_b_val), array_b_len(array_b_len_val),
+    array_b(array_b_val), array_b_len(array_b_len_val), eq_fn(eq_fn_val),
     lcs_table(this->alloc(array_a_len_val * array_b_len_val).start)
 {
   /* Zero the "top" and "left" edge of the comparison. */
@@ -4080,7 +4086,7 @@ allocator.  The allocated alignment table will then be populated.
   /* Compute the alignment table. */
   for (size_t a = 1; a < this->array_a_len; ++a) {
     for (size_t b = 1; b < this->array_b_len; ++b) {
-      if (this->input_a(a) == this->input_b(b)) {
+      if ((*this->eq_fn)(this->input_a(a), this->input_b(b))) {
         /* The current values match, take the score to the top and left that
            lead to this point and increase it with another match. */
         unsigned prev_diag_val = this->output(a - 1, b - 1);
@@ -4132,7 +4138,8 @@ The provided function will be called as follows:
   ptrdiff_t b = this->array_b_len - 1;
 
   while (TRUE) {
-    if (a >= 0 && b >= 0 && this->input_a(a) == this->input_b(b)) {
+    if (a >= 0 && b >= 0 &&
+        (*this->eq_fn)(this->input_a(a), this->input_b(b))) {
       /* The values match: reverse the scoring and walk back up and to the left
          to see what value lead here. */
       fn(&this->input_a(a--), &this->input_b(b--));
