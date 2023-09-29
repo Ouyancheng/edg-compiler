@@ -1,5 +1,27 @@
 Version 6.6
 
+9/29/23  [EDGcpfe/26310]
+Performance with deeply-nested class hierarchies (IL CHANGE)
+
+Consider, with --c++ --pending_instantiations 500:
+
+  template<int N> struct C : C<N-1> { };
+  template<> struct C<0> { };
+  C<400> c;
+
+Previously, this created more than 10 million a_derivation_step entries to
+represent the derivation paths for all possible base class derivations.  Now,
+a_derivation_step entries can be shared between paths, so instead of pointing
+to a unique NULL-terminated path, a_base_class_derivation points to a sub-list
+bounded by path and path_tail.  In configurations with EXPENSIVE_CHECKING set
+to TRUE, checking the path consistency can still be very slow in these cases
+and can therefore now be disabled via --set_flag no_very_expensive_checking.
+
+Additionally, the front end now maintains a list of direct base classes in
+declaration order and an additional flag for each base class, signifying if
+there is an all-public derivation.
+
+
 9/25/23  [EDGcpfe/26679]
 Clang compatibility: Add Clang 17.0.1 builtin signatures
 
