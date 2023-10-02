@@ -1025,6 +1025,9 @@ handle_next_entry:
                    "walk_entry_and_subtree: bad template param constant kind");
             }  /* switch */
             break;
+          case ck_reflection:
+            /* FIXME */
+            break;
           default:
             unexpected_condition_str(
                                   "walk_entry_and_subtree: bad constant kind");
@@ -1150,6 +1153,7 @@ handle_next_entry:
           case tk_imaginary:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
           case tk_nullptr:
+          case tk_reflection:
             /* No pointers. */
             break;
           case tk_integer:

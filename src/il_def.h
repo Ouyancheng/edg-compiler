@@ -1279,6 +1279,9 @@ enum a_token_kind : unsigned short {
   tok_typename,
   tok_static_assert,
   tok_decltype,
+  tok_unqualid,
+  tok_exprid,
+  tok_valueof,
   /* Recognized in GNU C and C++ modes only. */
   tok_auto_type,
   tok_extension,
@@ -1560,6 +1563,7 @@ EXTERN a_const_char
    "export", "export", "export", "import", "module",
    "mutable", "namespace", "reinterpret_cast", "static_cast", "typeid",
    "using", "bool", "false", "true", "typename", "static_assert", "decltype",
+   "unqualid", "exprid", "valueof",
    "__auto_type", "__extension__", "__null", "typeof", "typeof_unqual",
    "overload",
 #if SUN_EXTENSIONS_ALLOWED
@@ -3479,6 +3483,7 @@ enum a_constant_repr_kind : a_byte {
   ck_void,		/* In C++14, "void" is a literal type, and folding
 			   can produces "values" of that type.  This constant
 			   kind represents such cases. */
+  ck_reflection,	/* A reflection value. */
   ck_last
 };
 
@@ -4455,6 +4460,14 @@ typedef union a_field_or_base {
 } a_field_or_base;
 #endif /* DO_IL_LOWERING */
 
+
+typedef struct a_reflection_value {
+  a_tagged_pointer
+		entity;
+			/* The entity represented by this reflection value. */
+} a_reflection_value;
+
+
 typedef struct a_constant {
   /* Description of a constant.  Also used as an element on an initializer
      list; in such cases, it may indicate something about the initialization
@@ -5198,6 +5211,11 @@ typedef struct a_constant {
 			   designated array element.  (Not currently used.) */
       } variant;
     } designator;
+    /* When kind == ck_reflection: */
+    a_reflection_value
+		reflection;
+			/* The representation of a reflection value (which is
+			   currently just a tagged pointer). */
   } variant;
 } a_constant;
 
@@ -5247,7 +5265,13 @@ enum a_type_kind : a_byte {
 			   is_managed_nullptr_type and
 			   is_standard_nullptr_type in types.c for
 			   details. */
-  tk_unknown		/* Unknown. */
+  tk_reflection,	/* Type of the value returned by the reflection
+			   operator (prefix ^). */
+  tk_interpreter_vector,
+			/* Type of a dynamic vector allocated in the
+			   interpreter.  This type kind never appears in the
+			   IL tree. */
+  tk_unknown		/* Unknown type. */
 };
 
 
@@ -9496,8 +9520,8 @@ typedef struct a_type {
 			   exceptions. */
 #endif /* DO_IL_LOWERING */
   union {
-    /* When kind == tk_nullptr, tk_error, tk_unknown, or tk_void, no variant
-       fields. */
+    /* When kind == tk_nullptr, tk_reflection, tk_error, tk_unknown, or
+       tk_void, no variant fields. */
     /* When kind == tk_integer: */
     struct {
       an_integer_kind
@@ -10224,6 +10248,10 @@ typedef struct a_type {
 			   id-expressions and member access operators).
 			   So, for example, TRUE for "decltype(x.y)" and
 			   FALSE for "decltype((x.y))". */
+      a_bit_field
+		is_spliced:1;
+			/* The type results from a typename[: ... :] construct
+			   (i.e., spliced from a reflection value). */
       a_bit_field
 		is_dependent_type_operator:1;
 			/* TRUE if the type was created by decltype,

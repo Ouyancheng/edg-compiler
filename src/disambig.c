@@ -837,6 +837,18 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_microsoft_w64:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         break;
+      case tok_typename:
+        if (next_token() == tok_lbracket && reflection_enabled) {
+          /* Presumably "typename [: <expr> :]". */
+          is_decl_specifier_token = TRUE;
+          type_specifier_seen = TRUE;
+          /* Bypass "typename". */
+          (void)get_token();
+          get_token_and_coalesce_if_identifier(flags);
+          cache_tokens_until(tok_rbracket, /*coalesce=*/TRUE);
+          break;
+        }  /* if */
+        goto elaborated_type_case;
       case tok_enum:
         /* If "enum" is followed by "class" or "struct", treat the combination
            as if it were just "enum" for disambiguation purposes. */
@@ -850,7 +862,6 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_class:
       case tok_struct:
       case tok_union:
-      case tok_typename:
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case tok_interface:
       case tok_value_struct:
@@ -864,6 +875,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
       case tok_partial_ref_struct:
       case tok_partial_ref_class:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+elaborated_type_case:
         /* This could be an elaborated type specifier or the start of
            a enum or class specifier.  The prescanning routines can't
            handle enum and class specifiers, but there should be no need

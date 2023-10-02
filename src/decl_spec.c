@@ -11678,6 +11678,9 @@ process_enum_specifier:
         if (!type_specifier_allowed) {
           pos_error(ec_type_specifier_not_allowed, &error_position);
           err = TRUE;
+        } else if (reflection_enabled && next_token() == tok_lbracket) {
+          /* When reflection features are enabled typename[:expr:] is a
+             valid simple-type-specifier.  */
         } else if (sun_mode && use_implicit_typename()) {
           /* typename is ignored in Sun mode.  Simply discard the token
              unless the user has disabled implicit typename mode. */

@@ -295,7 +295,6 @@ This function exists solely to intercept interpretation failure in a debugger.
 #define do_constexpr_fail(flag) ((flag) = FALSE)
 #endif /* DEBUG && !defined(_lint) */
 
-
 /*
 Macro defining the size of large blocks allocated for a storage stack.  These
 large blocks are then parceled out in smaller chunks as requested through the
@@ -1793,6 +1792,10 @@ static a_type_ptr
 		generic_ptr_type;
 			/* Type (void*) used in some cases where a pointer type
 			   is needed, but the specific type is unimportant. */
+static a_type_ptr
+		interpreter_vector_type;
+			/* Pointer to a tk_interpreter_vector entry. */
+
 static a_boolean
 		useful_constants_initialized;
 			/* Flag indicating whether these constants and types
@@ -2253,6 +2256,7 @@ result of calls to std::is_constant_evaluated().
   ips->permit_null_pointer_offsets = (gpp_mode && !clang_mode) ||
                                      microsoft_mode;
   ips->static_lifetime_init = FALSE;
+  ips->report_started = FALSE;
   ips->disallow_mutable_field_load = FALSE;
   ips->allow_consteval_routine_node = FALSE;
   ips->report_started = FALSE;
@@ -2952,6 +2956,9 @@ redo:
       }
       break;
 #endif /* FIXED_POINT_ALLOWED */
+    case tk_reflection:
+      result = sizeof(a_reflection_value);
+      break;
     case tk_error:
 #if DEBUG
       check_assertion(ips != NULL);
@@ -5816,6 +5823,10 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
       break;
     case ck_void:
       /* void values have no representation: Nothing to do. */
+      break;
+    case ck_reflection:
+      /* Just copy the embedded reflection value. */
+      *(a_reflection_value*)value = con->variant.reflection;
       break;
     default:
       { info_with_pos(ec_constexpr_invalid_constant_kind,
@@ -9771,6 +9782,441 @@ TRUE.  Otherwise result FALSE.
 }  /* do_constexpr_std_is_constant_evaluated */
 
 
+static a_boolean copy_interpreter_object_to_constant(
+                                       an_interpreter_state  *ips,
+                                       a_byte                *object,
+                                       a_byte                *complete_object,
+                                       a_type_ptr            type,
+                                       a_constant_ptr        con);
+
+
+static a_boolean do_constexpr_std_meta_make_constexpr_array(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::make_constexpr_array(T*, prtdiff_t p).  It creates IL for
+a constexpr namespace-scope array of n elements of type T with internal
+linkage, initialized with the values pointed to by the first argument.  A
+reflection value for the generated variable is returned.
+
+FIXME: How to get the dimensions of an array if the reflected constant
+       represents an array constant?  We don't want to allocate the constant
+       up front, nor its type. Maybe we can use a placeholder constant (like
+       we do for string_view results).  Alternatively, introduce a new
+       reflection entity kind for "interpreter values" (not an actual IL
+       entry kind).
+*/
+{
+  a_boolean            result = TRUE;
+  a_constexpr_address  *cap = (a_constexpr_address*)p_arg_bytes[0];
+
+  if (is_runtime_data_address(cap) || is_function_address(cap)) {
+    do_constexpr_fail(result);
+    info_with_pos(ec_constexpr_access_to_runtime_storage,
+                  &call_node->position, ips);
+  } else if (cap->address == NULL) {
+    do_constexpr_fail(result);
+    info_with_pos(ec_constexpr_invalid_null_ptr_operation, 
+                  &call_node->position, ips);
+  } else {
+    a_template_arg_ptr    tap = callee->template_arg_list;
+    a_type_ptr            array_type, elem_type = tap->variant.type;
+    a_byte_count          elem_size, pos, len;
+    an_integer_value      *param2 = (an_integer_value*)p_arg_bytes[1];
+    a_host_large_integer  n_elems;
+    a_boolean             ovfl;
+    a_reflection_value    *rvp = (a_reflection_value*)result_storage;
+    a_variable_ptr        vp;
+    a_constant_ptr        init_cp;
+    a_symbol_ptr          sym;
+    a_symbol_locator      loc;
+    char                  name[100];
+    static long           n = 0;
+    get_array_pos(ips, cap, elem_type, &len, &pos, &elem_size,
+                  &result);
+    if (!result) goto done;
+    conv_integer_value_to_host_large_integer(param2, /*is_signed=*/FALSE,
+                                             &n_elems, &ovfl);
+    if (ovfl || n_elems > (a_host_large_integer)(len-pos)) {
+      do_constexpr_fail(result);
+      info_with_pos_num2(ec_constexpr_length_too_long_for_make_constexpr_array,
+                         &call_node->position, (a_byte_count)n_elems, len-pos,
+                         ips);
+      goto done;
+    } else if (n_elems == 0) {
+      do_constexpr_fail(result);
+      info_with_pos(ec_constexpr_cannot_make_zero_length_array,
+                    &call_node->position, ips);
+      goto done;
+    }  /* if */
+    array_type = alloc_type((a_type_kind)tk_array);
+    array_type->variant.array.element_type = elem_type;
+    array_type->variant.array.variant.number_of_elements =
+                                                       (a_targ_size_t)n_elems;
+    init_cp = fs_constant((a_constant_repr_kind)ck_aggregate);
+    if (!copy_interpreter_object_to_constant(
+              ips, cap->address, cap->complete_object, array_type, init_cp)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+    vp = make_variable(array_type, (a_storage_class)sc_static, NO_SCOPE_DEPTH);
+    add_temporary_to_front_of_variables_list(
+                                    vp, curr_translation_unit->primary_scope);
+    vp->init_kind = (an_init_kind)initk_static;
+    vp->initializer.constant = init_cp;
+    vp->is_constexpr = TRUE;
+    sprintf(name, "__ce_array_%ld", ++n);
+    clear_locator(&loc, &call_node->position);
+    (void)find_symbol(name, strlen(name), &loc);
+    sym = make_symbol((a_symbol_kind)sk_variable, &loc);
+    sym->variant.variable.ptr = vp;
+    set_source_corresp(&vp->source_corresp, sym);
+    rvp->entity.kind = iek_variable;
+    rvp->entity.ptr = (char*)vp;
+  }  /* if */
+done:
+  return result;
+}  /* do_constexpr_std_meta_make_constexpr_array */
+
+
+static a_constant_ptr
+		reflection_str_placeholder;
+			/* Dummy entry used to identify strings produced by
+			   reflection. */
+
+static a_constant_ptr get_reflection_string_entry(a_constexpr_address  *cap)
+/*
+The given address is associated with a complete object that is a string
+produced by reflection.  If this is the first time this function is called for
+that string, allocate the corresponding ck_string entry and memoize it.
+Otherwise, produce the previously memoized entry.
+*/
+{
+  a_constant_ptr  cp;
+  a_byte          *con_bytes;
+
+  get_mapped_ptr(&persistent_map, cap->complete_object, con_bytes);
+  cp = (a_constant_ptr)con_bytes;
+  if (cp == NULL) {
+    a_byte_count      length = cap->length, k;
+    char              *val = alloc_text_of_string_literal(length);
+    an_integer_value  *chars = (an_integer_value*)cap->complete_object;
+    a_boolean         ovfl;
+    cp = fs_constant((a_constant_repr_kind)ck_string);
+    cp->type = string_type(length);
+    cp->variant.string.length = length;
+    cp->variant.string.value = val;
+#if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
+    cp->variant.string.sequence_number = 0;
+#endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
+    /* Copy the byte values (rely on the fact that reflection strings are not
+       wide-character strings). */
+    for (k = 0; k<length; ++k) {
+      a_host_large_integer  char_val;
+      conv_integer_value_to_host_large_integer(chars+k, /*is_signed=*/FALSE,
+                                               &char_val, &ovfl);
+      val[k] = (a_const_char)char_val;
+    }  /* for */
+    map_ptr(&persistent_map, cap->complete_object, (a_byte*)cp);
+  }  /* if */
+  return cp;
+}  /* get_reflection_string_entry */
+
+
+static a_boolean make_reflective_string_view(
+                                        an_interpreter_state  *ips,
+                                        a_type_ptr            tp,
+                                        a_const_char          *str,
+                                        a_byte                *subobj,
+                                        a_byte                *complete_obj)
+/*
+tp represents std::string_view and should be a class type with no base classes,
+one pointer to a contiguous sequence of characters, and one integer member
+representing the length of the sequence.  Create a static array of characters
+with the contents of the null-terminated string pointed to by str and store in
+result_storage (part of the complete object pointed to by complete_obj) a
+string_view object referring to that static array.
+*/
+{
+  a_field_ptr   fp;
+  a_boolean     result = TRUE, ptr_done = FALSE, length_done = FALSE;
+  a_byte_count  length = (a_byte_count)strlen(str);
+  a_byte        *chars;
+  
+  check_assertion(type_is(tp, tk_struct) || type_is(tp, tk_class));
+  if (base_classes_of(tp) != NULL) {
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  get_mapped_ptr(&persistent_map, str, chars);
+  if (chars == NULL) {
+    an_integer_value  *value;
+    a_byte_count      n_bytes = (length+1)*sizeof(an_integer_value),
+                      prefix_size, k;
+    prefix_size = 1+sizeof(a_type_ptr)+compute_bitmap_size(n_bytes);
+    do_host_alignment(prefix_size);
+    n_bytes += prefix_size;
+    alloc_bytes(&persistent_data, n_bytes, chars);
+    chars += prefix_size;
+    map_ptr(&persistent_map, str, chars);
+    value = (an_integer_value*)chars;
+    for (k = 0; k<=length; k += 1, value += 1) {
+      set_integer_value(value, (a_host_large_integer)str[k]);
+      mark_subobject_initialized((a_byte*)value, chars);
+    }  /* for */
+    record_complete_object_type(integer_type(plain_char_int_kind), chars);
+    /* Map chars to a placeholder indicating that this is a reflection string.
+       If it needs to be materialized as an IL entry (ck_string), the function
+       copy_interpreter_object_to_constant will recognize it and create or
+       reuse an IL constant (using the persistent map). */
+    map_stack_bytes(ips, chars, (a_byte*)reflection_str_placeholder);
+  }  /* if */
+  fp = tp->variant.class_struct_union.field_list;
+  fp = next_alloc_field(fp);
+  for (; fp != NULL; fp = next_alloc_field(fp->next)) {
+    a_type_ptr    ftp = skip_typerefs(fp->type);
+    a_byte_count  offset;
+    get_mapped_byte_count(&persistent_map, fp, offset);
+    if (type_is(ftp, tk_pointer) && !ptr_done) {
+      a_constexpr_address  *cap = (a_constexpr_address*)(subobj+offset);
+      clear_address(cap, chars);
+      cap->flags = CA_ARRAY_ELEMENT | CA_CONST_STORAGE;
+      cap->length = length+1;
+      mark_subobject_initialized(subobj+offset, complete_obj);
+      ptr_done = TRUE;
+    } else if (type_is(ftp, tk_integer) && !length_done) {
+      set_integer_value((an_integer_value*)(subobj+offset),
+                        (a_host_large_integer)length);
+      mark_subobject_initialized(subobj+offset, complete_obj);
+      length_done = TRUE;
+    } else {
+      do_constexpr_fail(result);
+      goto done;
+    }  /* if */
+  }  /* for */
+  if (!ptr_done || !length_done) {
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  mark_subobject_initialized(subobj, complete_obj);
+  record_complete_object_type(tp, complete_obj);
+done:
+  if (!result) {
+    info_with_pos(ec_invalid_std_string_view_for_reflection, &ips->position,
+                  ips);
+  }  /* if */
+  return result;
+}  /* make_reflective_string_view */
+
+
+static a_boolean do_constexpr_std_meta_name_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::name_of(<reflection_value>).  It returns a "string view"
+via the std::string_view(char_ptr, length) constructor.
+*/
+{
+  a_boolean     result = FALSE;
+  a_reflection_value
+                *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_source_correspondence_ptr
+                scp = source_corresp_for_reflection(rvp);
+  a_const_char  *name;
+  a_type_ptr    rtp = skip_typerefs(callee->type), tp;
+
+  check_assertion(type_is(rtp, tk_routine));
+  tp = skip_typerefs(rtp->variant.routine.return_type);
+  if (scp == NULL) {
+    name = "<invalid>";
+  } else if (scp->name != NULL) {
+    name = unmangled_name_of(scp);
+  } else {
+    name = "";
+  }  /* if */
+  result = make_reflective_string_view(ips, tp, name,
+                                       result_storage, complete_obj);
+  return result;
+}  /* do_constexpr_std_meta_name_of */
+
+
+static a_constexpr_allocation_ptr do_constexpr_dynamic_alloc(
+                                           an_interpreter_state  *ips,
+                                           a_type_ptr            elem_tp,
+                                           a_byte_count          alloc_length,
+                                           a_boolean             is_array,
+                                           a_source_position     *diag_pos,
+                                           a_constexpr_address   *cap,
+                                           a_byte_count          *p_elem_size);
+
+static a_boolean make_infovec(an_interpreter_state          *ips,
+                              a_type_ptr                    tp,
+                              Dyn_array<a_reflection_value> *reflections,
+                              a_source_position             *diag_pos,
+                              a_byte                        *result_storage,
+                              a_byte                        *complete_obj)
+/*
+Initialize an infovec (type tp, which is struct std::meta::infovec) at
+result_storage (part of the complete object at complete_obj) with the given
+sequence of reflections.  ips is the current interpreter state and diag_pos is
+the position associated with any diagnostics.  The type tp is assumed to be a
+class type with three fields: One pointer to be set to some dynamically
+allocated storage and two integers representing the capacity and length of the
+sequence, respectively.  This function sets the capacity and length both to
+the length of the given sequence of reflections.
+*/
+{
+  a_boolean     result = TRUE, other_fields = FALSE;
+  int           n_ptr_fields = 0, n_integral_fields = 0;
+  a_byte_count  length = reflections->length();
+  a_type_ptr    info_type = reflection_type();
+  a_byte_count  info_size = value_bytes_for_type(ips, info_type, &result);
+  a_field_ptr   fp;
+  a_constexpr_address
+                *cap;
+
+  check_assertion(type_is(tp, tk_struct) || type_is(tp, tk_class));
+  if (base_classes_of(tp) != NULL) {
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  /* Store the pointer to the allocation and the length/capacity in the
+     returned object. */
+  fp = tp->variant.class_struct_union.field_list;
+  fp = next_alloc_field(fp);
+  for (; fp != NULL; fp = next_alloc_field(fp->next)) {
+    a_type_ptr    ftp = skip_typerefs(fp->type);
+    a_byte_count  offset;
+    get_mapped_byte_count(&persistent_map, fp, offset);
+    if (type_is(ftp, tk_pointer) && n_ptr_fields == 0) {
+      cap = (a_constexpr_address*)(result_storage+offset);
+      if (do_constexpr_dynamic_alloc(ips, info_type, length, /*is_array=*/TRUE,
+                                     diag_pos, cap, &info_size) == NULL) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      mark_subobject_initialized(result_storage+offset, complete_obj);
+      n_ptr_fields += 1;
+    } else if (type_is(ftp, tk_integer) && n_integral_fields < 2) {
+      set_integer_value((an_integer_value*)(result_storage+offset),
+                        (a_host_large_integer)length);
+      mark_subobject_initialized(result_storage+offset, complete_obj);
+      n_integral_fields += 1;
+    } else {
+      other_fields = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  if (other_fields || n_integral_fields != 2 || n_ptr_fields != 1) {
+    info_with_pos(ec_invalid_infovec_for_reflection, &ips->position, ips);
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  mark_complete_object_initialized(complete_obj);
+  /* Fill in the infovec contents. */
+  {
+    a_reflection_value  *rvp = (a_reflection_value*)cap->address;
+    a_byte              *array = cap->complete_object;
+    for (int k = 0; k<(int)length; ++k, ++rvp) {
+      *rvp = (*reflections)[k];
+      mark_subobject_initialized((a_byte*)rvp, array);
+    }  /* if */
+  }
+done:
+  return result;
+}  /* make_infovec */
+
+
+static a_boolean do_constexpr_std_meta_members_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::members_of(<reflection_value>).  It returns a vector-like
+container (struct std::meta::infovec) of reflections, with each element
+representing a member of the given entity.
+*/
+{
+  a_boolean     result = FALSE, invalid_arg = FALSE;
+  a_reflection_value
+                *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_source_correspondence_ptr
+                scp = source_corresp_for_reflection(rvp);
+  a_type_ptr    rtp = skip_typerefs(callee->type);
+  Dyn_array<a_reflection_value>
+                result_reflections(0);
+
+  if (!ips->is_constant_evaluated || !constexpr_dynamic_alloc_enabled) {
+    /* Don't attempt to evaluate this call if a constant result is not needed,
+       because it could be somewhat expensive. */
+    do_constexpr_fail(result);
+    info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                  &call_node->position, ips);
+    goto done;
+  }  /* if */
+  check_assertion(type_is(rtp, tk_routine));
+  if (scp == NULL) {
+    invalid_arg = TRUE;
+  } else if (rvp->entity.kind == (an_il_entry_kind)iek_type) {
+    a_type_ptr  parent_tp = (a_type_ptr)rvp->entity.ptr;
+    parent_tp = skip_typerefs(parent_tp);
+    if (is_immediate_class_type(parent_tp)) {
+      /* Enumerate all the class members. */
+      a_scope_ptr    scope = class_type_supp(parent_tp)->assoc_scope;
+      a_field_ptr    fp = parent_tp->variant.class_struct_union.field_list;
+      a_routine_ptr  rp;
+      for (; fp != NULL; fp = fp->next) {
+        a_reflection_value  mem_rvp;
+        mem_rvp.entity.ptr = (char*)fp;
+        mem_rvp.entity.kind = (an_il_entry_kind)iek_field;
+        result_reflections.push_back(mem_rvp);
+      }  /* for */
+      for (rp = scope->routines; rp != NULL; rp = rp->next) {
+        a_reflection_value  mem_rvp;
+        mem_rvp.entity.ptr = (char*)rp;
+        mem_rvp.entity.kind = (an_il_entry_kind)iek_routine;
+        result_reflections.push_back(mem_rvp);
+      }  /* if */
+    } else if (is_immediate_enum_type(parent_tp)) {
+      /* Enumerate all the enumerator constants. */
+      a_constant_ptr  cp;
+      for (cp = enum_constants(parent_tp); cp != NULL; cp = cp->next) {
+        a_reflection_value  mem_rvp;
+        mem_rvp.entity.ptr = (char*)cp;
+        mem_rvp.entity.kind = (an_il_entry_kind)iek_constant;
+        result_reflections.push_back(mem_rvp);
+      }  /* for */
+    } else {
+      invalid_arg = TRUE;
+    }  /* if */
+  } else {
+    invalid_arg = TRUE;
+  }  /* if */
+  // FIXME
+  if (invalid_arg) {
+    do_constexpr_fail(result);
+    // FIXME: diagnose
+  } else {
+    a_type_ptr  result_tp = skip_typerefs(call_node->type);
+    result = make_infovec(ips, result_tp, &result_reflections,
+                          &call_node->position, result_storage, complete_obj);
+  }  /* if */
+done:
+  return result;
+}  /* do_constexpr_std_meta_members_of */
+
+
 static void report_leftover_allocations(an_interpreter_state  *ips)
 /*
 Interpretation is mostly completed and the caller has determined that some
@@ -9987,8 +10433,8 @@ static a_constexpr_allocation_ptr find_constexpr_allocation(
 /*
 obj_bytes is presumed to be a pointer to the top-level object allocated with
 do_constexpr_dynamic_alloc.  Find the associated allocation and return it.  If
-there is none, record a diagnostic in ips for the given position and return
-NULL.
+there is none, record the given diagnostic in ips for the given position (with
+no other fill-ins) and return NULL.
 */
 {
   a_constexpr_allocation  *allocation;
@@ -10385,6 +10831,15 @@ frame when the call has completed.
       break;
     case cit_std_report_constexpr_value:
       evaluator = do_constexpr_std_report_constexpr_value;
+      break;
+    case cit_std_meta_make_constexpr_array:
+      evaluator = do_constexpr_std_meta_make_constexpr_array;
+      break;
+    case cit_std_meta_name_of:
+      evaluator = do_constexpr_std_meta_name_of;
+      break;
+    case cit_std_meta_members_of:
+      evaluator = do_constexpr_std_meta_members_of;
       break;
     default:
       unexpected_condition();
@@ -19646,7 +20101,12 @@ that are needed for the operation of the interpreter.
                                      &one_flt[fk], &dummy);
     }  /* for */
     generic_ptr_type = make_pointer_type(void_type());
+    interpreter_vector_type = alloc_type((a_type_kind)tk_interpreter_vector);
     useful_constants_initialized = TRUE;
+    if (reflection_enabled) {
+      reflection_str_placeholder =
+                                 fs_constant((a_constant_repr_kind)ck_string);
+    }  /* if */
   }  /* if */
 }  /* initialize_interpreter_data */
 
@@ -20132,7 +20592,13 @@ diagnostic in *ips.
             }  /* if */
           } else {
             if (constant_is(cp, ck_string)) {
-              if (ips->call_seen) {
+              if (cp == reflection_str_placeholder) {
+                /* The address was associated with a placeholder entry
+                   indicating that it's the address of a string generated for
+                   reflection.  Access the string as a ck_string entry now
+                   (materialize it if needed). */
+                cp = get_reflection_string_entry(cap);
+              } else if (ips->call_seen) {
                 /* If the ck_string constant was allocated in a different
                    memory region, we recorded &cp-variant.string.value in the
                    interpretation map.  In that case, a copy should be made to
@@ -20456,6 +20922,10 @@ diagnostic in *ips.
         set_routine_address_constant(cap->variant.routine, con,
                                      /*set_address_taken_flag=*/TRUE);
       }
+      break;
+    case tk_reflection:
+      set_constant_kind(con, (a_constant_repr_kind)ck_reflection);
+      con->variant.reflection = *(a_reflection_value*)object;
       break;
     default:
       unexpected_condition();

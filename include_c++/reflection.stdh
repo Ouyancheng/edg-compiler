@@ -1,0 +1,91 @@
+/* Edison Design Group, 2019-2023. */
+/*
+reflection -- Include file for std::meta facilities
+
+This file should be included after the standard headers <string_view> and
+<memory> (for construct_at).
+*/
+#ifndef __REFLECTION_STDH
+#define __REFLECTION_STDH
+
+#include <new>
+
+namespace std {
+  namespace meta {
+    using info = decltype(^::);
+
+    struct infovec {
+      consteval infovec(long __cap)
+        : __infos(new info[__cap]), __cap(__cap), __n(0) {}
+      consteval infovec(infovec const &__src)
+        : __infos(new info[__src.__n]), __cap(__src.__n), __n(__src.__n)
+        {
+          for (long __k = 0; __k<__src.__n; ++__k) {
+            std::construct_at(&this->__infos[__k], __src.__infos[__k]);
+          }
+        }
+      consteval infovec(infovec &&__src)
+        : __infos(__src.__infos), __cap(__src.__cap), __n(__src.__n)
+        { __src.__infos = nullptr; __src.__cap = 0; __src.__n = 0; }
+      constexpr ~infovec() { delete[] this->__infos; }
+      consteval info const& operator[](long __i) const
+        { return this->__infos[__i]; }
+      consteval info& operator[](long __i) { return this->__infos[__i]; }
+      consteval decltype(sizeof(0)) size() const { return this->__n; }
+      consteval long ssize() const { return this->__n; }
+      consteval info const* begin() const { return this->__infos; }
+      consteval info* begin() { return this->__infos; }
+      consteval info const* end() const { return this->__infos+this->__n; }
+      consteval info* end() { return this->__infos+this->__n; }
+      consteval void push_back(info __i)
+        {
+          if (this->__n == this->__cap) __grow();
+          std::construct_at(&this->__infos[this->__n++], __i);
+        }
+    private:
+      info *__infos;
+      long __cap, __n;
+      consteval void __grow()
+        {
+          long __new_cap = this->__cap;
+          __new_cap = __new_cap<2 ? 2 : __new_cap+__new_cap/2+1;
+          info *__new_infos = new info[__new_cap];
+          for (int __k = 0; __k<this->__n; ++__k) {
+            std::construct_at(&__new_infos[__k], this->__infos[__k]);
+          }
+          delete[] this->__infos;
+          this->__infos = __new_infos;
+          this->__cap = __new_cap;
+        }
+    };
+
+
+    using  __refl_ptrdiff = decltype((int*)2-(int*)1);
+
+    template<typename __T>
+    consteval info make_constexpr_array(__T*, __refl_ptrdiff) {
+      return ^::;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    using __str = std::string_view;
+
+    consteval __str name_of(info) {
+      return __str("", 0);  /* Dummy return.  Handled by interpreter. */
+    }
+
+    struct __span_impl {
+      constexpr __span_impl(info  *first, int __length)
+        : __length(__length), __first(__first) {}
+      int __length;
+      info *__first;
+    };
+    using __span = __span_impl;
+
+    consteval infovec members_of(info) {
+      return infovec(0);  /* Dummy return.  Handled by interpreter. */
+    }
+  }
+}
+
+
+#endif  /* ifndef __REFLECTION_STDH */

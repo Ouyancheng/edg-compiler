@@ -31,6 +31,7 @@ and parsing of them into tokens.
 #include "class_decl.h"
 #include "decls.h"
 #include "disambig.h"
+#include "expr.h"
 #include "exprutil.h"
 #include "folding.h"
 #include "fe_init.h"
@@ -14132,6 +14133,51 @@ literals are left unchanged.
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static void scan_unqualid_construct(void)
+/*
+Scan a splicer of the form:
+
+	unqualid(<expr>)
+
+where <expr> has a std::string_view or std::meta::info type.
+
+FIXME: Rework this to a new splicer syntax (e.g., [# info #]).
+*/
+{
+  if (fetch_pp_tokens) {
+    /* When fetching preprocessing tokens, just return tok_unqualid.
+       Nothing else needs to be done here for this case. */
+  } else {
+    a_pending_pragma_ptr  saved_curr_token_pragmas = curr_token_pragmas;
+    a_const_char          *id_str;
+    /* Push a new lexical state so that the tokens scanned by this routine
+       will not be cached by the background caching mechanism. */
+    push_lexical_state_stack();
+    /* Clear the curr_token_pragmas list so that it can be restored after the
+       tokens of the unqualid construct have been scanned. */
+    curr_token_pragmas = NULL;
+    /* Skip the unqualid token. */
+    (void)get_token();
+    if (curr_token == tok_lparen) {
+      (void)get_token();
+    } else {
+      pos_error(ec_exp_lparen, &error_position);
+    }  /* if */
+    add_stop_token(tok_rparen);
+    id_str = scan_unqualid_operand();
+    (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
+    remove_stop_token(tok_rparen);
+    (void)find_symbol_header(id_str, (sizeof_t)strlen(id_str),
+                             &locator_for_curr_id);
+    curr_token = tok_identifier;
+    /* Pop the lexical state pushed by this routine. */
+    pop_lexical_state_stack();
+    /* Add the saved curr_token_pragmas (if any) to the current list. */
+  add_to_curr_token_pragma_list(saved_curr_token_pragmas);
+  }  /* if */
+}  /* scan_unqualid_construct */
+
+
 
 static void adjust_pp_int_constant(void)
 /*
@@ -16726,7 +16772,13 @@ id_scan:
                 ctoken = tok_identifier;
 	      } else if (ctoken == tok_false || ctoken == tok_true) {
                 /* A C++ boolean constant. */
-		scan_boolean_constant(ctoken);
+                scan_boolean_constant(ctoken);
+                goto end_id_scan;
+              } else if (ctoken == tok_unqualid) {
+                /* An unqualid(...) splicer.  FIXME: Remove once a bracket-
+                   based alternative is implemented. */
+                scan_unqualid_construct();
+                ctoken = tok_identifier;
                 goto end_id_scan;
               } else if (clang_mode && curr_token == tok_struct &&
                          token_names[ctoken][0] == '_' &&
@@ -22730,15 +22782,23 @@ selection operator, in which case it points to the type of the left operand.
       might_be_qualifier = TRUE;
       qualifier_separator = tok_period;
     }  /* if */
-  } else if (curr_token == tok_decltype && !is_global_qualified_name &&
-             !decltype_auto_tokens_next()) {
-    /* This is most likely just a decltype specifier (e.g., "decltype(expr)"),
-       but could also be a qualifier in a qualified name (e.g.,
-       "decltype(expr)::something").  The former is not treated as an
-       identifier, while the latter is. */
+  } else if (!is_global_qualified_name &&
+             ((curr_token == tok_decltype && !decltype_auto_tokens_next()) ||
+              (curr_token == tok_typename &&
+               ((next_tok = next_token()) == tok_lparen ||
+                next_tok == tok_lbracket)))) {
+    /* This is most likely just a decltype specifier (e.g., "decltype(expr)")
+       or typename splicer (e.g., "typename[:^int:]"), but could also be a
+       qualifier in a qualified name (e.g., "decltype(expr)::something").
+       The former is not treated as an identifier, while the latter is. */
     a_type_ptr	tp;
-    tp = scan_decltype_operator((a_rescan_control_block *)NULL,
-                                /*might_be_id_start=*/TRUE);
+    if (curr_token == tok_decltype) {
+      tp = scan_decltype_operator((a_rescan_control_block *)NULL,
+                                  /*might_be_id_start=*/TRUE);
+    } else {
+      tp = scan_typename_operator((a_rescan_control_block *)NULL,
+                                  /*might_be_id_start=*/TRUE);
+    }  /* if */
     next_tok = next_two_tokens_if_qualifier_delimiter(tok_colon_colon,
                                                       &next_tok_2);
     if (next_tok != tok_colon_colon) {

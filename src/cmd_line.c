@@ -2341,6 +2341,7 @@ static a_flag_name
   { "preload_builtin_functions", &preload_builtin_functions },
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
   { "gen_edg_special_types", &gen_edg_special_types },
+  { "reflection", &reflection_enabled },
   { "lazy_field_initializers", &always_delay_field_initializer_processing },
   { "core_constant_expr_is_noexcept", &core_constant_expr_is_noexcept },
   { "null_template_ptr_arg_enabled", &null_template_ptr_arg_enabled },
@@ -13120,6 +13121,7 @@ variables declared in cmd_line.h.
   ms_await = FALSE;
   ms_await_strict = FALSE;
   fold_expressions_enabled = FALSE;
+  reflection_enabled = FALSE;
   variadic_using_decls_enabled = FALSE;
   class_template_arg_deduction_enabled = FALSE;
   auto_template_params_enabled = FALSE;

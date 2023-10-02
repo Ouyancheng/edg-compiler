@@ -2486,6 +2486,13 @@ by octl.
         octl->output_str("decltype(nullptr)", octl);
       }  /* if */
       break;
+    case tk_reflection:
+      if (octl->gen_compilable_code) {
+        octl->output_str("decltype(^::)", octl);
+      } else {
+        octl->output_str("std::meta::info", octl);
+      }  /* if */
+      break;
     case tk_unknown:
       check_assertion(!octl->gen_compilable_code);
       octl->output_str("<unknown-type>", octl);
@@ -6803,6 +6810,10 @@ do_sizeof_cases:
       break;
     case ck_void:
       octl->output_str("((void)0)", octl);
+      break;
+    case ck_reflection:
+      octl->output_str("reflection of ???", octl);
+      // FIXME: More detailed output.
       break;
     default:
 #if DEBUG

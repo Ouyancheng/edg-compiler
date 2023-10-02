@@ -77,6 +77,7 @@ static a_type_ptr canonical_complex_types[(int)fk_last];
 static a_type_ptr canonical_imaginary_types[(int)fk_last];
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 static a_type_ptr canonical_il_void_type;
+static a_type_ptr canonical_il_reflection_type;
 static a_type_ptr canonical_il_wchar_t_type;
 static a_type_ptr canonical_il_char8_t_type;
 static a_type_ptr canonical_il_char16_t_type;
@@ -1355,6 +1356,9 @@ is set to point to the first created type.
   switch (type->kind) {
     case tk_void:
       set_builtin_type_corresp(&canonical_il_void_type, type);
+      break;
+    case tk_reflection:
+      set_builtin_type_corresp(&canonical_il_reflection_type, type);
       break;
     case tk_integer:
       if (type->variant.integer.bool_type) {

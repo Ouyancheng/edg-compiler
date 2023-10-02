@@ -5006,6 +5006,7 @@ IL prefix is accessed).
       case ck_label_difference:
 #endif /* GNU_EXTENSIONS_ALLOWED */
       case ck_void:
+      case ck_reflection:
         /* No handling required. */
         break;
       case ck_init_repeat:
@@ -9523,12 +9524,15 @@ Do IL lowering of the indicated type and everything under it.
         break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       case tk_nullptr:
+      case tk_reflection:
         /* The type of the nullptr or __nullptr keyword in C++ or C++/CLI.
            Change it to a typeref to the "void *" type (the C++ Standard
            requires it to have that size, so we use that type in the
            lowered IL to make it happen naturally) and maintain a copy of
            the original type for the use of IL lowering; it is not really
-           part of the IL tree. */
+           part of the IL tree.  Similarly, map std::meta::info to void*:
+           That type is meaningless at run time, but it can appear in the
+           instantiations of function templates. */
         overwrite_type_with_new_type(type, void_star_type());
         break;
       case tk_unknown:  /* Shouldn't make it out of front end. */

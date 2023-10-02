@@ -1398,6 +1398,8 @@ extern a_type_ptr unknown_type(void);
 
 extern a_type_ptr void_type(void);
 
+extern a_type_ptr reflection_type(void);
+
 extern a_type_ptr managed_nullptr_type(void);
 
 extern a_type_ptr standard_nullptr_type(void);
@@ -1411,6 +1413,8 @@ extern a_type_ptr partial_ordering_type(void);
 extern a_type_ptr strong_equality_type(void);
 
 extern a_type_ptr weak_equality_type(void);
+
+extern a_boolean check_consistent_string_view_type(a_type_ptr  svtp);
 
 /*
 A collection of information required to compatibly support the interpretation
@@ -3119,6 +3123,17 @@ extern a_source_correspondence *source_corresp_for_il_entry(
                                                  an_il_entry_kind  kind);
 
 extern a_boolean is_defined(char *entity_ptr, an_il_entry_kind kind);
+
+inline a_source_correspondence *source_corresp_for_reflection(
+                                                      a_reflection_value  *rvp)
+/*
+Return the source correspondence for the entity associated with rvp, if any.
+*/
+{
+  return source_corresp_for_il_entry(rvp->entity.ptr,
+                                     (an_il_entry_kind)rvp->entity.kind);
+}  /* source_corresp_for_reflection */
+
 
 extern a_boolean is_zero_constant(a_constant *constant);
 

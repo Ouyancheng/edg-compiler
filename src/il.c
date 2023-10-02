@@ -84,6 +84,7 @@ static a_type_ptr (*string_types)[MAX_TRACKED_STRING_TYPE_LENGTH+1];
 static a_type_ptr il_error_type;
 static a_type_ptr il_unknown_type;
 static a_type_ptr il_void_type;
+static a_type_ptr il_reflection_type;
 static a_type_ptr il_wchar_t_type;
 static a_type_ptr il_char8_t_type;
 static a_type_ptr il_char16_t_type;
@@ -91,6 +92,7 @@ static a_type_ptr il_char32_t_type;
 static a_type_ptr il_bool_type;
 static a_type_ptr il_standard_nullptr_type;
 static a_type_ptr il_managed_nullptr_type;
+static a_type_ptr il_std_string_view;
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
@@ -1467,6 +1469,9 @@ Dump the contents of the indicated type entry, for debug purposes.
         break;
       case tk_void:
         fputs("void", f_debug);
+        break;
+      case tk_reflection:
+        fputs("reflection", f_debug);
         break;
       case tk_integer:
         if (tp->variant.integer.wchar_t_type) {
@@ -8628,6 +8633,10 @@ definition of the CC flags in il.h for more information.
           }  /* if */
         }  /* if */
         break;
+      case ck_reflection:
+        eq = cp1->variant.reflection.entity.ptr ==
+                                           cp2->variant.reflection.entity.ptr;
+        break;
       default:
         unexpected_condition_str("compare_constants: bad constant kind");
     }  /* switch */
@@ -9013,6 +9022,9 @@ at the file scope (it would contain a pointer down into a function scope).
                               "has_non_file_scope_ref: bad dynamic init kind");
         }  /* switch */
       }
+      break;
+    case ck_reflection:
+      has_nfs_ref = !in_file_scope(cp->variant.reflection.entity.ptr);
       break;
     default:
       unexpected_condition_str("has_non_file_scope_ref: bad constant kind");
@@ -11948,6 +11960,65 @@ call to this routine std::weak_equality is not appropriately declared).
   return il_weak_equality_type;
 }  /* weak_equality_type */
 
+
+a_type_ptr reflection_type(void)
+/*
+Make or find a type entry for a reflection type, and return a pointer to it.
+*/
+{
+  if (il_reflection_type == NULL) {
+    il_reflection_type = alloc_type((a_type_kind)tk_reflection);
+    set_type_size(il_reflection_type);
+#if ORPHAN_PROCESSING_NEEDED
+    /* Record the type entry as an orphan in case it is discarded now
+       and then found again in a later phase (e.g., IL lowering). */
+    add_orphaned_file_scope_il_entry((char *)il_reflection_type,
+                                     (an_il_entry_kind)iek_type);
+#endif /* ORPHAN_PROCESSING_NEEDED */
+    record_builtin_type(il_reflection_type);
+  }  /* if */
+  return il_reflection_type;
+}  /* reflection_type */
+
+
+a_boolean check_consistent_string_view_type(a_type_ptr  svtp)
+/*
+The given type is expected to be std::string_view.  Ensure it has some of the
+expected characteristics of that type (e.g., being a member of std and being a
+class type), and, most importantly that it is consistent with any previous
+types that were expected to be std::string_view.
+*/
+{
+  a_boolean        result = TRUE;
+  a_namespace_ptr  std_nsp;
+
+  svtp = skip_typerefs(svtp);
+  if (svtp == il_std_string_view) {
+    goto done;
+  } else if (il_std_string_view != NULL) {
+    pos_error(ec_inconsistent_std_string_view, &error_position);
+    result = FALSE;
+    goto done;
+  }  /* if */
+  std_nsp = symbol_for_namespace_std->variant.namespace_info.ptr;
+  if (!is_namespace_member(svtp) || parent_namespace_of(svtp) != std_nsp ||
+      !is_immediate_class_type(svtp)) {
+    result = FALSE;
+  } else {
+    a_const_char  *name = unmangled_name_of(&svtp->source_corresp);
+    if (name == NULL || strcmp(name, "basic_string_view") != 0) {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  if (!result) {
+    pos_ty_error(ec_bad_std_string_view, &error_position, svtp);
+    goto done;
+  }  /* if */
+  il_std_string_view = svtp;
+done:
+  return result;
+}  /* check_consistent_string_view_type */
+
 namespace {
 
 /*
@@ -11976,7 +12047,7 @@ a_gnu_source_location_field_set
                            GNU libstdc++ standard library's
                            std::source_location::__impl type. */
 
-
+  
 a_boolean map_to_gnu_source_location_field(
                                        a_field_ptr                     input,
                                        a_type_ptr                      cstr_ty,
@@ -31476,6 +31547,8 @@ in il_init.)
       pch_saved_var_array_elem(il_error_type),
       pch_saved_var_array_elem(il_unknown_type),
       pch_saved_var_array_elem(il_void_type),
+      pch_saved_var_array_elem(il_reflection_type),
+      pch_saved_var_array_elem(il_std_string_view),
       pch_saved_var_array_elem(il_wchar_t_type),
       pch_saved_var_array_elem(il_char8_t_type),
       pch_saved_var_array_elem(il_char16_t_type),
@@ -31585,6 +31658,8 @@ in il_init.)
   register_trans_unit_variable(il_error_type);
   register_trans_unit_variable(il_unknown_type);
   register_trans_unit_variable(il_void_type);
+  register_trans_unit_variable(il_reflection_type);
+  register_trans_unit_variable(il_std_string_view);
   register_trans_unit_variable(il_wchar_t_type);
   register_trans_unit_variable(il_char8_t_type);
   register_trans_unit_variable(il_char16_t_type);
@@ -31728,6 +31803,7 @@ need initialization for every (primary and secondary) translation unit.
   il_char32_t_type = NULL;
   il_bool_type = NULL;
   il_error_type = il_unknown_type = il_void_type = NULL;
+  il_reflection_type = NULL;
   il_standard_nullptr_type = NULL;
   il_managed_nullptr_type = NULL;
   il_strong_ordering_type = NULL;
@@ -31735,6 +31811,7 @@ need initialization for every (primary and secondary) translation unit.
   il_partial_ordering_type = NULL;
   il_strong_equality_type = NULL;
   il_weak_equality_type = NULL;
+  il_std_string_view = NULL;
   il_source_location_impl_type = NULL;
   il_source_location_fields = {};
 #if MICROSOFT_EXTENSIONS_ALLOWED

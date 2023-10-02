@@ -1177,12 +1177,15 @@ disambiguation.  ids_options is a set of flags used by is_identifier_start
 and associated routines.
 */
 {
-  a_boolean    is_start = FALSE;
+  a_boolean  is_start = FALSE;
 
   if (curr_token == tok_decltype ||
-      (curr_token == tok_typename && next_token() == tok_lparen)) {
+      (curr_token == tok_typename && next_token() == tok_lbracket &&
+       reflection_enabled)) {
     /* A decltype could be decltype(x) or decltype(x)::something.  In the
-       latter case we need to coalesce it before deciding what it is.  */
+       latter case we need to coalesce it before deciding what it is.
+       When reflection is enabled, typename[:expr:] behaves syntactically
+       much like decltype(x).  */
     (void)is_generalized_identifier_start(GID_NO_OPTIONS);
   }  /* if */
   if ((is_type_specifier() &&
@@ -8961,6 +8964,55 @@ interpreter) and if so mark it as such.
       default:
         break;
     }  /* switch */
+  } else if (symbol_for_namespace_std_meta != NULL &&
+             is_namespace_member(rp) &&
+             parent_namespace_of(rp) ==
+                  symbol_for_namespace_std_meta->variant.namespace_info.ptr) {
+    /* A member of namespace "std::meta", which holds meta-functions when
+       reflection is enabled. */
+    a_const_char  *name = sym_hdr->identifier;
+    switch (name[0]) {
+      case 'm':
+        if (strcmp(name, "make_constexpr_array") == 0 &&
+            rp->template_arg_list != NULL &&
+            rp->template_arg_list->next == NULL &&
+            rp->template_arg_list->kind == (a_templ_arg_kind)tak_type) {
+          a_type_ptr       rtp = skip_typerefs(rp->type);
+          a_param_type_ptr ptp = function_type_params(rtp);
+          if (ptp != NULL && ptp->next != NULL && ptp->next->next == NULL &&
+              is_pointer_type(ptp->type) &&
+              is_integral_type(ptp->next->type) &&
+              is_reflection_type(rtp->variant.routine.return_type)) {
+            tag = cit_std_meta_make_constexpr_array;
+          }  /* if */
+        } else if (strcmp(name, "members_of") == 0 &&
+                   rp->template_arg_list == NULL) {
+          a_type_ptr       rtp = skip_typerefs(rp->type);
+          a_param_type_ptr ptp = function_type_params(rtp);
+          if (ptp != NULL && ptp->next == NULL &&
+              is_reflection_type(ptp->type) &&
+              is_class_struct_union_type(rtp->variant.routine.return_type)) {
+            tag = cit_std_meta_members_of;
+          }  /* if */
+        }  /* if */
+        break;
+        break;
+      case 'n':
+        if (strcmp(name, "name_of") == 0 &&
+            rp->template_arg_list == NULL) {
+          a_type_ptr       rtp = skip_typerefs(rp->type);
+          a_param_type_ptr ptp = function_type_params(rtp);
+          if (ptp != NULL && ptp->next == NULL &&
+              is_reflection_type(ptp->type) &&
+              check_consistent_string_view_type(
+                                          rtp->variant.routine.return_type)) {
+            tag = cit_std_meta_name_of;
+          }  /* if */
+        }  /* if */
+        break;
+      default:
+        break;
+    }  /* switch */
   }  /* if */
   if (tag != cit_last) {
     register_constexpr_intrinsic(tag, rp);
@@ -15895,6 +15947,18 @@ it's a definition and NULL otherwise).
         ns_sym = symbol_for_namespace_std;
         enter_symbol_for_namespace_std(&locator);
         initial_decl_of_namespace_std = TRUE;
+        srk_flags |= SRK_DEFINITION;
+      } else if (symbol_for_namespace_std_meta != NULL &&
+                 locator.symbol_header ==
+                                      symbol_for_namespace_std_meta->header &&
+                 scope_is(&scope_stack_top(), sck_namespace_extension) &&
+                 scope_stack_top().assoc_namespace ==
+                       symbol_for_namespace_std->variant.namespace_info.ptr &&
+                 !locator.is_error) {
+        /* This is the initial explicit declaration of namespace "std::meta".
+           Reuse the symbol that is predeclared when reflection is enabled. */
+        ns_sym = symbol_for_namespace_std_meta;
+        enter_symbol_for_namespace_std_meta(&locator);
         srk_flags |= SRK_DEFINITION;
 #if IA64_ABI
       } else if (locator.symbol_header == symbol_for_namespace_abi->header &&

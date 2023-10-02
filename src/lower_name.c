@@ -108,6 +108,7 @@ BEGIN_EDG_NAMESPACE
 #if GNU_VECTOR_TYPES_ALLOWED
 #define MANGLING_STRING_FOR_VECTOR "U8__vector"
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+#define MANGLING_STRING_FOR_META_INFO "U10__metainfo"
 #define MANGLING_STRING_FOR_OPERATOR_NEW "nw"
 #define MANGLING_STRING_FOR_OPERATOR_DELETE "dl"
 #define MANGLING_STRING_FOR_OPERATOR_ARRAY_NEW "na"
@@ -373,6 +374,7 @@ type in the std namespace.
 #if GNU_VECTOR_TYPES_ALLOWED
 #define MANGLING_STRING_FOR_VECTOR "a"
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+#define MANGLING_STRING_FOR_META_INFO "mxi"
 #define MANGLING_STRING_FOR_OPERATOR_NEW "nw"
 #define MANGLING_STRING_FOR_OPERATOR_DELETE "dl"
 #define MANGLING_STRING_FOR_OPERATOR_ARRAY_NEW "nwa"
@@ -9858,6 +9860,7 @@ specified type.  Substitutions are not allocated for <builtin-type>s
     case tk_void:
     case tk_float:
     case tk_nullptr:
+    case tk_reflection:
       /* These are <builtin-type>s according to the IA-64 ABI, so no
          substitution is allocated for them. */
       result = FALSE;
@@ -10634,6 +10637,9 @@ top_of_loop:
           goto have_whole_mangled_name;
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+        break;
+      case tk_reflection:
+        s = MANGLING_STRING_FOR_META_INFO;
         break;
       default:
         unexpected_condition_str("mangled_encoding_for_type: bad type kind");

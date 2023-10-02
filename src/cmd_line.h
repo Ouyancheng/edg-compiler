@@ -2767,6 +2767,10 @@ EXTERN a_boolean
 			   Committee document P0929R2. */
 
 EXTERN a_boolean
+		reflection_enabled;
+			/* TRUE if support for reflection is enabled. */
+
+EXTERN a_boolean
 		gnu_imaginary_literals_allowed;
 			/* TRUE if imaginary literals (e.g., "1.0i") are
 			   allowed in the current mode. */

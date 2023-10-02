@@ -560,6 +560,17 @@ version thereof.
 }  /* is_void_type */
 
 
+a_boolean is_reflection_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is the reflection type or a cv-qualified version
+thereof.
+*/
+{
+  tp = skip_typerefs(tp);
+  return type_is(tp, tk_reflection);
+}  /* is_void_type */
+
+
 a_boolean is_nullptr_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is the type of the nullptr keyword in C++
@@ -2468,7 +2479,7 @@ error recovery, this function returns FALSE for incomplete class types.
 
   tp = skip_array_types(tp);
   tp = skip_typerefs(tp);
-  if (is_scalar(tp) || is_any_reference(tp) ||
+  if (is_scalar(tp) || is_any_reference(tp) || type_is(tp, tk_reflection) ||
       (is_void(tp) &&
        (cpp14_mode || (microsoft_mode && microsoft_version >= 1900)))) {
     /* void was added to the set of literal types by N3652. */
@@ -5451,6 +5462,9 @@ set, leave it alone.  Also compute and set the alignment requirement.
       case tk_nullptr:
         size = size_of_pointer_to(void_type(), &alignment);
         break;
+      case tk_reflection:
+        size = size_of_pointer_to(void_type(), &alignment);
+        break;
       case tk_class:
       case tk_struct:
       case tk_union:
@@ -7276,6 +7290,7 @@ check_typerefs:
       case tk_error:
       case tk_unknown:
       case tk_void:
+      case tk_reflection:
         /* No further check needed.  The types are identical. */
         identical = TRUE;
         break;
@@ -8192,6 +8207,7 @@ check_typerefs:
           break;
         case tk_unknown:
         case tk_void:
+        case tk_reflection:
         case tk_nullptr:
           /* No further check needed.  The types are compatible. */
           compat = TRUE;
@@ -12025,6 +12041,11 @@ See conversion_possible.
         std_conv->pointer_normalization_needed = TRUE;
       }  /* if */
     }  /* if */
+  } else if (type_is(dest_type, tk_reflection)) {
+    if (type_is(source_type, tk_reflection)) {
+      okay = TRUE;
+      std_conv->nontrivial_conversion = FALSE;
+    }  /* if */
   } else if (is_error(dest_type)) {
     /* Anything can be converted to an error type. */
     okay = TRUE;
@@ -15459,6 +15480,7 @@ return type be examined? what about its parameters?).
     switch (type_ptr->kind) {
       case tk_error:
       case tk_void:
+      case tk_reflection:
 #if FIXED_POINT_ALLOWED
       case tk_fixed_point:
 #endif /* FIXED_POINT_ALLOWED */
@@ -17044,6 +17066,7 @@ calling back to the non-"tmtt_" routine that started the walk).
   switch (type->kind) {
     case tk_error:
     case tk_void:
+    case tk_reflection:
     case tk_float:
     case tk_integer:
 #if FIXED_POINT_ALLOWED

@@ -5029,12 +5029,20 @@ EXTERN a_symbol_ptr
 		symbol_for_namespace_std;
 			/* Symbol for namespace "std", which is predeclared
 			   by the front end (but not entered into the symbol
-			   table until a user declaration is encountered).
+			   table until a source declaration is encountered).
 			   C++ only. */
+EXTERN a_symbol_ptr
+		symbol_for_namespace_std_meta;
+			/* Symbol for namespace "std::meta", which is
+			   predeclared by the front end in some modes (but
+			   not entered into the symbol table until a source
+			   declaration is encountered). */
 
 extern void make_symbol_for_namespace_std(void);
 
 extern void enter_symbol_for_namespace_std(a_symbol_locator  *locator);
+
+extern void enter_symbol_for_namespace_std_meta(a_symbol_locator  *locator);
 
 #if IA64_ABI
 EXTERN a_symbol_ptr

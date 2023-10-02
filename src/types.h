@@ -106,6 +106,7 @@ extern a_boolean class_type_has_variant_member(a_type_ptr tp);
 extern a_boolean is_object_type(a_type_ptr tp);
 extern a_boolean is_complete_object_type(a_type_ptr tp);
 extern a_boolean is_void_type(a_type_ptr tp);
+extern a_boolean is_reflection_type(a_type_ptr tp);
 extern a_boolean is_nullptr_type(a_type_ptr tp);
 extern a_boolean is_managed_nullptr_type(a_type_ptr tp);
 extern a_boolean is_standard_nullptr_type(a_type_ptr tp);

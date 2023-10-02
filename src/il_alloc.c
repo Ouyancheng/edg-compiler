@@ -930,6 +930,9 @@ fields to default values.
       cp->variant.designator.is_generic = FALSE;
       cp->variant.designator.variant.array_element = 0;
       break;
+    case ck_reflection:
+      clear_tagged_ptr(cp->variant.reflection.entity);
+      break;
     default:
       unexpected_condition_str("set_constant_kind: bad kind");
   }  /* switch */
@@ -1978,6 +1981,8 @@ to default values.
     case tk_unknown:
     case tk_void:
     case tk_nullptr:
+    case tk_reflection:
+    case tk_interpreter_vector:
       /* No variant fields to set. */
       break;
     case tk_integer:

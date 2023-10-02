@@ -94,6 +94,9 @@ BEGIN_EDG_NAMESPACE
 #define EOPT_SUBSCRIPT_OP 0x4000
 			/* Flag set when parsing the expression for a subscript
 			   operator (e.g., x[2] or x[2,3]). */
+#define EOPT_REFLECTION_OP 0x8000
+			/* This expression is the operand of a unary "&"
+			   operator. */
 #define EOPT_NO_OPTIONS 0
 
 typedef int a_local_expr_options_set;
@@ -817,6 +820,12 @@ extern a_const_char *scan_uuidof_operand(void);
 extern
 a_type_ptr scan_decltype_operator(a_rescan_control_block *rcblock,
                                   a_boolean              might_be_id_start);
+
+extern
+a_type_ptr scan_typename_operator(a_rescan_control_block *rcblock,
+                                  a_boolean              might_be_id_start);
+
+extern a_const_char* scan_unqualid_operand();
 
 extern a_type_ptr decltype_of_expr_with_substitution(
                                   a_type_ptr               type,

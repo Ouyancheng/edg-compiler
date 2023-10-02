@@ -5042,7 +5042,7 @@ Only available in C mode.
     if (is_expression_operand(&selector_op)) {
       (void)expr_interpret_expression_operand(&selector_op,
                                               /*must_be_constant=*/TRUE,
-                                              /*must_be_constant=*/TRUE);
+                                              /*is_constant_evaluated=*/TRUE);
     }  /* if */
     if (!op_is_false_constant(&selector_op)) {
       node->variant.builtin_choose_expr.choose_first = TRUE;
@@ -8083,6 +8083,10 @@ type whose member being accessed is incomplete.
 }  /* field_selection_class_can_be_incomplete */
 
 
+static void scan_expr_splicer(a_rescan_control_block    *rcblock,
+                              an_operand                *result);
+
+
 static void scan_selection_second_operand(
                             an_operand        *operand_1,
                             a_type_ptr        type_1,
@@ -8383,6 +8387,32 @@ qualified_name_check:
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Advance past the identifier. */
     (void)get_token();
+  } else if (reflection_enabled && curr_token == tok_lbracket &&
+             next_token() == tok_colon) {
+    an_operand  opnd2;
+    clear_operand(ok_error, &opnd2);
+    scan_expr_splicer((a_rescan_control_block*)NULL, &opnd2);
+    if (is_constant_operand(&opnd2)) {
+      a_constant_ptr  refl_cp = &opnd2.variant.constant;
+      check_assertion(constant_is(refl_cp, ck_reflection));
+      if (refl_cp->variant.reflection.entity.kind == iek_field) {
+        a_field_ptr  fp = (a_field*)refl_cp->variant.reflection.entity.ptr;
+        make_locator_for_symbol(symbol_for(fp), locator);
+        locator->source_position = opnd2.position;
+      } else if (refl_cp->variant.reflection.entity.kind == iek_routine) {
+        a_routine_ptr  rp = (a_routine*)refl_cp->variant.reflection.entity.ptr;
+        make_locator_for_symbol(symbol_for(rp), locator);
+        locator->source_position = opnd2.position;
+      } else {
+        // FIXME: Describe the actual reflection kind.
+        expr_pos_error(ec_bad_reflection_kind_for_expression_splice,
+                       &opnd2.position);
+        *err = TRUE;
+      }  /* if */
+    } else {
+      check_assertion(is_error_operand(&opnd2));
+      *err = TRUE;
+    }  /* if */
   } else {
     clear_locator(locator, &pos_curr_token);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -16340,6 +16370,217 @@ name.  We do not advance to the token after the decltype in this case.
 }  /* scan_decltype_operator */
 
 
+a_type_ptr scan_typename_operator(a_rescan_control_block *rcblock,
+                                  a_boolean              might_be_id_start)
+/*
+Scan the typename operator.
+
+Syntax:
+        typename [: reflection-value :]
+
+where "reflection-value" is a constant-expression of type "std::meta::info".
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+typename operator, and return the result type (or an error indication in
+*rcblock).  This routine is intended to be called from outside of the
+expression-processing routines.  might_be_id_start is TRUE if we are in a
+context where the typename operator could be the start of a qualified name.
+We do not advance to the token after the typename operator in this case.
+*/
+{
+  a_type_ptr              result;
+  an_expr_node_ptr        expr = NULL;
+  an_expr_stack_entry     expr_stack_entry;
+  an_expr_stack_entry_ptr saved_expr_stack;
+  an_operand              operand;
+  a_scope_depth           expr_scope_depth;
+  a_memory_region_number  region_to_switch_back_to;
+  an_object_lifetime_ptr  saved_object_lifetime;
+  a_boolean               saved_in_decltype_context;
+  a_boolean               saved_suppress_diagnostics;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_source_sequence_entry_ptr
+                          ssep = NULL;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  an_expr_node_ptr        saved_decltype_rescan_operand = NULL;
+
+  check_assertion(!C_mode());
+  if (rcblock != NULL) {
+    /* Redoing semantic analysis on a previously-scanned expression.  Note
+       that rcblock->expr is the expression that is the operand of the splicer,
+       not the splicer itself, because there is no expression for that.  The
+       operand is picked up later after the expression stack has been pushed.
+       We do keep track of the top-level operand, skipping parentheses and
+       comma operators (to handle calls with incomplete return types). */
+       // FIXME is that needed for typename[:...:]?
+    saved_decltype_rescan_operand = decltype_rescan_operand;
+    decltype_rescan_operand = skip_commas_and_parens(rcblock->expr);
+  } else {
+    /* Normal, non-rescan, processing. */
+    /* Skip the "typename" token. */
+    check_assertion(curr_token == tok_typename);
+    (void)get_token();
+    /* Check for and pass over the left delimiter. */
+    add_stop_token(tok_colon);
+    add_stop_token(tok_rbracket);
+    (void)required_token(tok_lbracket, ec_exp_rbracket);
+    (void)required_token(tok_colon, ec_exp_colon);
+    remove_stop_token(tok_colon);
+    remove_stop_token(tok_rbracket);
+  }  /* if */
+  /* If we're in the file-scope memory region instead of a function-scope
+     memory region because we're scanning something like a template argument,
+     switch back.  If we're in a function, any expression nodes allocated must
+     be in the function-scope memory region. */
+  expr_scope_depth = scope_depth_to_allocate_decltype_expr();
+  switch_to_scope_region_and_lifetime(expr_scope_depth,
+                                      &region_to_switch_back_to,
+                                      &saved_object_lifetime);
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
+                               &expr_stack_entry,
+                               /*force_object_lifetime=*/FALSE,
+                               /*suppress_object_lifetime=*/
+                                                (curr_object_lifetime != NULL),
+                               rcblock);
+  transfer_expr_context_if_applicable(saved_expr_stack);
+  expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
+  expr_stack->is_type_operator_arg_expression = TRUE;
+  /* Indicate that we are in the context of a decltype expression. */
+  saved_in_decltype_context = scope_stack_top().in_decltype_context;
+  saved_suppress_diagnostics = expr_stack->suppress_diagnostics;
+  scope_stack_top().in_decltype_context = TRUE;
+  if (rcblock != NULL) {
+    /* This call is done late because we need the expression stack to be pushed
+       already. */
+    make_rescan_operand(rcblock->expr, rcblock, &operand);
+  } else {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    /* A decltype construct may include embedded statements and declarations if
+       it contains a statement expression.  To allow e.g. the C++-generating
+       back end to associate the resulting source sequence entries with the
+       decltype type, we delimit them by a pair of source sequence entries
+       (iek_type, iek_src_seq_end_of_construct).  This must be done after the
+       expression stack entry has been pushed, because in some cases the source
+       sequence entry changes will be "undone" and restored to the state
+       recorded by the push operation. */
+    ssep = fs_add_empty_source_sequence_entry();
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    /* This call is done late because we need the expression stack to be pushed
+       already. */
+    add_matching_stop_token(tok_rbracket);
+    /* Scan the argument expression. */
+    scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
+  }  /* if */
+  scope_stack_top().in_decltype_context = saved_in_decltype_context;
+  expr_stack->suppress_diagnostics = saved_suppress_diagnostics;
+  do_operand_transformations(&operand, TOPT_NO_OPTIONS);
+  force_operand_to_constant_if_possible_full(&operand,
+                                             /*is_constant_evaluated=*/TRUE);
+  if (!is_reflection_type(operand.type)) {
+    expr_pos_ty_error(ec_bad_splicer_operand, &operand.position, operand.type);
+    result = error_type();
+  } else if (!is_constant_operand(&operand)) {
+    expr_pos_error(ec_nonconstant_splicer_operand, &operand.position);
+    result = error_type();
+  } else {
+    a_constant_ptr  cp = &operand.variant.constant;
+    if (cp->variant.reflection.entity.kind != iek_type) {
+      /* FIXME: Should report what kind of reflection it is. */
+      expr_pos_error(ec_not_a_type_reflection, &operand.position);
+      result = error_type();
+    } else {
+      result = (a_type_ptr)cp->variant.reflection.entity.ptr;
+    }  /* if */
+  }  /* if */
+  if (is_error_type(result)) {
+    /* We'll just return the error type. */
+    /* The expression is discarded. */
+    expr_stack->unevaluated_expr_will_be_kept_in_il = FALSE;
+  } else if (rcblock != NULL &&
+             (rcblock->options & (CTWS_PRESERVE_DEDUCED_PACKS |
+                                  CTWS_PARTIAL_ARG_LIST_OKAY |
+                                  CTWS_MAY_BE_RESCANNED |
+                                  CTWS_ADJUST_COORDINATES |
+                                  CTWS_ALIAS_DEDUCTION_GUIDE)) == 0) {
+    /* A rescanned typename splicer that will not itself require further
+       rescanning.  Rather than produce a typeref type representing the
+       construct, we just return the underlying type in this case, and reclaim
+       the expression node if possible. */
+    result = error_type();  // FIXME
+    reclaim_fs_nodes_of_operand(&operand);
+  } else {
+    a_type_ptr  tp = alloc_type((a_type_kind)tk_typeref);
+    a_boolean   dependent_arg = is_template_dependent_context() &&
+                                is_template_dependent_type(result);
+    a_memory_region_number
+                prev_region;
+    tp->variant.typeref.type = result;
+    tp->variant.typeref.is_spliced = TRUE;
+    tp->variant.typeref.is_dependent_type_operator = dependent_arg;
+    if (dependent_arg) {
+      prep_generic_operand(&operand);
+    }  /* if */
+    /* Represent the operand as an expression.  If the operand is a constant,
+       a constant entry will be allocated: Allocate it in file scope memory. */
+    switch_to_file_scope_region(&prev_region);
+    expr = make_node_from_operand(&operand);
+    switch_back_to_original_region(prev_region);
+    if (!dependent_arg) {
+      /* Check for cases where the result type is not dependent but the
+         expression is instantiation-dependent. */
+      if (is_template_dependent_context() &&
+          expr_is_instantiation_dependent(expr)) {
+        tp->variant.typeref.is_dependent_type_operator = TRUE;
+      }  /* if */
+    }  /* if */
+    /* The type entry is stored in the file scope memory region.  If the
+       expression is a local expression,  the type entry cannot point
+       directly to it, and instead we use the "a_local_expr_node_ref"
+       mechanism. */
+    if (in_file_scope(expr)) {
+      tp->variant.typeref.extra_info->expr = expr;
+    } else {
+      make_local_expr_node_ref(
+              expr, (a_local_expr_node_ref_kind)lerk_decltype, (char*)tp,
+              scope_stack[expr_scope_depth].il_scope);
+      tp->source_corresp.enclosing_routine =
+                                  scope_stack[expr_scope_depth].assoc_routine;
+    }  /* if */
+    result = tp;
+  }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (ssep == NULL) {
+    /* No source sequence entries are being recorded. */
+  } else if (ssep->next == NULL) {
+    /* The decltype argument did not embed source sequence entries.  So we do
+       not have to delimit them: Discard the leading entry. */
+    remove_from_src_seq_list(ssep);
+  } else {
+    update_source_sequence_list((char*)result, (an_il_entry_kind)iek_type,
+                                ssep);
+    /* Add the trailing (end-of-construct) source sequence entry. */
+    add_end_of_construct_source_sequence_entry((char*)result, iek_type);
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  if (rcblock == NULL) {
+    /* Check for and pass over the right delimiter. */
+    (void)required_token(tok_colon, ec_exp_colon);
+    remove_matching_stop_token(tok_rbracket);
+    if (required_token_no_advance(tok_rbracket, ec_exp_rbracket) &&
+        !might_be_id_start) {
+      (void)get_token();
+    }  /* if */
+  } else {
+    decltype_rescan_operand = saved_decltype_rescan_operand;
+  }  /* if */
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+  switch_back_region_and_lifetime(region_to_switch_back_to,
+                                  saved_object_lifetime);
+  return result;
+}  /* scan_typename_operator */
+
+
 /*
 Structure used to save context around an expression rescan.  These
 values are saved by push_expr_rescan_context_if_necessary and restored
@@ -18746,6 +18987,175 @@ reparse:
   rule_out_expr_kinds(ROEK_CONSTANT, result);
   db_exit();
 }  /* scan_typeid_operator */
+
+
+static void scan_reflection_operator(a_rescan_control_block  *rcblock,
+                                     an_operand              *result)
+/*
+Scan the reflection operator, which is of the form:
+
+	^ <construct> 
+
+where <construct> is one of:
+
+  - a namespace name or ::
+  - a template name
+  - a type-id
+  - an expression
+
+The result  (stored in *result) is a compile-time constant value (of kind
+ck_reflection) of a special built-in type (of kind tk_reflection).
+*/
+{
+  an_expr_stack_entry     expr_stack_entry;
+  a_memory_region_number  region_to_switch_back_to;
+  an_object_lifetime_ptr  saved_object_lifetime;
+  a_boolean               potentially_evaluated =
+                                         curr_expr_is_potentially_evaluated();
+  a_source_position       start_pos = pos_curr_token, arg_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position       end_pos;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  a_constant_ptr          refl_cp = local_constant();
+
+  clear_constant(refl_cp, (a_constant_repr_kind)ck_reflection);
+  /* If we're in the file-scope memory region instead of a function-scope
+     memory region because we're scanning something like an array bound,
+     switch back.  Any expression nodes allocated must be in the function-scope
+     memory region. */
+  switch_to_scope_region_and_lifetime(depth_scope_stack,
+                                      &region_to_switch_back_to,
+                                      &saved_object_lifetime);
+  push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
+                               &expr_stack_entry,
+                               /*force_object_lifetime=*/FALSE,
+                               /*suppress_object_lifetime=*/FALSE,
+                               rcblock);
+  expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
+  if (rcblock != NULL) {
+  } else {
+    /* Normal, non-rescan, processing. */
+    an_identifier_options_set  gid_flags = GID_IS_EXPR_CONTEXT |
+                                           GID_TEMPLATE_ARGS_OPTIONAL;
+    a_boolean                  handled = FALSE, err = FALSE;
+    a_token_kind               next_tok;
+    /* Consume the "^" token. */
+    (void)get_token();
+    arg_pos = pos_curr_token;
+    if (curr_token == tok_colon_colon &&
+        (next_tok = next_token()) != tok_identifier &&
+        next_tok != tok_new && next_tok != tok_delete) {
+      /* ^:: represents the global namespace. */
+      refl_cp->variant.reflection.entity.kind = iek_scope;
+      refl_cp->variant.reflection.entity.ptr = (char*)il_header.primary_scope;
+      handled = TRUE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      end_pos = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      (void)get_token();
+    } else if (is_generalized_identifier_start(GID_IS_EXPR_CONTEXT)) {
+      /* Check for namespace or template names.  Other names (functions,
+         types, etc.) will be handled as types or expressions below. */
+      a_symbol_ptr  sym = coalesce_and_lookup_generalized_identifier(
+                                                 gid_flags, ilm_normal, &err);
+      if (sym == NULL || next_token() != tok_rparen) {
+        /* The identifier either not resolve to a particular entity.  Try to
+           parse the whole thing as a type or expression below. */
+      } else if (symbol_is(sym, sk_namespace)) {
+        /* A reflection of a namespace or namespace alias name. */
+        a_namespace_ptr  nsp = sym->variant.namespace_info.ptr;
+        if (nsp->is_namespace_alias) {
+          refl_cp->variant.reflection.entity.kind = iek_namespace;
+          refl_cp->variant.reflection.entity.ptr = (char*)nsp;
+        } else {
+          refl_cp->variant.reflection.entity.kind = iek_scope;
+          refl_cp->variant.reflection.entity.ptr =
+                                              (char*)nsp->variant.assoc_scope;
+        }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        end_pos = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        (void)get_token();
+        handled = TRUE;
+      } else if ((symbol_is(sym, sk_class_template) ||
+                  symbol_is(sym, sk_variable_template)) &&
+                 (next_tok = next_token()) != tok_lparen &&
+                 next_tok != tok_lbrace) {
+        /* A template name not followed by "<" (since otherwise it would have
+           been coalesced), not part of a cast (relying on class template
+           argument deduction) or call (since it is not followed by "(" or
+           "{").  The template itself is thus reflected. */
+        refl_cp->variant.reflection.entity.kind = iek_template;
+        refl_cp->variant.reflection.entity.ptr =
+                         (char*)sym->variant.template_info->il_template_entry;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        end_pos = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        (void)get_token();
+        handled = TRUE;
+      }  /* if */
+    }  /* if */ 
+    if (!handled) {
+      if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                           DFS_SINGLE_TYPE_REQUIRED)) {
+        a_type_ptr  tp = scan_type_for_sizeof(potentially_evaluated);
+        refl_cp->variant.reflection.entity.kind = iek_type;
+        refl_cp->variant.reflection.entity.ptr = (char*)tp;
+      } else {
+        an_operand        opnd;
+        an_expr_node_ptr  node;
+        scan_expr(&opnd, PREC_PREFIX, EOPT_REFLECTION_OP);
+        // FIXME: Handle some unusual operands.
+        if (is_sym_for_member_operand(&opnd)) {
+          if (symbol_is(opnd.symbol, sk_field)) {
+            refl_cp->variant.reflection.entity.kind = iek_field;
+            refl_cp->variant.reflection.entity.ptr =
+                                        (char*)opnd.symbol->variant.field.ptr;
+          } else if (is_simple_function_symbol(opnd.symbol)) {
+            refl_cp->variant.reflection.entity.kind = iek_routine;
+            refl_cp->variant.reflection.entity.ptr =
+                                      (char*)opnd.symbol->variant.routine.ptr;
+          } else {
+            // FIXME
+          }  /* if */
+        } else {
+          a_constant_ptr  con = local_constant();
+          node = make_node_from_operand(&opnd);
+          /* If the node doesn't refer to a specific entity, constant-evaluate
+             the expression.  The constant result has a potentially broader
+             scope than the expression itself (which often is only locally
+             meaningful). */
+          if (!(node_is(node, enk_variable) && node->is_lvalue) &&
+              !node_is(node, enk_routine) &&
+              !node_is(node, enk_constant) &&
+              fold_expr(node, con)) {
+            refl_cp->variant.reflection.entity.kind = iek_constant;
+            refl_cp->variant.reflection.entity.ptr =
+                                       (char*)move_local_constant_to_il(&con);
+          } else {
+            refl_cp->variant.reflection.entity.kind = iek_expr_node;
+            refl_cp->variant.reflection.entity.ptr = (char*)node;
+          }  /* if */
+          if (con != NULL) release_local_constant(&con);
+        }  /* if */
+      }  /* if */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      end_pos = curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      handled = TRUE;
+    }  /* if */
+    check_assertion(handled);
+  }  /* if */
+  refl_cp->type = reflection_type();
+  make_constant_operand(refl_cp, result);
+  set_operand_position(result, &start_pos, &end_pos, &start_pos);
+  record_operator_position_in_rescan_info(result, &start_pos,
+                                          NO_TOKEN_SEQUENCE_NUMBER, &arg_pos);
+  pop_expr_stack();
+  switch_back_region_and_lifetime(region_to_switch_back_to,
+                                  saved_object_lifetime);
+  release_local_constant(&refl_cp);
+}  /* scan_reflection_operator */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -27437,6 +27847,7 @@ just an expression in parentheses.  Return the scanned expression in
                         options = (local_options &
                                                 (EOPT_OPERAND_OF_CAST |
                                                  EOPT_OPERAND_OF_ADDRESS_OF |
+                                                 EOPT_REFLECTION_OP |
                                                  EOPT_LOGICAL_NOT_OPERAND |
                                                  EOPT_DELEGATE_INITIALIZER |
                                                  EOPT_CONSTRAINT_EXPR)) |
@@ -37232,6 +37643,13 @@ normal_function:
               locator.specific_symbol = sym_ptr;
             }  /* if */
           }  /* if */
+          if ((local_options & EOPT_REFLECTION_OP) != 0) {
+            /* This is something like the identifier in ^S::fld.  Just return
+               an operand representing that symbol for S::fld. */
+            make_sym_for_member_operand(sym_ptr, locator.is_qualified_name,
+                                        rep, result);
+            break;
+          }  /* if */
           /* See whether nonstandard folding of a constant field selection
              is allowed. */
           nonstd_field_folding_case = FALSE;
@@ -37891,6 +38309,236 @@ called.
   /* Advance past "this". */
   (void)get_token();
 }  /* scan_this */
+
+
+a_const_char* scan_unqualid_operand()
+/*
+Scan the operand to a unqualid splicer construct (called from
+scan_unqualid_construct in lexical.c).  Return an immutable string encoding
+the corresponding identifier.
+
+FIXME: This function is incomplete and should be changed to use the new
+       splicer syntax.
+*/
+{
+  an_expr_stack_entry  *saved_expr_stack;
+  an_expr_stack_entry  expr_stack_entry;
+  an_operand           opnd;
+  a_const_char         *result = "<error>";
+  
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/TRUE,
+                  /*suppress_object_lifetime=*/FALSE);
+  transfer_expr_context_if_applicable(saved_expr_stack);
+  begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
+  scan_expr(&opnd, PREC_LOWEST, EOPT_NO_OPTIONS);
+  if (operand_is_instantiation_dependent(&opnd) && is_error_operand(&opnd)) {
+    /* Create a string from the cached tokens and use that as the "identifier"
+       for now.  That allows, e.g., some matching to occur between in-class
+       member declarations and out-of-class definitions. */
+#if 0
+    a_token_cache_ptr  tcp = alloc_token_cache();
+    a_token_sequence_number
+                       last_tsn = last_token_sequence_number_of_token;
+    copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn, last_tsn,
+                           /*include_last_token=*/TRUE, tcp);
+    // Use add_token_to_string
+#endif /* FIXME */
+  } else {
+    /* Handle the char-array, ptr-to-char-array, and string_view cases. */
+    do_operand_transformations(&opnd, TOPT_NO_OPTIONS);
+#if 0
+  if (is_address_of_string_constant(con)) ...
+  process_converted_constant_expression(&operand,
+                                        is_error_type(switch_type) ?
+                                            NULL :
+                                            switch_type,
+                                        (a_builtin_type_kind_set)
+                                         (BTK_INTEGRAL | BTK_BOOL | BTK_ENUM),
+                                        /*is_array_bound=*/FALSE,
+                                        /*is_enum=*/FALSE,
+                                        constant);
+    if (is_char_array_type(opnd.type) || ) {
+#endif /* FIXME */
+    if (expr_interpret_expression_operand(&opnd, /*force_constant=*/TRUE,
+                                          /*is_constant_evaluated=*/TRUE)) {
+      // FIXME
+#if DEBUG
+      db_operand(&opnd);
+#endif /* DEBUG */
+    }  /* if */
+  }  /* if */
+  end_caching_fetched_tokens();
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+  return result;
+}  /* scan_unqualid_operand */
+
+
+static void scan_valueof_operator(a_rescan_control_block    *rcblock,
+                                  a_local_expr_options_set  local_options,
+                                  int                       prec_level,
+                                  an_operand                *result)
+/*
+Scan an expression of the form
+	valueof(<reflection-value>)
+where <reflection-value> is a constant-expression of type "std::meta::info".
+The parentheses are required, unlike for sizeof.  If rcblock is non-NULL, redo
+semantic analysis on a previously-scanned valueof operator.  Either way, store
+the result in *result.
+
+FIXME: This function is obsolete.  Instead, it should be changed to implement
+       the more general expression splicing construct ([: <info> :]).
+*/
+{
+  an_operand         opnd;
+  a_source_position  start_pos;
+  a_boolean          consume_right_paren = FALSE;
+
+  if (rcblock != NULL) {
+  
+  } else {
+    /* Normal, non-rescan, processing. */
+    /* Skip the "valueof" token. */
+    check_assertion(curr_token == tok_valueof);
+    start_pos = pos_curr_token;
+    (void)get_token();
+    /* Check for and pass over the left parenthesis. */
+    (void)required_token(tok_lparen, ec_exp_lparen);
+    add_stop_token(tok_rparen);
+    scan_expr(&opnd, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+    (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
+    remove_stop_token(tok_rparen);
+    consume_right_paren = TRUE;
+    force_operand_to_constant_if_possible_full(&opnd,
+                                               /*is_constant_evaluated=*/TRUE);
+  }  /* if */
+  if (is_error_operand(&opnd) || is_error_type(opnd.type)) {
+    make_error_operand(result);
+  } else if (operand_is_instantiation_dependent(&opnd)) {
+// FIXME XXX
+    make_error_operand(result);
+  } else if (!is_reflection_type(opnd.type)) {
+    expr_pos_ty_error(ec_bad_splicer_operand, &opnd.position, opnd.type);
+    make_error_operand(result);
+  } else if (!is_constant_operand(&opnd)) {
+    expr_pos_error(ec_nonconstant_splicer_operand, &opnd.position);
+    make_error_operand(result);
+  } else {
+    a_constant_ptr  cp = &opnd.variant.constant;
+    if (!constant_is(cp, ck_reflection)) {
+      unexpected_condition();
+    } else {
+      a_reflection_value  *rvp = &cp->variant.reflection;
+      an_il_entry_kind    iek = (an_il_entry_kind)rvp->entity.kind;
+      if (iek == iek_constant) {
+        make_constant_operand((a_constant_ptr)rvp->entity.ptr, result);
+      } else {
+        // FIXME: Error
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (consume_right_paren) {
+    (void)required_token(tok_rparen, ec_exp_rparen);
+  }  /* if */
+}  /* scan_valueof_operator */
+
+
+static void scan_expr_splicer(a_rescan_control_block    *rcblock,
+                              an_operand                *result)
+/*
+Scan an expression of the form
+	[ : reflection-value : ]
+where <reflection-value> is a constant-expression of type "std::meta::info".
+If rcblock is non-NULL, redo semantic analysis on a previously-scanned
+expression splicer.  Either way, store the result in *result.
+
+FIXME: This is currently incomplete.
+*/
+{
+  an_operand         opnd;
+  a_source_position  start_pos;
+  a_boolean          consume_right_bracket = FALSE;
+  a_boolean          saved_favor_constant_result =
+                                            expr_stack->favor_constant_result;
+
+  expr_stack->favor_constant_result = TRUE;
+  if (rcblock != NULL) {
+  
+  } else {
+    /* Normal, non-rescan, processing. */
+    /* Skip the left bracket and the colon. */
+    check_assertion(curr_token == tok_lbracket);
+    start_pos = pos_curr_token;
+    (void)get_token();
+    add_stop_token(tok_rbracket);
+    check_assertion(curr_token == tok_colon);
+    (void)get_token();
+    scan_expr(&opnd, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+    (void)required_token(tok_colon, ec_exp_colon);
+    remove_stop_token(tok_rbracket);
+    consume_right_bracket = TRUE;
+    do_operand_transformations(&opnd, TOPT_NO_OPTIONS);
+    force_operand_to_constant_if_possible_full(&opnd,
+                                               /*is_constant_evaluated=*/TRUE);
+  }  /* if */
+  if (is_error_operand(&opnd) || is_error_type(opnd.type)) {
+    make_error_operand(result);
+  } else if (operand_is_instantiation_dependent(&opnd)) {
+// FIXME XXX
+    make_error_operand(result);
+  } else if (!is_reflection_type(opnd.type)) {
+    expr_pos_ty_error(ec_bad_splicer_operand, &opnd.position, opnd.type);
+    make_error_operand(result);
+  } else if (!is_constant_operand(&opnd)) {
+    expr_pos_error(ec_nonconstant_splicer_operand, &opnd.position);
+    make_error_operand(result);
+  } else {
+    a_constant_ptr  cp = &opnd.variant.constant;
+    if (!constant_is(cp, ck_reflection)) {
+      unexpected_condition();
+    } else {
+      a_reflection_value  *rvp = &cp->variant.reflection;
+      an_il_entry_kind    iek = (an_il_entry_kind)rvp->entity.kind;
+      if (iek == iek_constant) {
+        make_constant_operand((a_constant_ptr)rvp->entity.ptr, result);
+      } else if (iek == iek_expr_node) {
+        an_expr_node_ptr  node = (an_expr_node*)rvp->entity.ptr;
+        if (node_is(node, enk_variable)) {
+          make_expression_operand(node, result);
+        } else if (node_is(node, enk_routine)) {
+          // FIXME?
+          make_expression_operand(node, result);
+        } else if (node_is(node, enk_constant)) {
+          make_constant_operand(node_constant(node), result);
+        } else {
+        }  /* if */
+      } else if (iek == iek_field) {
+        copy_operand(&opnd, result);
+      } else if (iek == iek_routine) {
+        make_function_designator_operand(
+                                      symbol_for((a_routine*)rvp->entity.ptr),
+                                      /*is_qualified_name=*/FALSE,
+                                      /*compiler_generated=*/TRUE,
+                                      &opnd.position,
+                                      end_position_or_null(
+                                               &curr_construct_end_position),
+                                      (a_ref_entry_ptr)NULL,
+                                      result);
+      } else {
+        // FIXME: Describe the actual reflection kind.
+        expr_pos_error(ec_bad_reflection_kind_for_expression_splice,
+                       &start_pos);
+        make_error_operand(result);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (consume_right_bracket) {
+    (void)required_token(tok_rbracket, ec_exp_rbracket);
+  }  /* if */
+  expr_stack->favor_constant_result = saved_favor_constant_result;
+}  /* scan_expr_splicer */
 
 
 static void check_for_pcc_compound_assignment_operators(void)
@@ -41016,6 +41664,16 @@ handle_cli_typeid:
       scan_typeid_operator((a_rescan_control_block *)NULL, &local_result);
       break;
 
+    case tok_excl_or:
+      /* The reflection operator (e.g., "^std::list<int>". */
+      if (reflection_enabled) {
+        scan_reflection_operator((a_rescan_control_block *)NULL,
+                                 &local_result);
+      } else {
+        goto bad_start_of_primary;
+      }  /* if */
+      break;
+
     case tok_va_start:
       /* <stdarg.h> va_start macro, when treated as a builtin. */
       scan_va_start_operator(&local_result, (an_operand*)NULL,
@@ -41295,8 +41953,14 @@ type_start:
       break;
      
     case tok_lbracket:
-      if (!lambdas_enabled) goto bad_start_of_primary;
-      scan_lambda_expression(&local_result);
+      if (reflection_enabled && next_token() == tok_colon) {
+        /* An expression splicer of the form [: ... :]. */
+        scan_expr_splicer( (a_rescan_control_block *)NULL, &local_result);
+      } else if (lambdas_enabled) {
+        scan_lambda_expression(&local_result);
+      } else {
+        goto bad_start_of_primary;
+      }  /* if */
       break;
 
     case tok_ud_literal:
@@ -41321,9 +41985,14 @@ type_start:
 
 #if C99_IL_EXTENSIONS_SUPPORTED
     case tok_builtin_complex:
-      scan_builtin_complex((a_rescan_control_block *)NULL, &local_result);
+      scan_builtin_complex((a_rescan_control_block*)NULL, &local_result);
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+
+    case tok_valueof:  // FIXME
+      scan_valueof_operator((a_rescan_control_block*)NULL, local_options,
+                            prec_level, &local_result);
+      break;
 
     case tok_edg_internal_opnd:
       scan_internal_operand(&local_result);
@@ -50236,6 +50905,9 @@ a enclosing expression).
       case tok_builtin_bit_cast:
         scan_builtin_bit_cast(rcblock, result);
         break;
+     case tok_valueof:  // FIXME: Change to logic for scan_expr_splicer
+       scan_valueof_operator(rcblock, local_options, PREC_LOWEST, result);
+       break;
       default:
         unexpected_condition();
     }  /* switch */
