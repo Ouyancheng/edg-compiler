@@ -8996,7 +8996,6 @@ interpreter) and if so mark it as such.
           }  /* if */
         }  /* if */
         break;
-        break;
       case 'n':
         if (strcmp(name, "name_of") == 0 &&
             rp->template_arg_list == NULL) {

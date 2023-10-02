@@ -1792,9 +1792,6 @@ static a_type_ptr
 		generic_ptr_type;
 			/* Type (void*) used in some cases where a pointer type
 			   is needed, but the specific type is unimportant. */
-static a_type_ptr
-		interpreter_vector_type;
-			/* Pointer to a tk_interpreter_vector entry. */
 
 static a_boolean
 		useful_constants_initialized;
@@ -9919,6 +9916,7 @@ Otherwise, produce the previously memoized entry.
       a_host_large_integer  char_val;
       conv_integer_value_to_host_large_integer(chars+k, /*is_signed=*/FALSE,
                                                &char_val, &ovfl);
+      check_assertion(!ovfl);
       val[k] = (a_const_char)char_val;
     }  /* for */
     map_ptr(&persistent_map, cap->complete_object, (a_byte*)cp);
@@ -10081,10 +10079,11 @@ the length of the given sequence of reflections.
   a_byte_count  info_size = value_bytes_for_type(ips, info_type, &result);
   a_field_ptr   fp;
   a_constexpr_address
-                *cap;
+                *cap = NULL;
 
   check_assertion(type_is(tp, tk_struct) || type_is(tp, tk_class));
   if (base_classes_of(tp) != NULL) {
+    info_with_pos(ec_invalid_infovec_for_reflection, &ips->position, ips);
     do_constexpr_fail(result);
     goto done;
   }  /* if */
@@ -10097,6 +10096,8 @@ the length of the given sequence of reflections.
     a_byte_count  offset;
     get_mapped_byte_count(&persistent_map, fp, offset);
     if (type_is(ftp, tk_pointer) && n_ptr_fields == 0) {
+      /* We found the pointer field of the infovec object: Set it to point to
+         a dynamically-allocated array of length std::meta::info elements. */
       cap = (a_constexpr_address*)(result_storage+offset);
       if (do_constexpr_dynamic_alloc(ips, info_type, length, /*is_array=*/TRUE,
                                      diag_pos, cap, &info_size) == NULL) {
@@ -10106,6 +10107,8 @@ the length of the given sequence of reflections.
       mark_subobject_initialized(result_storage+offset, complete_obj);
       n_ptr_fields += 1;
     } else if (type_is(ftp, tk_integer) && n_integral_fields < 2) {
+      /* The length and/or the capacity field.  Both are set to the value of
+         length. */
       set_integer_value((an_integer_value*)(result_storage+offset),
                         (a_host_large_integer)length);
       mark_subobject_initialized(result_storage+offset, complete_obj);
@@ -10122,6 +10125,7 @@ the length of the given sequence of reflections.
   }  /* if */
   mark_complete_object_initialized(complete_obj);
   /* Fill in the infovec contents. */
+  check_assertion(cap != NULL);
   {
     a_reflection_value  *rvp = (a_reflection_value*)cap->address;
     a_byte              *array = cap->complete_object;
@@ -20101,7 +20105,6 @@ that are needed for the operation of the interpreter.
                                      &one_flt[fk], &dummy);
     }  /* for */
     generic_ptr_type = make_pointer_type(void_type());
-    interpreter_vector_type = alloc_type((a_type_kind)tk_interpreter_vector);
     useful_constants_initialized = TRUE;
     if (reflection_enabled) {
       reflection_str_placeholder =

@@ -38393,7 +38393,6 @@ FIXME: This function is obsolete.  Instead, it should be changed to implement
 */
 {
   an_operand         opnd;
-  a_source_position  start_pos;
   a_boolean          consume_right_paren = FALSE;
 
   if (rcblock != NULL) {
@@ -38402,7 +38401,6 @@ FIXME: This function is obsolete.  Instead, it should be changed to implement
     /* Normal, non-rescan, processing. */
     /* Skip the "valueof" token. */
     check_assertion(curr_token == tok_valueof);
-    start_pos = pos_curr_token;
     (void)get_token();
     /* Check for and pass over the left parenthesis. */
     (void)required_token(tok_lparen, ec_exp_lparen);

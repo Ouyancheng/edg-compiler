@@ -1982,7 +1982,6 @@ to default values.
     case tk_void:
     case tk_nullptr:
     case tk_reflection:
-    case tk_interpreter_vector:
       /* No variant fields to set. */
       break;
     case tk_integer:

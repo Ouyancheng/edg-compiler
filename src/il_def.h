@@ -5267,10 +5267,6 @@ enum a_type_kind : a_byte {
 			   details. */
   tk_reflection,	/* Type of the value returned by the reflection
 			   operator (prefix ^). */
-  tk_interpreter_vector,
-			/* Type of a dynamic vector allocated in the
-			   interpreter.  This type kind never appears in the
-			   IL tree. */
   tk_unknown		/* Unknown type. */
 };
 
