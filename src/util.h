@@ -4003,34 +4003,27 @@ private:
                            with a paired value of TRUE. */
 };  /* Ptr_set */
 
+namespace detail {
 
 /*
-This class is used to compare two sequences using a dynamic programming
-approach to the longest common subsequence problem.  The computed alignment
-table can then be examined to yield the diff via traceback.
-
-Notably, this class reverses its view of the given inputs so the diff can be
-returned in order without requiring further allocations or reversing the input
-data beforehand.
-
-The implementation is aimed at debugging operations.  As such it's not fully
-optimized and does not currently do any pruning of the input data; this may be
-added in the future.
+This is an implementation type used to facilitate easier implementation of
+partial specializations for Seq_comparator.  See Seq_comparator and its
+specializations for more information.
 */
-template<typename an_Elem_a, typename an_Elem_b = an_Elem_a,
-         template<typename> class Allocator = FE_allocator>
-struct Seq_comparator: private Allocator<uint32_t> {
+template<typename an_Elem_a, typename an_Elem_b, typename an_Eq_fn,
+         template<typename> class Allocator>
+struct Seq_comparator_impl: private Allocator<uint32_t> {
   using an_allocator = Allocator<uint32_t>;
   using an_allocation = Allocation<uint32_t>;
-  using an_equality_fn = a_boolean (*)(const an_Elem_a&,const an_Elem_b&);
+  using an_equality_fn = an_Eq_fn;
 
-  inline Seq_comparator(an_Elem_a          *array_a_val,
-                        size_t             array_a_len_val,
-                        an_Elem_b          *array_b_val,
-                        size_t             array_b_len_val,
-                        an_equality_fn     eq_fn_val,
-                        const an_allocator &a = an_allocator());
-  inline ~Seq_comparator();
+  inline Seq_comparator_impl(an_Elem_a          *array_a_val,
+                             size_t             array_a_len_val,
+                             an_Elem_b          *array_b_val,
+                             size_t             array_b_len_val,
+                             an_equality_fn     eq_fn_val,
+                             const an_allocator &a = an_allocator());
+  inline ~Seq_comparator_impl();
 
   template<typename a_Consumer_fn>
   void diff(a_Consumer_fn fn);
@@ -4055,12 +4048,13 @@ private:
                 eq_fn;  /* The function used to check for equality. */
   uint32_t      *lcs_table;
                         /* A pointer to the allocated alignment table. */
-};  /* Seq_comparator */
+};  /* Seq_comparator_impl */
 
 
-template<typename an_Elem_a, typename an_Elem_b,
+template<typename an_Elem_a, typename an_Elem_b, typename an_Eq_fn,
          template<typename> class Allocator>
-Seq_comparator<an_Elem_a, an_Elem_b, Allocator>::Seq_comparator(
+Seq_comparator_impl<an_Elem_a, an_Elem_b, an_Eq_fn, Allocator>::
+                                                           Seq_comparator_impl(
                                             an_Elem_a          *array_a_val,
                                             size_t             array_a_len_val,
                                             an_Elem_b          *array_b_val,
@@ -4102,12 +4096,13 @@ given equality function to check equality of array elements.
       }  /* if */
     }  /* for */
   }  /* for */
-}  /* Seq_comparator::Seq_comparator */
+}  /* Seq_comparator_impl::Seq_comparator_impl */
 
 
-template<typename an_Elem_a, typename an_Elem_b,
+template<typename an_Elem_a, typename an_Elem_b, typename an_Eq_fn,
          template<typename> class Allocator>
-Seq_comparator<an_Elem_a, an_Elem_b, Allocator>::~Seq_comparator()
+Seq_comparator_impl<an_Elem_a, an_Elem_b, an_Eq_fn, Allocator>::
+                                                         ~Seq_comparator_impl()
 /*
 Destroy the Seq_comparator instance and its allocated resources.
 */
@@ -4115,13 +4110,14 @@ Destroy the Seq_comparator instance and its allocated resources.
   ptrdiff_t num_elements = (ptrdiff_t)(this->array_a_len * this->array_b_len);
 
   this->dealloc(an_allocation{this->lcs_table, num_elements});
-}  /* Seq_comparator::~Seq_comparator */
+}  /* Seq_comparator_impl::~Seq_comparator_impl */
 
 
-template<typename an_Elem_a, typename an_Elem_b,
+template<typename an_Elem_a, typename an_Elem_b, typename an_Eq_fn,
          template<typename> class Allocator>
 template<typename a_Consumer_fn>
-void Seq_comparator<an_Elem_a, an_Elem_b, Allocator>::diff(a_Consumer_fn fn)
+void Seq_comparator_impl<an_Elem_a, an_Elem_b, an_Eq_fn, Allocator>::diff(
+                                                              a_Consumer_fn fn)
 /*
 Given a function that accepts two arguments (the first an_Elem_a* type and the
 second an_Elem_b* type), walk back through the computed comparison.
@@ -4156,7 +4152,70 @@ The provided function will be called as follows:
       break;
     }  /* if */
   }  /* while */
-}  /* Seq_comparator::diff */
+}  /* Seq_comparator_impl::diff */
+
+}  /* detail */
+
+/*
+This class is used to compare two sequences using a dynamic programming
+approach to the longest common subsequence problem.  The computed alignment
+table can then be examined to yield the diff via traceback.
+
+The following equality function signatures are supported by this class and its
+specializations:
+
+  a_boolean (*)(const an_Elem_a&, const an_Elem_b&);
+  a_boolean (*)(const an_Elem_a*, const an_Elem_b*);
+
+A limited set of function type patterns specified via partial specialization
+(in place of a fully generic equality function argument) is a trade off made to
+reduce burden on code using this type.  Fully generalizing the equality
+function would require either a significantly more complicated type declaration
+on the usage side in the anticipated most common cases.
+
+Notably, this class reverses its view of the given inputs so the diff can be
+returned in order without requiring further allocations or reversing the input
+data beforehand.
+
+Additionally, note the implementation is aimed at debugging operations.  As
+such it's not fully optimized and does not currently do any pruning of the
+input data; this may be added in the future.
+*/
+template<typename an_Elem_a, typename an_Elem_b = an_Elem_a,
+         template<typename> class Allocator = FE_allocator>
+struct Seq_comparator: public detail::Seq_comparator_impl<
+                              an_Elem_a, an_Elem_b,
+                              a_boolean (*)(const an_Elem_a&,const an_Elem_b&),
+                              Allocator> {
+  using a_base_type = detail::Seq_comparator_impl<
+                              an_Elem_a, an_Elem_b,
+                              a_boolean (*)(const an_Elem_a&,const an_Elem_b&),
+                              Allocator>;
+  using a_base_type::a_base_type;
+};  /* Seq_comparator */
+
+
+/*
+This is a partial specialization of Seq_comparator which tweaks the signature
+of the comparison function's function pointer to be more friendly to comparing
+array's of pointers.  As the front end makes heavy usage of linked list
+structures with individual elements that have large footprints (instead of
+arrays) this specialization makes the Seq_comparator much more friendly at the
+call site.
+*/
+template<typename an_Elem_a, typename an_Elem_b,
+         template<typename> class Allocator>
+struct Seq_comparator<an_Elem_a*, an_Elem_b*, Allocator>:
+                                            public detail::Seq_comparator_impl<
+                              an_Elem_a*, an_Elem_b*,
+                              a_boolean (*)(const an_Elem_a*,const an_Elem_b*),
+                              Allocator> {
+  using a_base_type = detail::Seq_comparator_impl<
+                              an_Elem_a*, an_Elem_b*,
+                              a_boolean (*)(const an_Elem_a*,const an_Elem_b*),
+                              Allocator>;
+  using a_base_type::a_base_type;
+};  /* Seq_comparator */
 
 
 template<typename a_Linked_list_type, typename a_Predicate>
@@ -4191,6 +4250,50 @@ elements in the list.
 
   return count_list_elements(list_head, always_true);
 }  /* count_list_elements */
+
+
+template<typename an_Elem_type, typename a_Dest_type = an_Elem_type,
+         template<typename> class Allocator = FE_allocator>
+inline Dyn_array<a_Dest_type*, Allocator>
+linked_list_to_ptr_array(an_Elem_type *list_head,
+                         size_t       initial_capacity = 0)
+/*
+Given the head of a linked list, traverse the list and construct an equivalent
+dynamic array of pointers with the given initial capacity.
+
+This function should be preferred when a_Dest_type is relatively expensive to
+copy, otherwise, use linked_list_to_array.
+*/
+{
+  Dyn_array<a_Dest_type*, Allocator> result(initial_capacity);
+
+  for (; list_head != NULL; list_head = list_head->next) {
+    result.push_back(list_head);
+  }  /* for */
+  return result;
+}  /* linked_list_to_ptr_array */
+
+
+template<typename an_Elem_type, typename a_Dest_type = an_Elem_type,
+         template<typename> class Allocator = FE_allocator>
+inline Dyn_array<a_Dest_type, Allocator>
+linked_list_to_array(an_Elem_type *list_head,
+                     size_t       initial_capacity = 0)
+/*
+Given the head of a linked list, traverse the list and construct an equivalent
+dynamic array with the given initial capacity.
+
+This function should be preferred when a_Dest_type is relatively cheap to copy,
+otherwise, use linked_list_to_array_ptr_array.
+*/
+{
+  Dyn_array<a_Dest_type, Allocator> result(initial_capacity);
+
+  for (; list_head != NULL; list_head = list_head->next) {
+    result.push_back(*list_head);
+  }  /* for */
+  return result;
+}  /* linked_list_to_array */
 
 
 template<typename an_Integer_type>
