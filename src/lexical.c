@@ -26688,54 +26688,29 @@ Display the contents of a token cache.
 }  /* db_token_cache */
 
 
-static a_string format_token_for_comparison(a_cached_token *token,
-                                            unsigned       max_length)
+static a_boolean is_tok_equiv(const a_cached_token *tok1,
+                              const a_cached_token *tok2)
 /*
-*/
-{
-  a_string result("");
+Return TRUE if the cached token represented by tok1 is approximately the same
+as the cached token represented by tok2; otherwise, return FALSE.
 
-  if (token == NULL) {
-    result.append("NONE");
-  } else {
-    result.append(token_to_string(token));
-  }  /* if */
-  if (result.length() < max_length) {
-    ptrdiff_t needed_len = max_length - result.length();
-
-    for (ptrdiff_t i = 0; i < needed_len; ++i) {
-      result.append(" ");
-    }  /* for */
-  } else if (result.length() > max_length) {
-    a_string_view trimmed_str(result.as_temp_characters(), max_length - 3);
-    a_string      transformed_result(trimmed_str, "...");
-
-    result = transformed_result;
-  }  /* if */
-  return result;
-}  /* token_to_str */
-
-
-static a_boolean is_tok_equal(const a_cached_token &tok1,
-                              const a_cached_token &tok2)
-/*
-Return TRUE if the cached token represented by tok1 is the same as the cached
-token represented by tok2; otherwise, return FALSE.
+Note this function has an incomplete definition of equivalency and
+intentionally excludes some factors such as the token's sequence number.
 */
 {
   a_boolean result = TRUE;
 
-  if (tok1.token != tok2.token) {
+  if (tok1->token != tok2->token) {
     result = FALSE;
-  } else if (tok1.extra_info_kind != tok2.extra_info_kind) {
+  } else if (tok1->extra_info_kind != tok2->extra_info_kind) {
     result = FALSE;
   } else {
-    switch (tok1.extra_info_kind) {
+    switch (tok1->extra_info_kind) {
       case teik_none:
         break;
       case teik_identifier:
-        { const a_symbol_locator &loc1 = tok1.variant.locator;
-          const a_symbol_locator &loc2 = tok2.variant.locator;
+        { const a_symbol_locator &loc1 = tok1->variant.locator;
+          const a_symbol_locator &loc2 = tok2->variant.locator;
 
           if (loc1.symbol_header != loc2.symbol_header) {
             result = FALSE;
@@ -26743,8 +26718,8 @@ token represented by tok2; otherwise, return FALSE.
         }
         break;
       case teik_constant:
-        { a_constant_ptr const1 = tok1.variant.constant;
-          a_constant_ptr const2 = tok2.variant.constant;
+        { a_constant_ptr const1 = tok1->variant.constant;
+          a_constant_ptr const2 = tok2->variant.constant;
 
           if (!eq_constants(const1, const2)) {
             result = FALSE;
@@ -26757,92 +26732,260 @@ token represented by tok2; otherwise, return FALSE.
       case teik_insert_string:
       case teik_ud_lit:
       case teik_ifc_index:
-        /* FIXME: Lots more todo. */
+        /* Currently no comparison is implement. */
         break;
     }  /* switch */
   }  /* if */
   return result;
-}  /* operator== */
+}  /* is_tok_equiv */
 
 
-extern a_boolean db_compare_token_caches(a_token_cache *cache_a,
-                                         a_token_cache *cache_b)
+static a_boolean are_token_caches_equiv(
+                                     const Dyn_array<a_cached_token*> &cache_a,
+                                     const Dyn_array<a_cached_token*> &cache_b)
 /*
+Given two token caches, return TRUE if they're equivalent under the rules of
+is_tok_equiv; otherwise, return FALSE.
 */
 {
-  a_boolean                 result = TRUE;
-  Dyn_array<a_cached_token> cache_a_toks;
-  Dyn_array<a_cached_token> cache_b_toks;
-  a_cached_token            *tok_a = cache_a->first_token;
-  a_cached_token            *tok_b = cache_b->first_token;
+  a_boolean result = TRUE;
 
-
-  while (tok_a != NULL) {
-    cache_a_toks.push_back(*tok_a);
-    tok_a = tok_a->next;
-  }  /* while */
-  while (tok_b != NULL) {
-    cache_b_toks.push_back(*tok_b);
-    tok_b = tok_b->next;
-  }  /* while */
-
-  Seq_comparator<a_cached_token> comparator(cache_a_toks.begin(),
-                                            cache_a_toks.length(),
-                                            cache_b_toks.begin(),
-                                            cache_b_toks.length(),
-                                            is_tok_equal);
-  a_line_number prev_line_num = 0;
-  a_boolean     printed_newline = TRUE;
-  auto diff_consumer = [&prev_line_num, &printed_newline](
-                                                   a_cached_token *from_tok,
-                                                   a_cached_token *to_tok) {
-    if (from_tok == NULL || to_tok == NULL) {
-      a_string comparison(format_token_for_comparison(from_tok, 39), " ",
-                          format_token_for_comparison(to_tok, 39));
-
-      if (!printed_newline) {
-        comparison = a_string("\n/* DIFF DETECTED */\n", comparison);
+  if (cache_a.length() != cache_b.length()) {
+    result = FALSE;
+  } else {
+    for (ptrdiff_t i = 0; i < cache_a.length(); ++i) {
+      if (is_tok_equiv(cache_a[i], cache_b[i])) {
+        continue;
       }  /* if */
-      if (db_color_flag_is_set()) {
-        a_const_char color_escape = '\033';
-        a_const_char *color_num = from_tok == NULL ? "32" : "31";
-
-        comparison = a_string(a_string_view(&color_escape, 1), "[",
-                              color_num, "m", comparison,
-                              a_string_view(&color_escape, 1), "[0m");
-      }  /* if */
-      print(comparison, f_debug);
-      printed_newline = TRUE;
-    } else {
-      a_line_number     line_num;
-      a_boolean         at_end_of_source;
-      a_source_position *pos = &from_tok->source_position;
-
-      (void)source_file_for_seq(pos->seq, &line_num, &at_end_of_source,
-                                /*physical_line=*/TRUE);
-      if (line_num != prev_line_num && !printed_newline) {
-        a_string padding_str("");
-
-        if (pos->column > 0) {
-          for (a_column_number i = 0; i < pos->column; ++i) {
-            padding_str.append(" ");
-          }  /* for */
-        }  /* if */
-        print(padding_str, f_debug);
-        prev_line_num = line_num;
-      }  /* if */
-
-      a_string token_as_string = token_to_string(from_tok);
-      print(token_as_string, f_debug, /*end=*/" ");
-      printed_newline = FALSE;
-    }  /* if */
-  };
-  comparator.diff(diff_consumer);
-  if (!printed_newline) {
-    print(a_string(""), f_debug);
+      result = FALSE;
+      break;
+    }  /* for */
   }  /* if */
   return result;
-}  /* db_compare_token_caches */
+}  /* are_token_caches_equiv */
+
+
+static a_string make_color_code_string(a_const_char *color_code)
+/*
+Given an ANSI escape code color (e.g., "31" is red), form and return an ANSI
+color code string.
+*/
+{
+  a_const_char color_escape = '\033';
+
+  return a_string(a_string_view(&color_escape, 1), "[", color_code, "m");
+}  /* make_color_code_string */
+
+namespace {
+
+/*
+A class for facilitating printing of token caches with optional comments.
+*/
+struct a_commentary_token_printer {
+  a_commentary_token_printer()
+    : printed_anything(FALSE), prev_token(NULL), prev_line_num(0),
+      curr_column(0), printed_comment(FALSE)
+    {}
+  inline ~a_commentary_token_printer();
+
+  a_boolean last_printed_a_token() const
+    { return this->printed_anything && !this->printed_comment; }
+
+  inline void print_token(a_cached_token *tok,
+                          a_const_char   *color_code = NULL);
+  inline void print_comment(const a_string &comment,
+                            a_const_char   *color_code = NULL);
+private:
+  inline void print_internal(const a_string &text,
+                             a_const_char   *color_code = NULL);
+  a_boolean     printed_anything;
+                        /* True if anything has been printed. */
+  a_cached_token
+                *prev_token;
+                        /* The most recently printed token. */
+  a_line_number prev_line_num;
+                        /* The line number of the most recently printed
+                           token. */
+  a_column_number
+                curr_column;
+                        /* The current column position following from all text
+                           processed by print_internal. */
+  a_boolean     printed_comment;
+                        /* TRUE if the last text printed was a comment. */
+};  /* a_commentary_token_printer */
+
+
+a_commentary_token_printer::~a_commentary_token_printer()
+/*
+Destroy the commentary token printer, printing a newline if to finish off the
+token printing (if the last thing printed was a token cache).
+*/
+{
+  if (this->last_printed_a_token()) {
+    print(a_string(""), f_debug);
+  }  /* if */
+}  /* a_commentary_token_printer::~a_commentary_token_printer */
+
+
+void a_commentary_token_printer::print_token(a_cached_token *tok,
+                           /* Defaulted: */  a_const_char   *color_code)
+/*
+Given a token, print the token with style hinting based on the source position
+information.  If color_code is not NULL, the given color code will be used for
+the token.
+*/
+{
+  a_line_number     line_num;
+  a_boolean         at_end_of_source;
+  a_source_position *pos = &tok->source_position;
+
+  (void)source_file_for_seq(pos->seq, &line_num, &at_end_of_source,
+                            /*physical_line=*/TRUE);
+
+  if (line_num != this->prev_line_num && !this->printed_comment) {
+    print_internal(a_string("\n"));
+    this->prev_line_num = line_num;
+  }  /* if */
+  if (tok->source_position.column != 0) {
+    /* If there's a jump in the token indent in the original source
+       information, increase the indent appropriately. */
+    a_string        padding_str("");
+    a_column_number start = this->curr_column;
+    a_column_number end = tok->source_position.column - 1;
+
+    for (a_column_number i = start; i < end; ++i) {
+      padding_str.append(" ");
+    }  /* if */
+    print_internal(padding_str);
+  }  /* if */
+
+  a_string token_as_string = a_string(token_to_string(tok), " ");
+  print_internal(token_as_string, color_code);
+  /* Update the state to reflect the token being printed. */
+  this->prev_token = tok;
+  this->printed_comment = FALSE;
+  this->printed_anything = TRUE;
+}  /* a_commentary_token_printer::print_token */
+
+
+void a_commentary_token_printer::print_comment(const a_string &comment,
+                             /* Defaulted: */  a_const_char   *color_code)
+/*
+Given a comment, print the comment.  If color_code is not NULL, the given color
+code will be used for the token.
+*/
+{
+  if (this->last_printed_a_token()) {
+    /* Break out of the token printing. */
+    print(a_string("\n"), f_debug, /*end=*/"");
+  }  /* if */
+  /* Print the comment followed by a newline. */
+  print_internal(a_string(comment, "\n"), color_code);
+  /* Update the state to reflect the comment being printed. */
+  this->curr_column = 0;
+  this->printed_comment = TRUE;
+  this->printed_anything = TRUE;
+}  /* a_commentary_token_printer::print_comment */
+
+
+void a_commentary_token_printer::print_internal(const a_string &text,
+                              /* Defaulted: */  a_const_char   *color_code)
+/*
+Given a string, print the text and update the internal column position
+tracking.  If color_code is not NULL, the given color code will be used for the
+token.
+*/
+{
+  for (size_t i = 0; i < text.length(); ++i) {
+    if (text[i] == '\n') {
+      this->curr_column = 0;
+    } else {
+      ++this->curr_column;
+    }  /* if */
+  }  /* for */
+  if (color_code != NULL) {
+    print(make_color_code_string(color_code), f_debug, /*end=*/"");
+  }  /* if */
+  print(text, f_debug, /*end=*/"");
+  if (color_code != NULL) {
+    print(make_color_code_string("0"), f_debug, /*end=*/"");
+  }  /* if */
+}  /* a_commentary_token_printer::print_internal */
+
+}  /* namespace */
+
+void db_diff_token_caches(a_token_cache *cache_a,
+                          a_token_cache *cache_b)
+/*
+Given two token caches, compare the two caches for mismatched tokens and write
+a diff-like output to f_debug.
+*/
+{
+  Opt<a_string>   result;
+  Dyn_array<a_cached_token*>
+                  cache_a_toks = linked_list_to_ptr_array(cache_a->first_token,
+                                                          /*init_cap=*/10000);
+  Dyn_array<a_cached_token*>
+                  cache_b_toks = linked_list_to_ptr_array(cache_b->first_token,
+                                                          /*init_cap=*/10000);
+  a_commentary_token_printer
+                  printer;
+
+  if (are_token_caches_equiv(cache_a_toks, cache_b_toks)) {
+    /* The token caches are equivalent: just print the tokens. */
+    printer.print_comment(a_string("/* TOKENS EQUIVALENT */"));
+    for (a_cached_token *tok : cache_a_toks) {
+      printer.print_token(tok);
+    }  /* for */
+  } else {
+    /* The token caches have one or more detected differences: print the
+       differences. */
+    printer.print_comment(a_string("/* TOKENS DIFFER */"));
+
+    Seq_comparator<a_cached_token*>
+                    comparator(cache_a_toks.begin(),
+                                               cache_a_toks.length(),
+                                               cache_b_toks.begin(),
+                                               cache_b_toks.length(),
+                                               is_tok_equiv);
+    auto            diff_consumer = [&printer](a_cached_token **from_tok,
+                                               a_cached_token **to_tok) {
+      if (from_tok == NULL || to_tok == NULL) {
+        a_const_char *color_code = NULL;
+
+        /* Determine the color to use. */
+        if (db_color_flag_is_set()) {
+          if (from_tok == NULL) {
+            /* to_tok didn't exist previously: use green for addition. */
+            color_code = "32";
+          } else if (to_tok == NULL) {
+            /* to_tok didn't exist previously: use red for removal. */
+            color_code = "31";
+          }  /* if */
+        }  /* if */
+        /* Print the introducing line if relevant. */
+        if (printer.last_printed_a_token()) {
+          printer.print_comment(a_string("/* DIFF DETECTED */"), color_code);
+        }  /* if */
+        /* Print the actual change. */
+        if (from_tok == NULL) {
+          /* to_tok didn't exist previously: print the addition. */
+          a_string addition("+ ", token_to_string(*to_tok));
+
+          printer.print_comment(addition, color_code);
+        } else {
+          /* from_tok was deleted: print the removal. */
+          a_string removal("- ", token_to_string(*from_tok));
+
+          printer.print_comment(removal, color_code);
+        }  /* if */
+      } else {
+        printer.print_token(*from_tok);
+      }  /* if */
+    };
+    comparator.diff(diff_consumer);
+  }  /* if */
+}  /* db_diff_token_caches */
 
 
 void db_source_position(a_source_position  *pos)
@@ -26909,11 +27052,6 @@ included in the string.
         unexpected_condition();
       }  /* if */
       put_str_to_temp_text_buffer(color_code);
-      put_ch_to_temp_text_buffer('m');
-    } else if (db_flag_is_set("darkcolor")) {
-      put_ch_to_temp_text_buffer('\033');
-      put_ch_to_temp_text_buffer('[');
-      /* Update the current color. */
       put_ch_to_temp_text_buffer('m');
     }  /* if */
     add_cached_token_to_string(ctp, /*print_pseudo_tokens=*/TRUE);

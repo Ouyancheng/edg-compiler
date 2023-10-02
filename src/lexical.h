@@ -3284,8 +3284,8 @@ extern void db_rescan_list(void);
 extern void db_token_cache(a_token_cache *cache,
                            a_const_char	 *cache_name);
 
-extern a_boolean db_compare_token_caches(a_token_cache *cache_a,
-                                         a_token_cache *cache_b);
+extern void db_diff_token_caches(a_token_cache *cache_a,
+                                 a_token_cache *cache_b);
 
 extern void db_source_position(a_source_position  *pos);
 

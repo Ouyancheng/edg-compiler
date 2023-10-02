@@ -24872,7 +24872,7 @@ out to be needed later on.
     a_module_token_cache new_cache;
     module_of(existing_decl)->cache_decl(&prev_cache, existing_decl, /*cinfo=*/{});
     module_of(decl_idx)->cache_decl(&new_cache, decl_idx, /*cinfo=*/{});
-    db_compare_token_caches(prev_cache.as_canonical(), new_cache.as_canonical());
+    db_diff_token_caches(prev_cache.as_canonical(), new_cache.as_canonical());
   }
 
   /* This template has already has a definition; map its specializations (if
