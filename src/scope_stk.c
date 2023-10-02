@@ -2931,6 +2931,7 @@ the scope being pushed.
     ssep->in_disambiguation = (ssep-1)->in_disambiguation;
     ssep->in_tentative_decl = (ssep-1)->in_tentative_decl;
     ssep->in_field_initializer = (ssep-1)->in_field_initializer;
+    ssep->in_stmt_expr = (ssep-1)->in_stmt_expr;
 #if GNU_EXTENSIONS_ALLOWED
     ssep->in_gnu_abi_tag_namespace =
                                  (ssep-1)->in_gnu_abi_tag_namespace ||

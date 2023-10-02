@@ -738,6 +738,8 @@ typedef struct a_scope_stack_entry {
 			   the stack; the exception is when a template
 			   instantiation scope is pushed, in which case the
 			   flag is cleared. */
+  a_bit_field	in_stmt_expr:1;
+			/* TRUE if we are inside a GNU statement expression. */
   a_bit_field	template_param_decl_scope:1;
 			/* TRUE if this is the first scope that
 			   affects the declarative level after a template

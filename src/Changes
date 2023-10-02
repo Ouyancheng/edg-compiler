@@ -1,5 +1,17 @@
 Version 6.6
 
+10/2/23  [EDGcpfe/24947,EDGcpfe/26668]
+Abort on variable declaration in GNU statement expression in nonlocal scope
+
+Consider, in GNU C++ mode:
+
+  int x = sizeof(({ int v = 0; v; }));  // Previously triggered an abort.
+                                        // Now okay.
+
+This previously triggered an assertion failure in add_to_variables_list.  That
+is now fixed.
+
+
 9/29/23  [EDGcpfe/26310]
 Performance with deeply-nested class hierarchies (IL CHANGE)
 
