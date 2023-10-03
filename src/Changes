@@ -1,5 +1,21 @@
 Version 6.6
 
+10/3/23  [EDGcpfe/26693]
+Excessive layout time for large array member
+
+Consider:
+
+  struct E {};
+  struct S {
+    E x[1000000000];
+  };
+
+With the IA-64 ABI, this previously took an excessive amount of time to compile
+because the front end examined each array element in turn for possible layout
+conflicts (even though there is no potential conflict in this case).  That is
+now fixed.
+
+
 10/2/23  [EDGcpfe/24947,EDGcpfe/26668]
 Abort on variable declaration in GNU statement expression in nonlocal scope
 
