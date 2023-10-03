@@ -2750,7 +2750,7 @@ before setting it if there are unused bits.
       if (db_flag_is_set("fp")) {
         fprintf(f_debug, "read_float16: res=%d\n", (int)res);
         fprintf(f_debug, "  %s\n  ", str);
-        db_binary_float((unsigned char *)&float_value_temp);
+        db_binary_float16((unsigned char *)&float_value_temp);
       }  /* if */
 #endif /* DEBUG */
     } else if (kind == fk_float || kind == fk_std_float32 ||
