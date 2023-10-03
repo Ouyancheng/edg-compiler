@@ -24862,12 +24862,13 @@ out to be needed later on.
   templ = templ->canonical_template;
 
   an_ifc_decl_index existing_decl = ifc_template_definitions->get(templ);
-  (void)ifc_template_definitions->map_or_replace(templ, decl_idx);
+  if (is_null_index(existing_decl)) {
+    /* This is the simple case, the template doesn't already have a definition,
+       record the definition. */
+    (void)ifc_template_definitions->map(templ, decl_idx);
+  } else {
 #if DEBUG
-  {
-    a_boolean already_defined = !is_null_index(existing_decl);
-
-    if (already_defined && db_flag_is_set("ifc_redef")) {
+    if (db_flag_is_set("ifc_redef")) {
       a_string decl_idxs(index_to_str(existing_decl), " replaced by ",
                          index_to_str(decl_idx));
       print(decl_idxs, f_debug);
@@ -24880,15 +24881,17 @@ out to be needed later on.
       db_diff_token_caches(prev_cache.as_canonical(),
                            new_cache.as_canonical());
     }  /* if */
-  }
 #endif /* DEBUG */
+    /* The template definition is being replaced.  Replace the definition in
+       the mapping. */
+    (void)ifc_template_definitions->map_or_replace(templ, decl_idx);
 
-  /* This template has already has a definition; map its specializations (if
-     any). */
-  an_ifc_template_spec_info spec_info(decl_idx);
-
-  if (spec_info.has_specs()) {
-    record_pending_ifc_template_specializations(templ, decl_idx);
+    /* If there any associated specializations into the pending specializations
+       list. */
+    an_ifc_template_spec_info spec_info(existing_decl);
+    if (spec_info.has_specs()) {
+      record_pending_ifc_template_specializations(templ, existing_decl);
+    }  /* if */
   }  /* if */
 }  /* record_pending_ifc_template_definition */
 
