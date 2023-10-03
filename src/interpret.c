@@ -10157,7 +10157,6 @@ representing a member of the given entity.
                 *rvp = (a_reflection_value*)p_arg_bytes[0];
   a_source_correspondence_ptr
                 scp = source_corresp_for_reflection(rvp);
-  a_type_ptr    rtp = skip_typerefs(callee->type);
   Dyn_array<a_reflection_value>
                 result_reflections(0);
 
@@ -10169,7 +10168,7 @@ representing a member of the given entity.
                   &call_node->position, ips);
     goto done;
   }  /* if */
-  check_assertion(type_is(rtp, tk_routine));
+  check_assertion(type_is(skip_typerefs(callee->type), tk_routine));
   if (scp == NULL) {
     invalid_arg = TRUE;
   } else if (rvp->entity.kind == (an_il_entry_kind)iek_type) {
