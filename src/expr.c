@@ -19033,6 +19033,11 @@ ck_reflection) of a special built-in type (of kind tk_reflection).
                                rcblock);
   expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
   if (rcblock != NULL) {
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    // FIXME: This is to avoid warnings.  The rescan path still needs to be
+    // implemented.
+    end_pos = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else {
     /* Normal, non-rescan, processing. */
     an_identifier_options_set  gid_flags = GID_IS_EXPR_CONTEXT |
