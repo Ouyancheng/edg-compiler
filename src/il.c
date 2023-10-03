@@ -5014,6 +5014,11 @@ members), and does not enter those.
         /* Parameters of requires-expressions can be orphaned. */
         could_be_orphan = TRUE;
         break;
+      case iek_scope:
+        /* A statement expression scope is a local scope but it might be
+           allocated in file-scope. */
+        could_be_orphan = TRUE;
+        break;
       default:
         could_be_orphan = FALSE;
         break;
