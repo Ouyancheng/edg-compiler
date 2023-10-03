@@ -26914,6 +26914,35 @@ token.
 
 }  /* namespace */
 
+static void print_token_range_summary(a_cached_token_ptr      first_token,
+                                      a_token_sequence_number last_tsn)
+/*
+Print a summary including the approximate source position of the given token
+range (starting at the given token and ending inclusively at last_tsn) and the
+token sequence number range itself.
+*/
+{
+  /* If any of the tokens in the cache has an associated position, output a
+     description of that position first.. */
+  for (a_cached_token *ctp = first_token; ctp != NULL; ctp = ctp->next) {
+    if (ctp->source_position.seq != 0) {
+      if (ctp != first_token) {
+        fprintf(f_debug, "(approx.) ");
+      }  /* if */
+      db_source_position(&ctp->source_position);
+      fprintf(f_debug, " (seq = %ld) ", (long)ctp->source_position.seq);
+      break;
+    }  /* if */
+  }  /* for */
+
+  a_token_sequence_number start_tsn = 0;
+  if (first_token != NULL) {
+    start_tsn = first_token->token_sequence_number;
+  }  /* if */
+  fprintf(f_debug, "[tsn: %ld - %ld]\n", (long)start_tsn, (long)last_tsn);
+}  /* print_token_range_summary */
+
+
 void db_diff_token_caches(a_token_cache *cache_a,
                           a_token_cache *cache_b)
 /*
@@ -27073,23 +27102,11 @@ pointer, and ending (inclusive) with the token identified by last_tsn.
 */
 {
   sizeof_t                 saved_pos = pos_in_temp_text_buffer;
-  sizeof_t                 indent = 0;
-  a_cached_token_ptr       ctp = first_token;
-  a_boolean                printed_position = FALSE;
   a_token_sequence_number  end_tsn = NO_TOKEN_SEQUENCE_NUMBER;
 
-  /* If any of the tokens in the cache has an associated position, output a
-     description of that position first.  Additionally, look out for the true
-     end_tsn (as last_tsn is inclusive, and end_tsn is not). */
-  for (; ctp != NULL; ctp = ctp->next) {
-    if (!printed_position && ctp->source_position.seq != 0) {
-      if (ctp != first_token) {
-        fprintf(f_debug, "(approx.) ");
-      }  /* if */
-      db_source_position(&ctp->source_position);
-      fprintf(f_debug, " (seq = %ld) ", (long)ctp->source_position.seq);
-      printed_position = TRUE;
-    }  /* if */
+  /* Look for the true end_tsn (as last_tsn is inclusive, and end_tsn is
+     not). */
+  for (a_cached_token *ctp = first_token; ctp != NULL; ctp = ctp->next) {
     /* If the current token matches the last printed token sequence number, and
        there's a next token, the next differing token sequence number is
        considered the end. */
@@ -27107,86 +27124,110 @@ pointer, and ending (inclusive) with the token identified by last_tsn.
       break;
     }  /* if */
   }  /* for */
+  /* Print a summary of the token range. */
+  print_token_range_summary(first_token, last_tsn);
+  /* Print the tokens themselves. */
+  if (!db_flag_is_set("old_db_tokens")) {
+    a_commentary_token_printer printer;
+    unsigned                   color_idx = 0;
 
-  /* Print token sequence number ranges. */
-  a_token_sequence_number  start_tsn;
-  if (first_token != NULL) {
-    start_tsn = first_token->token_sequence_number;
-  } else {
-    start_tsn = 0;
-  }  /* if */
-  fprintf(f_debug, "[tsn: %ld - %ld]\n", (long)start_tsn, (long)last_tsn);
-  /* Add the tokens to the temp_text_buffer. */
-  add_cached_tokens_to_string_for_debug(first_token, end_tsn);
-
-  sizeof_t  k = saved_pos;
-  /* Skip leading spaces. */
-  while (temp_text_buffer[k] == ' ') ++k;
-  /* A local lambda expression used in a subsequent loop whenever we want to
-     establish indentation after switching to a new line.  The lambda also
-     moves the given index to that of the next non-space character in
-     temp_text_buffer (to avoid extraneous indentation). */
-  auto do_indent = [&indent](sizeof_t  *p_k) {
-                     for (sizeof_t i = 0; i<indent; ++i) {
-                       (void)fputc(' ', f_debug);
-                     }  /* for */
-                     /* Skip leading spaces in the text.  Note that since
-                        "++k" of the for-loop below has not been evaluated
-                        yet, we start at k+1. */
-                     while (*p_k+2 < pos_in_temp_text_buffer &&
-                            temp_text_buffer[*p_k+1] == ' ') {
-                       *p_k += 1;
-                     }  /* while */
-                   };
-  /*lint --e{850} k modified in loop */
-  for (; k<pos_in_temp_text_buffer; ++k) {
-    if (temp_text_buffer[k] == '{') {
-      /* Switch to a new line and increase the indentation. */
-      fprintf(f_debug, "{\n");
-      indent += 2;
-      do_indent(&k);
-    } else if (temp_text_buffer[k] == '}') {
-      /* Decrease the indentation.  Emit the closing brace on its own. */
-      (void)fputc('\n', f_debug);
-      if (indent >= 2) indent -= 2;
-      do_indent(&k);
-      (void)fputc('}', f_debug);
-      if (k+1<pos_in_temp_text_buffer && temp_text_buffer[k+1] == ';') {
-        /* If the closing brace is followed by a semicolon, add that semicolon
-           immediately after the brace. */
-        (void)fputc(';', f_debug);
-        k += 1;
+    for (a_cached_token *ctp = first_token; ctp != NULL; ctp = ctp->next) {
+      /* Stop if we've reached the specified ending token sequence number. */
+      if (end_tsn != NO_TOKEN_SEQUENCE_NUMBER &&
+          ctp->token_sequence_number == end_tsn) {
+        break;
       }  /* if */
-      (void)fputc('\n', f_debug);
-      do_indent(&k);
-    } else if (temp_text_buffer[k] == ';') {
-      /* Switch to a new line, unless followed by a '}' or ';'. */
-      a_boolean  add_new_line = TRUE;
-      for (sizeof_t n = k+1; n<pos_in_temp_text_buffer; ++n) {
-        if (temp_text_buffer[n] == ' ') {
-          continue;
+
+      /* Add the color rotation if relevant. */
+      a_const_char *color_code = NULL;
+      if (db_color_flag_is_set()) {
+        /* Update the current color. */
+        if (db_flag_is_set("brightcolor")) {
+          color_idx = (color_idx + 1) % tok_dbg_num_bright_colors;
+          color_code = tok_dbg_bright_colors[color_idx];
+        } else if (db_flag_is_set("darkcolor")) {
+          color_idx = (color_idx + 1) % tok_dbg_num_dark_colors;
+          color_code = tok_dbg_dark_colors[color_idx];
         } else {
-          if (temp_text_buffer[n] == '}' || temp_text_buffer[n] == ';') {
-            add_new_line = FALSE;
-          }  /* if */
-          break;
+          unexpected_condition();
         }  /* if */
-      }  /* for */
-      fprintf(f_debug, "%s", add_new_line ? ";\n" : ";");
-      do_indent(&k);
-    } else if (temp_text_buffer[k] == '\n') {
-      if (k<2 || temp_text_buffer[k-1] != '\n' ||
-          temp_text_buffer[k-2] != '\n') {
+      }  /* if */
+      printer.print_token(ctp, color_code);
+    }  /* for */
+  } else {
+    /* Add the tokens to the temp_text_buffer. */
+    add_cached_tokens_to_string_for_debug(first_token, end_tsn);
+
+    sizeof_t k = saved_pos;
+    sizeof_t indent = 0;
+    /* Skip leading spaces. */
+    while (temp_text_buffer[k] == ' ') ++k;
+    /* A local lambda expression used in a subsequent loop whenever we want to
+       establish indentation after switching to a new line.  The lambda also
+       moves the given index to that of the next non-space character in
+       temp_text_buffer (to avoid extraneous indentation). */
+    auto do_indent = [&indent](sizeof_t  *p_k) {
+                       for (sizeof_t i = 0; i<indent; ++i) {
+                         (void)fputc(' ', f_debug);
+                       }  /* for */
+                       /* Skip leading spaces in the text.  Note that since
+                          "++k" of the for-loop below has not been evaluated
+                          yet, we start at k+1. */
+                       while (*p_k+2 < pos_in_temp_text_buffer &&
+                              temp_text_buffer[*p_k+1] == ' ') {
+                         *p_k += 1;
+                       }  /* while */
+                     };
+    /*lint --e{850} k modified in loop */
+    for (; k<pos_in_temp_text_buffer; ++k) {
+      if (temp_text_buffer[k] == '{') {
+        /* Switch to a new line and increase the indentation. */
+        fprintf(f_debug, "{\n");
+        indent += 2;
+        do_indent(&k);
+      } else if (temp_text_buffer[k] == '}') {
+        /* Decrease the indentation.  Emit the closing brace on its own. */
+        (void)fputc('\n', f_debug);
+        if (indent >= 2) indent -= 2;
+        do_indent(&k);
+        (void)fputc('}', f_debug);
+        if (k+1<pos_in_temp_text_buffer && temp_text_buffer[k+1] == ';') {
+          /* If the closing brace is followed by a semicolon, add that
+             semicolon immediately after the brace. */
+          (void)fputc(';', f_debug);
+          k += 1;
+        }  /* if */
         (void)fputc('\n', f_debug);
         do_indent(&k);
+      } else if (temp_text_buffer[k] == ';') {
+        /* Switch to a new line, unless followed by a '}' or ';'. */
+        a_boolean  add_new_line = TRUE;
+        for (sizeof_t n = k+1; n<pos_in_temp_text_buffer; ++n) {
+          if (temp_text_buffer[n] == ' ') {
+            continue;
+          } else {
+            if (temp_text_buffer[n] == '}' || temp_text_buffer[n] == ';') {
+              add_new_line = FALSE;
+            }  /* if */
+            break;
+          }  /* if */
+        }  /* for */
+        fprintf(f_debug, "%s", add_new_line ? ";\n" : ";");
+        do_indent(&k);
+      } else if (temp_text_buffer[k] == '\n') {
+        if (k<2 || temp_text_buffer[k-1] != '\n' ||
+            temp_text_buffer[k-2] != '\n') {
+          (void)fputc('\n', f_debug);
+          do_indent(&k);
+        }  /* if */
+      } else {
+        /* Just put out the character. */
+        (void)fputc(temp_text_buffer[k], f_debug);
       }  /* if */
-    } else {
-      /* Just put out the character. */
-      (void)fputc(temp_text_buffer[k], f_debug);
-    }  /* if */
-  }  /* for */
-  /* Ensure there's a trailing newline. */
-  fprintf(f_debug, "\n");
+    }  /* for */
+    /* Ensure there's a trailing newline. */
+    fprintf(f_debug, "\n");
+  }  /* if */
   /* Restore the temporary text buffer to its prior state. */
   pos_in_temp_text_buffer = saved_pos;
   temp_text_buffer[saved_pos] = '\0';
