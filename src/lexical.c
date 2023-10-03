@@ -26734,6 +26734,7 @@ intentionally excludes some factors such as the token's sequence number.
       case teik_ifc_index:
         /* Currently no comparison is implement. */
         break;
+      default_is_unexpected();
     }  /* switch */
   }  /* if */
   return result;
