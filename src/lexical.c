@@ -26841,9 +26841,18 @@ the token.
 
   (void)source_file_for_seq(pos->seq, &line_num, &at_end_of_source,
                             /*physical_line=*/TRUE);
+  /* If the line has progressed, print a new line.
 
-  if (line_num != this->prev_line_num && !this->printed_comment) {
-    print_internal(a_string("\n"));
+     Note that only cases where a the new line is larger are considered to
+     "massage" token caches that have insufficient source position information
+     (e.g., those coming from IFC files). */
+  if (line_num > this->prev_line_num) {
+    /* If a comment has been printed, the output has already been moved to a
+       new line.  Thus, an additional line print is unnecessary and
+       spurious. */
+    if (!this->printed_comment) {
+      print_internal(a_string("\n"));
+    }  /* if */
     this->prev_line_num = line_num;
   }  /* if */
   if (tok->source_position.column != 0) {
@@ -26943,6 +26952,24 @@ token sequence number range itself.
 }  /* print_token_range_summary */
 
 
+static void print_token_range_summary(const Dyn_array<a_cached_token*> &tokens)
+/*
+Print a summary including the approximate source position of the given token
+range (for all tokens in the given token array) and the token sequence number
+range itself.
+*/
+{
+  a_cached_token          *first_token = NULL;
+  a_token_sequence_number last_tsn = 0;
+
+  if (!tokens.is_empty()) {
+    first_token = tokens[0];
+    last_tsn = tokens[tokens.length() - 1]->token_sequence_number;
+  }  /* if */
+  print_token_range_summary(first_token, last_tsn);
+}  /* print_token_range_summary */
+
+
 void db_diff_token_caches(a_token_cache *cache_a,
                           a_token_cache *cache_b)
 /*
@@ -26957,9 +26984,11 @@ a diff-like output to f_debug.
   Dyn_array<a_cached_token*>
                   cache_b_toks = linked_list_to_ptr_array(cache_b->first_token,
                                                           /*init_cap=*/10000);
-  a_commentary_token_printer
-                  printer;
 
+  print_token_range_summary(cache_a_toks);
+  print_token_range_summary(cache_b_toks);
+
+  a_commentary_token_printer printer;
   if (are_token_caches_equiv(cache_a_toks, cache_b_toks)) {
     /* The token caches are equivalent: just print the tokens. */
     printer.print_comment(a_string("/* TOKENS EQUIVALENT */"));
@@ -26973,10 +27002,10 @@ a diff-like output to f_debug.
 
     Seq_comparator<a_cached_token*>
                     comparator(cache_a_toks.begin(),
-                                               cache_a_toks.length(),
-                                               cache_b_toks.begin(),
-                                               cache_b_toks.length(),
-                                               is_tok_equiv);
+                               cache_a_toks.length(),
+                               cache_b_toks.begin(),
+                               cache_b_toks.length(),
+                               is_tok_equiv);
     auto            diff_consumer = [&printer](a_cached_token **from_tok,
                                                a_cached_token **to_tok) {
       if (from_tok == NULL || to_tok == NULL) {

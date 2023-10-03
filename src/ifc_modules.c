@@ -24862,18 +24862,26 @@ out to be needed later on.
   templ = templ->canonical_template;
 
   an_ifc_decl_index existing_decl = ifc_template_definitions->get(templ);
-  a_boolean         already_defined = !is_null_index(existing_decl);
   (void)ifc_template_definitions->map_or_replace(templ, decl_idx);
-  if (already_defined) {
-    a_string decl_idxs(index_to_str(existing_decl), " replaced by ", index_to_str(decl_idx));
-    print(decl_idxs, f_debug);
+#if DEBUG
+  {
+    a_boolean already_defined = !is_null_index(existing_decl);
 
-    a_module_token_cache prev_cache;
-    a_module_token_cache new_cache;
-    module_of(existing_decl)->cache_decl(&prev_cache, existing_decl, /*cinfo=*/{});
-    module_of(decl_idx)->cache_decl(&new_cache, decl_idx, /*cinfo=*/{});
-    db_diff_token_caches(prev_cache.as_canonical(), new_cache.as_canonical());
+    if (already_defined && db_flag_is_set("ifc_redef")) {
+      a_string decl_idxs(index_to_str(existing_decl), " replaced by ",
+                         index_to_str(decl_idx));
+      print(decl_idxs, f_debug);
+
+      a_module_token_cache prev_cache;
+      a_module_token_cache new_cache;
+      an_ifc_cache_info    cinfo;
+      module_of(existing_decl)->cache_decl(&prev_cache, existing_decl, cinfo);
+      module_of(decl_idx)->cache_decl(&new_cache, decl_idx, cinfo);
+      db_diff_token_caches(prev_cache.as_canonical(),
+                           new_cache.as_canonical());
+    }  /* if */
   }
+#endif /* DEBUG */
 
   /* This template has already has a definition; map its specializations (if
      any). */
