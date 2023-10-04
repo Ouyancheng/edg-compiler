@@ -2256,7 +2256,6 @@ result of calls to std::is_constant_evaluated().
   ips->report_started = FALSE;
   ips->disallow_mutable_field_load = FALSE;
   ips->allow_consteval_routine_node = FALSE;
-  ips->report_started = FALSE;
   ips->reattempt_state = {};
   ips->dyn_allocations = NULL;
   n_active_interpreter_states += 1;
