@@ -1664,6 +1664,8 @@ new extent.  This is used to accelerate the layout process.
 
   if (next_byte > lob->curr_base_extent+1) {
     lob->curr_base_extent = next_byte-1;
+  }  /* if */
+  if (next_byte > lob->curr_extent+1) {
     lob->curr_extent = next_byte-1;
   }  /* if */
 }  /* update_curr_base_extent */
@@ -4943,20 +4945,25 @@ size (such classes actually have size zero).
 
 #if IA64_ABI
 
-static void compute_primary_base_classes(a_type_ptr class_type)
+static void compute_primary_base_classes(a_layout_block  *lob)
 /*
-Set the primary_base_class for the bases of class_type.  The primary base
+Set the primary_base_class for the bases of lob->class_type.  The primary base
 class of class_type was already determined during class scanning (see
 set_virtual_function_info_base_class); this code propagates that decision 
-into the base classes of class_type.
+into the base classes of class_type.  Update *lob for the extent of the primary
+base class.
 */
 {
-  a_class_type_supplement_ptr ctsp;
-  a_base_class_ptr            bcp, primary;
+  a_type_ptr                   class_type = lob->class_type;
+  a_class_type_supplement_ptr  ctsp = class_type_supp(class_type);
+  a_base_class_ptr             bcp, primary = ctsp->primary_base_class;
 
-  ctsp = class_type->variant.class_struct_union.extra_info;
-  if (ctsp->primary_base_class != NULL) {
-    ctsp->primary_base_class->offset_is_set = TRUE;
+  if (primary != NULL) {
+    /* The offset is already set to zero.  Indicate that that is not the
+       default value but the actual offset. */
+    primary->offset_is_set = TRUE;
+    lob->curr_extent += class_type_supp(primary->type)
+                                          ->size_without_virtual_base_classes;
   }  /* if */
   for (bcp = preorder_base_classes_of(class_type);
        bcp != NULL;
@@ -5118,7 +5125,7 @@ for handling virtual bases and functions.
     a_base_class_ptr            bcp;
     a_class_type_supplement_ptr ctsp;
     /* Identify all of the primary base classes. */
-    compute_primary_base_classes(class_type);
+    compute_primary_base_classes(&lob);
     ctsp = class_type->variant.class_struct_union.extra_info;
     bcp = ctsp->primary_base_class;
     if (bcp != NULL) {
