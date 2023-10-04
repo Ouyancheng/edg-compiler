@@ -4545,10 +4545,8 @@ struct a_corresponding_base_class_lookup_key {
   a_base_class_ptr
                 base_class;
                         /* Pointer to the base class. */
-
   a_type_ptr    new_class;
                         /* Pointer to the new class type. */
-
   a_base_class_ptr
                 disambiguator;
                         /* Pointer to a disambiguator base class.  May be

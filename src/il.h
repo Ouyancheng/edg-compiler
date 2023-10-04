@@ -3877,7 +3877,6 @@ struct a_derivation_path {
   a_derivation_step_ptr
 		head;   /* Pointer to the first entry in the derivation
 			   path. */
-
   a_derivation_step_ptr
 		tail;   /* Pointer to the last entry in the derivation
 			   path. */

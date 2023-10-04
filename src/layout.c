@@ -1497,13 +1497,13 @@ bugs).
     }  /* if */
 #else /* !IA64_ABI */
     bcp = direct_base_classes_of(atype);
-#endif /* !IA64_ABI */
+#endif /* IA64_ABI */
     for (; bcp != NULL;
 #if IA64_ABI
          bcp = bcp->*next_ptr
 #else /* !IA64_ABI */
          bcp = bcp->next_direct
-#endif /* !IA64_ABI */
+#endif /* IA64_ABI */
                                ) {
       a_base_class_ptr  eff_bcp;
       a_boolean         consider_fields_in_bcp = consider_fields;
@@ -3047,12 +3047,14 @@ setting the offset field in the latter.
   } else
 #endif /* IA64_ABI */
   /* Do not insert code here. */
-  /* Get the first "reference" base class of the root class, which is itself
-     a base class of the most derived class.  It is called a reference base
-     class because it contains an offset relative to the root base class.
-     It is the offset value relative to the most derived class that we need
-     to determine and record. */
-  ref_bcp = direct_base_classes_of(proximate_derivation->type);
+  {
+    /* Get the first "reference" base class of the root class, which is itself
+       a base class of the most derived class.  It is called a reference base
+       class because it contains an offset relative to the root base class.
+       It is the offset value relative to the most derived class that we need
+       to determine and record. */
+    ref_bcp = direct_base_classes_of(proximate_derivation->type);
+  }  /* if */
 #if DEBUG
   if (debug_level >= 4) {
     if (ref_bcp != NULL) {
@@ -3068,7 +3070,7 @@ setting the offset field in the latter.
        ref_bcp = consider_indirect_bases ? ref_bcp->next : ref_bcp->next_direct
 #else /* !IA64_ABI */
        ref_bcp = ref_bcp->next
-#endif /* !IA64_ABI */
+#endif /* IA64_ABI */
                               ) {
     a_base_class_ptr  bcp = NULL;
     if (ref_bcp->direct) {
