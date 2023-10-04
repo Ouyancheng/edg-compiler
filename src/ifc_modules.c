@@ -3768,8 +3768,8 @@ using an_ifc_template_spec_map = Ptr_multi_map<a_template_ptr,
                                                an_ifc_decl_index,
                                                5>;
                         /* The type of a map that associates IL template
-                           template entries with IFC DeclIndex values that
-                           contain supplementary specializations. */
+                           entries with IFC DeclIndex values that contain
+                           supplementary specializations. */
 
 an_ifc_template_spec_map
                 *ifc_template_specializations;
@@ -24863,8 +24863,8 @@ out to be needed later on.
 
   an_ifc_decl_index existing_decl = ifc_template_definitions->get(templ);
   if (is_null_index(existing_decl)) {
-    /* This is the simple case, the template doesn't already have a definition,
-       record the definition. */
+    /* This is the simple case, i.e., the template doesn't already have a
+       definition, so record the definition. */
     (void)ifc_template_definitions->map(templ, decl_idx);
   } else {
 #if DEBUG
@@ -24886,8 +24886,8 @@ out to be needed later on.
        the mapping. */
     (void)ifc_template_definitions->map_or_replace(templ, decl_idx);
 
-    /* If there any associated specializations into the pending specializations
-       list. */
+    /* If there are any specializations associated with the previous
+       definition, add them to the pending specializations list. */
     an_ifc_template_spec_info spec_info(existing_decl);
     if (spec_info.has_specs()) {
       record_pending_ifc_template_specializations(templ, existing_decl);
