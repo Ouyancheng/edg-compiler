@@ -26818,8 +26818,8 @@ private:
 
 a_commentary_token_printer::~a_commentary_token_printer()
 /*
-Destroy the commentary token printer, printing a newline if to finish off the
-token printing (if the last thing printed was a token cache).
+Destroy the commentary token printer, printing a newline if needed to finish
+off the token printing (if the last thing printed was a token cache).
 */
 {
   if (this->last_printed_a_token()) {
@@ -26933,7 +26933,7 @@ token sequence number range itself.
 */
 {
   /* If any of the tokens in the cache has an associated position, output a
-     description of that position first.. */
+     description of that position first. */
   for (a_cached_token *ctp = first_token; ctp != NULL; ctp = ctp->next) {
     if (ctp->source_position.seq != 0) {
       if (ctp != first_token) {
