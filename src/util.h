@@ -3688,7 +3688,7 @@ Output some information about the map's key contents to f_debug.
 #endif /* DEBUG */
 
 /*
-A template type used to map a given Ptr_map compatible key type to an array of
+A template type used to map a given Ptr_map-compatible key type to an array of
 associated value types (each with the given default initial capacity).
 */
 template<typename a_Ptr_key, typename a_Value, unsigned a_Capacity,
@@ -3759,8 +3759,8 @@ auto
 Ptr_multi_map<a_Ptr_key, a_Value, a_Capacity, Allocator>::get(a_Ptr_key key)
                                                           -> a_multi_value*
 /*
-Return a dynamic array of index values for the given index forming the key if
-it exists; otherwise, return NULL.
+Return a dynamic array of index values if it exists for the given key;
+otherwise, return NULL.
 */
 {
   return this->backing_map.get(key);
@@ -3820,7 +3820,7 @@ template<typename a_Ptr_key, typename a_Value, unsigned a_Capacity,
 void Ptr_multi_map<a_Ptr_key, a_Value, a_Capacity, Allocator>::remove(
                                                                  a_Ptr_key key)
 /*
-Give the index forming the key, remove the associated list from the map, and
+Given the index forming the key, remove the associated list from the map, and
 deconstruct and deallocate the associated multi-value (if any).
 */
 {
@@ -3838,7 +3838,7 @@ template<typename a_Ptr_key, typename a_Value, unsigned a_Capacity,
 void Ptr_multi_map<a_Ptr_key, a_Value, a_Capacity, Allocator>::dealloc(
                                                          a_multi_value *values)
 /*
-Give the multi-value, deconstruct, and deallocate the multi-value list.
+Given the multi-value, deconstruct and deallocate the multi-value list.
 */
 {
   destroy(values);
