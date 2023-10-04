@@ -1160,19 +1160,19 @@ Dynamically-allocated and expandable buffer used for short-lived text.
 which no parsing or lexical advance is done (no get_token calls, no
 macro expansions, etc.).
 */
-EXTERN char     *temp_text_buffer;
-                        /* The buffer itself.  Not allocated on a per-file
-                           basis. */
-EXTERN sizeof_t size_temp_text_buffer;
-                        /* The size of temp_text_buffer, as currently
-                           allocated. */
-EXTERN sizeof_t pos_in_temp_text_buffer;
-                        /* The number of characters actually in
-                           temp_text_buffer currently. */
+EXTERN char	*temp_text_buffer;
+			/* The buffer itself.  Not allocated on a per-file
+			   basis. */
+EXTERN sizeof_t	size_temp_text_buffer;
+			/* The size of temp_text_buffer, as currently
+			   allocated. */
+EXTERN sizeof_t	pos_in_temp_text_buffer;
+			/* The number of characters actually in
+			   temp_text_buffer currently. */
 EXTERN a_boolean
-                temp_text_buffer_managed;
-                        /* TRUE if temp_text_buffer is managed by an instance
-                           of a_temp_text_buffer_swap; otherwise, FALSE. */
+		temp_text_buffer_managed;
+			/* TRUE if temp_text_buffer is managed by an instance
+			   of a_temp_text_buffer_swap; otherwise, FALSE. */
 /* See il.c for TEMP_TEXT_BUFFER_INCREMENTAL_ALLOCATION. */
 
 /*
