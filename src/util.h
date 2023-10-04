@@ -4022,7 +4022,7 @@ struct Seq_comparator_impl: private Allocator<uint32_t> {
                              an_Elem_b          *array_b_val,
                              size_t             array_b_len_val,
                              an_equality_fn     eq_fn_val,
-                             const an_allocator &a = an_allocator());
+                             const an_allocator &allocator = an_allocator());
   inline ~Seq_comparator_impl();
 
   template<typename a_Consumer_fn>
@@ -4060,13 +4060,14 @@ Seq_comparator_impl<an_Elem_a, an_Elem_b, an_Eq_fn, Allocator>::
                                             an_Elem_b          *array_b_val,
                                             size_t             array_b_len_val,
                                             an_equality_fn     eq_fn_val,
-                                            const an_allocator &alloc)
+                                            const an_allocator &allocator)
 /*
 Given two arrays and their sizes, allocate a new alignment table with the given
 allocator.  The allocated alignment table will then be populated using the
 given equality function to check equality of array elements.
 */
-  : an_allocator(alloc), array_a(array_a_val), array_a_len(array_a_len_val),
+  : an_allocator(allocator),
+    array_a(array_a_val), array_a_len(array_a_len_val),
     array_b(array_b_val), array_b_len(array_b_len_val), eq_fn(eq_fn_val),
     lcs_table(this->alloc(array_a_len_val * array_b_len_val).start)
 {
