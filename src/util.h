@@ -3230,9 +3230,11 @@ template<typename a_Ptr_key, typename a_Value>
 struct Ptr_map_entry {
   typedef a_Ptr_key a_key;
   typedef a_Value a_value;
-  a_key         ptr;    /* The pointer value mapped by this entry.  (A "key" in
-                           the hash table.) */
-  a_value       value;  /* A value associated with ptr. */
+  a_key		ptr;
+			/* The pointer value mapped by this entry.  (A "key" in
+			   the hash table.) */
+  a_value	value;
+			/* A value associated with ptr. */
   inline a_boolean key_set() const
     { return ptr != a_key(); }
 };  /* Ptr_map_entry */
@@ -3286,14 +3288,14 @@ struct Ptr_map: private Allocator<Ptr_map_entry<a_Ptr_key, a_Value>> {
     { return &table[hash_mask+1]; }
 private:
   typedef typename an_allocator::an_allocation an_allocation;
-  an_entry      *table;
-                        /* Pointer to the hash table. */
-  an_index      hash_mask;
-                        /* The mask to apply to the hash value before indexing
-                           in the table.  This mask is increased as the table
-                           grows. */
-  an_index      n_elements;
-                        /* The number of elements stored in the table. */
+  an_entry	*table;
+			/* Pointer to the hash table. */
+  an_index	hash_mask;
+			/* The mask to apply to the hash value before indexing
+			   in the table.  This mask is increased as the table
+			   grows. */
+  an_index	n_elements;
+			/* The number of elements stored in the table. */
   void map_colliding_key(a_key          new_key,
                          const a_value  &new_value,
                          an_index       idx);
@@ -3374,11 +3376,11 @@ if not found.  hash is the precomputed hash value for the key.
 
 
 #ifdef TRACE_PTR_MAP
-static void     *traced_key_ptr = NULL;
-                        /* Pointer that is checked for mapping activity.
-                           Intended to be set from within a debugger and
-                           watched by setting a breakpoint on function
-                           ptr_map_intercept. */
+static void	*traced_key_ptr = NULL;
+			/* Pointer that is checked for mapping activity.
+			   Intended to be set from within a debugger and
+			   watched by setting a breakpoint on function
+			   ptr_map_intercept. */
 
 inline void ptr_map_intercept(a_const_char  *msg)
 /*
