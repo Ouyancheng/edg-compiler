@@ -1,5 +1,16 @@
 Version 6.6
 
+10/4/23  [EDGcpfe/26708]
+Clang compatibility: #pragma STDC FENV_ACCESS
+
+Clang version 12.0.0 and later now support:
+
+  #pragma STDC FENV_ACCESS ON
+
+The front end no longer gives a discretionary error on this when
+clang_version >= 120000.
+
+
 10/3/23  [EDGcpfe/26693]
 Excessive layout time for large array member
 

@@ -3169,9 +3169,9 @@ pragmas, and by translation_unit for pragmas that appear in the file scope.
       err = TRUE;
     } else if (value == (a_stdc_pragma_value)stdc_pv_on &&
                kind == (a_stdc_pragma_kind)stdc_pk_fenv_access &&
-               clang_mode) {
-      /* Clang does not support the ON argument to FENV_ACCESS, and it
-         treats DEFAULT as equivalent to OFF. */
+               clang_version_is(<120000)) {
+      /* Early versions of Clang do not support the ON argument to FENV_ACCESS,
+         and it treats DEFAULT as equivalent to OFF. */
       diagnostic(es_discretionary_error, ec_bad_stdc_pragma_arg_for_mode);
       err = TRUE;
     }  /* if */
