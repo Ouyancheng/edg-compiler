@@ -16409,26 +16409,25 @@ a pointer over a reference type or creating an array of references.
                                             templ_param_list,
                                             (options | CTWS_NON_CONSTANT_EXPR),
                                             copy_error, ctws_state);
-        } else if (is_typeref_kind(type, trk_is_underlying_type) &&
-                   type->variant.typeref.is_dependent_type_operator) {
-          /* The __underlying_type operator. */
-          /* Substitute the type and extract the underlying type if it's
-             an enumeration type. */
-          tp = copy_type_with_substitution(type->variant.typeref.type,
-                                           templ_arg_list, templ_param_list,
-                                           source_pos, options, copy_error,
-                                           ctws_state);
-          tp = skip_typerefs(tp);
-          if (is_immediate_enum_type(tp)) {
-            new_type = integer_type(tp->variant.integer.int_kind);
-          } else {
-            /* __underlying_type doesn't apply to non-enum types. */
-            subst_fail(*copy_error);
-          }  /* if */
         } else if (is_typeref_kind(type, trk_bases) ||
                    is_typeref_kind(type, trk_direct_bases)) {
           /* Substitution of __bases and __direct_bases is not supported. */
           subst_fail(*copy_error);
+        } else if (type->variant.typeref.is_dependent_type_operator &&
+                   typeref_is_type_transforming_intrinsic(type)) {
+          /* Substitute the type and apply the type-transforming intrinsic. */
+          tp = copy_type_with_substitution(type->variant.typeref.type,
+                                           templ_arg_list, templ_param_list,
+                                           source_pos, options, copy_error,
+                                           ctws_state);
+          new_type = apply_type_transforming_intrinsic(
+                                        tp,
+                                        type->variant.typeref.kind,
+                                        (a_source_position_ptr)NULL,
+                                        /*diagnostic_should_be_issued=*/FALSE);
+          if (is_error_type(new_type)) {
+            subst_fail(*copy_error);
+          }  /* if */
         } else {
           if (is_typeref_kind(type, trk_is_template_alias)) {
             if (type->variant.typeref.is_dependent) {
@@ -16483,7 +16482,8 @@ a pointer over a reference type or creating an array of references.
             } while (type_without_typerefs->kind == (a_type_kind)tk_typeref &&
                      !is_typeref_kind(type_without_typerefs,
                                       trk_is_template_alias) &&
-                     !typeref_is_type_operator(type_without_typerefs));
+                     !typeref_is_type_operator(type_without_typerefs,
+                                               /*include_intrinsics=*/TRUE));
             tp = copy_type_with_substitution(type_without_typerefs,
                                              templ_arg_list,
                                              templ_param_list, source_pos,

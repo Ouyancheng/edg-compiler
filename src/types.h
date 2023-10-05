@@ -330,6 +330,11 @@ extern a_boolean is_class_template_placeholder_type(a_type_ptr tp);
 extern
 a_type_ptr normalized_class_template_placeholder_type(a_type_ptr         tp,
                                                       a_source_position  *pos);
+extern a_type_ptr apply_type_transforming_intrinsic(
+                           a_type_ptr             tp,
+                           a_typeref_kind         kind,
+                           a_source_position_ptr  position,
+                           a_boolean              diagnostic_should_be_issued);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 extern a_boolean is_or_has_volatile_qualified_type(a_type_ptr tp);
 extern a_boolean is_referenceable_type(a_type_ptr tp);

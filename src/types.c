@@ -3269,6 +3269,192 @@ the template template argument.  Otherwise, return tp.
   return tp;
 }  /* normalized_class_template_placeholder_type */
 
+
+a_type_ptr apply_type_transforming_intrinsic(
+                            a_type_ptr             tp,
+                            a_typeref_kind         kind,
+                            a_source_position_ptr  error_pos,
+                            a_boolean              diagnostic_should_be_issued)
+/*
+Apply the type-transforming intrinsic specified by kind to the type tp and
+return the transformed type.  If diagnostic_should_be_issued is TRUE, issue a
+diagnostic in error cases.  error_pos is the position to use for diagnostics
+(and may be NULL if diagnostic_should_be_issued is FALSE).
+*/
+{
+  a_type_ptr  result = error_type();
+
+  switch (kind) {
+    case trk_is_underlying_type:
+      if (is_enum_type(tp)) {
+        /* Extract the underlying integral type. */
+        an_integer_type_supplement_ptr  itsp;
+        result = skip_typerefs(tp);
+        itsp = integer_type_supp(result);
+        if (result->variant.integer.has_explicit_enum_base) {
+          result = itsp->base_type;
+#if GNU_EXTENSIONS_ALLOWED
+        } else if (itsp->underlying_type_should_use_unsigned) {
+          /* Usually, the underlying type of an enum type corresponds to
+             the integer type the enum type promotes to.  In GCC that is
+             not the case, and "int_kind" represents the integer kind
+             promoted to.  If appropriate, produce the unsigned counterpart
+             here. */
+          result = integer_type(
+                       unsigned_int_kind_of[result->variant.integer.int_kind]);
+#endif /* GNU_EXTENSIONS_ALLOWED */
+        } else {
+          result = integer_type(result->variant.integer.int_kind);
+        }  /* if */
+      } else {
+        if (diagnostic_should_be_issued) {
+          pos_error(ec_bad_argument_for_underlying_type, error_pos);
+        }  /* if */
+        result = error_type();
+      }  /* if */
+      break;
+    case trk_remove_const:
+      result = remove_qualifiers(tp, TQ_CONST);
+      break;
+    case trk_remove_cv:
+      result = remove_qualifiers(tp, TQ_CONST | TQ_VOLATILE);
+      break;
+    case trk_remove_restrict:
+      result = remove_qualifiers(tp, TQ_RESTRICT);
+      break;
+    case trk_remove_volatile:
+      result = remove_qualifiers(tp, TQ_VOLATILE);
+      break;
+    case trk_add_pointer:
+      if (is_reference_type(tp)) {
+        tp = type_pointed_to(tp);
+      }  /* if */
+      result = make_pointer_type(tp);
+      break;
+    case trk_remove_pointer:
+      if (is_pointer_type(tp)) {
+        result = type_pointed_to(tp);
+      } else {
+        result = tp;
+      }  /* if */
+      break;
+    case trk_add_lvalue_reference:
+      if (is_referenceable_type(tp)) {
+        if (is_reference_type(tp)) {
+          /* Perform reference collapsing. */
+          tp = type_pointed_to(tp);
+          tp = remove_qualifiers(tp, TQ_CONST | TQ_VOLATILE);
+        }  /* if */
+        result = make_reference_type(tp);
+      } else {
+        result = tp;
+      }  /* if */
+      break;
+    case trk_add_rvalue_reference:
+      if (is_referenceable_type(tp)) {
+        if (is_reference_type(tp)) {
+          /* Perform reference collapsing. */
+          result = tp;
+        } else {
+          result = make_rvalue_reference_type(tp);
+        }  /* if */
+      } else {
+        result = tp;
+      }  /* if */
+      break;
+    case trk_remove_reference:
+    case trk_remove_reference_t:
+      if (is_reference_type(tp)) {
+        result = type_pointed_to(tp);
+      } else {
+        result = tp;
+      }  /* if */
+      break;
+    case trk_remove_cvref:
+      if (is_reference_type(tp)) {
+        result = type_pointed_to(tp);
+      } else {
+        result = tp;
+      }  /* if */
+      result = remove_qualifiers(result, TQ_CONST | TQ_VOLATILE);
+      break;
+    case trk_make_signed:
+      if ((is_integral_type(tp) || is_enum_type(tp)) &&
+          !is_bool_type(tp)) {
+        a_type_qualifier_set  tqs = get_type_qualifiers(tp);
+        tp = skip_typerefs(tp);
+        an_integer_kind int_kind = tp->variant.integer.int_kind;
+        result = integer_type(int_kind);
+        if (int_kind == ik_char) {
+          result = integer_type(ik_signed_char);
+        } else if (!int_type_is_signed(tp)) {
+          result = other_signedness_integer_type(int_kind);
+        }  /* if */
+        if (tqs != TQ_NONE) {
+          result = make_qualified_type(result, tqs);
+        }  /* if */
+      } else {
+        if (diagnostic_should_be_issued) {
+          expr_pos_error(ec_bad_argument_to_make_signed, error_pos);
+        }  /*if */
+        result = error_type();
+      }  /* if */
+      break;
+    case trk_make_unsigned:
+      if ((is_integral_type(tp) || is_enum_type(tp)) &&
+          !is_bool_type(tp)) {
+        a_type_qualifier_set  tqs = get_type_qualifiers(tp);
+        tp = skip_typerefs(tp);
+        an_integer_kind int_kind = tp->variant.integer.int_kind;
+        result = integer_type(int_kind);
+        if (int_kind == ik_char) {
+          result = integer_type(ik_unsigned_char);
+        } else if (int_type_is_signed(tp)) {
+          result = other_signedness_integer_type(int_kind);
+        }  /* if */
+        if (tqs != TQ_NONE) {
+          result = make_qualified_type(result, tqs);
+        }  /* if */
+      } else {
+        if (diagnostic_should_be_issued) {
+          expr_pos_error(ec_bad_argument_to_make_unsigned, error_pos);
+        }  /* if */
+        result = error_type();
+      }  /* if */
+      break;
+    case trk_remove_extent:
+      if (is_array_type(tp)) {
+        result = array_element_type(tp);
+      } else {
+        result = tp;
+      }  /* if */
+      break;
+    case trk_remove_all_extents:
+      if (is_array_type(tp)) {
+        result = underlying_array_element_type(tp);
+      } else {
+        result = tp;
+      }  /* if */
+      break;
+    case trk_decay:
+      if (is_reference_type(tp)) {
+        tp = type_pointed_to(tp);
+      }  /* if */
+      if (is_array_type(tp)) {
+        result = make_pointer_type(array_element_type(tp));
+      } else if (is_function_type(tp)) {
+        result = make_pointer_type(tp);
+      } else {
+        result = remove_qualifiers(tp,
+                                   TQ_CONST | TQ_VOLATILE | TQ_RESTRICT);
+      }  /* if */
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return result;
+}  /* apply_type_transforming_intrinsic */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean is_or_has_volatile_qualified_type(a_type_ptr tp)
