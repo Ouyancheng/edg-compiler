@@ -26725,6 +26725,7 @@ intentionally excludes some factors such as the token's sequence number.
             result = FALSE;
           }  /* if */
         }
+        break;
       case teik_pragma:
       case teik_pp_token:
       case teik_extracted_body:
@@ -26800,7 +26801,7 @@ private:
   inline void print_internal(const a_string &text,
                              a_const_char   *color_code = NULL);
   a_boolean     printed_anything;
-                        /* True if anything has been printed. */
+                        /* TRUE if anything has been printed. */
   a_cached_token
                 *prev_token;
                         /* The most recently printed token. */
@@ -26844,7 +26845,7 @@ the token.
                             /*physical_line=*/TRUE);
   /* If the line has progressed, print a new line.
 
-     Note that only cases where a the new line is larger are considered to
+     Note that only cases where the new line is larger are considered to
      "massage" token caches that have insufficient source position information
      (e.g., those coming from IFC files). */
   if (line_num > this->prev_line_num) {
@@ -26865,7 +26866,7 @@ the token.
 
     for (a_column_number i = start; i < end; ++i) {
       padding_str.append(" ");
-    }  /* if */
+    }  /* for */
     print_internal(padding_str);
   }  /* if */
 
@@ -27018,7 +27019,7 @@ a diff-like output to f_debug.
             /* to_tok didn't exist previously: use green for addition. */
             color_code = "32";
           } else if (to_tok == NULL) {
-            /* to_tok didn't exist previously: use red for removal. */
+            /* from_tok no longer exists: use red for removal. */
             color_code = "31";
           }  /* if */
         }  /* if */
