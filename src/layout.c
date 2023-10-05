@@ -2993,7 +2993,8 @@ done:
 
 #endif /* IA64_ABI */
 
-static void set_base_class_offsets(a_base_class_ptr  proximate_derivation)
+static void set_base_class_offsets(a_layout_block    *lob,
+                                   a_base_class_ptr  proximate_derivation)
 /*
 The offset of base class proximate_derivation has been computed, but the
 offsets of its own base classes have not.  The confusing part of this
@@ -3141,9 +3142,17 @@ setting the offset field in the latter.
 #endif /* IA64_ABI */
       /* Do not insert code here. */
       {
+#if IA64_ABI
+        a_targ_size_t  end = bcp->offset
+                           + class_type_supp(bcp->type)
+                                          ->size_without_virtual_base_classes;
+        if (end > lob->curr_extent+1) {
+          lob->curr_extent = end-1;
+        }  /* if */
+#endif /* IA64_ABI */
         /* Make a recursive call to apply this processing to the next level of
            base classes. */
-        set_base_class_offsets(bcp);
+        set_base_class_offsets(lob, bcp);
       }  /* if */
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
     } else if (ref_bcp->is_virtual) {
@@ -3236,7 +3245,7 @@ Lay out the nonvirtual direct base class bcp.
     warn_if_offset_in_tail_padding((a_field_ptr)NULL, bcp, lob);
   }  /* if */
   /* Set the offsets for all of the non-virtual bases of this base. */
-  set_base_class_offsets(bcp);
+  set_base_class_offsets(lob, bcp);
 #endif /* IA64_ABI */
 }  /* set_offset_for_nonvirtual_base_class */
 
@@ -4478,13 +4487,20 @@ Set bcp->offset.  The base class bcp must be a virtual base.
     bcp->offset = set_offset_and_alignment(lob, size, alignment, bcp);
   }  /* if */
 #if IA64_ABI
+  { a_targ_size_t  end = bcp->offset
+                       + class_type_supp(bcp->type)
+                                          ->size_without_virtual_base_classes;
+    if (end > lob->curr_extent+1) {
+      lob->curr_extent = end-1;
+    }  /* if */
+  }
   if (warn_about_tail_padding_use) {
     /* Examine if this base class was allocated in the tail padding of
        another base. */
     warn_if_offset_in_tail_padding((a_field_ptr)NULL, bcp, lob);
   }  /* if */
   /* Set the offsets for all of the non-virtual bases of this base. */
-  set_base_class_offsets(bcp);
+  set_base_class_offsets(lob, bcp);
 #endif /* IA64_ABI */
 #if DEBUG
   if (debug_level >= 4) {
@@ -4646,7 +4662,8 @@ Reserve space at the end of the class object for virtual base classes.
 
 #if !IA64_ABI
 
-static void set_offsets_for_indirect_base_classes(a_type_ptr  class_type)
+static void set_offsets_for_indirect_base_classes(a_layout_block  *lob,
+                                                  a_type_ptr      class_type)
 /*
 Compute the offsets from the start of the object described by class_type
 of each of its indirect base classes.  The direct base classes and the
@@ -4672,7 +4689,7 @@ addressed to indirect base classes.
      rest are handled by recursively scanning the base class tree. */
   for (; bcp != NULL; bcp = bcp->next) {
     if (first_derivation_is_direct(bcp)) {
-      set_base_class_offsets(bcp);
+      set_base_class_offsets(lob, bcp);
     }  /* if */
   }  /* for */
   db_exit();
@@ -4682,7 +4699,8 @@ addressed to indirect base classes.
 
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
 
-static void set_embedded_virtual_base_class_offset(a_base_class_ptr base_class)
+static void set_embedded_virtual_base_class_offset(a_layout_block   *lob,
+                                                   a_base_class_ptr base_class)
 /*
 base_class is a direct or indirect virtual base class of class_type.  If
 it is allocated inside another base class, compute its offset within the layout
@@ -4716,7 +4734,7 @@ classes.
       base_class->offset = bcp->offset + data_section_bcp->offset;
       /* Update the offsets of nonvirtual base classes from which base_class is
          derived. */
-      set_base_class_offsets(base_class);
+      set_base_class_offsets(lob, base_class);
       /* Apply the check recursively to see if there are any indirect virtual
          base classes of class_type that have not been properly assigned an
          offset yet. */
@@ -4743,7 +4761,8 @@ classes.
 
 #if !IA64_ABI
 
-static void fixup_shared_virtual_base_class_offsets(a_type_ptr  class_type)
+static void fixup_shared_virtual_base_class_offsets(a_layout_block  *lob,
+                                                    a_type_ptr      class_type)
 /*
 Set the pointer_offset fields in direct virtual base classes where the
 virtual base class pointer is shared with some other base class.
@@ -4776,7 +4795,7 @@ virtual base class pointer is shared with some other base class.
                                                   pointer_base_class->offset;
       }  /* if */
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
-      set_embedded_virtual_base_class_offset(virtual_base_class);
+      set_embedded_virtual_base_class_offset(lob, virtual_base_class);
 #endif /* CFRONT_OBJECT_CODE_COMPATIBILITY */
     }  /* if */
   }  /* for */
@@ -5226,11 +5245,11 @@ for handling virtual bases and functions.
 #if !IA64_ABI
     /* Go through all the indirect base classes and compute their
        offsets within the current derived class. */
-    set_offsets_for_indirect_base_classes(class_type);
+    set_offsets_for_indirect_base_classes(&lob, class_type);
     /* Similarly go through all the virtual base classes and do any required
        fixup on their pointer offsets and (in cfront compatibility mode)
        their data section offsets. */
-    fixup_shared_virtual_base_class_offsets(class_type);
+    fixup_shared_virtual_base_class_offsets(&lob, class_type);
 #endif /* !IA64_ABI */
     /* Issue a diagnostic if the offset assigned to any base class is too
        large. */
