@@ -27245,17 +27245,9 @@ already been consumed.
                                  /*is_statement_expr=*/TRUE,
                                  saved_expr_stack->marked_as_gnu_extension,
                                  &expr_type);
-    if (sp->kind == (a_statement_kind)stmk_block) {
-      a_scope_ptr  il_scope = sp->variant.block.extra_info->assoc_scope;
-      if (il_scope != NULL) {
-        il_scope->is_stmt_expr_block = TRUE;
-#if ORPHAN_PROCESSING_NEEDED
-        if (in_file_scope(il_scope)) {
-          possibly_add_orphaned_file_scope_il_entry((char*)il_scope,
-                                                    iek_scope);
-        }  /* if */
-#endif /* ORPHAN_PROCESSING_NEEDED */
-      }  /* if */
+    if (sp->kind == (a_statement_kind)stmk_block &&
+        sp->variant.block.extra_info->assoc_scope != NULL) {
+      sp->variant.block.extra_info->assoc_scope->is_stmt_expr_block = TRUE;
     }  /* if */
     restore_expr_stack(saved_expr_stack);
 #if GENERATE_SOURCE_SEQUENCE_LISTS

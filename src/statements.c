@@ -3505,7 +3505,6 @@ block under the "try" in a function try block.
          statement expression (already reflected in curr_il_region_number)
          is that of the enclosing function. */
       scope_stack_top().il_memory_region = curr_il_region_number;
-      scope_stack_top().in_stmt_expr = TRUE;
     }  /* if */
     if (depth_stmt_stack >= 0) {
       /* Set appropriate flags in the scope stack entry. */

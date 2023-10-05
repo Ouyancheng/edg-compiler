@@ -5022,11 +5022,6 @@ members), and does not enter those.
         /* Parameters of requires-expressions can be orphaned. */
         could_be_orphan = TRUE;
         break;
-      case iek_scope:
-        /* A statement expression scope is a local scope but it might be
-           allocated in file-scope. */
-        could_be_orphan = TRUE;
-        break;
       default:
         could_be_orphan = FALSE;
         break;
@@ -16497,8 +16492,7 @@ scope depth.
          memory region only when the scope is a function prototype scope (i.e.,
          in an error case). */
       check_assertion_str(ssep->kind == (a_scope_kind)sck_func_prototype ||
-                          !in_file_scope(var_ptr) ||
-                          ssep->in_stmt_expr,
+                          !in_file_scope(var_ptr),
                           "add_to_variables_list: var in file scope region");
       if (sp->nonstatic_variables == NULL) {
         sp->nonstatic_variables = var_ptr;

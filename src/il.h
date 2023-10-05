@@ -150,12 +150,13 @@ EXTERN a_const_char
 
 #if ORPHAN_PROCESSING_NEEDED
 /*
-It is necessary to maintain a list of IL entries that are allocated in the
-file scope memory region but accessed from the function scope region.  These
-lists are walked during IL file writing and reading and when displaying the IL
-to ensure that all IL entries are visited.  Note, the first_entry and
-last_entry fields point to the first byte of the respective IL entry.  The
-address of the next entry in the linked list precedes the IL entry.
+It is necessary to maintain a list of IL entries that are allocated in
+the file scope memory region but accessed from the function scope
+region.  These lists are walked during IL file writing and reading
+and when displaying the IL to ensure that all IL entries are
+visited.  Note, the first_entry and last_entry point to the first
+byte of the IL entry.  The address of the next entry in the linked list
+precedes the IL entry.
 */
 typedef struct an_orphaned_il_entry_list {
   char *first_entry;	/* Pointer to the first IL entry of a specific
