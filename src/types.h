@@ -533,7 +533,6 @@ clang/GNU type-returning type builtin.
              !is_typeref_kind(tp, trk_is_template_alias);
   } else {
     result = is_typeref_kind((tp), trk_is_decltype) ||
-             is_typeref_kind((tp), trk_is_underlying_type) ||
              is_typeref_kind((tp), trk_bases) ||
              is_typeref_kind((tp), trk_direct_bases) ||
              is_typeref_kind((tp), trk_is_typeof_with_expression) ||
@@ -541,6 +540,28 @@ clang/GNU type-returning type builtin.
   }  /* if */
   return result;
 }  /* typeref_is_type_operator */
+
+
+inline a_boolean typeref_is_type_transforming_intrinsic(a_type_ptr  tp)
+/*
+Return TRUE if tp (which must be a tk_typeref type) represents a
+type-transforming intrinsic.
+*/
+{
+  return typeref_is_type_operator(tp, /*include_intrinsics=*/TRUE) &&
+         !typeref_is_type_operator(tp);
+}  /* typeref_is_type_transforming_intrinsic */
+
+
+inline a_boolean type_is_dependent_type_transforming_intrinsic(a_type_ptr  tp)
+/*
+Return TRUE if tp represents a dependent type-transforming intrinsic.
+*/
+{
+  return type_is(tp, tk_typeref) &&
+         tp->variant.typeref.is_dependent_type_operator &&
+         typeref_is_type_transforming_intrinsic(tp);
+}  /* type_is_dependent_type_transforming_intrinsic */
 
 
 inline a_boolean type_is_typedef(a_type_ptr  tp)

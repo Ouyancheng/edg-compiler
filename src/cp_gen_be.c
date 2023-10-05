@@ -8356,74 +8356,25 @@ associated with the argument should be reactivated in such cases.
         /* Early versions of g++ only accepted the decltype keyword with
            -std=c++0x; however, all versions accept __decltype in all
            modes, so use the safer spelling. */
-        name = "__decltype(";
+        name = "__decltype";
       } else {
-        name = "decltype(";
+        name = "decltype";
       }  /* if */
-      break;
-    case trk_is_underlying_type:
-      name = "__underlying_type(";
       break;
     case trk_is_typeof_with_expression:
     case trk_is_typeof_with_type_operand:
-      name = "__typeof__(";
+      name = "__typeof__";
       break;
     case trk_bases:
-      name = "__bases(";
+      name = "__bases";
       break;
     case trk_direct_bases:
-      name = "__direct_bases(";
-      break;
-    case trk_add_lvalue_reference:
-      name = "__add_lvalue_reference(";
-      break;
-    case trk_add_pointer:
-      name = "__add_pointer(";
-      break;
-    case trk_add_rvalue_reference:
-      name = "__add_rvalue_reference(";
-      break;
-    case trk_decay:
-      name = "__decay(";
-      break;
-    case trk_make_signed:
-      name = "__make_signed(";
-      break;
-    case trk_make_unsigned:
-      name = "__make_unsigned(";
-      break;
-    case trk_remove_all_extents:
-      name = "__remove_all_extents(";
-      break;
-    case trk_remove_const:
-      name = "__remove_const(";
-      break;
-    case trk_remove_cv:
-      name = "__remove_cv(";
-      break;
-    case trk_remove_cvref:
-      name = "__remove_cvref(";
-      break;
-    case trk_remove_extent:
-      name = "__remove_extent(";
-      break;
-    case trk_remove_pointer:
-      name = "__remove_pointer(";
-      break;
-    case trk_remove_reference_t:
-      name = "__remove_reference_t(";
-      break;
-    case trk_remove_restrict:
-      name = "__remove_restrict(";
-      break;
-    case trk_remove_volatile:
-      name = "__remove_volatile(";
-      break;
-    case trk_remove_reference:
-      name = "__remove_reference(";
+      name = "__direct_bases";
       break;
     default:
-      unexpected_condition();
+      check_assertion(typeref_is_type_transforming_intrinsic(tp));
+      name = type_transforming_intrinsic_name(tp->variant.typeref.kind);
+      break;
   }  /* switch */
   if (tp->definition_delayed) {
     /* The construct has associated source sequence entries.  Save the
@@ -8439,6 +8390,7 @@ associated with the argument should be reactivated in such cases.
     if (entity_name_is_accessible(&type_opnd->source_corresp, iek_type,
                                   /*ignore_context=*/FALSE, &for_all_scopes)) {
       write_tok_str(name);
+      write_tok_ch('(');
       gen_type(type_opnd);
       write_tok_ch(')');
     } else {
@@ -8486,6 +8438,7 @@ associated with the argument should be reactivated in such cases.
       }  /* if */
       if (!operator_suppressed) {
         write_tok_str(name);
+        write_tok_ch('(');
         if (need_parens) {
           write_tok_ch('(');
         }  /* if */

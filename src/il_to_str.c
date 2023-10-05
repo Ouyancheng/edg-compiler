@@ -1491,6 +1491,38 @@ beginning with "**BAD" for a bad float kind.
 }  /* float_kind_name */
 
 
+a_const_char *type_transforming_intrinsic_name(a_typeref_kind kind)
+/*
+Return a string for the name of type type-transforming intrinsic specified by
+kind.
+*/
+{
+  a_const_char *p = NULL;
+
+  switch (kind) {
+    case trk_add_lvalue_reference: p = "__add_lvalue_reference"; break;
+    case trk_add_pointer:          p = "__add_pointer";          break;
+    case trk_add_rvalue_reference: p = "__add_rvalue_reference"; break;
+    case trk_decay:                p = "__decay";                break;
+    case trk_is_underlying_type:   p = "__underlying_type";      break;
+    case trk_make_signed:          p = "__make_signed";          break;
+    case trk_make_unsigned:        p = "__make_unsigned";        break;
+    case trk_remove_all_extents:   p = "__remove_all_extents";   break;
+    case trk_remove_const:         p = "__remove_const";         break;
+    case trk_remove_cv:            p = "__remove_cv";            break;
+    case trk_remove_cvref:         p = "__remove_cvref";         break;
+    case trk_remove_extent:        p = "__remove_extent";        break;
+    case trk_remove_pointer:       p = "__remove_pointer";       break;
+    case trk_remove_reference:     p = "__remove_reference";     break;
+    case trk_remove_reference_t:   p = "__remove_reference_t";   break;
+    case trk_remove_restrict:      p = "__remove_restrict";      break;
+    case trk_remove_volatile:      p = "__remove_volatile";      break;
+    default:                       unexpected_condition();       break;
+  }  /* switch */
+  return p;
+}  /* type_transforming_intrinsic_name */
+
+
 #if BACK_END_IS_C_GEN_BE
 #if LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C
 #if ISSUE_WARNING_ON_LONG_DOUBLE_AS_DOUBLE
@@ -2280,7 +2312,7 @@ by octl.
           }  /* if */
           octl->output_str(")", octl);
         }  /* if */
-      } else if (is_typeref_kind(type, trk_is_underlying_type) ||
+      } else if (typeref_is_type_transforming_intrinsic(type) ||
                  is_typeref_kind(type, trk_bases) ||
                  is_typeref_kind(type, trk_direct_bases)) {
         if (octl->gen_compilable_code && octl->output_name != NULL) {
@@ -2291,8 +2323,10 @@ by octl.
              types. */
           octl->output_name((char*)type, iek_type);
         } else {
-          if (is_typeref_kind(type, trk_is_underlying_type)) {
-            octl->output_str("__underlying_type(", octl);
+          if (typeref_is_type_transforming_intrinsic(type)) {
+            a_typeref_kind  kind = type->variant.typeref.kind;
+            octl->output_str(type_transforming_intrinsic_name(kind), octl);
+            octl->output_str("(", octl);
           } else {
             octl->output_str(type->variant.typeref.kind == trk_direct_bases
                                                    ? (char *)"__direct_bases("
@@ -2618,12 +2652,12 @@ portable).
     /* The C++-generating back end should include these operators in the
        generated code. */
     render = TRUE;
-  } else if (typeref_is_type_operator(type)) {
+  } else if (typeref_is_type_operator(type, /*include_intrinsics=*/TRUE)) {
     an_expr_node_ptr expr = decltype_arg(type);
     if (octl->c_generating_back_end) {
       /* Never render a type operator in the C-generating back end. */
       render = FALSE;
-    } else if (is_typeref_kind(type, trk_is_underlying_type) ||
+    } else if (typeref_is_type_transforming_intrinsic(type) ||
                is_typeref_kind(type, trk_bases) ||
                is_typeref_kind(type, trk_direct_bases) ||
                (!is_typeref_kind(type, trk_is_decltype) && expr == NULL)) {

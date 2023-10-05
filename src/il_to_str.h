@@ -431,6 +431,8 @@ extern a_const_char *int_type_name(a_type_ptr type);
 extern a_const_char *float_kind_name(a_float_kind kind,
                                      a_boolean    use_C_form);
 
+extern a_const_char *type_transforming_intrinsic_name(a_typeref_kind kind);
+
 extern void form_type_qualifier(
                      a_type_qualifier_set                  qualifiers,
                      a_upc_block_size                      upc_block_size,

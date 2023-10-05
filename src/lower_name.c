@@ -9907,6 +9907,7 @@ specified type.  Substitutions are not allocated for <builtin-type>s
       check_assertion(is_qualified_type(type) ||
                       (typeref_is_type_operator(type) ||
                        type->variant.typeref.is_dependent ||
+                       is_typeref_kind(type, trk_is_underlying_type) ||
                        is_typeref_kind(type, trk_is_deduced_auto) ||
                        is_typeref_kind(type, trk_is_deduced_decltype_auto)));
       result = TRUE;
@@ -10544,6 +10545,7 @@ top_of_loop:
            __underlying_types/typeofs should have been stripped, leaving only
            dependent decltype/__underlying_type/typeof typerefs. */
         check_assertion(typeref_is_type_operator(type) ||
+                        is_typeref_kind(type, trk_is_underlying_type) ||
                         is_typeref_kind(type, trk_is_deduced_auto) ||
                         is_typeref_kind(type, trk_is_deduced_decltype_auto));
         if (is_typeref_kind(type, trk_is_decltype)) {

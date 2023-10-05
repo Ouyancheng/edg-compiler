@@ -3798,6 +3798,8 @@ used instead of calling this routine directly.
 
   for (;;) {
     if (tp->kind == (a_type_kind)tk_typeref) {
+      /* Stop at a dependent type operator */
+      if (tp->variant.typeref.is_dependent_type_operator) break;
       /* May be a typedef or a qualification. */
       qualifiers |= tp->variant.typeref.qualifiers;
       tp = tp->variant.typeref.type;
@@ -6692,6 +6694,42 @@ be customized if additional linkage kinds are added to a_name_linkage_kind
 
 #if !STANDALONE_UTILITY_PROGRAM
 
+static
+a_boolean get_comparison_types_for_type_intrinsic(a_type_ptr *p_type_1,
+                                                  a_type_ptr *p_type_2)
+/*
+The types pointed to by p_type_1 and p_type_2 are being compared by
+f_types_are_compatible.  If one or the other is a dependent type-transforming
+intrinsic, skip any other typerefs and return TRUE.
+*/
+{
+  a_boolean  type_intrinsic = FALSE;
+  a_type_ptr type_1 = *p_type_1;
+  a_type_ptr type_2 = *p_type_2;
+
+  /* Remove typerefs that aren't dependent type operators. */
+  while (type_is(type_1, tk_typeref)) {
+    if (type_is_dependent_type_transforming_intrinsic(type_1)) {
+      type_intrinsic = TRUE;
+      break;
+    }  /* if */
+    type_1 = type_1->variant.typeref.type;
+  }  /* while */
+  while (type_is(type_2, tk_typeref)) {
+    if (type_is_dependent_type_transforming_intrinsic(type_2)) {
+      type_intrinsic = TRUE;
+      break;
+    }  /* if */
+    type_2 = type_2->variant.typeref.type;
+  }  /* while */
+  if (type_intrinsic) {
+    *p_type_1 = type_1;
+    *p_type_2 = type_2;
+  }  /* if */
+  return type_intrinsic;
+}  /* get_comparison_types_for_type_intrinsic */
+
+
 static a_boolean adjust_comparison_types_for_decltype(a_type_ptr *p_type_1,
                                                       a_type_ptr *p_type_2)
 /*
@@ -6824,17 +6862,14 @@ is encountered.  If the type returned is one of those typerefs,
 {
   *check_expr = FALSE;
   while (type->kind == (a_type_kind)tk_typeref) {
-    if (type->variant.typeref.is_dependent_type_operator &&
-        /* Don't stop on __underlying_types, since they are not based on
-           expressions. */
-        !is_typeref_kind(type, trk_is_underlying_type)
+    if (type->variant.typeref.is_dependent_type_operator
 #if GNU_EXTENSIONS_ALLOWED
         /* Don't stop on typeofs without expressions, since you can't compare
            expressions on those. */
         && !is_typeref_kind(type, trk_is_typeof_with_type_operand)
 #endif /* GNU_EXTENSIONS_ALLOWED */
                                                                   ) {
-      *check_expr = TRUE;
+      *check_expr = typeref_is_type_operator(type);
       break;
     }  /* if */
     type = type->variant.typeref.type;
@@ -7119,13 +7154,17 @@ check_typerefs:
   if (type_1->kind == (a_type_kind)tk_typeref ||
       type_2->kind == (a_type_kind)tk_typeref) {
     a_type_qualifier_set  tqs1 = TQ_NONE, tqs2 = TQ_NONE;
-    a_boolean             type_op = FALSE;
+    a_boolean             type_op = FALSE, type_intrinsic = FALSE;
     a_type_ptr            tp1 = type_1, tp2 = type_2;
     a_boolean	          is_nonreal1 = FALSE, is_nonreal2 = FALSE;
     while (tp1->kind == (a_type_kind)tk_typeref) {
       if (!has_name(tp1)) {
         if (typeref_is_type_operator(tp1)) {
           type_op = TRUE;
+        } else if (tp1->variant.typeref.is_dependent_type_operator &&
+                   typeref_is_type_transforming_intrinsic(tp1)) {
+          type_intrinsic = TRUE;
+          break;
         } else {
           tqs1 |= tp1->variant.typeref.qualifiers;
         }  /* if */
@@ -7138,6 +7177,10 @@ check_typerefs:
       if (!has_name(tp2)) {
         if (typeref_is_type_operator(tp2)) {
           type_op = TRUE;
+        } else if (tp2->variant.typeref.is_dependent_type_operator &&
+                   typeref_is_type_transforming_intrinsic(tp2)) {
+          type_intrinsic = TRUE;
+          break;
         } else {
           tqs2 |= tp2->variant.typeref.qualifiers;
         }  /* if */
@@ -7150,6 +7193,24 @@ check_typerefs:
         type_2->kind == (a_type_kind)tk_typeref) {
       if (is_nonreal1 != is_nonreal2) {
         goto done;
+      } else if (type_intrinsic) {
+        if (!(flags & ITF_IGNORE_TOP_LEVEL_QUALIFIERS) &&
+            !matching_type_qualifier_sets(tqs1, tqs2)) {
+          /* The type qualifiers do not match, so the types are not
+             identical. */
+          goto done;
+        }  /* if */
+        if (type_is(tp1, tk_typeref) && type_is(tp2, tk_typeref) &&
+            tp1->variant.typeref.kind == tp2->variant.typeref.kind) {
+          /* Both types apply the same dependent built-in type trait.  Continue
+             with their underlying types. */
+          type_1 = tp1->variant.typeref.type;
+          type_2 = tp2->variant.typeref.type;
+          goto check_typerefs;
+        } else {
+          /* Different dependent type-transforming intrinsics. */
+          goto done;
+        }  /* if */
       } else if (is_nonreal1 &&
                  type_1->source_corresp.is_class_member &&
                  type_2->source_corresp.is_class_member &&
@@ -7224,6 +7285,9 @@ check_typerefs:
          comparison to succeed.  Note that the tk_typeref entry cannot appear
          under another tk_typeref entry in such cases. */
       identical = TRUE;
+      goto done;
+    } else if (type_intrinsic) {
+      /* Only one of the types is a type-transforming intrinsics. */
       goto done;
     } else if (type_op) {
       /* At least one of the types involves a type operator like decltype or
@@ -8135,6 +8199,22 @@ check_typerefs:
            tk_typeref entry in such cases. */
         compat = TRUE;
         goto done;
+      } else if (get_comparison_types_for_type_intrinsic(&type_1, &type_2)) {
+        if (!qualifier_mismatch &&
+            type_is_dependent_type_transforming_intrinsic(type_1) &&
+            type_is_dependent_type_transforming_intrinsic(type_2) &&
+            type_1->variant.typeref.kind == type_2->variant.typeref.kind) {
+          /* Both types apply the same type-transforming intrinsic.  Continue
+             with their underlying types. */
+          type_1 = type_1->variant.typeref.type;
+          type_2 = type_2->variant.typeref.type;
+          if (type_is(type_1, tk_typeref) || type_is(type_2, tk_typeref)) {
+            goto check_typerefs;
+          }  /* if */
+        } else {
+          /* Different dependent built-in type traits. */
+          goto done;
+        }  /* if */
       } else if ((flags & TCF_CHECKING_DEDUCTION_RESULT) &&
                  adjust_comparison_types_for_decltype(&type_1, &type_2)) {
         /* When checking a deduction result, we have to allow some slight
