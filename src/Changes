@@ -1,6 +1,6 @@
 Version 6.6
 
-10/5/23  [EDGcpfe/26657,EDGcpfe/26690]
+10/5/23  [EDGcpfe/21200,EDGcpfe/26657,EDGcpfe/26690]
 Substitution of GNU/clang type-transforming intrinsics
 
 The changes for EDGcpfe/26193 added front end support for a number of
