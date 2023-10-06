@@ -8344,6 +8344,27 @@ specified by diag.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
+void issue_redef_diag(a_source_position *new_pos,
+                      a_symbol          *prev_decl_sym,
+    /* Defaulted: */  an_error_severity severity)
+/*
+Given the (new) position of the redefinition, the previous declaration symbol,
+and an error severity, emit a redefinition diagnostic.
+*/
+{
+  an_il_entry_kind  kind;
+  char              *il_ptr = il_entry_for_symbol_null_okay(prev_decl_sym,
+                                                            &kind);
+  a_source_position *prev_def_pos = definition_position_of(kind, il_ptr);
+
+  if (prev_def_pos != NULL) {
+    pos_diagnostic(severity, ec_already_defined_with_pos, new_pos,
+                   prev_decl_sym, prev_def_pos);
+  } else {
+    pos_diagnostic(severity, ec_already_defined, new_pos, prev_decl_sym);
+  }  /* if */
+}  /* issue_redef_diag */
+
 #if MAKE_FRONT_END_CALLABLE
 
 void error_cleanup(void)

@@ -7398,6 +7398,7 @@ it is followed by a colon.)
   a_label_ptr                    label;
   a_struct_stmt_stack_entry_ptr  sssep = &struct_stmt_stack[depth_stmt_stack];
   an_attribute_ptr               attributes = sssep->prefix_attributes;
+  a_source_position              label_pos = pos_curr_token;
 
   sssep->prefix_attributes = NULL;
   sssep->contains_user_label = TRUE;
@@ -7406,7 +7407,7 @@ it is followed by a colon.)
   label = scan_label(/*is_definition=*/TRUE, /*is_declaration=*/FALSE);
   /* See if the label has already been defined. */
   if (label->exec_stmt != NULL) {
-    sym_error(ec_already_defined, symbol_for(label));
+    issue_redef_diag(&label_pos, symbol_for(label));
     set_reachable(curr_reachability);
   } else {
     /* The label has not previously been declared, so put out the

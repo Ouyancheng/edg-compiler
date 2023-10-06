@@ -24641,7 +24641,7 @@ redeclaration) and any redeclaration error should be suppressed.
       /* Not previously defined. */
     } else if (decl_state->defines_something) {
       /* Attempting to redefine a class template. */
-      pos_sy_error(ec_already_defined, &loc->source_position, sym);
+      issue_redef_diag(&loc->source_position, sym);
       err = TRUE;
     }  /* if */
     if (decl_state->decl_scope_err) err = TRUE;
@@ -29095,7 +29095,7 @@ supplement for this template should be returned to the caller.
              (!var->initializer_in_class ||
               (var->is_inline && !var->is_constexpr))) {
     /* Prior definition. */
-    pos_sy_error(ec_already_defined, &locator->source_position, sym);
+    issue_redef_diag(&locator->source_position, sym);
     err = TRUE;
     redef_error_reported = TRUE;
   } else if (dps->is_struct_binding_decl) {
@@ -29129,7 +29129,7 @@ supplement for this template should be returned to the caller.
       /* Having more than one out-of-class declaration of a static data member
          is invalid, except for C++17 inline static data members (which are not
          considered definitions from a language point of view). */
-      pos_sy_error(ec_redefinition, &locator->source_position, var_sym);
+      issue_redef_diag(&locator->source_position, var_sym);
     }  /* if */
     if ((is_ptr_or_ref_type(type) &&
          is_function_type(type_pointed_to(type))) ||
@@ -33165,12 +33165,12 @@ that follows.
           source_sequence_entries_disallowed = TRUE;
           remove_declarator_sse(dps, decl_scope_level);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-          pos_sy_warning(ec_already_defined, &locator.source_position, sym);
+          issue_redef_diag(&locator.source_position, sym, es_warning);
           replace_entry_for_duplicate_specialization(&sym);
           rp = sym->variant.routine.ptr;
           scp = &rp->source_corresp;
         } else {
-          pos_sy_error(ec_already_defined, &locator.source_position, sym);
+          issue_redef_diag(&locator.source_position, sym);
           sym = NULL;
         }  /* if */
       } else if (!already_specialized || dps->is_definition) {

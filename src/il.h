@@ -1152,6 +1152,9 @@ extern void prepend_element_positions(an_element_position_ptr  new_epp,
 
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
+extern a_source_position* definition_position_of(an_il_entry_kind kind,
+                                                 char             *ptr);
+
 extern int compare_source_positions(a_source_position  *pos1,
 				    a_source_position  *pos2);
 

@@ -3345,6 +3345,169 @@ in front of the list pointed by *p_epp (which might be NULL).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+a_source_position *definition_position_of(an_il_entry_kind kind,
+                                          char             *ptr)
+/*
+Find and return a pointer to the source position of the definition of the IL
+entity with the given kind and address.  If no definition position is known,
+instead return NULL.
+
+Note for entities that can only have one declaration, the definition position
+is considered the position of the canonical declaration.  For entities that can
+have multiple "definitions", (e.g, a namespace), NULL will always be returned.
+
+Additionally, note this function is currently incomplete and only makes a best
+effort.  There are cases where a definition exists where no source position is
+currently returned.
+*/
+{
+  a_source_position *result = NULL;
+
+  switch (kind) {
+    case iek_label:
+      /* The simple case, these constructs can only have one declaration, so
+         just use the existing symbol's declaration position. */
+      { a_source_correspondence *scp = source_corresp_for_il_entry(ptr, kind);
+
+        result = &scp->decl_position;
+      }
+      break;
+    case iek_routine:
+      { a_routine                 *rp = (a_routine*)ptr;
+        a_type                    *rtp = rp->type;
+        a_routine_type_supplement *rtsp = rout_type_supp(rtp);
+
+        result = &rtsp->definition_pos;
+      }
+      break;
+    case iek_template:
+      { a_template *templ = (a_template*)ptr;
+
+        check_assertion(templ->canonical_template != NULL);
+        templ = templ->canonical_template;
+        check_assertion(templ->definition_template != NULL);
+        templ = templ->definition_template;
+        result = &templ->source_corresp.decl_position;
+      }
+      break;
+    case iek_type:
+      { a_type *type = (a_type*)ptr;
+
+        if (is_class_struct_union_type(type)) {
+          a_class_type_supplement *ctsp = class_type_supp(type);
+
+          result = &ctsp->definition_pos;
+        }  else if (is_enum_type(type)) {
+          an_integer_type_supplement *itsp = integer_type_supp(type);
+
+          result = &itsp->definition_pos;
+        }  /* if */
+      }
+      break;
+    case iek_none:
+    case iek_source_file:
+    case iek_constant:
+    case iek_param_type:
+    case iek_routine_type_supplement:
+    case iek_based_type_list_member:
+    case iek_variable:
+    case iek_field:
+    case iek_exception_specification:
+    case iek_exception_specification_type:
+    case iek_expr_node:
+    case iek_for_loop:
+    case iek_range_based_for_loop:
+    case iek_for_each_loop:
+    case iek_switch_case_entry:
+    case iek_switch_stmt_descr:
+    case iek_handler:
+    case iek_try_supplement:
+    case iek_microsoft_try_supplement:
+    case iek_block:
+    case iek_statement:
+    case iek_object_lifetime:
+    case iek_scope:
+    case iek_id_name:
+    case iek_string_text:
+    case iek_other_text:
+    case iek_internal_complex_value:
+    case iek_namespace:
+    case iek_using_decl:
+    case iek_dynamic_init:
+    case iek_local_static_variable_init:
+    case iek_vla_dimension:
+    case iek_vcall_offset_entry:
+    case iek_overriding_virtual_function:
+    case iek_derivation_step:
+    case iek_base_class_derivation:
+    case iek_base_class:
+    case iek_class_list_entry:
+    case iek_routine_list_entry:
+    case iek_class_type_supplement:
+    case iek_template_param_type_supplement:
+    case iek_constructor_init:
+    case iek_asm_entry:
+    case iek_asm_operand:
+    case iek_asm_operand_constraint:
+    case iek_named_register_list:
+    case iek_label_list:
+    case iek_template_arg:
+    case iek_new_delete_supplement:
+    case iek_gcnew_supplement:
+    case iek_throw_supplement:
+    case iek_condition_supplement:
+    case iek_scope_orphaned_list_header:
+    case iek_pragma:
+    case iek_per_instantiation_needed_flags_entry:
+    case iek_element_position:
+    case iek_decl_position_supplement:
+    case iek_template_decl:
+    case iek_requires_clause:
+    case iek_template_parameter:
+    case iek_name_reference:
+    case iek_name_qualifier:
+    case iek_ms_attribute:
+    case iek_ms_attribute_arg:
+    case iek_custom_ms_attribute_arg:
+    case iek_property_index_type:
+    case iek_property_or_event_descr:
+    case iek_generic_constraint_clause:
+    case iek_generic_constraint:
+    case iek_seq_number_lookup_entry:
+    case iek_local_expr_node_ref:
+    case iek_static_assertion:
+    case iek_local_scope_ref:
+    case iek_il_entity_list_entry:
+    case iek_lambda:
+    case iek_lambda_capture:
+    case iek_attribute:
+    case iek_attribute_arg:
+    case iek_attribute_group:
+    case iek_typeref_type_supplement:
+    case iek_integer_type_supplement:
+    case iek_cli_metadata_file:
+    case iek_gnu_routine_supplement:
+    case iek_coroutine_descr:
+    case iek_variable_template_info:
+    case iek_event_interface:
+    case iek_subobject_path:
+    case iek_constexpr_if:
+    case iek_module:
+    case iek_module_import_decl:
+    case iek_last:
+      /* Unknown definition position. */
+      break;
+  } /* switch */
+  /* Catch any cases where the source position is a copy of the null position,
+     and instead return NULL to prevent a confusing diagnostic. */
+  if (result != NULL &&
+      (cmp_source_positions(*result, null_source_position) == 0)) {
+      result = NULL;
+  }  /* if */
+  return result;
+}  /* definition_position_of */
+
+
 int compare_source_positions(a_source_position	*pos1,
 			     a_source_position  *pos2)
 /*

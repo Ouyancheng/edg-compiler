@@ -12102,8 +12102,7 @@ possibility.
         }  /* if */
         if (sym->defined && func_info->is_definition) {
           /* Trying to define a function that's already defined. */
-          pos_sy_error(ec_function_redefinition,
-                       &locator->source_position, sym);
+          issue_redef_diag(&locator->source_position, sym);
           set_to_error_locator(*locator);
         } else {
           a_routine_ptr  rp = sym->variant.routine.ptr;
@@ -16560,7 +16559,7 @@ implicitly declared member functions.
         (!has_gnu_routine_supp(rtn) ||
          !gnu_routine_supp(rtn)->is_target_specific_version)) {
       /* No "target" attribute was found. */
-      pos_sy_error(ec_function_redefinition, &locator->source_position, sym);
+      issue_redef_diag(&locator->source_position, sym);
       set_to_error_locator(*locator);
     }  /* if */
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
@@ -32443,6 +32442,7 @@ classes.
   new_type_list_entry->next = *classes_that_may_need_fixups;
   *classes_that_may_need_fixups = new_type_list_entry;
   check_assertion(!cssp->being_defined);
+  ctsp->definition_pos = dps->start_pos;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcx_enabled) {
     if (processing_vccorlib_header) {

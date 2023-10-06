@@ -7154,6 +7154,11 @@ typedef struct a_routine_type_supplement {
 			   function.  (Usually, this is equivalent to
 			   this_class != NULL, but this_class is sometimes
 			   temporarily set to NULL.) */
+  a_source_position
+		definition_pos;
+			/* The position for the start of the declaration
+			   defining the routine.  This may be the null source
+			   position if the routine is not defined. */
   a_lint_varargs_count
 	         lint_varargs_count;
                         /* If not equal to NOT_LINT_VARARGS (-1), this
@@ -8625,6 +8630,11 @@ typedef struct a_class_type_supplement {
 			   were explicitly declared as friends of the current
 			   class (i.e., classes that the current class has
 			   befriended). */
+  a_source_position
+		definition_pos;
+			/* The position for the start of the declaration
+			   defining this class type.  This may be the null
+			   source position if the class is not defined. */
   a_scope_ptr	assoc_scope;
 			/* The scope for the class type.  In the scope entry,
 			   "routines" gives a linked list of routine entries
@@ -9028,6 +9038,11 @@ Entry containing additional information about an integral type.
 */
 typedef struct an_integer_type_supplement *an_integer_type_supplement_ptr;
 typedef struct an_integer_type_supplement {
+  a_source_position
+		definition_pos;
+			/* For enumeration types, the position for the start of
+			   the declaration defining the enum.  This may be the
+			   null source position if the enum is not defined. */
   a_bit_field	enumerator_list_seen:1;
 			/* TRUE for enumeration types whose enumerator list has
 			   been seen. */
