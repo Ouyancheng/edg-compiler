@@ -1,5 +1,23 @@
 Version 6.6
 
+10/6/23  [EDGcpfe/26663]
+Constant-destruction and mutable members
+
+Consider, in C++20 mode:
+
+  struct S {
+    mutable int x = 1;
+    constexpr ~S() { auto r = this->x; }
+  };
+  constexpr S s;  // Previously accepted.  Now an error.
+
+This example is invalid because the destructor for s, which must implement
+constant-destruction since s is a constexpr variable, accesses a mutable
+member (whose value could conceivably change at run time between its
+initialization and destruction).  The front end previously failed to diagnose
+this.  That is now fixed.
+
+
 10/6/23  [EDGcpfe/26686]
 Abort on pack expansion in requires-expression
 

@@ -3723,6 +3723,7 @@ within the given complete object).
 done:;
 }  /* init_subobject_to_zero */
 
+
 /*
 Return TRUE if the given complete object is fully initialized.
 */
@@ -3751,6 +3752,104 @@ object) is initialized.
   get_init_bit_pos(off, byte_pos, bit_pos);
   return (complete_object[-(int)byte_pos] & (a_byte)(1<<bit_pos)) != 0;
 }  /* subobject_is_initialized */
+
+
+static a_boolean mark_mutable_members_not_initialized(
+                                          an_interpreter_state  *ips,
+                                          a_byte                *subobj,
+                                          a_type_ptr            tp,
+                                          a_byte                *complete_obj)
+/*
+Mark any mutable members in the given subobject as not initialized.  This is
+needed for something like the following example:
+
+  struct S {
+    mutable int x = 1;
+    constexpr ~S() { auto r = this->x; }
+  };
+  constexpr S s;  // Must be an error.
+
+This example is not valid because the destructor for s cannot access this->x
+since it may have changed at run time.  By calling this function after
+evaluating the default initializer but before evaluating the destructor, the
+latter evaluation will fail, as intended.
+*/
+{
+  a_boolean  any_action = FALSE;
+
+  if (type_is(tp, tk_struct) || type_is(tp, tk_class)) {
+    if (tp->variant.class_struct_union.any_mutable_member) {
+      a_base_class_ptr  bcp = base_classes_of(tp);
+      a_field_ptr       fp = tp->variant.class_struct_union.field_list;
+      fp = next_alloc_field(fp);
+      for (; fp != NULL; fp = next_alloc_field(fp->next)) {
+        a_type_ptr    ftp = skip_typerefs(fp->type);
+        a_byte_count  offset;
+        get_mapped_byte_count(&persistent_map, fp, offset);
+        if (fp->is_mutable) {
+          mark_whole_subobject_uninitialized(ips, subobj+offset, ftp,
+                                               complete_obj);
+          any_action = TRUE;
+        } else {
+          if (mark_mutable_members_not_initialized(
+                                     ips, subobj+offset, ftp, complete_obj)) {
+            any_action = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+      for (; bcp != NULL; bcp = bcp->next) {
+        if (bcp->direct) {
+          a_byte_count  offset;
+          get_mapped_byte_count(&persistent_map, bcp, offset);
+          if (mark_mutable_members_not_initialized(
+                               ips, subobj+offset, bcp->type, complete_obj)) {
+            any_action = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  } else if (type_is(tp, tk_union)) {
+    if (tp->variant.class_struct_union.any_mutable_member &&
+        subobject_is_initialized(subobj, complete_obj)) {
+      /* Only examine the active field. */
+      a_field_ptr  fp = *(a_field_ptr*)subobj;
+      if (fp != NULL) {
+        a_type_ptr    ftp = skip_typerefs(fp->type);
+        a_byte_count  offset;
+        get_mapped_byte_count(&persistent_map, fp, offset);
+        if (fp->is_mutable) {
+          mark_whole_subobject_uninitialized(ips, subobj+offset, ftp,
+                                               complete_obj);
+          any_action = TRUE;
+        } else {
+          if (mark_mutable_members_not_initialized(
+                                     ips, subobj+offset, ftp, complete_obj)) {
+            any_action = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  } else if (type_is(tp, tk_array)) {
+    a_type_ptr     etp = skip_typerefs(tp->variant.array.element_type);
+    a_targ_size_t  n_elems, k;
+    a_byte_count   elem_size;
+    a_boolean      result = TRUE;
+    n_elems = tp->variant.array.variant.number_of_elements;
+    elem_size = value_bytes_for_type(ips, etp, &result);
+    check_assertion(result);
+    for (k = 0; k<n_elems; k += 1) {
+      if (mark_mutable_members_not_initialized(
+                                            ips, subobj, etp, complete_obj)) {
+        any_action = TRUE;
+      }  /* if */
+      subobj += elem_size;
+    }  /* for */
+  }  /* if */
+  if (any_action) {
+    clear_complete_obj_flag(complete_obj, COMPLETE_OBJ_INITIALIZED);
+  }  /* if */
+  return any_action;
+}  /* mark_mutable_members_not_initialized */
 
 
 static a_boolean addresses_are_comparable(an_interpreter_state  *ips,
@@ -21552,8 +21651,10 @@ if the caller has determined that reinterpret_cast expressions can be folded
            destruction of temporaries in that case. */
         result = FALSE;
       } else if (dip->destructor != NULL &&
-                 !do_constexpr_dtor(&ips, dip->destructor, pos,
-                                    result_storage, result_storage)) {
+                 !((void)mark_mutable_members_not_initialized(
+                           &ips, result_storage, result_type, result_storage),
+                   do_constexpr_dtor(&ips, dip->destructor, pos,
+                                    result_storage, result_storage))) {
         if (dip->variable != NULL && dip->variable->declared_constinit &&
             ips.dyn_allocations == NULL && !dyn_init_is(dip, dik_constant) &&
             !dyn_init_is(dip, dik_zero) && !dyn_init_is(dip, dik_none)) {
