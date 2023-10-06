@@ -8368,7 +8368,7 @@ Cfront's layout:                            //     C
   };
 
 Here, the data section for virtual base class A is allocated independently
-in C and not embedded in B, since be is not a complete subobject of C.
+in C and not embedded in B, since B is not a complete subobject of C.
 
 (2) Virtual base class data sections are (usually) embedded in complete
     subobjects.

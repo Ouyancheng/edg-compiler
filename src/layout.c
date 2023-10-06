@@ -4705,11 +4705,12 @@ some current state about the layout of lob->class_type.
 static void set_embedded_virtual_base_class_offset(a_layout_block   *lob,
                                                    a_base_class_ptr base_class)
 /*
-base_class is a direct or indirect virtual base class of lob->class_type.  If
-it is allocated inside another base class, compute its offset within the layout
-its class.  Then do the same check for its own direct virtual base classes.
-lob points to a block of information that describes some current state about
-the layout of lob->class_type.
+base_class is a direct or indirect virtual base class of lob->class_type (which
+is also base_class->derived_class).  If it is allocated inside another base
+class, compute its offset within the layout of its class.  Then do the same
+check for its own direct virtual base classes.  lob points to a block of
+information that describes some current state about the layout of
+lob->class_type.
 */
 {
   a_base_class_ptr  data_section_bcp, bcp, curr_class_bcp;
