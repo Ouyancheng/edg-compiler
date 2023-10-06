@@ -1,5 +1,19 @@
 Version 6.6
 
+10/6/23  [EDGcpfe/26686]
+Abort on pack expansion in requires-expression
+
+Consider:
+
+  template<typename... T> bool g(T... t) {
+    return requires { f(t...); };
+  }
+  int r = g();
+
+This previously aborted due to a failed assertion in find_variable_for_pack
+(scope_stk.c).  That is now fixed.
+
+
 10/5/23  [EDGcpfe/21200,EDGcpfe/26657,EDGcpfe/26690]
 Substitution of GNU/clang type-transforming intrinsics
 

@@ -11439,18 +11439,35 @@ template instantiation of a variadic template or some other context considered
 to be part of the function template such as a lambda nested therein.
 */
 {
-  a_scope_stack_entry_ptr	ssep;
+  a_scope_stack_entry_ptr	ssep = &scope_stack_top();
   a_variable_ptr		vp;
   a_variable_ptr		result_vp = NULL;
   uint32_t			param_num = prp->param_num;
   uint32_t			function_scopes_to_skip =
                                                   prp->function_scopes_to_skip;
 
+  if (scope_is(ssep, sck_template_instantiation) && ssep->is_rescan) {
+    /* We might run into a pack expansion during SFINAE checking.  In that
+       case, skip the sck_template_instantiation and sck_instantiation_context
+       scopes that are on the top of the stack.  For example:
+
+         template<typename... T> bool g(T... t) {
+           return requires { f(t...); };
+         }
+         int r = g();
+
+       While (re)scanning the requires clause the two scopes on top of the
+       stack are sck_template_instantiation and sck_instantiation_context
+       (with their associated "previous scope" being the file scope). */
+    ssep -= 1;
+    if (scope_is(ssep, sck_instantiation_context) && ssep->is_rescan) {
+      ssep -= 1;
+    }  /* if */
+  }  /* if */
   /* Bypass the number of function scopes indicated by function_scopes_to_skip.
      We can't start with depth_innermost_function_scope because that is
      cleared if we are in a local class. */
-  for (ssep = &scope_stack_top(); ssep != NULL;
-       ssep = previous_scope_of(ssep)) {
+  for (; ssep != NULL; ssep = previous_scope_of(ssep)) {
     /* Only consider function scopes. */
     if (ssep->kind == (a_scope_kind)sck_function) {
       if (function_scopes_to_skip == 0) break;
