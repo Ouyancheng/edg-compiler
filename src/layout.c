@@ -4728,7 +4728,7 @@ lob->class_type.
       if (data_section_bcp->is_virtual &&
           data_section_bcp->data_section_base_class != NULL &&
           data_section_bcp->offset == 0) {
-        set_embedded_virtual_base_class_offset(data_section_bcp);
+        set_embedded_virtual_base_class_offset(lob, data_section_bcp);
       }  /* if */
       /* Look for the corresponding virtual base class. */
       bcp = corresponding_base_class(base_class, data_section_bcp->type,
