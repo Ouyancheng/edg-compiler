@@ -4754,7 +4754,7 @@ lob->class_type.
                that is not yet marked as embedded. */
             curr_class_bcp->data_section_base_class = base_class;
           }  /* if */
-          set_embedded_virtual_base_class_offset(curr_class_bcp);
+          set_embedded_virtual_base_class_offset(lob, curr_class_bcp);
         }  /* if */
       }  /* for */
     }  /* if */
