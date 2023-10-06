@@ -2997,7 +2997,7 @@ static void set_base_class_offsets(a_layout_block    *lob,
                                    a_base_class_ptr  proximate_derivation)
 /*
 The offset of base class proximate_derivation has been computed, but the
-offsets of its own base classes have not.  The confusing part of this
+offsets of its own base classes have not.  The subtle aspect of this
 processing is that two different base class entries are involved.  First,
 the "most derived class" contains a list of all its base classes, direct
 and indirect.  But each class from which it is derived has its own base
@@ -3030,6 +3030,9 @@ and it has only one direct base class of its own, namely, "A in B"),
 finding the corresponding base class entry in the most derived class (e.g.,
 finding the appropriate "A in D" -- the one whose path is ==>B==A), and
 setting the offset field in the latter.
+
+lob points to a block of information that describes some current state about
+the layout of lob->class_type (which is also proximate_derivation->type).
 */
 {
   a_base_class_ptr  ref_bcp;
@@ -4662,20 +4665,20 @@ Reserve space at the end of the class object for virtual base classes.
 
 #if !IA64_ABI
 
-static void set_offsets_for_indirect_base_classes(a_layout_block  *lob,
-                                                  a_type_ptr      class_type)
+static void set_offsets_for_indirect_base_classes(a_layout_block  *lob)
 /*
-Compute the offsets from the start of the object described by class_type
-of each of its indirect base classes.  The direct base classes and the
-data sections of all virtual base classes, direct or indirect, have already
-been handled.  The processing of this routine and its subroutines is
-addressed to indirect base classes.
+Compute the offsets from the start of the object described by lob->class_type
+of each of its indirect base classes.  The direct base classes and the data
+sections of all virtual base classes, direct or indirect, have already been
+handled.  The processing of this routine and its subroutines is addressed to
+indirect base classes.  lob points to a block of information that describes
+some current state about the layout of lob->class_type.
 */
 {
-  a_base_class_ptr      bcp;
+  a_type_ptr        class_type = lob->class_type;
+  a_base_class_ptr  bcp = base_classes_of(class_type);
 
   db_enter(4, "set_offsets_for_indirect_base_classes");
-  bcp = base_classes_of(class_type);
 #if DEBUG
   if (debug_level >= 4) {
     if (bcp != NULL) {
@@ -4702,10 +4705,11 @@ addressed to indirect base classes.
 static void set_embedded_virtual_base_class_offset(a_layout_block   *lob,
                                                    a_base_class_ptr base_class)
 /*
-base_class is a direct or indirect virtual base class of class_type.  If
+base_class is a direct or indirect virtual base class of lob->class_type.  If
 it is allocated inside another base class, compute its offset within the layout
-its class.  Then do the same check for its own direct virtual base
-classes.
+its class.  Then do the same check for its own direct virtual base classes.
+lob points to a block of information that describes some current state about
+the layout of lob->class_type.
 */
 {
   a_base_class_ptr  data_section_bcp, bcp, curr_class_bcp;
@@ -4761,16 +4765,18 @@ classes.
 
 #if !IA64_ABI
 
-static void fixup_shared_virtual_base_class_offsets(a_layout_block  *lob,
-                                                    a_type_ptr      class_type)
+static void fixup_shared_virtual_base_class_offsets(a_layout_block  *lob)
 /*
-Set the pointer_offset fields in direct virtual base classes where the
-virtual base class pointer is shared with some other base class.
+Set the pointer_offset fields in direct virtual base classes of lob->class_type
+where the virtual base class pointer is shared with some other base class.
+lob points to a block of information that describes some current state about
+the layout of lob->class_type.
 */
 {
-  a_base_class_ptr             virtual_base_class;
-  a_base_class_ptr             pointer_base_class;
-  a_base_class_ptr             bcp;
+  a_type_ptr        class_type = lob->class_type;
+  a_base_class_ptr  virtual_base_class;
+  a_base_class_ptr  pointer_base_class;
+  a_base_class_ptr  bcp;
 
   db_enter(4, "fixup_shared_virtual_base_class_offsets");
   /* Make a pass over all the base classes for the current derived class and
@@ -5245,11 +5251,11 @@ for handling virtual bases and functions.
 #if !IA64_ABI
     /* Go through all the indirect base classes and compute their
        offsets within the current derived class. */
-    set_offsets_for_indirect_base_classes(&lob, class_type);
+    set_offsets_for_indirect_base_classes(&lob);
     /* Similarly go through all the virtual base classes and do any required
        fixup on their pointer offsets and (in cfront compatibility mode)
        their data section offsets. */
-    fixup_shared_virtual_base_class_offsets(&lob, class_type);
+    fixup_shared_virtual_base_class_offsets(&lob);
 #endif /* !IA64_ABI */
     /* Issue a diagnostic if the offset assigned to any base class is too
        large. */
