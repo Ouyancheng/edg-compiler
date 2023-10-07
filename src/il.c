@@ -3388,9 +3388,10 @@ currently returned.
 
         check_assertion(templ->canonical_template != NULL);
         templ = templ->canonical_template;
-        check_assertion(templ->definition_template != NULL);
-        templ = templ->definition_template;
-        result = &templ->source_corresp.decl_position;
+        if (templ->definition_template != NULL) {
+          templ = templ->definition_template;
+          result = &templ->source_corresp.decl_position;
+        }  /* if */
       }
       break;
     case iek_type:
