@@ -5369,7 +5369,6 @@ is updated to reflect relevant positions of this definition.
                        skip_typerefs(explicit_base)->variant.integer.int_kind;
   }  /* if */
   definition_pos = pos_curr_token;
-  integer_type_supp(enum_type)->definition_pos = dps->start_pos;
   /* We associate a curr-construct pragma with this enum type only if this
      is a definition.  Otherwise this is assumed to be part of a declaration
      of something else -- to which the pragma should be bound. */

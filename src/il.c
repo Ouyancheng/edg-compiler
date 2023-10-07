@@ -3374,10 +3374,13 @@ currently returned.
       break;
     case iek_routine:
       { a_routine                 *rp = (a_routine*)ptr;
-        a_type                    *rtp = rp->type;
-        a_routine_type_supplement *rtsp = rout_type_supp(rtp);
 
-        result = &rtsp->definition_pos;
+        if (routine_has_been_defined(rp)) {
+          a_source_correspondence *scp = source_corresp_for_il_entry(ptr,
+                                                                     kind);
+
+          result = &scp->decl_position;
+        }  /* if */
       }
       break;
     case iek_template:
@@ -3393,14 +3396,11 @@ currently returned.
     case iek_type:
       { a_type *type = (a_type*)ptr;
 
-        if (is_class_struct_union_type(type)) {
-          a_class_type_supplement *ctsp = class_type_supp(type);
+        if (!type->incomplete) {
+          a_source_correspondence *scp = source_corresp_for_il_entry(ptr,
+                                                                     kind);
 
-          result = &ctsp->definition_pos;
-        }  else if (is_enum_type(type)) {
-          an_integer_type_supplement *itsp = integer_type_supp(type);
-
-          result = &itsp->definition_pos;
+          result = &scp->decl_position;
         }  /* if */
       }
       break;

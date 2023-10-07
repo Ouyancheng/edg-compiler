@@ -2053,7 +2053,6 @@ member declaration (allowed in some Microsoft modes only).
   a_source_position    orig_pos = null_source_position, saved_pos;
 
   db_enter(3, "define_member_function");
-  rtsp->definition_pos = dps->start_pos;
   if (!is_member_function_symbol(sym)) {
     /* A nonfunction class member.  This is an error, so set sym to NULL to
        force the creation of a fake member function symbol. */
@@ -2805,7 +2804,6 @@ member declaration (allowed in Microsoft mode only).
     check_assertion(unqualified_rout_type->kind == (a_type_kind)tk_routine);
   }  /* if */
   extra_info = unqualified_rout_type->variant.routine.extra_info;
-  extra_info->definition_pos = dps->start_pos;
   prototyped = extra_info->prototyped;
   if (sym != NULL && sym->is_class_member) {
     /* This is the definition of a member function. */

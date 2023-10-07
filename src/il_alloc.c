@@ -1487,7 +1487,6 @@ a pointer to it.
 #if DEBUG
   num_integer_type_supplements_allocated++;
 #endif /* DEBUG */
-  itsp->definition_pos = null_source_position;
   itsp->enumerator_list_seen = FALSE;
   itsp->has_nodiscard_attribute = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
@@ -1831,7 +1830,6 @@ class is available.
   ctsp->anonymous_union_field             = NULL;
   ctsp->friend_routines                   = NULL;
   ctsp->friend_classes                    = NULL;
-  ctsp->definition_pos                    = null_source_position;
   ctsp->assoc_scope                       = NULL;
   ctsp->partial_spec_template_arg_list    = NULL;
 #if NEW_CAN_BE_FOLDED_INTO_CTOR
@@ -2191,7 +2189,6 @@ to default values.
       rtsp->had_been_implicitly_const = FALSE;
       rtsp->is_conditionally_explicit = FALSE;
       rtsp->has_this_param           = FALSE;
-      rtsp->definition_pos           = null_source_position;
       rtsp->lint_varargs_count       = NOT_LINT_VARARGS;
       rtsp->arg_pragma               = (a_pragma_kind)pk_none;
 #if GNU_EXTENSIONS_ALLOWED

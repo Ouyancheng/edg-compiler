@@ -32442,7 +32442,6 @@ classes.
   new_type_list_entry->next = *classes_that_may_need_fixups;
   *classes_that_may_need_fixups = new_type_list_entry;
   check_assertion(!cssp->being_defined);
-  ctsp->definition_pos = dps->start_pos;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcx_enabled) {
     if (processing_vccorlib_header) {
