@@ -1,5 +1,14 @@
 Version 6.5, June 21, 2023
 
+10/8/23  [EDGcpfe/26706]
+IA64-ABI: add demangling support for template arguments in vendor extended type
+
+A change was made in the demangling of vendor extended types to allow for
+optional template arguments in a vendor extended type:
+
+  <builtin-type> ::= u <source-name> [<template-args>] # vendor extended type
+
+
 7/26/23  [EDGcpfe/26525]
 Remove predefined macro definition for _M_X64 and _M_AMD64
 

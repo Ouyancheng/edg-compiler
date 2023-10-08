@@ -1792,8 +1792,10 @@ Dump the contents of the indicated type entry, for debug purposes.
             db_abbr_expr(decltype_arg(tp), &octl);
             fputs(") ", f_debug);
           }  /* if */
-          if (is_typeref_kind(tp, trk_is_underlying_type)) {
-            fputs("__underlying_type ", f_debug);
+          if (typeref_is_type_transforming_intrinsic(tp)) {
+            fputs(type_transforming_intrinsic_name(tp->variant.typeref.kind),
+                  f_debug);
+            fputs(" ", f_debug);
           }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
           if (is_typeref_kind(tp, trk_is_typeof_with_expression) ||

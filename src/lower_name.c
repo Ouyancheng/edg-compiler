@@ -984,9 +984,13 @@ entry.
     } else
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
     /* Do not insert code here. */
-    {
-      entity = (char*)skip_typedefs_not_dependent_decltypes(type);
-    }  /* if */
+    { if (type->variant.typeref.is_dependent_type_operator &&
+          typeref_is_type_transforming_intrinsic(type)) {
+        /* Type-transforming type traits need their own substitution. */
+      } else {
+        entity = (char*)skip_typedefs_not_dependent_decltypes(type);
+      }  /* if */
+    }
   }  /* if */
   return entity;
 }  /* canonical_substitution_entity */
@@ -9907,9 +9911,10 @@ specified type.  Substitutions are not allocated for <builtin-type>s
       check_assertion(is_qualified_type(type) ||
                       (typeref_is_type_operator(type) ||
                        type->variant.typeref.is_dependent ||
-                       is_typeref_kind(type, trk_is_underlying_type) ||
                        is_typeref_kind(type, trk_is_deduced_auto) ||
-                       is_typeref_kind(type, trk_is_deduced_decltype_auto)));
+                       is_typeref_kind(type, trk_is_deduced_decltype_auto)) ||
+                      (type->variant.typeref.is_dependent_type_operator &&
+                       typeref_is_type_transforming_intrinsic(type)));
       result = TRUE;
       break;
     case tk_pointer:
@@ -9985,6 +9990,39 @@ be used in the context of a pack expansion (as specified by is_pack_expansion).
     mangled_encoding_for_type(type, mctl);
   }  /* if */
 }  /* mangled_encoding_for_type_with_pack_expansion */
+
+
+static void add_str_for_type_returing_type_trait(
+                                                a_type_ptr               type,
+                                                a_mangling_control_block *mctl)
+/*
+Add a mangling string for a type-returning type trait (e.g., __remove_cv(T)) to
+the name currently being mangled.  Note that in both ABIs, the "underlying"
+type is emitted in the mangling as a template argument (so, e.g., in a
+demangling __remove_cv(T) will look more like __remove_cv<T>).
+*/
+{
+  a_const_char *name =
+                  type_transforming_intrinsic_name(type->variant.typeref.kind);
+
+#if IA64_ABI
+  add_to_mangled_name('u', mctl);
+  mangled_name_with_length(name, mctl);
+  add_to_mangled_name('I', mctl);
+  mangled_encoding_for_type(type->variant.typeref.type, mctl);
+  add_to_mangled_name('E', mctl);
+#else /* !IA64_ABI */
+  a_length_reservation res1, res2;
+  reserve_space_for_length(&res1, mctl);
+  add_str_to_mangled_name(name, mctl);
+  add_str_to_mangled_name("__tm__", mctl);
+  reserve_space_for_length(&res2, mctl);
+  add_to_mangled_name('_', mctl);
+  mangled_encoding_for_type(type->variant.typeref.type, mctl);
+  fill_in_length(&res2, mctl);
+  fill_in_length(&res1, mctl);
+#endif /* IA64_ABI */
+}  /* add_str_for_type_returing_type_trait */
 
 
 static void mangled_encoding_for_type_full(
@@ -10115,6 +10153,11 @@ top_of_loop:
       /* Mangling for a decltype(auto) needs to appear in the mangled name. */
       break;
 #endif /* ABI_COMPATIBILITY_VERSION >= 411 */
+    } else if (type->variant.typeref.is_dependent_type_operator &&
+               typeref_is_type_transforming_intrinsic(type)) {
+      /* Mangling for a dependent type-returning type trait needs to appear in
+         the mangled name. */
+      break;
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     if ((is_typeref_kind(type, trk_is_typeof_with_expression) ||
@@ -10543,9 +10586,10 @@ top_of_loop:
       case tk_typeref:
         /* typedefs, cv-qualifiers, aliases and non-dependent decltypes/
            __underlying_types/typeofs should have been stripped, leaving only
-           dependent decltype/__underlying_type/typeof typerefs. */
+           dependent decltype/__underlying_type/typeof typerefs and
+           type-returning type traits. */
         check_assertion(typeref_is_type_operator(type) ||
-                        is_typeref_kind(type, trk_is_underlying_type) ||
+                        typeref_is_type_transforming_intrinsic(type) ||
                         is_typeref_kind(type, trk_is_deduced_auto) ||
                         is_typeref_kind(type, trk_is_deduced_decltype_auto));
         if (is_typeref_kind(type, trk_is_decltype)) {
@@ -10573,18 +10617,10 @@ top_of_loop:
              case, the encoding used will vary depending on the value of
              ABI_COMPATIBILITY_VERSION (see the definition of
              MANGLING_STRING_FOR_UNDERLYING_TYPE above). */
-#if IA64_ABI
-          a_boolean need_closing_E = FALSE;
-#endif /* IA64_ABI */
           add_str_to_mangled_name(MANGLING_STRING_FOR_UNDERLYING_TYPE, mctl);
-#if IA64_ABI
-          need_closing_E = TRUE;
-#endif /* IA64_ABI */
           mangled_encoding_for_type(type->variant.typeref.type, mctl);
 #if IA64_ABI
-          if (need_closing_E) {
-            add_to_mangled_name('E', mctl);
-          }  /* if */
+          add_to_mangled_name('E', mctl);
 #endif /* IA64_ABI */
           goto have_whole_mangled_name;
 #if ABI_COMPATIBILITY_VERSION >= 411
@@ -10598,10 +10634,9 @@ top_of_loop:
           add_str_to_mangled_name(MANGLING_STRING_FOR_DECLTYPE_AUTO, mctl);
           goto have_whole_mangled_name;
 #endif /* ABI_COMPATIBILITY_VERSION >= 411 */
-        }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
-        if (is_typeref_kind(type, trk_is_typeof_with_expression) ||
-            is_typeref_kind(type, trk_is_typeof_with_type_operand)) {
+        } else if (is_typeref_kind(type, trk_is_typeof_with_expression) ||
+                   is_typeref_kind(type, trk_is_typeof_with_type_operand)) {
           /* Provide mangling for typeof. */
 #if ABI_COMPATIBILITY_VERSION >= 402
           /* There is no IA-64 ABI encoding for typeof (a GNU extension) and
@@ -10637,8 +10672,13 @@ top_of_loop:
 #endif /* IA64_ABI */
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
           goto have_whole_mangled_name;
-        }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+        } else if (type->variant.typeref.is_dependent_type_operator &&
+                   typeref_is_type_transforming_intrinsic(type)) {
+          /* Provide mangling for a type-transforming type trait. */
+          add_str_for_type_returing_type_trait(type, mctl);
+          goto have_whole_mangled_name;
+        }  /* if */
         break;
       case tk_reflection:
         s = MANGLING_STRING_FOR_META_INFO;

@@ -5292,8 +5292,12 @@ demangled as part of the template function instead).
         break;
       case 'u':
         /* A vendor extended type is specified as:
-           <builtin-type> ::= u <source-name> . */
+           <builtin-type> ::= u <source-name> [<template-args>] */
         p = demangle_source_name(p, /*is_module_id=*/FALSE, dctl);
+        if (*p == 'I') {
+          /* A <template-args> list is present. */
+          p = demangle_template_args(p, dctl);
+        }  /* if */
         s = "";
         break;
       case 'D':

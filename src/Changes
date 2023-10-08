@@ -1,5 +1,16 @@
 Version 6.6
 
+10/8/23  [EDGcpfe/26706]
+Assertion failure in record_substitution_for_type on type-returning traits
+
+The front end had failed an assertion check (in record_substitution_for_type)
+in configurations that do IA-64 mangling when using type dependent type-
+returning traits.  For example (with --clang_version 160000):
+
+  template<typename T> __remove_cv(T) f(T);
+  auto x = f(1);
+
+
 10/6/23  [EDGcpfe/26663]
 Constant-destruction and mutable members
 
