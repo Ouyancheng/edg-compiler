@@ -2187,7 +2187,7 @@ member declaration (allowed in some Microsoft modes only).
       skip_typerefs(rp->type)
          ->variant.routine.extra_info->exception_specification =
                                                 rtsp->exception_specification;
-      issue_redef_diag(&locator->source_position, sym, es_warning);
+      pos_sy_warning(ec_function_redefinition, &locator->source_position, sym);
     }  /* if */
   }  /* if */
   if (sym == NULL || (sym->defined && !microsoft_out_of_class_redecl)) {
@@ -2197,7 +2197,7 @@ member declaration (allowed in some Microsoft modes only).
     if (sym != NULL) {
       /* Type was okay, but this member function has a body. */
       a_routine_type_supplement_ptr  other_rtsp;
-      issue_redef_diag(&locator->source_position, sym);
+      pos_sy_error(ec_function_redefinition, &locator->source_position, sym);
       other_rp = sym->variant.routine.ptr;
       other_rtsp = rout_type_supp(other_rp->type);
       rtsp->this_class = other_rtsp->this_class;
@@ -2272,7 +2272,8 @@ member declaration (allowed in some Microsoft modes only).
               rp = target;
             } else {
               /* Member function already has a definition. */
-              issue_redef_diag(&locator->source_position, sym);
+              pos_sy_error(ec_function_redefinition, &locator->source_position,
+                           sym);
             }  /* if */
           } else {
             /* No declared member function has the same "target" attributes. */

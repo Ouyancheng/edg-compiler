@@ -4929,9 +4929,9 @@ created; the caller must set it.
                  namespace N { extern "C" void f() { } }
                  namespace M { extern "C" void f() { } }
             */
-            an_error_severity sev = microsoft_bugs ? es_warning : es_error;
-
-            issue_redef_diag(&locator->source_position, rout_sym, sev);
+            an_error_severity  sev = microsoft_bugs ? es_warning : es_error;
+            pos_sy_diagnostic(
+                sev, ec_already_defined, &locator->source_position, rout_sym);
             *routine_ptr = NULL;
             ext_sym->variant.extern_symbol_descr->variant.routine.ptr = NULL;
           } else {
@@ -7339,8 +7339,8 @@ for use in generating cross-reference output describing this declaration.
            by another definition that includes an initializer and the "extern"
            storage class specifier.  Turn the previous definition into an
            ordinary declaration. */
-        issue_redef_diag(&locator->source_position, linked_symbol,
-                          es_warning);
+        pos_sy_warning(ec_already_defined, &locator->source_position,
+                       linked_symbol);
         orig_var->storage_class = (a_storage_class)sc_extern;
         storage_class = (a_storage_class)sc_extern;
         idlb.linkage = idl_external;
@@ -7359,7 +7359,8 @@ for use in generating cross-reference output describing this declaration.
       if (linked_symbol->defined && is_variable_def && !C_mode()) {
         /* Variable has already been defined.  Issue an error here and
            suppress an error when the symbol is entered. */
-        issue_redef_diag(&locator->source_position, linked_symbol);
+        pos_sy_error(ec_already_defined, &locator->source_position,
+                     linked_symbol);
         set_to_named_error_locator(*locator);
         redecl_error_already_issued = TRUE;
         linked_redecl_error = TRUE;
@@ -9460,7 +9461,7 @@ for use in generating cross-reference output describing this declaration.
       if (is_function_def && old_decl_has_body && !replace_routine) {
         /* Previous routine already has a body, and new one does (or will)
            too. */
-        issue_redef_diag(&locator->source_position, sym);
+        pos_sy_error(ec_already_defined, &locator->source_position, sym);
         redecl_error_already_issued = TRUE;
         linked_redecl_error = TRUE;
         /* Set a flag to suppress reuse of the existing external-routine
@@ -9857,10 +9858,11 @@ for use in generating cross-reference output describing this declaration.
               }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
               microsoft_specialization_redef = TRUE;
-              issue_redef_diag(&locator->source_position, sym, es_warning);
+              pos_sy_warning(ec_already_defined, &locator->source_position,
+                             sym);
               goto skip_overloading;
             } else {
-              issue_redef_diag(&locator->source_position, sym);
+              pos_sy_error(ec_already_defined, &locator->source_position, sym);
             }  /* if */
           }  /* if */
           set_to_named_error_locator(*locator);
@@ -10527,7 +10529,7 @@ skip_overloading:;
   if (requires_gnu_target_attr &&
       (!has_gnu_routine_supp(routine_ptr) ||
        !gnu_routine_supp(routine_ptr)->is_target_specific_version)) {
-    issue_redef_diag(&locator->source_position, sym);
+    pos_sy_error(ec_function_redefinition, &locator->source_position, sym);
   }  /* if */
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
   attach_decl_attributes(dps, is_function_def);
@@ -11467,7 +11469,7 @@ definition of a member function of a class template.
   if (!is_error_locator(*locator)) {
     if (func_info->is_definition) {
       if (sym->defined) {
-        issue_redef_diag(&locator->source_position, sym);
+        pos_sy_error(ec_already_defined, &locator->source_position, sym);
       }  /* if */
     } else if (!microsoft_out_of_class_redecl) {
       if (!microsoft_mode &&
@@ -11813,7 +11815,7 @@ the symbol through dps->sym and its linkage (which is always "none") through
       srk_flags = SRK_DECLARATION | SRK_DEFINITION;
     }  /* if */
     if (dps->is_definition && sym->defined) {
-      issue_redef_diag(&locator->source_position, sym);
+      pos_sy_error(ec_already_defined, &locator->source_position, sym);
       err = TRUE;
     } else if (!namespace_is_enclosed_by_scope(sym, &scope_stack_top())) {
       /* This static data member is being defined in a scope that does not
@@ -11935,7 +11937,7 @@ the symbol through dps->sym and its linkage (which is always "none") through
       pos_error(ec_inherited_member_not_allowed, &locator->source_position);
     } else if (sym->kind != (a_symbol_kind)sk_undefined &&
                !is_error_locator(*locator)) {
-      issue_redef_diag(&locator->source_position, sym);
+      pos_sy_error(ec_already_defined, &locator->source_position, sym);
     }  /* if */
     err = TRUE;
   }  /* if */
@@ -12836,7 +12838,7 @@ is being scanned as part of a GNU local label declaration.
          new declaration is in the same scope as the one found. */
       if (label_sym->decl_scope == scope_stack[decl_scope_level].number) {
         /* A duplicate declaration. */
-        issue_redef_diag(&start_pos, label_sym);
+        sym_error(ec_already_defined, label_sym);
         err = TRUE;
       } else {
         /* The new declaration is going to hide the old one. */
@@ -15895,7 +15897,8 @@ it's a definition and NULL otherwise).
                                         &locator.source_position,
                                         namespace_ssep);
             } else {
-              issue_redef_diag(&locator.source_position, ns_sym);
+              pos_sy_error(ec_already_defined, &locator.source_position,
+                           ns_sym);
             }  /* if */
           } else {
             nsp = make_namespace_alias(&ns_sym, &locator, sym, namespace_ssep);

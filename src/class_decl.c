@@ -12102,7 +12102,8 @@ possibility.
         }  /* if */
         if (sym->defined && func_info->is_definition) {
           /* Trying to define a function that's already defined. */
-          issue_redef_diag(&locator->source_position, sym);
+          pos_sy_error(ec_function_redefinition,
+                       &locator->source_position, sym);
           set_to_error_locator(*locator);
         } else {
           a_routine_ptr  rp = sym->variant.routine.ptr;
@@ -16559,7 +16560,7 @@ implicitly declared member functions.
         (!has_gnu_routine_supp(rtn) ||
          !gnu_routine_supp(rtn)->is_target_specific_version)) {
       /* No "target" attribute was found. */
-      issue_redef_diag(&locator->source_position, sym);
+      pos_sy_error(ec_function_redefinition, &locator->source_position, sym);
       set_to_error_locator(*locator);
     }  /* if */
 #endif /* GNU_FUNCTION_MULTIVERSIONING */

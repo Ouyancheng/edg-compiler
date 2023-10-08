@@ -7292,7 +7292,7 @@ attributes in C mode).
     /* A routine has been previously declared (or defined) with the same
        set of target attributes; give an error if there are two definitions. */
     if (existing->defined) {
-      issue_redef_diag(&loc.source_position, sym);
+      sym_error(ec_function_redefinition, sym);
       err = TRUE;
     } else {
       /* Use the previously declared routine. */
