@@ -3761,8 +3761,8 @@ auto
 Ptr_multi_map<a_Ptr_key, a_Value, a_Capacity, Allocator>::get(a_Ptr_key key)
                                                           -> a_multi_value*
 /*
-Return a dynamic array of index values if it exists for the given key;
-otherwise, return NULL.
+Return a dynamic array of values if it exists for the given key; otherwise,
+return NULL.
 */
 {
   return this->backing_map.get(key);
@@ -3776,8 +3776,8 @@ Ptr_multi_map<a_Ptr_key, a_Value, a_Capacity, Allocator>::get_or_alloc(
                                                                  a_Ptr_key key)
                                                           -> a_multi_value*
 /*
-Return a dynamic array of index values for the given index forming the key
-(creating the dynamic array if it does not already exist).
+Return a dynamic array of values if it exists for the given key (creating the
+dynamic array if it does not already exist).
 */
 {
   a_multi_value *values = this->backing_map.get(key);
@@ -3804,9 +3804,8 @@ auto
 Ptr_multi_map<a_Ptr_key, a_Value, a_Capacity, Allocator>::take(a_Ptr_key key)
                                                           -> a_multi_value
 /*
-Return a copy of the dynamic array value of index values for the given index
-forming the key.  The value must exist in the map and will be unregistered
-after being copied.
+Return a copy of the dynamic array of values if it exists for the given key.
+The value must exist in the map and will be unregistered after being copied.
 */
 {
   check_assertion(this->get(key) != NULL);
@@ -3822,8 +3821,8 @@ template<typename a_Ptr_key, typename a_Value, unsigned a_Capacity,
 void Ptr_multi_map<a_Ptr_key, a_Value, a_Capacity, Allocator>::remove(
                                                                  a_Ptr_key key)
 /*
-Given the index forming the key, remove the associated list from the map, and
-deconstruct and deallocate the associated multi-value (if any).
+Given the key, remove the associated list from the map, and deconstruct and
+deallocate the associated multi-value (if any).
 */
 {
   a_multi_value *values = this->backing_map.get(key);
