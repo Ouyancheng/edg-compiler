@@ -984,13 +984,9 @@ entry.
     } else
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
     /* Do not insert code here. */
-    { if (type->variant.typeref.is_dependent_type_operator &&
-          typeref_is_type_transforming_intrinsic(type)) {
-        /* Type-transforming type traits need their own substitution. */
-      } else {
-        entity = (char*)skip_typedefs_not_dependent_decltypes(type);
-      }  /* if */
-    }
+    {
+      entity = (char*)skip_typedefs_not_dependent_decltypes(type);
+    }  /* if */
   }  /* if */
   return entity;
 }  /* canonical_substitution_entity */
