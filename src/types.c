@@ -7473,7 +7473,7 @@ check_typerefs:
       identical = TRUE;
       goto done;
     } else if (type_intrinsic) {
-      /* Only one of the types is a type-transforming intrinsics. */
+      /* Only one of the types is a type-transforming intrinsic. */
       goto done;
     } else if (type_op) {
       /* At least one of the types involves a type operator like decltype or
