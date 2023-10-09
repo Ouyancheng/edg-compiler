@@ -1,5 +1,17 @@
 Version 6.6
 
+10/9/23  [EDGcpfe/26701]
+GNU-mode abort on function pointer addition in function template signature
+
+Consider:
+
+  double g(double);
+  template<typename> auto f(double) -> decltype(1 + g);
+
+This previously triggered an internal error in GNU C++11 mode due to a failed
+assertion in set_pointer_operand_is_second_flag (expr.c).  That is now fixed.
+
+
 10/9/23  [EDGcpfe/26715]
 Clang-mode tweak to folding of reinterpret_cast-like construct
 

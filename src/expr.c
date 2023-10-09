@@ -1706,6 +1706,7 @@ expression node to indicate that.
     if (!is_error_node(expr)) {
       check_assertion(is_operation_node(expr) &&
                       (node_operator_is(expr, eok_subscript) ||
+                       node_operator_is(expr, eok_add) ||
                        node_operator_is(expr, eok_padd)));
       expr->variant.operation.pointer_operand_is_second = TRUE;
     }  /* if */
