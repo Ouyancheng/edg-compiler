@@ -26073,7 +26073,7 @@ the string.
 
 
 a_string token_to_string(a_cached_token_ptr ctp,
-                         a_boolean          expand_pseudo_tokens)
+       /* Defaulted: */  a_boolean          expand_pseudo_tokens)
 /*
 Return the given token as a string.  If expand_pseudo_tokens is TRUE, details
 of the pseudo token will be included in the returned string.
