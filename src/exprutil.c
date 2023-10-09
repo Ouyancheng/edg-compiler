@@ -10127,7 +10127,9 @@ user-defined conversions.
            conversion to be done at runtime. */
         copy_constant(&operand->variant.constant, local_con);
         if (reinterpret_semantics && relaxed_constexpr_enabled &&
-            !gpp_version_is(any_version) && !microsoft_mode) {
+            !gpp_version_is(any_version) &&
+            !(clang_version_is(any_version) && curr_expr_kind_is(ek_normal)) &&
+            !microsoft_mode) {
           did_not_fold = TRUE;
         } else {
           expr_type_change_constant(

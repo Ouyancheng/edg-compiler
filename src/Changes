@@ -1,5 +1,17 @@
 Version 6.6
 
+10/9/23  [EDGcpfe/26715]
+Clang-mode tweak to folding of reinterpret_cast-like construct
+
+Consider:
+
+  long var = (long)"text";
+
+The changes for EDGcpfe/26198 (in version 6.5) caused the front end to treat
+the initializer as dynamic in Clang mode.  A change has been made to make it
+a static initialization instead (as it was in version 6.4).
+
+
 10/8/23  [EDGcpfe/26706]
 Assertion failure in record_substitution_for_type on type-returning traits
 
