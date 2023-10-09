@@ -4139,8 +4139,8 @@ The provided function will be called as follows:
   while (TRUE) {
     if (a >= 0 && b >= 0 &&
         (*this->eq_fn)(this->input_a(a), this->input_b(b))) {
-      /* The values match: reverse the scoring and walk back up and to the left
-         to see what value lead here. */
+      /* The values at a and b match: reverse the scoring and walk back up and
+         to the left to see what comparison lead here. */
       fn(&this->input_a(a--), &this->input_b(b--));
     } else if (b > 0 && (a == 0 ||
                          (this->output(a, b - 1) >= this->output(a - 1, b)))) {
@@ -4199,9 +4199,9 @@ struct Seq_comparator: public detail::Seq_comparator_impl<
 
 
 /*
-This is a partial specialization of Seq_comparator which tweaks the signature
-of the comparison function's function pointer to be more friendly to comparing
-array's of pointers.  As the front end makes heavy usage of linked list
+This is a partial specialization of Seq_comparator that tweaks the signature of
+the comparison function's function pointer to be more friendly to comparing
+arrays of pointers.  As the front end makes heavy usage of linked list
 structures with individual elements that have large footprints (instead of
 arrays) this specialization makes the Seq_comparator much more friendly at the
 call site.
@@ -4287,7 +4287,7 @@ Given the head of a linked list, traverse the list and construct an equivalent
 dynamic array with the given initial capacity.
 
 This function should be preferred when a_Dest_type is relatively cheap to copy,
-otherwise, use linked_list_to_array_ptr_array.
+otherwise, use linked_list_to_ptr_array.
 */
 {
   Dyn_array<a_Dest_type, Allocator> result(initial_capacity);
