@@ -7292,7 +7292,9 @@ attributes in C mode).
     /* A routine has been previously declared (or defined) with the same
        set of target attributes; give an error if there are two definitions. */
     if (existing->defined) {
-      sym_error(ec_function_redefinition, sym);
+      a_symbol *existing_sym = symbol_for(existing);
+
+      issue_redef_diag(&error_position, existing_sym);
       err = TRUE;
     } else {
       /* Use the previously declared routine. */

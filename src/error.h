@@ -1437,6 +1437,13 @@ Add the specified diagnostic message to the primary_dp with the given fill-ins.
   PACK_EXPAND_VOID_EXPR(detail::Fill_in<a_Fill_in_type>::add(diag, fill_ins))
 }  /* add_diag_info */
 
+#if !STANDALONE_UTILITY_PROGRAM
+
+extern void issue_redef_diag(a_source_position  *new_pos,
+                              a_symbol          *prev_decl_sym,
+                              an_error_severity severity = es_error);
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /*
 A character that cannot otherwise appear in diagnostic messages that is used

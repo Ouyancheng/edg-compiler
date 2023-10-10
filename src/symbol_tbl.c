@@ -5613,9 +5613,16 @@ symbol must be added to the inactive list.
                 if (is_type_symbol(sym_ptr) && is_type_symbol(old_sym_ptr)) {
                   /* Typedef names can sometimes be redeclared, as long as the
                      underlying type is the same.  That's not the case here. */
-                  pos_sy_error(ec_bad_type_name_redeclaration,
-                               &(sym_ptr->decl_position),
-                               old_sym_ptr);
+                  a_type *tp = il_entry_for_symbol<a_type>(old_sym_ptr);
+
+                  if (!is_incomplete_type(tp) &&
+                      is_class_struct_union_type(tp)) {
+                    issue_redef_diag(&(sym_ptr->decl_position), old_sym_ptr);
+                  } else {
+                    pos_sy_error(ec_bad_type_name_redeclaration,
+                                 &(sym_ptr->decl_position),
+                                 old_sym_ptr);
+                  }  /* if */
                 } else {
                   /* Note that we pass the identifier string to the error
                      routine rather than using the standard symbol name

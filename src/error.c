@@ -8344,6 +8344,77 @@ specified by diag.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
+static a_source_position *find_definition_position(an_il_entry_kind kind,
+                                                   char             *ptr)
+/*
+Find and return a pointer to the source position of the definition of the IL
+entity with the given kind and address.  If no definition position is known,
+instead return NULL.
+*/
+{
+  a_source_position *result = NULL;
+
+  switch (kind) {
+    case iek_label:
+    case iek_routine:
+    case iek_type:
+    case iek_variable:
+      { /* These entity's have their decl_position update to reflect the
+           position of the definition. */
+        a_source_correspondence *scp = source_corresp_for_il_entry(ptr, kind);
+
+        result = &scp->decl_position;
+      }
+      break;
+    case iek_template:
+      { /* The front end records all template declarations, thus the definition
+           template entity needs to be used to get the position of the
+           defining declaration. */
+        a_template *templ = (a_template*)ptr;
+
+        check_assertion(templ->canonical_template != NULL);
+        templ = templ->canonical_template;
+        if (templ->definition_template != NULL) {
+          templ = templ->definition_template;
+          result = &templ->source_corresp.decl_position;
+        }  /* if */
+      }
+      break;
+    default:
+      /* Unknown definition position. */
+      break;
+  } /* switch */
+  /* Catch any cases where the source position is a copy of the null position,
+     and instead return NULL to prevent a confusing diagnostic. */
+  if (result != NULL &&
+      (cmp_source_positions(*result, null_source_position) == 0)) {
+      result = NULL;
+  }  /* if */
+  return result;
+}  /* find_definition_position */
+
+
+void issue_redef_diag(a_source_position *new_pos,
+                      a_symbol          *prev_decl_sym,
+    /* Defaulted: */  an_error_severity severity)
+/*
+Given the (new) position of the redefinition, the previous declaration symbol,
+and an error severity, emit a redefinition diagnostic.
+*/
+{
+  an_il_entry_kind  kind;
+  char              *il_ptr = il_entry_for_symbol_null_okay(prev_decl_sym,
+                                                            &kind);
+  a_source_position *prev_def_pos = find_definition_position(kind, il_ptr);
+
+  if (prev_def_pos != NULL) {
+    pos_diagnostic(severity, ec_already_defined_with_pos, new_pos,
+                   prev_decl_sym, prev_def_pos);
+  } else {
+    pos_diagnostic(severity, ec_already_defined, new_pos, prev_decl_sym);
+  }  /* if */
+}  /* issue_redef_diag */
+
 #if MAKE_FRONT_END_CALLABLE
 
 void error_cleanup(void)

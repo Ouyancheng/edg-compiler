@@ -3842,7 +3842,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
                            &tag_position, &cssp->instantiation_position,
                            tag_sym);
       } else {
-        pos_sy_error(ec_already_defined, &tag_position, tag_sym);
+        issue_redef_diag(&tag_position, tag_sym);
       }  /* if */
       error_tag_sym = tag_sym;
       tag_sym = NULL;
@@ -6317,7 +6317,7 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
                        &locator.source_position);
       }  /* if */
     } else {
-      pos_sy_error(ec_redefinition, &locator.source_position, tag_sym);
+      issue_redef_diag(&locator.source_position, tag_sym);
     }  /* if */
     set_to_error_locator(locator);
     tag_sym = NULL;
