@@ -3394,7 +3394,7 @@ is at least size_needed.  Called by ensure_temp_text_buffer_space.
     char *old_buffer = temp_text_buffer;
 
     temp_text_buffer = alloc_fe(new_size);
-    strncpy(temp_text_buffer, old_buffer, size_temp_text_buffer);
+    memcpy(temp_text_buffer, old_buffer, size_temp_text_buffer);
     free_fe(old_buffer, size_temp_text_buffer);
   } else {
     temp_text_buffer = realloc_buffer(temp_text_buffer, size_temp_text_buffer,
