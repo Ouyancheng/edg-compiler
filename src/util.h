@@ -4139,7 +4139,7 @@ The provided function will be called as follows:
     if (a >= 0 && b >= 0 &&
         (*this->eq_fn)(this->input_a(a), this->input_b(b))) {
       /* The values at a and b match: reverse the scoring and walk back up and
-         to the left to see what comparison lead here. */
+         to the left to see what comparison led here. */
       fn(&this->input_a(a--), &this->input_b(b--));
     } else if (b > 0 && (a == 0 ||
                          (this->output(a, b - 1) >= this->output(a - 1, b)))) {
