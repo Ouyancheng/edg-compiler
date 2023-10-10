@@ -1,5 +1,31 @@
 Version 6.6
 
+10/10/23 [EDGcpfe/26717]
+Variable template redeclaration error improvements
+
+Previously, the front end given the following source:
+
+  struct foo {
+    template<typename T>
+    static T x;
+  };
+
+  int foo::x = 0;
+
+would report:
+
+  line 6: error: variable template "foo::x" has already been defined
+    int foo::x = 0;
+             ^
+
+This has been changed (for improved clarity) to:
+
+  line 6: error: declaration is incompatible with variable template
+                 "foo::x" (declared at line 3)
+  int foo::x = 0;
+           ^
+
+
 10/9/23  [EDGcpfe/26701]
 GNU-mode abort on function pointer addition in function template signature
 

@@ -11922,10 +11922,6 @@ the symbol through dps->sym and its linkage (which is always "none") through
       /* Nonstatic data members (fields) cannot be defined. */
       pos_error(ec_nonstatic_member_def_not_allowed,
                 &locator->source_position);
-    } else if (is_member_function_symbol(sym)) {
-      /* A member function -- this is treated as a type incompatibility. */
-      pos_sy_error(ec_not_compatible_with_previous_decl,
-                   &locator->source_position, sym);
     } else if (!namespace_is_enclosed_by_scope(sym, &scope_stack_top())) {
       /* The member is being defined in a scope that does not enclose the
          scope in which the parent class was defined. */
@@ -11935,9 +11931,10 @@ the symbol through dps->sym and its linkage (which is always "none") through
       /* A member of a base class (or assumed to be a member of a nonreal base
          class). */
       pos_error(ec_inherited_member_not_allowed, &locator->source_position);
-    } else if (sym->kind != (a_symbol_kind)sk_undefined &&
-               !is_error_locator(*locator)) {
-      pos_sy_error(ec_already_defined, &locator->source_position, sym);
+    } else {
+      /* Fallback to a general incompatibility error. */
+      pos_sy_error(ec_not_compatible_with_previous_decl,
+                   &locator->source_position, sym);
     }  /* if */
     err = TRUE;
   }  /* if */
