@@ -3,7 +3,7 @@ Version 6.6
 10/10/23 [EDGcpfe/26717]
 Variable template redeclaration error improvements
 
-Previously, the front end given the following source:
+Previously, given the following source:
 
   struct foo {
     template<typename T>
@@ -12,7 +12,7 @@ Previously, the front end given the following source:
 
   int foo::x = 0;
 
-would report:
+the front end would report:
 
   line 6: error: variable template "foo::x" has already been defined
     int foo::x = 0;
