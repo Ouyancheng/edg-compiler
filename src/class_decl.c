@@ -25546,6 +25546,8 @@ copy_attributes is TRUE).
     if (is_nontype_template_param_symbol(fund_sym)) {
       new_sym->variant.projection.fund_sym_is_nonreal_member = TRUE;
     }  /* if */
+    new_sym->variant.projection.extra_info->naming_type =
+                                        locator_for_curr_id.parent.class_type;
     /* Note that projection symbols for using-declarations have the
        source position of the using-declaration itself, whereas
        other projection symbols take on the source position of the

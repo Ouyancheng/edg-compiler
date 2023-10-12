@@ -1,5 +1,22 @@
 Version 6.6
 
+10/12/23 [EDGcpfe/16204,EDGcpfe/26719]
+Microsoft compatibility: Ambiguous member access and using-declarations
+
+Consider:
+
+  struct B { int f(); };
+  struct C1: B {};
+  struct C2: B {};
+  struct D: C1, C2 { using C2::f; } d;
+  int r = d.f();  // Ambiguous, but now accepted in Microsoft bugs mode.
+
+This is an error in standard C++ because it attempts to access a member (B::f)
+of an ambiguous base class.  MSVC, however, resolves the ambiguity through the
+using-declaration that guided the lookup.  The front end now emulates that
+behavior.
+
+
 10/11/23 [EDGcpfe/24700,EDGcpfe/26716]
 Spurious failure of or-ed constraints
 

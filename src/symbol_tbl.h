@@ -3892,8 +3892,7 @@ typedef struct a_symbol {
 			   using-declaration. */
       a_bit_field
 		any_intervening_using_decl:1;
-			/* TRUE if the access of the inherited name was
-			   modified by an using-declaration anywhere on the
+			/* TRUE if a using-declaration appeared anywhere on the
 			   derivation path between the fundamental symbol and
 			   the current projection. */
       a_bit_field

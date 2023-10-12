@@ -12145,6 +12145,75 @@ an expression like "&(p->f)" appearing in an unevaluated context).
 }  /* combine_unneeded_selector_with_operand */
 
 
+static void cast_operand_via_disambiguating_using_decl(an_operand    *opnd,
+                                                       a_base_class  **p_bcp,
+                                                       a_symbol      *proj)
+/*
+In standard C++, accessing a nonstatic member of an ambiguous base class is
+always ambiguous no matter how lookup determined the member to access.  The
+Microsoft compiler, however, takes into account using-declarations to
+disambiguate some accesses.  For example:
+
+  struct B { int f(); };
+  struct C1: B {};
+  struct C2: B {};
+  struct D: C1, C2 { using C2::f; } d;
+  int r = d.f();  // Normally ambiguous, but MSVC accepts this.
+
+Microsoft interprets the look-up result via the using-declaration that names
+C2::f as an intent to call (in effect) ((C2&)d).f().
+
+This function emulates that behavior by finding the disambiguating using-
+declaration that led to finding the given projection symbol proj (which may be
+a using-declaration itself or be the result of projecting a using-declaration).
+opnd is the operand on which the member selection is to occur.  This function
+casts that operand to the (non-ambiguous) base class X containing the
+disambiguating using-declaration (assuming such a base class is found).  Upon
+entry, *p_bcp is the (ambiguous) base class containing the selected member.
+If the operand has been cast by this function, *p_bcp is replaced by the
+corresponding base class of the type of X.
+*/
+{
+  a_base_class  *bcp = *p_bcp;
+
+  /* We only attempt to emulate cases that do not involve multiple
+     derivations (i.e., intermediate virtual base classes). */
+  if (bcp->derivation->next == NULL) {
+    /* Search projection symbols for the same name as proj for an entry such
+       that
+         (a) it represents a using-declaration,
+         (b) the qualifier of that using-declaration designates the type X
+             of an unambiguous base class of the derived class,
+         (c) where X is a derivation of a bcp->type. */
+    a_symbol_ptr  sym = proj->header->inactive_symbols;
+    for (; sym != NULL; sym = sym->next) {
+      if (symbol_is(sym, sk_projection) &&
+          sym->variant.projection.is_using_decl) {
+        /* A using-declaration for the same name as proj. */
+        a_type  *qualifier = sym->variant.projection.extra_info->naming_type;
+        a_base_class
+                *selected = find_base_class_of(bcp->derived_class, qualifier),
+                *reframed = find_base_class_of(qualifier, bcp->type);
+        if (selected != NULL && !selected->ambiguous && reframed != NULL) {
+          /* We found the using-declaration and the unambiguous base class it
+             designates.  Cast the operand to that base and adjust *p_bcp for
+             the remaining needed cast (now starting from the class type
+             named_type). */
+          base_class_cast_operand(opnd, selected, (a_type_ptr)NULL,
+                                  /*check_cast_access=*/FALSE,
+                                  /*allow_ambiguity=*/FALSE,
+                                  /*is_implicit_cast=*/TRUE,
+                                  /*implicit_in_naming=*/TRUE,
+                                  /*is_object_pointer=*/TRUE);
+          *p_bcp = reframed;
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* cast_operand_via_disambiguating_using_decl */
+
+
 void cast_pointer_for_field_selection(
                                an_operand        *operand_1,
                                a_boolean         is_arrow_operator,
@@ -12289,6 +12358,22 @@ the case where the left operand is a C++/CLI handle.
                                                                ) {
       bcp = projection_member_sym->variant.projection.extra_info
                                  ->fundamental_base_class;
+      if (microsoft_bugs && bcp->ambiguous &&
+          (projection_member_sym->variant.projection
+                                         .any_intervening_using_decl ||
+           projection_member_sym->variant.projection.is_using_decl)) {
+        /* MSVC appears to take using-declarations into account to
+           disambiguate ambiguous casts.  For example:
+
+               struct B { int f(); };
+               struct C1: B {};
+               struct C2: B {};
+               struct D: C1, C2 { using C1::f; } d;
+               int r = d.f();  // Accepted by MSVC.
+        */
+        cast_operand_via_disambiguating_using_decl(operand_1, &bcp,
+                                                   projection_member_sym);
+      }  /* if */
       /* Normally, when a projection symbol is used it means the name was
          specified as a simple name.  This is not the case for a projection
          symbol created for a Microsoft __super lookup. */
