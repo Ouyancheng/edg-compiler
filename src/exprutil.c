@@ -25985,7 +25985,7 @@ p_fatal and p_copy_error are NULL by default.
     result = constraint_satisfied(opnds, template_arg_list,
                                   template_param_list, diag_list, options,
                                   ctws_state, p_fatal, &copy_error) ||
-             (!*p_fatal && !copy_error &&
+             (!*p_fatal &&
               constraint_satisfied(opnds->next, template_arg_list,
                                    template_param_list, diag_list, options,
                                    ctws_state, p_fatal, &copy_error));
