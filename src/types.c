@@ -3984,8 +3984,12 @@ used instead of calling this routine directly.
 
   for (;;) {
     if (tp->kind == (a_type_kind)tk_typeref) {
-      /* Stop at a dependent type operator */
-      if (tp->variant.typeref.is_dependent_type_operator) break;
+      /* Stop at a dependent type operator that is not a decltype or typeof
+         operator. */
+      if (tp->variant.typeref.is_dependent_type_operator &&
+          !typeref_is_type_operator(tp)) {
+        break;
+      }  /* if */
       /* May be a typedef or a qualification. */
       qualifiers |= tp->variant.typeref.qualifiers;
       tp = tp->variant.typeref.type;
