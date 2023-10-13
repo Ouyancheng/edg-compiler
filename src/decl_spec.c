@@ -10299,18 +10299,35 @@ attribute.
 }  /* conditional_explicit_specifier */
 
 
-static a_type_ptr insert_typeref_for_naming_if_needed(a_type_ptr	tp)
+static a_type_ptr insert_typeref_for_naming_if_needed(a_type_ptr  tp)
 /*
-If the current locator refers to a projection symbol, create a typeref
-that refers to tp and has the parent type of the projection symbol.
+If the current locator refers to an implicit projection symbol, create a
+typeref that refers to tp and has the parent type of the projection symbol.
 This is only done when record_form_of_name_reference is TRUE for the
-current scope stack entry.
+current scope stack entry.  That type can be used to correctly render
+qualifiers in the C++-generating back end.  For example:
+    struct B {
+    protected:
+      struct N { };
+    };
+    struct C: private B {
+    protected:
+      using B::N;
+    };
+    struct D: C { friend struct E; };
+    struct E {
+      D::N *n;  // Record that the form D::N is used.
+    };
+
+The projection created for D::N represents type B::N, but using "B::N" in E
+would not be valid (inaccessible).
 */
 {
   a_symbol_ptr  orig_sym = locator_for_curr_id.specific_symbol;
   a_type_ptr    naming_type = tp;
 
   if (symbol_is(orig_sym, sk_projection) &&
+      !orig_sym->variant.projection.is_using_decl &&
       locator_for_curr_id.is_qualified_name &&
       record_name_references_in_context()) {
     naming_type = orig_sym->variant.projection.extra_info->naming_type;

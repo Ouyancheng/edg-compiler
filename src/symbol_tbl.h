@@ -3386,9 +3386,11 @@ typedef struct a_projection_descr {
 			   specifies the path between the current class object
 			   and the member specified by fundamental_symbol. */
   a_type_ptr	naming_type;
-			/* If the type was named using a qualified name, this
-			   typeref identifies the type used in the
-			   qualifier. */
+			/* For a using-declaration, the type of the qualifier.
+			   For an implicit projection, if the type was named
+			   using a qualified name, a typeref that identifies
+			   the type used in the qualifier (that case is only
+			   recorded when name references are recorded). */
 } a_projection_descr;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
