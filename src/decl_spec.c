@@ -10306,6 +10306,7 @@ typeref that refers to tp and has the parent type of the projection symbol.
 This is only done when record_form_of_name_reference is TRUE for the
 current scope stack entry.  That type can be used to correctly render
 qualifiers in the C++-generating back end.  For example:
+
     struct B {
     protected:
       struct N { };
