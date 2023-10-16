@@ -17257,8 +17257,10 @@ the value representation of the integer value.
                       ptr1->complete_object == ptr2->complete_object) {
                     *(an_integer_value *)result_storage = one_int;
                   } else if (((ptr1->address == ptr1->complete_object &&
+                               ptr1->address != NULL &&
                                cannot_dereference(ptr2)) ||
                               (ptr2->address == ptr2->complete_object &&
+                               ptr2->address != NULL &&
                                cannot_dereference(ptr1))) &&
                              ptr1->complete_object != ptr2->complete_object) {
                     info_with_pos(ec_constexpr_equality_past_the_end_address,
@@ -17362,8 +17364,10 @@ the value representation of the integer value.
                       ptr1->complete_object == ptr2->complete_object) {
                     *(an_integer_value *)result_storage = zero_int;
                   } else if (((ptr1->address == ptr1->complete_object &&
+                               ptr1->address != NULL &&
                                cannot_dereference(ptr2)) ||
                               (ptr2->address == ptr2->complete_object &&
+                               ptr2->address != NULL &&
                                cannot_dereference(ptr1))) &&
                              ptr1->complete_object != ptr2->complete_object) {
                     info_with_pos(ec_constexpr_equality_past_the_end_address,

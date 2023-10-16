@@ -1,5 +1,20 @@
 Version 6.6
 
+10/16/23 [EDGcpfe/26722]
+Spurious error on comparison to nullptr during constant evaluation
+
+Consider (in C++17 mode):
+
+  constexpr bool f() {
+    int x[10]{};
+    return x + 10 != nullptr;
+  }
+  static_assert(f());
+
+The front end previously issued a spurious error about f() not producing a
+constant value.  That is now fixed.
+
+
 10/16/23 [EDGcpfe/23676]
 Implicit type context for requires-expression parameters
 
