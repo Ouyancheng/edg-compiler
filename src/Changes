@@ -1,6 +1,6 @@
 Version 6.6
 
-10/12/23 [EDGcpfe/23676]
+10/16/23 [EDGcpfe/23676]
 Implicit type context for requires-expression parameters
 
 Consider, in C++20 mode:
