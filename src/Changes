@@ -1,5 +1,18 @@
 Version 6.6
 
+10/12/23 [EDGcpfe/23676]
+Implicit type context for requires-expression parameters
+
+Consider, in C++20 mode:
+
+  namespace N { template<typename T> int f(typename T::type); }
+  template<typename T> int N::f(T::type);  // Previously an error.  Now okay.
+
+The changes for EDGcpfe/20270 missed this case: Redeclaring a function or
+function template with a qualified name causes the parameter declarations to
+be in an "implicit type context").  That is now fixed.
+
+
 10/12/23 [EDGcpfe/26720]
 Implicit type context for requires-expression parameters
 

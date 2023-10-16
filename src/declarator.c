@@ -7774,12 +7774,18 @@ etc.).
              in the prototype instantiation, treat this as one now. */
           if (pedp->is_function_declarator) goto function_lparen;
         }  /* if */
-        if ((!any_args && pedp != NULL && !pedp->is_function_declarator) ||
-            (not_a_function_declarator && use_implicit_typename() &&
-             is_template_dependent_context()) ||
-            (!must_be_function_declarator(input_flags) &&
-             !is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
-                               DFS_REAL_DECLARATOR_ALLOWED))) {
+        if (locator->is_qualified_name && locator->specific_symbol != NULL &&
+            is_function_or_template_symbol(locator->specific_symbol)) {
+          /* This must be a function declarator re-declaring a prior function
+             or member function (or function template).  No need to rely on
+             is_decl_not_expr for that case. */
+        } else if ((!any_args && pedp != NULL &&
+                    !pedp->is_function_declarator) ||
+                   (not_a_function_declarator && use_implicit_typename() &&
+                    is_template_dependent_context()) ||
+                   (!must_be_function_declarator(input_flags) &&
+                    !is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                                      DFS_REAL_DECLARATOR_ALLOWED))) {
           a_boolean  is_function_decl = FALSE;
           /* This appears to be a parenthesized initializer.  However, it
              might also be a function definition with an old-style parameter
