@@ -8352,6 +8352,9 @@ entity with the given kind and address.  If no definition position is known,
 instead return NULL.
 */
 {
+  /* If this assertion fails, the caller gave a NULL pointer for an entity kind
+     other than iek_none and needs to be corrected. */
+  check_assertion(kind == iek_none || ptr != NULL);
   a_source_position *result = NULL;
 
   switch (kind) {
