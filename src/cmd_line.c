@@ -4086,7 +4086,7 @@ default mode (e.g., exception handling).
         aggregate_ctad_enabled = TRUE;
         alias_ctad_enabled = TRUE;
         rvalue_allowed_with_const_qual_memptr = TRUE;
-        va_opt_enabled = TRUE;
+        va_opt_enabled = !microsoft_mode || ms_std_preproc;
         nested_inline_namespace_definitions_enabled = TRUE;
         allow_parenthesized_aggregate_init = TRUE;
         init_statement_allowed_in_range_based_for = TRUE;

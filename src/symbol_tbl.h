@@ -682,13 +682,23 @@ enum a_repl_text_seq_kind {
 			   adjacent to "##" and all arguments in pcc
 			   mode. */
   rt_stringized_raw_argument,
-			/* Same as rt_raw_argument, but argument raw string is
-			   turned into a string literal (see standard,
-			   3.8.3.2). */
+			/* Same as rt_raw_argument, but the argument raw
+			   string is turned into a string literal (see
+			   [cpp.stringize]).  If the "argument number" is
+			   MAX_REPL_TEXT_NUMBER, the operand of # is not a
+			   parameter but a __VA_OPT__ operator whose
+			   operand is to be stringized, and in
+			   configurations in which
+			   FULLY_RESOLVED_MACRO_POSITIONS is set to TRUE,
+			   this section will be followed by
+			   sizeof(a_source_position) bytes containing the
+			   source position of the __VA_OPT__ operator. */
   rt_charized_raw_argument,
-			/* Same as rt_stringized_raw_argument, but argument
-			   raw string is turned into a char literal instead
-			   (Microsoft extension). */
+			/* Same as rt_stringized_raw_argument, except that
+			   the argument raw string is turned into a char
+			   literal instead (Microsoft extension); the
+			   special arrangements supporting a __VA_OPT__
+			   operator do not apply. */
   rt_argument,		/* Macro-expanded string for argument.  Followed by 3
 			   bytes containing the argument number, as for 
 			   rt_raw_argument. */
@@ -718,7 +728,8 @@ enum a_repl_text_seq_kind {
 			   containing the number of characters to skip
 			   forward in the repl_text string (beginning with
 			   the byte following this section header to the
-			   start of the next section) if __VA_ARGS__ is
+			   start of the section following the sections
+			   representing the argument) if __VA_ARGS__ is
 			   empty. */
 };
 

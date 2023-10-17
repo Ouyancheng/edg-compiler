@@ -2176,7 +2176,7 @@ Free the macro argument description pointed to by *map, and set *map to NULL.
 */
 {
   db_enter(5, "free_macro_arg");
-  /* Put the macro buffer on a list of macro buffers freed and available
+  /* Put the macro argument on a list of macro arguments freed and available
      to be reused. */
   (*map)->next = avail_macro_args;
   avail_macro_args = *map;
@@ -4124,11 +4124,28 @@ FALSE in all other cases.
 }  /* adjust_length_for_magic_arg */
 
 
-static sizeof_t length_of_replacement_text(char            *rtp,
-                                           sizeof_t        n_params,
-                                           a_macro_def_ptr mdp,
-                                           a_macro_arg_ptr *arg_values,
-                                           a_boolean       empty_variadic_arg)
+static inline char *add_to_arg_raw_text(a_macro_arg_ptr map,
+                                        a_const_char    *str,
+                                        sizeof_t        len)
+/*
+Copy len characters from str to the raw text of map and return a pointer to
+the next available character in the raw text.
+*/
+{
+  ensure_arg_raw_text_space(len, map);
+  (void)memcpy(map->raw_text + map->raw_len, str, len);
+  map->raw_len += len;
+  return map->raw_text + map->raw_len;
+}  /* add_to_arg_raw_text */
+
+
+static sizeof_t length_of_replacement_text(
+                 char                                       *rtp,
+                 sizeof_t                                   n_params,
+                 a_macro_def_ptr                            mdp,
+                 a_macro_arg_ptr                            *arg_values,
+                 a_boolean                                  empty_variadic_arg,
+                 ARG_UNUSED a_macro_invocation_record_index macro_inv_idx)
 /*
 Compute the length (in bytes/characters) of the replacement text described by
 the sequence of sections pointed to by rtp.  n_params is the number of macro
@@ -4137,15 +4154,24 @@ of a_macro_arg_ptr elements: it is referred to by the get_arg_value macro and
 hence its name should not be changed.  empty_variadic_arg is TRUE if the
 argument corresponding to __VA_ARGS__ has no tokens; it controls the
 treatment of rt_optional_text.
+
+When the replacement text includes a stringized __VA_OPT__ operator, this
+routine synthesizes a macro argument containing the raw text for the
+operand of __VA_OPT__ and appends it to the list of macro arguments; these
+synthesized arguments follow the ones for parameters and are not added to
+the arg_values array.  When synthesizing such macro arguments,
+macro_inv_idx gives the macro invocation record index to record when
+tracking macro positions; its value is otherwise unused.
 */
 {
-  sizeof_t  result = 0;
-  a_boolean prev_section_is_paste = FALSE;
+  sizeof_t        result = 0;
+  a_boolean       prev_section_is_paste = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  char      *prev_text = NULL;
-  sizeof_t  prev_len = 0;
+  char            *prev_text = NULL;
+  sizeof_t        prev_len = 0;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_boolean add_escape;
+  a_boolean       add_escape;
+  a_macro_arg_ptr map;
 
   for (; *rtp != (int)rt_null;) {
     sizeof_t             sect_len, rts_number;
@@ -4172,8 +4198,116 @@ treatment of rt_optional_text.
       if (empty_variadic_arg) {
         rtp += rts_number;
       }  /* if */
+    } else if (rts_kind == rt_stringized_raw_argument &&
+               rts_number == MAX_REPL_TEXT_NUMBER) {
+      /* This is a stringized __VA_OPT__ operator.  Synthesize a macro
+         argument to contain the text to be stringized. */
+      char                       *dest;
+      a_pointer_registration     dest_reg;
+      a_pointer_registration_ptr save_registered_ptrs = registered_pointers;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+      /* The source positions of the __VA_OPT__ operator and its closing
+         parenthesis are stored immediately after the
+         rt_stringized_raw_argument section for use in the argument's text
+         map. */
+      a_source_position va_opt_pos;
+      a_source_position va_opt_end_pos;
+      (void)memcpy((char*)&va_opt_pos, rtp, sizeof(a_source_position));
+      rtp += sizeof(a_source_position);
+      (void)memcpy((char*)&va_opt_end_pos, rtp, sizeof(a_source_position));
+      rtp += sizeof(a_source_position);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+      check_assertion(*rtp == rt_optional_text);
+      map = alloc_macro_arg();
+      add_to_macro_arg_list(map);
+      register_pointer_variable(dest, dest_reg);
+      dest = map->raw_text;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+      add_entry_to_macro_text_map(&map->raw_text_map, /*start_of_region=*/0,
+                                  va_opt_pos.orig_seq, va_opt_pos.orig_column,
+                                  macro_inv_idx);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+      /* Skip over the rt_optional_text section and determine the length
+         of the replacement text for the __VA_OPT__ operand. */
+      ++rtp;
+      get_macro_repl_text_number(rts_number, rtp);
+      if (empty_variadic_arg) {
+        /* Skip over the __VA_OPT__ operand. */
+        rtp += rts_number;
+      } else {
+        /* Loop over the sections in the __VA_OPT__ operand, adding the
+           text to the synthesized argument's raw text.  Note that we only
+           add a text map entry for the end of the text, not for each piece
+           we add, as those positions will be inside the stringized result
+           and thus unusable. */
+        char *end_operand = rtp + rts_number;
+        while (rtp < end_operand) {
+          rts_kind = (a_repl_text_seq_kind)*(rtp++);
+          get_macro_repl_text_number(rts_number, rtp);
+          if (rts_kind == rt_text) {
+            dest = add_to_arg_raw_text(map, rtp, rts_number);
+            rtp += rts_number;
+          } else if (rts_kind == rt_paste ||
+                     rts_kind == rt_microsoft_magic_arg_marker) {
+            /* No associated text. */
+          } else if (rts_kind == rt_optional_text) {
+            /* __VA_OPT__ cannot be nested. */
+            unexpected_condition();
+          } else {
+            /* Other section kinds have an associated parameter number. */
+            a_macro_arg_ptr sub_map;
+            get_arg_value(rts_number, sub_map);
+            switch (rts_kind) {
+              case rt_raw_argument:
+                dest = add_to_arg_raw_text(map, sub_map->raw_text,
+                                           sub_map->raw_len);
+                break;
+              case rt_stringized_raw_argument:
+              case rt_charized_raw_argument:
+                sect_len = stringized_arg(
+                                         sub_map, (char **)NULL,
+                                         rts_kind == rt_charized_raw_argument);
+                ensure_arg_raw_text_space(sect_len, map);
+                (void)stringized_arg(sub_map, &dest,
+                                     rts_kind == rt_charized_raw_argument);
+                map->raw_len += sect_len;
+                break;
+              case rt_argument:
+                dest = add_to_arg_raw_text(map, sub_map->expanded_text,
+                                           sub_map->expanded_len);
+                break;
+              case rt_microsoft_maybe_raw_argument:
+                /* This section should not appear in a stringized
+                   __VA_OPT__ operand. */
+                unexpected_condition();
+                break;
+              default:
+                unexpected_condition();
+            }  /* switch */
+          }  /* if */
+        }  /* while */
+#if FULLY_RESOLVED_MACRO_POSITIONS
+        /* Map the last character to be stringized to the closing
+           parenthesis of the __VA_OPT__. */
+        add_entry_to_macro_text_map(&map->raw_text_map, map->raw_len - 1,
+                                    va_opt_end_pos.orig_seq,
+                                    va_opt_end_pos.orig_column,
+                                    macro_inv_idx);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+      }  /* if */
+      ensure_arg_raw_text_space(LE_ESCAPE_LEN, map);
+      *dest++ = LE_ESCAPE;
+      *dest++ = LE_END_OF_INSERTION;
+      registered_pointers = save_registered_ptrs;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+      /* Add the terminating entry to the text map. */
+      add_entry_to_macro_text_map(&map->raw_text_map, map->raw_len,
+                                  (a_seq_number)0, SP_COL_UNKNOWN,
+                                  NO_PARENT_MACRO_INVOCATION);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+      sect_len = stringized_arg(map, (char**)NULL,
+                                /*charize=*/FALSE);
     } else {
-      a_macro_arg_ptr map;
       /* Other section kinds have an associated parameter number. */
       get_arg_value(rts_number, map);
       switch (rts_kind) {
@@ -5486,6 +5620,8 @@ associated global variables will also have been set).
 			   parameters beyond that, a slow linear search
 			   is used. */
   a_macro_arg_ptr arg_values[ARG_VALUES_SIZE];
+  a_macro_arg_ptr last_actual_arg;
+  a_macro_arg_ptr first_stringized_va_opt_arg = NULL;
   a_source_line_modif_ptr
                   invocation_slmp = NULL;
   unsigned long   macro_name_depth = 0;
@@ -7337,8 +7473,21 @@ end_arg_expansion:;
   } else {
     /* Normal replacement text, with sections. */
     /* coverity[uninit_use_in_call] - thinks arg_values may be unset. */
+    last_actual_arg = end_of_macro_arg_list;
+    check_assertion(last_actual_arg == NULL ||
+                    last_actual_arg->next == NULL);
     repl_text_len = length_of_replacement_text(repl_text, n_params, mdp,
-                                               arg_values, empty_variadic_arg);
+                                               arg_values, empty_variadic_arg,
+                                               this_macro_invocation_record);
+    if (end_of_macro_arg_list != last_actual_arg) {
+      /* length_of_replacement_text created one or more "arguments"
+         containing text from a stringized __VA_OPT__ operator.  Remember
+         the first one so it can be used in processing the corresponding
+         rt_stringized_raw_argument operation. */
+      first_stringized_va_opt_arg =
+                             (last_actual_arg == NULL) ? macro_arg_list
+                                                       : last_actual_arg->next;
+    }  /* if */
   }  /* if */
   /* repl_text_len now indicates the size of the expansion.  Note that
      in the case of an expanded argument value, the expansion may be
@@ -7472,12 +7621,36 @@ end_arg_expansion:;
       } else if (rts_kind == rt_microsoft_magic_arg_marker) {
         sect_len = 0;
       } else if (rts_kind == rt_optional_text) {
-        /* Skip over the text in the operand of __VA_OPT__ if the
-           argument for __VA_ARGS__ is empty. */
+        /* Skip over the text in the operand of __VA_OPT__ if the argument
+           for __VA_ARGS__ is empty. */
         if (empty_variadic_arg) {
           rtp += rts_number;
         }  /* if */
         sect_len = 0;
+      } else if (rts_kind == rt_stringized_raw_argument &&
+                 rts_number == MAX_REPL_TEXT_NUMBER) {
+        /* This is a stringized __VA_OPT__ operator.  Use the corresponding
+           synthesized macro argument to create the stringized result,
+           advance to the next synthesized macro argument (if any) to
+           prepare for possible succeeding stringized __VA_OPT__ operators,
+           and skip over the rt_optional_text section (which was already
+           copied into the synthesized macro argument by
+           length_of_replacement_text). */
+#if FULLY_RESOLVED_MACRO_POSITIONS
+        /* In configurations with FULLY_RESOLVED_MACRO_POSITIONS set to
+           TRUE, the section for a stringized __VA_OPT__ operator is
+           followed by bytes containing the source positions of the
+           __VA_OPT__ operator and its closing right parenthesis. */
+        rtp += 2 * sizeof(a_source_position);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+        rts_kind = (a_repl_text_seq_kind)*(rtp++);
+        check_assertion(rts_kind == rt_optional_text &&
+                        first_stringized_va_opt_arg != NULL);
+        get_macro_repl_text_number(rts_number, rtp);
+        rtp += rts_number;
+        map = first_stringized_va_opt_arg;
+        first_stringized_va_opt_arg = map->next;
+        goto insert_stringized_arg;
       } else {
         /* Other section kinds have an associated parameter number. */
         get_arg_value(rts_number, map);
@@ -7583,6 +7756,7 @@ end_arg_expansion:;
 
                  M(1) expands to nothing, while M(1,) expands to "". */
             } else {
+insert_stringized_arg:
 #if FULLY_RESOLVED_MACRO_POSITIONS
               /* The result will be a single token, so we only need the
                  starting position from the raw_text_map; the other map
@@ -8347,7 +8521,23 @@ macro described by macro_sym, i.e., "#define <name> <replacement>".
           /* #parameter or #@parameter */
           put_str_to_temp_text_buffer(
             rts_kind == rt_charized_raw_argument ? (char *)"#@" : (char *)"#");
-          put_str_to_temp_text_buffer(macro_param_name(rts_number, mdp));
+          if (rts_number != MAX_REPL_TEXT_NUMBER) {
+            /* Unless a stringize operator is followed by a __VA_OPT__
+               operator, indicated by the rts number MAX_REPL_TEXT_NUMBER,
+               it is followed by the name of a parameter; put it out now.
+               In the __VA_OPT__ case, the operator will be put out when
+               the corresponding section is processed, so nothing is put
+               out here following the '#'. */
+            put_str_to_temp_text_buffer(macro_param_name(rts_number, mdp));
+#if FULLY_RESOLVED_MACRO_POSITIONS
+          } else {
+            /* In configurations with FULLY_RESOLVED_MACRO_POSITIONS set to
+               TRUE, a stringized __VA_OPT__ operator is followed by bytes
+               representing the source positions of the __VA_OPT__ operator
+               and its closing right parenthesis.  Skip over them. */
+            ptr += 2 * sizeof(a_source_position);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+          }  /* if */
           break;
         case rt_argument:
           /* Simple parameter name. */
@@ -8705,7 +8895,6 @@ Scan and process a #define directive.
   a_source_position
                   va_opt_pos;
   char            *num_pos;
-  a_token_kind    pending_op_tok = tok_last;
 
   /* WATCH OUT: Pointers into macro_buffer or the raw_text of a macro arg
      are dangerous, since those things can be reallocated.  Such pointers
@@ -8720,12 +8909,16 @@ Scan and process a #define directive.
   char            *start_of_va_opt_text = NULL;
   a_pointer_registration
                   start_of_va_opt_text_reg;
+  char            *va_opt_end_pos = NULL;
+  a_pointer_registration
+                  va_opt_end_pos_reg;
   a_pointer_registration_ptr
 		  save_registered_pointers = registered_pointers;
 
   register_pointer_variable(curr_text_section, curr_text_section_reg);
   register_pointer_variable(buffer_start, buffer_start_reg);
   register_pointer_variable(start_of_va_opt_text, start_of_va_opt_text_reg);
+  register_pointer_variable(va_opt_end_pos, va_opt_end_pos_reg);
 
   db_enter(3, "proc_define");
   if (scanning_module_macro) {
@@ -9002,6 +9195,11 @@ Scan and process a #define directive.
             num_pos = start_of_va_opt_text + 1;
             put_macro_repl_text_number(len, num_pos);
             start_of_va_opt_text = NULL;
+#if FULLY_RESOLVED_MACRO_POSITIONS
+            /* Save the position of the closing parenthesis. */
+            (void)memcpy(va_opt_end_pos, (char*)&pos_curr_token,
+                         sizeof(a_source_position));
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
             (void)mdefn_get_token(param_list, &param_num, &param_ptr,
                                   &any_white_space_skipped);
             curr_text_section = NULL;
@@ -9161,13 +9359,13 @@ Scan and process a #define directive.
           a_token_kind op_tok = curr_token;
           (void)mdefn_get_token(param_list, &param_num, &param_ptr,
                                 &any_white_space_skipped);
-          if (curr_token == tok_identifier && va_opt_enabled &&
+          if (curr_token == tok_identifier && va_opt_enabled && !charize &&
               len_of_curr_token == sizeof("__VA_OPT__") - 1 &&
               strncmp(start_of_curr_token, "__VA_OPT__",
                       size_t_arg(len_of_curr_token)) == 0) {
-            /* Defer the operation to the __VA_OPT__ processing. */
-            pending_op_tok = op_tok;
-            goto process_va_opt;
+            /* Indicate that the stringize operator applies to a __VA_OPT__
+               operator and not a named parameter. */
+            param_num = MAX_REPL_TEXT_NUMBER;
           }  /* if */
           if (param_num == 0) {
             pos_error(ec_exp_macro_param, &error_position);
@@ -9175,6 +9373,24 @@ Scan and process a #define directive.
             put_start_of_non_text_section(charize ? rt_charized_raw_argument
                                                   : rt_stringized_raw_argument,
                                           param_num);
+            if (param_num == MAX_REPL_TEXT_NUMBER) {
+#if FULLY_RESOLVED_MACRO_POSITIONS
+              /* Add the source position of __VA_OPT__ operator and save
+                 space for the position of its closing parenthesis. */
+              ensure_macro_buffer_space(2 * sizeof(a_source_position));
+              (void)memcpy(next_avail_in_macro_buffer,
+                           (char*)&pos_curr_token, sizeof(a_source_position));
+              next_avail_in_macro_buffer += sizeof(a_source_position);
+              /* Use the __VA_OPT__ position as a temporary filler for the
+                 position of the closing parenthesis.  It will be
+                 overwritten when the parenthesis is actually seen. */
+              va_opt_end_pos = next_avail_in_macro_buffer;
+              (void)memcpy(next_avail_in_macro_buffer,
+                           (char*)&pos_curr_token, sizeof(a_source_position));
+              next_avail_in_macro_buffer += sizeof(a_source_position);
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+              goto process_va_opt;
+            }  /* if */
             need_end_of_token_marker = TRUE;
             (void)mdefn_get_token(param_list, &param_num, &param_ptr,
                                   &any_white_space_skipped);
@@ -9250,21 +9466,6 @@ process_va_opt:
               pos_error(ec_paste_cannot_be_first_in_VA_OPT, &error_position);
               (void)mdefn_get_token(param_list, &param_num, &param_ptr,
                                     &any_white_space_skipped);
-            } else if (pending_op_tok != tok_last) {
-              /* There was a stringize or charize operator immediately
-                 preceding the __VA_OPT__.  Process it now. */
-              if (param_num == 0) {
-                pos_error(ec_exp_macro_param, &error_position);
-              } else {
-                put_start_of_non_text_section(
-                      pending_op_tok != tok_sharp ? rt_charized_raw_argument
-                                                  : rt_stringized_raw_argument,
-                      param_num);
-                need_end_of_token_marker = TRUE;
-                (void)mdefn_get_token(param_list, &param_num, &param_ptr,
-                                      &any_white_space_skipped);
-                pending_op_tok = tok_last;
-              }  /* if */
             }  /* if */
             /* Make sure the argument passed to the ellipsis is expanded,
                even if __VA_ARGS__ is not used in the definition. */
