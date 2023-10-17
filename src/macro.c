@@ -5625,6 +5625,8 @@ associated global variables will also have been set).
   a_source_line_modif_ptr
                   invocation_slmp = NULL;
   unsigned long   macro_name_depth = 0;
+  a_macro_invocation_record_index
+                  this_macro_invocation_record = NO_PARENT_MACRO_INVOCATION;
 #if FULLY_RESOLVED_MACRO_POSITIONS
   a_text_map_position_tracker
                   tracker;
@@ -5638,8 +5640,6 @@ associated global variables will also have been set).
   sizeof_t        bytes_before_token;
   a_source_position
                   lparen_pos;
-  a_macro_invocation_record_index
-                  this_macro_invocation_record = NO_PARENT_MACRO_INVOCATION;
   a_macro_text_map_entry_ptr
                   tmep;
   a_boolean       macro_text_map_in_use = FALSE;
