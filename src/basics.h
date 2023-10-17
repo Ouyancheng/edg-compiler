@@ -807,9 +807,11 @@ typedef uint32_t
 			   "after end of file, after the last line". */
 typedef int32_t
 	 	a_macro_invocation_record_index;
-			/* The index of a macro invocation record (defined in
-			   il_def.h; all we need is the index type here). */
-#if FULLY_RESOLVED_MACRO_POSITIONS || RECORD_MACRO_INVOCATIONS
+			/* The index of a macro invocation record (defined
+			   in il_def.h; all we need is the index type
+			   here).  It is defined even in configurations
+			   that do not record macro invocations in order to
+			   allow its use as a parameter type. */
 /*
 Value that indicates that there is no corresponding macro invocation
 record.  The value 0 is chosen to allow use of memzero to clear blocks
@@ -817,7 +819,6 @@ containing macro invocation record indices.  As a result of this choice,
 the zeroth macro invocation record will be left unused.
 */
 #define NO_PARENT_MACRO_INVOCATION 0
-#endif /* FULLY_RESOLVED_MACRO_POSITIONS || RECORD_MACRO_INVOCATIONS */
 typedef struct a_source_position *a_source_position_ptr;
 typedef struct a_source_position {
   /* A source position: sequence number, column.  A source position with
