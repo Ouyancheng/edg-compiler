@@ -39,7 +39,7 @@ Consider, in C++20 mode:
 
 The changes for EDGcpfe/20270 missed this case: Redeclaring a function or
 function template with a qualified name causes the parameter declarations to
-be in an "implicit type context").  That is now fixed.
+be in an "implicit type context".  That is now fixed.
 
 
 10/12/23 [EDGcpfe/26720]
