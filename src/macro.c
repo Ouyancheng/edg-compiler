@@ -9196,9 +9196,13 @@ Scan and process a #define directive.
             put_macro_repl_text_number(len, num_pos);
             start_of_va_opt_text = NULL;
 #if FULLY_RESOLVED_MACRO_POSITIONS
-            /* Save the position of the closing parenthesis. */
-            (void)memcpy(va_opt_end_pos, (char*)&pos_curr_token,
-                         sizeof(a_source_position));
+            if (va_opt_end_pos != NULL) {
+              /* Save the position of the closing parenthesis for a
+                 stringized __VA_OPT__ operator. */
+              (void)memcpy(va_opt_end_pos, (char*)&pos_curr_token,
+                           sizeof(a_source_position));
+              va_opt_end_pos = NULL;
+            }  /* if */
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
             (void)mdefn_get_token(param_list, &param_num, &param_ptr,
                                   &any_white_space_skipped);
