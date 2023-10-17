@@ -1,5 +1,19 @@
 Version 6.6
 
+10/16/23 [EDGcpfe/24745,EDGcpfe/26662]
+Stringized __VA_OPT__
+
+The front end previously incorrectly disallowed use of the __VA_OPT__
+preprocessing operator as the operand of the stringize ("#") operator.  This
+is now fixed.  As part of this change, the front end now more accurately
+emulates MSVC by not recognizing the __VA_OPT__ operator when emulating the
+traditional preprocessor.  For example, with --c++20:
+
+  #define M(x, ...) x #__VA_OPT__(,) #__VA_ARGS__
+  const char *p = M("a");    // Expansion is "a" "" ""
+  const char *p = M("a", b)  // Expansion is "a" "," "b"
+
+
 10/16/23 [EDGcpfe/26722]
 Spurious error on comparison to nullptr during constant evaluation
 
