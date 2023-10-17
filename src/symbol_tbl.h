@@ -691,8 +691,9 @@ enum a_repl_text_seq_kind {
 			   configurations in which
 			   FULLY_RESOLVED_MACRO_POSITIONS is set to TRUE,
 			   this section will be followed by
-			   sizeof(a_source_position) bytes containing the
-			   source position of the __VA_OPT__ operator. */
+			   2*sizeof(a_source_position) bytes containing the
+			   source positions of the __VA_OPT__ operator and
+			   its closing right parenthesis. */
   rt_charized_raw_argument,
 			/* Same as rt_stringized_raw_argument, except that
 			   the argument raw string is turned into a char
