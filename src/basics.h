@@ -805,11 +805,11 @@ typedef uint32_t
 			   indicates "unknown position".  A sequence
 			   number one larger than all those in use indicates
 			   "after end of file, after the last line". */
-#if FULLY_RESOLVED_MACRO_POSITIONS || RECORD_MACRO_INVOCATIONS
 typedef int32_t
 	 	a_macro_invocation_record_index;
 			/* The index of a macro invocation record (defined in
 			   il_def.h; all we need is the index type here). */
+#if FULLY_RESOLVED_MACRO_POSITIONS || RECORD_MACRO_INVOCATIONS
 /*
 Value that indicates that there is no corresponding macro invocation
 record.  The value 0 is chosen to allow use of memzero to clear blocks

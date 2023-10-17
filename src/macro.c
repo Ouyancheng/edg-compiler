@@ -9356,7 +9356,6 @@ Scan and process a #define directive.
              stringizing "#" operator, but it produces a character literal
              instead of a string literal. */
           a_boolean    charize = curr_token != tok_sharp;
-          a_token_kind op_tok = curr_token;
           (void)mdefn_get_token(param_list, &param_num, &param_ptr,
                                 &any_white_space_skipped);
           if (curr_token == tok_identifier && va_opt_enabled && !charize &&
