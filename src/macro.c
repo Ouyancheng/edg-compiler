@@ -4124,17 +4124,38 @@ FALSE in all other cases.
 }  /* adjust_length_for_magic_arg */
 
 
-static inline char *add_to_arg_raw_text(a_macro_arg_ptr map,
-                                        a_const_char    *str,
-                                        sizeof_t        len)
+static inline char *add_to_arg_raw_text(
+                                      a_macro_arg_ptr map,
+                                      a_const_char    *str,
+                                      sizeof_t        len,
+                                      a_boolean       trim_white_space = FALSE)
 /*
-Copy len characters from str to the raw text of map and return a pointer to
-the next available character in the raw text.
+Copy characters from str to the raw text of map and return a pointer to
+the next available character in the raw text.  If trim_white_space is FALSE,
+the first len characters of str are copied; otherwise, the copy will begin
+with the first non-whitespace, non-lexical-escape character in str and the
+length reduced accordingly.
 */
 {
-  ensure_arg_raw_text_space(len, map);
-  (void)memcpy(map->raw_text + map->raw_len, str, len);
-  map->raw_len += len;
+  a_const_char *end_of_str = str + len;
+
+  if (trim_white_space) {
+    while (str < end_of_str) {
+      if (*str == LE_ESCAPE) {
+        str += LE_ESCAPE_LEN;
+      } else if (*str == ' ' || *str == '\t') {
+        ++str;
+      } else {
+        break;
+      }  /* if */
+    }  /* while */
+    len = end_of_str - str;
+  }  /* if */
+  if (str < end_of_str) {
+    ensure_arg_raw_text_space(len, map);
+    (void)memcpy(map->raw_text + map->raw_len, str, len);
+    map->raw_len += len;
+  }  /* if */
   return map->raw_text + map->raw_len;
 }  /* add_to_arg_raw_text */
 
@@ -4245,7 +4266,10 @@ tracking macro positions; its value is otherwise unused.
           rts_kind = (a_repl_text_seq_kind)*(rtp++);
           get_macro_repl_text_number(rts_number, rtp);
           if (rts_kind == rt_text) {
-            dest = add_to_arg_raw_text(map, rtp, rts_number);
+            /* Trim leading whitespace from the text if it would appear at
+               the beginning of the string. */
+            dest = add_to_arg_raw_text(map, rtp, rts_number,
+                                       dest == map->raw_text);
             rtp += rts_number;
           } else if (rts_kind == rt_paste ||
                      rts_kind == rt_microsoft_magic_arg_marker) {
