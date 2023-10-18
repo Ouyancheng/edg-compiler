@@ -2830,6 +2830,29 @@ extern a_boolean check_context_sensitive_keyword(a_token_kind  tok_kind,
       : 0) /* 0 for no prefix */                                             \
    + 1 /* 1 for quoting character */)
 
+
+inline a_string_or_char_literal_kind char_kind_to_str_literal_kind(
+                                              a_character_kind  character_kind)
+/*
+Given a character kind, return the appropriate string literal kind.
+*/
+{
+  a_string_or_char_literal_kind result;
+
+  switch (character_kind) {
+    case chk_char:     result = SCLK_ORDINARY_LITERAL; break;
+    case chk_wchar_t:  result = SCLK_WIDE_LITERAL;     break;
+    case chk_char8_t:  result = SCLK_UTF8_LITERAL;     break;
+    case chk_char16_t: result = SCLK_CHAR16_T_LITERAL; break;
+    case chk_char32_t: result = SCLK_CHAR32_T_LITERAL; break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  result |= SCLK_STRING_LITERAL;
+  return result;
+}  /* char_kind_to_str_literal_kind */
+
+
 inline a_const_char *readable_literal_kind(
                                         a_string_or_char_literal_kind lit_kind)
 /*

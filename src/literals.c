@@ -2100,16 +2100,7 @@ the given character kind, or a mix of the given kind and chk_char.
   /* Determine the literal kind associated with the character kind in
      case ordinary string literals must be rescanned to match the result
      kind. */
-  switch (character_kind) {
-    case chk_char:     lit_kind = SCLK_ORDINARY_LITERAL; break;
-    case chk_wchar_t:  lit_kind = SCLK_WIDE_LITERAL;     break;
-    case chk_char8_t:  lit_kind = SCLK_UTF8_LITERAL;     break;
-    case chk_char16_t: lit_kind = SCLK_CHAR16_T_LITERAL; break;
-    case chk_char32_t: lit_kind = SCLK_CHAR32_T_LITERAL; break;
-    default:
-      unexpected_condition();
-  }  /* switch */
-  lit_kind |= SCLK_STRING_LITERAL;
+  lit_kind = char_kind_to_str_literal_kind(character_kind);
   /* Determine the length of the concatenation. */
   for (ctp = first_token; ctp != NULL; ctp = ctp->next) {
     /* Ignore pragma entries. */

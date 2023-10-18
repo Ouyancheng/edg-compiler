@@ -1177,9 +1177,7 @@ TextOffset.  This function does not do any adjustments or corrections to the
 IFC text; thus, for entity names prefer name_from_index or name_of_decl.
 */
 {
-#if EXPENSIVE_CHECKING
   check_assertion(offset < table.size);
-#endif /* EXPENSIVE_CHECKING */
   return a_string((a_const_char*)(table.contents + offset));
 }  /* get_string_at_offset */
 
@@ -1197,29 +1195,22 @@ IFC text; thus, for entity names prefer name_from_index or name_of_decl.
 }  /* get_string_at_offset */
 
 
-static a_string get_string_at_offset(an_ifc_text_offset offset,
-                                     size_t             num_bytes)
+static char *access_bytes_at_offset(an_ifc_text_offset offset,
+                                    ARG_UNUSED size_t  num_bytes)
 /*
-Return a string from the IFC string table for a given TextOffset with the given
-num_bytes length.  This function does not do any adjustments or corrections to
-the IFC text; thus, for entity names prefer name_from_index or name_of_decl.
+Return a pointer to the start of the character array in the IFC string table
+for a given TextOffset with the given num_bytes length.
+
+This function should be used very sparingly, prefer the higher level
+interfaces, get_string_at_offset for one-byte character null-terminated strings
+and get_encoded_string for potentially multi-byte character strings.
 */
 {
   an_ifc_module              *mod = module_of(offset);
   an_ifc_module_string_table &string_table = mod->string_table;
 
-#if EXPENSIVE_CHECKING
   check_assertion(offset + num_bytes < string_table.size);
-#endif /* EXPENSIVE_CHECKING */
-  /* The IFC doesn't specify this, but there is commonly one or more null
-     terminators included in the length.  As this is not specified, to allow
-     flexibility reduce the length only if these null character are present. */
-  while (string_table.contents[offset + num_bytes] == '\0') {
-    --num_bytes;
-  }  /* while */
-
-  a_string_view string_view(string_table.contents + offset, num_bytes);
-  return a_string(string_view);
+  return string_table.contents + offset;
 }  /* get_string_at_offset */
 
 
@@ -14860,6 +14851,153 @@ done:
   return result;
 }  /* constant_for_literal */
 
+namespace {
+
+/*
+This structure encapsulates a (potentially multi-byte) IFC string value.
+*/
+struct an_ifc_string {
+  inline an_ifc_string(an_ifc_module    *mod,
+                       a_character_kind char_kind,
+                       a_const_char     *ifc_str,
+                       size_t           ifc_byte_count);
+  a_character_kind
+                kind;   /* The character kind of the string. */
+  a_const_char  *bytes; /* A pointer to the IFC string byte buffer. */
+  size_t        num_chars;
+                        /* The number of characters the string contains. */
+};  /* an_ifc_string */
+
+
+an_ifc_string::an_ifc_string(an_ifc_module    *mod,
+                             a_character_kind char_kind,
+                             a_const_char     *ifc_str,
+                             size_t           ifc_byte_count)
+/*
+Given the associated IFC module, character kind, string array, and IFC byte
+count, construct an internal structure capturing the representation of the IFC
+string.
+*/
+  : kind(char_kind), bytes(ifc_str),
+    num_chars(ifc_byte_count / character_size[char_kind])
+{
+  if (ifc_byte_count % character_size[char_kind] != 0) {
+    ifc_unexpected(mod,
+                   "an IFC string is missing bytes for its character width");
+  }  /* if */
+}  /* an_ifc_string::an_ifc_string */
+
+}  /* namespace */
+
+static Opt<an_ifc_string> get_encoded_string(an_ifc_string_index string)
+/*
+Given an IFC string index, return the corresponding encoded string value.
+*/
+{
+  Opt<an_ifc_string> result;
+  a_character_kind   kind;
+
+  switch (string.sort) {
+    case ifc_ss_ordinary:
+      kind = (a_character_kind)chk_char;
+      break;
+    case ifc_ss_utf8:
+      kind = (a_character_kind)chk_char8_t;
+      break;
+    case ifc_ss_char16:
+      kind = (a_character_kind)chk_char16_t;
+      break;
+    case ifc_ss_char32:
+      kind = (a_character_kind)chk_char32_t;
+      break;
+    case ifc_ss_wide:
+      kind = (a_character_kind)chk_wchar_t;
+      break;
+    default_is_unexpected_str("Unexpected StringSort");
+  }  /* switch */
+
+  Opt<an_ifc_const_str>       opt_ics;
+  an_ifc_partition_kind_index string_part_idx{string.file, ifc_pk_const_str,
+                                              string.value};
+  construct_node(&opt_ics, string_part_idx);
+  if (opt_ics.has_value()) {
+    an_ifc_const_str   ics = *opt_ics;
+    an_ifc_text_offset start = get_ifc_start(ics);
+    size_t             length = get_ifc_length(ics);
+    char               *raw_str = access_bytes_at_offset(start, length);
+
+    result = an_ifc_string(module_of(ics), kind, raw_str, length);
+  }  /* if */
+  return result;
+}  /* get_encoded_string */
+
+
+static inline size_t size_of_str_bytes(const an_ifc_string &str)
+/*
+Given an IFC string, return the number of bytes that contain characters
+included in the string literal.
+*/
+{
+  return str.num_chars * character_size[str.kind];
+}  /* size_of_str_constant */
+
+
+static inline size_t size_of_str_constant(const an_ifc_string &str)
+/*
+Given an IFC string, return the number of bytes in the corresponding string
+literal constant.
+*/
+{
+  return size_of_str_bytes(str) + character_size[str.kind];
+}  /* size_of_str_constant */
+
+
+static char *alloc_text_of_string_literal(const an_ifc_string &str)
+/*
+Allocate and return a string literal character buffer containing the given IFC
+string with a guaranteed null character.
+*/
+{
+  char   *result;
+  size_t constant_size = size_of_str_constant(str);
+  size_t num_char_bytes = size_of_str_bytes(str);
+
+  result = alloc_text_of_string_literal(constant_size);
+  memcpy(result, str.bytes, num_char_bytes);
+  /* If this assertion fails, somehow the calculations for constant_size and
+     num_char_bytes are off and the null character will not be written
+     properly. */
+  check_assertion(constant_size - num_char_bytes == character_size[str.kind]);
+  /* Ensure the null character is added. */
+  for (a_targ_size_t i = 0; i < character_size[str.kind]; ++i) {
+    result[num_char_bytes + i] = '\0';
+  }  /* for */
+  return result;
+}  /* alloc_text_of_string_literal */
+
+
+static a_constant_ptr alloc_string_literal_constant(const an_ifc_string &str)
+/*
+Allocate and return a string literal constant containing the given IFC string
+with all null characters (except the terminating null character) removed.
+*/
+{
+  a_constant_ptr result = alloc_cached_constant();
+  char           *val = alloc_text_of_string_literal(str);
+  size_t         constant_size = size_of_str_constant(str);
+  a_targ_size_t  str_char_size = character_size[str.kind];
+
+  clear_constant(result, ck_string);
+  /* Form a string literal type with the characters counted relative to their
+     character sizes. */
+  result->type = string_literal_type(str.kind, constant_size / str_char_size);
+  result->variant.string.length = constant_size;
+  result->variant.string.value = val;
+  result->variant.string.literal_kind =
+                                       char_kind_to_str_literal_kind(str.kind);
+  return result;
+}  /* alloc_string_literal_constant */
+
 
 a_constant_ptr an_ifc_module::constant_for_expr_index(
                                                 an_ifc_expr_index expr_idx,
@@ -15022,26 +15160,16 @@ FIXME: shared or unshared?  FIXME: what other expressions can we get here?
           goto invalid;
         }  /* if */
 
-        an_ifc_expr_string          ies = *opt_ies;
-        Opt<an_ifc_const_str>       opt_ics;
-        an_ifc_string_index         raw_str_index = get_ifc_string_index(ies);
-        an_ifc_partition_kind_index str_idx{raw_str_index.file,
-                                            ifc_pk_const_str,
-                                            raw_str_index.value};
-        construct_node(&opt_ics, str_idx);
-        if (!opt_ics.has_value()) {
+        an_ifc_expr_string    ies = *opt_ies;
+        Opt<an_ifc_const_str> opt_ics;
+        an_ifc_string_index   raw_str_index = get_ifc_string_index(ies);
+        Opt<an_ifc_string>    opt_ifc_str = get_encoded_string(raw_str_index);
+        if (!opt_ifc_str.has_value()) {
           goto invalid;
         }  /* if */
 
-        an_ifc_const_str ics = *opt_ics;
-        a_string         string = get_string_at_offset(get_ifc_start(ics),
-                                                       get_ifc_length(ics));
-        result = alloc_constant(ck_string);
-        result->type = type_for_type_index(get_ifc_type(ies));
-        result->variant.string.length = string.length();
-        result->variant.string.value =
-                             string.to_allocated_storage(IL_allocator<char>());
-        result->variant.string.literal_kind = SCLK_ORDINARY_STRING_LITERAL;
+        an_ifc_string ifc_str = *opt_ifc_str;
+        result = alloc_string_literal_constant(ifc_str);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         source_position_from_locus(&result->end_position, get_ifc_locus(ies));
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -15511,118 +15639,6 @@ rules of position inference).
 }  /* cache_bool_literal */
 
 
-static size_t count_nonnull_chars(a_const_char *ifc_str,
-                                  size_t       ifc_length)
-/*
-Given an IFC string and the IFC-specified length, return the number of
-characters that are not null (i.e., 0) characters.
-*/
-{
-  size_t num_nulls = 0;
-
-  for (size_t i = 0; i < ifc_length; ++i) {
-    if (ifc_str[i] == '\0') {
-      ++num_nulls;
-    }  /* if */
-  }  /* for */
-  return ifc_length - num_nulls;
-}  /* count_nonnull_chars */
-
-namespace {
-
-/*
-The IFC contains strings that are formed from a specified number of bytes (as
-opposed to via a null character terminator).  These strings can contain
-interior null characters, which should be removed when the IFC string is
-converted to an IL string.
-
-This structure abstracts the IFC string value and provides extra information
-for use during translation to front end IL.
-*/
-struct an_ifc_string {
-  an_ifc_string(a_character_kind char_kind,
-                a_const_char     *ifc_str,
-                size_t           ifc_byte_count)
-    : kind(char_kind), str(ifc_str),
-      length(count_nonnull_chars(ifc_str, ifc_byte_count)),
-      ifc_length(ifc_byte_count)
-    {}
-  inline a_boolean contains_null_characters() const
-    { return this->length != this->ifc_length; }
-  a_character_kind
-                kind;   /* The character kind of the string. */
-  a_const_char  *str;   /* A pointer to the IFC string byte buffer. */
-  size_t        length; /* The number of bytes the string contains (excluding
-                           both interior and trailing null characters). */
-  size_t        ifc_length;
-                        /* The number of bytes the IFC specifies are in the
-                           string.  This may or may not include null
-                           characters and trailing nulls. */
-};  /* an_ifc_string */
-
-}  /* namespace */
-
-static inline size_t size_of_str_constant(const an_ifc_string &str)
-/*
-Given an IFC string, return the number of bytes in the corresponding constant.
-*/
-{
-  return str.length + 1;
-}  /* size_of_str_constant */
-
-
-static char *alloc_text_of_string_literal(const an_ifc_string &str)
-/*
-Allocate and return a string literal character buffer containing the given IFC
-string with all null characters (except the terminating null character)
-removed.
-*/
-{
-  char   *result = alloc_text_of_string_literal(size_of_str_constant(str));
-  size_t i_output = 0;
-
-  if (str.contains_null_characters()) {
-    /* The string contains one or more unexpected null characters, do a manual
-       translation. */
-    for (size_t i_input = 0; i_input < str.ifc_length; ++i_input) {
-      if (str.str[i_input] == '\0') {
-        continue;
-      }  /* if */
-      result[i_output++] = str.str[i_input];
-    }  /* for */
-  } else {
-    /* The string has no null characters, directly copy the underlying
-       memory. */
-    memcpy(result, str.str, str.length);
-    i_output = str.length;
-  }  /* if */
-  result[i_output] = '\0';
-  return result;
-}  /* alloc_text_of_string_literal */
-
-
-static a_constant_ptr alloc_string_literal_constant(const an_ifc_string &str)
-/*
-Allocate and return a string literal constant containing the given IFC string
-with all null characters (except the terminating null character) removed.
-*/
-{
-  a_constant_ptr result = alloc_cached_constant();
-  char           *val = alloc_text_of_string_literal(str);
-  size_t         constant_size = size_of_str_constant(str);
-  a_targ_size_t  str_char_size = character_size[str.kind];
-
-  clear_constant(result, ck_string);
-  /* Form a string literal type with the characters counted relative to their
-     character sizes. */
-  result->type = string_literal_type(str.kind, constant_size / str_char_size);
-  result->variant.string.length = constant_size;
-  result->variant.string.value = val;
-  result->variant.string.literal_kind = SCLK_ORDINARY_STRING_LITERAL;
-  return result;
-}  /* alloc_string_literal_constant */
-
-
 static void cache_string_literal(a_module_token_cache_ptr cache,
                                  const an_ifc_string      &str)
 /*
@@ -15656,14 +15672,15 @@ Add a tok_string_literal for the given IFC string to cache.
 
 
 static inline void cache_string_literal(a_module_token_cache_ptr cache,
+                                        an_ifc_module            *mod,
                                         a_const_char             *str)
 /*
-Add a tok_string_literal for the given string to cache.
+Add a tok_string_literal for the given string (from the given module) to cache.
 */
 {
   /* Create a fake "IFC string" to perform a cache of the given a_const_char*
      (C-string). */
-  an_ifc_string ifc_str(chk_char, str, strlen(str));
+  an_ifc_string ifc_str(mod, chk_char, str, strlen(str));
 
   cache_string_literal(cache, ifc_str);
 }  /* cache_string_literal */
@@ -15859,92 +15876,6 @@ Add tokens corresponding to access (if any) to cache.
     default_is_unexpected();
   }  /* switch */
 }  /* cache_access_specifier */
-
-
-template<typename an_ifc_Index_type>
-static void diagnose_ifc_string_null_removal(an_ifc_Index_type   idx,
-                                             const an_ifc_string &str)
-/*
-Emit a warning for an IFC string from the given index from which null
-characters have been removed.  str is the IFC string value which has had null
-bytes removed.
-*/
-{
-  check_assertion(str.contains_null_characters());
-  an_ifc_module    *mod = module_of(idx);
-  a_diagnostic_ptr diag = start_warning(ec_ifc_null_char_in_string,
-                                        mod->assoc_module_info->name);
-
-  add_diag_info(diag, ec_ifc_null_char_in_string_removal_info,
-                str.length, str.ifc_length);
-  add_partition_element_diag_info(diag, ec_ifc_null_char_in_string_info, idx);
-  end_diagnostic(diag);
-}  /* diagnose_ifc_string_null_removal */
-
-
-using an_ifc_partition_index_set = Ptr_set<an_ifc_partition_kind_index>;
-                        /* The type of a string set that contains IFC partition
-                           indexes. */
-
-static an_ifc_partition_index_set
-                *ifc_diagnosed_null_strings;
-                        /* A hash set that contains the index of any encoded
-                           IFC string which contains null characters that's
-                           already been diagnosed for containing null
-                           characters. */
-
-
-static Opt<an_ifc_string> get_encoded_string(an_ifc_string_index string)
-/*
-Given an IFC string index, return the corresponding encoded string value.
-*/
-{
-  Opt<an_ifc_string> result;
-  a_character_kind   kind;
-
-  switch (string.sort) {
-    case ifc_ss_ordinary:
-      kind = (a_character_kind)chk_char;
-      break;
-    case ifc_ss_utf8:
-      kind = (a_character_kind)chk_char8_t;
-      break;
-    case ifc_ss_char16:
-      kind = (a_character_kind)chk_char16_t;
-      break;
-    case ifc_ss_char32:
-      kind = (a_character_kind)chk_char32_t;
-      break;
-    case ifc_ss_wide:
-      kind = (a_character_kind)chk_wchar_t;
-      break;
-    default_is_unexpected_str("Unexpected StringSort");
-  }  /* switch */
-
-  Opt<an_ifc_const_str>       opt_ics;
-  an_ifc_partition_kind_index string_part_idx{string.file, ifc_pk_const_str,
-                                              string.value};
-  construct_node(&opt_ics, string_part_idx);
-  if (opt_ics.has_value()) {
-    an_ifc_const_str   ics = *opt_ics;
-    an_ifc_text_offset start = get_ifc_start(ics);
-    size_t             length = get_ifc_length(ics);
-    a_string           raw_str = get_string_at_offset(start, length);
-    an_ifc_string      str(kind,
-                           raw_str.to_allocated_storage(IL_allocator<char>()),
-                           raw_str.length());
-
-    /* If the string contains null characters and hasn't previously been
-       diagnosed, diagnose it now. */
-    if (str.contains_null_characters() &&
-        !ifc_diagnosed_null_strings->contains(string_part_idx)) {
-      ifc_diagnosed_null_strings->add(string_part_idx);
-      diagnose_ifc_string_null_removal(string_part_idx, str);
-    }  /* if */
-    result = str;
-  }  /* if */
-  return result;
-}  /* get_encoded_string */
 
 
 static Opt<a_string> get_string_suffix(an_ifc_string_index string)
@@ -17480,7 +17411,7 @@ otherwise, return FALSE.
       if (opt_ifc_str.has_value()) {
         an_ifc_string ifc_str = *opt_ifc_str;
 
-        if (ifc_str.length == 0) {
+        if (ifc_str.num_chars == 0) {
           result = TRUE;
         }  /* if */
       }  /* if */
@@ -17787,8 +17718,10 @@ Cache the linkage-specification for the given named-declaration (decl).
   an_ifc_basic_specifiers_bitfield specifiers = get_ifc_specifiers(decl);
 
   if (test_bitmask<ifc_bsb_c>(specifiers)) {
+    an_ifc_module *mod = module_of(decl);
+
     cache_token(cache, tok_extern);
-    cache_string_literal(cache, "C");
+    cache_string_literal(cache, mod, "C");
   }  /* if */
 }  /* cache_func_decl_specifier_seq */
 
@@ -25299,8 +25232,6 @@ for each compilation.
   bad_operator_name_encodings->push_back("++");
   bad_operator_name_encodings->push_back("--");
   bad_operator_name_encodings->push_back(",");
-  ifc_diagnosed_null_strings = alloc_fe_of_type(an_ifc_partition_index_set);
-  construct(ifc_diagnosed_null_strings, /*mask_width=*/10);
 }  /* ifc_modules_init */
 
 /*lint -restore*/ /* FIXME: temporary */
