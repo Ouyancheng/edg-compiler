@@ -48,7 +48,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -94,7 +94,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -141,7 +141,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -183,7 +183,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -230,7 +230,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -333,7 +333,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -375,7 +375,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -421,7 +421,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -463,7 +463,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -510,7 +510,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -553,7 +553,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -601,7 +601,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -644,7 +644,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -687,7 +687,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -753,7 +753,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -801,7 +801,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -843,7 +843,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -889,7 +889,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -931,7 +931,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -978,7 +978,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -1026,7 +1026,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -1067,7 +1067,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -1109,7 +1109,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -1155,7 +1155,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -1197,7 +1197,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -1239,7 +1239,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -1281,7 +1281,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -1323,7 +1323,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -1365,7 +1365,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -1407,7 +1407,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -1449,7 +1449,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -1493,7 +1493,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -1537,7 +1537,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -1579,7 +1579,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -1626,7 +1626,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -1668,7 +1668,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -1710,7 +1710,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -1752,7 +1752,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -1799,7 +1799,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -1850,7 +1850,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -1892,7 +1892,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -1939,7 +1939,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -1999,7 +1999,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -2046,7 +2046,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -2093,7 +2093,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -2140,7 +2140,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -2182,7 +2182,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -2234,7 +2234,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -2281,7 +2281,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -2333,7 +2333,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -2375,7 +2375,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -2422,7 +2422,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -2465,7 +2465,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -2512,7 +2512,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -2554,7 +2554,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -2609,7 +2609,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -2656,7 +2656,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -2706,7 +2706,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -2752,7 +2752,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -2794,7 +2794,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -2836,7 +2836,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -2883,7 +2883,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -2925,7 +2925,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -2967,7 +2967,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -3097,7 +3097,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -3143,7 +3143,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -3185,7 +3185,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -3229,7 +3229,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -3276,7 +3276,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -3318,7 +3318,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -3448,7 +3448,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -3503,7 +3503,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -3549,7 +3549,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -3591,7 +3591,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -3635,7 +3635,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -3679,7 +3679,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -3723,7 +3723,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -3765,7 +3765,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -3825,7 +3825,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -3867,7 +3867,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -3909,7 +3909,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -3951,7 +3951,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -4006,7 +4006,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -4048,7 +4048,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -4178,7 +4178,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -4224,7 +4224,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -4266,7 +4266,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -4310,7 +4310,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -4352,7 +4352,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -4399,7 +4399,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -4441,7 +4441,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -4483,7 +4483,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -4613,7 +4613,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -4659,7 +4659,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -4777,7 +4777,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -4821,7 +4821,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -4865,7 +4865,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -4909,7 +4909,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -4956,7 +4956,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -5087,7 +5087,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -5134,7 +5134,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -5176,7 +5176,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -5218,7 +5218,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -5262,7 +5262,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -5317,7 +5317,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -5366,7 +5366,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 43)) {
     result = TRUE;
@@ -5409,7 +5409,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 43)) {
     result = TRUE;
@@ -5484,7 +5484,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 43)) {
     result = TRUE;
@@ -5527,7 +5527,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 43)) {
     result = TRUE;
@@ -5574,7 +5574,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 43)) {
     result = TRUE;
@@ -5618,7 +5618,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 43)) {
     result = TRUE;
@@ -5662,7 +5662,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 43)) {
     result = TRUE;
@@ -5709,7 +5709,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -5751,7 +5751,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -5794,7 +5794,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -5843,7 +5843,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -5973,7 +5973,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -6019,7 +6019,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -6137,7 +6137,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -6181,7 +6181,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -6225,7 +6225,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -6274,7 +6274,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -6316,7 +6316,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -6371,7 +6371,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -6413,7 +6413,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -6543,7 +6543,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -6590,7 +6590,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -6636,7 +6636,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -6678,7 +6678,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -6722,7 +6722,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -6766,7 +6766,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -6813,7 +6813,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -6855,7 +6855,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -7024,7 +7024,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -7079,7 +7079,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -7125,7 +7125,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -7167,7 +7167,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -7211,7 +7211,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -7258,7 +7258,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -7304,7 +7304,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -7375,7 +7375,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 41)) {
     result = FALSE;
@@ -7420,7 +7420,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 41)) {
     result = FALSE;
@@ -7470,7 +7470,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 41)) {
     result = FALSE;
@@ -7515,7 +7515,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 41)) {
     result = FALSE;
@@ -7565,7 +7565,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -7607,7 +7607,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -7662,7 +7662,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -7792,7 +7792,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -7847,7 +7847,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -7893,7 +7893,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -7935,7 +7935,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -7979,7 +7979,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -8023,7 +8023,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -8067,7 +8067,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -8114,7 +8114,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -8174,7 +8174,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -8216,7 +8216,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -8258,7 +8258,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -8388,7 +8388,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -8434,7 +8434,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -8476,7 +8476,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -8520,7 +8520,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -8564,7 +8564,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -8608,7 +8608,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -8655,7 +8655,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -8698,7 +8698,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -8765,7 +8765,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -8809,7 +8809,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -8940,7 +8940,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -8987,7 +8987,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -9031,7 +9031,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -9075,7 +9075,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -9119,7 +9119,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -9167,7 +9167,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -9209,7 +9209,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -9339,7 +9339,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -9385,7 +9385,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -9427,7 +9427,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -9471,7 +9471,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -9518,7 +9518,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -9560,7 +9560,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -9602,7 +9602,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -9732,7 +9732,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -9778,7 +9778,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -9820,7 +9820,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -9864,7 +9864,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -9908,7 +9908,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -9952,7 +9952,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -9999,7 +9999,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -10041,7 +10041,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -10083,7 +10083,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -10126,7 +10126,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -10173,7 +10173,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -10228,7 +10228,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -10283,7 +10283,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -10325,7 +10325,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -10371,7 +10371,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -10413,7 +10413,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 41)) {
     result = FALSE;
@@ -10457,7 +10457,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -10501,7 +10501,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -10545,7 +10545,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -10587,7 +10587,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -10634,7 +10634,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -10677,7 +10677,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -10720,7 +10720,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -10769,7 +10769,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -10813,7 +10813,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -10928,7 +10928,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -10975,7 +10975,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -11015,7 +11015,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -11122,7 +11122,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -11167,7 +11167,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -11216,7 +11216,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -11258,7 +11258,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -11324,7 +11324,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -11371,7 +11371,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -11430,7 +11430,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -11474,7 +11474,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -11525,7 +11525,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -11567,7 +11567,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -11622,7 +11622,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -11664,7 +11664,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -11794,7 +11794,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -11836,7 +11836,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -11882,7 +11882,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -11924,7 +11924,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -11966,7 +11966,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -12010,7 +12010,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -12054,7 +12054,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -12097,7 +12097,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -12144,7 +12144,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 41)) {
     result = TRUE;
@@ -12199,7 +12199,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 41)) {
     result = TRUE;
@@ -12242,7 +12242,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 41)) {
     result = TRUE;
@@ -12302,7 +12302,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 41)) {
     result = TRUE;
@@ -12362,7 +12362,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 41)) {
     result = TRUE;
@@ -12400,7 +12400,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 41)) {
     result = TRUE;
@@ -12482,7 +12482,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 41)) {
     result = TRUE;
@@ -12530,7 +12530,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -12572,7 +12572,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -12614,7 +12614,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -12663,7 +12663,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -12793,7 +12793,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -12839,7 +12839,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -13091,7 +13091,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -13135,7 +13135,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -13179,7 +13179,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -13226,7 +13226,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -13268,7 +13268,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -13317,7 +13317,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -13366,7 +13366,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -13408,7 +13408,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -13455,7 +13455,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -13498,7 +13498,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -13540,7 +13540,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -13671,7 +13671,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -13718,7 +13718,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -13760,7 +13760,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -13803,7 +13803,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -13859,7 +13859,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -13926,7 +13926,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -13975,7 +13975,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -14017,7 +14017,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -14072,7 +14072,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -14202,7 +14202,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -14257,7 +14257,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -14303,7 +14303,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -14345,7 +14345,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -14389,7 +14389,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -14433,7 +14433,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -14477,7 +14477,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -14524,7 +14524,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -14570,7 +14570,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -14612,7 +14612,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -14659,7 +14659,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -14702,7 +14702,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -14757,7 +14757,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -14803,7 +14803,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -14850,7 +14850,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -14897,7 +14897,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -14958,7 +14958,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -15001,7 +15001,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -15056,7 +15056,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -15102,7 +15102,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -15158,7 +15158,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -15213,7 +15213,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -15260,7 +15260,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -15315,7 +15315,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -15361,7 +15361,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -15416,7 +15416,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -15463,7 +15463,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -15509,7 +15509,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -15564,7 +15564,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -15619,7 +15619,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -15661,7 +15661,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -15708,7 +15708,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -15755,7 +15755,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -15797,7 +15797,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -15852,7 +15852,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -15899,7 +15899,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -15954,7 +15954,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -16000,7 +16000,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -16048,7 +16048,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -16104,7 +16104,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -16151,7 +16151,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -16194,7 +16194,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -16242,7 +16242,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -16286,7 +16286,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -16330,7 +16330,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -16377,7 +16377,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -16432,7 +16432,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -16479,7 +16479,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -16534,7 +16534,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -16589,7 +16589,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -16644,7 +16644,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -16710,7 +16710,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -16756,7 +16756,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -16803,7 +16803,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -16850,7 +16850,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -16905,7 +16905,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -16952,7 +16952,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -16998,7 +16998,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -17045,7 +17045,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -17091,7 +17091,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -17146,7 +17146,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -17193,7 +17193,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -17249,7 +17249,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -17292,7 +17292,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -17339,7 +17339,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -17391,7 +17391,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -17438,7 +17438,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -17480,7 +17480,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -17528,7 +17528,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -17584,7 +17584,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -17631,7 +17631,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -17687,7 +17687,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -17743,7 +17743,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -17799,7 +17799,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -17842,7 +17842,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -17890,7 +17890,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -17937,7 +17937,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -17992,7 +17992,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -18039,7 +18039,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -18094,7 +18094,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -18140,7 +18140,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -18182,7 +18182,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -18229,7 +18229,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -18285,7 +18285,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -18332,7 +18332,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -18379,7 +18379,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = TRUE;
@@ -18421,7 +18421,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = TRUE;
@@ -18467,7 +18467,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = TRUE;
@@ -18514,7 +18514,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -18556,7 +18556,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -18598,7 +18598,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -18640,7 +18640,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -18682,7 +18682,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -18731,7 +18731,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -18777,7 +18777,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -18819,7 +18819,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -18866,7 +18866,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -18908,7 +18908,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -18955,7 +18955,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -18997,7 +18997,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -19052,7 +19052,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -19099,7 +19099,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -19141,7 +19141,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -19197,7 +19197,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -19244,7 +19244,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -19311,7 +19311,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -19358,7 +19358,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -19413,7 +19413,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -19468,7 +19468,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -19534,7 +19534,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -19580,7 +19580,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -19627,7 +19627,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -19673,7 +19673,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -19739,7 +19739,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -19786,7 +19786,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -19832,7 +19832,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -19880,7 +19880,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -19936,7 +19936,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -19983,7 +19983,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -20031,7 +20031,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -20077,7 +20077,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -20132,7 +20132,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -20187,7 +20187,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -20234,7 +20234,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -20280,7 +20280,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -20327,7 +20327,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -20379,7 +20379,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -20435,7 +20435,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -20478,7 +20478,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -20525,7 +20525,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -20581,7 +20581,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -20628,7 +20628,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = FALSE;
@@ -20672,7 +20672,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = FALSE;
@@ -20716,7 +20716,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = FALSE;
@@ -20760,7 +20760,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = FALSE;
@@ -20808,7 +20808,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = FALSE;
@@ -20857,7 +20857,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -20912,7 +20912,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -20959,7 +20959,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -21001,7 +21001,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -21054,7 +21054,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -21109,7 +21109,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -21155,7 +21155,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -21197,7 +21197,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -21244,7 +21244,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -21286,7 +21286,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -21332,7 +21332,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -21374,7 +21374,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -21421,7 +21421,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -21468,7 +21468,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -21510,7 +21510,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -21557,7 +21557,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -21603,7 +21603,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -21645,7 +21645,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -21692,7 +21692,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -21738,7 +21738,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -21780,7 +21780,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -21827,7 +21827,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -21874,7 +21874,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -21929,7 +21929,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -21976,7 +21976,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -22036,7 +22036,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -22079,7 +22079,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -22126,7 +22126,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -22168,7 +22168,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -22223,7 +22223,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -22294,7 +22294,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -22341,7 +22341,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -22396,7 +22396,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -22442,7 +22442,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -22497,7 +22497,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -22544,7 +22544,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -22611,7 +22611,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -22658,7 +22658,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 43)) {
     result = TRUE;
@@ -22701,7 +22701,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 43)) {
     result = FALSE;
@@ -22751,7 +22751,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -22807,7 +22807,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -22863,7 +22863,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -22910,7 +22910,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -22952,7 +22952,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -22998,7 +22998,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -23045,7 +23045,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -23091,7 +23091,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -23138,7 +23138,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -23184,7 +23184,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -23226,7 +23226,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -23273,7 +23273,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -23328,7 +23328,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -23383,7 +23383,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -23438,7 +23438,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -23493,7 +23493,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -23559,7 +23559,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -23605,7 +23605,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -23652,7 +23652,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -23694,7 +23694,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -23740,7 +23740,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -23782,7 +23782,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -23829,7 +23829,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -23871,7 +23871,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -23917,7 +23917,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -23964,7 +23964,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -24007,7 +24007,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -24074,7 +24074,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -24121,7 +24121,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -24169,7 +24169,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -24215,7 +24215,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -24257,7 +24257,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -24304,7 +24304,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -24347,7 +24347,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -24402,7 +24402,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -24448,7 +24448,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -24504,7 +24504,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -24551,7 +24551,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -24598,7 +24598,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -24640,7 +24640,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -24696,7 +24696,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -24744,7 +24744,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -24791,7 +24791,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -24838,7 +24838,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -24880,7 +24880,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -24928,7 +24928,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -24996,7 +24996,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -25044,7 +25044,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -25092,7 +25092,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -25134,7 +25134,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -25180,7 +25180,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -25227,7 +25227,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -25273,7 +25273,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -25320,7 +25320,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -25366,7 +25366,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -25413,7 +25413,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -25459,7 +25459,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -25506,7 +25506,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -25552,7 +25552,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -25599,7 +25599,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -25645,7 +25645,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -25692,7 +25692,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -25738,7 +25738,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -25785,7 +25785,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -25831,7 +25831,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -25874,7 +25874,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -25921,7 +25921,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -25967,7 +25967,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -26014,7 +26014,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -26061,7 +26061,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -26108,7 +26108,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -26154,7 +26154,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -26201,7 +26201,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -26256,7 +26256,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -26327,7 +26327,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -26373,7 +26373,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -26420,7 +26420,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -26466,7 +26466,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -26513,7 +26513,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -26555,7 +26555,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -26602,7 +26602,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -26653,7 +26653,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -26700,7 +26700,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -26747,7 +26747,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -26818,7 +26818,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -26878,7 +26878,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -26925,7 +26925,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -26972,7 +26972,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -27032,7 +27032,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -27079,7 +27079,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -27126,7 +27126,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -27174,7 +27174,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -27216,7 +27216,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -27263,7 +27263,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -27305,7 +27305,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -27353,7 +27353,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -27395,7 +27395,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -27441,7 +27441,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -27488,7 +27488,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -27540,7 +27540,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -27592,7 +27592,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -27634,7 +27634,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -27681,7 +27681,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -27752,7 +27752,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -27799,7 +27799,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -27841,7 +27841,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -27913,7 +27913,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -27955,7 +27955,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -28002,7 +28002,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -28058,7 +28058,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -28105,7 +28105,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -28152,7 +28152,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -28195,7 +28195,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -28242,7 +28242,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -28313,7 +28313,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -28355,7 +28355,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -28402,7 +28402,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -28444,7 +28444,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -28490,7 +28490,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -28537,7 +28537,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -28640,7 +28640,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -28682,7 +28682,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -28728,7 +28728,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -28770,7 +28770,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -28816,7 +28816,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -28871,7 +28871,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = TRUE;
@@ -28917,7 +28917,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -28977,7 +28977,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -29028,7 +29028,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -29083,7 +29083,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -29134,7 +29134,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -29185,7 +29185,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = TRUE;
@@ -29240,7 +29240,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = TRUE;
@@ -29291,7 +29291,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = FALSE;
@@ -29344,7 +29344,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -29399,7 +29399,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -29454,7 +29454,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -29524,7 +29524,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = FALSE;
@@ -29577,7 +29577,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = TRUE;
@@ -29623,7 +29623,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -29683,7 +29683,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -29738,7 +29738,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -29808,7 +29808,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -29863,7 +29863,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -29918,7 +29918,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -29973,7 +29973,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -30028,7 +30028,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -30098,7 +30098,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = TRUE;
@@ -30144,7 +30144,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = TRUE;
@@ -30191,7 +30191,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = TRUE;
@@ -30233,7 +30233,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = TRUE;
@@ -30288,7 +30288,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = TRUE;
@@ -30339,7 +30339,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -30394,7 +30394,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -30449,7 +30449,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -30504,7 +30504,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -30559,7 +30559,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -30629,7 +30629,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = TRUE;
@@ -30671,7 +30671,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = TRUE;
@@ -30717,7 +30717,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = TRUE;
@@ -30759,7 +30759,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = TRUE;
@@ -30806,7 +30806,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -30861,7 +30861,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -30916,7 +30916,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -30981,7 +30981,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -31028,7 +31028,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -31083,7 +31083,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -31138,7 +31138,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -31193,7 +31193,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -31263,7 +31263,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = TRUE;
@@ -31305,7 +31305,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = TRUE;
@@ -31347,7 +31347,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = TRUE;
@@ -31393,7 +31393,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = TRUE;
@@ -31439,7 +31439,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = TRUE;
@@ -31481,7 +31481,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = TRUE;
@@ -31527,7 +31527,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = TRUE;
@@ -31574,7 +31574,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = FALSE;
@@ -31631,7 +31631,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 42)) {
     result = FALSE;
@@ -31685,7 +31685,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -31740,7 +31740,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -31795,7 +31795,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -31865,7 +31865,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -31913,7 +31913,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -31961,7 +31961,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -32017,7 +32017,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -32065,7 +32065,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -32113,7 +32113,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -32166,7 +32166,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -32209,7 +32209,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -32257,7 +32257,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -32304,7 +32304,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -32360,7 +32360,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -32413,7 +32413,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -32461,7 +32461,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -32507,7 +32507,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -32549,7 +32549,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -32602,7 +32602,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -32658,7 +32658,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -32706,7 +32706,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -32759,7 +32759,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -32814,7 +32814,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -32869,7 +32869,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -32916,7 +32916,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -32970,7 +32970,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -33014,7 +33014,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -33062,7 +33062,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -33109,7 +33109,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -33157,7 +33157,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -33200,7 +33200,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -33247,7 +33247,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -33294,7 +33294,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -33342,7 +33342,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -33397,7 +33397,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -33458,7 +33458,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -33506,7 +33506,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -33555,7 +33555,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -33604,7 +33604,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -33648,7 +33648,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -33696,7 +33696,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -33744,7 +33744,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -33788,7 +33788,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -33837,7 +33837,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -33891,7 +33891,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -33939,7 +33939,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -33986,7 +33986,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -34039,7 +34039,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -34082,7 +34082,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -34125,7 +34125,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -34178,7 +34178,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -34221,7 +34221,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -34264,7 +34264,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -34312,7 +34312,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -34360,7 +34360,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -34414,7 +34414,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -34457,7 +34457,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -34510,7 +34510,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -34553,7 +34553,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -34610,7 +34610,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -34659,7 +34659,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -34708,7 +34708,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -34756,7 +34756,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -34805,7 +34805,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -34862,7 +34862,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -34919,7 +34919,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -34972,7 +34972,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -35019,7 +35019,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -35071,7 +35071,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -35113,7 +35113,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -35160,7 +35160,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -35212,7 +35212,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -35255,7 +35255,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -35303,7 +35303,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -35346,7 +35346,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -35389,7 +35389,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -35444,7 +35444,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -35493,7 +35493,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -35550,7 +35550,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -35606,7 +35606,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -35654,7 +35654,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -35703,7 +35703,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -35756,7 +35756,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -35803,7 +35803,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -35847,7 +35847,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -35895,7 +35895,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -35944,7 +35944,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -35992,7 +35992,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -36041,7 +36041,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -36097,7 +36097,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -36144,7 +36144,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -36187,7 +36187,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -36230,7 +36230,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -36284,7 +36284,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -36328,7 +36328,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -36371,7 +36371,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -36423,7 +36423,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -36470,7 +36470,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -36522,7 +36522,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -36569,7 +36569,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -36617,7 +36617,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -36661,7 +36661,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -36704,7 +36704,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -36751,7 +36751,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -36796,7 +36796,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -36844,7 +36844,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -36887,7 +36887,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -36935,7 +36935,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -36978,7 +36978,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -37026,7 +37026,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -37070,7 +37070,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -37112,7 +37112,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -37155,7 +37155,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -37203,7 +37203,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -37250,7 +37250,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -37305,7 +37305,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -37348,7 +37348,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -37390,7 +37390,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -37434,7 +37434,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -37477,7 +37477,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -37527,7 +37527,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -37574,7 +37574,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -37630,7 +37630,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -37679,7 +37679,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -37732,7 +37732,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -37775,7 +37775,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -37831,7 +37831,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -37879,7 +37879,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -37922,7 +37922,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -37970,7 +37970,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -38024,7 +38024,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -38073,7 +38073,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -38122,7 +38122,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -38170,7 +38170,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -38218,7 +38218,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -38266,7 +38266,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -38318,7 +38318,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -38360,7 +38360,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -38408,7 +38408,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -38456,7 +38456,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -38499,7 +38499,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -38547,7 +38547,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -38595,7 +38595,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -38650,7 +38650,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -38703,7 +38703,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -38751,7 +38751,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -38800,7 +38800,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -38856,7 +38856,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -38903,7 +38903,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -38952,7 +38952,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -38996,7 +38996,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -39044,7 +39044,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -39092,7 +39092,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -39140,7 +39140,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -39196,7 +39196,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -39244,7 +39244,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -39292,7 +39292,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -39345,7 +39345,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -39405,7 +39405,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -39461,7 +39461,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -39505,7 +39505,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -39558,7 +39558,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -39602,7 +39602,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -39650,7 +39650,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -39692,7 +39692,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -39748,7 +39748,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -39804,7 +39804,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -39852,7 +39852,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -39895,7 +39895,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -39943,7 +39943,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -39986,7 +39986,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -40034,7 +40034,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -40087,7 +40087,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -40135,7 +40135,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -40183,7 +40183,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -40226,7 +40226,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -40274,7 +40274,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -40316,7 +40316,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -40364,7 +40364,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -40407,7 +40407,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -40456,7 +40456,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -40504,7 +40504,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -40547,7 +40547,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -40596,7 +40596,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -40644,7 +40644,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -40693,7 +40693,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -40742,7 +40742,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -40785,7 +40785,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -40833,7 +40833,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -40876,7 +40876,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -40924,7 +40924,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -40972,7 +40972,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -41015,7 +41015,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -41059,7 +41059,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -41107,7 +41107,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -41155,7 +41155,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -41202,7 +41202,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -41245,7 +41245,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -41293,7 +41293,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -41341,7 +41341,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -41383,7 +41383,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -41430,7 +41430,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -41472,7 +41472,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -41520,7 +41520,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -41562,7 +41562,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -41615,7 +41615,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -41663,7 +41663,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -41706,7 +41706,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -41748,7 +41748,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -41791,7 +41791,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -41839,7 +41839,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -41887,7 +41887,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -41934,7 +41934,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -41977,7 +41977,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -42025,7 +42025,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -42073,7 +42073,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -42121,7 +42121,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -42168,7 +42168,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -42224,7 +42224,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -42284,7 +42284,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -42332,7 +42332,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -42375,7 +42375,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -42418,7 +42418,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -42479,7 +42479,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -42521,7 +42521,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -42569,7 +42569,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -42625,7 +42625,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -42668,7 +42668,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -42711,7 +42711,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -42754,7 +42754,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -42802,7 +42802,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -42845,7 +42845,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -42893,7 +42893,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -42941,7 +42941,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -42984,7 +42984,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -43027,7 +43027,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -43076,7 +43076,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -43124,7 +43124,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -43168,7 +43168,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -43216,7 +43216,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -43269,7 +43269,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -43317,7 +43317,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -43364,7 +43364,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -43420,7 +43420,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -43482,7 +43482,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -43526,7 +43526,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -43569,7 +43569,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -43621,7 +43621,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -43677,7 +43677,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -43725,7 +43725,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -43773,7 +43773,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -43816,7 +43816,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -43859,7 +43859,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -43915,7 +43915,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -43969,7 +43969,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -44018,7 +44018,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -44068,7 +44068,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -44117,7 +44117,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -44174,7 +44174,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -44222,7 +44222,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -44271,7 +44271,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -44332,7 +44332,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -44388,7 +44388,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -44440,7 +44440,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -44488,7 +44488,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -44532,7 +44532,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -44580,7 +44580,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -44628,7 +44628,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -44682,7 +44682,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -44739,7 +44739,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -44788,7 +44788,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -44841,7 +44841,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -44885,7 +44885,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -44929,7 +44929,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -44985,7 +44985,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -45033,7 +45033,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -45082,7 +45082,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -45126,7 +45126,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -45183,7 +45183,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -45231,7 +45231,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -45284,7 +45284,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -45326,7 +45326,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -45369,7 +45369,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -45416,7 +45416,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -45459,7 +45459,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -45503,7 +45503,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -45546,7 +45546,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -45595,7 +45595,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -45639,7 +45639,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -45688,7 +45688,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -45731,7 +45731,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -45780,7 +45780,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -45824,7 +45824,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -45868,7 +45868,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -45917,7 +45917,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -45961,7 +45961,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -46014,7 +46014,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -46061,7 +46061,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -46104,7 +46104,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -46157,7 +46157,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -46213,7 +46213,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -46265,7 +46265,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -46320,7 +46320,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -46363,7 +46363,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -46410,7 +46410,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -46458,7 +46458,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -46506,7 +46506,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -46548,7 +46548,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -46603,7 +46603,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -46650,7 +46650,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -46698,7 +46698,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -46751,7 +46751,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -46793,7 +46793,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -46845,7 +46845,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -46892,7 +46892,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -46944,7 +46944,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -46986,7 +46986,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -47028,7 +47028,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -47079,7 +47079,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -47126,7 +47126,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -47174,7 +47174,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -47222,7 +47222,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -47283,7 +47283,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -47327,7 +47327,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -47370,7 +47370,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -47417,7 +47417,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -47470,7 +47470,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -47526,7 +47526,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -47578,7 +47578,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -47634,7 +47634,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -47681,7 +47681,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -47729,7 +47729,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -47777,7 +47777,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -47826,7 +47826,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -47883,7 +47883,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -47932,7 +47932,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -47980,7 +47980,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -48037,7 +48037,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -48086,7 +48086,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -48140,7 +48140,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -48197,7 +48197,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -48245,7 +48245,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -48289,7 +48289,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -48337,7 +48337,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -48386,7 +48386,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -48434,7 +48434,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -48495,7 +48495,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -48546,7 +48546,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -48589,7 +48589,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -48632,7 +48632,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -48675,7 +48675,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -48718,7 +48718,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -48772,7 +48772,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -48816,7 +48816,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -48864,7 +48864,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -48917,7 +48917,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -48965,7 +48965,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -49008,7 +49008,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -49056,7 +49056,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -49099,7 +49099,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -49147,7 +49147,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -49189,7 +49189,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -49244,7 +49244,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -49298,7 +49298,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -49342,7 +49342,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -49390,7 +49390,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -49434,7 +49434,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -49488,7 +49488,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -49532,7 +49532,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -49581,7 +49581,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -49630,7 +49630,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -49679,7 +49679,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -49728,7 +49728,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -49772,7 +49772,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -49820,7 +49820,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -49867,7 +49867,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -49915,7 +49915,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -49967,7 +49967,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -50014,7 +50014,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -50062,7 +50062,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -50104,7 +50104,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -50146,7 +50146,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -50188,7 +50188,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -50240,7 +50240,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -50282,7 +50282,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -50329,7 +50329,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -50373,7 +50373,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -50419,7 +50419,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -50467,7 +50467,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -50514,7 +50514,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -50562,7 +50562,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -50609,7 +50609,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -50669,7 +50669,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -50716,7 +50716,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -50760,7 +50760,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -50803,7 +50803,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -50846,7 +50846,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -50894,7 +50894,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -50937,7 +50937,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -50986,7 +50986,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -51039,7 +51039,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -51083,7 +51083,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -51127,7 +51127,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -51175,7 +51175,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -51223,7 +51223,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -51272,7 +51272,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -51316,7 +51316,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -51383,7 +51383,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -51436,7 +51436,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -51479,7 +51479,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -51536,7 +51536,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -51585,7 +51585,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -51633,7 +51633,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -51681,7 +51681,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -51738,7 +51738,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -51791,7 +51791,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -51834,7 +51834,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -51881,7 +51881,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -51934,7 +51934,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -51982,7 +51982,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -52031,7 +52031,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -52087,7 +52087,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -52139,7 +52139,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -52188,7 +52188,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -52244,7 +52244,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -52292,7 +52292,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -52345,7 +52345,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -52393,7 +52393,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -52450,7 +52450,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -52499,7 +52499,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -52552,7 +52552,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -52599,7 +52599,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -52647,7 +52647,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -52695,7 +52695,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -52742,7 +52742,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -52785,7 +52785,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -52841,7 +52841,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -52884,7 +52884,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -52937,7 +52937,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -53003,7 +53003,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -53085,7 +53085,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -53132,7 +53132,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -53198,7 +53198,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -53280,7 +53280,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -53327,7 +53327,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -53393,7 +53393,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -53475,7 +53475,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -53546,7 +53546,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -53612,7 +53612,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -53694,7 +53694,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -53741,7 +53741,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -53807,7 +53807,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -53889,7 +53889,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -53939,7 +53939,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -53995,7 +53995,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -54063,7 +54063,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -54146,7 +54146,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -54202,7 +54202,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -54250,7 +54250,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -54316,7 +54316,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -54398,7 +54398,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -54445,7 +54445,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -54511,7 +54511,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -54593,7 +54593,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -54641,7 +54641,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -54707,7 +54707,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -54789,7 +54789,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -54839,7 +54839,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -54905,7 +54905,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -54987,7 +54987,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -55036,7 +55036,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -55102,7 +55102,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -55184,7 +55184,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -55231,7 +55231,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -55297,7 +55297,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -55379,7 +55379,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -55430,7 +55430,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -55472,7 +55472,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -55532,7 +55532,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -55574,7 +55574,7 @@ Return TRUE if the given universal representation has the field
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -55616,7 +55616,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -55657,7 +55657,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -55704,7 +55704,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -55751,7 +55751,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -55822,7 +55822,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -55864,7 +55864,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -55911,7 +55911,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -55953,7 +55953,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -56000,7 +56000,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -56043,7 +56043,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -56091,7 +56091,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -56133,7 +56133,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -56175,7 +56175,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -56224,7 +56224,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -56266,7 +56266,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -56309,7 +56309,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -56356,7 +56356,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -56404,7 +56404,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -56447,7 +56447,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -56496,7 +56496,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -56538,7 +56538,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -56580,7 +56580,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -56622,7 +56622,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -56671,7 +56671,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -56726,7 +56726,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -56781,7 +56781,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -56828,7 +56828,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -56875,7 +56875,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -56918,7 +56918,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -56965,7 +56965,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -57009,7 +57009,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -57056,7 +57056,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -57104,7 +57104,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -57164,7 +57164,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -57211,7 +57211,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -57254,7 +57254,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -57301,7 +57301,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -57348,7 +57348,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -57390,7 +57390,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -57437,7 +57437,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;
@@ -57497,7 +57497,7 @@ otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = universal.get_file();
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   if (is_at_least(file, 0, 33)) {
     result = TRUE;

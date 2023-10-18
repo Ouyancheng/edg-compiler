@@ -40016,7 +40016,7 @@ Return TRUE if the node has the field "access"; otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = idx.file;
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   switch (idx.sort) {
     case ifc_ds_decl_alias:
@@ -40295,7 +40295,7 @@ return FALSE.
 */
 {
   an_ifc_module_file *file = idx.file;
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   switch (idx.sort) {
     case ifc_ds_decl_alias:
@@ -40597,7 +40597,7 @@ Return TRUE if the node has the field "locus"; otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = idx.file;
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   switch (idx.sort) {
     case ifc_ds_decl_alias:
@@ -40923,7 +40923,7 @@ Return TRUE if the node has the field "name"; otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = idx.file;
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   switch (idx.sort) {
     case ifc_ds_decl_alias:
@@ -41273,7 +41273,7 @@ Return TRUE if the node has the field "locus"; otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = idx.file;
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   switch (idx.sort) {
     case ifc_es_expr_alignof:
@@ -41951,7 +41951,7 @@ Return TRUE if the node has the field "locus"; otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = idx.file;
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   switch (idx.sort) {
     case ifc_fs_form_catenate:
@@ -42159,7 +42159,7 @@ Return TRUE if the node has the field "locus"; otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = idx.file;
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   switch (idx.sort) {
     case ifc_ms_macro_function_like:
@@ -42223,7 +42223,7 @@ Return TRUE if the node has the field "locus"; otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = idx.file;
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   switch (idx.sort) {
     case ifc_ss_stmt_block:
@@ -42521,7 +42521,7 @@ Return TRUE if the node has the field "locus"; otherwise, return FALSE.
 */
 {
   an_ifc_module_file *file = idx.file;
-  a_boolean          result = get_fallback_presence_value(file);
+  a_boolean          result = FALSE;
 
   switch (idx.sort) {
     case ifc_ss_syntax_access_specifier:
