@@ -20095,7 +20095,8 @@ name lookup options.
   } else if ((sym->kind == (a_symbol_kind)sk_member_function ||
               sym->kind == (a_symbol_kind)sk_function_template ||
               sym->kind == (a_symbol_kind)sk_overloaded_function) &&
-             guide_type != NULL && is_address) {
+             guide_type != NULL &&
+             (is_address || is_pointer_type(guide_type))) {
     /* A member function is acceptable as a pointer or pointer-to-member.
        Choose a function from the overload set based on the guide type. */
     if (is_template_dependent_type(guide_type) ||
@@ -20309,7 +20310,7 @@ copy_template_param_con for the meaning of the remaining parameters.
 */
 {
   a_type_ptr          new_type, copied_con_type;
-  a_constant_ptr      src_con, other_con, con_copy = con;
+  a_constant_ptr      src_con, other_con = NULL, con_copy = con;
   a_boolean           reinterpret_cast_needed = FALSE, is_template_arg;
   a_ctws_options_set  cast_options = CTWS_CAST_OPERAND;
 
@@ -20324,7 +20325,36 @@ copy_template_param_con for the meaning of the remaining parameters.
   is_template_arg = (options & CTWS_NONTYPE_TEMPLATE_ARG) != 0;
   if (is_template_arg) options &= ~CTWS_NONTYPE_TEMPLATE_ARG;
   if (explicit_cast) cast_options |= CTWS_EXPLICIT_CAST_OPERAND;
-  other_con = copy_template_param_con(
+  if (base_con->kind == ck_address &&
+      base_con->variant.address.kind == abk_routine &&
+      base_con->variant.address.variant.routine
+              ->source_corresp.is_class_member) {
+    /* If we have the address of a member function, substitute the class type
+       and look up the member symbol in the substituted class. */
+    a_symbol_ptr sym = symbol_for(base_con->variant.address.variant.routine);
+    sym = copy_parent_type_with_substitution(sym, sym->parent.class_type,
+                                             template_arg_list,
+                                             template_param_list,
+                                             source_pos, /*is_type=*/FALSE,
+                                             (a_type_ptr *)NULL, options,
+                                             copy_error, ctws_state);
+    if (*copy_error) goto done;
+    if (sym != NULL) {
+      if (sym->kind == sk_constant) {
+        other_con = sym->variant.constant;
+      } else {
+        other_con = alloc_constant(ck_address);
+        choose_function_and_make_address_constant(sym,
+                                                  /*is_template_id=*/FALSE,
+                                                  (a_template_arg_ptr)NULL,
+                                                  new_type, other_con,
+                                                  copy_error);
+        if (*copy_error) goto done;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (other_con == NULL) {
+    other_con = copy_template_param_con(
                                base_con,
                                template_arg_list,
                                template_param_list,
@@ -20334,7 +20364,8 @@ copy_template_param_con for the meaning of the remaining parameters.
                                copy_error,
                                ctws_state,
                                constant);
-  if (*copy_error) goto done;
+    if (*copy_error) goto done;
+  }  /* if */
   /* Get the type of the copied constant from either other_con or constant,
      as appropriate. */
   src_con = (other_con != NULL) ? other_con : constant;

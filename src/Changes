@@ -1,5 +1,18 @@
 Version 6.6
 
+10/18/23 [EDGcpfe/26139]
+Substitution of member functions
+
+Previously, the front end failed to substitute member functions.  For example,
+with --c++20:
+
+  template<typename T> struct A {
+    static constexpr T f() { return true; }
+    static int g() requires (f());
+  };
+  int i = A<bool>::g();  // Previously a spurious error.  Now okay.
+
+
 10/16/23 [EDGcpfe/24745,EDGcpfe/26662]
 Stringized __VA_OPT__
 
