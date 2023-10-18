@@ -7340,7 +7340,7 @@ for use in generating cross-reference output describing this declaration.
            storage class specifier.  Turn the previous definition into an
            ordinary declaration. */
         issue_redef_diag(&locator->source_position, linked_symbol,
-                          es_warning);
+                         es_warning);
         orig_var->storage_class = (a_storage_class)sc_extern;
         storage_class = (a_storage_class)sc_extern;
         idlb.linkage = idl_external;

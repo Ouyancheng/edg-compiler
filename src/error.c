@@ -8362,7 +8362,7 @@ instead return NULL.
     case iek_routine:
     case iek_type:
     case iek_variable:
-      { /* These entity's have their decl_position update to reflect the
+      { /* These entities have their decl_position updated to reflect the
            position of the definition. */
         a_source_correspondence *scp = source_corresp_for_il_entry(ptr, kind);
 
