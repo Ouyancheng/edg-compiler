@@ -676,15 +676,22 @@ Check to see if the given module's version has at least the minimum version
 "major.minor".
 */
 {
-  a_boolean result;
+  a_boolean result = FALSE;
 
   if (file->version_major > minimum_version_major) {
     result = TRUE;
   } else if (file->version_major == minimum_version_major &&
              file->version_minor >= minimum_version_minor) {
     result = TRUE;
-  } else {
-    result = FALSE;
+  } else if (skip_module_version_check) {
+    /* The version check is being skipped, check to see if this is a query for
+       the minimum supported IFC version or something before that. */
+    if (minimum_version_major < IFC_MIN_VER_MAJOR) {
+      result = TRUE;
+    } else if (minimum_version_major == IFC_MIN_VER_MAJOR &&
+               minimum_version_minor <= IFC_MIN_VER_MINOR) {
+      result = TRUE;
+    }  /* if */
   }  /* if */
   return result;
 }  /* is_at_least */

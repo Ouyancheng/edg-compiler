@@ -167,6 +167,12 @@ enum an_ifc_module_primary_endianness {
 #endif /* !ASSUME_LITTLE_ENDIAN_IFC_MODULES */
 
 /*
+The minimum major and minor supported version combination.
+*/
+#define IFC_MIN_VER_MAJOR 0
+#define IFC_MIN_VER_MINOR 33
+
+/*
 A structure abstracting the representation of the IFC module file and the
 associated memory managed.
 */
@@ -187,12 +193,12 @@ struct an_ifc_module_file {
   size_t        f_size = 0;
                         /* The size of the module file. */
   an_ifc_version_storage
-                version_major = 0;
+                version_major = IFC_MIN_VER_MAJOR;
                         /* The module file's major version.  Defaulted to the
                            lowest supported version until initialization is
                            complete. */
   an_ifc_version_storage
-                version_minor = 33;
+                version_minor = IFC_MIN_VER_MINOR;
                         /* The module file's minor version.  Defaulted to the
                            lowest supported version until initialization is
                            complete. */
@@ -536,18 +542,6 @@ extern void get_bytes(an_ifc_module_file *file,
                       void               *entity,
                       size_t             length,
                       a_boolean          header_bytes);
-
-
-inline a_boolean get_fallback_presence_value(an_ifc_module_file *file)
-/*
-Given an IFC module instance, if the fallback assumption for versions below the
-supported IFC version range for has_ifc_X checks should be TRUE, return TRUE,
-otherwise return FALSE.
-*/
-{
-  return skip_module_version_check;
-}  /* get_fallback_presence_value */
-
 
 extern a_boolean is_at_least(an_ifc_module_file     *file,
                              an_ifc_version_storage minimum_version_major,
