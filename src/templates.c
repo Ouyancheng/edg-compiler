@@ -16250,6 +16250,27 @@ a pointer over a reference type or creating an array of references.
         }  /* if */
       }  /* if */
     }  /* if */
+  } else if (scope_stack_top().is_rescan &&
+             is_immediate_class_type(type) &&
+             type->variant.class_struct_union.is_nonreal_class &&
+             type->source_corresp.is_local_to_function &&
+             type->source_corresp.enclosing_routine != NULL &&
+             type->source_corresp.name != NULL) {
+    /* We are in a template rescan context and have a dependent type that has
+       been defined in a function-local scope. */
+    a_symbol_locator loc;
+    a_symbol_ptr     sym;
+    clear_locator(&loc, &null_source_position);
+    (void)find_symbol(type->source_corresp.name,
+                      (sizeof_t)strlen(type->source_corresp.name), &loc);
+    /* As we are looking for a function-local declaration, we just need to
+       search the active symbol list. */
+    for (sym = symbol_list_from_locator(loc); sym != NULL; sym = sym->next) {
+      if (symbol_is(sym, sk_class_or_struct_tag)) {
+        new_type = sym->variant.class_struct_union.type;
+        goto done;
+      }  /* if */
+    }  /* for */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else {
     if (is_cli_generic_definition_argument_type(type)) {

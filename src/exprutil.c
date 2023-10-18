@@ -5799,7 +5799,8 @@ substitutions to be done.
     an_operand       *operand = operand_of_arg_list_elem(icp);
     a_boolean        saved_possible_rescan_context =
                                           expr_stack->possible_rescan_context;
-    if (is_indefinite_function_operand(operand)) {
+    if (is_template_dependent_context() &&
+        is_indefinite_function_operand(operand)) {
       conv_indefinite_function_to_unknown_dependent_function(
                                                     operand,
                                                     /*force_to_rvalue=*/FALSE);
@@ -26171,13 +26172,20 @@ stage, set *p_err to TRUE.
   a_constant_ptr     allocated_cp = NULL;
   int                levels = (int)subst_pairs.length();
   a_source_position  *pos = &expr->position;
-
+  a_boolean          is_top_level_nonreal =
+                                    scope_stack_top().in_nonreal_instantiation;
   for (int k = 0; k < levels && !*p_err; ++k) {
     a_subst_pairs_descr const  *spd = &subst_pairs[k];
     a_ctws_options_set         all_options = options | CTWS_NON_CONSTANT_EXPR;
     if (k < levels-1) {
       /* The next iteration may have to rescan the result. */
       all_options |= CTWS_MAY_BE_RESCANNED;
+      if (!is_top_level_nonreal) {
+        /* Substitutions below the top level are always non-real. */
+        scope_stack_top().in_nonreal_instantiation = TRUE;
+      }  /* if */
+    } else {
+      scope_stack_top().in_nonreal_instantiation = is_top_level_nonreal;
     }  /* if */
     if (expr != NULL) {
       expr = copy_template_param_expr(
@@ -26383,11 +26391,38 @@ subst_pairs is successful.  ctws_state is a substitution state block pointer
         case enk_nested_req:
           { an_expr_node_ptr  expr = req->variant.nested_req.constraint;
             a_diag_list       diag_list;
+            int               levels = (int)subst_pairs.length();
             clear_diag_list(&diag_list);
-            if (subst_pairs.length() != 0) {
+            if (levels != 0) {
               a_template_param_ptr  templ_params;
               a_template_arg_ptr    templ_args;
               a_source_position     saved_error_pos = error_position;
+              if (levels > 1) {
+                /* Always substitute the expression in a dependent context for
+                   non-top-level substitution pairs. */
+                a_boolean  is_top_level_nonreal =
+                                    scope_stack_top().in_nonreal_instantiation;
+                if (!is_top_level_nonreal) {
+                  scope_stack_top().in_nonreal_instantiation = TRUE;
+                }  /* if */
+                for (int k = 0; k < levels - 1; ++k) {
+                  expr = copy_expr_with_substitutions(expr,
+                                                      subst_pairs[k].args,
+                                                      subst_pairs[k].params,
+                                                      CTWS_MAY_BE_RESCANNED,
+                                                      &copy_error,
+                                                      ctws_state);
+                  if (copy_error) break;
+                }  /* for */
+                scope_stack_top().in_nonreal_instantiation =
+                                                          is_top_level_nonreal;
+                if (copy_error) {
+                  result = FALSE;
+                  break;
+                }  /* if */
+              }  /* if */
+              /* Check constraint satisfaction for the top-level
+                 substitution. */
               error_position = req->position;
               templ_params = subst_pairs.back_elem().params;
               templ_args = subst_pairs.back_elem().args;

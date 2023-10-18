@@ -8714,6 +8714,14 @@ a left parenthesis in the source.
            symbol. */
         sym = eriep->saved_operand.symbol;
         check_assertion(sym != NULL);
+        sym = copy_parent_type_with_substitution(sym, sym->parent.class_type,
+                                                 rcblock->template_arg_list,
+                                                 rcblock->template_param_list,
+                                                 qualified_member_position,
+                                                 /*is_type=*/FALSE,
+                                                 (a_type_ptr *)NULL,
+                                                 rcblock->options, err,
+                                                 rcblock->ctws_state);
         make_locator_for_symbol(sym, locator);
       }  /* if */
       break;
@@ -37754,13 +37762,12 @@ overloaded_function:
               }  /* if */
               make_error_operand(result);
             }  /* if */
-          } else {
+          } else if (is_template_dependent_context()) {
             /* A template id can produce a class template symbol for cases
                like A<T>::template f<N> in prototype instantiations.  A class
                template is returned because there's only a representation for
                the class case as a member of a nonreal class, but it's really
                a function template. */
-            check_assertion(is_template_dependent_context());
             make_unknown_dependent_function_operand(projection_sym_ptr,
                                                     /*is_template_id=*/TRUE,
                                                     locator.template_arg_list,
@@ -37775,6 +37782,9 @@ overloaded_function:
                                              &result->variant.constant, TRUE);
             }  /* if */
             change_template_param_constant_operand_to_lvalue(result);
+          } else {
+            error_and_make_error_operand(ec_type_identifier_not_allowed,
+                                         result);
           }  /* if */
           break;
         case sk_undefined:
@@ -40223,6 +40233,8 @@ done_with_requirements:
            that we are about to perform. */
         pack_expansion_stack = saved_pesep;
       }  /* if */
+      /* All template arguments are already known. */
+      scope_stack_top().in_nonreal_instantiation = FALSE;
       val = requires_expr_satisfied(rrd.requires_expr, subst_pairs);
       if (saved_pesep != NULL) {
         pack_expansion_stack = NULL;
