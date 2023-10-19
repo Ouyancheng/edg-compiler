@@ -3264,6 +3264,139 @@ representation of the field "type".
 
 
 /*
+Functions for reading data from IFC DeclBarren nodes.
+*/
+
+
+template<>
+a_boolean has_ifc_access(const an_ifc_decl_barren &universal)
+/*
+Return TRUE if the given universal representation has the field "access";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_access */
+
+
+template<>
+an_ifc_access_sort get_ifc_access(const an_ifc_decl_barren &universal)
+/*
+Given the universal representation of DeclBarren, return the universal
+representation of the field "access".
+*/
+{
+  an_ifc_access_sort result;
+
+  /* Ensure the access field exists in the current module version. */
+  check_assertion(has_ifc_access(universal));
+  an_ifc_access_sort_0_33 stage_0;
+  an_ifc_access_sort      stage_1;
+
+  /* Copy the field (DeclBarren::access - AccessSort) into version-specific
+     storage. */
+  static_assert(sizeof(stage_0) == 1,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/5);
+  stage_1 = to_universal_sort(stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_access */
+
+
+template<>
+a_boolean has_ifc_directive(const an_ifc_decl_barren &universal)
+/*
+Return TRUE if the given universal representation has the field "directive";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_directive */
+
+
+template<>
+an_ifc_dir_index get_ifc_directive(const an_ifc_decl_barren &universal)
+/*
+Given the universal representation of DeclBarren, return the universal
+representation of the field "directive".
+*/
+{
+  an_ifc_dir_index result;
+
+  /* Ensure the directive field exists in the current module version. */
+  check_assertion(has_ifc_directive(universal));
+  an_ifc_dir_index_0_43 stage_0;
+  an_ifc_dir_index      stage_1;
+
+  /* Copy the field (DeclBarren::directive - DirIndex) into version-specific
+     storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  stage_1 = to_universal_index(universal.get_file(), stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_directive */
+
+
+template<>
+a_boolean has_ifc_specifiers(const an_ifc_decl_barren &universal)
+/*
+Return TRUE if the given universal representation has the field "specifiers";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_specifiers */
+
+
+template<>
+an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
+                                           const an_ifc_decl_barren &universal)
+/*
+Given the universal representation of DeclBarren, return the universal
+representation of the field "specifiers".
+*/
+{
+  an_ifc_basic_specifiers_bitfield result;
+
+  /* Ensure the specifiers field exists in the current module version. */
+  check_assertion(has_ifc_specifiers(universal));
+  an_ifc_basic_specifiers_bitfield_0_33 stage_0;
+  an_ifc_basic_specifiers_bitfield      stage_1;
+
+  /* Copy the field (DeclBarren::specifiers - BasicSpecifiersBitfield) into
+     version-specific storage. */
+  static_assert(sizeof(stage_0) == 1,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  stage_1 = {universal.get_file(),
+             (an_ifc_basic_specifiers_bitfield_storage)stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_specifiers */
+
+
+/*
 Functions for reading data from IFC DeclBitfield nodes.
 */
 
@@ -10221,6 +10354,49 @@ representation of the field "constraint".
 
 
 template<>
+a_boolean has_ifc_init_decl(const an_ifc_decl_parameter &universal)
+/*
+Return TRUE if the given universal representation has the field "init_decl";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_init_decl */
+
+
+template<>
+an_ifc_expr_named_decl_offset get_ifc_init_decl(
+                                        const an_ifc_decl_parameter &universal)
+/*
+Given the universal representation of DeclParameter, return the universal
+representation of the field "init_decl".
+*/
+{
+  an_ifc_expr_named_decl_offset result;
+
+  /* Ensure the init_decl field exists in the current module version. */
+  check_assertion(has_ifc_init_decl(universal));
+  an_ifc_expr_named_decl_offset_0_43 stage_0;
+  an_ifc_expr_named_decl_offset      stage_1;
+
+  /* Copy the field (DeclParameter::init_decl - ExprNamedDeclOffset) into
+     version-specific storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+  stage_1 = to_universal_offset(universal.get_file(), stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_init_decl */
+
+
+template<>
 a_boolean has_ifc_initializer(const an_ifc_decl_parameter &universal)
 /*
 Return TRUE if the given universal representation has the field "initializer";
@@ -10230,7 +10406,9 @@ otherwise, return FALSE.
   an_ifc_module_file *file = universal.get_file();
   a_boolean          result = FALSE;
 
-  if (is_at_least(file, 0, 33)) {
+  if (is_at_least(file, 0, 43)) {
+    result = FALSE;
+  } else if (is_at_least(file, 0, 33)) {
     result = TRUE;
   }  /* if */
   return result;
@@ -12518,6 +12696,53 @@ representation of the field "sort".
 
 
 /*
+Functions for reading data from IFC DeclSyntaxTree nodes.
+*/
+
+
+template<>
+a_boolean has_ifc_syntax(const an_ifc_decl_syntax_tree &universal)
+/*
+Return TRUE if the given universal representation has the field "syntax";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_syntax */
+
+
+template<>
+an_ifc_syntax_index get_ifc_syntax(const an_ifc_decl_syntax_tree &universal)
+/*
+Given the universal representation of DeclSyntaxTree, return the universal
+representation of the field "syntax".
+*/
+{
+  an_ifc_syntax_index result;
+
+  /* Ensure the syntax field exists in the current module version. */
+  check_assertion(has_ifc_syntax(universal));
+  an_ifc_syntax_index_0_33 stage_0;
+  an_ifc_syntax_index      stage_1;
+
+  /* Copy the field (DeclSyntaxTree::syntax - SyntaxIndex) into
+     version-specific storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  stage_1 = to_universal_index(universal.get_file(), stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_syntax */
+
+
+/*
 Functions for reading data from IFC DeclTemplate nodes.
 */
 
@@ -14509,6 +14734,736 @@ representation of the field "type".
   result = stage_1;
   return result;
 }  /* get_ifc_type */
+
+
+/*
+Functions for reading data from IFC DirAttribute nodes.
+*/
+
+
+template<>
+a_boolean has_ifc_attr(const an_ifc_dir_attribute &universal)
+/*
+Return TRUE if the given universal representation has the field "attr";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_attr */
+
+
+template<>
+an_ifc_attr_index get_ifc_attr(const an_ifc_dir_attribute &universal)
+/*
+Given the universal representation of DirAttribute, return the universal
+representation of the field "attr".
+*/
+{
+  an_ifc_attr_index result;
+
+  /* Ensure the attr field exists in the current module version. */
+  check_assertion(has_ifc_attr(universal));
+  an_ifc_attr_index_0_33 stage_0;
+  an_ifc_attr_index      stage_1;
+
+  /* Copy the field (DirAttribute::attr - AttrIndex) into version-specific
+     storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  stage_1 = to_universal_index(universal.get_file(), stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_attr */
+
+
+template<>
+a_boolean has_ifc_locus(const an_ifc_dir_attribute &universal)
+/*
+Return TRUE if the given universal representation has the field "locus";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_locus */
+
+
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_dir_attribute &universal)
+/*
+Given the universal representation of DirAttribute, return the universal
+representation of the field "locus".
+*/
+{
+  an_ifc_source_location result;
+
+  /* Ensure the locus field exists in the current module version. */
+  check_assertion(has_ifc_locus(universal));
+  an_ifc_source_location_bytes stage_0;
+  an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+  /* Update the universal storage pointer to the start of the field
+     (DirAttribute::locus - SourceLocation). */
+  stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
+#else /* !USE_MMAP_FOR_MODULES */
+  /* Copy the field (DirAttribute::locus - SourceLocation) into universal
+     storage. */
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+  stage_1 = {universal.get_file(), stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_locus */
+
+
+/*
+Functions for reading data from IFC DirDeclUse nodes.
+*/
+
+
+template<>
+a_boolean has_ifc_locus(const an_ifc_dir_decl_use &universal)
+/*
+Return TRUE if the given universal representation has the field "locus";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_locus */
+
+
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_dir_decl_use &universal)
+/*
+Given the universal representation of DirDeclUse, return the universal
+representation of the field "locus".
+*/
+{
+  an_ifc_source_location result;
+
+  /* Ensure the locus field exists in the current module version. */
+  check_assertion(has_ifc_locus(universal));
+  an_ifc_source_location_bytes stage_0;
+  an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+  /* Update the universal storage pointer to the start of the field
+     (DirDeclUse::locus - SourceLocation). */
+  stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
+#else /* !USE_MMAP_FOR_MODULES */
+  /* Copy the field (DirDeclUse::locus - SourceLocation) into universal
+     storage. */
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+  stage_1 = {universal.get_file(), stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_locus */
+
+
+template<>
+a_boolean has_ifc_path(const an_ifc_dir_decl_use &universal)
+/*
+Return TRUE if the given universal representation has the field "path";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_path */
+
+
+template<>
+an_ifc_expr_index get_ifc_path(const an_ifc_dir_decl_use &universal)
+/*
+Given the universal representation of DirDeclUse, return the universal
+representation of the field "path".
+*/
+{
+  an_ifc_expr_index result;
+
+  /* Ensure the path field exists in the current module version. */
+  check_assertion(has_ifc_path(universal));
+  an_ifc_expr_index_0_42 stage_0;
+  an_ifc_expr_index      stage_1;
+
+  /* Copy the field (DirDeclUse::path - ExprIndex) into version-specific
+     storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  stage_1 = to_universal_index(universal.get_file(), stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_path */
+
+
+template<>
+a_boolean has_ifc_result(const an_ifc_dir_decl_use &universal)
+/*
+Return TRUE if the given universal representation has the field "result";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_result */
+
+
+template<>
+an_ifc_decl_index get_ifc_result(const an_ifc_dir_decl_use &universal)
+/*
+Given the universal representation of DirDeclUse, return the universal
+representation of the field "result".
+*/
+{
+  an_ifc_decl_index result;
+
+  /* Ensure the result field exists in the current module version. */
+  check_assertion(has_ifc_result(universal));
+  an_ifc_decl_index_0_43 stage_0;
+  an_ifc_decl_index      stage_1;
+
+  /* Copy the field (DirDeclUse::result - DeclIndex) into version-specific
+     storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  stage_1 = to_universal_index(universal.get_file(), stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_result */
+
+
+/*
+Functions for reading data from IFC DirEmpty nodes.
+*/
+
+
+template<>
+a_boolean has_ifc_locus(const an_ifc_dir_empty &universal)
+/*
+Return TRUE if the given universal representation has the field "locus";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_locus */
+
+
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_dir_empty &universal)
+/*
+Given the universal representation of DirEmpty, return the universal
+representation of the field "locus".
+*/
+{
+  an_ifc_source_location result;
+
+  /* Ensure the locus field exists in the current module version. */
+  check_assertion(has_ifc_locus(universal));
+  an_ifc_source_location_bytes stage_0;
+  an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+  /* Update the universal storage pointer to the start of the field
+     (DirEmpty::locus - SourceLocation). */
+  stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
+#else /* !USE_MMAP_FOR_MODULES */
+  /* Copy the field (DirEmpty::locus - SourceLocation) into universal
+     storage. */
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+  stage_1 = {universal.get_file(), stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_locus */
+
+
+/*
+Functions for reading data from IFC DirExpr nodes.
+*/
+
+
+template<>
+a_boolean has_ifc_expr(const an_ifc_dir_expr &universal)
+/*
+Return TRUE if the given universal representation has the field "expr";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_expr */
+
+
+template<>
+an_ifc_expr_index get_ifc_expr(const an_ifc_dir_expr &universal)
+/*
+Given the universal representation of DirExpr, return the universal
+representation of the field "expr".
+*/
+{
+  an_ifc_expr_index result;
+
+  /* Ensure the expr field exists in the current module version. */
+  check_assertion(has_ifc_expr(universal));
+  an_ifc_expr_index_0_42 stage_0;
+  an_ifc_expr_index      stage_1;
+
+  /* Copy the field (DirExpr::expr - ExprIndex) into version-specific
+     storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  stage_1 = to_universal_index(universal.get_file(), stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_expr */
+
+
+template<>
+a_boolean has_ifc_locus(const an_ifc_dir_expr &universal)
+/*
+Return TRUE if the given universal representation has the field "locus";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_locus */
+
+
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_dir_expr &universal)
+/*
+Given the universal representation of DirExpr, return the universal
+representation of the field "locus".
+*/
+{
+  an_ifc_source_location result;
+
+  /* Ensure the locus field exists in the current module version. */
+  check_assertion(has_ifc_locus(universal));
+  an_ifc_source_location_bytes stage_0;
+  an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+  /* Update the universal storage pointer to the start of the field
+     (DirExpr::locus - SourceLocation). */
+  stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
+#else /* !USE_MMAP_FOR_MODULES */
+  /* Copy the field (DirExpr::locus - SourceLocation) into universal
+     storage. */
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+  stage_1 = {universal.get_file(), stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_locus */
+
+
+template<>
+a_boolean has_ifc_phases(const an_ifc_dir_expr &universal)
+/*
+Return TRUE if the given universal representation has the field "phases";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_phases */
+
+
+template<>
+an_ifc_phases_bitfield get_ifc_phases(const an_ifc_dir_expr &universal)
+/*
+Given the universal representation of DirExpr, return the universal
+representation of the field "phases".
+*/
+{
+  an_ifc_phases_bitfield result;
+
+  /* Ensure the phases field exists in the current module version. */
+  check_assertion(has_ifc_phases(universal));
+  an_ifc_phases_bitfield_0_43 stage_0;
+  an_ifc_phases_bitfield      stage_1;
+
+  /* Copy the field (DirExpr::phases - PhasesBitfield) into version-specific
+     storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  stage_1 = {universal.get_file(), (an_ifc_phases_bitfield_storage)stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_phases */
+
+
+/*
+Functions for reading data from IFC DirPragma nodes.
+*/
+
+
+template<>
+a_boolean has_ifc_locus(const an_ifc_dir_pragma &universal)
+/*
+Return TRUE if the given universal representation has the field "locus";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_locus */
+
+
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_dir_pragma &universal)
+/*
+Given the universal representation of DirPragma, return the universal
+representation of the field "locus".
+*/
+{
+  an_ifc_source_location result;
+
+  /* Ensure the locus field exists in the current module version. */
+  check_assertion(has_ifc_locus(universal));
+  an_ifc_source_location_bytes stage_0;
+  an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+  /* Update the universal storage pointer to the start of the field
+     (DirPragma::locus - SourceLocation). */
+  stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
+#else /* !USE_MMAP_FOR_MODULES */
+  /* Copy the field (DirPragma::locus - SourceLocation) into universal
+     storage. */
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+  stage_1 = {universal.get_file(), stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_locus */
+
+
+template<>
+a_boolean has_ifc_words(const an_ifc_dir_pragma &universal)
+/*
+Return TRUE if the given universal representation has the field "words";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_words */
+
+
+template<>
+an_ifc_sentence_index get_ifc_words(const an_ifc_dir_pragma &universal)
+/*
+Given the universal representation of DirPragma, return the universal
+representation of the field "words".
+*/
+{
+  an_ifc_sentence_index result;
+
+  /* Ensure the words field exists in the current module version. */
+  check_assertion(has_ifc_words(universal));
+  an_ifc_sentence_index_0_33 stage_0;
+  an_ifc_sentence_index      stage_1;
+
+  /* Copy the field (DirPragma::words - SentenceIndex) into version-specific
+     storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  stage_1 = {universal.get_file(), (an_ifc_sentence_index_storage)stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_words */
+
+
+/*
+Functions for reading data from IFC DirTuple nodes.
+*/
+
+
+template<>
+a_boolean has_ifc_cardinality(const an_ifc_dir_tuple &universal)
+/*
+Return TRUE if the given universal representation has the field "cardinality";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_cardinality */
+
+
+template<>
+an_ifc_cardinality get_ifc_cardinality(const an_ifc_dir_tuple &universal)
+/*
+Given the universal representation of DirTuple, return the universal
+representation of the field "cardinality".
+*/
+{
+  an_ifc_cardinality result;
+
+  /* Ensure the cardinality field exists in the current module version. */
+  check_assertion(has_ifc_cardinality(universal));
+  an_ifc_cardinality_0_33 stage_0;
+  an_ifc_cardinality      stage_1;
+
+  /* Copy the field (DirTuple::cardinality - Cardinality) into version-specific
+     storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  stage_1 = {universal.get_file(), (an_ifc_cardinality_storage)stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_cardinality */
+
+
+template<>
+a_boolean has_ifc_start(const an_ifc_dir_tuple &universal)
+/*
+Return TRUE if the given universal representation has the field "start";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_start */
+
+
+template<>
+an_ifc_index get_ifc_start(const an_ifc_dir_tuple &universal)
+/*
+Given the universal representation of DirTuple, return the universal
+representation of the field "start".
+*/
+{
+  an_ifc_index result;
+
+  /* Ensure the start field exists in the current module version. */
+  check_assertion(has_ifc_start(universal));
+  an_ifc_index_0_33 stage_0;
+  an_ifc_index      stage_1;
+
+  /* Copy the field (DirTuple::start - Index) into version-specific storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  stage_1 = {universal.get_file(), (an_ifc_index_storage)stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_start */
+
+
+/*
+Functions for reading data from IFC DirUsing nodes.
+*/
+
+
+template<>
+a_boolean has_ifc_locus(const an_ifc_dir_using &universal)
+/*
+Return TRUE if the given universal representation has the field "locus";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_locus */
+
+
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_dir_using &universal)
+/*
+Given the universal representation of DirUsing, return the universal
+representation of the field "locus".
+*/
+{
+  an_ifc_source_location result;
+
+  /* Ensure the locus field exists in the current module version. */
+  check_assertion(has_ifc_locus(universal));
+  an_ifc_source_location_bytes stage_0;
+  an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+  /* Update the universal storage pointer to the start of the field
+     (DirUsing::locus - SourceLocation). */
+  stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
+#else /* !USE_MMAP_FOR_MODULES */
+  /* Copy the field (DirUsing::locus - SourceLocation) into universal
+     storage. */
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+  stage_1 = {universal.get_file(), stage_0};
+  result = stage_1;
+  return result;
+}  /* get_ifc_locus */
+
+
+template<>
+a_boolean has_ifc_nominated(const an_ifc_dir_using &universal)
+/*
+Return TRUE if the given universal representation has the field "nominated";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_nominated */
+
+
+template<>
+an_ifc_expr_index get_ifc_nominated(const an_ifc_dir_using &universal)
+/*
+Given the universal representation of DirUsing, return the universal
+representation of the field "nominated".
+*/
+{
+  an_ifc_expr_index result;
+
+  /* Ensure the nominated field exists in the current module version. */
+  check_assertion(has_ifc_nominated(universal));
+  an_ifc_expr_index_0_42 stage_0;
+  an_ifc_expr_index      stage_1;
+
+  /* Copy the field (DirUsing::nominated - ExprIndex) into version-specific
+     storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  stage_1 = to_universal_index(universal.get_file(), stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_nominated */
+
+
+template<>
+a_boolean has_ifc_resolution(const an_ifc_dir_using &universal)
+/*
+Return TRUE if the given universal representation has the field "resolution";
+otherwise, return FALSE.
+*/
+{
+  an_ifc_module_file *file = universal.get_file();
+  a_boolean          result = FALSE;
+
+  if (is_at_least(file, 0, 43)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* has_ifc_resolution */
+
+
+template<>
+an_ifc_decl_index get_ifc_resolution(const an_ifc_dir_using &universal)
+/*
+Given the universal representation of DirUsing, return the universal
+representation of the field "resolution".
+*/
+{
+  an_ifc_decl_index result;
+
+  /* Ensure the resolution field exists in the current module version. */
+  check_assertion(has_ifc_resolution(universal));
+  an_ifc_decl_index_0_43 stage_0;
+  an_ifc_decl_index      stage_1;
+
+  /* Copy the field (DirUsing::resolution - DeclIndex) into version-specific
+     storage. */
+  static_assert(sizeof(stage_0) == 4,
+                "stage_0 is not properly sized storage!");
+  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  stage_1 = to_universal_index(universal.get_file(), stage_0);
+  result = stage_1;
+  return result;
+}  /* get_ifc_resolution */
 
 
 /*

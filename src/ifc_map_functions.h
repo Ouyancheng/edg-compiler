@@ -170,6 +170,23 @@ extern an_ifc_delimiter_sort to_universal_sort(
                                          an_ifc_delimiter_sort_0_33 versioned);
 
 /*
+Functions for interacting with IFC DirSort sorts.
+*/
+
+extern a_const_char* str_for(an_ifc_dir_sort universal);
+
+extern an_ifc_encoded_dir_sort to_encoded(an_ifc_module_file *file,
+                                          an_ifc_dir_sort    universal);
+
+extern a_boolean is_known_sort(an_ifc_dir_sort_0_43 versioned);
+
+extern a_boolean validate_sort(an_ifc_module_file            *file,
+                               an_ifc_dir_sort_0_43          versioned,
+                               const an_ifc_validation_trace *parent);
+
+extern an_ifc_dir_sort to_universal_sort(an_ifc_dir_sort_0_43 versioned);
+
+/*
 Functions for interacting with IFC DyadicOperatorSort sorts.
 */
 
@@ -1009,6 +1026,26 @@ extern an_ifc_encoded_decl_index to_encoded(an_ifc_module_file *file,
 extern a_boolean is_null_index(an_ifc_decl_index universal);
 
 /*
+Functions for interacting with IFC DirIndex indexes.
+*/
+
+extern an_ifc_dir_sort_0_43 dir_sort(an_ifc_dir_index_0_43 versioned);
+
+extern uint32_t dir_value(an_ifc_dir_index_0_43 versioned);
+
+extern a_boolean validate_index(an_ifc_module_file            *file,
+                                an_ifc_dir_index_0_43         versioned,
+                                const an_ifc_validation_trace *parent);
+
+extern an_ifc_dir_index to_universal_index(an_ifc_module_file    *file,
+                                           an_ifc_dir_index_0_43 versioned);
+
+extern an_ifc_encoded_dir_index to_encoded(an_ifc_module_file *file,
+                                           an_ifc_dir_index   universal);
+
+extern a_boolean is_null_index(an_ifc_dir_index universal);
+
+/*
 Functions for interacting with IFC ExprIndex indexes.
 */
 
@@ -1467,6 +1504,43 @@ universal bitmask specified by a_Query matches; otherwise, return FALSE.
 }  /* test_bitmask */
 
 /*
+Functions for interacting with IFC PhasesBitfield bitfields.
+*/
+
+
+constexpr an_ifc_phases_bitfield_query operator|(
+                                       const an_ifc_phases_bitfield_query &lhs,
+                                       const an_ifc_phases_bitfield_query &rhs)
+/*
+Perform a bitor operation on the given arguments.
+*/
+{
+  return (an_ifc_phases_bitfield_query)((uint64_t)lhs | (uint64_t)rhs);
+
+}  /* operator| */
+
+
+extern a_boolean is_null_bitfield(an_ifc_phases_bitfield universal);
+
+extern uint32_t to_bitmask_0_43(an_ifc_phases_bitfield_query query);
+
+template<an_ifc_phases_bitfield_query a_Query>
+inline a_boolean test_bitmask(const an_ifc_phases_bitfield &universal)
+/*
+Given the universal representation of PhasesBitfield, return TRUE if the
+universal bitmask specified by a_Query matches; otherwise, return FALSE.
+*/
+{
+  a_boolean result;
+
+  uint32_t mask = to_bitmask_0_43(a_Query);
+  uint32_t test_value = universal.value & mask;;
+
+  result = test_value == mask;
+  return result;
+}  /* test_bitmask */
+
+/*
 Functions for interacting with IFC QualifierBitfield bitfields.
 */
 
@@ -1806,6 +1880,16 @@ that allows resolution of the return type for DeclAlias nodes.
 */
 template<>
 struct an_ifc_access_metadata<an_ifc_decl_alias> {
+  using return_type = an_ifc_access_sort;
+};  /* an_ifc_access_metadata */
+
+
+/*
+The IFC access field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DeclBarren nodes.
+*/
+template<>
+struct an_ifc_access_metadata<an_ifc_decl_barren> {
   using return_type = an_ifc_access_sort;
 };  /* an_ifc_access_metadata */
 
@@ -3380,6 +3464,16 @@ struct an_ifc_expr_metadata;
 
 /*
 The IFC expr field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DirExpr nodes.
+*/
+template<>
+struct an_ifc_expr_metadata<an_ifc_dir_expr> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_expr_metadata */
+
+
+/*
+The IFC expr field has multiple return types.  This type is a metadata type
 that allows resolution of the return type for ExprCondition nodes.
 */
 template<>
@@ -4459,6 +4553,66 @@ that allows resolution of the return type for DeclVariable nodes.
 */
 template<>
 struct an_ifc_locus_metadata<an_ifc_decl_variable> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DirAttribute nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_dir_attribute> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DirDeclUse nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_dir_decl_use> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DirEmpty nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_dir_empty> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DirExpr nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_dir_expr> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DirPragma nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_dir_pragma> {
+  using return_type = an_ifc_source_location;
+};  /* an_ifc_locus_metadata */
+
+
+/*
+The IFC locus field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DirUsing nodes.
+*/
+template<>
+struct an_ifc_locus_metadata<an_ifc_dir_using> {
   using return_type = an_ifc_source_location;
 };  /* an_ifc_locus_metadata */
 
@@ -6817,6 +6971,16 @@ struct an_ifc_path_metadata;
 
 /*
 The IFC path field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DirDeclUse nodes.
+*/
+template<>
+struct an_ifc_path_metadata<an_ifc_dir_decl_use> {
+  using return_type = an_ifc_expr_index;
+};  /* an_ifc_path_metadata */
+
+
+/*
+The IFC path field has multiple return types.  This type is a metadata type
 that allows resolution of the return type for ExprInheritancePath nodes.
 */
 template<>
@@ -6916,6 +7080,16 @@ type that allows resolution of the return type for DeclUsingDeclaration nodes.
 */
 template<>
 struct an_ifc_resolution_metadata<an_ifc_decl_using_declaration> {
+  using return_type = an_ifc_decl_index;
+};  /* an_ifc_resolution_metadata */
+
+
+/*
+The IFC resolution field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DirUsing nodes.
+*/
+template<>
+struct an_ifc_resolution_metadata<an_ifc_dir_using> {
   using return_type = an_ifc_decl_index;
 };  /* an_ifc_resolution_metadata */
 
@@ -7433,6 +7607,16 @@ struct an_ifc_specifiers_metadata<an_ifc_decl_alias> {
 
 /*
 The IFC specifiers field has multiple return types.  This type is a metadata
+type that allows resolution of the return type for DeclBarren nodes.
+*/
+template<>
+struct an_ifc_specifiers_metadata<an_ifc_decl_barren> {
+  using return_type = an_ifc_basic_specifiers_bitfield;
+};  /* an_ifc_specifiers_metadata */
+
+
+/*
+The IFC specifiers field has multiple return types.  This type is a metadata
 type that allows resolution of the return type for DeclBitfield nodes.
 */
 template<>
@@ -7690,6 +7874,16 @@ that allows resolution of the return type for DeclTuple nodes.
 */
 template<>
 struct an_ifc_start_metadata<an_ifc_decl_tuple> {
+  using return_type = an_ifc_index;
+};  /* an_ifc_start_metadata */
+
+
+/*
+The IFC start field has multiple return types.  This type is a metadata type
+that allows resolution of the return type for DirTuple nodes.
+*/
+template<>
+struct an_ifc_start_metadata<an_ifc_dir_tuple> {
   using return_type = an_ifc_index;
 };  /* an_ifc_start_metadata */
 
@@ -9449,6 +9643,15 @@ extern an_ifc_source_location get_ifc_asterisk(
 
 
 template<typename an_ifc_Node_type>
+extern a_boolean has_ifc_attr(const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_attr_index get_ifc_attr(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_attribute(
                               const an_ifc_Node_type &universal) DELETED_FN_DEF
 
@@ -9986,6 +10189,16 @@ extern an_ifc_fold_direction_sort get_ifc_direction(
 
 
 template<typename an_ifc_Node_type>
+extern a_boolean has_ifc_directive(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_dir_index get_ifc_directive(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_discriminant(
                               const an_ifc_Node_type &universal) DELETED_FN_DEF
 
@@ -10514,6 +10727,16 @@ extern an_ifc_syntax_index get_ifc_init(
 
 
 template<typename an_ifc_Node_type>
+extern a_boolean has_ifc_init_decl(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_named_decl_offset get_ifc_init_decl(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_initializaerion(
                               const an_ifc_Node_type &universal) DELETED_FN_DEF
 
@@ -10918,6 +11141,16 @@ extern an_ifc_source_location get_ifc_noexcept_loc(
 
 
 template<typename an_ifc_Node_type>
+extern a_boolean has_ifc_nominated(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_expr_index get_ifc_nominated(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_offset(
                               const an_ifc_Node_type &universal) DELETED_FN_DEF
 
@@ -11115,6 +11348,16 @@ get_ifc_path(const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
+extern a_boolean has_ifc_phases(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_phases_bitfield get_ifc_phases(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
 extern a_boolean has_ifc_pivot(
                               const an_ifc_Node_type &universal) DELETED_FN_DEF
 
@@ -11300,6 +11543,16 @@ extern a_boolean has_ifc_resolution(
 template<typename an_ifc_Node_type>
 extern typename an_ifc_resolution_metadata<an_ifc_Node_type>::return_type
 get_ifc_resolution(const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
+extern a_boolean has_ifc_result(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type>
+extern an_ifc_decl_index get_ifc_result(
+                              const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
 template<typename an_ifc_Node_type>
@@ -12926,6 +13179,48 @@ template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_alias>();
 
 /*
+Functions for interacting with IFC DeclBarren nodes.
+*/
+
+template<>
+a_boolean has_ifc_access(const an_ifc_decl_barren &universal);
+
+template<>
+an_ifc_access_sort get_ifc_access(const an_ifc_decl_barren &universal);
+
+template<>
+a_boolean has_ifc_directive(const an_ifc_decl_barren &universal);
+
+template<>
+an_ifc_dir_index get_ifc_directive(const an_ifc_decl_barren &universal);
+
+template<>
+a_boolean has_ifc_specifiers(const an_ifc_decl_barren &universal);
+
+template<>
+an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
+                                          const an_ifc_decl_barren &universal);
+
+template<>
+a_boolean validate(const an_ifc_decl_barren      &universal,
+                   const an_ifc_validation_trace *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_decl_barren &universal, unsigned indent);
+
+extern void db_node(const an_ifc_decl_barren &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_decl_barren_storage* get<an_ifc_decl_barren_storage>(
+                                      an_ifc_module_file         *file,
+                                      an_ifc_decl_barren_storage *storage,
+                                      a_boolean                  fill_storage);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_barren>();
+
+/*
 Functions for interacting with IFC DeclBitfield nodes.
 */
 
@@ -14160,6 +14455,13 @@ template<>
 an_ifc_expr_index get_ifc_constraint(const an_ifc_decl_parameter &universal);
 
 template<>
+a_boolean has_ifc_init_decl(const an_ifc_decl_parameter &universal);
+
+template<>
+an_ifc_expr_named_decl_offset get_ifc_init_decl(
+                                       const an_ifc_decl_parameter &universal);
+
+template<>
 a_boolean has_ifc_initializer(const an_ifc_decl_parameter &universal);
 
 template<>
@@ -14588,6 +14890,35 @@ template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_specialization>();
 
 /*
+Functions for interacting with IFC DeclSyntaxTree nodes.
+*/
+
+template<>
+a_boolean has_ifc_syntax(const an_ifc_decl_syntax_tree &universal);
+
+template<>
+an_ifc_syntax_index get_ifc_syntax(const an_ifc_decl_syntax_tree &universal);
+
+template<>
+a_boolean validate(const an_ifc_decl_syntax_tree &universal,
+                   const an_ifc_validation_trace *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_decl_syntax_tree &universal, unsigned indent);
+
+extern void db_node(const an_ifc_decl_syntax_tree &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_decl_syntax_tree_storage* get<an_ifc_decl_syntax_tree_storage>(
+                                 an_ifc_module_file              *file,
+                                 an_ifc_decl_syntax_tree_storage *storage,
+                                 a_boolean                       fill_storage);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_syntax_tree>();
+
+/*
 Functions for interacting with IFC DeclTemplate nodes.
 */
 
@@ -14917,6 +15248,263 @@ an_ifc_decl_variable_storage* get<an_ifc_decl_variable_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_variable>();
+
+/*
+Functions for interacting with IFC DirAttribute nodes.
+*/
+
+template<>
+a_boolean has_ifc_attr(const an_ifc_dir_attribute &universal);
+
+template<>
+an_ifc_attr_index get_ifc_attr(const an_ifc_dir_attribute &universal);
+
+template<>
+a_boolean has_ifc_locus(const an_ifc_dir_attribute &universal);
+
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_dir_attribute &universal);
+
+template<>
+a_boolean validate(const an_ifc_dir_attribute    &universal,
+                   const an_ifc_validation_trace *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_dir_attribute &universal, unsigned indent);
+
+extern void db_node(const an_ifc_dir_attribute &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_dir_attribute_storage* get<an_ifc_dir_attribute_storage>(
+                                    an_ifc_module_file           *file,
+                                    an_ifc_dir_attribute_storage *storage,
+                                    a_boolean                    fill_storage);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_dir_attribute>();
+
+/*
+Functions for interacting with IFC DirDeclUse nodes.
+*/
+
+template<>
+a_boolean has_ifc_locus(const an_ifc_dir_decl_use &universal);
+
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_dir_decl_use &universal);
+
+template<>
+a_boolean has_ifc_path(const an_ifc_dir_decl_use &universal);
+
+template<>
+an_ifc_expr_index get_ifc_path(const an_ifc_dir_decl_use &universal);
+
+template<>
+a_boolean has_ifc_result(const an_ifc_dir_decl_use &universal);
+
+template<>
+an_ifc_decl_index get_ifc_result(const an_ifc_dir_decl_use &universal);
+
+template<>
+a_boolean validate(const an_ifc_dir_decl_use     &universal,
+                   const an_ifc_validation_trace *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_dir_decl_use &universal, unsigned indent);
+
+extern void db_node(const an_ifc_dir_decl_use &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_dir_decl_use_storage* get<an_ifc_dir_decl_use_storage>(
+                                     an_ifc_module_file          *file,
+                                     an_ifc_dir_decl_use_storage *storage,
+                                     a_boolean                   fill_storage);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_dir_decl_use>();
+
+/*
+Functions for interacting with IFC DirEmpty nodes.
+*/
+
+template<>
+a_boolean has_ifc_locus(const an_ifc_dir_empty &universal);
+
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_dir_empty &universal);
+
+template<>
+a_boolean validate(const an_ifc_dir_empty        &universal,
+                   const an_ifc_validation_trace *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_dir_empty &universal, unsigned indent);
+
+extern void db_node(const an_ifc_dir_empty &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_dir_empty_storage* get<an_ifc_dir_empty_storage>(
+                                        an_ifc_module_file       *file,
+                                        an_ifc_dir_empty_storage *storage,
+                                        a_boolean                fill_storage);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_dir_empty>();
+
+/*
+Functions for interacting with IFC DirExpr nodes.
+*/
+
+template<>
+a_boolean has_ifc_expr(const an_ifc_dir_expr &universal);
+
+template<>
+an_ifc_expr_index get_ifc_expr(const an_ifc_dir_expr &universal);
+
+template<>
+a_boolean has_ifc_locus(const an_ifc_dir_expr &universal);
+
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_dir_expr &universal);
+
+template<>
+a_boolean has_ifc_phases(const an_ifc_dir_expr &universal);
+
+template<>
+an_ifc_phases_bitfield get_ifc_phases(const an_ifc_dir_expr &universal);
+
+template<>
+a_boolean validate(const an_ifc_dir_expr         &universal,
+                   const an_ifc_validation_trace *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_dir_expr &universal, unsigned indent);
+
+extern void db_node(const an_ifc_dir_expr &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_dir_expr_storage* get<an_ifc_dir_expr_storage>(
+                                         an_ifc_module_file      *file,
+                                         an_ifc_dir_expr_storage *storage,
+                                         a_boolean               fill_storage);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_dir_expr>();
+
+/*
+Functions for interacting with IFC DirPragma nodes.
+*/
+
+template<>
+a_boolean has_ifc_locus(const an_ifc_dir_pragma &universal);
+
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_dir_pragma &universal);
+
+template<>
+a_boolean has_ifc_words(const an_ifc_dir_pragma &universal);
+
+template<>
+an_ifc_sentence_index get_ifc_words(const an_ifc_dir_pragma &universal);
+
+template<>
+a_boolean validate(const an_ifc_dir_pragma       &universal,
+                   const an_ifc_validation_trace *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_dir_pragma &universal, unsigned indent);
+
+extern void db_node(const an_ifc_dir_pragma &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_dir_pragma_storage* get<an_ifc_dir_pragma_storage>(
+                                       an_ifc_module_file        *file,
+                                       an_ifc_dir_pragma_storage *storage,
+                                       a_boolean                 fill_storage);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_dir_pragma>();
+
+/*
+Functions for interacting with IFC DirTuple nodes.
+*/
+
+template<>
+a_boolean has_ifc_cardinality(const an_ifc_dir_tuple &universal);
+
+template<>
+an_ifc_cardinality get_ifc_cardinality(const an_ifc_dir_tuple &universal);
+
+template<>
+a_boolean has_ifc_start(const an_ifc_dir_tuple &universal);
+
+template<>
+an_ifc_index get_ifc_start(const an_ifc_dir_tuple &universal);
+
+template<>
+a_boolean validate(const an_ifc_dir_tuple        &universal,
+                   const an_ifc_validation_trace *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_dir_tuple &universal, unsigned indent);
+
+extern void db_node(const an_ifc_dir_tuple &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_dir_tuple_storage* get<an_ifc_dir_tuple_storage>(
+                                        an_ifc_module_file       *file,
+                                        an_ifc_dir_tuple_storage *storage,
+                                        a_boolean                fill_storage);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_dir_tuple>();
+
+/*
+Functions for interacting with IFC DirUsing nodes.
+*/
+
+template<>
+a_boolean has_ifc_locus(const an_ifc_dir_using &universal);
+
+template<>
+an_ifc_source_location get_ifc_locus(const an_ifc_dir_using &universal);
+
+template<>
+a_boolean has_ifc_nominated(const an_ifc_dir_using &universal);
+
+template<>
+an_ifc_expr_index get_ifc_nominated(const an_ifc_dir_using &universal);
+
+template<>
+a_boolean has_ifc_resolution(const an_ifc_dir_using &universal);
+
+template<>
+an_ifc_decl_index get_ifc_resolution(const an_ifc_dir_using &universal);
+
+template<>
+a_boolean validate(const an_ifc_dir_using        &universal,
+                   const an_ifc_validation_trace *parent);
+
+#if DEBUG
+extern void db_node(const an_ifc_dir_using &universal, unsigned indent);
+
+extern void db_node(const an_ifc_dir_using &universal);
+#endif /* DEBUG */
+
+template<>
+an_ifc_dir_using_storage* get<an_ifc_dir_using_storage>(
+                                        an_ifc_module_file       *file,
+                                        an_ifc_dir_using_storage *storage,
+                                        a_boolean                fill_storage);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_dir_using>();
 
 /*
 Functions for interacting with IFC ExprAlignof nodes.
@@ -27168,6 +27756,23 @@ template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_unaligned>();
 
 /*
+Functions for interacting with IFC ExprNamedDeclOffset offsets.
+*/
+
+extern a_boolean is_null_index(an_ifc_expr_named_decl_offset universal);
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_named_decl_offset>();
+
+extern a_boolean validate_offset(an_ifc_module_file                 *file,
+                                 an_ifc_expr_named_decl_offset_0_43 versioned,
+                                 const an_ifc_validation_trace      *parent);
+
+extern an_ifc_expr_named_decl_offset to_universal_offset(
+                                 an_ifc_module_file                 *file,
+                                 an_ifc_expr_named_decl_offset_0_43 versioned);
+
+/*
 Functions for interacting with IFC FormSpecOffset offsets.
 */
 
@@ -27238,6 +27843,10 @@ extern a_boolean is_decl_sort(an_ifc_partition_kind kind);
 
 extern an_ifc_decl_sort to_decl_sort(an_ifc_partition_kind kind);
 
+extern a_boolean is_dir_sort(an_ifc_partition_kind kind);
+
+extern an_ifc_dir_sort to_dir_sort(an_ifc_partition_kind kind);
+
 extern a_boolean is_expr_sort(an_ifc_partition_kind kind);
 
 extern an_ifc_expr_sort to_expr_sort(an_ifc_partition_kind kind);
@@ -27281,6 +27890,10 @@ extern an_ifc_partition_kind to_partition_kind(an_ifc_chart_sort sort);
 extern a_boolean has_partition_kind(an_ifc_decl_sort sort);
 
 extern an_ifc_partition_kind to_partition_kind(an_ifc_decl_sort sort);
+
+extern a_boolean has_partition_kind(an_ifc_dir_sort sort);
+
+extern an_ifc_partition_kind to_partition_kind(an_ifc_dir_sort sort);
 
 extern a_boolean has_partition_kind(an_ifc_expr_sort sort);
 
@@ -27409,7 +28022,11 @@ extern void db_node_at_idx(an_ifc_chart_index idx);
 
 extern void db_node_at_idx(an_ifc_decl_index idx);
 
+extern void db_node_at_idx(an_ifc_dir_index idx);
+
 extern void db_node_at_idx(an_ifc_expr_index idx);
+
+extern void db_node_at_idx(an_ifc_expr_named_decl_offset idx);
 
 extern void db_node_at_idx(an_ifc_form_index idx);
 

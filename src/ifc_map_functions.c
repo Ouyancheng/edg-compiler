@@ -821,9 +821,6 @@ return a reencoded sort value.
       case ifc_ds_decl_using_declaration:
         result = (ue_ty)ifc_0_43_ds_decl_using_declaration;
         break;
-      case ifc_ds_decl_using_directive:
-        result = (ue_ty)ifc_0_43_ds_decl_using_directive;
-        break;
       case ifc_ds_decl_friend:
         result = (ue_ty)ifc_0_43_ds_decl_friend;
         break;
@@ -1359,9 +1356,6 @@ universal representation.
     case ifc_0_43_ds_decl_using_declaration:
       result = ifc_ds_decl_using_declaration;
       break;
-    case ifc_0_43_ds_decl_using_directive:
-      result = ifc_ds_decl_using_directive;
-      break;
     case ifc_0_43_ds_decl_friend:
       result = ifc_ds_decl_friend;
       break;
@@ -1476,6 +1470,154 @@ universal representation.
       break;
     default:
       unexpected_condition_str("Invalid value for a DelimiterSort.");
+      break;
+  }  /* switch */
+  return result;
+}  /* to_universal_sort */
+
+
+/*
+Functions for interacting with IFC DirSort sorts.
+*/
+
+
+a_const_char* str_for(an_ifc_dir_sort universal)
+/*
+Given the universal representation of DirSort, return the textual name in the
+form of a c-string.
+*/
+{
+  a_const_char *result;
+
+  switch (universal) {
+    case ifc_ds_dir_attribute:
+      result = "DirSort::DirAttribute";
+      break;
+    case ifc_ds_dir_decl_use:
+      result = "DirSort::DirDeclUse";
+      break;
+    case ifc_ds_dir_empty:
+      result = "DirSort::DirEmpty";
+      break;
+    case ifc_ds_dir_expr:
+      result = "DirSort::DirExpr";
+      break;
+    case ifc_ds_dir_pragma:
+      result = "DirSort::DirPragma";
+      break;
+    case ifc_ds_dir_specifiers_spread:
+      result = "DirSort::DirSpecifiersSpread";
+      break;
+    case ifc_ds_dir_structured_binding:
+      result = "DirSort::DirStructuredBinding";
+      break;
+    case ifc_ds_dir_tuple:
+      result = "DirSort::DirTuple";
+      break;
+    case ifc_ds_dir_using:
+      result = "DirSort::DirUsing";
+      break;
+    case ifc_ds_dir_vendor_extension:
+      result = "DirSort::DirVendorExtension";
+      break;
+    default:
+      unexpected_condition_str("Invalid value for a DirSort.");
+      break;
+  }  /* switch */
+  return result;
+}  /* str_for */
+
+
+an_ifc_encoded_dir_sort to_encoded(an_ifc_module_file *file,
+                                   an_ifc_dir_sort    universal)
+/*
+Given the universal representation of DirSort and the destination module,
+return a reencoded sort value.
+*/
+{
+  using ue_ty = an_ifc_encoded_dir_sort_storage;
+  an_ifc_encoded_dir_sort_storage result;
+
+  switch (universal) {
+    case ifc_ds_dir_vendor_extension:
+      result = (ue_ty)ifc_0_43_ds_dir_vendor_extension;
+      break;
+    case ifc_ds_dir_empty:
+      result = (ue_ty)ifc_0_43_ds_dir_empty;
+      break;
+    case ifc_ds_dir_attribute:
+      result = (ue_ty)ifc_0_43_ds_dir_attribute;
+      break;
+    case ifc_ds_dir_pragma:
+      result = (ue_ty)ifc_0_43_ds_dir_pragma;
+      break;
+    case ifc_ds_dir_using:
+      result = (ue_ty)ifc_0_43_ds_dir_using;
+      break;
+    case ifc_ds_dir_decl_use:
+      result = (ue_ty)ifc_0_43_ds_dir_decl_use;
+      break;
+    case ifc_ds_dir_expr:
+      result = (ue_ty)ifc_0_43_ds_dir_expr;
+      break;
+    case ifc_ds_dir_structured_binding:
+      result = (ue_ty)ifc_0_43_ds_dir_structured_binding;
+      break;
+    case ifc_ds_dir_specifiers_spread:
+      result = (ue_ty)ifc_0_43_ds_dir_specifiers_spread;
+      break;
+    case ifc_ds_dir_tuple:
+      result = (ue_ty)ifc_0_43_ds_dir_tuple;
+      break;
+    default:
+      unexpected_condition_str("Invalid value for a DirSort.");
+      break;
+  }  /* switch */
+  return an_ifc_encoded_dir_sort{file, result};
+}  /* to_encoded */
+
+
+an_ifc_dir_sort to_universal_sort(an_ifc_dir_sort_0_43 versioned)
+/*
+Given the versioned representation of DirSort, return the corresponding
+universal representation.
+*/
+{
+  an_ifc_dir_sort result;
+
+  switch (versioned) {
+    case ifc_0_43_ds_dir_vendor_extension:
+      result = ifc_ds_dir_vendor_extension;
+      break;
+    case ifc_0_43_ds_dir_empty:
+      result = ifc_ds_dir_empty;
+      break;
+    case ifc_0_43_ds_dir_attribute:
+      result = ifc_ds_dir_attribute;
+      break;
+    case ifc_0_43_ds_dir_pragma:
+      result = ifc_ds_dir_pragma;
+      break;
+    case ifc_0_43_ds_dir_using:
+      result = ifc_ds_dir_using;
+      break;
+    case ifc_0_43_ds_dir_decl_use:
+      result = ifc_ds_dir_decl_use;
+      break;
+    case ifc_0_43_ds_dir_expr:
+      result = ifc_ds_dir_expr;
+      break;
+    case ifc_0_43_ds_dir_structured_binding:
+      result = ifc_ds_dir_structured_binding;
+      break;
+    case ifc_0_43_ds_dir_specifiers_spread:
+      result = ifc_ds_dir_specifiers_spread;
+      break;
+    case ifc_0_43_ds_dir_tuple:
+      result = ifc_ds_dir_tuple;
+      break;
+    default:
+      unexpected_condition_str("Invalid value for a DirSort.");
       break;
   }  /* switch */
   return result;
@@ -4840,6 +4982,12 @@ name in the form of a c-string.
     case ifc_mos_msvc_builtin_address_of:
       result = "MonadicOperatorSort::MsvcBuiltinAddressOf";
       break;
+    case ifc_mos_msvc_confused_aggregate_return:
+      result = "MonadicOperatorSort::MsvcConfusedAggregateReturn";
+      break;
+    case ifc_mos_msvc_confused_dependent_expression:
+      result = "MonadicOperatorSort::MsvcConfusedDependentExpression";
+      break;
     case ifc_mos_msvc_confused_dependent_sizeof:
       result = "MonadicOperatorSort::MsvcConfusedDependentSizeof";
       break;
@@ -4851,6 +4999,9 @@ name in the form of a c-string.
       break;
     case ifc_mos_msvc_confused_pop_state:
       result = "MonadicOperatorSort::MsvcConfusedPopState";
+      break;
+    case ifc_mos_msvc_confused_substitution:
+      result = "MonadicOperatorSort::MsvcConfusedSubstitution";
       break;
     case ifc_mos_msvc_confused_vtor_displacement:
       result = "MonadicOperatorSort::MsvcConfusedVtorDisplacement";
@@ -5298,6 +5449,15 @@ module, return a reencoded sort value.
         break;
       case ifc_mos_msvc_confused_vtor_displacement:
         result = (ue_ty)ifc_0_43_mos_msvc_confused_vtor_displacement;
+        break;
+      case ifc_mos_msvc_confused_dependent_expression:
+        result = (ue_ty)ifc_0_43_mos_msvc_confused_dependent_expression;
+        break;
+      case ifc_mos_msvc_confused_substitution:
+        result = (ue_ty)ifc_0_43_mos_msvc_confused_substitution;
+        break;
+      case ifc_mos_msvc_confused_aggregate_return:
+        result = (ue_ty)ifc_0_43_mos_msvc_confused_aggregate_return;
         break;
       default:
         unexpected_condition_str("Invalid value for a MonadicOperatorSort.");
@@ -6070,6 +6230,15 @@ corresponding universal representation.
       break;
     case ifc_0_43_mos_msvc_confused_vtor_displacement:
       result = ifc_mos_msvc_confused_vtor_displacement;
+      break;
+    case ifc_0_43_mos_msvc_confused_dependent_expression:
+      result = ifc_mos_msvc_confused_dependent_expression;
+      break;
+    case ifc_0_43_mos_msvc_confused_substitution:
+      result = ifc_mos_msvc_confused_substitution;
+      break;
+    case ifc_0_43_mos_msvc_confused_aggregate_return:
+      result = ifc_mos_msvc_confused_aggregate_return;
       break;
     default:
       unexpected_condition_str("Invalid value for a MonadicOperatorSort.");
@@ -13584,6 +13753,79 @@ is considered a null index; otherwise, return FALSE.
 
 
 /*
+Functions for interacting with IFC DirIndex indexes.
+*/
+
+
+an_ifc_dir_sort_0_43 dir_sort(an_ifc_dir_index_0_43 versioned)
+/*
+Given the versioned representation of DirIndex, return the extracted versioned
+representation of DirSort.
+*/
+{
+  return (an_ifc_dir_sort_0_43)(0x1f & (uint32_t)versioned);
+
+}  /* dir_sort */
+
+
+uint32_t dir_value(an_ifc_dir_index_0_43 versioned)
+/*
+Given the versioned representation of DirIndex, return the extracted value.
+*/
+{
+  return versioned >> 5;
+}  /* dir_value */
+
+
+an_ifc_dir_index to_universal_index(an_ifc_module_file    *file,
+                                    an_ifc_dir_index_0_43 versioned)
+/*
+Given the versioned representation of DirIndex and the associated module,
+return the corresponding universal representation.
+*/
+{
+  an_ifc_dir_sort sort = to_universal_sort(dir_sort(versioned));
+  uint32_t        index = dir_value(versioned);
+
+  return an_ifc_dir_index{file, sort, index};
+}  /* to_universal_index */
+
+
+an_ifc_encoded_dir_index to_encoded(an_ifc_module_file *file,
+                                    an_ifc_dir_index   universal)
+/*
+Given the universal representation of DirIndex and the destination module file,
+return a reencoded index value.
+*/
+{
+  an_ifc_encoded_dir_sort  encoded_sort = to_encoded(file, universal.sort);
+  an_ifc_encoded_dir_index result = {file, universal.value};
+
+  result.value <<= 5;
+  result.value |= encoded_sort;
+  return result;
+}  /* to_encoded */
+
+
+a_boolean is_null_index(an_ifc_dir_index universal)
+/*
+Given the universal representation of DirIndex, return TRUE if the given index
+is considered a null index; otherwise, return FALSE.
+*/
+{
+  a_boolean          result = FALSE;
+  an_ifc_module_file *file = universal.file;
+
+  if (file == NULL) {
+    result = TRUE;
+  } else {
+    result = 0 == to_encoded(file, universal);
+  }  /* if */
+  return result;
+}  /* is_null_index */
+
+
+/*
 Functions for interacting with IFC ExprIndex indexes.
 */
 
@@ -14829,6 +15071,85 @@ the corresponding IFC version 0.33 representation of the bitmask.
   }  /* if */
   return result;
 }  /* to_bitmask_0_33 */
+
+
+
+
+/*
+Functions for interacting with IFC PhasesBitfield bitfields.
+*/
+
+
+a_boolean is_null_bitfield(an_ifc_phases_bitfield universal)
+/*
+Given the universal representation of PhasesBitfield, return TRUE if the given
+bitfield is considered a null index; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (universal.file == NULL || universal.value == 0) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_null_bitfield */
+
+
+uint32_t to_bitmask_0_43(an_ifc_phases_bitfield_query query)
+/*
+Given the universal representation of a PhasesBitfield bitmask, return the
+corresponding IFC version 0.43 representation of the bitmask.
+*/
+{
+  uint32_t result = 0;
+
+  if (query & ifc_pb_unknown) {
+    result |= ifc_0_43_pb_unknown;
+  }  /* if */
+  if (query & ifc_pb_reading) {
+    result |= ifc_0_43_pb_reading;
+  }  /* if */
+  if (query & ifc_pb_lexing) {
+    result |= ifc_0_43_pb_lexing;
+  }  /* if */
+  if (query & ifc_pb_preprocessing) {
+    result |= ifc_0_43_pb_preprocessing;
+  }  /* if */
+  if (query & ifc_pb_parsing) {
+    result |= ifc_0_43_pb_parsing;
+  }  /* if */
+  if (query & ifc_pb_importing) {
+    result |= ifc_0_43_pb_importing;
+  }  /* if */
+  if (query & ifc_pb_name_resolution) {
+    result |= ifc_0_43_pb_name_resolution;
+  }  /* if */
+  if (query & ifc_pb_typing) {
+    result |= ifc_0_43_pb_typing;
+  }  /* if */
+  if (query & ifc_pb_evaluation) {
+    result |= ifc_0_43_pb_evaluation;
+  }  /* if */
+  if (query & ifc_pb_instantiation) {
+    result |= ifc_0_43_pb_instantiation;
+  }  /* if */
+  if (query & ifc_pb_analysis) {
+    result |= ifc_0_43_pb_analysis;
+  }  /* if */
+  if (query & ifc_pb_code_generation) {
+    result |= ifc_0_43_pb_code_generation;
+  }  /* if */
+  if (query & ifc_pb_linking) {
+    result |= ifc_0_43_pb_linking;
+  }  /* if */
+  if (query & ifc_pb_loading) {
+    result |= ifc_0_43_pb_loading;
+  }  /* if */
+  if (query & ifc_pb_execution) {
+    result |= ifc_0_43_pb_execution;
+  }  /* if */
+  return result;
+}  /* to_bitmask_0_43 */
 
 
 
@@ -16812,6 +17133,61 @@ Return the corresponding partition kind for DeclAlias.
 
 
 template<>
+an_ifc_decl_barren_storage* get<an_ifc_decl_barren_storage>(
+                                       an_ifc_module_file         *file,
+                                       an_ifc_decl_barren_storage *storage,
+                                       a_boolean                  fill_storage)
+/*
+Retrieve an instance of DeclBarren from the IFC module file.
+
+If memory mapping is used and both the host and the target have the same
+endianness, then the file layout and the alignment/padding of the host must
+have exactly the same characteristics.  In this case, simply return a pointer
+to a suitably-cast byte_buffer and increment it as appropriate (the storage
+argument is unused in this scenario).
+
+Otherwise, the storage passed in to the function is used to store copies of
+each field of the structure and each field is individually copied (and
+byte-swapped if necessary).
+
+If fill_storage is TRUE, always copy the data into the passed storage (i.e.,
+the storage specified by the storage argument).
+*/
+{
+#if USE_MMAP_FOR_MODULES
+  using storage_type = an_ifc_decl_barren_storage;
+  if (has_matching_endianness(file)) {
+    if (fill_storage) {
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
+    } else {
+      storage = (storage_type*)(file->byte_buffer);
+    }  /* if */
+  } else
+#endif /* USE_MMAP_FOR_MODULES */
+  /* Do not put code here. */
+  {
+    /* directive */
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* specifiers */
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/1, /*from_header=*/FALSE);
+    /* access */
+    get_bytes(file, (*storage) + 5, /*num_bytes=*/3, /*from_header=*/FALSE);
+  }  /* if */
+  return storage;
+}  /* get<an_ifc_decl_barren_storage> */
+
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_barren>()
+/*
+Return the corresponding partition kind for DeclBarren.
+*/
+{
+  return ifc_pk_decl_barren;
+}  /* get_ifc_partition_kind */
+
+
+template<>
 an_ifc_decl_bitfield_storage* get<an_ifc_decl_bitfield_storage>(
                                      an_ifc_module_file           *file,
                                      an_ifc_decl_bitfield_storage *storage,
@@ -17116,7 +17492,7 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_default_argument_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/23);
+      memcpy(*storage, file->byte_buffer, /*size=*/24);
     } else {
       storage = (storage_type*)(file->byte_buffer);
     }  /* if */
@@ -17139,7 +17515,7 @@ the storage specified by the storage argument).
     /* access */
     get_bytes(file, (*storage) + 21, /*num_bytes=*/1, /*from_header=*/FALSE);
     /* properties */
-    get_bytes(file, (*storage) + 22, /*num_bytes=*/1, /*from_header=*/FALSE);
+    get_bytes(file, (*storage) + 22, /*num_bytes=*/2, /*from_header=*/FALSE);
   }  /* if */
   return storage;
 }  /* get<an_ifc_decl_default_argument_storage> */
@@ -18405,6 +18781,57 @@ Return the corresponding partition kind for DeclSpecialization.
 
 
 template<>
+an_ifc_decl_syntax_tree_storage* get<an_ifc_decl_syntax_tree_storage>(
+                                  an_ifc_module_file              *file,
+                                  an_ifc_decl_syntax_tree_storage *storage,
+                                  a_boolean                       fill_storage)
+/*
+Retrieve an instance of DeclSyntaxTree from the IFC module file.
+
+If memory mapping is used and both the host and the target have the same
+endianness, then the file layout and the alignment/padding of the host must
+have exactly the same characteristics.  In this case, simply return a pointer
+to a suitably-cast byte_buffer and increment it as appropriate (the storage
+argument is unused in this scenario).
+
+Otherwise, the storage passed in to the function is used to store copies of
+each field of the structure and each field is individually copied (and
+byte-swapped if necessary).
+
+If fill_storage is TRUE, always copy the data into the passed storage (i.e.,
+the storage specified by the storage argument).
+*/
+{
+#if USE_MMAP_FOR_MODULES
+  using storage_type = an_ifc_decl_syntax_tree_storage;
+  if (has_matching_endianness(file)) {
+    if (fill_storage) {
+      memcpy(*storage, file->byte_buffer, /*size=*/4);
+    } else {
+      storage = (storage_type*)(file->byte_buffer);
+    }  /* if */
+  } else
+#endif /* USE_MMAP_FOR_MODULES */
+  /* Do not put code here. */
+  {
+    /* syntax */
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+  }  /* if */
+  return storage;
+}  /* get<an_ifc_decl_syntax_tree_storage> */
+
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_syntax_tree>()
+/*
+Return the corresponding partition kind for DeclSyntaxTree.
+*/
+{
+  return ifc_pk_decl_syntax_tree;
+}  /* get_ifc_partition_kind */
+
+
+template<>
 an_ifc_decl_template_storage* get<an_ifc_decl_template_storage>(
                                      an_ifc_module_file           *file,
                                      an_ifc_decl_template_storage *storage,
@@ -18731,6 +19158,393 @@ Return the corresponding partition kind for DeclVariable.
 */
 {
   return ifc_pk_decl_variable;
+}  /* get_ifc_partition_kind */
+
+
+template<>
+an_ifc_dir_attribute_storage* get<an_ifc_dir_attribute_storage>(
+                                     an_ifc_module_file           *file,
+                                     an_ifc_dir_attribute_storage *storage,
+                                     a_boolean                    fill_storage)
+/*
+Retrieve an instance of DirAttribute from the IFC module file.
+
+If memory mapping is used and both the host and the target have the same
+endianness, then the file layout and the alignment/padding of the host must
+have exactly the same characteristics.  In this case, simply return a pointer
+to a suitably-cast byte_buffer and increment it as appropriate (the storage
+argument is unused in this scenario).
+
+Otherwise, the storage passed in to the function is used to store copies of
+each field of the structure and each field is individually copied (and
+byte-swapped if necessary).
+
+If fill_storage is TRUE, always copy the data into the passed storage (i.e.,
+the storage specified by the storage argument).
+*/
+{
+#if USE_MMAP_FOR_MODULES
+  using storage_type = an_ifc_dir_attribute_storage;
+  if (has_matching_endianness(file)) {
+    if (fill_storage) {
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
+    } else {
+      storage = (storage_type*)(file->byte_buffer);
+    }  /* if */
+  } else
+#endif /* USE_MMAP_FOR_MODULES */
+  /* Do not put code here. */
+  {
+    /* locus.line */
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* locus.column */
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* attr */
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+  }  /* if */
+  return storage;
+}  /* get<an_ifc_dir_attribute_storage> */
+
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_dir_attribute>()
+/*
+Return the corresponding partition kind for DirAttribute.
+*/
+{
+  return ifc_pk_dir_attribute;
+}  /* get_ifc_partition_kind */
+
+
+template<>
+an_ifc_dir_decl_use_storage* get<an_ifc_dir_decl_use_storage>(
+                                      an_ifc_module_file          *file,
+                                      an_ifc_dir_decl_use_storage *storage,
+                                      a_boolean                   fill_storage)
+/*
+Retrieve an instance of DirDeclUse from the IFC module file.
+
+If memory mapping is used and both the host and the target have the same
+endianness, then the file layout and the alignment/padding of the host must
+have exactly the same characteristics.  In this case, simply return a pointer
+to a suitably-cast byte_buffer and increment it as appropriate (the storage
+argument is unused in this scenario).
+
+Otherwise, the storage passed in to the function is used to store copies of
+each field of the structure and each field is individually copied (and
+byte-swapped if necessary).
+
+If fill_storage is TRUE, always copy the data into the passed storage (i.e.,
+the storage specified by the storage argument).
+*/
+{
+#if USE_MMAP_FOR_MODULES
+  using storage_type = an_ifc_dir_decl_use_storage;
+  if (has_matching_endianness(file)) {
+    if (fill_storage) {
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
+    } else {
+      storage = (storage_type*)(file->byte_buffer);
+    }  /* if */
+  } else
+#endif /* USE_MMAP_FOR_MODULES */
+  /* Do not put code here. */
+  {
+    /* locus.line */
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* locus.column */
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* path */
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* result */
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+  }  /* if */
+  return storage;
+}  /* get<an_ifc_dir_decl_use_storage> */
+
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_dir_decl_use>()
+/*
+Return the corresponding partition kind for DirDeclUse.
+*/
+{
+  return ifc_pk_dir_decl_use;
+}  /* get_ifc_partition_kind */
+
+
+template<>
+an_ifc_dir_empty_storage* get<an_ifc_dir_empty_storage>(
+                                         an_ifc_module_file       *file,
+                                         an_ifc_dir_empty_storage *storage,
+                                         a_boolean                fill_storage)
+/*
+Retrieve an instance of DirEmpty from the IFC module file.
+
+If memory mapping is used and both the host and the target have the same
+endianness, then the file layout and the alignment/padding of the host must
+have exactly the same characteristics.  In this case, simply return a pointer
+to a suitably-cast byte_buffer and increment it as appropriate (the storage
+argument is unused in this scenario).
+
+Otherwise, the storage passed in to the function is used to store copies of
+each field of the structure and each field is individually copied (and
+byte-swapped if necessary).
+
+If fill_storage is TRUE, always copy the data into the passed storage (i.e.,
+the storage specified by the storage argument).
+*/
+{
+#if USE_MMAP_FOR_MODULES
+  using storage_type = an_ifc_dir_empty_storage;
+  if (has_matching_endianness(file)) {
+    if (fill_storage) {
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
+    } else {
+      storage = (storage_type*)(file->byte_buffer);
+    }  /* if */
+  } else
+#endif /* USE_MMAP_FOR_MODULES */
+  /* Do not put code here. */
+  {
+    /* locus.line */
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* locus.column */
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+  }  /* if */
+  return storage;
+}  /* get<an_ifc_dir_empty_storage> */
+
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_dir_empty>()
+/*
+Return the corresponding partition kind for DirEmpty.
+*/
+{
+  return ifc_pk_dir_empty;
+}  /* get_ifc_partition_kind */
+
+
+template<>
+an_ifc_dir_expr_storage* get<an_ifc_dir_expr_storage>(
+                                          an_ifc_module_file      *file,
+                                          an_ifc_dir_expr_storage *storage,
+                                          a_boolean               fill_storage)
+/*
+Retrieve an instance of DirExpr from the IFC module file.
+
+If memory mapping is used and both the host and the target have the same
+endianness, then the file layout and the alignment/padding of the host must
+have exactly the same characteristics.  In this case, simply return a pointer
+to a suitably-cast byte_buffer and increment it as appropriate (the storage
+argument is unused in this scenario).
+
+Otherwise, the storage passed in to the function is used to store copies of
+each field of the structure and each field is individually copied (and
+byte-swapped if necessary).
+
+If fill_storage is TRUE, always copy the data into the passed storage (i.e.,
+the storage specified by the storage argument).
+*/
+{
+#if USE_MMAP_FOR_MODULES
+  using storage_type = an_ifc_dir_expr_storage;
+  if (has_matching_endianness(file)) {
+    if (fill_storage) {
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
+    } else {
+      storage = (storage_type*)(file->byte_buffer);
+    }  /* if */
+  } else
+#endif /* USE_MMAP_FOR_MODULES */
+  /* Do not put code here. */
+  {
+    /* locus.line */
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* locus.column */
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* expr */
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* phases */
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+  }  /* if */
+  return storage;
+}  /* get<an_ifc_dir_expr_storage> */
+
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_dir_expr>()
+/*
+Return the corresponding partition kind for DirExpr.
+*/
+{
+  return ifc_pk_dir_expr;
+}  /* get_ifc_partition_kind */
+
+
+template<>
+an_ifc_dir_pragma_storage* get<an_ifc_dir_pragma_storage>(
+                                        an_ifc_module_file        *file,
+                                        an_ifc_dir_pragma_storage *storage,
+                                        a_boolean                 fill_storage)
+/*
+Retrieve an instance of DirPragma from the IFC module file.
+
+If memory mapping is used and both the host and the target have the same
+endianness, then the file layout and the alignment/padding of the host must
+have exactly the same characteristics.  In this case, simply return a pointer
+to a suitably-cast byte_buffer and increment it as appropriate (the storage
+argument is unused in this scenario).
+
+Otherwise, the storage passed in to the function is used to store copies of
+each field of the structure and each field is individually copied (and
+byte-swapped if necessary).
+
+If fill_storage is TRUE, always copy the data into the passed storage (i.e.,
+the storage specified by the storage argument).
+*/
+{
+#if USE_MMAP_FOR_MODULES
+  using storage_type = an_ifc_dir_pragma_storage;
+  if (has_matching_endianness(file)) {
+    if (fill_storage) {
+      memcpy(*storage, file->byte_buffer, /*size=*/12);
+    } else {
+      storage = (storage_type*)(file->byte_buffer);
+    }  /* if */
+  } else
+#endif /* USE_MMAP_FOR_MODULES */
+  /* Do not put code here. */
+  {
+    /* locus.line */
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* locus.column */
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* words */
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+  }  /* if */
+  return storage;
+}  /* get<an_ifc_dir_pragma_storage> */
+
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_dir_pragma>()
+/*
+Return the corresponding partition kind for DirPragma.
+*/
+{
+  return ifc_pk_dir_pragma;
+}  /* get_ifc_partition_kind */
+
+
+template<>
+an_ifc_dir_tuple_storage* get<an_ifc_dir_tuple_storage>(
+                                         an_ifc_module_file       *file,
+                                         an_ifc_dir_tuple_storage *storage,
+                                         a_boolean                fill_storage)
+/*
+Retrieve an instance of DirTuple from the IFC module file.
+
+If memory mapping is used and both the host and the target have the same
+endianness, then the file layout and the alignment/padding of the host must
+have exactly the same characteristics.  In this case, simply return a pointer
+to a suitably-cast byte_buffer and increment it as appropriate (the storage
+argument is unused in this scenario).
+
+Otherwise, the storage passed in to the function is used to store copies of
+each field of the structure and each field is individually copied (and
+byte-swapped if necessary).
+
+If fill_storage is TRUE, always copy the data into the passed storage (i.e.,
+the storage specified by the storage argument).
+*/
+{
+#if USE_MMAP_FOR_MODULES
+  using storage_type = an_ifc_dir_tuple_storage;
+  if (has_matching_endianness(file)) {
+    if (fill_storage) {
+      memcpy(*storage, file->byte_buffer, /*size=*/8);
+    } else {
+      storage = (storage_type*)(file->byte_buffer);
+    }  /* if */
+  } else
+#endif /* USE_MMAP_FOR_MODULES */
+  /* Do not put code here. */
+  {
+    /* start */
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* cardinality */
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+  }  /* if */
+  return storage;
+}  /* get<an_ifc_dir_tuple_storage> */
+
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_dir_tuple>()
+/*
+Return the corresponding partition kind for DirTuple.
+*/
+{
+  return ifc_pk_dir_tuple;
+}  /* get_ifc_partition_kind */
+
+
+template<>
+an_ifc_dir_using_storage* get<an_ifc_dir_using_storage>(
+                                         an_ifc_module_file       *file,
+                                         an_ifc_dir_using_storage *storage,
+                                         a_boolean                fill_storage)
+/*
+Retrieve an instance of DirUsing from the IFC module file.
+
+If memory mapping is used and both the host and the target have the same
+endianness, then the file layout and the alignment/padding of the host must
+have exactly the same characteristics.  In this case, simply return a pointer
+to a suitably-cast byte_buffer and increment it as appropriate (the storage
+argument is unused in this scenario).
+
+Otherwise, the storage passed in to the function is used to store copies of
+each field of the structure and each field is individually copied (and
+byte-swapped if necessary).
+
+If fill_storage is TRUE, always copy the data into the passed storage (i.e.,
+the storage specified by the storage argument).
+*/
+{
+#if USE_MMAP_FOR_MODULES
+  using storage_type = an_ifc_dir_using_storage;
+  if (has_matching_endianness(file)) {
+    if (fill_storage) {
+      memcpy(*storage, file->byte_buffer, /*size=*/16);
+    } else {
+      storage = (storage_type*)(file->byte_buffer);
+    }  /* if */
+  } else
+#endif /* USE_MMAP_FOR_MODULES */
+  /* Do not put code here. */
+  {
+    /* locus.line */
+    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* locus.column */
+    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* nominated */
+    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+    /* resolution */
+    get_bytes(file, (*storage) + 12, /*num_bytes=*/4, /*from_header=*/FALSE);
+  }  /* if */
+  return storage;
+}  /* get<an_ifc_dir_using_storage> */
+
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_dir_using>()
+/*
+Return the corresponding partition kind for DirUsing.
+*/
+{
+  return ifc_pk_dir_using;
 }  /* get_ifc_partition_kind */
 
 
@@ -26696,7 +27510,11 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_binary_fold_expression_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/54);
+      if (is_at_least(file, 0, 43)) {
+        memcpy(*storage, file->byte_buffer, /*size=*/56);
+      } else {
+        memcpy(*storage, file->byte_buffer, /*size=*/54);
+      }  /* if */
     } else {
       storage = (storage_type*)(file->byte_buffer);
     }  /* if */
@@ -26704,34 +27522,87 @@ the storage specified by the storage argument).
 #endif /* USE_MMAP_FOR_MODULES */
   /* Do not put code here. */
   {
-    /* direction */
-    get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* operand_1 */
-    get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* operand_2 */
-    get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* dyad */
-    get_bytes(file, (*storage) + 12, /*num_bytes=*/2, /*from_header=*/FALSE);
-    /* locus.line */
-    get_bytes(file, (*storage) + 14, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* locus.column */
-    get_bytes(file, (*storage) + 18, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* ellipsis.line */
-    get_bytes(file, (*storage) + 22, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* ellipsis.column */
-    get_bytes(file, (*storage) + 26, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* glyph_loci_1.line */
-    get_bytes(file, (*storage) + 30, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* glyph_loci_1.column */
-    get_bytes(file, (*storage) + 34, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* glyph_loci_2.line */
-    get_bytes(file, (*storage) + 38, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* glyph_loci_2.column */
-    get_bytes(file, (*storage) + 42, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* right_paren.line */
-    get_bytes(file, (*storage) + 46, /*num_bytes=*/4, /*from_header=*/FALSE);
-    /* right_paren.column */
-    get_bytes(file, (*storage) + 50, /*num_bytes=*/4, /*from_header=*/FALSE);
+    if (is_at_least(file, 0, 43)) {
+      /* direction */
+      get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* operand_1 */
+      get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* operand_2 */
+      get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* dyad */
+      get_bytes(file, (*storage) + 12, /*num_bytes=*/2,
+                /*from_header=*/FALSE);
+      /* locus.line */
+      get_bytes(file, (*storage) + 14, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
+      /* locus.column */
+      get_bytes(file, (*storage) + 18, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
+      /* ellipsis.line */
+      get_bytes(file, (*storage) + 22, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
+      /* ellipsis.column */
+      get_bytes(file, (*storage) + 26, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
+      /* glyph_loci_1.line */
+      get_bytes(file, (*storage) + 30, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
+      /* glyph_loci_1.column */
+      get_bytes(file, (*storage) + 34, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
+      /* glyph_loci_2.line */
+      get_bytes(file, (*storage) + 38, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
+      /* glyph_loci_2.column */
+      get_bytes(file, (*storage) + 42, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
+      /* right_paren.line */
+      get_bytes(file, (*storage) + 46, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
+      /* right_paren.column */
+      get_bytes(file, (*storage) + 50, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
+    } else {
+      /* direction */
+      get_bytes(file, (*storage) + 0, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* operand_1 */
+      get_bytes(file, (*storage) + 4, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* operand_2 */
+      get_bytes(file, (*storage) + 8, /*num_bytes=*/4, /*from_header=*/FALSE);
+      /* dyad */
+      get_bytes(file, (*storage) + 12, /*num_bytes=*/2,
+                /*from_header=*/FALSE);
+      /* locus.line */
+      get_bytes(file, (*storage) + 14, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
+      /* locus.column */
+      get_bytes(file, (*storage) + 18, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
+      /* ellipsis.line */
+      get_bytes(file, (*storage) + 22, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
+      /* ellipsis.column */
+      get_bytes(file, (*storage) + 26, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
+      /* glyph_loci_1.line */
+      get_bytes(file, (*storage) + 30, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
+      /* glyph_loci_1.column */
+      get_bytes(file, (*storage) + 34, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
+      /* glyph_loci_2.line */
+      get_bytes(file, (*storage) + 38, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
+      /* glyph_loci_2.column */
+      get_bytes(file, (*storage) + 42, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
+      /* right_paren.line */
+      get_bytes(file, (*storage) + 46, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
+      /* right_paren.column */
+      get_bytes(file, (*storage) + 50, /*num_bytes=*/4,
+                /*from_header=*/FALSE);
+    }  /* if */
   }  /* if */
   return storage;
 }  /* get<an_ifc_syntax_binary_fold_expression_storage> */
@@ -34264,6 +35135,45 @@ Return the corresponding partition kind for TypeUnaligned.
 
 
 /*
+Functions for interacting with IFC ExprNamedDeclOffset offsets.
+*/
+
+
+a_boolean is_null_index(an_ifc_expr_named_decl_offset universal)
+/*
+Given the universal representation of ExprNamedDeclOffset, return TRUE if the
+given offset is considered a null index; otherwise, return FALSE.
+*/
+{
+  return universal.value == 0;
+}  /* is_null_index */
+
+
+template<>
+an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_named_decl_offset>()
+/*
+Return the corresponding partition kind for ExprNamedDeclOffset.
+*/
+{
+  return ifc_pk_expr_decl;
+}  /* get_ifc_partition_kind */
+
+
+an_ifc_expr_named_decl_offset to_universal_offset(
+                                  an_ifc_module_file                 *file,
+                                  an_ifc_expr_named_decl_offset_0_43 versioned)
+/*
+Given the versioned representation of ExprNamedDeclOffset and the associated
+module, return the corresponding universal representation.
+*/
+{
+  uint32_t index = versioned;
+
+  return an_ifc_expr_named_decl_offset{file, index};
+}  /* to_universal_offset */
+
+
+/*
 Functions for interacting with IFC FormSpecOffset offsets.
 */
 
@@ -34449,6 +35359,9 @@ corresponding expected partition element size.
     case ifc_pk_decl_alias:
       result = 28;
       break;
+    case ifc_pk_decl_barren:
+      result = 8;
+      break;
     case ifc_pk_decl_bitfield:
       result = 32;
       break;
@@ -34462,7 +35375,7 @@ corresponding expected partition element size.
       result = 28;
       break;
     case ifc_pk_decl_default_arg:
-      result = 23;
+      result = 24;
       break;
     case ifc_pk_decl_destructor:
       result = 32;
@@ -34521,6 +35434,9 @@ corresponding expected partition element size.
     case ifc_pk_decl_specialization:
       result = 12;
       break;
+    case ifc_pk_decl_syntax_tree:
+      result = 4;
+      break;
     case ifc_pk_decl_template:
       result = 44;
       break;
@@ -34535,6 +35451,27 @@ corresponding expected partition element size.
       break;
     case ifc_pk_decl_variable:
       result = 32;
+      break;
+    case ifc_pk_dir_attribute:
+      result = 12;
+      break;
+    case ifc_pk_dir_decl_use:
+      result = 16;
+      break;
+    case ifc_pk_dir_empty:
+      result = 8;
+      break;
+    case ifc_pk_dir_expr:
+      result = 16;
+      break;
+    case ifc_pk_dir_pragma:
+      result = 12;
+      break;
+    case ifc_pk_dir_tuple:
+      result = 8;
+      break;
+    case ifc_pk_dir_using:
+      result = 16;
       break;
     case ifc_pk_expr_alignof_type_id:
       result = 16;
@@ -34957,7 +35894,11 @@ corresponding expected partition element size.
       result = 12;
       break;
     case ifc_pk_syntax_binary_fold_expression:
-      result = 54;
+      if (is_at_least(file, 0, 43)) {
+        result = 56;
+      } else {
+        result = 54;
+      }  /* if */
       break;
     case ifc_pk_syntax_break_statement:
       result = 16;
@@ -35459,6 +36400,7 @@ representation of DeclSort; otherwise, return FALSE.
 
   switch (kind) {
     case ifc_pk_decl_alias:
+    case ifc_pk_decl_barren:
     case ifc_pk_decl_bitfield:
     case ifc_pk_decl_concept:
     case ifc_pk_decl_constructor:
@@ -35483,6 +36425,7 @@ representation of DeclSort; otherwise, return FALSE.
     case ifc_pk_decl_reference:
     case ifc_pk_decl_scope:
     case ifc_pk_decl_specialization:
+    case ifc_pk_decl_syntax_tree:
     case ifc_pk_decl_template:
     case ifc_pk_decl_temploid:
     case ifc_pk_decl_tuple:
@@ -35509,6 +36452,9 @@ DeclSort.  If no corresponding sort kind exists for DeclSort, abort.
   switch (kind) {
     case ifc_pk_decl_alias:
       result = ifc_ds_decl_alias;
+      break;
+    case ifc_pk_decl_barren:
+      result = ifc_ds_decl_barren;
       break;
     case ifc_pk_decl_bitfield:
       result = ifc_ds_decl_bitfield;
@@ -35582,6 +36528,9 @@ DeclSort.  If no corresponding sort kind exists for DeclSort, abort.
     case ifc_pk_decl_specialization:
       result = ifc_ds_decl_specialization;
       break;
+    case ifc_pk_decl_syntax_tree:
+      result = ifc_ds_decl_syntax_tree;
+      break;
     case ifc_pk_decl_template:
       result = ifc_ds_decl_template;
       break;
@@ -35603,6 +36552,70 @@ DeclSort.  If no corresponding sort kind exists for DeclSort, abort.
   }  /* switch */
   return result;
 }  /* to_decl_sort */
+
+
+a_boolean is_dir_sort(an_ifc_partition_kind kind)
+/*
+Given the partition kind, return TRUE if there is a corresponding universal
+representation of DirSort; otherwise, return FALSE.
+*/
+{
+  a_boolean result;
+
+  switch (kind) {
+    case ifc_pk_dir_attribute:
+    case ifc_pk_dir_decl_use:
+    case ifc_pk_dir_empty:
+    case ifc_pk_dir_expr:
+    case ifc_pk_dir_pragma:
+    case ifc_pk_dir_tuple:
+    case ifc_pk_dir_using:
+      result = TRUE;
+      break;
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
+  return result;
+}  /* is_dir_sort */
+
+
+an_ifc_dir_sort to_dir_sort(an_ifc_partition_kind kind)
+/*
+Given the partition kind, return the corresponding universal representation of
+DirSort.  If no corresponding sort kind exists for DirSort, abort.
+*/
+{
+  an_ifc_dir_sort result;
+
+  switch (kind) {
+    case ifc_pk_dir_attribute:
+      result = ifc_ds_dir_attribute;
+      break;
+    case ifc_pk_dir_decl_use:
+      result = ifc_ds_dir_decl_use;
+      break;
+    case ifc_pk_dir_empty:
+      result = ifc_ds_dir_empty;
+      break;
+    case ifc_pk_dir_expr:
+      result = ifc_ds_dir_expr;
+      break;
+    case ifc_pk_dir_pragma:
+      result = ifc_ds_dir_pragma;
+      break;
+    case ifc_pk_dir_tuple:
+      result = ifc_ds_dir_tuple;
+      break;
+    case ifc_pk_dir_using:
+      result = ifc_ds_dir_using;
+      break;
+    default:
+      unexpected_condition_str("No known conversion to DirSort.");
+      break;
+  }  /* switch */
+  return result;
+}  /* to_dir_sort */
 
 
 a_boolean is_expr_sort(an_ifc_partition_kind kind)
@@ -36916,6 +37929,7 @@ corresponding partition kind; otherwise, return FALSE.
 
   switch (sort) {
     case ifc_ds_decl_alias:
+    case ifc_ds_decl_barren:
     case ifc_ds_decl_bitfield:
     case ifc_ds_decl_concept:
     case ifc_ds_decl_constructor:
@@ -36940,6 +37954,7 @@ corresponding partition kind; otherwise, return FALSE.
     case ifc_ds_decl_reference:
     case ifc_ds_decl_scope:
     case ifc_ds_decl_specialization:
+    case ifc_ds_decl_syntax_tree:
     case ifc_ds_decl_template:
     case ifc_ds_decl_temploid:
     case ifc_ds_decl_tuple:
@@ -36966,6 +37981,9 @@ partition kind.  If no corresponding partition kind exists, abort.
   switch (sort) {
     case ifc_ds_decl_alias:
       result = ifc_pk_decl_alias;
+      break;
+    case ifc_ds_decl_barren:
+      result = ifc_pk_decl_barren;
       break;
     case ifc_ds_decl_bitfield:
       result = ifc_pk_decl_bitfield;
@@ -37039,6 +38057,9 @@ partition kind.  If no corresponding partition kind exists, abort.
     case ifc_ds_decl_specialization:
       result = ifc_pk_decl_specialization;
       break;
+    case ifc_ds_decl_syntax_tree:
+      result = ifc_pk_decl_syntax_tree;
+      break;
     case ifc_ds_decl_template:
       result = ifc_pk_decl_template;
       break;
@@ -37053,6 +38074,70 @@ partition kind.  If no corresponding partition kind exists, abort.
       break;
     case ifc_ds_decl_variable:
       result = ifc_pk_decl_variable;
+      break;
+    default:
+      unexpected_condition_str("No known conversion to a partition kind.");
+      break;
+  }  /* switch */
+  return result;
+}  /* to_partition_kind */
+
+
+a_boolean has_partition_kind(an_ifc_dir_sort sort)
+/*
+Given the universal representation of DirSort, return TRUE if there is a
+corresponding partition kind; otherwise, return FALSE.
+*/
+{
+  a_boolean result;
+
+  switch (sort) {
+    case ifc_ds_dir_attribute:
+    case ifc_ds_dir_decl_use:
+    case ifc_ds_dir_empty:
+    case ifc_ds_dir_expr:
+    case ifc_ds_dir_pragma:
+    case ifc_ds_dir_tuple:
+    case ifc_ds_dir_using:
+      result = TRUE;
+      break;
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
+  return result;
+}  /* has_partition_kind */
+
+
+an_ifc_partition_kind to_partition_kind(an_ifc_dir_sort sort)
+/*
+Given the universal representation of DirSort, return the corresponding
+partition kind.  If no corresponding partition kind exists, abort.
+*/
+{
+  an_ifc_partition_kind result;
+
+  switch (sort) {
+    case ifc_ds_dir_attribute:
+      result = ifc_pk_dir_attribute;
+      break;
+    case ifc_ds_dir_decl_use:
+      result = ifc_pk_dir_decl_use;
+      break;
+    case ifc_ds_dir_empty:
+      result = ifc_pk_dir_empty;
+      break;
+    case ifc_ds_dir_expr:
+      result = ifc_pk_dir_expr;
+      break;
+    case ifc_ds_dir_pragma:
+      result = ifc_pk_dir_pragma;
+      break;
+    case ifc_ds_dir_tuple:
+      result = ifc_pk_dir_tuple;
+      break;
+    case ifc_ds_dir_using:
+      result = ifc_pk_dir_using;
       break;
     default:
       unexpected_condition_str("No known conversion to a partition kind.");
@@ -38267,6 +39352,13 @@ representation is valid; otherwise, return FALSE.
         result = opt_universal.has_value();
       }
       break;
+    case ifc_ds_decl_barren:
+      { Opt<an_ifc_decl_barren> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
     case ifc_ds_decl_bitfield:
       { Opt<an_ifc_decl_bitfield> opt_universal;
 
@@ -38436,6 +39528,13 @@ representation is valid; otherwise, return FALSE.
       break;
     case ifc_ds_decl_specialization:
       { Opt<an_ifc_decl_specialization> opt_universal;
+
+        construct_node(&opt_universal, idx);
+        result = opt_universal.has_value();
+      }
+      break;
+    case ifc_ds_decl_syntax_tree:
+      { Opt<an_ifc_decl_syntax_tree> opt_universal;
 
         construct_node(&opt_universal, idx);
         result = opt_universal.has_value();
@@ -40024,6 +41123,11 @@ Return TRUE if the node has the field "access"; otherwise, return FALSE.
         result = TRUE;
       }  /* if */
       break;
+    case ifc_ds_decl_barren:
+      if (is_at_least(file, 0, 43)) {
+        result = TRUE;
+      }  /* if */
+      break;
     case ifc_ds_decl_bitfield:
       if (is_at_least(file, 0, 33)) {
         result = TRUE;
@@ -40141,6 +41245,13 @@ node's "access" field value.
   switch (idx.sort) {
     case ifc_ds_decl_alias:
       { an_ifc_decl_alias universal;
+
+        construct_node_prechecked(&universal, idx);
+        result = get_ifc_access(universal);
+      }
+      break;
+    case ifc_ds_decl_barren:
+      { an_ifc_decl_barren universal;
 
         construct_node_prechecked(&universal, idx);
         result = get_ifc_access(universal);

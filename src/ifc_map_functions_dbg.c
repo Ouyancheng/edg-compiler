@@ -1428,6 +1428,92 @@ representation.
 }  /* db_node */
 
 
+void db_node(const an_ifc_decl_barren &universal, unsigned indent)
+/*
+Given the universal representation of DeclBarren, print a diagnostic textual
+representation with the given indent.
+*/
+{
+  if (has_ifc_access(universal)) {
+    an_ifc_access_sort field = get_ifc_access(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "access: %s\n", str_for(field));
+  }  /* if */
+  if (has_ifc_directive(universal)) {
+    an_ifc_dir_index field = get_ifc_directive(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "directive:");
+    if (is_null_index(field)) {
+      fprintf(f_debug, " NULL\n");
+    } else {
+      fprintf(f_debug, "\n");
+      db_print_indent(indent);
+      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
+      db_print_indent(indent);
+      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
+    }  /* if */
+  }  /* if */
+  if (has_ifc_specifiers(universal)) {
+    an_ifc_basic_specifiers_bitfield field = get_ifc_specifiers(universal);
+
+    fprintf(f_debug, "specifiers:\n");
+    ++indent;
+    if (test_bitmask<ifc_bsb_c>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- C\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_cxx>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- Cxx\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_deprecated>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- Deprecated\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_external>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- External\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_initialized_in_class>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- InitializedInClass\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_internal>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- Internal\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_is_member_of_global_module>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- IsMemberOfGlobalModule\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_non_exported>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- NonExported\n");
+    }  /* if */
+    if (test_bitmask<ifc_bsb_vague>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- Vague\n");
+    }  /* if */
+    --indent;
+  }  /* if */
+}  /* db_node */
+
+
+void db_node(const an_ifc_decl_barren &universal)
+/*
+Given the universal representation of DeclBarren, print a diagnostic textual
+representation.
+*/
+{
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "DeclBarren ");
+  fprintf(f_debug, "==================================\n");
+  db_node(universal, 0);
+}  /* db_node */
+
+
 void db_node(const an_ifc_decl_bitfield &universal, unsigned indent)
 /*
 Given the universal representation of DeclBitfield, print a diagnostic textual
@@ -4001,6 +4087,12 @@ representation with the given indent.
       fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
     }  /* if */
   }  /* if */
+  if (has_ifc_init_decl(universal)) {
+    an_ifc_expr_named_decl_offset field = get_ifc_init_decl(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "init_decl: %llu\n", (unsigned long long)field.value);
+  }  /* if */
   if (has_ifc_initializer(universal)) {
     an_ifc_expr_index field = get_ifc_initializer(universal);
 
@@ -4715,6 +4807,43 @@ textual representation.
 }  /* db_node */
 
 
+void db_node(const an_ifc_decl_syntax_tree &universal, unsigned indent)
+/*
+Given the universal representation of DeclSyntaxTree, print a diagnostic
+textual representation with the given indent.
+*/
+{
+  if (has_ifc_syntax(universal)) {
+    an_ifc_syntax_index field = get_ifc_syntax(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "syntax:");
+    if (is_null_index(field)) {
+      fprintf(f_debug, " NULL\n");
+    } else {
+      fprintf(f_debug, "\n");
+      db_print_indent(indent);
+      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
+      db_print_indent(indent);
+      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
+    }  /* if */
+  }  /* if */
+}  /* db_node */
+
+
+void db_node(const an_ifc_decl_syntax_tree &universal)
+/*
+Given the universal representation of DeclSyntaxTree, print a diagnostic
+textual representation.
+*/
+{
+  fprintf(f_debug, "================================ ");
+  fprintf(f_debug, "DeclSyntaxTree ");
+  fprintf(f_debug, "================================\n");
+  db_node(universal, 0);
+}  /* db_node */
+
+
 void db_node(const an_ifc_decl_template &universal, unsigned indent)
 /*
 Given the universal representation of DeclTemplate, print a diagnostic textual
@@ -5344,6 +5473,377 @@ representation.
   fprintf(f_debug, "================================= ");
   fprintf(f_debug, "DeclVariable ");
   fprintf(f_debug, "=================================\n");
+  db_node(universal, 0);
+}  /* db_node */
+
+
+void db_node(const an_ifc_dir_attribute &universal, unsigned indent)
+/*
+Given the universal representation of DirAttribute, print a diagnostic textual
+representation with the given indent.
+*/
+{
+  if (has_ifc_attr(universal)) {
+    an_ifc_attr_index field = get_ifc_attr(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "attr:");
+    if (is_null_index(field)) {
+      fprintf(f_debug, " NULL\n");
+    } else {
+      fprintf(f_debug, "\n");
+      db_print_indent(indent);
+      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
+      db_print_indent(indent);
+      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
+    }  /* if */
+  }  /* if */
+  if (has_ifc_locus(universal)) {
+    an_ifc_source_location field = get_ifc_locus(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "locus:\n");
+    db_node(field, indent + 1);
+  }  /* if */
+}  /* db_node */
+
+
+void db_node(const an_ifc_dir_attribute &universal)
+/*
+Given the universal representation of DirAttribute, print a diagnostic textual
+representation.
+*/
+{
+  fprintf(f_debug, "================================= ");
+  fprintf(f_debug, "DirAttribute ");
+  fprintf(f_debug, "=================================\n");
+  db_node(universal, 0);
+}  /* db_node */
+
+
+void db_node(const an_ifc_dir_decl_use &universal, unsigned indent)
+/*
+Given the universal representation of DirDeclUse, print a diagnostic textual
+representation with the given indent.
+*/
+{
+  if (has_ifc_locus(universal)) {
+    an_ifc_source_location field = get_ifc_locus(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "locus:\n");
+    db_node(field, indent + 1);
+  }  /* if */
+  if (has_ifc_path(universal)) {
+    an_ifc_expr_index field = get_ifc_path(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "path:");
+    if (is_null_index(field)) {
+      fprintf(f_debug, " NULL\n");
+    } else {
+      fprintf(f_debug, "\n");
+      db_print_indent(indent);
+      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
+      db_print_indent(indent);
+      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
+    }  /* if */
+  }  /* if */
+  if (has_ifc_result(universal)) {
+    an_ifc_decl_index field = get_ifc_result(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "result:");
+    if (is_null_index(field)) {
+      fprintf(f_debug, " NULL\n");
+    } else {
+      fprintf(f_debug, "\n");
+      db_print_indent(indent);
+      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
+      db_print_indent(indent);
+      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
+    }  /* if */
+  }  /* if */
+}  /* db_node */
+
+
+void db_node(const an_ifc_dir_decl_use &universal)
+/*
+Given the universal representation of DirDeclUse, print a diagnostic textual
+representation.
+*/
+{
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "DirDeclUse ");
+  fprintf(f_debug, "==================================\n");
+  db_node(universal, 0);
+}  /* db_node */
+
+
+void db_node(const an_ifc_dir_empty &universal, unsigned indent)
+/*
+Given the universal representation of DirEmpty, print a diagnostic textual
+representation with the given indent.
+*/
+{
+  if (has_ifc_locus(universal)) {
+    an_ifc_source_location field = get_ifc_locus(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "locus:\n");
+    db_node(field, indent + 1);
+  }  /* if */
+}  /* db_node */
+
+
+void db_node(const an_ifc_dir_empty &universal)
+/*
+Given the universal representation of DirEmpty, print a diagnostic textual
+representation.
+*/
+{
+  fprintf(f_debug, "=================================== ");
+  fprintf(f_debug, "DirEmpty ");
+  fprintf(f_debug, "===================================\n");
+  db_node(universal, 0);
+}  /* db_node */
+
+
+void db_node(const an_ifc_dir_expr &universal, unsigned indent)
+/*
+Given the universal representation of DirExpr, print a diagnostic textual
+representation with the given indent.
+*/
+{
+  if (has_ifc_expr(universal)) {
+    an_ifc_expr_index field = get_ifc_expr(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "expr:");
+    if (is_null_index(field)) {
+      fprintf(f_debug, " NULL\n");
+    } else {
+      fprintf(f_debug, "\n");
+      db_print_indent(indent);
+      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
+      db_print_indent(indent);
+      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
+    }  /* if */
+  }  /* if */
+  if (has_ifc_locus(universal)) {
+    an_ifc_source_location field = get_ifc_locus(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "locus:\n");
+    db_node(field, indent + 1);
+  }  /* if */
+  if (has_ifc_phases(universal)) {
+    an_ifc_phases_bitfield field = get_ifc_phases(universal);
+
+    fprintf(f_debug, "phases:\n");
+    ++indent;
+    if (test_bitmask<ifc_pb_analysis>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- Analysis\n");
+    }  /* if */
+    if (test_bitmask<ifc_pb_code_generation>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- CodeGeneration\n");
+    }  /* if */
+    if (test_bitmask<ifc_pb_evaluation>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- Evaluation\n");
+    }  /* if */
+    if (test_bitmask<ifc_pb_execution>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- Execution\n");
+    }  /* if */
+    if (test_bitmask<ifc_pb_importing>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- Importing\n");
+    }  /* if */
+    if (test_bitmask<ifc_pb_instantiation>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- Instantiation\n");
+    }  /* if */
+    if (test_bitmask<ifc_pb_lexing>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- Lexing\n");
+    }  /* if */
+    if (test_bitmask<ifc_pb_linking>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- Linking\n");
+    }  /* if */
+    if (test_bitmask<ifc_pb_loading>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- Loading\n");
+    }  /* if */
+    if (test_bitmask<ifc_pb_name_resolution>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- NameResolution\n");
+    }  /* if */
+    if (test_bitmask<ifc_pb_parsing>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- Parsing\n");
+    }  /* if */
+    if (test_bitmask<ifc_pb_preprocessing>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- Preprocessing\n");
+    }  /* if */
+    if (test_bitmask<ifc_pb_reading>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- Reading\n");
+    }  /* if */
+    if (test_bitmask<ifc_pb_typing>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- Typing\n");
+    }  /* if */
+    if (test_bitmask<ifc_pb_unknown>(field)) {
+      db_print_indent(indent);
+      fprintf(f_debug, "- Unknown\n");
+    }  /* if */
+    --indent;
+  }  /* if */
+}  /* db_node */
+
+
+void db_node(const an_ifc_dir_expr &universal)
+/*
+Given the universal representation of DirExpr, print a diagnostic textual
+representation.
+*/
+{
+  fprintf(f_debug, "=================================== ");
+  fprintf(f_debug, "DirExpr ");
+  fprintf(f_debug, "====================================\n");
+  db_node(universal, 0);
+}  /* db_node */
+
+
+void db_node(const an_ifc_dir_pragma &universal, unsigned indent)
+/*
+Given the universal representation of DirPragma, print a diagnostic textual
+representation with the given indent.
+*/
+{
+  if (has_ifc_locus(universal)) {
+    an_ifc_source_location field = get_ifc_locus(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "locus:\n");
+    db_node(field, indent + 1);
+  }  /* if */
+  if (has_ifc_words(universal)) {
+    an_ifc_sentence_index field = get_ifc_words(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "words: %llu\n", (unsigned long long)field.value);
+  }  /* if */
+}  /* db_node */
+
+
+void db_node(const an_ifc_dir_pragma &universal)
+/*
+Given the universal representation of DirPragma, print a diagnostic textual
+representation.
+*/
+{
+  fprintf(f_debug, "================================== ");
+  fprintf(f_debug, "DirPragma ");
+  fprintf(f_debug, "===================================\n");
+  db_node(universal, 0);
+}  /* db_node */
+
+
+void db_node(const an_ifc_dir_tuple &universal, unsigned indent)
+/*
+Given the universal representation of DirTuple, print a diagnostic textual
+representation with the given indent.
+*/
+{
+  if (has_ifc_cardinality(universal)) {
+    an_ifc_cardinality field = get_ifc_cardinality(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "cardinality: %llu\n", (unsigned long long)field.value);
+  }  /* if */
+  if (has_ifc_start(universal)) {
+    an_ifc_index field = get_ifc_start(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "start: %llu\n", (unsigned long long)field.value);
+  }  /* if */
+}  /* db_node */
+
+
+void db_node(const an_ifc_dir_tuple &universal)
+/*
+Given the universal representation of DirTuple, print a diagnostic textual
+representation.
+*/
+{
+  fprintf(f_debug, "=================================== ");
+  fprintf(f_debug, "DirTuple ");
+  fprintf(f_debug, "===================================\n");
+  db_node(universal, 0);
+}  /* db_node */
+
+
+void db_node(const an_ifc_dir_using &universal, unsigned indent)
+/*
+Given the universal representation of DirUsing, print a diagnostic textual
+representation with the given indent.
+*/
+{
+  if (has_ifc_locus(universal)) {
+    an_ifc_source_location field = get_ifc_locus(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "locus:\n");
+    db_node(field, indent + 1);
+  }  /* if */
+  if (has_ifc_nominated(universal)) {
+    an_ifc_expr_index field = get_ifc_nominated(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "nominated:");
+    if (is_null_index(field)) {
+      fprintf(f_debug, " NULL\n");
+    } else {
+      fprintf(f_debug, "\n");
+      db_print_indent(indent);
+      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
+      db_print_indent(indent);
+      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
+    }  /* if */
+  }  /* if */
+  if (has_ifc_resolution(universal)) {
+    an_ifc_decl_index field = get_ifc_resolution(universal);
+
+    db_print_indent(indent);
+    fprintf(f_debug, "resolution:");
+    if (is_null_index(field)) {
+      fprintf(f_debug, " NULL\n");
+    } else {
+      fprintf(f_debug, "\n");
+      db_print_indent(indent);
+      fprintf(f_debug, "  sort: %s\n", str_for(field.sort));
+      db_print_indent(indent);
+      fprintf(f_debug, "  value: %llu\n", (unsigned long long)field.value);
+    }  /* if */
+  }  /* if */
+}  /* db_node */
+
+
+void db_node(const an_ifc_dir_using &universal)
+/*
+Given the universal representation of DirUsing, print a diagnostic textual
+representation.
+*/
+{
+  fprintf(f_debug, "=================================== ");
+  fprintf(f_debug, "DirUsing ");
+  fprintf(f_debug, "===================================\n");
   db_node(universal, 0);
 }  /* db_node */
 
@@ -21174,6 +21674,13 @@ associated node.
         db_node(universal);
       }
       break;
+    case ifc_ds_decl_barren:
+      { an_ifc_decl_barren universal;
+
+        construct_node_prechecked(&universal, idx);
+        db_node(universal);
+      }
+      break;
     case ifc_ds_decl_bitfield:
       { an_ifc_decl_bitfield universal;
 
@@ -21342,6 +21849,13 @@ associated node.
         db_node(universal);
       }
       break;
+    case ifc_ds_decl_syntax_tree:
+      { an_ifc_decl_syntax_tree universal;
+
+        construct_node_prechecked(&universal, idx);
+        db_node(universal);
+      }
+      break;
     case ifc_ds_decl_template:
       { an_ifc_decl_template universal;
 
@@ -21372,6 +21886,69 @@ associated node.
       break;
     case ifc_ds_decl_variable:
       { an_ifc_decl_variable universal;
+
+        construct_node_prechecked(&universal, idx);
+        db_node(universal);
+      }
+      break;
+    default:
+      fprintf(f_debug, "Node not found.");
+      break;
+  }  /* switch */
+}  /* db_node_at_idx */
+
+
+void db_node_at_idx(an_ifc_dir_index idx)
+/*
+Given the DirIndex, print a diagnostic textual representation of the associated
+node.
+*/
+{
+  switch (idx.sort) {
+    case ifc_ds_dir_attribute:
+      { an_ifc_dir_attribute universal;
+
+        construct_node_prechecked(&universal, idx);
+        db_node(universal);
+      }
+      break;
+    case ifc_ds_dir_decl_use:
+      { an_ifc_dir_decl_use universal;
+
+        construct_node_prechecked(&universal, idx);
+        db_node(universal);
+      }
+      break;
+    case ifc_ds_dir_empty:
+      { an_ifc_dir_empty universal;
+
+        construct_node_prechecked(&universal, idx);
+        db_node(universal);
+      }
+      break;
+    case ifc_ds_dir_expr:
+      { an_ifc_dir_expr universal;
+
+        construct_node_prechecked(&universal, idx);
+        db_node(universal);
+      }
+      break;
+    case ifc_ds_dir_pragma:
+      { an_ifc_dir_pragma universal;
+
+        construct_node_prechecked(&universal, idx);
+        db_node(universal);
+      }
+      break;
+    case ifc_ds_dir_tuple:
+      { an_ifc_dir_tuple universal;
+
+        construct_node_prechecked(&universal, idx);
+        db_node(universal);
+      }
+      break;
+    case ifc_ds_dir_using:
+      { an_ifc_dir_using universal;
 
         construct_node_prechecked(&universal, idx);
         db_node(universal);
@@ -21801,6 +22378,19 @@ associated node.
       fprintf(f_debug, "Node not found.");
       break;
   }  /* switch */
+}  /* db_node_at_idx */
+
+
+void db_node_at_idx(an_ifc_expr_named_decl_offset idx)
+/*
+Given the ExprNamedDeclOffset, print a diagnostic textual representation of the
+associated node.
+*/
+{
+  an_ifc_expr_named_decl universal;
+
+  construct_node_prechecked(&universal, idx);
+  db_node(universal);
 }  /* db_node_at_idx */
 
 

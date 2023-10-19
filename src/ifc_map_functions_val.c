@@ -411,7 +411,6 @@ represents a valid sort value; otherwise, return FALSE.
     case ifc_0_43_ds_decl_destructor:
     case ifc_0_43_ds_decl_reference:
     case ifc_0_43_ds_decl_using_declaration:
-    case ifc_0_43_ds_decl_using_directive:
     case ifc_0_43_ds_decl_friend:
     case ifc_0_43_ds_decl_expansion:
     case ifc_0_43_ds_decl_deduction_guide:
@@ -474,6 +473,52 @@ a_boolean validate_sort(an_ifc_module_file            *file,
                         const an_ifc_validation_trace *parent)
 /*
 Given the versioned representation of DelimiterSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!is_known_sort(versioned)) {
+    invalid_sort(file, parent);
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* validate_sort */
+
+
+a_boolean is_known_sort(an_ifc_dir_sort_0_43 versioned)
+/*
+Given the versioned representation of DirSort, return TRUE if the value
+represents a valid sort value; otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (versioned) {
+    case ifc_0_43_ds_dir_vendor_extension:
+    case ifc_0_43_ds_dir_empty:
+    case ifc_0_43_ds_dir_attribute:
+    case ifc_0_43_ds_dir_pragma:
+    case ifc_0_43_ds_dir_using:
+    case ifc_0_43_ds_dir_decl_use:
+    case ifc_0_43_ds_dir_expr:
+    case ifc_0_43_ds_dir_structured_binding:
+    case ifc_0_43_ds_dir_specifiers_spread:
+    case ifc_0_43_ds_dir_tuple:
+      result = TRUE;
+      break;
+    default:
+      break;
+  }  /* switch */
+  return result;
+}  /* is_known_sort */
+
+
+a_boolean validate_sort(an_ifc_module_file            *file,
+                        an_ifc_dir_sort_0_43          versioned,
+                        const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of DirSort, return TRUE if the value
 represents a valid sort value; otherwise, return FALSE.
 */
 {
@@ -1469,6 +1514,9 @@ value represents a valid sort value; otherwise, return FALSE.
     case ifc_0_43_mos_msvc_confused_pop_state:
     case ifc_0_43_mos_msvc_confused_dtor_action:
     case ifc_0_43_mos_msvc_confused_vtor_displacement:
+    case ifc_0_43_mos_msvc_confused_dependent_expression:
+    case ifc_0_43_mos_msvc_confused_substitution:
+    case ifc_0_43_mos_msvc_confused_aggregate_return:
       result = TRUE;
       break;
     default:
@@ -3379,6 +3427,45 @@ FALSE.
       }  /* if */
     } else {
       an_ifc_decl_index univ_idx = to_universal_index(file, versioned);
+
+      if (!is_null_index(univ_idx)) {
+        unknown_partition_conversion(file, str_for(univ_sort), univ_idx.value,
+                                     parent);
+        result = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* validate_index */
+
+
+a_boolean validate_index(an_ifc_module_file            *file,
+                         an_ifc_dir_index_0_43         versioned,
+                         const an_ifc_validation_trace *parent)
+/*
+Given the versioned representation of DirIndex and the associated module file,
+return TRUE if the value represents a valid node position; otherwise, return
+FALSE.
+*/
+{
+  a_boolean            result = TRUE;
+  an_ifc_dir_sort_0_43 sort = dir_sort(versioned);
+
+  if (!is_known_sort(sort)) {
+    invalid_partition(file, parent);
+    result = FALSE;
+  } else {
+    an_ifc_dir_sort univ_sort = to_universal_sort(sort);
+
+    if (has_partition_kind(univ_sort)) {
+      an_ifc_partition_kind kind = to_partition_kind(univ_sort);
+      uint32_t              value = dir_value(versioned);
+
+      if (!validate_element_exists(file, kind, value, parent)) {
+        result = FALSE;
+      }  /* if */
+    } else {
+      an_ifc_dir_index univ_idx = to_universal_index(file, versioned);
 
       if (!is_null_index(univ_idx)) {
         unknown_partition_conversion(file, str_for(univ_sort), univ_idx.value,
@@ -5544,6 +5631,50 @@ representation is valid; otherwise, return FALSE.
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* validate */
+
+
+template<>
+a_boolean validate(const an_ifc_decl_barren      &universal,
+                   const an_ifc_validation_trace *parent)
+/*
+Given the universal representation of DeclBarren, return TRUE if the
+representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (has_ifc_access(universal)) {
+    an_ifc_access_sort_0_33 stage_0;
+    an_ifc_validation_trace stage_0_trace = {"access", /*offset=*/5, parent};
+
+    /* Copy the field (DeclBarren::access - AccessSort) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 1,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/5);
+    if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+  if (has_ifc_directive(universal)) {
+    an_ifc_dir_index_0_43   stage_0;
+    an_ifc_validation_trace stage_0_trace =
+                                           {"directive", /*offset=*/0, parent};
+
+    /* Copy the field (DeclBarren::directive - DirIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
     if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
@@ -8884,6 +9015,21 @@ representation is valid; otherwise, return FALSE.
       }  /* if */
     }  /* if */
   }  /* if */
+  if (has_ifc_init_decl(universal)) {
+    an_ifc_expr_named_decl_offset_0_43 stage_0;
+    an_ifc_validation_trace            stage_0_trace =
+                                          {"init_decl", /*offset=*/20, parent};
+
+    /* Copy the field (DeclParameter::init_decl - ExprNamedDeclOffset) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    if (!validate_offset(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
   if (has_ifc_initializer(universal)) {
     if (is_at_least(universal.get_file(), 0, 42)) {
       an_ifc_expr_index_0_42  stage_0;
@@ -9959,6 +10105,35 @@ representation is valid; otherwise, return FALSE.
                   "stage_0 is not properly sized storage!");
     copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
     if (!validate_sort(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* validate */
+
+
+template<>
+a_boolean validate(const an_ifc_decl_syntax_tree &universal,
+                   const an_ifc_validation_trace *parent)
+/*
+Given the universal representation of DeclSyntaxTree, return TRUE if the
+representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (has_ifc_syntax(universal)) {
+    an_ifc_syntax_index_0_33 stage_0;
+    an_ifc_validation_trace  stage_0_trace = {"syntax", /*offset=*/0, parent};
+
+    /* Copy the field (DeclSyntaxTree::syntax - SyntaxIndex) into
+       version-specific storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
       result = FALSE;
       goto done;
     }  /* if */
@@ -11053,6 +11228,328 @@ representation is valid; otherwise, return FALSE.
     an_ifc_validation_trace stage_0_trace = {"type", /*offset=*/12, parent};
 
     /* Copy the field (DeclVariable::type - TypeIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* validate */
+
+
+template<>
+a_boolean validate(const an_ifc_dir_attribute    &universal,
+                   const an_ifc_validation_trace *parent)
+/*
+Given the universal representation of DirAttribute, return TRUE if the
+representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (has_ifc_attr(universal)) {
+    an_ifc_attr_index_0_33  stage_0;
+    an_ifc_validation_trace stage_0_trace = {"attr", /*offset=*/8, parent};
+
+    /* Copy the field (DirAttribute::attr - AttrIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+  if (has_ifc_locus(universal)) {
+    an_ifc_source_location_bytes stage_0;
+    an_ifc_validation_trace      stage_0_trace =
+                                               {"locus", /*offset=*/0, parent};
+    an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+    /* Update the universal storage pointer to the start of the field
+       (DirAttribute::locus - SourceLocation). */
+    stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
+#else /* !USE_MMAP_FOR_MODULES */
+    /* Copy the field (DirAttribute::locus - SourceLocation) into universal
+       storage. */
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                   /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+    stage_1 = {universal.get_file(), stage_0};
+    if (!validate(stage_1, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* validate */
+
+
+template<>
+a_boolean validate(const an_ifc_dir_decl_use     &universal,
+                   const an_ifc_validation_trace *parent)
+/*
+Given the universal representation of DirDeclUse, return TRUE if the
+representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (has_ifc_locus(universal)) {
+    an_ifc_source_location_bytes stage_0;
+    an_ifc_validation_trace      stage_0_trace =
+                                               {"locus", /*offset=*/0, parent};
+    an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+    /* Update the universal storage pointer to the start of the field
+       (DirDeclUse::locus - SourceLocation). */
+    stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
+#else /* !USE_MMAP_FOR_MODULES */
+    /* Copy the field (DirDeclUse::locus - SourceLocation) into universal
+       storage. */
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                   /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+    stage_1 = {universal.get_file(), stage_0};
+    if (!validate(stage_1, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+  if (has_ifc_path(universal)) {
+    an_ifc_expr_index_0_42  stage_0;
+    an_ifc_validation_trace stage_0_trace = {"path", /*offset=*/8, parent};
+
+    /* Copy the field (DirDeclUse::path - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+  if (has_ifc_result(universal)) {
+    an_ifc_decl_index_0_43  stage_0;
+    an_ifc_validation_trace stage_0_trace = {"result", /*offset=*/12, parent};
+
+    /* Copy the field (DirDeclUse::result - DeclIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* validate */
+
+
+template<>
+a_boolean validate(const an_ifc_dir_empty        &universal,
+                   const an_ifc_validation_trace *parent)
+/*
+Given the universal representation of DirEmpty, return TRUE if the
+representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (has_ifc_locus(universal)) {
+    an_ifc_source_location_bytes stage_0;
+    an_ifc_validation_trace      stage_0_trace =
+                                               {"locus", /*offset=*/0, parent};
+    an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+    /* Update the universal storage pointer to the start of the field
+       (DirEmpty::locus - SourceLocation). */
+    stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
+#else /* !USE_MMAP_FOR_MODULES */
+    /* Copy the field (DirEmpty::locus - SourceLocation) into universal
+       storage. */
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                   /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+    stage_1 = {universal.get_file(), stage_0};
+    if (!validate(stage_1, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* validate */
+
+
+template<>
+a_boolean validate(const an_ifc_dir_expr         &universal,
+                   const an_ifc_validation_trace *parent)
+/*
+Given the universal representation of DirExpr, return TRUE if the
+representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (has_ifc_expr(universal)) {
+    an_ifc_expr_index_0_42  stage_0;
+    an_ifc_validation_trace stage_0_trace = {"expr", /*offset=*/8, parent};
+
+    /* Copy the field (DirExpr::expr - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+  if (has_ifc_locus(universal)) {
+    an_ifc_source_location_bytes stage_0;
+    an_ifc_validation_trace      stage_0_trace =
+                                               {"locus", /*offset=*/0, parent};
+    an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+    /* Update the universal storage pointer to the start of the field
+       (DirExpr::locus - SourceLocation). */
+    stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
+#else /* !USE_MMAP_FOR_MODULES */
+    /* Copy the field (DirExpr::locus - SourceLocation) into universal
+       storage. */
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                   /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+    stage_1 = {universal.get_file(), stage_0};
+    if (!validate(stage_1, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* validate */
+
+
+template<>
+a_boolean validate(const an_ifc_dir_pragma       &universal,
+                   const an_ifc_validation_trace *parent)
+/*
+Given the universal representation of DirPragma, return TRUE if the
+representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (has_ifc_locus(universal)) {
+    an_ifc_source_location_bytes stage_0;
+    an_ifc_validation_trace      stage_0_trace =
+                                               {"locus", /*offset=*/0, parent};
+    an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+    /* Update the universal storage pointer to the start of the field
+       (DirPragma::locus - SourceLocation). */
+    stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
+#else /* !USE_MMAP_FOR_MODULES */
+    /* Copy the field (DirPragma::locus - SourceLocation) into universal
+       storage. */
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                   /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+    stage_1 = {universal.get_file(), stage_0};
+    if (!validate(stage_1, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* validate */
+
+
+template<>
+a_boolean validate(const an_ifc_dir_tuple        &universal,
+                   const an_ifc_validation_trace *parent)
+/*
+Given the universal representation of DirTuple, return TRUE if the
+representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  return result;
+}  /* validate */
+
+
+template<>
+a_boolean validate(const an_ifc_dir_using        &universal,
+                   const an_ifc_validation_trace *parent)
+/*
+Given the universal representation of DirUsing, return TRUE if the
+representation is valid; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (has_ifc_locus(universal)) {
+    an_ifc_source_location_bytes stage_0;
+    an_ifc_validation_trace      stage_0_trace =
+                                               {"locus", /*offset=*/0, parent};
+    an_ifc_source_location       stage_1;
+
+#if USE_MMAP_FOR_MODULES
+    /* Update the universal storage pointer to the start of the field
+       (DirUsing::locus - SourceLocation). */
+    stage_0 = (an_ifc_source_location_bytes)((*universal.get_storage()) + 0);
+#else /* !USE_MMAP_FOR_MODULES */
+    /* Copy the field (DirUsing::locus - SourceLocation) into universal
+       storage. */
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                   /*size=*/8);
+#endif /* USE_MMAP_FOR_MODULES */
+    stage_1 = {universal.get_file(), stage_0};
+    if (!validate(stage_1, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+  if (has_ifc_nominated(universal)) {
+    an_ifc_expr_index_0_42  stage_0;
+    an_ifc_validation_trace stage_0_trace =
+                                           {"nominated", /*offset=*/8, parent};
+
+    /* Copy the field (DirUsing::nominated - ExprIndex) into version-specific
+       storage. */
+    static_assert(sizeof(stage_0) == 4,
+                  "stage_0 is not properly sized storage!");
+    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    if (!validate_index(universal.get_file(), stage_0, &stage_0_trace)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+  if (has_ifc_resolution(universal)) {
+    an_ifc_decl_index_0_43  stage_0;
+    an_ifc_validation_trace stage_0_trace =
+                                         {"resolution", /*offset=*/12, parent};
+
+    /* Copy the field (DirUsing::resolution - DeclIndex) into version-specific
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
@@ -31652,6 +32149,32 @@ representation is valid; otherwise, return FALSE.
 done:
   return result;
 }  /* validate */
+
+
+a_boolean validate_offset(an_ifc_module_file                 *file,
+                          an_ifc_expr_named_decl_offset_0_43 versioned,
+                          const an_ifc_validation_trace      *parent)
+/*
+Given the versioned representation of ExprNamedDeclOffset and the associated
+module file, return TRUE if the value represents a valid node position;
+otherwise, return FALSE.
+*/
+{
+  a_boolean                     result = TRUE;
+  an_ifc_expr_named_decl_offset univ_offset =
+                                          to_universal_offset(file, versioned);
+
+  if (!is_null_index(univ_offset)) {
+    an_ifc_partition_kind kind =
+                       get_ifc_partition_kind<an_ifc_expr_named_decl_offset>();
+    uint32_t              value = univ_offset.value - 1;
+
+    if (!validate_element_exists(file, kind, value, parent)) {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* validate_offset */
 
 
 a_boolean validate_offset(an_ifc_module_file            *file,

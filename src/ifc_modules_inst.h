@@ -45,6 +45,12 @@ INST_PARTITION_ALL(an_ifc_decl_index)
 
 
 /*
+Explicit instantiations of functions for DirIndex.
+*/
+INST_PARTITION_ALL(an_ifc_dir_index)
+
+
+/*
 Explicit instantiations of functions for ExprIndex.
 */
 INST_PARTITION_ALL(an_ifc_expr_index)
@@ -150,6 +156,12 @@ INST_CONSTRUCT_NODE_ALL(an_ifc_chart_unilevel, an_ifc_chart_index)
 Explicit instantiations of functions for DeclAlias.
 */
 INST_CONSTRUCT_NODE_ALL(an_ifc_decl_alias, an_ifc_decl_index)
+
+
+/*
+Explicit instantiations of functions for DeclBarren.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_decl_barren, an_ifc_decl_index)
 
 
 /*
@@ -298,6 +310,12 @@ INST_CONSTRUCT_NODE_ALL(an_ifc_decl_specialization, an_ifc_decl_index)
 
 
 /*
+Explicit instantiations of functions for DeclSyntaxTree.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_decl_syntax_tree, an_ifc_decl_index)
+
+
+/*
 Explicit instantiations of functions for DeclTemplate.
 */
 INST_CONSTRUCT_NODE_ALL(an_ifc_decl_template, an_ifc_decl_index)
@@ -325,6 +343,48 @@ INST_CONSTRUCT_NODE_ALL(an_ifc_decl_using_declaration, an_ifc_decl_index)
 Explicit instantiations of functions for DeclVariable.
 */
 INST_CONSTRUCT_NODE_ALL(an_ifc_decl_variable, an_ifc_decl_index)
+
+
+/*
+Explicit instantiations of functions for DirAttribute.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_dir_attribute, an_ifc_dir_index)
+
+
+/*
+Explicit instantiations of functions for DirDeclUse.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_dir_decl_use, an_ifc_dir_index)
+
+
+/*
+Explicit instantiations of functions for DirEmpty.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_dir_empty, an_ifc_dir_index)
+
+
+/*
+Explicit instantiations of functions for DirExpr.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_dir_expr, an_ifc_dir_index)
+
+
+/*
+Explicit instantiations of functions for DirPragma.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_dir_pragma, an_ifc_dir_index)
+
+
+/*
+Explicit instantiations of functions for DirTuple.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_dir_tuple, an_ifc_dir_index)
+
+
+/*
+Explicit instantiations of functions for DirUsing.
+*/
+INST_CONSTRUCT_NODE_ALL(an_ifc_dir_using, an_ifc_dir_index)
 
 
 /*
@@ -487,6 +547,7 @@ INST_CONSTRUCT_NODE_ALL(an_ifc_expr_monad, an_ifc_expr_index)
 Explicit instantiations of functions for ExprNamedDecl.
 */
 INST_CONSTRUCT_NODE_ALL(an_ifc_expr_named_decl, an_ifc_expr_index)
+INST_CONSTRUCT_NODE_ALL(an_ifc_expr_named_decl, an_ifc_expr_named_decl_offset)
 
 
 /*
@@ -1786,6 +1847,12 @@ INST_CONSTRUCT_NODE_ALL(an_ifc_type_typename, an_ifc_type_index)
 Explicit instantiations of functions for TypeUnaligned.
 */
 INST_CONSTRUCT_NODE_ALL(an_ifc_type_unaligned, an_ifc_type_index)
+
+
+/*
+Explicit instantiations of functions for ExprNamedDeclOffset.
+*/
+INST_PARTITION_ALL(an_ifc_expr_named_decl_offset)
 
 
 /*

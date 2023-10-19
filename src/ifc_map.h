@@ -604,6 +604,36 @@ struct an_ifc_encoded_delimiter_sort : Implicit_numeric_entity<
 };  /* an_ifc_encoded_delimiter_sort */
 
 
+enum an_ifc_encoded_dir_index_0_43 : uint32_t;
+using an_ifc_encoded_dir_index_storage = uint32_t;
+
+
+/*
+The universal representation for an IFC EncodedDirIndex.
+*/
+struct an_ifc_encoded_dir_index : Implicit_numeric_entity<
+                                            an_ifc_encoded_dir_index_storage> {
+  using storage_type = an_ifc_encoded_dir_index_storage;
+  using base_type = Implicit_numeric_entity<storage_type>;
+  using base_type::Implicit_numeric_entity;
+};  /* an_ifc_encoded_dir_index */
+
+
+enum an_ifc_encoded_dir_sort_0_43 : uint32_t;
+using an_ifc_encoded_dir_sort_storage = uint32_t;
+
+
+/*
+The universal representation for an IFC EncodedDirSort.
+*/
+struct an_ifc_encoded_dir_sort : Implicit_numeric_entity<
+                                             an_ifc_encoded_dir_sort_storage> {
+  using storage_type = an_ifc_encoded_dir_sort_storage;
+  using base_type = Implicit_numeric_entity<storage_type>;
+  using base_type::Implicit_numeric_entity;
+};  /* an_ifc_encoded_dir_sort */
+
+
 enum an_ifc_encoded_dyadic_operator_sort_0_33 : uint16_t;
 using an_ifc_encoded_dyadic_operator_sort_storage = uint16_t;
 
@@ -1841,7 +1871,6 @@ enum an_ifc_decl_sort_0_43 : uint32_t {
   ifc_0_43_ds_decl_destructor             = 19,
   ifc_0_43_ds_decl_reference              = 20,
   ifc_0_43_ds_decl_using_declaration      = 21,
-  ifc_0_43_ds_decl_using_directive        = 22,
   ifc_0_43_ds_decl_friend                 = 23,
   ifc_0_43_ds_decl_expansion              = 24,
   ifc_0_43_ds_decl_deduction_guide        = 25,
@@ -1904,6 +1933,34 @@ enum an_ifc_delimiter_sort : uint32_t {
   ifc_ds_parenthesis,
   ifc_ds_unknown
 };  /* an_ifc_delimiter_sort */
+
+
+enum an_ifc_dir_sort_0_43 : uint32_t {
+  ifc_0_43_ds_dir_vendor_extension   = 0,
+  ifc_0_43_ds_dir_empty              = 1,
+  ifc_0_43_ds_dir_attribute          = 2,
+  ifc_0_43_ds_dir_pragma             = 3,
+  ifc_0_43_ds_dir_using              = 4,
+  ifc_0_43_ds_dir_decl_use           = 5,
+  ifc_0_43_ds_dir_expr               = 6,
+  ifc_0_43_ds_dir_structured_binding = 7,
+  ifc_0_43_ds_dir_specifiers_spread  = 8,
+  ifc_0_43_ds_dir_tuple              = 31
+};  /* an_ifc_dir_sort_0_43 */
+
+
+enum an_ifc_dir_sort : uint32_t {
+  ifc_ds_dir_attribute,
+  ifc_ds_dir_decl_use,
+  ifc_ds_dir_empty,
+  ifc_ds_dir_expr,
+  ifc_ds_dir_pragma,
+  ifc_ds_dir_specifiers_spread,
+  ifc_ds_dir_structured_binding,
+  ifc_ds_dir_tuple,
+  ifc_ds_dir_using,
+  ifc_ds_dir_vendor_extension
+};  /* an_ifc_dir_sort */
 
 
 enum an_ifc_dyadic_operator_sort_0_33 : uint16_t {
@@ -2699,7 +2756,10 @@ enum an_ifc_monadic_operator_sort_0_43 : uint16_t {
   ifc_0_43_mos_msvc_confused_dependent_sizeof         = 4066,
   ifc_0_43_mos_msvc_confused_pop_state                = 4067,
   ifc_0_43_mos_msvc_confused_dtor_action              = 4068,
-  ifc_0_43_mos_msvc_confused_vtor_displacement        = 4069
+  ifc_0_43_mos_msvc_confused_vtor_displacement        = 4069,
+  ifc_0_43_mos_msvc_confused_dependent_expression     = 4070,
+  ifc_0_43_mos_msvc_confused_substitution             = 4071,
+  ifc_0_43_mos_msvc_confused_aggregate_return         = 4072
 };  /* an_ifc_monadic_operator_sort_0_43 */
 
 
@@ -2724,10 +2784,13 @@ enum an_ifc_monadic_operator_sort : uint32_t {
   ifc_mos_msvc_alignof,
   ifc_mos_msvc_assume,
   ifc_mos_msvc_builtin_address_of,
+  ifc_mos_msvc_confused_aggregate_return,
+  ifc_mos_msvc_confused_dependent_expression,
   ifc_mos_msvc_confused_dependent_sizeof,
   ifc_mos_msvc_confused_dtor_action,
   ifc_mos_msvc_confused_expand,
   ifc_mos_msvc_confused_pop_state,
+  ifc_mos_msvc_confused_substitution,
   ifc_mos_msvc_confused_vtor_displacement,
   ifc_mos_msvc_confusion,
   ifc_mos_msvc_has_assign,
@@ -4383,6 +4446,53 @@ are equivalent, return FALSE; otherwise return TRUE.
 }  /* operator!= */
 
 
+enum an_ifc_dir_index_0_43 : uint32_t {};
+
+
+/*
+The universal representation for an IFC DirIndex.
+*/
+struct an_ifc_dir_index : Index_entity<an_ifc_dir_sort, uint32_t> {
+  using sort_type = an_ifc_dir_sort;
+  using native_size_type = uint32_t;
+  using base_type = Index_entity<sort_type, native_size_type>;
+  using base_type::Index_entity;
+};  /* an_ifc_dir_index */
+
+
+inline a_boolean operator==(const an_ifc_dir_index &lhs,
+                            const an_ifc_dir_index &rhs)
+/*
+Compare two instances of this DirIndex (lhs and rhs).  If the two instances are
+equivalent, return TRUE; otherwise return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  /* Check members that are more likely to be unique first.  This allows the
+     logic to short circuit in common negative cases. */
+  if (lhs.value != rhs.value) {
+    result = FALSE;
+  } else if (lhs.sort != rhs.sort) {
+    result = FALSE;
+  } else if (lhs.file != rhs.file) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+inline a_boolean operator!=(const an_ifc_dir_index &lhs,
+                            const an_ifc_dir_index &rhs)
+/*
+Compare two instances of this DirIndex (lhs and rhs).  If the two instances are
+equivalent, return FALSE; otherwise return TRUE.
+*/
+{
+  return !(lhs == rhs);
+}  /* operator!= */
+
+
 enum an_ifc_expr_index_0_33 : uint32_t {};
 enum an_ifc_expr_index_0_42 : uint32_t {};
 
@@ -5147,6 +5257,58 @@ enum an_ifc_object_traits_bitfield_query : uint32_t {
   ifc_otb_thread_local         = 1 << 5,
   ifc_otb_vendor               = 1 << 6
 };  /* an_ifc_object_traits_bitfield_query */
+
+
+enum an_ifc_phases_bitfield_0_43 : uint32_t {
+  ifc_0_43_pb_unknown         = 0,
+  ifc_0_43_pb_reading         = 1 << 0,
+  ifc_0_43_pb_lexing          = 1 << 1,
+  ifc_0_43_pb_preprocessing   = 1 << 2,
+  ifc_0_43_pb_parsing         = 1 << 3,
+  ifc_0_43_pb_importing       = 1 << 4,
+  ifc_0_43_pb_name_resolution = 1 << 5,
+  ifc_0_43_pb_typing          = 1 << 6,
+  ifc_0_43_pb_evaluation      = 1 << 7,
+  ifc_0_43_pb_instantiation   = 1 << 8,
+  ifc_0_43_pb_analysis        = 1 << 9,
+  ifc_0_43_pb_code_generation = 1 << 10,
+  ifc_0_43_pb_linking         = 1 << 11,
+  ifc_0_43_pb_loading         = 1 << 12,
+  ifc_0_43_pb_execution       = 1 << 13
+};  /* an_ifc_phases_bitfield_0_43 */
+
+
+using an_ifc_phases_bitfield_storage = uint32_t;
+
+
+/*
+The universal representation for an IFC PhasesBitfield.
+*/
+struct an_ifc_phases_bitfield : Numeric_entity<
+                                              an_ifc_phases_bitfield_storage> {
+  using storage_type = an_ifc_phases_bitfield_storage;
+  using base_type = Numeric_entity<storage_type>;
+  using base_type::Numeric_entity;
+};  /* an_ifc_phases_bitfield */
+
+
+enum an_ifc_phases_bitfield_query : uint32_t {
+  ifc_pb_analysis        = 1 << 0,
+  ifc_pb_code_generation = 1 << 1,
+  ifc_pb_evaluation      = 1 << 2,
+  ifc_pb_execution       = 1 << 3,
+  ifc_pb_importing       = 1 << 4,
+  ifc_pb_instantiation   = 1 << 5,
+  ifc_pb_lexing          = 1 << 6,
+  ifc_pb_linking         = 1 << 7,
+  ifc_pb_loading         = 1 << 8,
+  ifc_pb_name_resolution = 1 << 9,
+  ifc_pb_parsing         = 1 << 10,
+  ifc_pb_preprocessing   = 1 << 11,
+  ifc_pb_reading         = 1 << 12,
+  ifc_pb_typing          = 1 << 13,
+  ifc_pb_unknown         = 1 << 14
+};  /* an_ifc_phases_bitfield_query */
 
 
 enum an_ifc_qualifier_bitfield_0_33 : uint8_t {
@@ -6297,6 +6459,37 @@ struct an_ifc_decl_alias : Byte_buffer_entity<an_ifc_decl_alias_storage> {
 };  /* an_ifc_decl_alias */
 
 /*
+  |--------------------------------------------------------|
+  |              DeclBarren - 0.43 (8 bytes)               |
+  |-------------|-------------------------|---------|------|
+  | Name        | Type                    | Version | Size |
+  |-------------|-------------------------|---------|------|
+  | directive   | DirIndex                | 0.43    | 4    |
+  | specifiers  | BasicSpecifiersBitfield | 0.33    | 1    |
+  | access      | AccessSort              | 0.33    | 1    |
+  | __padding__ | uint8_t[2]              |         | 2    |
+  |-------------|-------------------------|---------|------|
+*/
+enum an_ifc_decl_barren_part : uint8_t {};
+using an_ifc_decl_barren_storage = an_ifc_decl_barren_part[8];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_decl_barren_bytes = const an_ifc_decl_barren_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_decl_barren_bytes = an_ifc_decl_barren_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC DeclBarren node.
+
+The representation is declared as a derived struct of Byte_buffer_entity rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_barren : Byte_buffer_entity<an_ifc_decl_barren_storage> {
+  using storage_type = an_ifc_decl_barren_storage;
+  using base_type = Byte_buffer_entity<storage_type>;
+  using base_type::Byte_buffer_entity;
+};  /* an_ifc_decl_barren */
+
+/*
   |------------------------------------------------------------|
   |               DeclBitfield - 0.33 (32 bytes)               |
   |-------------|-----------------------------|---------|------|
@@ -6660,7 +6853,7 @@ struct an_ifc_decl_deduction_guide :
 
 /*
   |------------------------------------------------------------|
-  |           DeclDefaultArgument - 0.43 (23 bytes)            |
+  |           DeclDefaultArgument - 0.43 (24 bytes)            |
   |-------------|-----------------------------|---------|------|
   | Name        | Type                        | Version | Size |
   |-------------|-----------------------------|---------|------|
@@ -6671,13 +6864,14 @@ struct an_ifc_decl_deduction_guide :
   | specifiers  | BasicSpecifiersBitfield     | 0.33    | 1    |
   | access      | AccessSort                  | 0.33    | 1    |
   | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[1]                  |         | 1    |
   |-------------|-----------------------------|---------|------|
   | home_scope  | DeclIndex                   | 0.43    | TF   |
   |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_default_argument_part : uint8_t {};
 using an_ifc_decl_default_argument_storage =
-                                         an_ifc_decl_default_argument_part[23];
+                                         an_ifc_decl_default_argument_part[24];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_decl_default_argument_bytes =
                                    const an_ifc_decl_default_argument_storage*;
@@ -7553,6 +7747,23 @@ struct an_ifc_decl_output_segment :
   | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
   | __padding__ | uint8_t[2]                  |         | 2    |
   |-------------|-----------------------------|---------|------|
+
+  |------------------------------------------------------------|
+  |              DeclParameter - 0.43 (36 bytes)               |
+  |-------------|-----------------------------|---------|------|
+  | Name        | Type                        | Version | Size |
+  |-------------|-----------------------------|---------|------|
+  | name        | TextOffset                  | 0.33    | 4    |
+  | locus       | SourceLocation              | 0.33    | 8    |
+  | type        | TypeIndex                   | 0.33    | 4    |
+  | constraint  | ExprIndex                   | 0.42    | 4    |
+  | init_decl   | ExprNamedDeclOffset         | 0.43    | 4    |
+  | level       | ParameterLevel              | 0.33    | 4    |
+  | position    | ParameterPosition           | 0.33    | 4    |
+  | sort        | ParameterSort               | 0.33    | 1    |
+  | properties  | ReachablePropertiesBitfield | 0.33    | 1    |
+  | __padding__ | uint8_t[2]                  |         | 2    |
+  |-------------|-----------------------------|---------|------|
 */
 enum an_ifc_decl_parameter_part : uint8_t {};
 using an_ifc_decl_parameter_storage = an_ifc_decl_parameter_part[36];
@@ -7903,6 +8114,35 @@ struct an_ifc_decl_specialization :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_specialization */
+
+/*
+  |---------------------------------------|
+  |    DeclSyntaxTree - 0.43 (4 bytes)    |
+  |--------|-------------|---------|------|
+  | Name   | Type        | Version | Size |
+  |--------|-------------|---------|------|
+  | syntax | SyntaxIndex | 0.33    | 4    |
+  |--------|-------------|---------|------|
+*/
+enum an_ifc_decl_syntax_tree_part : uint8_t {};
+using an_ifc_decl_syntax_tree_storage = an_ifc_decl_syntax_tree_part[4];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_decl_syntax_tree_bytes = const an_ifc_decl_syntax_tree_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_decl_syntax_tree_bytes = an_ifc_decl_syntax_tree_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC DeclSyntaxTree node.
+
+The representation is declared as a derived struct of Byte_buffer_entity rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_decl_syntax_tree :
+                          Byte_buffer_entity<an_ifc_decl_syntax_tree_storage> {
+  using storage_type = an_ifc_decl_syntax_tree_storage;
+  using base_type = Byte_buffer_entity<storage_type>;
+  using base_type::Byte_buffer_entity;
+};  /* an_ifc_decl_syntax_tree */
 
 /*
   |------------------------------------------------------------|
@@ -8259,6 +8499,212 @@ struct an_ifc_decl_variable :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_variable */
+
+/*
+  |-----------------------------------------|
+  |     DirAttribute - 0.43 (12 bytes)      |
+  |-------|----------------|---------|------|
+  | Name  | Type           | Version | Size |
+  |-------|----------------|---------|------|
+  | locus | SourceLocation | 0.33    | 8    |
+  | attr  | AttrIndex      | 0.33    | 4    |
+  |-------|----------------|---------|------|
+*/
+enum an_ifc_dir_attribute_part : uint8_t {};
+using an_ifc_dir_attribute_storage = an_ifc_dir_attribute_part[12];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_dir_attribute_bytes = const an_ifc_dir_attribute_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_dir_attribute_bytes = an_ifc_dir_attribute_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC DirAttribute node.
+
+The representation is declared as a derived struct of Byte_buffer_entity rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_dir_attribute :
+                             Byte_buffer_entity<an_ifc_dir_attribute_storage> {
+  using storage_type = an_ifc_dir_attribute_storage;
+  using base_type = Byte_buffer_entity<storage_type>;
+  using base_type::Byte_buffer_entity;
+};  /* an_ifc_dir_attribute */
+
+/*
+  |------------------------------------------|
+  |       DirDeclUse - 0.43 (16 bytes)       |
+  |--------|----------------|---------|------|
+  | Name   | Type           | Version | Size |
+  |--------|----------------|---------|------|
+  | locus  | SourceLocation | 0.33    | 8    |
+  | path   | ExprIndex      | 0.42    | 4    |
+  | result | DeclIndex      | 0.43    | 4    |
+  |--------|----------------|---------|------|
+*/
+enum an_ifc_dir_decl_use_part : uint8_t {};
+using an_ifc_dir_decl_use_storage = an_ifc_dir_decl_use_part[16];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_dir_decl_use_bytes = const an_ifc_dir_decl_use_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_dir_decl_use_bytes = an_ifc_dir_decl_use_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC DirDeclUse node.
+
+The representation is declared as a derived struct of Byte_buffer_entity rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_dir_decl_use : Byte_buffer_entity<an_ifc_dir_decl_use_storage> {
+  using storage_type = an_ifc_dir_decl_use_storage;
+  using base_type = Byte_buffer_entity<storage_type>;
+  using base_type::Byte_buffer_entity;
+};  /* an_ifc_dir_decl_use */
+
+/*
+  |-----------------------------------------|
+  |        DirEmpty - 0.43 (8 bytes)        |
+  |-------|----------------|---------|------|
+  | Name  | Type           | Version | Size |
+  |-------|----------------|---------|------|
+  | locus | SourceLocation | 0.33    | 8    |
+  |-------|----------------|---------|------|
+*/
+enum an_ifc_dir_empty_part : uint8_t {};
+using an_ifc_dir_empty_storage = an_ifc_dir_empty_part[8];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_dir_empty_bytes = const an_ifc_dir_empty_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_dir_empty_bytes = an_ifc_dir_empty_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC DirEmpty node.
+
+The representation is declared as a derived struct of Byte_buffer_entity rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_dir_empty : Byte_buffer_entity<an_ifc_dir_empty_storage> {
+  using storage_type = an_ifc_dir_empty_storage;
+  using base_type = Byte_buffer_entity<storage_type>;
+  using base_type::Byte_buffer_entity;
+};  /* an_ifc_dir_empty */
+
+/*
+  |------------------------------------------|
+  |        DirExpr - 0.43 (16 bytes)         |
+  |--------|----------------|---------|------|
+  | Name   | Type           | Version | Size |
+  |--------|----------------|---------|------|
+  | locus  | SourceLocation | 0.33    | 8    |
+  | expr   | ExprIndex      | 0.42    | 4    |
+  | phases | PhasesBitfield | 0.43    | 4    |
+  |--------|----------------|---------|------|
+*/
+enum an_ifc_dir_expr_part : uint8_t {};
+using an_ifc_dir_expr_storage = an_ifc_dir_expr_part[16];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_dir_expr_bytes = const an_ifc_dir_expr_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_dir_expr_bytes = an_ifc_dir_expr_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC DirExpr node.
+
+The representation is declared as a derived struct of Byte_buffer_entity rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_dir_expr : Byte_buffer_entity<an_ifc_dir_expr_storage> {
+  using storage_type = an_ifc_dir_expr_storage;
+  using base_type = Byte_buffer_entity<storage_type>;
+  using base_type::Byte_buffer_entity;
+};  /* an_ifc_dir_expr */
+
+/*
+  |-----------------------------------------|
+  |       DirPragma - 0.43 (12 bytes)       |
+  |-------|----------------|---------|------|
+  | Name  | Type           | Version | Size |
+  |-------|----------------|---------|------|
+  | locus | SourceLocation | 0.33    | 8    |
+  | words | SentenceIndex  | 0.33    | 4    |
+  |-------|----------------|---------|------|
+*/
+enum an_ifc_dir_pragma_part : uint8_t {};
+using an_ifc_dir_pragma_storage = an_ifc_dir_pragma_part[12];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_dir_pragma_bytes = const an_ifc_dir_pragma_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_dir_pragma_bytes = an_ifc_dir_pragma_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC DirPragma node.
+
+The representation is declared as a derived struct of Byte_buffer_entity rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_dir_pragma : Byte_buffer_entity<an_ifc_dir_pragma_storage> {
+  using storage_type = an_ifc_dir_pragma_storage;
+  using base_type = Byte_buffer_entity<storage_type>;
+  using base_type::Byte_buffer_entity;
+};  /* an_ifc_dir_pragma */
+
+/*
+  |--------------------------------------------|
+  |         DirTuple - 0.43 (8 bytes)          |
+  |-------------|-------------|---------|------|
+  | Name        | Type        | Version | Size |
+  |-------------|-------------|---------|------|
+  | start       | Index       | 0.33    | 4    |
+  | cardinality | Cardinality | 0.33    | 4    |
+  |-------------|-------------|---------|------|
+*/
+enum an_ifc_dir_tuple_part : uint8_t {};
+using an_ifc_dir_tuple_storage = an_ifc_dir_tuple_part[8];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_dir_tuple_bytes = const an_ifc_dir_tuple_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_dir_tuple_bytes = an_ifc_dir_tuple_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC DirTuple node.
+
+The representation is declared as a derived struct of Byte_buffer_entity rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_dir_tuple : Byte_buffer_entity<an_ifc_dir_tuple_storage> {
+  using storage_type = an_ifc_dir_tuple_storage;
+  using base_type = Byte_buffer_entity<storage_type>;
+  using base_type::Byte_buffer_entity;
+};  /* an_ifc_dir_tuple */
+
+/*
+  |----------------------------------------------|
+  |          DirUsing - 0.43 (16 bytes)          |
+  |------------|----------------|---------|------|
+  | Name       | Type           | Version | Size |
+  |------------|----------------|---------|------|
+  | locus      | SourceLocation | 0.33    | 8    |
+  | nominated  | ExprIndex      | 0.42    | 4    |
+  | resolution | DeclIndex      | 0.43    | 4    |
+  |------------|----------------|---------|------|
+*/
+enum an_ifc_dir_using_part : uint8_t {};
+using an_ifc_dir_using_storage = an_ifc_dir_using_part[16];
+#if USE_MMAP_FOR_MODULES
+using an_ifc_dir_using_bytes = const an_ifc_dir_using_storage*;
+#else /* !USE_MMAP_FOR_MODULES */
+using an_ifc_dir_using_bytes = an_ifc_dir_using_storage;
+#endif /* USE_MMAP_FOR_MODULES */
+/*
+The universal representation of an IFC DirUsing node.
+
+The representation is declared as a derived struct of Byte_buffer_entity rather
+than simply an alias of the instantiation to improve the debugger experience.
+*/
+struct an_ifc_dir_using : Byte_buffer_entity<an_ifc_dir_using_storage> {
+  using storage_type = an_ifc_dir_using_storage;
+  using base_type = Byte_buffer_entity<storage_type>;
+  using base_type::Byte_buffer_entity;
+};  /* an_ifc_dir_using */
 
 /*
   |-------------------------------------------|
@@ -13516,7 +13962,7 @@ struct an_ifc_syntax_base_specifier_list :
   |--------------|--------------------|---------|------|
 
   |----------------------------------------------------|
-  |    SyntaxBinaryFoldExpression - 0.43 (54 bytes)    |
+  |    SyntaxBinaryFoldExpression - 0.43 (56 bytes)    |
   |--------------|--------------------|---------|------|
   | Name         | Type               | Version | Size |
   |--------------|--------------------|---------|------|
@@ -13529,11 +13975,12 @@ struct an_ifc_syntax_base_specifier_list :
   | glyph_loci_1 | SourceLocation     | 0.33    | 8    |
   | glyph_loci_2 | SourceLocation     | 0.33    | 8    |
   | right_paren  | SourceLocation     | 0.33    | 8    |
+  | __padding__  | uint8_t[2]         |         | 2    |
   |--------------|--------------------|---------|------|
 */
 enum an_ifc_syntax_binary_fold_expression_part : uint8_t {};
 using an_ifc_syntax_binary_fold_expression_storage =
-                                 an_ifc_syntax_binary_fold_expression_part[54];
+                                 an_ifc_syntax_binary_fold_expression_part[56];
 #if USE_MMAP_FOR_MODULES
 using an_ifc_syntax_binary_fold_expression_bytes =
                            const an_ifc_syntax_binary_fold_expression_storage*;
@@ -18610,6 +19057,53 @@ struct an_ifc_type_unaligned :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_type_unaligned */
 
+enum an_ifc_expr_named_decl_offset_0_43 : uint32_t {};
+
+
+/*
+The universal representation for an IFC ExprNamedDeclOffset.
+*/
+struct an_ifc_expr_named_decl_offset : Offset_entity<
+                                            an_ifc_expr_named_decl, uint32_t> {
+  using node_type = an_ifc_expr_named_decl;
+
+  using native_size_type = uint32_t;
+  using base_type = Offset_entity<node_type, native_size_type>;
+  using base_type::Offset_entity;
+};  /* an_ifc_expr_named_decl_offset */
+
+
+inline a_boolean operator==(const an_ifc_expr_named_decl_offset &lhs,
+                            const an_ifc_expr_named_decl_offset &rhs)
+/*
+Compare two instances of this ExprNamedDeclOffset (lhs and rhs).  If the two
+instances are equivalent, return TRUE; otherwise return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  /* Check members that are more likely to be unique first.  This allows the
+     logic to short circuit in common negative cases. */
+  if (lhs.value != rhs.value) {
+    result = FALSE;
+  } else if (lhs.file != rhs.file) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+inline a_boolean operator!=(const an_ifc_expr_named_decl_offset &lhs,
+                            const an_ifc_expr_named_decl_offset &rhs)
+/*
+Compare two instances of this ExprNamedDeclOffset (lhs and rhs).  If the two
+instances are equivalent, return FALSE; otherwise return TRUE.
+*/
+{
+  return !(lhs == rhs);
+}  /* operator!= */
+
+
 enum an_ifc_form_spec_offset_0_33 : uint32_t {};
 
 
@@ -18768,6 +19262,7 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_pk_const_i64,
   ifc_pk_const_str,
   ifc_pk_decl_alias,
+  ifc_pk_decl_barren,
   ifc_pk_decl_bitfield,
   ifc_pk_decl_concept,
   ifc_pk_decl_constructor,
@@ -18792,11 +19287,19 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_pk_decl_scope,
   ifc_pk_decl_segment,
   ifc_pk_decl_specialization,
+  ifc_pk_decl_syntax_tree,
   ifc_pk_decl_template,
   ifc_pk_decl_temploid,
   ifc_pk_decl_tuple,
   ifc_pk_decl_using_declaration,
   ifc_pk_decl_variable,
+  ifc_pk_dir_attribute,
+  ifc_pk_dir_decl_use,
+  ifc_pk_dir_empty,
+  ifc_pk_dir_expr,
+  ifc_pk_dir_pragma,
+  ifc_pk_dir_tuple,
+  ifc_pk_dir_using,
   ifc_pk_expr_alignof_type_id,
   ifc_pk_expr_array_value,
   ifc_pk_expr_assign_initializer,
@@ -19058,7 +19561,7 @@ enum an_ifc_partition_kind : uint32_t {
 };  /* an_ifc_partition_kind */
 
 
-#define IFC_PARTITION_COUNT 305
+#define IFC_PARTITION_COUNT 314
 
 /*
 A method for mapping partition names to an_ifc_partition_kind values.  Used
@@ -19095,6 +19598,7 @@ EXTERN an_ifc_partition_map ifc_partition_map[IFC_PARTITION_COUNT]
   { "const.i64", ifc_pk_const_i64 },
   { "const.str", ifc_pk_const_str },
   { "decl.alias", ifc_pk_decl_alias },
+  { "decl.barren", ifc_pk_decl_barren },
   { "decl.bitfield", ifc_pk_decl_bitfield },
   { "decl.concept", ifc_pk_decl_concept },
   { "decl.constructor", ifc_pk_decl_constructor },
@@ -19119,11 +19623,19 @@ EXTERN an_ifc_partition_map ifc_partition_map[IFC_PARTITION_COUNT]
   { "decl.scope", ifc_pk_decl_scope },
   { "decl.segment", ifc_pk_decl_segment },
   { "decl.specialization", ifc_pk_decl_specialization },
+  { "decl.syntax-tree", ifc_pk_decl_syntax_tree },
   { "decl.template", ifc_pk_decl_template },
   { "decl.temploid", ifc_pk_decl_temploid },
   { "decl.tuple", ifc_pk_decl_tuple },
   { "decl.using-declaration", ifc_pk_decl_using_declaration },
   { "decl.variable", ifc_pk_decl_variable },
+  { "dir.attribute", ifc_pk_dir_attribute },
+  { "dir.decl-use", ifc_pk_dir_decl_use },
+  { "dir.empty", ifc_pk_dir_empty },
+  { "dir.expr", ifc_pk_dir_expr },
+  { "dir.pragma", ifc_pk_dir_pragma },
+  { "dir.tuple", ifc_pk_dir_tuple },
+  { "dir.using", ifc_pk_dir_using },
   { "expr.alignof-type-id", ifc_pk_expr_alignof_type_id },
   { "expr.array-value", ifc_pk_expr_array_value },
   { "expr.assign-initializer", ifc_pk_expr_assign_initializer },

@@ -27,6 +27,13 @@ BEGIN_EDG_NAMESPACE
 
 
 /*
+Explicit specializations of functions for ExprNamedDeclOffset.
+*/
+SPEC_OFFSET_PARTITION_KIND(an_ifc_expr_named_decl_offset)
+SPEC_OFFSET_PARTITION_INDEX(an_ifc_expr_named_decl_offset)
+
+
+/*
 Explicit specializations of functions for FormSpecOffset.
 */
 SPEC_OFFSET_PARTITION_KIND(an_ifc_form_spec_offset)
