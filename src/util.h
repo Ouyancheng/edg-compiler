@@ -2886,11 +2886,10 @@ formatter::append_into functions.
                                                      *backing_array,
                                                      args,
                                                      element_sizes[counter++]))
-  /* Ensure the underlying array is always null-terminated. */
-  if (backing_array->length() < 1 ||
-      (*backing_array)[backing_array->length() - 1] != '\0') {
-    backing_array->insert(backing_array->length(), '\0');
-  }  /* if */
+  /* Ensure the underlying array is always null-terminated.  To support strings
+     that may contain interior nulls, ensure a null character is always
+     added. */
+  backing_array->insert(backing_array->length(), '\0');
 }  /* append_with_custom_reserve */
 
 }  /* detail */
@@ -2898,6 +2897,9 @@ formatter::append_into functions.
 /*
 The fundamental string type, which can be instantiated with different
 allocators as necessary.
+
+Note: this type does not currently support (and thus should not be used with)
+multi-byte character strings.
 */
 template<template<typename> class Allocator>
 struct Allocated_string {
