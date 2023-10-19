@@ -684,7 +684,7 @@ Check to see if the given module's version has at least the minimum version
              file->version_minor >= minimum_version_minor) {
     result = TRUE;
   } else if (skip_module_version_check) {
-    /* The version check is being skipped, check to see if this is a query for
+    /* The version check is being skipped.  Check to see if this is a query for
        the minimum supported IFC version or something before that. */
     if (minimum_version_major < IFC_MIN_VER_MAJOR) {
       result = TRUE;
