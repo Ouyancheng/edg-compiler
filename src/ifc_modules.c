@@ -685,11 +685,20 @@ Check to see if the given module's version has at least the minimum version
     result = TRUE;
   } else if (skip_module_version_check) {
     /* The version check is being skipped.  Check to see if this is a query for
-       the minimum supported IFC version or something before that. */
-    if (minimum_version_major < IFC_MIN_VER_MAJOR) {
+       the minimum supported IFC version or something before that.
+
+       Local variables are used here to suppress spurious diagnostics about
+       pointless comparisons against 0 if IFC_MIN_VER_MAJOR or
+       IFC_MIN_VER_MINOR are 0.  These local variables while "constant" are not
+       sufficiently constant for front ends to analyze; the optimizer is
+       unaffected. */
+    an_ifc_version_storage min_supported_major = IFC_MIN_VER_MAJOR;
+    an_ifc_version_storage min_supported_minor = IFC_MIN_VER_MINOR;
+
+    if (minimum_version_major < min_supported_major) {
       result = TRUE;
-    } else if (minimum_version_major == IFC_MIN_VER_MAJOR &&
-               minimum_version_minor <= IFC_MIN_VER_MINOR) {
+    } else if (minimum_version_major == min_supported_major &&
+               minimum_version_minor <= min_supported_minor) {
       result = TRUE;
     }  /* if */
   }  /* if */
