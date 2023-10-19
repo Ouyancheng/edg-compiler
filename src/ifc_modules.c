@@ -689,7 +689,7 @@ Check to see if the given module's version has at least the minimum version
 
        Local variables are used here to suppress spurious diagnostics about
        pointless comparisons against 0 if IFC_MIN_VER_MAJOR or
-       IFC_MIN_VER_MINOR are 0.  These local variables while "constant" are not
+       IFC_MIN_VER_MINOR is 0.  These local variables while "constant" are not
        sufficiently constant for front ends to analyze; the optimizer is
        unaffected. */
     an_ifc_version_storage min_supported_major = IFC_MIN_VER_MAJOR;
