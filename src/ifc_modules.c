@@ -5824,7 +5824,7 @@ Return the default argument expression for the given parameter.
     an_ifc_expr_named_decl_offset init_decl_expr = get_ifc_init_decl(param);
     an_ifc_expr_named_decl        named_decl;
 
-    /* When the has_default_arg_expr was called, this should've been validated
+    /* When has_default_arg_expr was called, this should've been validated
        and this function should not have been called if invalid. */
     construct_node_prechecked(&named_decl, init_decl_expr);
 
