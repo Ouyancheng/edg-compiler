@@ -76,7 +76,7 @@ struct Integral_constant {
 
 namespace detail {
 
-#if defined(__clang__) || defined(__GNUC__)
+#if (defined(__clang__) || defined(__GNUC__)) && !defined(__EDG__)
 
 /*
 An implementation of Is_trivially_copyable that relies on the host compiler
@@ -92,7 +92,7 @@ struct Is_trivially_copyable_builtin_impl :
               public Integral_constant<bool, __is_trivially_copyable(a_Type)> {
 };  /* Is_trivially_copyable_builtin_impl */
 
-#endif /* defined(__clang__) || defined(__GNUC__) */
+#endif /* (defined(__clang__) || defined(__GNUC__)) && !defined(__EDG__) */
 
 /*
 An implementation of Is_trivially_copyable that relies on specializations to
@@ -127,7 +127,7 @@ template<typename a_Type>
 struct Is_trivially_copyable_helper {
   static constexpr a_boolean value =
                       (a_boolean)Is_trivially_copyable_edg_impl<a_Type>::value;
-#if defined(__clang__) || defined(__GNUC__)
+#if (defined(__clang__) || defined(__GNUC__)) && !defined(__EDG__)
   /* This check ensures that for GCC and Clang implementations (which provide
      the __is_trivially_copyable builtin), the front end's specializations
      match the compiler's expectations for Is_trivially_copyable. */
@@ -135,7 +135,7 @@ struct Is_trivially_copyable_helper {
                 Is_trivially_copyable_builtin_impl<a_Type>::value,
                 "the EDG and builtin Is_trivially_copyable implementations "
                 "have diverged");
-#endif /* defined(__clang__) || defined(__GNUC__) */
+#endif /* (defined(__clang__) || defined(__GNUC__)) && !defined(__EDG__) */
 };  /* Is_trivially_copyable_helper */
 
 }  /* detail */
