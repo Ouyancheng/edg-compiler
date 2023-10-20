@@ -66,6 +66,89 @@ using Is_same = typename Is_same_helper<a_Type_A, a_Type_B,a_Ret_type>::ret_ty;
 
 
 /*
+This type is commonly used as a base class for exposing C++ type_traits like
+template details.
+*/
+template<typename a_Type, a_Type a_Value>
+struct Integral_constant {
+  static constexpr a_Type value = a_Value;
+};  /* Integral_constant */
+
+namespace detail {
+
+#if defined(__clang__) || defined(__GNUC__)
+
+/*
+An implementation of Is_trivially_copyable that relies on the host compiler
+having the builtin __is_trivially_copyable.
+
+Note: bool is used in place of a_boolean to match the standard library
+implementations that use this builtin.  Thus, this provides maximum
+compatibility with the __is_trivially_copyable builtin (i.e., to avoid possible
+warnings about a conversion from bool).
+*/
+template<typename a_Type>
+struct Is_trivially_copyable_builtin_impl :
+              public Integral_constant<bool, __is_trivially_copyable(a_Type)> {
+};  /* Is_trivially_copyable_builtin_impl */
+
+#endif /* defined(__clang__) || defined(__GNUC__) */
+
+/*
+An implementation of Is_trivially_copyable that relies on specializations to
+remaining independent of any underlying compiler or standard library
+implementation.
+
+Note: bool, true, and false are used in place of a_boolean, TRUE, and FALSE for
+maximum compatibility when comparing with the __is_trivially_copyable builtin
+implementation (i.e., Is_trivially_copyable_builtin_impl).
+*/
+template<typename a_Type>
+struct Is_trivially_copyable_edg_impl : Integral_constant<bool, false> {
+};  /* Is_trivially_copyable_edg_impl */
+
+template<>
+struct Is_trivially_copyable_edg_impl<char> : Integral_constant<bool, true> {
+};  /* Is_trivially_copyable_edg_impl */
+
+/*
+This is an implementation of Is_trivially_copyable that uses the EDG
+specialization based trivial copyable implementation.  However, it additionally
+checks against the host compiler's builtin implementation as a safety check on
+the EDG based specializations.
+
+This compromise allows the front end to work on any platform while maintaining
+maximum performance and safety.
+
+Note this implementation uses bool to match the builtin semantics regardless of
+the definition of a_boolean in the front end configuration.
+*/
+template<typename a_Type>
+struct Is_trivially_copyable_helper {
+  static constexpr a_boolean value =
+                      (a_boolean)Is_trivially_copyable_edg_impl<a_Type>::value;
+#if defined(__clang__) || defined(__GNUC__)
+  /* This check ensures that for GCC and Clang implementations (which provide
+     the __is_trivially_copyable builtin), the front end's specializations
+     match the compiler's expectations for Is_trivially_copyable. */
+  static_assert(Is_trivially_copyable_edg_impl<a_Type>::value ==
+                Is_trivially_copyable_builtin_impl<a_Type>::value,
+                "the EDG and builtin Is_trivially_copyable implementations "
+                "have diverged");
+#endif /* defined(__clang__) || defined(__GNUC__) */
+};  /* Is_trivially_copyable_helper */
+
+}  /* detail */
+
+/*
+Is_trivially_copyable<a_Type>::value is TRUE when the given type is trivially
+copyable; otherwise, it's FALSE.
+*/
+template<typename a_Type>
+using Is_trivially_copyable = detail::Is_trivially_copyable_helper<a_Type>;
+
+
+/*
 Overload_priority is a helper type for controlling overload priority by using
 nested parent types to provide a gradient of conversions (priorities).  This
 results in Overload_priority<N> having a higher priority than
@@ -332,6 +415,44 @@ a pointer to the last such "next" field (or p_list itself if there are none).
   }  /* while */
   return p_list;
 }  /* get_last_simple_list_link */
+
+
+template<typename an_Object_type, typename an_Array_A, typename an_Array_B>
+inline Enable_if<!Is_trivially_copyable<an_Object_type>::value, void>
+copy_elements(an_Array_A       &dest_array,
+              const an_Array_B &src_array,
+              size_t           num_to_copy)
+/*
+Copy the given number of non-trivially copyable elements from the source
+array-like type to the the destination array-like type.
+
+Note: both an_Array_A and an_Array_B must represent all elements to be copied
+as contiguous memory blocks to use this interface.
+*/
+{
+  for (size_t i = 0; i < num_to_copy; ++i) {
+    dest_array[i] = src_array[i];
+  }  /* for */
+}  /* copy_elements */
+
+
+template<typename an_Object_type, typename an_Array_A, typename an_Array_B>
+inline Enable_if<Is_trivially_copyable<an_Object_type>::value, void>
+copy_elements(an_Array_A       &dest_array,
+              const an_Array_B &src_array,
+              size_t           num_to_copy)
+/*
+Copy the given number of trivially copyable elements from the source array-like
+type to the the destination array-like type.
+
+Note: both an_Array_A and an_Array_B must represent all elements to be copied
+as contiguous memory blocks to use this interface.
+*/
+{
+  size_t num_bytes = num_to_copy * sizeof(an_Object_type);
+
+  (void)memcpy(&(dest_array[0]), &(src_array[0]), num_bytes);
+}  /* copy_elements */
 
 
 /*lint -e{1537}*/
@@ -897,6 +1018,9 @@ struct Dyn_array: private Allocator<an_Elem> {
     { return (*this)[this->n_elems-1]; }
   inline auto back_elem() const -> const an_elem&
     { return (*this)[this->n_elems-1]; }
+  template<template<typename> class Elem_allocator>
+  inline an_elem*
+  to_allocated_storage(Elem_allocator<an_elem>  allocator) const;
   inline void push_back(const an_elem  &value);
   inline void push_back(an_elem  &&value);
   inline void pop_back()
@@ -1126,6 +1250,26 @@ Subscript operator to access a const version of the element at the given index.
   check_assertion(0 <= i && i < this->n_elems);
   return this->elems[i];
 }  /* Dyn_array::operator[] */
+
+
+template<typename an_Elem, template<typename> class Allocator>
+template<template<typename> class Elem_allocator>
+an_Elem*
+Dyn_array<an_Elem, Allocator>::to_allocated_storage(
+                                            Elem_allocator<an_Elem>  allocator)
+                                                                          const
+/*
+Given an allocator, allocate and return a new array of the contained elements.
+*/
+{
+  size_t        num_elems = this->length();
+  typename Elem_allocator<an_Elem>::an_allocation
+                allocation = allocator.alloc(num_elems);
+  char          *result = allocation.start;
+
+  copy_elements<an_Elem>(result, *this, num_elems);
+  return result;
+}  /* Dyn_array::to_allocated_storage */
 
 
 template<typename an_Elem, template<typename> class Allocator>
@@ -2972,13 +3116,7 @@ Given an allocator, allocate and return a new character string.
 */
 {
   check_assertion(this->backing_array.back_elem() == '\0');
-  size_t        num_bytes = this->backing_array.length();
-  typename Char_allocator<char>::an_allocation
-                allocation = allocator.alloc(num_bytes);
-  char          *result = allocation.start;
-
-  (void)memcpy(result, this->backing_array.begin(), num_bytes);
-  return result;
+  return this->backing_array.to_allocated_storage(allocator);
 }  /* Allocated_string::to_allocated_storage */
 
 
