@@ -14857,10 +14857,11 @@ namespace {
 This structure encapsulates a (potentially multi-byte) IFC string value.
 */
 struct an_ifc_string {
-  inline an_ifc_string(an_ifc_module    *mod,
+  inline an_ifc_string(an_ifc_module    *mod_val,
                        a_character_kind char_kind,
                        a_const_char     *ifc_str,
                        size_t           ifc_byte_count);
+  an_ifc_module *mod;   /* The IFC module owning this string literal. */
   a_character_kind
                 kind;   /* The character kind of the string. */
   a_const_char  *bytes; /* A pointer to the IFC string byte buffer. */
@@ -14869,7 +14870,7 @@ struct an_ifc_string {
 };  /* an_ifc_string */
 
 
-an_ifc_string::an_ifc_string(an_ifc_module    *mod,
+an_ifc_string::an_ifc_string(an_ifc_module    *mod_val,
                              a_character_kind char_kind,
                              a_const_char     *ifc_str,
                              size_t           ifc_byte_count)
@@ -14878,7 +14879,7 @@ Given the associated IFC module, character kind, string array, and IFC byte
 count, construct an internal structure capturing the representation of the IFC
 string.
 */
-  : kind(char_kind), bytes(ifc_str),
+  : mod(mod_val), kind(char_kind), bytes(ifc_str),
     num_chars(ifc_byte_count / character_size[char_kind])
 {
   if (ifc_byte_count % character_size[char_kind] != 0) {
@@ -14932,23 +14933,40 @@ Given an IFC string index, return the corresponding encoded string value.
 }  /* get_encoded_string */
 
 
-static inline size_t size_of_str_bytes(const an_ifc_string &str)
+static inline size_t size_of_str_lit_bytes(const an_ifc_string &str)
 /*
 Given an IFC string, return the number of bytes that contain characters
 included in the string literal.
 */
 {
-  return str.num_chars * character_size[str.kind];
+  size_t result = 0;
+
+  if (str.num_chars > 0) {
+    size_t char_size = character_size[str.kind];
+    size_t start_last_char = (str.num_chars - 1) * char_size;
+
+    /* The IFC includes the null terminator in its encoding of string
+       literals. */
+    for (size_t i = 0; i < char_size; ++i) {
+      if (str.bytes[start_last_char + i] != '\0') {
+        ifc_unexpected(str.mod,
+                       "an IFC string is missing its null-terminator");
+        break;
+      }  /* if */
+    }  /* for */
+    result = (str.num_chars - 1) * character_size[str.kind];
+  }  /* if */
+  return result;
 }  /* size_of_str_constant */
 
 
-static inline size_t size_of_str_constant(const an_ifc_string &str)
+static inline size_t size_of_str_lit_constant(const an_ifc_string &str)
 /*
 Given an IFC string, return the number of bytes in the corresponding string
 literal constant.
 */
 {
-  return size_of_str_bytes(str) + character_size[str.kind];
+  return size_of_str_lit_bytes(str) + character_size[str.kind];
 }  /* size_of_str_constant */
 
 
@@ -14959,8 +14977,8 @@ string with a guaranteed null character.
 */
 {
   char   *result;
-  size_t constant_size = size_of_str_constant(str);
-  size_t num_char_bytes = size_of_str_bytes(str);
+  size_t constant_size = size_of_str_lit_constant(str);
+  size_t num_char_bytes = size_of_str_lit_bytes(str);
 
   result = alloc_text_of_string_literal(constant_size);
   memcpy(result, str.bytes, num_char_bytes);
@@ -14984,7 +15002,7 @@ with all null characters (except the terminating null character) removed.
 {
   a_constant_ptr result = alloc_cached_constant();
   char           *val = alloc_text_of_string_literal(str);
-  size_t         constant_size = size_of_str_constant(str);
+  size_t         constant_size = size_of_str_lit_constant(str);
   a_targ_size_t  str_char_size = character_size[str.kind];
 
   clear_constant(result, ck_string);
@@ -15679,8 +15697,9 @@ Add a tok_string_literal for the given string (from the given module) to cache.
 */
 {
   /* Create a fake "IFC string" to perform a cache of the given a_const_char*
-     (C-string). */
-  an_ifc_string ifc_str(mod, chk_char, str, strlen(str));
+     (C-string).  As the IFC includes the null-terminator in its string literal
+     representations, add one to the strlen result to mimic this behavior. */
+  an_ifc_string ifc_str(mod, chk_char, str, strlen(str) + 1);
 
   cache_string_literal(cache, ifc_str);
 }  /* cache_string_literal */
