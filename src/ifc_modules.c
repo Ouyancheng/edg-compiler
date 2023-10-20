@@ -7047,10 +7047,7 @@ position, and expected kind check for a redeclaration.  If a redeclaration is
 found, return TRUE and set *redecl_entity and *redecl_kind to the redeclared
 entity and its associated kind; otherwise, return FALSE.
 
-The caller is responsible for handling any required merging of the
-declarations.  In the case of duplicate definitions the caller is responsible
-for ignoring the latter definition for header units and erroring for named
-modules.
+The caller is responsible for handling appropriate merging of declarations.
 
 This function should generally be avoided for more specific redeclaration
 checking functions, as it only has a primitive understanding of what a
@@ -7063,8 +7060,8 @@ redeclaration is.
 
   if (result) {
     /* This is a redeclaration of an existing symbol. */
-    /* FIXME: This should also trigger if the redecl_sym's module is a named
-       module. */
+    /* FIXME: This should also trigger if the redeclared entity's module is a
+       named module. */
 #if 0
     if (!is_header_unit(mep->module_info)) {
       pos_error(ec_module_entity_redeclaration, pos);
@@ -7486,10 +7483,7 @@ position, check for a redeclaration of a template.  If a redeclaration is
 found, return TRUE and set *redecl_entity and *redecl_kind to the redeclared
 entity and its associated kind; otherwise, return FALSE.
 
-The caller is responsible for handling any required merging of the
-declarations.  In the case of duplicate definitions the caller is responsible
-for ignoring the latter definition for header units and erroring for named
-modules.
+The caller is responsible for handling appropriate merging of declarations.
 */
 {
   a_boolean result = find_redeclared_template_entity(loc->symbol_header, mep,
@@ -7498,8 +7492,8 @@ modules.
 
   if (result) {
     /* This is a redeclaration of an existing symbol. */
-    /* FIXME: This should also trigger if the redecl_sym's module is a named
-       module. */
+    /* FIXME: This should also trigger if the redeclared entity's module is a
+       named module. */
 #if 0
     if (!is_header_unit(mep->module_info)) {
       pos_error(ec_module_entity_redeclaration, pos);
@@ -7702,10 +7696,7 @@ specialization.  If a redeclaration is found, return TRUE and set
 *redecl_entity and *redecl_kind to the redeclared entity and its associated
 kind; otherwise, return FALSE.
 
-The caller is responsible for handling any required merging of the
-declarations.  In the case of duplicate definitions the caller is responsible
-for ignoring the latter definition for header units and erroring for named
-modules.
+The caller is responsible for handling appropriate merging of declarations.
 */
 {
   a_boolean result = find_redeclared_specialized_entity(
@@ -7717,8 +7708,8 @@ modules.
 
   if (result) {
     /* This is a redeclaration of an existing symbol. */
-    /* FIXME: This should also trigger if the redecl_sym's module is a named
-       module. */
+    /* FIXME: This should also trigger if the redeclared entity's module is a
+       named module. */
 #if 0
     if (!is_header_unit(mep->module_info)) {
       pos_error(ec_module_entity_redeclaration, pos);
@@ -7743,10 +7734,7 @@ template specialization.  If a redeclaration is found, return TRUE and set
 *redecl_entity and *redecl_kind to the redeclared entity and its associated
 kind; otherwise, return FALSE.
 
-The caller is responsible for handling any required merging of the
-declarations.  In the case of duplicate definitions the caller is responsible
-for ignoring the latter definition for header units and erroring for named
-modules.
+The caller is responsible for handling appropriate merging of declarations.
 */
 {
   a_boolean result = find_redeclared_specialized_entity(
@@ -7758,8 +7746,8 @@ modules.
 
   if (result) {
     /* This is a redeclaration of an existing symbol. */
-    /* FIXME: This should also trigger if the redecl_sym's module is a named
-       module. */
+    /* FIXME: This should also trigger if the redeclared entity's module is a
+       named module. */
 #if 0
     if (!is_header_unit(mep->module_info)) {
       pos_error(ec_module_entity_redeclaration, pos);
@@ -7772,14 +7760,15 @@ modules.
 
 static a_boolean
 is_redeclared_concept_entity(a_symbol            *sym,
-                              a_module_entity_ptr mep,
-                              char                **redecl_entity,
-                              an_il_entry_kind    *redecl_kind)
+                             a_module_entity_ptr mep,
+                             char                **redecl_entity,
+                             an_il_entry_kind    *redecl_kind)
 /*
 For a given module entity's potentially previously-declared symbol and module
-entity pointer, check to see if the symbol is indeed a redeclaration.  If the
-symbol is a redeclaration, return TRUE and set *redecl_entity and *redecl_kind
-to the redeclared entity and its associated kind; otherwise, return FALSE.
+entity pointer, check to see if the symbol is indeed a concept redeclaration.
+If the symbol is a redeclaration, return TRUE and set *redecl_entity and
+*redecl_kind to the redeclared entity and its associated kind; otherwise,
+return FALSE.
 
 This function should not be used directly in modules code, instead see
 check_and_set_concept_redeclaration.
@@ -7817,9 +7806,9 @@ find_redeclared_concept_entity_in_list(a_symbol            *sym_list,
                                         an_il_entry_kind    *redecl_kind)
 /*
 For a given module entity's associated symbol list and module entity pointer,
-search the symbols for a redeclaration.  If a redeclaration is found, return
-TRUE and set *redecl_entity and *redecl_kind to the redeclared entity and its
-associated kind; otherwise, return FALSE.
+search the symbols for a concept redeclaration.  If a redeclaration is found,
+return TRUE and set *redecl_entity and *redecl_kind to the redeclared entity
+and its associated kind; otherwise, return FALSE.
 
 This function should not be used directly in modules code, instead see
 check_and_set_concept_redeclaration.
@@ -7847,9 +7836,9 @@ find_redeclared_concept_entity(a_symbol_header     *sym_header,
                                 an_il_entry_kind    *redecl_kind)
 /*
 For a given module entity's symbol header and module entity pointer, search the
-active and inactive symbols for a redeclaration.  If a redeclaration is found,
-return TRUE and set *redecl_entity and *redecl_kind to the redeclared entity
-and its associated kind; otherwise, return FALSE.
+active and inactive symbols for a concept redeclaration.  If a redeclaration is
+found, return TRUE and set *redecl_entity and *redecl_kind to the redeclared
+entity and its associated kind; otherwise, return FALSE.
 
 This function should not be used directly in modules code, instead see
 check_and_set_concept_redeclaration.
@@ -7881,10 +7870,7 @@ position, check for a redeclaration of a concept.  If a redeclaration is found,
 return TRUE and set *redecl_entity and *redecl_kind to the redeclared entity
 and its associated kind; otherwise, return FALSE.
 
-The caller is responsible for handling any required merging of the
-declarations.  In the case of duplicate definitions the caller is responsible
-for ignoring the latter definition for header units and erroring for named
-modules.
+The caller is responsible for handling appropriate merging of declarations.
 */
 {
   a_boolean result = find_redeclared_concept_entity(loc->symbol_header, mep,
@@ -7893,8 +7879,8 @@ modules.
 
   if (result) {
     /* This is a redeclaration of an existing symbol. */
-    /* FIXME: This should also trigger if the redecl_sym's module is a named
-       module. */
+    /* FIXME: This should also trigger if the redeclared entity's module is a
+       named module. */
 #if 0
     if (!is_header_unit(mep->module_info)) {
       pos_error(ec_module_entity_redeclaration, pos);
@@ -22783,8 +22769,8 @@ tuple elements by '::' instead of ','.
             mod->cache_operator(cache, assoc);
             break;
           case opkind_annotative:
-            /* Note that this differs from the normal cache_arg as otherwise
-               spurious parenthesis can be added.  While extra parens are not
+            /* Note that this differs from the normal cache_arg in order to
+               avoid adding spurious parentheses.  While extra parens are not
                normally a problem, for cases where the original source is
                something like:
 
