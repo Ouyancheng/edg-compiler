@@ -5833,7 +5833,8 @@ returned set to TRUE.
       a_constant_ptr  folded_con = local_constant();
       a_boolean       is_consteval_init = FALSE;
       a_boolean       is_constant_evaluated = FALSE;
-      if (init_dip->kind == (a_dynamic_init_kind)dik_constructor) {
+      if (init_dip->kind == (a_dynamic_init_kind)dik_constructor &&
+          !scope_stack_top().in_consteval_context) {
         a_routine_ptr  ctor = init_dip->variant.constructor.ptr;
         if (ctor != NULL && ctor->is_consteval) {
           is_consteval_init = TRUE;

@@ -7439,9 +7439,9 @@ static void scan_template_variable_declaration(
 			a_decl_parse_state_ptr			dps);
 
 
-static void instantiate_template_variable(a_template_instance_ptr  tip,
-                                          a_boolean                is_new,
-                                          a_boolean                is_use)
+void instantiate_template_variable(a_template_instance_ptr  tip,
+                                   a_boolean                is_new,
+                                   a_boolean                is_use)
 /*
 Generate a definition of an instance of a variable template or a static
 data member of a class template.  The definition may be based on a
@@ -8497,7 +8497,7 @@ argument, when tap->variant.type is NULL).
                                constant_is(cp, ck_template_param);
         if (!template_param_found) {
           /* Check if the type depends on a template parameter. */
-          template_param_found = is_instantiation_dependent_type(cp->type);
+          template_param_found = constant_is_instantiation_dependent(cp);
         }  /* if */
       }  /* if */
       break;

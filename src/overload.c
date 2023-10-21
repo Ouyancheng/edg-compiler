@@ -22501,6 +22501,10 @@ is_transparent.  conv_context describes the context of the conversion.
     /* Force the result to be a prvalue. */
     conversion->result_is_a_glvalue = FALSE;
     convert_operand(source_operand, dest_type, conversion);
+    if (conv_context & CCO_NONTYPE_TEMPLATE_ARG) {
+      force_operand_to_constant_if_possible_full(
+                              source_operand, /*is_constant_evaluated=*/TRUE);
+    }  /* if */
     if (!is_constant_operand(source_operand) &&
         wrap_in_template_constant_if_needed) {
       make_template_param_expr_constant_operand(source_operand);

@@ -1,5 +1,22 @@
 Version 6.6
 
+10/20/23 [EDGcpfe/26734]
+Evaluation of consteval functions
+
+Consider, in C++20 mode:
+
+  consteval void g() {}
+  consteval auto f() { return &g; }
+  static_assert(f() == f());  // Previously an error.  Now okay.
+
+Previously, the front end constant-evaluated each call f() independently,
+triggering spurious errors because the address of a consteval function is not
+permitted as part of the result of a top-level constant-expression.  However,
+in this case the top-level constant-expression if "f() == f()" whose result
+does not include the address of g().  The problem is now fixed (and the
+example is now accepted).
+
+
 10/18/23 [EDGcpfe/26228,EDGcpfe/26298]
 Substitution of requires expressions
 

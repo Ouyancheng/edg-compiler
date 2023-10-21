@@ -25108,8 +25108,14 @@ instantiation-dependent.
     if (con->variant.address.kind == (an_address_base_kind)abk_variable) {
       /* Check if the given variable's initializer makes it instantiation-
          dependent. */
-      examine_var_init_for_instantiation_dependence(
-                               con->variant.address.variant.variable, tblock);
+      a_variable  *vp = con->variant.address.variant.variable;
+      if (vp->source_corresp.is_class_member &&
+          parent_class_of(vp)->variant.class_struct_union.is_nonreal_class) {
+        tblock->result = TRUE;
+        tblock->terminate = TRUE;
+      } else {
+        examine_var_init_for_instantiation_dependence(vp, tblock);
+      }  /* if */
     }  /* if */
     tblock->suppress_subtree_walk = TRUE;
   } else if (constant_is(con, ck_aggregate) ||

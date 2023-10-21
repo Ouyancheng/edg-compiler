@@ -1855,9 +1855,14 @@ is pushed regardless of any of the other factors.
   new_entry->traditional_const_expr_required = FALSE;
   new_entry->in_noexcept_operand_expression = FALSE;
   new_entry->suppress_constexpr_call_folding = FALSE;
-  new_entry->consteval_call_need_not_fold =
-                      (depth_scope_stack != NO_SCOPE_DEPTH) ? 
-                               scope_stack_top().in_consteval_context : FALSE;
+  if (expression_kind == ek_integral_constant ||
+      expression_kind == ek_template_arg ||
+      (depth_scope_stack != NO_SCOPE_DEPTH &&
+       scope_stack_top().in_consteval_context)) {
+    new_entry->consteval_call_need_not_fold = TRUE;
+  } else {
+    new_entry->consteval_call_need_not_fold = FALSE;
+  }  /* if */
   new_entry->consteval_function_designator_seen = FALSE;
   new_entry->allow_call_with_incomplete_return_type = FALSE;
   new_entry->allow_array_decay_in_constant_expr = FALSE;
@@ -19135,9 +19140,11 @@ set to reflect whether the call was folded or not.
 #if GNU_EXTENSIONS_ALLOWED
              rout->implicit_alias ||
 #endif /* GNU_EXTENSIONS_ALLOWED */
-             (rout->is_constexpr || rout->is_consteval ||
-              (rout->is_virtual && constexpr_virtual_enabled &&
-               !virtual_suppressed))))) &&
+             ((rout->is_constexpr || rout->is_consteval ||
+               (rout->is_virtual && constexpr_virtual_enabled &&
+                !virtual_suppressed)) &&
+              !(rout->is_consteval &&
+                expr_stack->consteval_call_need_not_fold))))) &&
           (!expr_stack->in_noexcept_operand_expression ||
            core_constant_expr_is_noexcept || microsoft_mode) &&
           expr_fold_constexpr_call(function_call_node, &rout, result,
@@ -21579,9 +21586,20 @@ it might produce an error).
   /* No skip_parens here.  Parentheses are handled under the enk_operation
      case. */
   if (is_variable_node(node)) {
+    a_variable_ptr variable = node_variable(node);
+    if (!variable->used && !variable->is_nonreal &&
+        variable->template_info != NULL &&
+        variable->template_info->template_arg_list != NULL &&
+        !symbol_for(variable)->defined) {
+      a_template_instance_ptr
+               tip = template_instance_for_symbol(symbol_for(variable));
+      if (!tip->instantiation_required &&
+          !master_instance_of(tip)->already_instantiated) {
+        instantiate_template_variable(tip, /*is_new=*/FALSE, /*is_use=*/TRUE);
+      }  /* if */
+    }  /* if */
     if (constant_case != NULL && !C_mode()) {
       /* Look for constant-valued variables in C++. */
-      a_variable_ptr variable;
       con_expr_value = value_of_constant_var_glvalue_expr(
                                                        node,
                                                        /*copy_for_reuse=*/TRUE,

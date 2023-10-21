@@ -5380,16 +5380,6 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
         a_boolean         is_null;
         if (con->variant.ptr_to_member.is_function_ptr) {
           a_routine_ptr  rp = con->variant.ptr_to_member.variant.routine;
-          if (rp != NULL && rp->is_consteval &&
-              !ips->allow_consteval_routine_node) {
-            /* Don't treat a reference to a consteval function as a constant
-               unless a constant is really needed.  That keeps the enk_routine
-               node in the expression tree so invalid uses can be diagnosed. */
-            info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
-                          constant_pos(con, ips), ips);
-            do_constexpr_fail(result);
-            break;
-          }  /* if */
           pm_value->variant.routine = rp;
           is_null = (rp == NULL);
           pm_value->is_ptr_to_mem_function = TRUE;
@@ -17925,6 +17915,8 @@ the value representation of the integer value.
                     trim_bit_field_if_needed(dst, tp);
                   }  /* if */
                 }  /* if */
+                mark_whole_subobject_initialized(ips, dst_storage, tp,
+                                                 dst->complete_object);
                 if (expr->is_lvalue || expr->is_xvalue ||
                     is_function_address(dst)) {
                   /* The assignment produces an lvalue-like result. */
@@ -17948,8 +17940,6 @@ the value representation of the integer value.
                                                    complete_object);
                 }  /* if */
                 if (!lhs_initialized) {
-                  mark_whole_subobject_initialized(ips, dst_storage, tp,
-                                                   dst->complete_object);
                   if (dst_storage == dst->complete_object) {
                     mark_complete_object_initialized(dst_storage);
                   }  /* if */

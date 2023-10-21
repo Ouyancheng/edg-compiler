@@ -655,7 +655,7 @@ extern a_symbol_ptr find_template_class(
 			     a_symbol_ptr        specific_prototype_allowed,
 			     a_boolean		 instantiate_nonreal,
 			     a_boolean		 do_not_create,
-			     a_boolean		 in_subtitution);
+			     a_boolean		 in_substitution);
 
 extern a_symbol_ptr find_class_template_instance(
                                               a_symbol_ptr        class_templ,
@@ -1159,6 +1159,10 @@ extern void set_routine_instantiation_needed_bit_number(a_routine_ptr routine);
 extern void set_variable_instantiation_needed_bit_number(
                                                       a_variable_ptr variable);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
+
+extern void instantiate_template_variable(a_template_instance_ptr  tip,
+                                          a_boolean                is_new,
+                                          a_boolean                is_use);
 
 extern void scan_nested_deduction_guide_template(
                                        a_tmpl_decl_state_ptr  decl_state,
