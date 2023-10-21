@@ -11981,6 +11981,12 @@ command line -D options.
                              "_MSVC_TRADITIONAL",
                              /*cannot_be_redeclared=*/TRUE,
                              /*ref_suppresses_pch_file=*/FALSE);
+    if (ms_version_is(>=1929)) {
+      (void)enter_predef_macro(DEFAULT_MSVC_EXECUTION_CHARACTER_SET,
+                               "_MSVC_EXECUTION_CHARACTER_SET",
+                               /*cannot_be_redeclared=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */

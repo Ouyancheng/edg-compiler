@@ -1,5 +1,16 @@
 Version 6.6
 
+10/21/23 [EDGcpfe/26636]
+Microsoft compatibility: _MSVC_EXECUTION_CHARACTER_SET predefined macro
+
+In Microsoft emulation mode when microsoft_version >= 1929, the
+_MSVC_EXECUTION_CHARACTER_SET predefined macro is now set.  The value of the
+predefined macro is determined by the value of the new configuration macro
+DEFAULT_MSVC_EXECUTION_CHARACTER_SET and defaults to 1252 (which is the
+ANSI Latin 1 code page).  Note that this change only sets the predefined macro
+(and there is no change to the execution character set of the front end).
+
+
 10/20/23 [EDGcpfe/26734]
 Evaluation of consteval functions
 

@@ -2966,6 +2966,18 @@ is not defined.
           !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 
 
+/*
+Default value of the _MSVC_EXECUTION_CHARACTER_SET predefined macro (which
+is defined in Microsoft emulation mode and refers to the execution character
+set defined at compile time.  Note that at the current time, this value is used
+only for the purposes of the _MSVC_EXECUTION_CHARACTER_SET predefined macro
+(and doesn't have any effect on the front end).  Use 1252 as the default value
+(ANSI Latin 1; Western European code page).
+*/
+#ifndef DEFAULT_MSVC_EXECUTION_CHARACTER_SET
+#define DEFAULT_MSVC_EXECUTION_CHARACTER_SET "1252"
+#endif /* DEFAULT_MSVC_EXECUTION_CHARACTER_SET */
+
 extern int unicode_to_utf8(unsigned long uc,
                            char          chars[4]);
 #if UNICODE_SOURCE_SUPPORTED

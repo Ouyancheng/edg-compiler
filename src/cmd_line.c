@@ -6976,6 +6976,11 @@ file.
 #else /* !defined(DEFAULT_MS_PERMISSIVE) */
   comment_undefined_macro_name(DEFAULT_MS_PERMISSIVE);
 #endif /* defined(DEFAULT_MS_PERMISSIVE) */
+#if defined(DEFAULT_MSVC_EXECUTION_CHARACTER_SET)
+  define_numeric_valued_macro(DEFAULT_MSVC_EXECUTION_CHARACTER_SET);
+#else /* !defined(DEFAULT_MSVC_EXECUTION_CHARACTER_SET) */
+  comment_undefined_macro_name(DEFAULT_MSVC_EXECUTION_CHARACTER_SET);
+#endif /* defined(DEFAULT_MSVC_EXECUTION_CHARACTER_SET) */
 #if defined(DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED)
   define_numeric_valued_macro(DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED);
 #else /* !defined(DEFAULT_MULTIBYTE_CHARS_IN_SOURCE_ENABLED) */
