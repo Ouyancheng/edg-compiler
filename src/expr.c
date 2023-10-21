@@ -16483,9 +16483,16 @@ We do not advance to the token after the typename operator in this case.
   scope_stack_top().in_decltype_context = saved_in_decltype_context;
   expr_stack->suppress_diagnostics = saved_suppress_diagnostics;
   do_operand_transformations(&operand, TOPT_NO_OPTIONS);
-  force_operand_to_constant_if_possible_full(&operand,
-                                             /*is_constant_evaluated=*/TRUE);
-  if (!is_reflection_type(operand.type)) {
+  if (!is_constant_operand(&operand) && !is_error_operand(&operand)) {
+    (void)expr_interpret_expression_operand(&operand,
+                                            /*must_be_constant=*/TRUE,
+                                            /*is_constant_evaluated=*/TRUE);
+  }  /* if */
+  if (is_error_type(operand.type)) {
+    result = error_type();
+  } else if (operand_is_instantiation_dependent(&operand)) {
+    result = type_of_unknown_templ_param_nontype;
+  } else if (!is_reflection_type(operand.type)) {
     expr_pos_ty_error(ec_bad_splicer_operand, &operand.position, operand.type);
     result = error_type();
   } else if (!is_constant_operand(&operand)) {
@@ -18862,8 +18869,6 @@ ck_reflection) of a special built-in type (of kind tk_reflection).
   an_expr_stack_entry     expr_stack_entry;
   a_memory_region_number  region_to_switch_back_to;
   an_object_lifetime_ptr  saved_object_lifetime;
-  a_boolean               potentially_evaluated =
-                                         curr_expr_is_potentially_evaluated();
   a_source_position       start_pos = pos_curr_token, arg_pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position       end_pos;
@@ -18884,6 +18889,7 @@ ck_reflection) of a special built-in type (of kind tk_reflection).
                                /*suppress_object_lifetime=*/FALSE,
                                rcblock);
   expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
+  expr_stack->favor_constant_result = TRUE;
   if (rcblock != NULL) {
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     // FIXME: This is to avoid warnings.  The rescan path still needs to be
@@ -18910,13 +18916,13 @@ ck_reflection) of a special built-in type (of kind tk_reflection).
       end_pos = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       (void)get_token();
-    } else if (is_generalized_identifier_start(GID_IS_EXPR_CONTEXT)) {
+    } else if (is_generalized_identifier_start(gid_flags)) {
       /* Check for namespace or template names.  Other names (functions,
          types, etc.) will be handled as types or expressions below. */
       a_symbol_ptr  sym = coalesce_and_lookup_generalized_identifier(
                                                  gid_flags, ilm_normal, &err);
-      if (sym == NULL || next_token() != tok_rparen) {
-        /* The identifier either not resolve to a particular entity.  Try to
+      if (sym == NULL) {
+        /* The identifier does not resolve to a particular entity.  Try to
            parse the whole thing as a type or expression below. */
       } else if (symbol_is(sym, sk_namespace)) {
         /* A reflection of a namespace or namespace alias name. */
@@ -18935,7 +18941,8 @@ ck_reflection) of a special built-in type (of kind tk_reflection).
         (void)get_token();
         handled = TRUE;
       } else if ((symbol_is(sym, sk_class_template) ||
-                  symbol_is(sym, sk_variable_template)) &&
+                  symbol_is(sym, sk_variable_template) ||
+                  symbol_is(sym, sk_concept_template)) &&
                  (next_tok = next_token()) != tok_lparen &&
                  next_tok != tok_lbrace) {
         /* A template name not followed by "<" (since otherwise it would have
@@ -18953,17 +18960,21 @@ ck_reflection) of a special built-in type (of kind tk_reflection).
       }  /* if */
     }  /* if */ 
     if (!handled) {
-      if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
-                           DFS_SINGLE_TYPE_REQUIRED)) {
-        a_type_ptr  tp = scan_type_for_sizeof(potentially_evaluated);
+      if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED)) {
+        a_decl_parse_state  dps;
+        init_decl_parse_state(&dps);
+        type_name_full(&dps);
+        if (!(gpp_mode && !clang_mode)) {
+          check_type_definition_in_type_name(&dps);
+        }  /* if */
         refl_cp->variant.reflection.entity.kind = iek_type;
-        refl_cp->variant.reflection.entity.ptr = (char*)tp;
+        refl_cp->variant.reflection.entity.ptr = (char*)dps.type;
       } else {
         an_operand        opnd;
         an_expr_node_ptr  node;
         scan_expr(&opnd, PREC_PREFIX, EOPT_REFLECTION_OP);
-        // FIXME: Handle some unusual operands.
         if (is_sym_for_member_operand(&opnd)) {
+          /* Handle some expressions that are unusual in other contexts. */
           if (symbol_is(opnd.symbol, sk_field)) {
             refl_cp->variant.reflection.entity.kind = iek_field;
             refl_cp->variant.reflection.entity.ptr =
@@ -18977,21 +18988,27 @@ ck_reflection) of a special built-in type (of kind tk_reflection).
           }  /* if */
         } else {
           a_constant_ptr  con = local_constant();
-          node = make_node_from_operand(&opnd);
-          /* If the node doesn't refer to a specific entity, constant-evaluate
-             the expression.  The constant result has a potentially broader
-             scope than the expression itself (which often is only locally
-             meaningful). */
-          if (!(node_is(node, enk_variable) && node->is_lvalue) &&
-              !node_is(node, enk_routine) &&
-              !node_is(node, enk_constant) &&
-              fold_expr(node, con)) {
+          if (is_constant_operand(&opnd)) {
+            copy_constant(&opnd.variant.constant, con);
             refl_cp->variant.reflection.entity.kind = iek_constant;
             refl_cp->variant.reflection.entity.ptr =
                                        (char*)move_local_constant_to_il(&con);
           } else {
-            refl_cp->variant.reflection.entity.kind = iek_expr_node;
-            refl_cp->variant.reflection.entity.ptr = (char*)node;
+            node = make_node_from_operand(&opnd);
+            /* If the node doesn't refer to a specific entity, constant-fold
+               the expression.  The constant result has a potentially broader
+               scope than the expression itself (which often is only locally
+               meaningful). */
+            if (!(node_is(node, enk_variable) && node->is_lvalue) &&
+                !node_is(node, enk_routine) &&
+                fold_expr(node, con)) {
+              refl_cp->variant.reflection.entity.kind = iek_constant;
+              refl_cp->variant.reflection.entity.ptr =
+                                       (char*)move_local_constant_to_il(&con);
+            } else {
+              refl_cp->variant.reflection.entity.kind = iek_expr_node;
+              refl_cp->variant.reflection.entity.ptr = (char*)node;
+            }  /* if */
           }  /* if */
           if (con != NULL) release_local_constant(&con);
         }  /* if */
@@ -38373,6 +38390,12 @@ FIXME: This is currently incomplete.
         }  /* if */
       } else if (iek == iek_field) {
         copy_operand(&opnd, result);
+      } else if (iek == iek_variable) {
+        make_lvalue_variable_operand((a_variable*)rvp->entity.ptr,
+                                     &opnd.position,
+                                     end_position_or_null(
+                                               &curr_construct_end_position),
+                                     result, (a_ref_entry_ptr)NULL);
       } else if (iek == iek_routine) {
         make_function_designator_operand(
                                       symbol_for((a_routine*)rvp->entity.ptr),

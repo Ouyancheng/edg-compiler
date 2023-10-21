@@ -9968,6 +9968,72 @@ done:
 }  /* do_constexpr_std_meta_make_constexpr_array */
 
 
+static a_boolean do_constexpr_std_meta_reflect_value(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::reflect_value(T val).  It creates IL (a_constant) for the
+value val and returns a reflection value referring to that constant.
+*/
+{
+  a_boolean           result = FALSE;
+  a_template_arg_ptr  tap = callee->template_arg_list;
+  a_type_ptr          val_type = tap->variant.type;
+  a_reflection_value  *rvp = (a_reflection_value*)result_storage;
+  a_constant_ptr      val_cp = local_constant();
+
+  if (!copy_interpreter_object_to_constant(ips, p_arg_bytes[0], p_arg_bytes[0],
+                                           val_type, val_cp)) {
+    do_constexpr_fail(result);
+    release_local_constant(&val_cp);
+  } else {
+    val_cp = move_local_constant_to_il(&val_cp);
+    rvp->entity.kind = iek_constant;
+    rvp->entity.ptr = (char*)val_cp;
+    mark_subobject_initialized(result_storage, complete_obj);
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_make_reflect_value */
+
+
+static a_boolean do_constexpr_std_meta_value_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::reflect_value(T val).  It creates IL (a_constant) for the
+value val and returns a reflection value referring to that constant.
+*/
+{
+  a_boolean           result = FALSE;
+  a_template_arg_ptr  tap = callee->template_arg_list;
+  a_type_ptr          val_type = tap->variant.type;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  switch (rvp->entity.kind) {
+    case iek_constant:
+      { a_constant  *cp = (a_constant*)rvp->entity.ptr;
+        if (identical_types_ignoring_qualifiers(cp->type, val_type)) {
+          result = extract_value_from_constant(ips, cp, result_storage,
+                                               complete_obj);
+        }  /* if */
+      }
+      break;
+    default:
+      break;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_make_value_of */
+
+
 static a_constant_ptr
 		reflection_str_placeholder;
 			/* Dummy entry used to identify strings produced by
@@ -10227,6 +10293,108 @@ done:
 }  /* make_infovec */
 
 
+static a_boolean load_infovec(an_interpreter_state          *ips,
+                              a_type_ptr                    tp,
+                              Dyn_array<a_reflection_value> *reflections,
+                              a_source_position             *diag_pos,
+                              a_byte                        *result_storage,
+                              a_byte                        *complete_obj)
+/*
+Load an infovec (type tp, which is struct std::meta::infovec) stored at
+result_storage (part of the complete object at complete_obj) into *reflections.
+ips is the current interpreter state and diag_pos is the position associated
+with any diagnostics (e.g., if the infovec is not initialized).  The type tp
+is assumed to be a class type with three fields: One pointer to some
+dynamically-allocated storage and two integers representing the capacity and
+length of the sequence, respectively.
+*/
+{
+  a_boolean     result = TRUE, other_fields = FALSE;
+  int           n_ptr_fields = 0, n_integral_fields = 0;
+  a_byte_count  length = 0;
+  a_field_ptr   fp;
+  a_constexpr_address
+                *cap = NULL;
+
+  check_assertion(type_is(tp, tk_struct) || type_is(tp, tk_class));
+  if (base_classes_of(tp) != NULL) {
+    info_with_pos(ec_invalid_infovec_for_reflection, &ips->position, ips);
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  /* Store the pointer to the allocation and the length/capacity in the
+     returned object. */
+  fp = tp->variant.class_struct_union.field_list;
+  fp = next_alloc_field(fp);
+  for (; fp != NULL; fp = next_alloc_field(fp->next)) {
+    a_type_ptr    ftp = skip_typerefs(fp->type);
+    a_byte_count  offset;
+    get_mapped_byte_count(&persistent_map, fp, offset);
+    if (type_is(ftp, tk_pointer) && n_ptr_fields == 0) {
+      /* We found the pointer field of the infovec object: Set it to point to
+         a dynamically-allocated array of length std::meta::info elements. */
+      cap = (a_constexpr_address*)(result_storage+offset);
+      if (!is_initialized(cap)) {
+        more_info_diagnostic(ec_infovec_not_initialized, diag_pos,
+                             &ips->diag_list);
+        do_constexpr_fail(result);
+        goto done;
+      }  /* if */
+      n_ptr_fields += 1;
+    } else if (type_is(ftp, tk_integer) && n_integral_fields < 2) {
+      /* The length and/or the capacity field.  Retain the shorter one as the
+         length. */
+      if (!subobject_is_initialized(result_storage+offset, complete_obj)) {
+        more_info_diagnostic(ec_infovec_not_initialized, diag_pos,
+                             &ips->diag_list);
+        do_constexpr_fail(result);
+        goto done;
+      }  /* if */
+      a_host_large_integer  value;
+      a_boolean             ovfl = FALSE;
+      get_int_val_from(result_storage+offset, ftp, value, ovfl);
+      if (n_integral_fields == 0 || value < length) {
+        length = value;
+      }  /* if */
+      n_integral_fields += 1;
+    } else {
+      other_fields = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  if (other_fields || n_integral_fields != 2 || n_ptr_fields != 1) {
+    info_with_pos(ec_invalid_infovec_for_reflection, &ips->position, ips);
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  /* Load the infovec contents. */
+  check_assertion(cap != NULL);
+  if (!is_array_element(cap)) {
+    more_info_diagnostic(ec_infovec_not_initialized, diag_pos,
+                         &ips->diag_list);
+    do_constexpr_fail(result);
+    goto done;
+  } else {
+    a_reflection_value  *rvp = (a_reflection_value*)cap->address;
+    a_byte              *array = cap->complete_object;
+    reflections->clear();
+    reflections->reserve(length);
+    for (int k = 0; k<(int)length; ++k, ++rvp) {
+      if (cannot_dereference(cap) ||
+          !subobject_is_initialized((a_byte*)rvp, array)) {
+        more_info_diagnostic(ec_infovec_not_initialized, diag_pos,
+                             &ips->diag_list);
+        do_constexpr_fail(result);
+        goto done;
+      }  /* if */
+      reflections->push_back(*rvp);
+    }  /* if */
+  }
+done:
+  return result;
+}  /* load_infovec */
+
+
 static a_boolean do_constexpr_std_meta_members_of(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
@@ -10259,7 +10427,7 @@ representing a member of the given entity.
   check_assertion(type_is(skip_typerefs(callee->type), tk_routine));
   if (scp == NULL) {
     invalid_arg = TRUE;
-  } else if (rvp->entity.kind == (an_il_entry_kind)iek_type) {
+  } else if (rvp->entity.kind == iek_type) {
     a_type_ptr  parent_tp = (a_type_ptr)rvp->entity.ptr;
     parent_tp = skip_typerefs(parent_tp);
     if (is_immediate_class_type(parent_tp)) {
@@ -10306,6 +10474,145 @@ representing a member of the given entity.
 done:
   return result;
 }  /* do_constexpr_std_meta_members_of */
+
+
+static a_boolean do_constexpr_std_meta_substitute(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::members_of(<info>, <infovec>).  It returns a
+reflection for an instance obtained by substituting the template arguments
+represented by <infovec> in the template represented by info.  A substitution
+error is communicated with an invalid reflection.
+*/
+{
+  a_boolean     result = FALSE;
+  a_reflection_value
+                *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_source_correspondence_ptr
+                scp = source_corresp_for_reflection(rvp);
+  Dyn_array<a_reflection_value>
+                arg_reflections(0);
+  a_type_ptr    callee_type = skip_typerefs(callee->type),
+                info_type, infovec_type;
+  a_param_type_ptr
+                ptp;
+
+  if (!ips->is_constant_evaluated) {
+    /* Don't attempt to evaluate this call if a constant result is not needed,
+       because it could be somewhat expensive. */
+    do_constexpr_fail(result);
+    info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                  &call_node->position, ips);
+    goto done;
+  }  /* if */
+  check_assertion(type_is(callee_type, tk_routine));
+  ptp = function_type_params(callee_type);
+  check_assertion(ptp != NULL && ptp->next != NULL);
+  info_type = skip_typerefs(ptp->type);
+  check_assertion(info_type == reflection_type());
+  infovec_type = skip_typerefs(ptp->next->type);
+  if (scp == NULL || scp->assoc_info == NULL ||
+      rvp->entity.kind != iek_template) {
+    do_constexpr_fail(result);
+    // FIXME: create invalid reflection
+  } else if (load_infovec(ips, infovec_type, &arg_reflections,
+                          &call_node->position,
+                          p_arg_bytes[1], p_arg_bytes[1])) {
+    /* Create a template argument list from the arg_reflections array. */
+    a_template_arg_ptr  t_args = NULL, *p_t_args = &t_args;
+    for (a_reflection_value arg_rv: arg_reflections) {
+      switch (arg_rv.entity.kind) {
+        case iek_type:
+          *p_t_args = alloc_template_arg(tak_type);
+          (*p_t_args)->variant.type = (a_type*)arg_rv.entity.ptr;
+          break;
+        case iek_constant:
+          *p_t_args = alloc_template_arg(tak_nontype);
+          (*p_t_args)->variant.constant = (a_constant*)arg_rv.entity.ptr;
+          break;
+        case iek_template:
+          *p_t_args = alloc_template_arg(tak_template);
+          (*p_t_args)->variant.templ.ptr = (a_template*)arg_rv.entity.ptr;
+          break;
+        default:
+          do_constexpr_fail(result);
+          // FIXME: create invalid reflection
+          goto done;
+      }  /* switch */
+      p_t_args = &(*p_t_args)->next;
+    }  /* for */
+
+    a_template  *templ = (a_template*)rvp->entity.ptr;
+    a_reflection_value  *result_rvp = (a_reflection_value*)result_storage;
+    if (templ->kind == templk_class) {
+      a_ctws_state      ctws_state;
+      a_template_param  *t_params = templ_params_of(symbol_for(templ));
+      a_type            *tp, *proto_tp = templ->prototype_instantiation.type;
+      a_boolean  copy_error = FALSE;
+      init_ctws_state(&ctws_state);
+      tp = copy_type_with_substitution(proto_tp, t_args, t_params,
+                                       &call_node->position, CTWS_NO_OPTIONS,
+                                       &copy_error, &ctws_state);
+      if (tp == NULL || copy_error) {
+        do_constexpr_fail(result);
+        // FIXME: create invalid reflection
+      } else {
+        result_rvp->entity.kind = iek_type;
+        result_rvp->entity.ptr = (char*)tp;
+        result = TRUE;
+      }  /* if */
+    } else if (templ->kind == templk_variable) {
+      a_symbol_ptr  sym = find_template_variable(symbol_for(templ),
+                                                 &t_args,
+                                                 /*prototype_allowed=*/TRUE,
+                                                 /*is_use=*/FALSE,
+                                                 /*diagnose=*/FALSE);
+      if (sym == NULL ||
+          !(symbol_is(sym, sk_variable) ||
+            symbol_is(sym, sk_static_data_member))) {
+        do_constexpr_fail(result);
+        // FIXME: create invalid reflection
+      } else {
+        result_rvp->entity.kind = iek_variable;
+        result_rvp->entity.ptr = (char*)variable_for_symbol(sym);
+        result = TRUE;
+      }  /* if */
+    } else if (templ->kind == templk_concept) {
+      a_diag_list       diag_list;
+      a_template_param  *t_params = symbol_for(templ)
+                                                ->variant.template_info
+                                                ->cache.decl_info->parameters;
+      a_boolean         val;
+      a_constant        *con = fs_constant(ck_integer);
+      clear_diag_list(&diag_list);
+      val = constraint_satisfied(templ->prototype_instantiation.constraint,
+                                 t_args, t_params, &diag_list);
+      discard_more_info_list(&diag_list);
+      make_bool_constant_value(val, con);
+      result_rvp->entity.kind = iek_constant;
+      result_rvp->entity.ptr = (char*)con;
+      result = TRUE;
+    } else if (templ->kind == templk_function) {
+      do_constexpr_fail(result);
+    } else {
+      do_constexpr_fail(result);
+      // FIXME: create invalid reflection
+    }  /* if */
+  } else {
+    // FIXME: create invalid reflection?
+    result = FALSE;
+  }  /* if */
+done:
+  if (result) {
+    mark_subobject_initialized(result_storage, complete_obj);
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_substitute */
 
 
 static void report_leftover_allocations(an_interpreter_state  *ips)
@@ -10931,6 +11238,15 @@ frame when the call has completed.
       break;
     case cit_std_meta_members_of:
       evaluator = do_constexpr_std_meta_members_of;
+      break;
+    case cit_std_meta_substitute:
+      evaluator = do_constexpr_std_meta_substitute;
+      break;
+    case cit_std_meta_reflect_value:
+      evaluator = do_constexpr_std_meta_reflect_value;
+      break;
+    case cit_std_meta_value_of:
+      evaluator = do_constexpr_std_meta_value_of;
       break;
     default:
       unexpected_condition();

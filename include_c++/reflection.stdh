@@ -9,6 +9,7 @@ This file should be included after the standard headers <string_view> and
 #define __REFLECTION_STDH
 
 #include <new>
+#include <initializer_list>
 
 namespace std {
   namespace meta {
@@ -27,6 +28,13 @@ namespace std {
       consteval infovec(infovec &&__src)
         : __infos(__src.__infos), __cap(__src.__cap), __n(__src.__n)
         { __src.__infos = nullptr; __src.__cap = 0; __src.__n = 0; }
+      consteval infovec(initializer_list<info>  __ili)
+        : __infos(new info[__ili.size()]),
+          __cap(__ili.size()), __n(__ili.size())
+        {
+          info  *__pi = this->__infos;
+          for (info __i: __ili) *__pi++ = __i;
+        }
       constexpr ~infovec() { delete[] this->__infos; }
       consteval info const& operator[](long __i) const
         { return this->__infos[__i]; }
@@ -83,6 +91,20 @@ namespace std {
 
     consteval infovec members_of(info) {
       return infovec(0);  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval info substitute(info, infovec) {
+      return ^::;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    template<typename T>
+    consteval info reflect_value(T) {
+      return ^::;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    template<typename T>
+    consteval T value_of(info) {
+      return T{};  /* Dummy return.  Handled by interpreter. */
     }
   }
 }

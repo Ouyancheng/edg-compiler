@@ -7107,6 +7107,13 @@ associated namespaces and classes to "namespace_list" and "class_list".
         add_parent = TRUE;
       }  /* if */
       break;
+    case tk_reflection:
+      if (symbol_for_namespace_std_meta != NULL) {
+        add_namespace_to_namespace_list(symbol_for_namespace_std_meta
+                                                 ->variant.namespace_info.ptr,
+                                        namespace_list);
+      }  /* if */
+      break;
     default:
       break;
   }  /* switch */

@@ -8890,6 +8890,29 @@ adjust *dps and *idlbp as needed.
 }  /* check_clang_c_overload */
 
 
+static a_boolean is_std_meta_infovec_type(a_type_ptr  tp)
+/*
+Return TRUE if the given type is a class type named infovec belonging to
+namespace std::meta.
+*/
+{
+  a_boolean  result = FALSE;
+
+  tp = skip_typerefs(tp);
+  if (is_immediate_class_type(tp) &&
+      symbol_for_namespace_std_meta != NULL &&
+      is_namespace_member(tp) &&
+      parent_namespace_of(tp) ==
+                  symbol_for_namespace_std_meta->variant.namespace_info.ptr) {
+    a_const_char  *name = unmangled_name_of(&tp->source_corresp);
+    if (strcmp(name, "infovec") == 0) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_std_meta_infovec_type */
+
+
 void check_for_constexpr_intrinsic(a_routine_ptr    rp,
                                    a_symbol_header  *sym_hdr)
 /*
@@ -8990,7 +9013,7 @@ interpreter) and if so mark it as such.
           a_param_type_ptr ptp = function_type_params(rtp);
           if (ptp != NULL && ptp->next == NULL &&
               is_reflection_type(ptp->type) &&
-              is_class_struct_union_type(rtp->variant.routine.return_type)) {
+              is_std_meta_infovec_type(rtp->variant.routine.return_type)) {
             tag = cit_std_meta_members_of;
           }  /* if */
         }  /* if */
@@ -9005,6 +9028,45 @@ interpreter) and if so mark it as such.
               check_consistent_string_view_type(
                                           rtp->variant.routine.return_type)) {
             tag = cit_std_meta_name_of;
+          }  /* if */
+        }  /* if */
+        break;
+      case 'r':
+        if (strcmp(name, "reflect_value") == 0 &&
+            rp->template_arg_list != NULL &&
+            rp->template_arg_list->next == NULL &&
+            rp->template_arg_list->kind == (a_templ_arg_kind)tak_type) {
+          a_type_ptr       rtp = skip_typerefs(rp->type);
+          a_param_type_ptr ptp = function_type_params(rtp);
+          if (ptp != NULL && ptp->next == NULL &&
+              is_reflection_type(rtp->variant.routine.return_type)) {
+            tag = cit_std_meta_reflect_value;
+          }  /* if */
+        }  /* if */
+        break;
+      case 's':
+        if (strcmp(name, "substitute") == 0 &&
+            rp->template_arg_list == NULL) {
+          a_type_ptr       rtp = skip_typerefs(rp->type);
+          a_param_type_ptr ptp = function_type_params(rtp);
+          if (ptp != NULL && ptp->next != NULL && ptp->next->next == NULL &&
+              is_reflection_type(ptp->type) &&
+              is_std_meta_infovec_type(ptp->next->type) &&
+              is_reflection_type(rtp->variant.routine.return_type)) {
+            tag = cit_std_meta_substitute;
+          }  /* if */
+        }  /* if */
+        break;
+      case 'v':
+        if (strcmp(name, "value_of") == 0 &&
+            rp->template_arg_list != NULL &&
+            rp->template_arg_list->next == NULL &&
+            rp->template_arg_list->kind == (a_templ_arg_kind)tak_type) {
+          a_type_ptr       rtp = skip_typerefs(rp->type);
+          a_param_type_ptr ptp = function_type_params(rtp);
+          if (ptp != NULL && ptp->next == NULL &&
+              is_reflection_type(ptp->type)) {
+            tag = cit_std_meta_value_of;
           }  /* if */
         }  /* if */
         break;

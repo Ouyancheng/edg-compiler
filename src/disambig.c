@@ -1779,8 +1779,11 @@ types separated by commas (when single_type_required is FALSE).
       }  /* if */
     } else {
       /* Otherwise, if we are scanning one or more types.  We should be
-         at the right parenthesis. */
-      if (curr_token != tok_rparen) state.may_be_decl = FALSE;
+         at a right delimiter. */
+      if (curr_token != tok_rparen && curr_token != tok_rbrace &&
+          curr_token != tok_rbracket) {
+        state.may_be_decl = FALSE;
+      }  /* if */
       if (state.may_be_decl && is_cast(flags)) {
         /* If we are in a cast context, look at what follows the right
            parenthesis to see if it is something that could follow a cast.
