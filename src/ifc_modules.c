@@ -17430,7 +17430,11 @@ otherwise, return FALSE.
       if (opt_ifc_str.has_value()) {
         an_ifc_string ifc_str = *opt_ifc_str;
 
-        if (ifc_str.num_chars == 0) {
+        /* Check to see if this is an empty string literal which in the IFC
+           representation contains only a single null-character. */
+        if (ifc_str.kind == chk_char &&
+            ifc_str.num_chars == 1 &&
+            ifc_str.bytes[0] == '\0') {
           result = TRUE;
         }  /* if */
       }  /* if */
