@@ -3818,6 +3818,10 @@ Allocate and initialize an expression node.
   if (curr_il_region_number == file_scope_region_number) {
     if (avail_fs_nodes != NULL) {
       ptr = avail_fs_nodes;
+      /* If this assertion fails some part of the front end is still using this
+         reclaimed expression. */
+      check_assertion_str(ptr->kind == enk_reclaimed,
+                          "expected a reclaimed expression");
       avail_fs_nodes = ptr->extra.next_avail;
       trace_alloc_check(ptr);
     } else {

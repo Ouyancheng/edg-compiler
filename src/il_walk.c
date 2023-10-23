@@ -3345,6 +3345,11 @@ as specified in the control block.
   switch (expr->kind) {
     case enk_error:
       break;
+    case enk_reclaimed:
+      /* If this assertion fails some part of the front end is still using this
+         reclaimed expression. */
+      unexpected_condition_str("unexpected reclaimed expression");
+      break;
     case enk_operation:
       traverse_expr_list(expr->variant.operation.operands, tblock);
       break;

@@ -6309,20 +6309,31 @@ given expression.
 }  /* expr_interpret_expression_operand */
 
 
-static void reclaim_node_if_possible(an_expr_node_ptr  node)
+static inline void mark_fs_node_reclaimed(an_expr_node_ptr node)
+/*
+It's been determined by caller that the given node can be made available for
+reuse.  Update the avail_fs_nodes list to include the given node.
+*/
+{
+  node->kind = enk_reclaimed;
+  node->extra.next_avail = avail_fs_nodes;
+  avail_fs_nodes = node;
+}  /* mark_fs_node_reclaimed */
+
+
+static inline void reclaim_node_if_possible(an_expr_node_ptr  node)
 /*
 If the given expression node is allocated in file-scope memory, place it on
 the avail_fs_nodes list.
 */
 {
   if (in_file_scope(node)) {
-    node->extra.next_avail = avail_fs_nodes;
-    avail_fs_nodes = node;
+    mark_fs_node_reclaimed(node);
   }  /* if */
 }  /* reclaim_node_if_possible */
 
 
-static void reclaim_fs_node(
+static inline void reclaim_fs_node(
                          an_expr_node_ptr                               node,
                          ARG_UNUSED an_expr_or_stmt_traversal_block_ptr tblock)
 /*
@@ -6331,8 +6342,7 @@ the avail_fs_nodes list.
 */
 {
   if (in_file_scope(node)) {
-    node->extra.next_avail = avail_fs_nodes;
-    avail_fs_nodes = node;
+    mark_fs_node_reclaimed(node);
   }  /* if */
 }  /* reclaim_fs_node */
 
