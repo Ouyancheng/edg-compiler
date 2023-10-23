@@ -6321,16 +6321,45 @@ reuse.  Update the avail_fs_nodes list to include the given node.
 }  /* mark_fs_node_reclaimed */
 
 
+static inline a_boolean is_fs_node_reclaimable(an_expr_node_ptr  node)
+/*
+Given an expression node, return TRUE if the node is in file scope and can be
+safely reclaimed; otherwise, return FALSE.
+*/
+{
+  return in_file_scope(node);
+}  /* is_fs_node_reclaimable */
+
+
 static inline void reclaim_node_if_possible(an_expr_node_ptr  node)
 /*
 If the given expression node is allocated in file-scope memory, place it on
 the avail_fs_nodes list.
 */
 {
-  if (in_file_scope(node)) {
+  if (is_fs_node_reclaimable(node)) {
     mark_fs_node_reclaimed(node);
   }  /* if */
 }  /* reclaim_node_if_possible */
+
+
+static inline void check_if_fs_node_reclaimable(
+                                    an_expr_node_ptr                    node,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+If the given expression node is not a shallow copy and can itself be reclaimed,
+allow subtree processing to continue; otherwise, cull the subtree expression
+walk (as a non-reclaimable expression cannot have reclaimable sub-expressions).
+
+Note: This function is intended for traversal based processing.  See
+reclaim_fs_nodes_of_expr_tree for usage.  See reclaim_node_if_possible for
+non-traversal based cases.
+*/
+{
+  if (!is_fs_node_reclaimable(node) || node->is_shallow_copy) {
+    tblock->suppress_subtree_walk = TRUE;
+  }  /* if */
+}  /* check_if_fs_node_reclaimable */
 
 
 static inline void reclaim_fs_node(
@@ -6339,9 +6368,13 @@ static inline void reclaim_fs_node(
 /*
 If the given expression node is allocated in file-scope memory, place it on
 the avail_fs_nodes list.
+
+Note: This function is intended for traversal based processing.  See
+reclaim_fs_nodes_of_expr_tree for usage.  See reclaim_node_if_possible for
+non-traversal based cases.
 */
 {
-  if (in_file_scope(node)) {
+  if (is_fs_node_reclaimable(node)) {
     mark_fs_node_reclaimed(node);
   }  /* if */
 }  /* reclaim_fs_node */
@@ -6356,7 +6389,8 @@ contains for potential reuse later on.
   an_expr_or_stmt_traversal_block  tblock;
 
   clear_expr_or_stmt_traversal_block(&tblock);
-  tblock.process_expr = reclaim_fs_node;
+  tblock.process_expr = check_if_fs_node_reclaimable;
+  tblock.process_post_expr = reclaim_fs_node;
   traverse_expr(expr_tree, &tblock);
 }  /* reclaim_fs_nodes_of_expr_tree */
 

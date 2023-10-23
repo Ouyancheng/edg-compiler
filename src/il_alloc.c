@@ -3778,6 +3778,7 @@ its kind to the indicated kind.
   node->is_brace_notation_cast = FALSE;
   node->is_objectless_nonstatic_data_mem_ref = FALSE;
   node->is_pack_expansion = FALSE;
+  node->is_shallow_copy = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   node->is_safe_cast = FALSE;
   node->element_of_cli_param_array_arg = FALSE;

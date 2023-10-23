@@ -14208,6 +14208,10 @@ typedef struct an_expr_node {
 			   constant entry that appears in the initializer list
 			   for an aggregate (there's an is_pack_expansion flag
 			   also in a_constant). */
+  a_bit_field	is_shallow_copy:1;
+			/* TRUE if this is a shallow copy created by copy_node
+			   (and thus shares pointers with the original
+			   expression).  */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	is_safe_cast:1;
 			/* TRUE when the operation is a C++/CLI safe_cast
