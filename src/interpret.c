@@ -10497,8 +10497,7 @@ error is communicated with an invalid reflection.
                 scp = source_corresp_for_reflection(rvp);
   Dyn_array<a_reflection_value>
                 arg_reflections(0);
-  a_type_ptr    callee_type = skip_typerefs(callee->type),
-                info_type, infovec_type;
+  a_type_ptr    callee_type = skip_typerefs(callee->type), infovec_type;
   a_param_type_ptr
                 ptp;
 
@@ -10513,8 +10512,7 @@ error is communicated with an invalid reflection.
   check_assertion(type_is(callee_type, tk_routine));
   ptp = function_type_params(callee_type);
   check_assertion(ptp != NULL && ptp->next != NULL);
-  info_type = skip_typerefs(ptp->type);
-  check_assertion(info_type == reflection_type());
+  check_assertion(skip_typerefs(ptp->type) == reflection_type());
   infovec_type = skip_typerefs(ptp->next->type);
   if (scp == NULL || scp->assoc_info == NULL ||
       rvp->entity.kind != iek_template) {
