@@ -25169,7 +25169,13 @@ instantiation-dependent.
   } else if (is_variable_node(expr)) {
     /* Treat local variables of function templates as "instantiation
        dependent". */
-    examine_var_init_for_instantiation_dependence(node_variable(expr), tblock);
+    a_variable  *vp = node_variable(expr);
+    if (vp->is_nonreal) {
+      tblock->result = TRUE;
+      tblock->terminate = TRUE;
+    } else {
+      examine_var_init_for_instantiation_dependence(vp, tblock);
+    }  /* if */
   } else if (node_is(expr, enk_type_operand)) {
     /* enk_type_operand nodes have "void" type, but the instantiation
        dependence is in the operand type. */
