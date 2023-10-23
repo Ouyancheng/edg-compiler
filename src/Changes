@@ -1,5 +1,22 @@
 Version 6.6
 
+10/23/23 [EDGcpfe/26501]
+Stack overflow with consteval default argument in decltype specifier
+
+Previously, the following would result in a stack overflow:
+
+  template <class F>
+  constexpr auto invoke(F &&f) -> decltype(static_cast<F &&>(f)()) {
+      return static_cast<F &&>(f)();
+  }
+
+  void test() {
+    invoke([](std::source_location = std::source_location::current()) {});
+  }
+
+This is now fixed.
+
+
 10/21/23 [EDGcpfe/26636]
 Microsoft compatibility: _MSVC_EXECUTION_CHARACTER_SET predefined macro
 
