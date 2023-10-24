@@ -6311,8 +6311,9 @@ given expression.
 
 static inline void mark_fs_node_reclaimed(an_expr_node_ptr node)
 /*
-It's been determined by caller that the given node can be made available for
-reuse.  Update the avail_fs_nodes list to include the given node.
+It's been determined by the caller that the given node can be made
+available for reuse.  Update the avail_fs_nodes list to include the given
+node.
 */
 {
   node->kind = enk_reclaimed;
