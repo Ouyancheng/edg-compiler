@@ -1,5 +1,20 @@
 Version 6.6
 
+10/24/23 [EDGcpfe/26710]
+--incognito and --no_incognito command-line options
+
+The front end now supports --incognito and --no_incognito to enable or disable
+incognito mode respectively.  While in incognito mode, the front end will
+attempt to conceal the fact that it is the EDG front end.  This can be useful
+when encountering code that incorrectly special cases the EDG front end, e.g.,
+
+  #ifdef __EDG__
+    static_assert(false, "The EDG front end does not support constexpr if");
+  #else
+    if constexpr (foo()) { /* ... */ }
+  #endif /* __EDG__ */
+
+
 10/24/23 [EDGcpfe/24564]
 Linkage of const-qualified variable templates
 

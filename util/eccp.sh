@@ -796,6 +796,7 @@ check_abbreviation()
 --implicit_typename
 --include_directory
 --incl_suffixes
+--incognito
 --inline_statement_limit
 --inlining
 --instantiate
@@ -924,6 +925,7 @@ check_abbreviation()
 --no_implicit_include
 --no_implicit_noexcept
 --no_implicit_typename
+--no_incognito
 --no_inlining
 --no_keep_restrict_in_signatures
 --no_lambdas
@@ -1769,7 +1771,9 @@ process_option()
          --old_id_chars | \
          --no_old_id_chars | \
          --add_match_notes | \
-         --no_add_match_notes)
+         --no_add_match_notes | \
+         --incognito | \
+         --no_incognito)
 #     Options that require additional processing
       case $arg in
         -m | --c | --c89 | --c99 | --no_c99 | --c11 | --c18 | --c17 | --c23 | \

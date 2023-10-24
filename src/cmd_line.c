@@ -1713,6 +1713,10 @@ Initialize the option information table.
   add_option_description(optk_output_mode, "output_mode", '\0',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_none);
+  add_option_description(optk_incognito, "incognito", '\0', /*value=*/TRUE,
+                         /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_incognito, "no_incognito", '\0', /*value=*/FALSE,
+                         /*arg_required=*/FALSE, pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -11618,6 +11622,9 @@ enable_microsoft_mode:
           }  /* if */
         }
         break;
+      case optk_incognito:
+        incognito = opt_value;
+        break;
      default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -13152,6 +13159,7 @@ variables declared in cmd_line.h.
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
   old_id_chars = FALSE;
   output_mode = DEFAULT_OUTPUT_MODE;
+  incognito = FALSE;
   keep_restrict_in_signatures = FALSE;
   attributes_on_using_declarations = FALSE;
   elifdef_enabled = FALSE;

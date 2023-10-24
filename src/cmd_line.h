@@ -370,6 +370,7 @@ enum an_option_kind {
   optk_add_match_notes,
   optk_dump_command_options,
   optk_output_mode,
+  optk_incognito,
   optk_last		/* Must be last. */
 };
 
@@ -2805,6 +2806,14 @@ enum an_output_mode {
 EXTERN an_output_mode
 		output_mode;
 			/* The output mode. */
+
+EXTERN a_boolean
+		incognito;
+			/* TRUE if the front end should attempt to conceal its
+			   true identity.  This is useful when attempting to
+			   compile code that has one or more problematic
+			   preprocessor conditions targeted specifically at the
+			   EDG front end. */
 
 EXTERN a_boolean
 		extended_float_types;

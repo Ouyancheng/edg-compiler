@@ -12041,32 +12041,35 @@ command line -D options.
                              /*cannot_be_redefined=*/TRUE,
                              /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
-  if (constexpr_enabled) {
-    /* Define a fixed macro (not configurable since it is used by the
-       EDG-provided <initializer_list> header) indicating whether support for
-       constexpr is enabled. */
-    (void)enter_predef_macro("1", "__EDG_CONSTEXPR_ENABLED__",
+  if (!incognito) {
+    if (constexpr_enabled) {
+      /* Define a fixed macro (not configurable since it is used by the
+         EDG-provided <initializer_list> header) indicating whether support for
+         constexpr is enabled. */
+      (void)enter_predef_macro("1", "__EDG_CONSTEXPR_ENABLED__",
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
+    /* Enter a predefined macro that can be used to determine that the
+       EDG front end is being used. */
+    (void)enter_predef_macro("1", "__EDG__",
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+    /* Enter a predefined macro that can be used to determine the version of
+       the EDG front end being used. */
+    enter_predef_num_macro_noredef(VERSION_NUMBER_FOR_MACRO,
+                                   "__EDG_VERSION__");
+    /* Enter a predefined macro for the type of size_t on this target. */
+    (void)enter_predef_macro(int_kind_name(targ_size_t_int_kind),
+                             "__EDG_SIZE_TYPE__",
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+    /* Enter a predefined macro for the type of ptrdiff_t on this target. */
+    (void)enter_predef_macro(int_kind_name(targ_ptrdiff_t_int_kind),
+                             "__EDG_PTRDIFF_TYPE__",
                              /*cannot_be_redefined=*/TRUE,
                              /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
-  /* Enter a predefined macro that can be used to determine that the
-     EDG front end is being used. */
-  (void)enter_predef_macro("1", "__EDG__",
-                           /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
-  /* Enter a predefined macro that can be used to determine the version of
-     the EDG front end being used. */
-  enter_predef_num_macro_noredef(VERSION_NUMBER_FOR_MACRO, "__EDG_VERSION__");
-  /* Enter a predefined macro for the type of size_t on this target. */
-  (void)enter_predef_macro(int_kind_name(targ_size_t_int_kind),
-                           "__EDG_SIZE_TYPE__",
-                           /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
-  /* Enter a predefined macro for the type of ptrdiff_t on this target. */
-  (void)enter_predef_macro(int_kind_name(targ_ptrdiff_t_int_kind),
-                           "__EDG_PTRDIFF_TYPE__",
-                           /*cannot_be_redefined=*/TRUE,
-                           /*ref_suppresses_pch_file=*/FALSE);
   /* In GNU C/C++ mode, enter the macros that GNU compilers define. */
   if (gnu_mode) init_gnu_predefined_macros();
   if (building_runtime) {
