@@ -1,4 +1,4 @@
-/******************************************************************************
+******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
@@ -13004,8 +13004,8 @@ enum an_expr_node_kind : a_bit_field {
 			/* A deferred constant evaluation node. */
   enk_template_name,	/* Used to represent a template name in builtin
 			   operation expressions. */
-  enk_reclaimed,        /* Used to represent a node that's been reclaimed and
-                           is part of the avail_fs_nodes list. */
+  enk_reclaimed,	/* Used to represent a node that's been reclaimed and
+			   is part of the avail_fs_nodes list. */
   enk_last
 };
 
