@@ -6352,9 +6352,9 @@ If the given expression node is not a shallow copy and can itself be reclaimed,
 allow subtree processing to continue; otherwise, cull the subtree expression
 walk (as a non-reclaimable expression cannot have reclaimable sub-expressions).
 
-Note: This function is intended for traversal based processing.  See
+Note: This function is intended for traversal-based processing.  See
 reclaim_fs_nodes_of_expr_tree for usage.  See reclaim_node_if_possible for
-non-traversal based cases.
+non-traversal-based cases.
 */
 {
   if (!is_fs_node_reclaimable(node) || node->is_shallow_copy) {
@@ -6370,9 +6370,9 @@ static inline void reclaim_fs_node(
 If the given expression node is allocated in file-scope memory, place it on
 the avail_fs_nodes list.
 
-Note: This function is intended for traversal based processing.  See
+Note: This function is intended for traversal-based processing.  See
 reclaim_fs_nodes_of_expr_tree for usage.  See reclaim_node_if_possible for
-non-traversal based cases.
+non-traversal-based cases.
 */
 {
   if (is_fs_node_reclaimable(node)) {
