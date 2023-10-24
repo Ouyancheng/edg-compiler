@@ -6468,22 +6468,24 @@ user later during real instantiations.
        decl_static_data_member. */
     var_ptr->declared_type = dps->declared_type;
   }  /* if */
+  var_ptr->declared_storage_class = dps->declared_storage_class;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Set the storage class for the prototype instantiation to indicate that
      it has been defined. */
-  if (dps->storage_class != (a_storage_class)sc_extern &&
-      dps->storage_class != (a_storage_class)sc_static) {
-    if (cpp11_mode && !microsoft_mode &&
-        scope_stack[depth_innermost_namespace_scope].within_unnamed_namespace){
-      var_ptr->storage_class = (a_storage_class)sc_static;
-      var_ptr->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+  if (dps->storage_class != sc_extern) {
+    if (dps->storage_class == sc_static ||
+        (cpp11_mode && !microsoft_mode &&
+         scope_stack[depth_innermost_namespace_scope]
+                                                  .within_unnamed_namespace)) {
+      var_ptr->storage_class = sc_static;
+      var_ptr->source_corresp.name_linkage = nlk_internal;
     } else {
-      var_ptr->storage_class = (a_storage_class)sc_unspecified;
-      var_ptr->source_corresp.name_linkage =
-                                   (a_name_linkage_kind)nlk_cplusplus_external;
+      var_ptr->storage_class = sc_unspecified;
+      var_ptr->source_corresp.name_linkage = nlk_cplusplus_external;
     }  /* if */
   }  /* if */
   var_ptr->is_template_variable = TRUE;
+  if (!nonclass_prototype_instantiations && !tssp->is_variadic) goto done;
   if (!is_variable_template) {
     /* Set the referencing namespace for the prototype instantiation. */
     tip = template_sym->variant.static_data_member.instance_ptr;
@@ -6590,9 +6592,12 @@ user later during real instantiations.
     if (dps->dso_flags & DSO_CONSTINIT) var_ptr->declared_constinit = TRUE;
     def_init_okay = def_initializer(proto_sym,
                                     &proto_sym->decl_position);
-    if (!def_init_okay) {
+    if (!def_init_okay && !microsoft_mode &&
+        !(is_variable_template && (dps->dso_flags & DSO_CONSTEXPR))) {
       /* It could not be default initialized.  See if an initializer is
-         required. */
+         required.  MSVC does not diagnose missing initializers for prototype
+         instantiations.  Missing initializers for constexpr variable templates
+         will be diagnosed below in update_variable_decl_info. */
       check_for_missing_initializer(proto_sym, var_ptr->type);
     }  /* if */
   }  /* if */
@@ -7583,12 +7588,24 @@ expression context) rather than a declaration.
     var_ptr->declared_type = dps.declared_type;
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  /* Core issue 2387 clarified that instantiated variable templates of const
+     qualified type don't get internal linkage.  However, GCC does not
+     implement that resolution, and MSVC only implements it for instances of
+     primary templates (but not for instances of partial specializations)
+     starting with 19.28. */
   if (!template_sym->is_class_member &&
-      (is_const_qualified_type(var_ptr->type) ||
+      (((gnu_version_is(any_version) ||
+         (ms_version_is(<=1927) ||
+          (ms_version_is(any_version) &&
+           var_ptr->template_info->partial_spec_template_arg_list == NULL))) &&
+        (dps.declared_storage_class != sc_extern &&
+         !(dps.dso_flags & DSO_INLINE) &&
+         is_const_qualified_type(var_ptr->type) &&
+         !is_volatile_qualified_type(var_ptr->type))) ||
        (template_linkage_depends_on_instantiation_args &&
         template_arg_list_has_internal_linkage(templ_arg_list)))) {
-    var_ptr->storage_class = (a_storage_class)sc_static;
-    var_ptr->source_corresp.name_linkage = (a_name_linkage_kind)nlk_internal;
+    var_ptr->storage_class = sc_static;
+    var_ptr->source_corresp.name_linkage = nlk_internal;
   }  /* if */
   /* Reactivate any pragmas that should be bound to the generated
      instance. */
@@ -29305,6 +29322,7 @@ supplement for this template should be returned to the caller.
         sssdp = secondary_src_seq_for_template(
                                               decl_state->il_template_entry);
         sssdp->declared_type = dps->declared_type;
+        sssdp->declared_storage_class = dps->declared_storage_class;
       } else if (var != NULL) {
         var->declared_type = dps->declared_type;
       }  /* if */
@@ -31981,10 +31999,8 @@ parameter lists that were scanned.
   } else if (sym != NULL &&
              (symbol_is(sym, sk_static_data_member) ||
               symbol_is(sym, sk_variable_template))) {
-    if (nonclass_prototype_instantiations || tssp->is_variadic) {
-      if (!decl_state->decl_scope_err) {
-        variable_template_prototype_instantiation(decl_state, sym);
-      }  /* if */
+    if (!decl_state->decl_scope_err) {
+      variable_template_prototype_instantiation(decl_state, sym);
     }  /* if */
     /* If this is an out-of-class declaration of a partial specialization,
        create a special entry used to instantiate declarations of this
@@ -33302,10 +33318,13 @@ that follows.
         if (dps->is_definition) {
           a_boolean  incomplete_type_error_reported = FALSE;
 
-          if (symbol_is(sym, sk_variable) &&
-              is_const_qualified_type(dps->type)) {
-            /* Const qualified variable template specializations are given
-               internal linkage. */
+          if (gnu_version_is(any_version) &&
+              symbol_is(sym, sk_variable) && !vp->is_inline &&
+              is_const_qualified_type(dps->type) &&
+              !is_volatile_qualified_type(dps->type)) {
+            /* Core issue 2387 clarified that only non-template variables of
+               const-qualified type are given internal linkage.  However, GCC
+               does not implement that resolution. */
             vp->storage_class = (a_storage_class)sc_static;
             vp->source_corresp.name_linkage =
                                              (a_name_linkage_kind)nlk_internal;

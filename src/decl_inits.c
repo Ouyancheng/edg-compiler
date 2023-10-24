@@ -10366,17 +10366,8 @@ declaration that has internal linkage because of the explicit presence of a
       a_name_linkage_kind  name_linkage =
                          (a_name_linkage_kind)vp->source_corresp.name_linkage;
       if (C_dialect == C_dialect_cplusplus) {
-        if (name_linkage == (a_name_linkage_kind)nlk_none ||
-            ((name_linkage == (a_name_linkage_kind)nlk_internal ||
-              vp->is_inline) &&
-             decl_scope_level <= depth_innermost_namespace_scope) ||
-#if MICROSOFT_EXTENSIONS_ALLOWED
-            ((vp->decl_modifiers & DM_DLLEXPORT) != 0 &&
-             vp->storage_class != (a_storage_class)sc_extern) ||
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-            symbol_is(sym, sk_static_data_member) ||
-            vp->is_constexpr) {
-          /* In C++ const qualified variables that are internally linked
+        if (vp->storage_class != sc_extern || vp->is_constexpr) {
+          /* In C++ const qualified variables that are not declared extern
              must be initialized.  So must constexpr variable declarations. */
           if (could_be_dependent_class_type(type)) {
             /* If the type is dependent and could end up being a class type
@@ -10405,11 +10396,11 @@ declaration that has internal linkage because of the explicit presence of a
                 severity = es_warning;
               }  /* if */
             }  /* if */
-            if (gpp_mode && symbol_is(sym, sk_static_data_member) &&
+            if (gpp_mode && !vp->is_constexpr &&
                 is_prototype_instantiation_context()) {
-              /* g++ fails to diagnose a missing initializer for a static
-                 data member at template definition time.  An error is
-                 issued if the template is instantiated. */
+              /* g++ fails to diagnose a missing initializer for a
+                 non-constexpr variable at template definition time.  An
+                 error is issued if the template is instantiated. */
               severity = es_warning;
             }  /* if */
             if (is_class_struct_union_type(type) && !is_incomplete_array &&

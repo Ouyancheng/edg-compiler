@@ -18699,7 +18699,12 @@ template declaration and is NULL otherwise.
     if (is_const_qualified_type(var->type) &&
         !is_const_default_constructible(var->type)) {
       an_error_severity  sev = es_error;
-      if (gpp_mode && scope_stack_top().in_prototype_instantiation) {
+      /* GCC does not diagnose a missing initializer in a prototype
+         instantiation of a non-constexpr variable template.  Issue a
+         warning. */
+      if (gpp_mode &&
+          (!var->is_constexpr || symbol_is(sym, sk_variable_template)) &&
+          scope_stack_top().in_prototype_instantiation) {
         sev = es_warning;
       }  /* if */
       sym_diagnostic(sev, ec_missing_initializer_on_const, sym);

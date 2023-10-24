@@ -1,5 +1,22 @@
 Version 6.6
 
+10/24/23 [EDGcpfe/24564]
+Linkage of const-qualified variable templates
+
+The resolution of Core issue 2387 clarified that only non-inline non-template
+variables of non-volatile const-qualified type get internal linkage.  For
+example, with --c++17:
+
+  template<int I>
+  inline const int i = I;  // i<0> previously had internal linkage, now it has
+                           // external linkage
+  const int j = i<0>;
+
+Additionally, in configurations where GENERATE_SOURCE_SEQUENCE_LISTS is TRUE,
+the declared_storage_class of variable templates was previously not set.  Both
+issues are now fixed.
+
+
 10/23/23 [EDGcpfe/26501]
 Stack overflow with consteval default argument in decltype specifier
 

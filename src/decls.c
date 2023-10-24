@@ -3964,6 +3964,7 @@ information in the specified id-linkage block.
          has internal linkage only if declared "static". */
       idlbp->linkage = idl_internal;
     } else if (!C_mode() && is_object &&
+               !is_volatile_qualified_type(idlbp->type) &&
                is_const_qualified_type(idlbp->type) &&
                (dps->dso_flags & DSO_INLINE) == 0 && !dps->is_exported &&
                decl_scope_level == depth_innermost_namespace_scope &&
@@ -3975,12 +3976,12 @@ information in the specified id-linkage block.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                !(idlbp->extern_C_name_linkage_specified &&
                  idlbp->direct_linkage_specifier)) {
-      /* In C++ all non-inline const qualified objects at file or namespace
-         scope with no explicit storage class are internally linked (unless
-         previously declared to be extern -- see below).  An exception are
-         variables declared with the __declspec(dllexport) attribute in
-         some Microsoft modes: They are treated as having external
-         linkage. */
+      /* In C++ all non-inline non-volatile const qualified objects at file
+         or namespace scope with no explicit storage class are internally
+         linked (unless previously declared to be extern -- see below).  An
+         exception are variables declared with the __declspec(dllexport)
+         attribute in some Microsoft modes: They are treated as having
+         external linkage. */
       idlbp->linkage = idl_internal;
       const_variable = TRUE;
     } else if (cpp11_mode && !microsoft_mode &&
