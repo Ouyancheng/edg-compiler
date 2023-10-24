@@ -72,7 +72,7 @@ Consider, in C++20 mode:
 Previously, the front end constant-evaluated each call f() independently,
 triggering spurious errors because the address of a consteval function is not
 permitted as part of the result of a top-level constant-expression.  However,
-in this case the top-level constant-expression if "f() == f()" whose result
+in this case the top-level constant-expression is "f() == f()", whose result
 does not include the address of g().  The problem is now fixed (and the
 example is now accepted).
 
