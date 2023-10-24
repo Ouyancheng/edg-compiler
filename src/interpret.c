@@ -20152,13 +20152,7 @@ the value representation of the integer value.
       break;
     case enk_routine:
       { a_routine_ptr  rp = node_routine(expr);
-        /* Don't treat a reference to a consteval function as a constant
-           unless a constant is really needed.  That keeps the enk_routine
-           node in the expression tree so invalid uses can be diagnosed. */
-        if (rp != NULL &&
-            !rp->is_prototype_instantiation &&
-            !(rp->is_consteval && !ips->allow_consteval_routine_node &&
-              ips->curr_call_frame == NULL)) {
+        if (rp != NULL && !rp->is_prototype_instantiation) {
 #if GNU_EXTENSIONS_ALLOWED
           if (rp->is_weak) {
             /* Weakly declared functions have no definite address (they could
