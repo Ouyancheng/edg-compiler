@@ -818,6 +818,16 @@ command-line option.
 #endif /* ifndef DEFAULT_OUTPUT_MODE */
 
 /*
+Flag that is TRUE if, the front end should default to hiding incognito mode
+(and thus attempt to conceal that the EDG front end is being used).  This is
+the default value of the global variable incognito, which can be changed by a
+command-line option.
+*/
+#ifndef DEFAULT_INCOGNITO
+#define DEFAULT_INCOGNITO FALSE
+#endif /* ifndef DEFAULT_INCOGNITO */
+
+/*
 Flag that is TRUE if, when a precompiled header file is generated, any
 instantiations that are needed will be done before the PCH file is generated
 so that they will not have to be generated for each file that uses the PCH

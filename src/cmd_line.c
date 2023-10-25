@@ -7069,6 +7069,11 @@ file.
 #else /* !defined(DEFAULT_OUTPUT_MODE) */
   comment_undefined_macro_name(DEFAULT_OUTPUT_MODE);
 #endif /* defined(DEFAULT_OUTPUT_MODE) */
+#if defined(DEFAULT_INCOGNITO)
+  define_numeric_valued_macro(DEFAULT_INCOGNITO);
+#else /* !defined(DEFAULT_INCOGNITO) */
+  comment_undefined_macro_name(DEFAULT_INCOGNITO);
+#endif /* defined(DEFAULT_INCOGNITO) */
 #if defined(DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE)
   define_numeric_valued_macro(
                              DEFAULT_PASS_STDARG_REFERENCES_TO_GENERATED_CODE);
@@ -13159,7 +13164,7 @@ variables declared in cmd_line.h.
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
   old_id_chars = FALSE;
   output_mode = DEFAULT_OUTPUT_MODE;
-  incognito = FALSE;
+  incognito = DEFAULT_INCOGNITO;
   keep_restrict_in_signatures = FALSE;
   attributes_on_using_declarations = FALSE;
   elifdef_enabled = FALSE;

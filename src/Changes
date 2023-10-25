@@ -14,6 +14,9 @@ when encountering code that incorrectly special cases the EDG front end, e.g.,
     if constexpr (foo()) { /* ... */ }
   #endif /* __EDG__ */
 
+Additionally, the front end can be set to incognito mode by default by changing
+the DEFAULT_INCOGNITO configuration macro to TRUE.
+
 
 10/24/23 [EDGcpfe/24564]
 Linkage of const-qualified variable templates
