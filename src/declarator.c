@@ -1370,7 +1370,7 @@ given position.
     complete_type_is_needed(tp);
     if (is_incomplete_type(tp) && !in_definition_of_class(tp)) {
       /* Incomplete type (including possibly void type). */
-      error_code = incomplete_type_err_code(tp);
+      error_code = incomplete_type_error_code(tp);
     } else if (is_any_ptr_or_ref_type(tp)) {
       tp = type_pointed_to(tp);
       if (is_void_type(tp)) {
@@ -1390,12 +1390,13 @@ given position.
          silently allow a non-top-level declaration that throws an incomplete
          type (or pointer thereto) */
       if (is_top_level_declarator && !is_void_type(tp)) {
-        defer_exception_spec_error(func_info, error_code, diag_pos);
+        defer_exception_spec_error(func_info, error_code, diag_pos, tp);
       } else if (strict_ansi_mode) {
-        pos_diagnostic(strict_ansi_discretionary_severity, error_code,
-                       diag_pos);
+        issue_incomplete_type_diag(error_code, diag_pos, tp,
+                                   strict_ansi_discretionary_severity);
       } else if (is_void_type(tp)) {
-        pos_error(error_code, diag_pos);
+        issue_incomplete_type_diag(error_code, diag_pos, tp,
+                                   /*severity=*/es_error);
       }  /* if */
     }  /* if */
   }  /* if */

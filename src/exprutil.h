@@ -2856,11 +2856,38 @@ extern a_boolean expr_diagnostic_should_be_issued(an_error_severity sev,
 
 extern a_boolean is_consteval_diag_deferred();
 
-extern void expr_pos_error(an_error_code     error_code,
-                           a_source_position *error_pos);
 
-extern void expr_pos_warning(an_error_code     error_code,
-                             a_source_position *error_pos);
+template<typename... a_Fill_in_type>
+inline void expr_pos_error(an_error_code     error_code,
+                           a_source_position *error_pos,
+                           a_Fill_in_type... fill_ins)
+/*
+Report the indicated error at the indicated position with the given fill-ins.
+Suppress the error if we're in a context where diagnostics should be
+suppressed, e.g., a template deduction context.
+*/
+{
+  if (expr_error_should_be_issued()) {
+    pos_error(error_code, error_pos, fill_ins...);
+  }  /* if */
+}  /* expr_pos_error */
+
+
+template<typename... a_Fill_in_type>
+inline void expr_pos_warning(an_error_code     error_code,
+                             a_source_position *error_pos,
+                             a_Fill_in_type... fill_ins)
+/*
+Report the indicated warning at the indicated position with the given fill-ins.
+Suppress the warning if we're in a context where diagnostics should be
+suppressed, e.g., a template deduction context.
+*/
+{
+  if (expr_diagnostic_should_be_issued(es_warning, error_code, error_pos)) {
+    pos_warning(error_code, error_pos, fill_ins...);
+  }  /* if */
+}  /* expr_pos_warning */
+
 
 extern void expr_pos_st_warning(an_error_code     error_code,
                                 a_source_position *error_pos,
@@ -2905,6 +2932,11 @@ extern void expr_pos_ty2_error(an_error_code     error_code,
                                a_type_ptr        tp2);
 
 extern void expr_syntax_error(an_error_code error_code);
+
+extern void expr_issue_incomplete_type_diag(
+                                        a_source_position *pos,
+                                        a_type            *type,
+                                        an_error_severity severity = es_error);
 
 extern void expr_expect_error(void);
 

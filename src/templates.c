@@ -40258,7 +40258,7 @@ dllimport or dllexport attribute to a template instance.
            template" directive, the directive should take effect when the
            class is completed, but we don't implement this at this point. */
         severity = microsoft_mode ? es_warning : es_error;
-        pos_diagnostic(severity, ec_incomplete_type_not_allowed, pos);
+        issue_incomplete_type_diag(pos, class_type, severity);
       }  /* if */
     } else {
       a_boolean	ignore_directive = FALSE;

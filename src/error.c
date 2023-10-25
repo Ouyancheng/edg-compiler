@@ -8418,6 +8418,50 @@ and an error severity, emit a redefinition diagnostic.
   }  /* if */
 }  /* issue_redef_diag */
 
+
+an_error_code incomplete_type_error_code(a_type *type)
+/*
+Given an incorrect use of the given incomplete type, return the appropriate
+error code.  Currently this function only distinguishes between the C++/CLI
+managed nullptr type and other incomplete types.
+*/
+{
+  an_error_code result = ec_incomplete_type_not_allowed;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (is_managed_nullptr_type(type)) {
+    result = ec_managed_nullptr_not_allowed;
+  }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  return result;
+}  /* incomplete_type_error_code */
+
+
+void issue_incomplete_type_diag(an_error_code     error_code,
+                                a_source_position *pos,
+                                a_type            *type,
+                                an_error_severity severity)
+/*
+Emit a diagnostic given the incomplete type error code to diagnose, the
+position where the incomplete type is used, the type that's incomplete, and the
+severity of the diagnostic.
+*/
+{
+  switch (error_code) {
+    case ec_managed_nullptr_not_allowed:
+      pos_diagnostic(severity, ec_managed_nullptr_not_allowed, pos);
+      break;
+    case ec_incomplete_type_not_allowed:
+    case ec_ptr_or_ref_to_incomplete_type:
+      pos_diagnostic(severity, error_code, pos, type);
+      break;
+    default:
+      /* If this is reached, the caller has added support for a new error code
+         case that needs handled here. */
+      unexpected_condition();
+  }  /* switch */
+}  /* issue_incomplete_type_diag */
+
 #if MAKE_FRONT_END_CALLABLE
 
 void error_cleanup(void)

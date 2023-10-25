@@ -4691,6 +4691,10 @@ typedef struct an_exception_spec_error_descr {
 		error_code;
 			/* The code indicating the diagnostic message to be
 			   issued. */
+  a_type_ptr    assoc_type;
+			/* When error_code is ec_incomplete_type_not_allowed,
+			   this is a pointer to the associated incomplete
+			   type. */
 } an_exception_spec_error_descr;
 
 #if CFRONT_GLOBAL_VS_MEMBER_NAME_LOOKUP_BUG
@@ -6329,7 +6333,8 @@ extern void add_to_dependent_type_fixup_list(
 
 extern void defer_exception_spec_error(a_func_info_block  *func_info,
                                        an_error_code      error_code,
-                                       a_source_position  *pos);
+                                       a_source_position  *pos,
+                                       a_type             *assoc_type);
 
 extern void report_exception_spec_errors(a_func_info_block  *func_info);
 

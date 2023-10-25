@@ -16274,15 +16274,17 @@ is_pack_element is TRUE if the parameter is a pack element.
 
 void defer_exception_spec_error(a_func_info_block  *func_info,
                                 an_error_code      error_code,
-                                a_source_position  *pos)
+                                a_source_position  *pos,
+                                a_type             *assoc_type)
 /*
 Create an entry to record the need for an incomplete-type diagnostic on an
 exception specification.  At this point in processing (while the exception
 specification is being scanned), it is not known whether it belongs to a
-function definition or to a non-defining declaration; since this may affect
-the severity of the diagnostic, issuing the message is deferred.  func_info
-points to the block in which the deferral is recorded; error_code and *pos
-indicate the particular diagnostic required and the error position.
+function definition or to a non-defining declaration; since this may affect the
+severity of the diagnostic, issuing the message is deferred.  func_info points
+to the block in which the deferral is recorded.  error_code and *pos indicate
+the particular diagnostic required and the error position.  assoc_type is the
+incomplete-type the diagnostic is associated with.
 */
 {
   an_exception_spec_error_descr_ptr  esedp, end_of_list;
@@ -16296,6 +16298,7 @@ indicate the particular diagnostic required and the error position.
   esedp->next       = NULL;
   esedp->position   = *pos;
   esedp->error_code = error_code;
+  esedp->assoc_type = assoc_type;
   if (func_info->exception_spec_errors == NULL) {
     func_info->exception_spec_errors = esedp;
   } else {
@@ -16333,7 +16336,8 @@ diagnostic if this is not a definition and not in strict conformance mode.
       /* Note that a diagnostic may have been deferred for more than one
          type. */
       for (; esedp != NULL; esedp = esedp->next) {
-        pos_diagnostic(severity, esedp->error_code, &esedp->position);
+        issue_incomplete_type_diag(esedp->error_code, &esedp->position,
+                                   esedp->assoc_type, severity);
       }  /* for */
     }  /* if */
   }  /* if */

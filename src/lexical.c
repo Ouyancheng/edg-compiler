@@ -21495,10 +21495,10 @@ in a declarator of a template declaration.
           template_sym = tssp->prototype_template;
         }  /* if */
         if (template_sym->variant.template_info->
-                    variant.class_template.prototype_instantiation == NULL) {
+                      variant.class_template.prototype_instantiation == NULL) {
           /* There is no prototype yet.  This is probably caused by the
              class template being incomplete at this point. */
-          pos_error(ec_incomplete_type_not_allowed, error_pos);
+          issue_incomplete_type_diag(error_pos, tp);
           any_errors = TRUE;
         } else {
           /* The class is a template class but not the prototype
@@ -23478,7 +23478,7 @@ selection operator, in which case it points to the type of the left operand.
 	       is being defined.  We determine this by checking the
 	       assoc_scope field of the class type supplement. */
             if (!in_if_exists) {
-              pos_error(ec_incomplete_type_not_allowed, &type_position);
+              issue_incomplete_type_diag(&type_position, qualifier_type);
             }  /* if */
 	    err = TRUE;
 	    qualifier_sym = NULL;
@@ -24395,7 +24395,7 @@ See also coalesce_and_lookup_generalized_identifier.
                  constraint from the later declaration will be used. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             } else {
-              pos_error(ec_incomplete_type_not_allowed, &pos_curr_token);
+              issue_incomplete_type_diag(&pos_curr_token, qualifier_type);
             }  /* if */
           } else {
             a_class_symbol_supplement_ptr	cssp_for_dtor = NULL;

@@ -690,7 +690,7 @@ associated with a variadic parameter, but not the initial one.
   }  /* if */
   if (utp->incomplete) {
     /* Incomplete type is not allowed. */
-    pos_error(incomplete_type_err_code(tp), &param_id->type_pos);
+    issue_incomplete_type_diag(&param_id->type_pos, utp);
     tp = ptp->type = error_type();
   }  /* if */
   /* Create the parameter variable. */

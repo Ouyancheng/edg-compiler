@@ -420,14 +420,6 @@ type, but it may be an integer cast to a pointer type.
 
   *err_code = ec_no_error;
   *err_severity = es_warning;
-
-  if (is_incomplete_type(new_constant->type)) {
-    /* In some severe error cases, the destination type may be an incomplete
-       enum type. */
-    *err_code = ec_incomplete_type_not_allowed;
-    *err_severity = es_error;
-    goto done;
-  }  /* if */
   /* Copy the old value to the new value. */
   switch (old_constant->kind) {
     case ck_integer:
@@ -2331,7 +2323,13 @@ for any diagnostics issued.
                              did_not_fold, err_pos, &err_code, &err_severity);
     goto done_with_folding;
   }  /* if */
-
+  if (is_incomplete_type(new_constant->type)) {
+    /* In some severe error cases, the destination type may be an incomplete
+       enum type. */
+    issue_incomplete_type_diag(err_pos, new_constant->type);
+    *did_not_fold = TRUE;
+    goto done_with_folding;
+  }  /* if */
   /* Determine the type we are converting from. */
   switch (constant_type->kind) {
 
@@ -9707,7 +9705,7 @@ additional error checking is performed here.
       expr_pos_error(ec_exp_class_type, &arg->position);
       err = TRUE;
     } else if (is_incomplete_type(type1)) {
-      expr_pos_error(incomplete_type_err_code(type1), &arg->position);
+      expr_issue_incomplete_type_diag(&arg->position, type1);
       err = TRUE;
     } else if (!type_is(type2, tk_ptr_to_member)) {
       expr_pos_error(ec_exp_pointer_to_member, &pm_arg->position);
@@ -9820,13 +9818,13 @@ additional error checking is performed here.
       expr_pos_error(ec_exp_class_type, &arg->position);
       err = TRUE;
     } else if (is_incomplete_type(class1)) {
-      expr_pos_error(incomplete_type_err_code(class1), &arg->position);
+      expr_issue_incomplete_type_diag(&arg->position, class1);
       err = TRUE;
     } else if (!is_class_struct_union_type(class2)) {
       expr_pos_error(ec_exp_class_type, &arg->next->position);
       err = TRUE;
     } else if (is_incomplete_type(class2)) {
-      expr_pos_error(incomplete_type_err_code(class2), &arg->next->position);
+      expr_issue_incomplete_type_diag(&arg->next->position, class2);
       err = TRUE;
     } else if (!type_is(pm_type1, tk_ptr_to_member)) {
       expr_pos_error(ec_exp_pointer_to_member, &pm1->position);

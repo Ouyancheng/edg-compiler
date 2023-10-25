@@ -9581,7 +9581,7 @@ issue an error and return FALSE.
            base classes may involve real incomplete real base classes: Don't
            issue errors on that. */
       } else {
-        pos_error(ec_incomplete_type_not_allowed, &error_position);
+        issue_incomplete_type_diag(&error_position, base_class_type);
         okay = FALSE;
       }  /* if */
     }  /* if */
@@ -18227,7 +18227,7 @@ template declaration and is NULL otherwise.
 
   db_enter(3, "decl_static_data_member");
   if (is_void_type(member_type)) {
-    pos_error(ec_incomplete_type_not_allowed, &error_position);
+    issue_incomplete_type_diag(&error_position, member_type);
     member_type = error_type();
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (cli_or_cx_enabled) {
@@ -18723,7 +18723,7 @@ template declaration and is NULL otherwise.
             !is_template_dependent_type(var->type)) {
           /* As a definition, an inline static data member must have a
              complete type. */
-          pos_error(incomplete_type_err_code(var->type), start_pos);
+          issue_incomplete_type_diag(start_pos, var->type);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -20345,8 +20345,8 @@ declarations.
     a_field_ptr  prev_field = class_state->end_of_field_list;
 
     check_assertion(prev_field != NULL && !type_is(class_type, tk_union));
-    pos_error(ec_incomplete_type_not_allowed,
-              &prev_field->source_corresp.decl_position);
+    issue_incomplete_type_diag(&prev_field->source_corresp.decl_position,
+                               prev_field->type);
     prev_field->type = error_type();
     class_state->last_field_is_incomplete_array = FALSE;
   } else if (ms_extensions || (c99_mode && !gcc_mode)) {
@@ -20486,8 +20486,7 @@ declarations.
                void operator?:();
              in which the param list is not processed. */
         } else {
-          pos_error(incomplete_type_err_code(field_type),
-                    &locator->source_position);
+          issue_incomplete_type_diag(&locator->source_position, field_type);
         }  /* if */
         err = TRUE;
       }  /* if */
@@ -32053,9 +32052,9 @@ wrap_up_class_definition.
                                                                          TRUE;
     if ((strict_ansi_mode || (gnu_mode && gnu_version < 30000)) && !c99_mode) {
       a_field_ptr  fp = class_state->end_of_field_list;
-      pos_diagnostic(strict_ansi_error_severity,
-                     ec_incomplete_type_not_allowed,
-                     &fp->source_corresp.decl_position);
+
+      issue_incomplete_type_diag(&fp->source_corresp.decl_position,
+                                 fp->type, strict_ansi_error_severity);
       if (strict_ansi_error_severity == es_error) {
         fp->type = error_type();
         class_type->variant.class_struct_union

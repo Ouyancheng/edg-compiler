@@ -1002,21 +1002,6 @@ extern void f_report_gnu_cpp11_extensions_if_needed(
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-/*
-Macro that returns the appropriate error code to report an incorrect use of
-the incomplete type tp.  Currently it only distinguishes between the
-C++/CLI managed nullptr type and other incomplete types.
-*/
-#if MICROSOFT_EXTENSIONS_ALLOWED
-#define incomplete_type_err_code(tp)                                        \
-  (is_managed_nullptr_type(tp) ? ec_managed_nullptr_not_allowed             \
-                               : ec_incomplete_type_not_allowed)
-#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-/* There's no need for a test if the type can't be the managed nullptr
-   type. */
-#define incomplete_type_err_code(tp) ec_incomplete_type_not_allowed
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
 extern void end_diagnostic(a_diagnostic_ptr dp);
 
 extern a_diagnostic_ptr start_command_line_error(an_error_code error_code,
@@ -1439,9 +1424,30 @@ Add the specified diagnostic message to the primary_dp with the given fill-ins.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-extern void issue_redef_diag(a_source_position  *new_pos,
-                              a_symbol          *prev_decl_sym,
-                              an_error_severity severity = es_error);
+extern void issue_redef_diag(a_source_position *new_pos,
+                             a_symbol          *prev_decl_sym,
+                             an_error_severity severity = es_error);
+
+extern an_error_code incomplete_type_error_code(a_type *type);
+
+extern void issue_incomplete_type_diag(an_error_code     error_code,
+                                       a_source_position *pos,
+                                       a_type            *type,
+                                       an_error_severity severity);
+
+
+inline void issue_incomplete_type_diag(a_source_position *pos,
+                                       a_type            *type,
+                                       an_error_severity severity = es_error)
+/*
+Emit a diagnostic given the position where the incomplete type is used, the
+type that's incomplete, and the severity of the diagnostic.
+*/
+{
+  an_error_code error_code = incomplete_type_error_code(type);
+
+  issue_incomplete_type_diag(error_code, pos, type, severity);
+}  /* issue_incomplete_type_diag */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 

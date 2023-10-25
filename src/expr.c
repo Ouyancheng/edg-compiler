@@ -9402,9 +9402,8 @@ make_proxy_type_if_needed:
           if (is_incomplete_type(class_struct_union_type) &&
               is_class_struct_union_type(class_struct_union_type)) {
             err_type = class_struct_union_type;
-            err_code = is_arrow_operator ?
-                                 ec_ptr_to_incomplete_class_type_not_allowed :
-                                 ec_incomplete_type_expr_not_allowed;
+            err_code = is_arrow_operator ? ec_ptr_or_ref_to_incomplete_type :
+                                           ec_incomplete_type_not_allowed;
           } else {
             if (C_dialect == C_dialect_cplusplus) {
               err_code = is_arrow_operator ? ec_expr_not_ptr_to_class :
@@ -10345,8 +10344,7 @@ the selection, not an operator token for the call.
             /* A prvalue result.  The type must be complete. */
             complete_type_is_needed(result_type);
             if (is_incomplete_type(result_type)) {
-              expr_pos_error(ec_incomplete_type_not_allowed,
-                             &operator_position);
+              expr_issue_incomplete_type_diag(&operator_position, result_type);
               conv_to_error_operand(result);
               result_type = result->type;
             }  /* if */
@@ -13133,7 +13131,8 @@ previously-scanned sizeof expression, and return the result in *result
       /* GNU C/C++ evaluates sizeof(void) as 1. */
       sizeof_type = integer_type((an_integer_kind)ik_char);
       if (gpp_mode) {
-        expr_pos_warning(ec_incomplete_type_not_allowed, &type_position);
+        expr_issue_incomplete_type_diag(&type_position, sizeof_type,
+                                        /*severity=*/es_warning);
       }  /* if */
     } else if (gpp_mode && gnu_version < 30400 &&
                is_template_dependent_context() &&
@@ -13144,7 +13143,7 @@ previously-scanned sizeof expression, and return the result in *result
          insides of templates). */
       template_case = TRUE;
     } else {
-      expr_pos_error(incomplete_type_err_code(sizeof_type), &type_position);
+      expr_issue_incomplete_type_diag(&type_position, sizeof_type);
       sizeof_type = error_type();
     }  /* if */
   }  /* if */
@@ -17807,7 +17806,7 @@ where <typename-or-default> is either a type name or the keyword "default".
         pos_error(ec_type_must_be_object_type, &type_pos);
         err = TRUE;
       } else if (is_incomplete_type(type)) {
-        pos_error(ec_incomplete_type_not_allowed, &type_pos);
+        issue_incomplete_type_diag(&type_pos, type);
         err = TRUE;
       } else if (is_variably_modified_type(type)) {
         pos_error(ec_variably_modified_type_not_allowed_here, &type_pos);
@@ -18797,7 +18796,7 @@ reparse:
           check_assertion(expr == NULL);
           expr_pos_warning(ec_typeid_of_incomplete_type, &operand_position);
         } else {
-          expr_pos_error(ec_incomplete_type_not_allowed, &operand_position);
+          expr_issue_incomplete_type_diag(&operand_position, typeid_type);
           err = TRUE;
         }  /* if */
       }  /* if */
@@ -21816,8 +21815,7 @@ Returns the base type for the new statement.
         /* MSVC (18.00 and earlier) treats "new T[]" as "new T[0]". */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
-        expr_pos_error(incomplete_type_err_code(nps->new_type),
-                       &nps->type_position);
+        expr_issue_incomplete_type_diag(&nps->type_position, nps->new_type);
         nps->err = nps->type_err = TRUE;
       }  /* if */
     }  /* if */
@@ -21841,8 +21839,7 @@ Validate the type obtained for a new statement.
     if (is_error_type(nps->base_new_type)) {
       /* Error already issued. */
     } else if (is_incomplete_type(nps->base_new_type)) {
-      expr_pos_error(incomplete_type_err_code(nps->base_new_type),
-                     &nps->type_position);
+      expr_issue_incomplete_type_diag(&nps->type_position, nps->base_new_type);
     } else {
       expr_pos_error(ec_type_must_be_object_type, &nps->type_position);
     }  /* if */
@@ -24170,7 +24167,7 @@ C++ functional-notation type conversions, and C++ new-style casts.
        type), but allow certain exceptions.  One of those exceptions is that
        in GNU mode casts to incomplete class types are accepted in template-
        dependent contexts (until GCC 10.2). */
-    expr_pos_error(ec_incomplete_type_not_allowed, type_position);
+    expr_issue_incomplete_type_diag(type_position, type_cast_to);
     err = TRUE;
   } else if (is_class_struct_union_type(type_cast_to)) {
     /* Cast to a class type. */
@@ -35207,7 +35204,8 @@ in *rcblock).
       error_in_operand(ec_void_throw, &operand);
     } else if (is_incomplete_type(incomp_test_type)) {
       /* Cannot throw an incomplete type. */
-      error_in_operand(incomplete_type_err_code(incomp_test_type), &operand);
+      expr_issue_incomplete_type_diag(&operand.position, incomp_test_type);
+      conv_to_error_operand(&operand);
     } else if (vla_enabled && is_variably_modified_type(throw_type)) {
       /* Cannot throw a variably-modified type, because can't catch it. */
       error_in_operand(ec_vla_not_allowed, &operand);
@@ -52944,7 +52942,7 @@ the corresponding __builtin_is_constructible operation.
     result = FALSE;
   } else if (is_incomplete_type(dst_type)) {
     if (!gpp_mode || clang_mode) {
-      expr_pos_error(ec_incomplete_type_not_allowed, &arg0->position);
+      expr_issue_incomplete_type_diag(&arg0->position, dst_type);
     }  /* if */
     result = FALSE;
   } else {
@@ -52965,7 +52963,7 @@ the corresponding __builtin_is_constructible operation.
         if ((!gpp_mode  || clang_mode) &&
             is_incomplete_type(typen) && !is_array_type(typen) &&
             !is_void_type(typen)) {
-          expr_pos_error(ec_incomplete_type_not_allowed, &argn->position);
+          expr_issue_incomplete_type_diag(&argn->position, typen);
         }  /* if */
         result = FALSE;
         goto have_result;
@@ -53062,7 +53060,7 @@ invoked destructor is trivial).
     if (type->incomplete) {
       if ((!gpp_mode || clang_mode) && (is_immediate_class_type(type) ||
                                         is_immediate_enum_type(type))) {
-        expr_pos_error(ec_incomplete_type_not_allowed, &error_position);
+        expr_issue_incomplete_type_diag(&error_position, type);
       }  /* if */
       result = FALSE;
     } else if (!is_immediate_class_type(type)) {

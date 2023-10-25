@@ -14422,7 +14422,7 @@ given type should not be used for error recovery purposes.
     pos_error(ec_vla_not_allowed, pos);
     result = TRUE;
   } else if (is_incomplete_type(type)) {
-    pos_error(incomplete_type_err_code(type), pos);
+    issue_incomplete_type_diag(pos, type);
     result = TRUE;
   } else if (is_rvalue_reference_type(type) &&
              !is_template_param_type(type_pointed_to(type))) {
@@ -14445,8 +14445,11 @@ given type should not be used for error recovery purposes.
     /* Force instantiation of template class. */
     complete_type_is_needed(type);
     if (is_incomplete_type(type) && !is_void_type(type)) {
-      pos_diagnostic(microsoft_mode ? es_warning : es_discretionary_error,
-                     ec_ptr_or_ref_to_incomplete_type, pos);
+      an_error_severity severity = microsoft_mode ? es_warning
+                                                  : es_discretionary_error;
+
+      issue_incomplete_type_diag(ec_ptr_or_ref_to_incomplete_type, pos, type,
+                                 severity);
       /* We might have only issued a warning.  Hence proceed with normal
          processing (i.e., result remains FALSE).  The code generators can
          handle it. */
@@ -15159,7 +15162,7 @@ Only the part marked is scanned in this routine.
   if (is_incomplete_type(vp->type)) {
     /* Incomplete type is not allowed. */
     if (!incomplete_type_error_reported) {
-      pos_error(incomplete_type_err_code(vp->type), &state.start_pos);
+      issue_incomplete_type_diag(&state.start_pos, vp->type);
     }  /* if */
     vp->type = error_type();
   }  /* if */
@@ -20022,8 +20025,8 @@ if one is present.
           (!C_mode() && is_void_type(state->type)) ||
           (is_tentative_def && is_void_type(state->type))) {
         if (!incomplete_type_error_reported) {
-          pos_error(incomplete_type_err_code(var_ptr->type),
-                    &locator->source_position);
+          issue_incomplete_type_diag(&locator->source_position,
+                                     var_ptr->type);
         }  /* if */
         var_ptr->type = error_type();
       } else if (strict_ansi_mode && is_tentative_def && 
@@ -20033,9 +20036,8 @@ if one is present.
            lead to the conclusion that the prohibition does not exist: issue a
            discretionary error instead of a "hard" error. */
         if (!incomplete_type_error_reported) {
-          pos_diagnostic(strict_ansi_discretionary_severity,
-                         ec_incomplete_type_not_allowed,
-                         &locator->source_position);
+          issue_incomplete_type_diag(&locator->source_position, var_ptr->type,
+                                     strict_ansi_discretionary_severity);
         }  /* if */
       }  /* if */
     }  /* if */

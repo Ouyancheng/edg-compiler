@@ -5362,7 +5362,7 @@ returned set to TRUE.
       } else if (!is_template_dependent_type(vp_type)) {
         if (is_incomplete_type(vp_type)) {
           /* Incomplete type is an error. */
-          pos_error(incomplete_type_err_code(vp_type), source_pos);
+          issue_incomplete_type_diag(source_pos, vp_type);
           *incomplete_type_error_reported = TRUE;
         } else {
           /* Catch-all error. */
@@ -5509,7 +5509,7 @@ returned set to TRUE.
       complete_type_is_needed(vp_type);
       if (is_incomplete_type(vp_type)) {
         /* Incomplete type is an error. */
-        pos_error(incomplete_type_err_code(vp_type), source_pos);
+        issue_incomplete_type_diag(source_pos, vp_type);
         *incomplete_type_error_reported = TRUE;
         vp_type = error_type();
       }  /* if */

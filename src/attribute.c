@@ -4525,7 +4525,7 @@ and C11 _Alignas specifiers.
         } else {
           complete_type_is_needed(tp);
           if (is_incomplete_type(tp)) {
-            pos_error(incomplete_type_err_code(tp), &aap->position);
+            issue_incomplete_type_diag(&aap->position, tp);
             apply_value = FALSE;
             make_attr_unrecognized(ap);
           } else {

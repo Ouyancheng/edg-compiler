@@ -7360,34 +7360,6 @@ FALSE.
 }  /* is_consteval_diag_deferred */
 
 
-void expr_pos_error(an_error_code     error_code,
-                    a_source_position *error_pos)
-/*
-Report the indicated error at the indicated position.  Suppress the error
-if we're in a context where diagnostics should be suppressed, e.g.,
-a template deduction context.
-*/
-{
-  if (expr_error_should_be_issued()) {
-    pos_error(error_code, error_pos);
-  }  /* if */
-}  /* expr_pos_error */
-
-
-void expr_pos_warning(an_error_code     error_code,
-                      a_source_position *error_pos)
-/*
-Report the indicated warning at the indicated position.  Suppress the warning
-if we're in a context where diagnostics should be suppressed, e.g.,
-a template deduction context.
-*/
-{
-  if (expr_diagnostic_should_be_issued(es_warning, error_code, error_pos)) {
-    pos_warning(error_code, error_pos);
-  }  /* if */
-}  /* expr_pos_warning */
-
-
 void expr_pos_st_warning(an_error_code     error_code,
                          a_source_position *error_pos,
                          a_const_char      *str)
@@ -7544,6 +7516,22 @@ errors in the expression routines.
   /* Flush tokens until something in the stop token set turns up. */
   flush_tokens();
 }  /* expr_syntax_error */
+
+
+void expr_issue_incomplete_type_diag(a_source_position *pos,
+                                     a_type            *type,
+                   /* Defaulted: */  an_error_severity severity)
+/*
+Emit a diagnostic given the position where the incomplete type is used, the
+type that's incomplete, and the severity of the diagnostic.  Suppress the
+diagnostic if we're in a context where diagnostics should be suppressed, e.g.,
+a template deduction context.
+*/
+{
+  if (expr_error_should_be_issued()) {
+    issue_incomplete_type_diag(pos, type, severity);
+  }  /* if */
+}  /* expr_issue_incomplete_type_diag */
 
 
 void expr_expect_error(void)
@@ -11231,7 +11219,8 @@ C mode.
       /* MSVC++ allows a call returning an incomplete class type as an
          argument for an ellipsis in an unevaluated context. */
     } else {
-      error_in_operand(incomplete_type_err_code(arg_type), argument_operand);
+      expr_issue_incomplete_type_diag(&argument_operand->position, arg_type);
+      conv_to_error_operand(argument_operand);
     }  /* if */
   } else if (is_immediate_class_type(arg_type)) {
     /* Class.  No promotion needed. */
@@ -22335,7 +22324,8 @@ cases so we don't do it here.
          qualification is needed to pass DR 106.  In addition, the C++/CLI
          managed nullptr type, although prohibited as the type of an
          object, etc., is acceptable in an lvalue-to-rvalue conversion. */
-      error_in_operand(ec_incomplete_type_not_allowed, operand);
+      expr_issue_incomplete_type_diag(&operand->position, unqual_operand_type);
+      conv_to_error_operand(operand);
     } else if (is_template_param_expression_constant_operand(operand)) {
       /* A template param constant operand will retain the state of the
          original operand, rather than being set to os_prvalue. Always
