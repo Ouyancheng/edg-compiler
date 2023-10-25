@@ -818,10 +818,10 @@ command-line option.
 #endif /* ifndef DEFAULT_OUTPUT_MODE */
 
 /*
-Flag that is TRUE if, the front end should default to hiding incognito mode
-(and thus attempt to conceal that the EDG front end is being used).  This is
-the default value of the global variable incognito, which can be changed by a
-command-line option.
+Flag that is TRUE if the front end should default to hiding EDG-specific
+macros (and thus attempt to conceal that the EDG front end is being used).
+This is the default value of the global variable incognito, which can be
+changed by a command-line option.
 */
 #ifndef DEFAULT_INCOGNITO
 #define DEFAULT_INCOGNITO FALSE
