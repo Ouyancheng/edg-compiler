@@ -6309,19 +6309,6 @@ given expression.
 }  /* expr_interpret_expression_operand */
 
 
-static inline void mark_fs_node_reclaimed(an_expr_node_ptr node)
-/*
-It's been determined by the caller that the given node can be made
-available for reuse.  Update the avail_fs_nodes list to include the given
-node.
-*/
-{
-  node->kind = enk_reclaimed;
-  node->extra.next_avail = avail_fs_nodes;
-  avail_fs_nodes = node;
-}  /* mark_fs_node_reclaimed */
-
-
 static inline a_boolean is_fs_node_reclaimable(an_expr_node_ptr  node)
 /*
 Given an expression node, return TRUE if the node is in file scope and can be

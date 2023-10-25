@@ -80,6 +80,7 @@ enum a_constexpr_intrinsic {
   cit_std_meta_make_constexpr_array,
   cit_std_meta_name_of,
   cit_std_meta_members_of,
+  cit_std_meta_nonstatic_data_members_of,
   cit_std_meta_substitute,
   cit_std_meta_reflect_value,
   cit_std_meta_value_of,

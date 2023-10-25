@@ -239,6 +239,21 @@ extern a_local_expr_node_ref_ptr alloc_local_expr_node_ref(void);
 
 extern an_expr_node_ptr alloc_expr_node(an_expr_node_kind node_kind);
 
+extern an_expr_node_ptr fs_alloc_expr_node(an_expr_node_kind node_kind);
+
+inline void mark_fs_node_reclaimed(an_expr_node_ptr node)
+/*
+It's been determined by the caller that the given node can be made
+available for reuse.  Update the avail_fs_nodes list to include the given
+node.
+*/
+{
+  node->kind = enk_reclaimed;
+  node->extra.next_avail = avail_fs_nodes;
+  avail_fs_nodes = node;
+}  /* mark_fs_node_reclaimed */
+
+
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
 extern void set_lowered_eh_construct_node_kind(
                                              an_expr_node_ptr node,

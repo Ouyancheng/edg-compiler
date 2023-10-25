@@ -6229,6 +6229,12 @@ expression).
          need do no more than the simplest change. */
       /* Note that C99 complex types are lowered to aggregate types. */
       set_constant_kind(con_ptr, (a_constant_repr_kind)ck_aggregate);
+    } else if (type_is(skip_typerefs(desired_type), tk_reflection)) {
+      /* Reflection values are meaningless at run time.  Just produce a null
+         reflection constant. */
+      con_ptr->kind = ck_reflection;
+      con_ptr->variant.reflection.entity.kind = iek_none;
+      con_ptr->variant.reflection.entity.ptr = (char*)NULL;
     } else {
       /* Not an aggregate: a zero of the right type will be fine. */
       next_con = con_ptr->next;

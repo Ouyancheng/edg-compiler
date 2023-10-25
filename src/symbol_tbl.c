@@ -18301,6 +18301,7 @@ static a_const_char* intrinsic_names[] = {
   "make_constexpr_array",
   "name_of",
   "members_of",
+  "nonstatic_data_members_of",
   "substitute",
   "reflect_value",
   "value_of",

@@ -10001,6 +10001,49 @@ value val and returns a reflection value referring to that constant.
 }  /* do_constexpr_std_meta_make_reflect_value */
 
 
+static a_boolean handle_pm_case_for_value_of(
+                                         an_interpreter_state  *ips,
+                                         a_constant_ptr        cp,
+                                         a_type_ptr            val_type,
+                                         an_expr_node_ptr      call_node,
+                                         a_byte                *result_storage,
+                                         a_byte                *complete_obj)
+/*
+Handle the case where std::meta::value_of<T>(r) is evaluated with T a
+pointer-to-member type (val_type) and r is the reflection of a field or a
+nonstatic member function.  cp is a pointer-to-member constant for the
+nonstatic member being reflected.  See do_constexpr_std_meta_value_of for the
+meanings of call_node, result_storage, and complete_obj.
+*/
+{
+  a_boolean  result = TRUE;
+  an_error_code  err_code = ec_no_error;
+  a_boolean      did_not_fold = FALSE;
+
+  if (!identical_types(cp->type, val_type)) {
+    type_change_constant_full(cp, val_type, /*is_implicit_cast=*/FALSE,
+                              /*constant_context=*/TRUE,
+                              /*evaluated_context=*/TRUE,
+                              /*fold_constant_addr_exprs=*/TRUE,
+                              /*is_cli_attr_arg_expression=*/FALSE,
+                              /*check_cast_access=*/TRUE,
+                              /*check_ambiguity=*/TRUE,
+                              /*is_reinterpret_cast=*/FALSE,
+                              /*maintain_expression=*/FALSE,
+                              &did_not_fold, &err_code,
+                              &call_node->position);
+  }  /* if */
+  if (err_code == ec_no_error && !did_not_fold) {
+    extract_value_from_constant(ips, cp, result_storage, complete_obj);
+  } else {
+    info_with_pos_type2(ec_incompatible_std_meta_value_of_type,
+                        &call_node->position, val_type, cp->type, ips);
+    do_constexpr_fail(result);
+  }  /* if */
+  return result;
+}  /* handle_pm_case_for_value_of */
+
+
 static a_boolean do_constexpr_std_meta_value_of(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
@@ -10015,19 +10058,128 @@ value val and returns a reflection value referring to that constant.
 {
   a_boolean           result = FALSE;
   a_template_arg_ptr  tap = callee->template_arg_list;
-  a_type_ptr          val_type = tap->variant.type;
+  a_type_ptr          val_type = tap->variant.type, rt = NULL;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_constant          *cp = NULL;
+  a_variable          *vp = NULL;
+  a_routine           *rp = NULL;
 
   switch (rvp->entity.kind) {
     case iek_constant:
-      { a_constant  *cp = (a_constant*)rvp->entity.ptr;
-        if (identical_types_ignoring_qualifiers(cp->type, val_type)) {
+      { cp = (a_constant*)rvp->entity.ptr;
+        rt = cp->type;
+        if (identical_types_ignoring_qualifiers(rt, val_type)) {
           result = extract_value_from_constant(ips, cp, result_storage,
                                                complete_obj);
+        } else {
+           info_with_pos_type2(ec_incompatible_std_meta_value_of_type,
+                               &call_node->position, val_type, rt, ips);
+           do_constexpr_fail(result);
         }  /* if */
       }
       break;
+    case iek_variable:
+      { an_expr_node  *node = fs_alloc_expr_node(enk_variable),
+                      *new_node = node;
+        vp = (a_variable*)rvp->entity.ptr;
+        rt = vp->type;
+        if (is_reference_type(rt)) {
+          /* A reference variable.  In value_of<T>(r), T must be a matching
+             reference type and the result is the referenced address. */
+          if (identical_types(rt, val_type)) {
+            node->is_lvalue = TRUE;
+            node->type = type_pointed_to(val_type);
+            node->variant.variable.ptr = vp;
+            node->position = call_node->position;
+            result = TRUE;
+          } else {
+            info_with_pos_type2(ec_incompatible_std_meta_value_of_type,
+                                &call_node->position, val_type, rt, ips);
+            do_constexpr_fail(result);
+          }  /* if */
+        } else {
+          a_boolean  prvalue = FALSE;
+          node->is_lvalue = TRUE;
+          if (is_reference_type(val_type)) {
+            node->type = type_pointed_to(val_type);
+          } else {
+            node->type = val_type;
+            prvalue = TRUE;
+          }  /* if*/
+          node->variant.variable.ptr = vp;
+          node->position = call_node->position;
+          if (prvalue) {
+            node = conv_glvalue_expr_to_prvalue(node, (a_boolean*)NULL,
+                                                (a_constant**)NULL,
+                                                &node->position);
+          }  /* if */
+          if (identical_types_ignoring_qualifiers(rt, node->type)) {
+            result = TRUE;
+          } else {
+            info_with_pos_type2(ec_incompatible_std_meta_value_of_type,
+                                &call_node->position, val_type, rt, ips);
+            do_constexpr_fail(result);
+          }  /* if */
+        }  /* if */
+        if (result) {
+          result = do_constexpr_expression(ips, node, result_storage,
+                                           complete_obj);
+        }  /* if */
+        mark_fs_node_reclaimed(new_node);
+      }
+      break;
+    case iek_routine:
+      { rp = (a_routine*)rvp->entity.ptr;
+        rt = skip_typerefs(rp->type);
+        if (is_reference_type(val_type) || is_pointer_type(val_type)) {
+          a_type_ptr  rtp = skip_typerefs(type_pointed_to(val_type));
+          if (type_is(rtp, tk_routine) && identical_types(rtp, rt) &&
+              !routine_type_is_nonstatic_member_function(rt)) {
+            make_function_address(result_storage, rp);
+            mark_subobject_initialized(result_storage, complete_obj);
+          } else {
+            info_with_pos_type2(ec_incompatible_std_meta_value_of_type,
+                                &call_node->position, val_type, rt, ips);
+            do_constexpr_fail(result);
+          }  /* if */
+        } else if (is_ptr_to_member_type(val_type) &&
+                   routine_type_is_nonstatic_member_function(rt)) {
+          cp = local_constant();
+          set_ptr_to_member_function_constant(rp, cp);
+          result = handle_pm_case_for_value_of(ips, cp, val_type, call_node,
+                                               result_storage, complete_obj);
+          release_local_constant(&cp);
+        } else {
+          info_with_pos_type2(ec_incompatible_std_meta_value_of_type,
+                              &call_node->position, val_type, rt, ips);
+          do_constexpr_fail(result);
+        }  /* if */
+      }
+      break;
+    case iek_field:
+      { a_field  *fp = (a_field*)rvp->entity.ptr;
+        if (!fp->is_bit_field) {
+          cp = local_constant();
+          set_ptr_to_data_member_constant((a_field*)rvp->entity.ptr, cp);
+          result = handle_pm_case_for_value_of(ips, cp, val_type, call_node,
+                                               result_storage, complete_obj);
+          release_local_constant(&cp);
+        } else {
+          info_with_pos(ec_address_of_bit_field, &call_node->position, ips);
+          do_constexpr_fail(result);
+        }  /* if */
+      }
+      break;
+    case iek_expr_node:
+      {
+        result = do_constexpr_expression(ips, (an_expr_node*)rvp->entity.ptr,
+                                         result_storage, complete_obj);
+      }
+      break;
     default:
+      info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                    &call_node->position, ips);
+      do_constexpr_fail(result);
       break;
   }  /* if */
   return result;
@@ -10474,6 +10626,70 @@ representing a member of the given entity.
 done:
   return result;
 }  /* do_constexpr_std_meta_members_of */
+
+
+static a_boolean do_constexpr_std_meta_nonstatic_data_members_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::nonstatic_data_members_of(<reflection_value>).  It returns
+a vector-like container (struct std::meta::infovec) of reflections, with each
+element representing a field of the given entity (in declaration order).
+*/
+{
+  a_boolean     result = FALSE, invalid_arg = FALSE;
+  a_reflection_value
+                *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_source_correspondence_ptr
+                scp = source_corresp_for_reflection(rvp);
+  Dyn_array<a_reflection_value>
+                result_reflections(0);
+
+  if (!ips->is_constant_evaluated || !constexpr_dynamic_alloc_enabled) {
+    /* Don't attempt to evaluate this call if a constant result is not needed,
+       because it could be somewhat expensive. */
+    do_constexpr_fail(result);
+    info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                  &call_node->position, ips);
+    goto done;
+  }  /* if */
+  check_assertion(type_is(skip_typerefs(callee->type), tk_routine));
+  if (scp == NULL) {
+    invalid_arg = TRUE;
+  } else if (rvp->entity.kind == iek_type) {
+    a_type_ptr  parent_tp = (a_type_ptr)rvp->entity.ptr;
+    parent_tp = skip_typerefs(parent_tp);
+    if (is_immediate_class_type(parent_tp)) {
+      /* Enumerate all the data members. */
+      a_field_ptr    fp = parent_tp->variant.class_struct_union.field_list;
+      for (; fp != NULL; fp = fp->next) {
+        a_reflection_value  mem_rvp;
+        mem_rvp.entity.ptr = (char*)fp;
+        mem_rvp.entity.kind = (an_il_entry_kind)iek_field;
+        result_reflections.push_back(mem_rvp);
+      }  /* for */
+    } else {
+      invalid_arg = TRUE;
+    }  /* if */
+  } else {
+    invalid_arg = TRUE;
+  }  /* if */
+  // FIXME
+  if (invalid_arg) {
+    do_constexpr_fail(result);
+    // FIXME: diagnose
+  } else {
+    a_type_ptr  result_tp = skip_typerefs(call_node->type);
+    result = make_infovec(ips, result_tp, &result_reflections,
+                          &call_node->position, result_storage, complete_obj);
+  }  /* if */
+done:
+  return result;
+}  /* do_constexpr_std_meta_nonstatic_data_members_of */
 
 
 static a_boolean do_constexpr_std_meta_substitute(
@@ -11236,6 +11452,9 @@ frame when the call has completed.
       break;
     case cit_std_meta_members_of:
       evaluator = do_constexpr_std_meta_members_of;
+      break;
+    case cit_std_meta_nonstatic_data_members_of:
+      evaluator = do_constexpr_std_meta_nonstatic_data_members_of;
       break;
     case cit_std_meta_substitute:
       evaluator = do_constexpr_std_meta_substitute;
@@ -20164,6 +20383,7 @@ the value representation of the integer value.
           }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
           make_function_address(result_storage, node_routine(expr));
+          mark_subobject_initialized(result_storage, complete_object);
         } else {
           info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
                         &expr->position, ips);

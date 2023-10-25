@@ -3851,6 +3851,22 @@ Allocate and initialize an expression node.
 }  /* alloc_expr_node */
 
 
+an_expr_node_ptr fs_alloc_expr_node(an_expr_node_kind kind)
+/*
+This function is a wrapper for alloc_expr_node that ensures and expression
+node is allocated in file-scope memory.  kind is the kind passed on to
+alloc_expr_node.
+*/
+{
+  an_expr_node           *result;
+  a_memory_region_number region_to_switch_back_to;
+
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  result = alloc_expr_node(kind);
+  switch_back_to_original_region(region_to_switch_back_to);
+  return result;
+}  /* fs_alloc_expr_node */
+
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
 
 void set_lowered_eh_construct_node_kind(an_expr_node_ptr node,

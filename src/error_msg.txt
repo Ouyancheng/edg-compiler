@@ -3451,6 +3451,7 @@ ec_invalid_infovec_for_reflection;;"definition of std::meta::infovec does not ma
 ec_bad_reflection_kind_for_expression_splice;;"bad reflection kind for expression splice"
 ec_already_defined_with_pos;;"%n has already been defined (previous definition %p)"
 ec_infovec_not_initialized;;"infovec object not initialized"
+ec_incompatible_std_meta_value_of_type;;"value_of type %t1 is not compatible with the given reflection (entity with type %t2)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

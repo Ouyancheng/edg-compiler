@@ -9030,6 +9030,15 @@ interpreter) and if so mark it as such.
                                           rtp->variant.routine.return_type)) {
             tag = cit_std_meta_name_of;
           }  /* if */
+        } else if (strcmp(name, "nonstatic_data_members_of") == 0 &&
+                   rp->template_arg_list == NULL) {
+          a_type_ptr       rtp = skip_typerefs(rp->type);
+          a_param_type_ptr ptp = function_type_params(rtp);
+          if (ptp != NULL && ptp->next == NULL &&
+              is_reflection_type(ptp->type) &&
+              is_std_meta_infovec_type(rtp->variant.routine.return_type)) {
+            tag = cit_std_meta_nonstatic_data_members_of;
+          }  /* if */
         }  /* if */
         break;
       case 'r':

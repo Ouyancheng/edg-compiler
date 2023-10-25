@@ -93,6 +93,10 @@ namespace std {
       return infovec(0);  /* Dummy return.  Handled by interpreter. */
     }
 
+    consteval infovec nonstatic_data_members_of(info) {
+      return infovec(0);  /* Dummy return.  Handled by interpreter. */
+    }
+
     consteval info substitute(info, infovec) {
       return ^::;  /* Dummy return.  Handled by interpreter. */
     }
@@ -105,6 +109,14 @@ namespace std {
     template<typename T>
     consteval T value_of(info) {
       return T{};  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool test_type(info templ, info type) {
+      return value_of<bool>(substitute(templ, {type}));
+    }
+
+    consteval bool test_types(info templ, infovec types) {
+      return value_of<bool>(substitute(templ, types));
     }
   }
 }
