@@ -97,6 +97,9 @@ enum a_constexpr_intrinsic {
   cit_std_meta_is_namespace,
   cit_std_meta_is_nsdm,
   cit_std_meta_is_base,
+  cit_std_meta_has_template_arguments,
+  cit_std_meta_template_arguments_of,
+  cit_std_meta_template_of,
   cit_last
 };
 

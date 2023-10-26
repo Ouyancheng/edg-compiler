@@ -171,6 +171,17 @@ namespace std {
       return false;  /* Dummy return.  Handled by interpreter. */
     }
 
+    consteval bool has_template_arguments(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval infovec template_arguments_of(info) {
+      return infovec(0);  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval info template_of(info) {
+      return ^::;  /* Dummy return.  Handled by interpreter. */
+    }
 
   }
 }

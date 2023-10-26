@@ -3453,6 +3453,7 @@ ec_already_defined_with_pos;;"%n has already been defined (previous definition %
 ec_infovec_not_initialized;;"infovec object not initialized"
 ec_incompatible_std_meta_value_of_type;;"value_of type %t1 is not compatible with the given reflection (entity with type %t2)"
 ec_reflection_of_overloaded_set;;"reflecting an overload set is not currently permitted"
+ec_intrinsic_requires_template_instance;;"this intrinsic requires a reflection for a template instance"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

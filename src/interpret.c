@@ -10535,6 +10535,170 @@ Implement std::meta::is_base(info).
 }  /* do_constexpr_std_meta_is_base */
 
 
+static a_template_ptr template_for_reflection(a_reflection_value  *rvp)
+/*
+Return the template associated with the given reflection if that reflection is
+for a template instance.  Otherwise, return NULL.
+*/
+{
+  a_template  *templ = NULL;
+
+  switch (rvp->entity.kind) {
+    case iek_type:
+      { a_type      *tp = (a_type*)rvp->entity.ptr;
+        if (is_immediate_class_type(tp)) {
+          templ = class_type_supp(tp)->assoc_template;
+        } else if (type_is(tp, tk_typeref)) {
+          templ = tp->variant.typeref.extra_info->assoc_template;
+        }  /* if */
+        if (templ != NULL && templ->kind != templk_class) {
+          /* Ignore nested classes in class templates. */
+          templ = NULL;
+        }  /* if */
+      }
+      break;
+    case iek_routine:
+      { a_routine  *rp = (a_routine*)rvp->entity.ptr;
+        templ = rp->assoc_template;
+        if (templ != NULL && templ->kind != templk_function) {
+          /* Ignore member functions of class templates. */
+          templ = NULL;
+        }  /* if */
+      }
+      break;
+    case iek_variable:
+      { a_variable  *vp = (a_variable*)rvp->entity.ptr;
+        if (vp->template_info != NULL &&
+            vp->template_info->assoc_template != NULL &&
+            vp->template_info->assoc_template->kind == templk_variable) {
+          templ = vp->template_info->assoc_template;
+        }  /* if */
+      }
+      break;
+    default:
+      break;
+  }  /* switch */
+  return templ;
+}  /* template_for_reflection */
+
+
+static a_boolean do_constexpr_std_meta_has_template_arguments(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::has_template_arguments(info).
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  if (template_for_reflection(rvp) != NULL) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_has_template_arguments */
+
+
+static a_template_arg_ptr template_args_for_reflection(
+                                                     a_reflection_value  *rvp)
+/*
+Return the template arguments associated with the given reflection if that
+reflection is for a template instance.  Otherwise, return NULL.
+*/
+{
+  a_template_arg  *args = NULL;
+
+  switch (rvp->entity.kind) {
+    case iek_type:
+      { a_type      *tp = (a_type*)rvp->entity.ptr;
+        if (is_immediate_class_type(tp)) {
+          args = class_type_supp(tp)->template_arg_list;
+        } else if (type_is(tp, tk_typeref)) {
+          args = tp->variant.typeref.extra_info->template_arg_list;
+        }  /* if */
+      }
+      break;
+    case iek_routine:
+      { a_routine  *rp = (a_routine*)rvp->entity.ptr;
+        args = rp->template_arg_list;
+      }
+      break;
+    case iek_variable:
+      { a_variable  *vp = (a_variable*)rvp->entity.ptr;
+        if (vp->template_info != NULL) {
+          args = vp->template_info->template_arg_list;
+        }  /* if */
+      }
+      break;
+    default:
+      break;
+  }  /* switch */
+  return args;
+}  /* template_args_for_reflection */
+
+
+static a_boolean do_constexpr_std_meta_template_arguments_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::template_arguments_of(info).
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  if (template_for_reflection(rvp) != NULL) {
+    Dyn_array<a_reflection_value>
+                result_reflections(0);
+    a_template_arg  *t_args = template_args_for_reflection(rvp);
+    for (; t_args != NULL; t_args = t_args->next) {
+      result_reflections.push_back(a_reflection_value{ iek_template_arg,
+                                                       (char*)t_args });
+    }  /* for */
+  } else {
+    info_with_pos(ec_intrinsic_requires_template_instance,
+                  &call_node->position, ips);
+    do_constexpr_fail(result);
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_template_arguments_of */
+
+
+static a_boolean do_constexpr_std_meta_template_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::template_of(info).
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_template          *templ = template_for_reflection(rvp);
+  if (templ != NULL) {
+    a_reflection_value  *result_rvp = (a_reflection_value*)result_storage;
+    result_rvp->entity.kind = iek_template;
+    result_rvp->entity.ptr = (char*)templ;
+  } else {
+    do_constexpr_fail(result);
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_template_of */
+
+
 static a_constant_ptr
 		reflection_str_placeholder;
 			/* Dummy entry used to identify strings produced by
@@ -11852,6 +12016,15 @@ frame when the call has completed.
       break;
     case cit_std_meta_is_base:
       evaluator = do_constexpr_std_meta_is_base;
+      break;
+    case cit_std_meta_has_template_arguments:
+      evaluator = do_constexpr_std_meta_has_template_arguments;
+      break;
+    case cit_std_meta_template_arguments_of:
+      evaluator = do_constexpr_std_meta_template_arguments_of;
+      break;
+    case cit_std_meta_template_of:
+      evaluator = do_constexpr_std_meta_template_of;
       break;
     default:
       unexpected_condition();

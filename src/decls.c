@@ -8998,6 +8998,15 @@ interpreter) and if so mark it as such.
     a_param_type    *ptp = function_type_params(rtp);
     a_template_arg  *t_args = rp->template_arg_list;
     switch (name[0]) {
+      case 'h':
+        if  (t_args == NULL && ptp != NULL && ptp->next == NULL &&
+             is_reflection_type(ptp->type) &&
+             is_bool_type(rtp->variant.routine.return_type)) {
+          if (strcmp(name, "has_template_arguments") == 0) {
+            tag = cit_std_meta_has_template_arguments;
+          }  /* if */
+        }  /* if */
+        break;
       case 'i':
         if  (t_args == NULL && ptp != NULL && ptp->next == NULL &&
              is_reflection_type(ptp->type) &&
@@ -9031,6 +9040,7 @@ interpreter) and if so mark it as such.
             tag = cit_std_meta_is_base;
           }  /* if */
         }  /* if */
+        break;
       case 'm':
         if (strcmp(name, "make_constexpr_array") == 0 &&
             t_args != NULL && t_args->next == NULL &&
@@ -9083,6 +9093,20 @@ interpreter) and if so mark it as such.
               is_std_meta_infovec_type(ptp->next->type) &&
               is_reflection_type(rtp->variant.routine.return_type)) {
             tag = cit_std_meta_substitute;
+          }  /* if */
+        }  /* if */
+        break;
+      case 't':
+        if  (t_args == NULL && ptp != NULL && ptp->next == NULL &&
+             is_reflection_type(ptp->type)) {
+          if (is_std_meta_infovec_type(rtp->variant.routine.return_type)) {
+            if (strcmp(name, "template_arguments_of") == 0) {
+              tag = cit_std_meta_template_arguments_of;
+            }  /* if */
+          } else if (is_reflection_type(rtp->variant.routine.return_type)) {
+            if (strcmp(name, "template_of") == 0) {
+              tag = cit_std_meta_template_of;
+            }  /* if */
           }  /* if */
         }  /* if */
         break;

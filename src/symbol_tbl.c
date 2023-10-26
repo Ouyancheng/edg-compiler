@@ -18318,6 +18318,9 @@ static a_const_char* intrinsic_names[] = {
   "is_namespace",
   "is_nsdm",
   "is_base",
+  "has_template_arguments",
+  "template_arguments_of",
+  "template_of",
   "main"
 };
 
