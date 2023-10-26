@@ -6981,7 +6981,7 @@ file.
   comment_undefined_macro_name(DEFAULT_MS_PERMISSIVE);
 #endif /* defined(DEFAULT_MS_PERMISSIVE) */
 #if defined(DEFAULT_MSVC_EXECUTION_CHARACTER_SET)
-  define_numeric_valued_macro(DEFAULT_MSVC_EXECUTION_CHARACTER_SET);
+  define_string_valued_macro(DEFAULT_MSVC_EXECUTION_CHARACTER_SET);
 #else /* !defined(DEFAULT_MSVC_EXECUTION_CHARACTER_SET) */
   comment_undefined_macro_name(DEFAULT_MSVC_EXECUTION_CHARACTER_SET);
 #endif /* defined(DEFAULT_MSVC_EXECUTION_CHARACTER_SET) */
