@@ -8386,7 +8386,7 @@ instead return NULL.
     default:
       /* Unknown definition position. */
       break;
-  } /* switch */
+  }  /* switch */
   /* Catch any cases where the source position is a copy of the null position,
      and instead return NULL to prevent a confusing diagnostic. */
   if (result != NULL &&
