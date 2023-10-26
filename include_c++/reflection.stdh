@@ -118,6 +118,60 @@ namespace std {
     consteval bool test_types(info templ, infovec types) {
       return value_of<bool>(substitute(templ, types));
     }
+
+    consteval bool is_type(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool is_template(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool is_function_template(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool is_variable_template(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool is_class_template(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool is_alias_template(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool is_concept_template(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool is_constant(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool is_variable(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool is_function(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool is_namespace(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool is_nsdm(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool is_base(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+
   }
 }
 

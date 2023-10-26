@@ -18973,7 +18973,7 @@ ck_reflection) of a special built-in type (of kind tk_reflection).
         an_operand        opnd;
         an_expr_node_ptr  node;
         scan_expr(&opnd, PREC_PREFIX, EOPT_REFLECTION_OP);
-        if (is_sym_for_member_operand(&opnd)) {
+        if (opnd.symbol != NULL) {
           /* Handle some expressions that are unusual in other contexts. */
           if (symbol_is(opnd.symbol, sk_field)) {
             refl_cp->variant.reflection.entity.kind = iek_field;
@@ -18983,8 +18983,15 @@ ck_reflection) of a special built-in type (of kind tk_reflection).
             refl_cp->variant.reflection.entity.kind = iek_routine;
             refl_cp->variant.reflection.entity.ptr =
                                       (char*)opnd.symbol->variant.routine.ptr;
-          } else {
-            // FIXME
+          } else if (is_template_symbol(opnd.symbol)) {
+            refl_cp->variant.reflection.entity.kind = iek_template;
+            refl_cp->variant.reflection.entity.ptr =
+                                     (char*)opnd.symbol->variant.template_info
+                                                       ->il_template_entry;
+          } else if (symbol_is(opnd.symbol, sk_overloaded_function)) {
+            pos_error(ec_reflection_of_overloaded_set, &arg_pos);
+            refl_cp->variant.reflection.entity.kind = iek_none;
+            refl_cp->variant.reflection.entity.ptr = NULL;
           }  /* if */
         } else {
           a_constant_ptr  con = local_constant();

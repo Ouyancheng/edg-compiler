@@ -10186,6 +10186,355 @@ value val and returns a reflection value referring to that constant.
 }  /* do_constexpr_std_meta_make_value_of */
 
 
+static a_boolean do_constexpr_std_meta_is_type(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_type(info).
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  if (rvp->entity.kind == iek_type) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_is_type */
+
+
+static a_boolean do_constexpr_std_meta_is_template(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_template(info).
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  if (rvp->entity.kind == iek_template) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_is_template */
+
+
+static a_boolean do_constexpr_std_meta_is_function_template(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_function_template(info).
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  if (rvp->entity.kind == iek_template &&
+      ((a_template*)rvp->entity.ptr)->kind == templk_function) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_is_function_template */
+
+
+static a_boolean do_constexpr_std_meta_is_variable_template(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_variable_template(info).
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  if (rvp->entity.kind == iek_template &&
+      ((a_template*)rvp->entity.ptr)->kind == templk_variable) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_is_variable_template */
+
+
+static a_boolean do_constexpr_std_meta_is_class_template(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_class_template(info).
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  if (rvp->entity.kind == iek_template &&
+      ((a_template*)rvp->entity.ptr)->kind == templk_class &&
+      is_immediate_class_type(((a_template*)rvp->entity.ptr)
+                                            ->prototype_instantiation.type)) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_is_class_template */
+
+
+static a_boolean do_constexpr_std_meta_is_alias_template(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_alias_template(info).
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  if (rvp->entity.kind == iek_template &&
+      ((a_template*)rvp->entity.ptr)->kind == templk_class &&
+      !is_immediate_class_type(((a_template*)rvp->entity.ptr)
+                                            ->prototype_instantiation.type)) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_is_alias_template */
+
+
+static a_boolean do_constexpr_std_meta_is_concept_template(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_concept_template(info).
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  if (rvp->entity.kind == iek_template &&
+      ((a_template*)rvp->entity.ptr)->kind == templk_concept) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_is_concept_template */
+
+
+static a_boolean do_constexpr_std_meta_is_constant(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_constant(info).
+*/
+{
+  a_boolean           result = TRUE, answer = FALSE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  if (rvp->entity.kind == iek_constant) {
+    answer = TRUE;
+  } else if (rvp->entity.kind == iek_expr_node) {
+    /* FIXME: Should we attempt to fold expressions here somehow?
+       As an lvalue or as a prvalue?  Maybe only fold prvalues?*/
+  }  /* if */
+  if (answer) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_is_constant */
+
+
+static void extract_reflected_entity(a_reflection_value  *rvp)
+/*
+If rvp point to an expression node that is a simple reference to an entity
+(enk_variable, enk_field, enk_routine, enk_constant), replace rvp by a
+reflection for that entity.
+*/
+{
+  if (rvp->entity.kind == iek_expr_node) {
+    an_expr_node  *node = (an_expr_node*)rvp->entity.ptr;
+    switch (node->kind) {
+      case enk_variable:
+        rvp->entity.kind = iek_variable;
+        rvp->entity.ptr = (char*)node_variable(node);
+        break;
+      case enk_constant:
+        rvp->entity.kind = iek_constant;
+        rvp->entity.ptr = (char*)node_constant(node);
+        break;
+      case enk_field:
+        rvp->entity.kind = iek_field;
+        rvp->entity.ptr = (char*)node_field(node);
+        break;
+      case enk_routine:
+        rvp->entity.kind = iek_routine;
+        rvp->entity.ptr = (char*)node_routine(node);
+        break;
+      default:
+        break;
+    }  /* switch */
+  }  /* if */
+}  /* extract_reflected_entity */
+
+
+static a_boolean do_constexpr_std_meta_is_variable(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_variable(info).
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  extract_reflected_entity(rvp);
+  if (rvp->entity.kind == iek_variable) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_is_variable */
+
+
+static a_boolean do_constexpr_std_meta_is_function(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_function(info).
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  if (rvp->entity.kind == iek_routine) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_is_function */
+
+
+static a_boolean do_constexpr_std_meta_is_namespace(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_namespace(info).
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  if (rvp->entity.kind == iek_namespace) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_is_namespace */
+
+
+static a_boolean do_constexpr_std_meta_is_nsdm(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_nsdm(info).
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  extract_reflected_entity(rvp);
+  if (rvp->entity.kind == iek_field) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_is_nsdm */
+
+
+static a_boolean do_constexpr_std_meta_is_base(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_base(info).
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  if (rvp->entity.kind == iek_base_class) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_is_base */
+
+
 static a_constant_ptr
 		reflection_str_placeholder;
 			/* Dummy entry used to identify strings produced by
@@ -11465,6 +11814,45 @@ frame when the call has completed.
     case cit_std_meta_value_of:
       evaluator = do_constexpr_std_meta_value_of;
       break;
+    case cit_std_meta_is_type:
+      evaluator = do_constexpr_std_meta_is_type;
+      break;
+    case cit_std_meta_is_template:
+      evaluator = do_constexpr_std_meta_is_template;
+      break;
+    case cit_std_meta_is_function_template:
+      evaluator = do_constexpr_std_meta_is_function_template;
+      break;
+    case cit_std_meta_is_variable_template:
+      evaluator = do_constexpr_std_meta_is_variable_template;
+      break;
+    case cit_std_meta_is_class_template:
+      evaluator = do_constexpr_std_meta_is_class_template;
+      break;
+    case cit_std_meta_is_alias_template:
+      evaluator = do_constexpr_std_meta_is_alias_template;
+      break;
+    case cit_std_meta_is_concept_template:
+      evaluator = do_constexpr_std_meta_is_concept_template;
+      break;
+    case cit_std_meta_is_constant:
+      evaluator = do_constexpr_std_meta_is_constant;
+      break;
+    case cit_std_meta_is_variable:
+      evaluator = do_constexpr_std_meta_is_variable;
+      break;
+    case cit_std_meta_is_function:
+      evaluator = do_constexpr_std_meta_is_function;
+      break;
+    case cit_std_meta_is_namespace:
+      evaluator = do_constexpr_std_meta_is_namespace;
+      break;
+    case cit_std_meta_is_nsdm:
+      evaluator = do_constexpr_std_meta_is_nsdm;
+      break;
+    case cit_std_meta_is_base:
+      evaluator = do_constexpr_std_meta_is_base;
+      break;
     default:
       unexpected_condition();
   }  /* switch */
@@ -11613,6 +12001,7 @@ if *p_this_arg is not statically initialized.)
        been partially destroyed). */
   } else {
     a_routine_ptr     callee = *p_callee;
+db_complete_object(complete_obj);
     do {
       a_base_class_ptr  bcp = *(a_base_class_ptr*)subobj;
       a_byte_count      offset;

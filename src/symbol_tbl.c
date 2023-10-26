@@ -18305,6 +18305,19 @@ static a_const_char* intrinsic_names[] = {
   "substitute",
   "reflect_value",
   "value_of",
+  "is_type",
+  "is_template",
+  "is_function_template",
+  "is_variable_template",
+  "is_class_template",
+  "is_alias_template",
+  "is_concept_template",
+  "is_constant",
+  "is_variable",
+  "is_function",
+  "is_namespace",
+  "is_nsdm",
+  "is_base",
   "main"
 };
 

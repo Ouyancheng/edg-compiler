@@ -8993,25 +8993,55 @@ interpreter) and if so mark it as such.
                   symbol_for_namespace_std_meta->variant.namespace_info.ptr) {
     /* A member of namespace "std::meta", which holds meta-functions when
        reflection is enabled. */
-    a_const_char  *name = sym_hdr->identifier;
+    a_const_char   *name = sym_hdr->identifier;
+    a_type          *rtp = skip_typerefs(rp->type);
+    a_param_type    *ptp = function_type_params(rtp);
+    a_template_arg  *t_args = rp->template_arg_list;
     switch (name[0]) {
+      case 'i':
+        if  (t_args == NULL && ptp != NULL && ptp->next == NULL &&
+             is_reflection_type(ptp->type) &&
+             is_bool_type(rtp->variant.routine.return_type)) {
+          /* Check for a variety of predicate functions. */
+          if (strcmp(name, "is_type") == 0) {
+            tag = cit_std_meta_is_type;
+          } else if (strcmp(name, "is_template") == 0) {
+            tag = cit_std_meta_is_template;
+          } else if (strcmp(name, "is_function_template") == 0) {
+            tag = cit_std_meta_is_function_template;
+          } else if (strcmp(name, "is_variable_template") == 0) {
+            tag = cit_std_meta_is_variable_template;
+          } else if (strcmp(name, "is_class_template") == 0) {
+            tag = cit_std_meta_is_class_template;
+          } else if (strcmp(name, "is_alias_template") == 0) {
+            tag = cit_std_meta_is_alias_template;
+          } else if (strcmp(name, "is_concept_template") == 0) {
+            tag = cit_std_meta_is_concept_template;
+          } else if (strcmp(name, "is_constant") == 0) {
+            tag = cit_std_meta_is_constant;
+          } else if (strcmp(name, "is_variable") == 0) {
+            tag = cit_std_meta_is_variable;
+          } else if (strcmp(name, "is_function") == 0) {
+            tag = cit_std_meta_is_function;
+          } else if (strcmp(name, "is_namespace") == 0) {
+            tag = cit_std_meta_is_namespace;
+          } else if (strcmp(name, "is_nsdm") == 0) {
+            tag = cit_std_meta_is_nsdm;
+          } else if (strcmp(name, "is_base") == 0) {
+            tag = cit_std_meta_is_base;
+          }  /* if */
+        }  /* if */
       case 'm':
         if (strcmp(name, "make_constexpr_array") == 0 &&
-            rp->template_arg_list != NULL &&
-            rp->template_arg_list->next == NULL &&
-            rp->template_arg_list->kind == (a_templ_arg_kind)tak_type) {
-          a_type_ptr       rtp = skip_typerefs(rp->type);
-          a_param_type_ptr ptp = function_type_params(rtp);
+            t_args != NULL && t_args->next == NULL &&
+            t_args->kind == tak_type) {
           if (ptp != NULL && ptp->next != NULL && ptp->next->next == NULL &&
               is_pointer_type(ptp->type) &&
               is_integral_type(ptp->next->type) &&
               is_reflection_type(rtp->variant.routine.return_type)) {
             tag = cit_std_meta_make_constexpr_array;
           }  /* if */
-        } else if (strcmp(name, "members_of") == 0 &&
-                   rp->template_arg_list == NULL) {
-          a_type_ptr       rtp = skip_typerefs(rp->type);
-          a_param_type_ptr ptp = function_type_params(rtp);
+        } else if (strcmp(name, "members_of") == 0 && t_args == NULL) {
           if (ptp != NULL && ptp->next == NULL &&
               is_reflection_type(ptp->type) &&
               is_std_meta_infovec_type(rtp->variant.routine.return_type)) {
@@ -9020,10 +9050,7 @@ interpreter) and if so mark it as such.
         }  /* if */
         break;
       case 'n':
-        if (strcmp(name, "name_of") == 0 &&
-            rp->template_arg_list == NULL) {
-          a_type_ptr       rtp = skip_typerefs(rp->type);
-          a_param_type_ptr ptp = function_type_params(rtp);
+        if (strcmp(name, "name_of") == 0 && t_args == NULL) {
           if (ptp != NULL && ptp->next == NULL &&
               is_reflection_type(ptp->type) &&
               check_consistent_string_view_type(
@@ -9031,9 +9058,7 @@ interpreter) and if so mark it as such.
             tag = cit_std_meta_name_of;
           }  /* if */
         } else if (strcmp(name, "nonstatic_data_members_of") == 0 &&
-                   rp->template_arg_list == NULL) {
-          a_type_ptr       rtp = skip_typerefs(rp->type);
-          a_param_type_ptr ptp = function_type_params(rtp);
+                   t_args == NULL) {
           if (ptp != NULL && ptp->next == NULL &&
               is_reflection_type(ptp->type) &&
               is_std_meta_infovec_type(rtp->variant.routine.return_type)) {
@@ -9043,11 +9068,8 @@ interpreter) and if so mark it as such.
         break;
       case 'r':
         if (strcmp(name, "reflect_value") == 0 &&
-            rp->template_arg_list != NULL &&
-            rp->template_arg_list->next == NULL &&
-            rp->template_arg_list->kind == (a_templ_arg_kind)tak_type) {
-          a_type_ptr       rtp = skip_typerefs(rp->type);
-          a_param_type_ptr ptp = function_type_params(rtp);
+            t_args != NULL && t_args->next == NULL &&
+            t_args->kind == (a_templ_arg_kind)tak_type) {
           if (ptp != NULL && ptp->next == NULL &&
               is_reflection_type(rtp->variant.routine.return_type)) {
             tag = cit_std_meta_reflect_value;
@@ -9055,10 +9077,7 @@ interpreter) and if so mark it as such.
         }  /* if */
         break;
       case 's':
-        if (strcmp(name, "substitute") == 0 &&
-            rp->template_arg_list == NULL) {
-          a_type_ptr       rtp = skip_typerefs(rp->type);
-          a_param_type_ptr ptp = function_type_params(rtp);
+        if (strcmp(name, "substitute") == 0 && t_args == NULL) {
           if (ptp != NULL && ptp->next != NULL && ptp->next->next == NULL &&
               is_reflection_type(ptp->type) &&
               is_std_meta_infovec_type(ptp->next->type) &&
@@ -9069,11 +9088,8 @@ interpreter) and if so mark it as such.
         break;
       case 'v':
         if (strcmp(name, "value_of") == 0 &&
-            rp->template_arg_list != NULL &&
-            rp->template_arg_list->next == NULL &&
-            rp->template_arg_list->kind == (a_templ_arg_kind)tak_type) {
-          a_type_ptr       rtp = skip_typerefs(rp->type);
-          a_param_type_ptr ptp = function_type_params(rtp);
+            t_args != NULL && t_args->next == NULL &&
+            t_args->kind == (a_templ_arg_kind)tak_type) {
           if (ptp != NULL && ptp->next == NULL &&
               is_reflection_type(ptp->type)) {
             tag = cit_std_meta_value_of;

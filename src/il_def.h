@@ -16439,7 +16439,7 @@ The kind of template that is recorded in the IL template representation
 */
 enum a_template_kind : a_byte {
   templk_none,		/* Undefined. */
-  templk_class,		/* Class template. */
+  templk_class,		/* Class or alias template. */
   templk_function,	/* Function template. */
   templk_variable,	/* Variable template. */
   templk_member_function,
@@ -16573,7 +16573,7 @@ typedef struct a_template {
     /* When kind == templk_class, templk_member_class or templk_member_enum: */
     a_type_ptr	type;
 			/* A pointer to the prototype instantiation of the
-			   class, member class template, or member enum
+			   class/alias template, member class, or member enum
 			   template. */
     /* When kind == templk_static_data_member or templk_variable: */
     a_variable_ptr
