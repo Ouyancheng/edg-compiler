@@ -12001,7 +12001,6 @@ if *p_this_arg is not statically initialized.)
        been partially destroyed). */
   } else {
     a_routine_ptr     callee = *p_callee;
-db_complete_object(complete_obj);
     do {
       a_base_class_ptr  bcp = *(a_base_class_ptr*)subobj;
       a_byte_count      offset;
