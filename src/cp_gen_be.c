@@ -21791,10 +21791,12 @@ this one is such a continuation.
   if ((explicit_nlk == (a_name_linkage_kind)nlk_none ||
        render_braced_extern_c) &&
       !var->source_corresp.is_class_member &&
+      !var->is_inline && !var->is_template_variable &&
       var_nlk != (a_name_linkage_kind)nlk_none &&
       var_nlk != (a_name_linkage_kind)nlk_internal &&
       storage_class == (a_storage_class)sc_unspecified &&
-      is_const_qualified_type(var_type)) {
+      is_const_qualified_type(var_type) &&
+      !is_volatile_qualified_type(var_type)) {
     /* Something like
          extern "C" int const N = 32;
        requires an explicit "extern" if it is rewritten as
