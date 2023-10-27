@@ -9008,6 +9008,15 @@ interpreter) and if so mark it as such.
           }  /* if */
         }  /* if */
         break;
+      case 'e':
+        if (strcmp(name, "enumerators_of") == 0 && t_args == NULL) {
+          if (ptp != NULL && ptp->next == NULL &&
+              is_reflection_type(ptp->type) &&
+              is_std_meta_infovec_type(rtp->variant.routine.return_type)) {
+            tag = cit_std_meta_enumerators_of;
+          }  /* if */
+        }  /* if */
+        break;
       case 'h':
         if  (t_args == NULL && ptp != NULL && ptp->next == NULL &&
              is_reflection_type(ptp->type) &&

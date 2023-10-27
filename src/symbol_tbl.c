@@ -18302,6 +18302,7 @@ static a_const_char* intrinsic_names[] = {
   "name_of",
   "members_of",
   "nonstatic_data_members_of",
+  "enumerators_of",
   "substitute",
   "reflect_value",
   "value_of",

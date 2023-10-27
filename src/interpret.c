@@ -11404,6 +11404,71 @@ done:
 }  /* do_constexpr_std_meta_nonstatic_data_members_of */
 
 
+static a_boolean do_constexpr_std_meta_enumerators_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::enumerators_of(<reflection_value>).  It returns
+a vector-like container (struct std::meta::infovec) of reflections, with each
+element representing an enumerator constant for the given enumeration type.
+(Evaluation fails if the given reflection is not that of an enumeration type.)
+*/
+{
+  a_boolean     result = FALSE, invalid_arg = FALSE;
+  a_reflection_value
+                *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_source_correspondence_ptr
+                scp = source_corresp_for_reflection(rvp);
+  Dyn_array<a_reflection_value>
+                result_reflections(0);
+
+  if (!ips->is_constant_evaluated || !constexpr_dynamic_alloc_enabled) {
+    /* Don't attempt to evaluate this call if a constant result is not needed,
+       because it could be somewhat expensive. */
+    do_constexpr_fail(result);
+    info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                  &call_node->position, ips);
+    goto done;
+  }  /* if */
+  check_assertion(type_is(skip_typerefs(callee->type), tk_routine));
+  if (scp == NULL) {
+    invalid_arg = TRUE;
+  } else if (rvp->entity.kind == iek_type) {
+    a_type_ptr  parent_tp = (a_type_ptr)rvp->entity.ptr;
+    parent_tp = skip_typerefs(parent_tp);
+    if (is_enum_type(parent_tp)) {
+      /* Enumerate all the data members. */
+      a_constant  *cp = enum_constants(parent_tp);
+      for (; cp != NULL; cp = cp->next) {
+        a_reflection_value  mem_rvp;
+        mem_rvp.entity.ptr = (char*)cp;
+        mem_rvp.entity.kind = (an_il_entry_kind)iek_constant;
+        result_reflections.push_back(mem_rvp);
+      }  /* for */
+    } else {
+      invalid_arg = TRUE;
+    }  /* if */
+  } else {
+    invalid_arg = TRUE;
+  }  /* if */
+  // FIXME
+  if (invalid_arg) {
+    do_constexpr_fail(result);
+    // FIXME: diagnose
+  } else {
+    a_type_ptr  result_tp = skip_typerefs(call_node->type);
+    result = make_infovec(ips, result_tp, &result_reflections,
+                          &call_node->position, result_storage, complete_obj);
+  }  /* if */
+done:
+  return result;
+}  /* do_constexpr_std_meta_enumerators_of */
+
+
 static a_boolean do_constexpr_std_meta_substitute(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
@@ -12168,6 +12233,9 @@ frame when the call has completed.
       break;
     case cit_std_meta_nonstatic_data_members_of:
       evaluator = do_constexpr_std_meta_nonstatic_data_members_of;
+      break;
+    case cit_std_meta_enumerators_of:
+      evaluator = do_constexpr_std_meta_enumerators_of;
       break;
     case cit_std_meta_substitute:
       evaluator = do_constexpr_std_meta_substitute;

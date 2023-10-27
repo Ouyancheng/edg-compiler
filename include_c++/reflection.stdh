@@ -96,6 +96,9 @@ namespace std {
     consteval infovec nonstatic_data_members_of(info) {
       return infovec(0);  /* Dummy return.  Handled by interpreter. */
     }
+    consteval infovec enumerators_of(info) {
+      return infovec(0);  /* Dummy return.  Handled by interpreter. */
+    }
 
     consteval info substitute(info, infovec) {
       return ^::;  /* Dummy return.  Handled by interpreter. */
