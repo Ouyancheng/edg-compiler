@@ -30040,6 +30040,16 @@ operator_position describe the location of the operator in the token stream.
       (void)check_ptr_to_member_operands_for_compatibility(
                          operand_1, operand_2, operator_position,
                          &operation_type);
+    } else if (is_reflection_type(operand_1->type) ||
+               is_reflection_type(operand_2->type)) {
+      /* At least one operand is a reflection: The other operand should also
+         be one. */
+      if (!is_reflection_type(operand_1->type) ||
+          !is_reflection_type(operand_2->type)) {
+        expr_pos_ty2_error(ec_invalid_reflection_equality, operator_position,
+                           operand_1->type, operand_2->type);
+      }  /* if */
+      operation_type = reflection_type();
     } else if (is_nullptr_type(operand_1->type) ||
                is_nullptr_type(operand_2->type)) {
       /* At least one of the operands has a nullptr type. */
@@ -30179,6 +30189,7 @@ operator_tsn describe the location of the operator.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (is_nullptr_type(opnd1->type)) {
     } else if (is_ptr_to_member_type(opnd1->type)) {
+    } else if (is_reflection_type(opnd1->type)) {
     } else if (check_pointer_operand(opnd1,
                                      type_not_arithmetic_or_pointer_code())) {
     }  /* if */

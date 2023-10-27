@@ -9867,6 +9867,201 @@ TRUE.  Otherwise result FALSE.
 }  /* do_constexpr_std_is_constant_evaluated */
 
 
+static a_constexpr_allocation_ptr do_constexpr_dynamic_alloc(
+                                           an_interpreter_state  *ips,
+                                           a_type_ptr            elem_tp,
+                                           a_byte_count          alloc_length,
+                                           a_boolean             is_array,
+                                           a_source_position     *diag_pos,
+                                           a_constexpr_address   *cap,
+                                           a_byte_count          *p_elem_size);
+
+static a_boolean make_infovec(an_interpreter_state          *ips,
+                              a_type_ptr                    tp,
+                              Dyn_array<a_reflection_value> *reflections,
+                              a_source_position             *diag_pos,
+                              a_byte                        *result_storage,
+                              a_byte                        *complete_obj)
+/*
+Initialize an infovec (type tp, which is struct std::meta::infovec) at
+result_storage (part of the complete object at complete_obj) with the given
+sequence of reflections.  ips is the current interpreter state and diag_pos is
+the position associated with any diagnostics.  The type tp is assumed to be a
+class type with three fields: One pointer to be set to some dynamically
+allocated storage and two integers representing the capacity and length of the
+sequence, respectively.  This function sets the capacity and length both to
+the length of the given sequence of reflections.
+*/
+{
+  a_boolean     result = TRUE, other_fields = FALSE;
+  int           n_ptr_fields = 0, n_integral_fields = 0;
+  a_byte_count  length = reflections->length();
+  a_type_ptr    info_type = reflection_type();
+  a_byte_count  info_size = value_bytes_for_type(ips, info_type, &result);
+  a_field_ptr   fp;
+  a_constexpr_address
+                *cap = NULL;
+
+  check_assertion(type_is(tp, tk_struct) || type_is(tp, tk_class));
+  if (base_classes_of(tp) != NULL) {
+    info_with_pos(ec_invalid_infovec_for_reflection, &ips->position, ips);
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  /* Store the pointer to the allocation and the length/capacity in the
+     returned object. */
+  fp = tp->variant.class_struct_union.field_list;
+  fp = next_alloc_field(fp);
+  for (; fp != NULL; fp = next_alloc_field(fp->next)) {
+    a_type_ptr    ftp = skip_typerefs(fp->type);
+    a_byte_count  offset;
+    get_mapped_byte_count(&persistent_map, fp, offset);
+    if (type_is(ftp, tk_pointer) && n_ptr_fields == 0) {
+      /* We found the pointer field of the infovec object: Set it to point to
+         a dynamically-allocated array of length std::meta::info elements. */
+      cap = (a_constexpr_address*)(result_storage+offset);
+      if (do_constexpr_dynamic_alloc(ips, info_type, length, /*is_array=*/TRUE,
+                                     diag_pos, cap, &info_size) == NULL) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      mark_subobject_initialized(result_storage+offset, complete_obj);
+      n_ptr_fields += 1;
+    } else if (type_is(ftp, tk_integer) && n_integral_fields < 2) {
+      /* The length and/or the capacity field.  Both are set to the value of
+         length. */
+      set_integer_value((an_integer_value*)(result_storage+offset),
+                        (a_host_large_integer)length);
+      mark_subobject_initialized(result_storage+offset, complete_obj);
+      n_integral_fields += 1;
+    } else {
+      other_fields = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  if (other_fields || n_integral_fields != 2 || n_ptr_fields != 1) {
+    info_with_pos(ec_invalid_infovec_for_reflection, &ips->position, ips);
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  mark_complete_object_initialized(complete_obj);
+  /* Fill in the infovec contents. */
+  check_assertion(cap != NULL);
+  {
+    a_reflection_value  *rvp = (a_reflection_value*)cap->address;
+    a_byte              *array = cap->complete_object;
+    for (int k = 0; k<(int)length; ++k, ++rvp) {
+      *rvp = (*reflections)[k];
+      mark_subobject_initialized((a_byte*)rvp, array);
+    }  /* if */
+  }
+done:
+  return result;
+}  /* make_infovec */
+
+
+static a_boolean load_infovec(an_interpreter_state          *ips,
+                              a_type_ptr                    tp,
+                              Dyn_array<a_reflection_value> *reflections,
+                              a_source_position             *diag_pos,
+                              a_byte                        *result_storage,
+                              a_byte                        *complete_obj)
+/*
+Load an infovec (type tp, which is struct std::meta::infovec) stored at
+result_storage (part of the complete object at complete_obj) into *reflections.
+ips is the current interpreter state and diag_pos is the position associated
+with any diagnostics (e.g., if the infovec is not initialized).  The type tp
+is assumed to be a class type with three fields: One pointer to some
+dynamically-allocated storage and two integers representing the capacity and
+length of the sequence, respectively.
+*/
+{
+  a_boolean     result = TRUE, other_fields = FALSE;
+  int           n_ptr_fields = 0, n_integral_fields = 0;
+  a_byte_count  length = 0;
+  a_field_ptr   fp;
+  a_constexpr_address
+                *cap = NULL;
+
+  check_assertion(type_is(tp, tk_struct) || type_is(tp, tk_class));
+  if (base_classes_of(tp) != NULL) {
+    info_with_pos(ec_invalid_infovec_for_reflection, &ips->position, ips);
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  /* Store the pointer to the allocation and the length/capacity in the
+     returned object. */
+  fp = tp->variant.class_struct_union.field_list;
+  fp = next_alloc_field(fp);
+  for (; fp != NULL; fp = next_alloc_field(fp->next)) {
+    a_type_ptr    ftp = skip_typerefs(fp->type);
+    a_byte_count  offset;
+    get_mapped_byte_count(&persistent_map, fp, offset);
+    if (type_is(ftp, tk_pointer) && n_ptr_fields == 0) {
+      /* We found the pointer field of the infovec object: Set it to point to
+         a dynamically-allocated array of length std::meta::info elements. */
+      cap = (a_constexpr_address*)(result_storage+offset);
+      if (!is_initialized(cap)) {
+        more_info_diagnostic(ec_infovec_not_initialized, diag_pos,
+                             &ips->diag_list);
+        do_constexpr_fail(result);
+        goto done;
+      }  /* if */
+      n_ptr_fields += 1;
+    } else if (type_is(ftp, tk_integer) && n_integral_fields < 2) {
+      /* The length and/or the capacity field.  Retain the shorter one as the
+         length. */
+      if (!subobject_is_initialized(result_storage+offset, complete_obj)) {
+        more_info_diagnostic(ec_infovec_not_initialized, diag_pos,
+                             &ips->diag_list);
+        do_constexpr_fail(result);
+        goto done;
+      }  /* if */
+      a_host_large_integer  value;
+      a_boolean             ovfl = FALSE;
+      get_int_val_from(result_storage+offset, ftp, value, ovfl);
+      if (n_integral_fields == 0 || value < length) {
+        length = value;
+      }  /* if */
+      n_integral_fields += 1;
+    } else {
+      other_fields = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  if (other_fields || n_integral_fields != 2 || n_ptr_fields != 1) {
+    info_with_pos(ec_invalid_infovec_for_reflection, &ips->position, ips);
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
+  /* Load the infovec contents. */
+  check_assertion(cap != NULL);
+  if (!is_array_element(cap)) {
+    more_info_diagnostic(ec_infovec_not_initialized, diag_pos,
+                         &ips->diag_list);
+    do_constexpr_fail(result);
+    goto done;
+  } else {
+    a_reflection_value  *rvp = (a_reflection_value*)cap->address;
+    a_byte              *array = cap->complete_object;
+    reflections->clear();
+    reflections->reserve(length);
+    for (int k = 0; k<(int)length; ++k, ++rvp) {
+      if (cannot_dereference(cap) ||
+          !subobject_is_initialized((a_byte*)rvp, array)) {
+        more_info_diagnostic(ec_infovec_not_initialized, diag_pos,
+                             &ips->diag_list);
+        do_constexpr_fail(result);
+        goto done;
+      }  /* if */
+      reflections->push_back(*rvp);
+    }  /* if */
+  }
+done:
+  return result;
+}  /* load_infovec */
+
+
 static a_boolean copy_interpreter_object_to_constant(
                                        an_interpreter_state  *ips,
                                        a_byte                *object,
@@ -10001,6 +10196,34 @@ value val and returns a reflection value referring to that constant.
 }  /* do_constexpr_std_meta_make_reflect_value */
 
 
+static void strip_template_arg(a_reflection_value  *rvp)
+/*
+If rvp points to a reflection value for a template argument replace it by the
+reflection value for the underlying type, constant, or template.
+*/
+{
+  if (rvp->entity.kind == iek_template_arg) {
+    a_template_arg  *tap = (a_template_arg*)rvp->entity.ptr;
+    switch (tap->kind) {
+      case tak_type:
+        rvp->entity.kind = iek_type;
+        rvp->entity.ptr = (char*)tap->variant.type;
+        break;
+      case tak_nontype:
+        rvp->entity.kind = iek_constant;
+        rvp->entity.ptr = (char*)tap->variant.constant;
+        break;
+      case tak_template:
+        rvp->entity.kind = iek_template;
+        rvp->entity.ptr = (char*)tap->variant.templ.ptr;
+        break;
+      default:
+        unexpected_condition();
+    }  /* if */
+  }  /* if */
+}  /* strip_template_arg */
+
+
 static a_boolean handle_pm_case_for_value_of(
                                          an_interpreter_state  *ips,
                                          a_constant_ptr        cp,
@@ -10052,8 +10275,8 @@ static a_boolean do_constexpr_std_meta_value_of(
                                         a_byte                *result_storage,
                                         a_byte                *complete_obj)
 /*
-Implement std::meta::reflect_value(T val).  It creates IL (a_constant) for the
-value val and returns a reflection value referring to that constant.
+Implement std::meta::value_of<T>(r).  Return at result_storage the value of
+type T that is reflected by r.
 */
 {
   a_boolean           result = FALSE;
@@ -10064,6 +10287,7 @@ value val and returns a reflection value referring to that constant.
   a_variable          *vp = NULL;
   a_routine           *rp = NULL;
 
+  strip_template_arg(rvp);
   switch (rvp->entity.kind) {
     case iek_constant:
       { cp = (a_constant*)rvp->entity.ptr;
@@ -10200,6 +10424,7 @@ Implement std::meta::is_type(info).
   a_boolean           result = TRUE;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
+  strip_template_arg(rvp);
   if (rvp->entity.kind == iek_type) {
     *(an_integer_value*)result_storage = one_int;
   } else {
@@ -10223,6 +10448,7 @@ Implement std::meta::is_template(info).
   a_boolean           result = TRUE;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
+  strip_template_arg(rvp);
   if (rvp->entity.kind == iek_template) {
     *(an_integer_value*)result_storage = one_int;
   } else {
@@ -10246,6 +10472,7 @@ Implement std::meta::is_function_template(info).
   a_boolean           result = TRUE;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
+  strip_template_arg(rvp);
   if (rvp->entity.kind == iek_template &&
       ((a_template*)rvp->entity.ptr)->kind == templk_function) {
     *(an_integer_value*)result_storage = one_int;
@@ -10270,6 +10497,7 @@ Implement std::meta::is_variable_template(info).
   a_boolean           result = TRUE;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
+  strip_template_arg(rvp);
   if (rvp->entity.kind == iek_template &&
       ((a_template*)rvp->entity.ptr)->kind == templk_variable) {
     *(an_integer_value*)result_storage = one_int;
@@ -10294,6 +10522,7 @@ Implement std::meta::is_class_template(info).
   a_boolean           result = TRUE;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
+  strip_template_arg(rvp);
   if (rvp->entity.kind == iek_template &&
       ((a_template*)rvp->entity.ptr)->kind == templk_class &&
       is_immediate_class_type(((a_template*)rvp->entity.ptr)
@@ -10320,6 +10549,7 @@ Implement std::meta::is_alias_template(info).
   a_boolean           result = TRUE;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
+  strip_template_arg(rvp);
   if (rvp->entity.kind == iek_template &&
       ((a_template*)rvp->entity.ptr)->kind == templk_class &&
       !is_immediate_class_type(((a_template*)rvp->entity.ptr)
@@ -10346,6 +10576,7 @@ Implement std::meta::is_concept_template(info).
   a_boolean           result = TRUE;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
+  strip_template_arg(rvp);
   if (rvp->entity.kind == iek_template &&
       ((a_template*)rvp->entity.ptr)->kind == templk_concept) {
     *(an_integer_value*)result_storage = one_int;
@@ -10370,6 +10601,7 @@ Implement std::meta::is_constant(info).
   a_boolean           result = TRUE, answer = FALSE;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
+  strip_template_arg(rvp);
   if (rvp->entity.kind == iek_constant) {
     answer = TRUE;
   } else if (rvp->entity.kind == iek_expr_node) {
@@ -10387,7 +10619,7 @@ Implement std::meta::is_constant(info).
 
 static void extract_reflected_entity(a_reflection_value  *rvp)
 /*
-If rvp point to an expression node that is a simple reference to an entity
+If rvp represents an expression node that is a simple reference to an entity
 (enk_variable, enk_field, enk_routine, enk_constant), replace rvp by a
 reflection for that entity.
 */
@@ -10543,6 +10775,7 @@ for a template instance.  Otherwise, return NULL.
 {
   a_template  *templ = NULL;
 
+  strip_template_arg(rvp);
   switch (rvp->entity.kind) {
     case iek_type:
       { a_type      *tp = (a_type*)rvp->entity.ptr;
@@ -10596,6 +10829,7 @@ Implement std::meta::has_template_arguments(info).
   a_boolean           result = TRUE;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
+  strip_template_arg(rvp);
   if (template_for_reflection(rvp) != NULL) {
     *(an_integer_value*)result_storage = one_int;
   } else {
@@ -10657,14 +10891,21 @@ Implement std::meta::template_arguments_of(info).
   a_boolean           result = TRUE;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
+  strip_template_arg(rvp);
   if (template_for_reflection(rvp) != NULL) {
+    a_type_ptr  result_tp = skip_typerefs(call_node->type);
     Dyn_array<a_reflection_value>
                 result_reflections(0);
     a_template_arg  *t_args = template_args_for_reflection(rvp);
     for (; t_args != NULL; t_args = t_args->next) {
-      result_reflections.push_back(a_reflection_value{ iek_template_arg,
-                                                       (char*)t_args });
+      if (t_args->kind == tak_type || t_args->kind == tak_nontype ||
+          t_args->kind == tak_template) {
+        result_reflections.push_back(a_reflection_value{ iek_template_arg,
+                                                         (char*)t_args });
+      }  /* if */
     }  /* for */
+    result = make_infovec(ips, result_tp, &result_reflections,
+                          &call_node->position, result_storage, complete_obj);
   } else {
     info_with_pos(ec_intrinsic_requires_template_instance,
                   &call_node->position, ips);
@@ -10865,201 +11106,6 @@ via the std::string_view(char_ptr, length) constructor.
 }  /* do_constexpr_std_meta_name_of */
 
 
-static a_constexpr_allocation_ptr do_constexpr_dynamic_alloc(
-                                           an_interpreter_state  *ips,
-                                           a_type_ptr            elem_tp,
-                                           a_byte_count          alloc_length,
-                                           a_boolean             is_array,
-                                           a_source_position     *diag_pos,
-                                           a_constexpr_address   *cap,
-                                           a_byte_count          *p_elem_size);
-
-static a_boolean make_infovec(an_interpreter_state          *ips,
-                              a_type_ptr                    tp,
-                              Dyn_array<a_reflection_value> *reflections,
-                              a_source_position             *diag_pos,
-                              a_byte                        *result_storage,
-                              a_byte                        *complete_obj)
-/*
-Initialize an infovec (type tp, which is struct std::meta::infovec) at
-result_storage (part of the complete object at complete_obj) with the given
-sequence of reflections.  ips is the current interpreter state and diag_pos is
-the position associated with any diagnostics.  The type tp is assumed to be a
-class type with three fields: One pointer to be set to some dynamically
-allocated storage and two integers representing the capacity and length of the
-sequence, respectively.  This function sets the capacity and length both to
-the length of the given sequence of reflections.
-*/
-{
-  a_boolean     result = TRUE, other_fields = FALSE;
-  int           n_ptr_fields = 0, n_integral_fields = 0;
-  a_byte_count  length = reflections->length();
-  a_type_ptr    info_type = reflection_type();
-  a_byte_count  info_size = value_bytes_for_type(ips, info_type, &result);
-  a_field_ptr   fp;
-  a_constexpr_address
-                *cap = NULL;
-
-  check_assertion(type_is(tp, tk_struct) || type_is(tp, tk_class));
-  if (base_classes_of(tp) != NULL) {
-    info_with_pos(ec_invalid_infovec_for_reflection, &ips->position, ips);
-    do_constexpr_fail(result);
-    goto done;
-  }  /* if */
-  /* Store the pointer to the allocation and the length/capacity in the
-     returned object. */
-  fp = tp->variant.class_struct_union.field_list;
-  fp = next_alloc_field(fp);
-  for (; fp != NULL; fp = next_alloc_field(fp->next)) {
-    a_type_ptr    ftp = skip_typerefs(fp->type);
-    a_byte_count  offset;
-    get_mapped_byte_count(&persistent_map, fp, offset);
-    if (type_is(ftp, tk_pointer) && n_ptr_fields == 0) {
-      /* We found the pointer field of the infovec object: Set it to point to
-         a dynamically-allocated array of length std::meta::info elements. */
-      cap = (a_constexpr_address*)(result_storage+offset);
-      if (do_constexpr_dynamic_alloc(ips, info_type, length, /*is_array=*/TRUE,
-                                     diag_pos, cap, &info_size) == NULL) {
-        result = FALSE;
-        goto done;
-      }  /* if */
-      mark_subobject_initialized(result_storage+offset, complete_obj);
-      n_ptr_fields += 1;
-    } else if (type_is(ftp, tk_integer) && n_integral_fields < 2) {
-      /* The length and/or the capacity field.  Both are set to the value of
-         length. */
-      set_integer_value((an_integer_value*)(result_storage+offset),
-                        (a_host_large_integer)length);
-      mark_subobject_initialized(result_storage+offset, complete_obj);
-      n_integral_fields += 1;
-    } else {
-      other_fields = TRUE;
-      break;
-    }  /* if */
-  }  /* for */
-  if (other_fields || n_integral_fields != 2 || n_ptr_fields != 1) {
-    info_with_pos(ec_invalid_infovec_for_reflection, &ips->position, ips);
-    do_constexpr_fail(result);
-    goto done;
-  }  /* if */
-  mark_complete_object_initialized(complete_obj);
-  /* Fill in the infovec contents. */
-  check_assertion(cap != NULL);
-  {
-    a_reflection_value  *rvp = (a_reflection_value*)cap->address;
-    a_byte              *array = cap->complete_object;
-    for (int k = 0; k<(int)length; ++k, ++rvp) {
-      *rvp = (*reflections)[k];
-      mark_subobject_initialized((a_byte*)rvp, array);
-    }  /* if */
-  }
-done:
-  return result;
-}  /* make_infovec */
-
-
-static a_boolean load_infovec(an_interpreter_state          *ips,
-                              a_type_ptr                    tp,
-                              Dyn_array<a_reflection_value> *reflections,
-                              a_source_position             *diag_pos,
-                              a_byte                        *result_storage,
-                              a_byte                        *complete_obj)
-/*
-Load an infovec (type tp, which is struct std::meta::infovec) stored at
-result_storage (part of the complete object at complete_obj) into *reflections.
-ips is the current interpreter state and diag_pos is the position associated
-with any diagnostics (e.g., if the infovec is not initialized).  The type tp
-is assumed to be a class type with three fields: One pointer to some
-dynamically-allocated storage and two integers representing the capacity and
-length of the sequence, respectively.
-*/
-{
-  a_boolean     result = TRUE, other_fields = FALSE;
-  int           n_ptr_fields = 0, n_integral_fields = 0;
-  a_byte_count  length = 0;
-  a_field_ptr   fp;
-  a_constexpr_address
-                *cap = NULL;
-
-  check_assertion(type_is(tp, tk_struct) || type_is(tp, tk_class));
-  if (base_classes_of(tp) != NULL) {
-    info_with_pos(ec_invalid_infovec_for_reflection, &ips->position, ips);
-    do_constexpr_fail(result);
-    goto done;
-  }  /* if */
-  /* Store the pointer to the allocation and the length/capacity in the
-     returned object. */
-  fp = tp->variant.class_struct_union.field_list;
-  fp = next_alloc_field(fp);
-  for (; fp != NULL; fp = next_alloc_field(fp->next)) {
-    a_type_ptr    ftp = skip_typerefs(fp->type);
-    a_byte_count  offset;
-    get_mapped_byte_count(&persistent_map, fp, offset);
-    if (type_is(ftp, tk_pointer) && n_ptr_fields == 0) {
-      /* We found the pointer field of the infovec object: Set it to point to
-         a dynamically-allocated array of length std::meta::info elements. */
-      cap = (a_constexpr_address*)(result_storage+offset);
-      if (!is_initialized(cap)) {
-        more_info_diagnostic(ec_infovec_not_initialized, diag_pos,
-                             &ips->diag_list);
-        do_constexpr_fail(result);
-        goto done;
-      }  /* if */
-      n_ptr_fields += 1;
-    } else if (type_is(ftp, tk_integer) && n_integral_fields < 2) {
-      /* The length and/or the capacity field.  Retain the shorter one as the
-         length. */
-      if (!subobject_is_initialized(result_storage+offset, complete_obj)) {
-        more_info_diagnostic(ec_infovec_not_initialized, diag_pos,
-                             &ips->diag_list);
-        do_constexpr_fail(result);
-        goto done;
-      }  /* if */
-      a_host_large_integer  value;
-      a_boolean             ovfl = FALSE;
-      get_int_val_from(result_storage+offset, ftp, value, ovfl);
-      if (n_integral_fields == 0 || value < length) {
-        length = value;
-      }  /* if */
-      n_integral_fields += 1;
-    } else {
-      other_fields = TRUE;
-      break;
-    }  /* if */
-  }  /* for */
-  if (other_fields || n_integral_fields != 2 || n_ptr_fields != 1) {
-    info_with_pos(ec_invalid_infovec_for_reflection, &ips->position, ips);
-    do_constexpr_fail(result);
-    goto done;
-  }  /* if */
-  /* Load the infovec contents. */
-  check_assertion(cap != NULL);
-  if (!is_array_element(cap)) {
-    more_info_diagnostic(ec_infovec_not_initialized, diag_pos,
-                         &ips->diag_list);
-    do_constexpr_fail(result);
-    goto done;
-  } else {
-    a_reflection_value  *rvp = (a_reflection_value*)cap->address;
-    a_byte              *array = cap->complete_object;
-    reflections->clear();
-    reflections->reserve(length);
-    for (int k = 0; k<(int)length; ++k, ++rvp) {
-      if (cannot_dereference(cap) ||
-          !subobject_is_initialized((a_byte*)rvp, array)) {
-        more_info_diagnostic(ec_infovec_not_initialized, diag_pos,
-                             &ips->diag_list);
-        do_constexpr_fail(result);
-        goto done;
-      }  /* if */
-      reflections->push_back(*rvp);
-    }  /* if */
-  }
-done:
-  return result;
-}  /* load_infovec */
-
-
 static a_boolean do_constexpr_std_meta_members_of(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
@@ -11253,6 +11299,7 @@ error is communicated with an invalid reflection.
     /* Create a template argument list from the arg_reflections array. */
     a_template_arg_ptr  t_args = NULL, *p_t_args = &t_args;
     for (a_reflection_value arg_rv: arg_reflections) {
+      strip_template_arg(&arg_rv);
       switch (arg_rv.entity.kind) {
         case iek_type:
           *p_t_args = alloc_template_arg(tak_type);
@@ -18393,9 +18440,14 @@ the value representation of the integer value.
                   *(an_integer_value *)result_storage = zero_int;
                 }  /* if */
               }  /* if */
-            } else if (opnd1_type->kind == (a_type_kind)tk_nullptr) {
+            } else if (type_is(opnd1_type, tk_nullptr)) {
               /* Two nullptr values always compare equal. */
               *(an_integer_value *)result_storage = one_int;
+            } else if (type_is(opnd1_type, tk_reflection)) {
+              a_reflection_value  *rvp1 = (a_reflection_value*)opnd1_value,
+                                  *rvp2 = (a_reflection_value*)opnd2_value;
+              *(an_integer_value *)result_storage =
+                    rvp1->entity.ptr == rvp2->entity.ptr ? one_int : zero_int;
 #if C99_IL_EXTENSIONS_SUPPORTED
             } else if (tp->kind == (a_type_kind)tk_complex) {
               /* A complex floating-point type. */
