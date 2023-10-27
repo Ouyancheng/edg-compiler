@@ -8700,10 +8700,20 @@ and, if pos is not NULL, an error will be reported.
                               cssp = NULL;
     a_boolean                 is_const = is_const_qualified_type(type);
     a_type_ptr                orig_type = type;
-    if (kind == (a_builtin_operation_kind)bok_is_trivial ||
-        kind == (a_builtin_operation_kind)bok_is_standard_layout ||
-        kind == (a_builtin_operation_kind)bok_is_literal_type ||
-        kind == (a_builtin_operation_kind)bok_is_pod) {
+    if (kind == bok_is_trivial ||
+        kind == bok_is_standard_layout ||
+        kind == bok_is_literal_type ||
+        kind == bok_is_pod ||
+        kind == bok_has_copy ||
+        kind == bok_has_nothrow_copy ||
+        kind == bok_has_trivial_copy ||
+        kind == bok_has_trivial_destructor ||
+        kind == bok_has_trivial_move_constructor ||
+        kind == bok_has_nothrow_constructor ||
+        kind == bok_has_trivial_constructor ||
+        kind == bok_is_trivially_copyable ||
+        kind == bok_has_user_destructor ||
+        kind == bok_has_virtual_destructor) {
       type = skip_array_types(type);
     }  /* if */
     type = skip_typerefs(type);

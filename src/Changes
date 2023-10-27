@@ -1,5 +1,18 @@
 Version 6.6
 
+10/27/23 [EDGcpfe/24342]
+Type traits applied to array types
+
+Some type traits applied to array types failed to take into account the
+underlying element type.  For example:
+
+  struct C { ~C(); };
+  static_assert(!__has_trivial_destructor(C[8]));  // Previously failed.
+                                                   // Now okay.
+
+This is now fixed.
+
+
 10/24/23 [EDGcpfe/26710]
 --incognito and --no_incognito command-line options
 
