@@ -10688,6 +10688,7 @@ Implement std::meta::is_function(info).
   a_boolean           result = TRUE;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
+  extract_reflected_entity(rvp);
   if (rvp->entity.kind == iek_routine) {
     *(an_integer_value*)result_storage = one_int;
   } else {
@@ -10708,10 +10709,20 @@ static a_boolean do_constexpr_std_meta_is_namespace(
 Implement std::meta::is_namespace(info).
 */
 {
-  a_boolean           result = TRUE;
+  a_boolean           result = TRUE, answer = FALSE;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
   if (rvp->entity.kind == iek_namespace) {
+    answer = TRUE;
+  } else if (rvp->entity.kind == iek_scope) {
+    a_scope  *scope = (a_scope*)rvp->entity.ptr;
+    if (scope->kind == sck_file ||
+        scope->kind == sck_namespace ||
+        scope->kind == sck_namespace_extension) {
+      answer = TRUE;
+    }  /* if */
+  }  /* if */
+  if (answer == TRUE) {
     *(an_integer_value*)result_storage = one_int;
   } else {
     *(an_integer_value*)result_storage = zero_int;
@@ -10929,15 +10940,157 @@ Implement std::meta::template_of(info).
   a_boolean           result = TRUE;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
   a_template          *templ = template_for_reflection(rvp);
+
   if (templ != NULL) {
     a_reflection_value  *result_rvp = (a_reflection_value*)result_storage;
     result_rvp->entity.kind = iek_template;
     result_rvp->entity.ptr = (char*)templ;
   } else {
+    info_with_pos(ec_intrinsic_requires_template_instance,
+                  &call_node->position, ips);
     do_constexpr_fail(result);
   }  /* if */
   return result;
 }  /* do_constexpr_std_meta_template_of */
+
+
+static a_boolean do_constexpr_std_meta_type_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::type_of(info).
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0],
+                      *result_rvp = (a_reflection_value*)result_storage;
+  a_type              *tp = NULL;
+
+  strip_template_arg(rvp);
+  switch (rvp->entity.kind) {
+    case iek_base_class:
+      tp = ((a_base_class*)rvp->entity.ptr)->type;
+      break;
+    case iek_constant:
+      tp = ((a_constant*)rvp->entity.ptr)->type;
+      break;
+    case iek_expr_node:
+      tp = ((an_expr_node*)rvp->entity.ptr)->type;
+      break;
+    case iek_field:
+      tp = ((a_field*)rvp->entity.ptr)->type;
+      break;
+    case iek_routine:
+      tp = ((a_routine*)rvp->entity.ptr)->type;
+      break;
+    case iek_type:
+      tp = (a_type*)rvp->entity.ptr;
+      break;
+    case iek_variable:
+      tp = ((a_variable*)rvp->entity.ptr)->type;
+      break;
+    default:
+      break;
+  }  /* switch */
+  if (tp == NULL) {
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+    do_constexpr_fail(result);
+  } else {
+    result_rvp->entity.kind = iek_type;
+    result_rvp->entity.ptr = (char*)tp;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_type_of */
+
+
+static a_boolean do_constexpr_std_meta_parent_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::parent_of(info).
+*/
+{
+  a_boolean                result = TRUE;
+  a_reflection_value       *rvp = (a_reflection_value*)p_arg_bytes[0],
+                           *result_rvp = (a_reflection_value*)result_storage;
+  a_source_correspondence  *scp = NULL;
+
+  strip_template_arg(rvp);
+  extract_reflected_entity(rvp);
+  switch (rvp->entity.kind) {
+    case iek_constant:
+      /* Only consider named constants (i.e., enumerators). */
+      scp = &((a_constant*)rvp->entity.ptr)->source_corresp;
+      if (scp->name == NULL) scp = NULL;
+      break;
+    case iek_field:
+      scp = &((a_field*)rvp->entity.ptr)->source_corresp;
+      break;
+    case iek_routine:
+      scp = &((a_routine*)rvp->entity.ptr)->source_corresp;
+      break;
+    case iek_template:
+      scp = &((a_template*)rvp->entity.ptr)->source_corresp;
+      break;
+    case iek_type:
+      /* Only consider named types (class, enum, typedef): */
+      scp = &((a_type*)rvp->entity.ptr)->source_corresp;
+      if (scp->name == NULL) scp = NULL;
+      break;
+    case iek_variable:
+      scp = &((a_variable*)rvp->entity.ptr)->source_corresp;
+      break;
+    default:
+      break;
+  }  /* switch */
+  if (scp == NULL) {
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+    do_constexpr_fail(result);
+  } else if (scp->is_class_member) {
+    result_rvp->entity.kind = iek_type;
+    result_rvp->entity.ptr = (char*)scp_parent_class(scp);
+  } else {
+    result_rvp->entity.kind = iek_scope;
+    result_rvp->entity.ptr = (char*)scp->parent_scope;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_parent_of */
+
+
+static a_boolean do_constexpr_std_meta_dealias(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::dealias(info).
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0],
+                      *result_rvp = (a_reflection_value*)result_storage;
+
+  *result_rvp = *rvp;
+  strip_template_arg(result_rvp);
+  if (result_rvp->entity.kind == iek_namespace) {
+  } else if (result_rvp->entity.kind == iek_type) {
+    a_type  *tp = (a_type*)result_rvp->entity.ptr;
+    result_rvp->entity.ptr = (char*)skip_typedefs(tp);
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_dealias */
 
 
 static a_constant_ptr
@@ -12072,6 +12225,15 @@ frame when the call has completed.
       break;
     case cit_std_meta_template_of:
       evaluator = do_constexpr_std_meta_template_of;
+      break;
+    case cit_std_meta_type_of:
+      evaluator = do_constexpr_std_meta_type_of;
+      break;
+    case cit_std_meta_parent_of:
+      evaluator = do_constexpr_std_meta_parent_of;
+      break;
+    case cit_std_meta_dealias:
+      evaluator = do_constexpr_std_meta_dealias;
       break;
     default:
       unexpected_condition();
@@ -18446,6 +18608,8 @@ the value representation of the integer value.
             } else if (type_is(opnd1_type, tk_reflection)) {
               a_reflection_value  *rvp1 = (a_reflection_value*)opnd1_value,
                                   *rvp2 = (a_reflection_value*)opnd2_value;
+              strip_template_arg(rvp1);
+              strip_template_arg(rvp2);
               *(an_integer_value *)result_storage =
                     rvp1->entity.ptr == rvp2->entity.ptr ? one_int : zero_int;
 #if C99_IL_EXTENSIONS_SUPPORTED
@@ -18557,6 +18721,13 @@ the value representation of the integer value.
             } else if (opnd1_type->kind == (a_type_kind)tk_nullptr) {
               /* Two nullptr values always compare equal. */
               *(an_integer_value *)result_storage = zero_int;
+            } else if (type_is(opnd1_type, tk_reflection)) {
+              a_reflection_value  *rvp1 = (a_reflection_value*)opnd1_value,
+                                  *rvp2 = (a_reflection_value*)opnd2_value;
+              strip_template_arg(rvp1);
+              strip_template_arg(rvp2);
+              *(an_integer_value *)result_storage =
+                    rvp1->entity.ptr != rvp2->entity.ptr ? one_int : zero_int;
 #if C99_IL_EXTENSIONS_SUPPORTED
             } else if (tp->kind == (a_type_kind)tk_complex) {
               /* A complex floating-point type. */

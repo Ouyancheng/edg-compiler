@@ -18321,6 +18321,9 @@ static a_const_char* intrinsic_names[] = {
   "has_template_arguments",
   "template_arguments_of",
   "template_of",
+  "type_of",
+  "parent_of",
+  "dealias",
   "main"
 };
 

@@ -183,6 +183,18 @@ namespace std {
       return ^::;  /* Dummy return.  Handled by interpreter. */
     }
 
+    consteval info type_of(info) {
+      return ^::;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval info parent_of(info) {
+      return ^::;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval info dealias(info) {
+      return ^::;  /* Dummy return.  Handled by interpreter. */
+    }
+
   }
 }
 

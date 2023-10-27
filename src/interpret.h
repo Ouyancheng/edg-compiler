@@ -100,6 +100,9 @@ enum a_constexpr_intrinsic {
   cit_std_meta_has_template_arguments,
   cit_std_meta_template_arguments_of,
   cit_std_meta_template_of,
+  cit_std_meta_type_of,
+  cit_std_meta_parent_of,
+  cit_std_meta_dealias,
   cit_last
 };
 

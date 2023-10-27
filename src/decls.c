@@ -8998,6 +8998,16 @@ interpreter) and if so mark it as such.
     a_param_type    *ptp = function_type_params(rtp);
     a_template_arg  *t_args = rp->template_arg_list;
     switch (name[0]) {
+      case 'd':
+        if  (t_args == NULL && ptp != NULL && ptp->next == NULL &&
+             is_reflection_type(ptp->type)) {
+          if (is_reflection_type(rtp->variant.routine.return_type)) {
+            if (strcmp(name, "dealias") == 0) {
+              tag = cit_std_meta_dealias;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+        break;
       case 'h':
         if  (t_args == NULL && ptp != NULL && ptp->next == NULL &&
              is_reflection_type(ptp->type) &&
@@ -9076,6 +9086,16 @@ interpreter) and if so mark it as such.
           }  /* if */
         }  /* if */
         break;
+      case 'p':
+        if  (t_args == NULL && ptp != NULL && ptp->next == NULL &&
+             is_reflection_type(ptp->type)) {
+          if (is_reflection_type(rtp->variant.routine.return_type)) {
+            if (strcmp(name, "parent_of") == 0) {
+              tag = cit_std_meta_parent_of;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+        break;
       case 'r':
         if (strcmp(name, "reflect_value") == 0 &&
             t_args != NULL && t_args->next == NULL &&
@@ -9106,6 +9126,8 @@ interpreter) and if so mark it as such.
           } else if (is_reflection_type(rtp->variant.routine.return_type)) {
             if (strcmp(name, "template_of") == 0) {
               tag = cit_std_meta_template_of;
+            } else if (strcmp(name, "type_of") == 0) {
+              tag = cit_std_meta_type_of;
             }  /* if */
           }  /* if */
         }  /* if */
