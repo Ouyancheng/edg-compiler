@@ -109,8 +109,8 @@ The previous definition position is now included:
   error: function "foo" has already been defined
      (previous definition at line 1)
 
-Additionally note, ec_function_redefinition and ec_redefinition have been
-retired.  These redefinitions are now issued via either
+Additionally, note that ec_function_redefinition and ec_redefinition have been
+retired.  Diagnostics for these redefinitions are now issued via either
 ec_already_defined_with_pos or ec_already_defined.
 
 
