@@ -8712,8 +8712,7 @@ and, if pos is not NULL, an error will be reported.
         kind == bok_has_nothrow_constructor ||
         kind == bok_has_trivial_constructor ||
         kind == bok_is_trivially_copyable ||
-        kind == bok_has_user_destructor ||
-        kind == bok_has_virtual_destructor) {
+        kind == bok_has_user_destructor) {
       type = skip_array_types(type);
     }  /* if */
     type = skip_typerefs(type);
