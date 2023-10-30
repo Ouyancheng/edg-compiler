@@ -10911,7 +10911,7 @@ Implement std::meta::template_arguments_of(info).
     for (; t_args != NULL; t_args = t_args->next) {
       if (t_args->kind == tak_type || t_args->kind == tak_nontype ||
           t_args->kind == tak_template) {
-        a_reflection_value  arg_rv = { iek_template_arg, (char*)t_args };
+        a_reflection_value  arg_rv = { { iek_template_arg, (char*)t_args } };
         result_reflections.push_back(arg_rv);
       }  /* if */
     }  /* for */
