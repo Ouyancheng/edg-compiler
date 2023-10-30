@@ -10778,6 +10778,103 @@ Implement std::meta::is_base(info).
 }  /* do_constexpr_std_meta_is_base */
 
 
+static a_boolean do_constexpr_std_meta_is_constructor(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_constructor(info).
+*/
+{
+  a_boolean           result = TRUE, answer = FALSE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  extract_reflected_entity(rvp);
+  if (rvp->entity.kind == iek_routine) {
+    a_routine  *rp = (a_routine*)rvp->entity.ptr;
+    answer = special_kind_is(rp, sfk_constructor);
+  }  /* if */
+  if (answer) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_is_constructor */
+
+
+static a_boolean do_constexpr_std_meta_is_destructor(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_destructor(info).
+*/
+{
+  a_boolean           result = TRUE, answer = FALSE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  extract_reflected_entity(rvp);
+  if (rvp->entity.kind == iek_routine) {
+    a_routine  *rp = (a_routine*)rvp->entity.ptr;
+    answer = special_kind_is(rp, sfk_destructor);
+  }  /* if */
+  if (answer) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_is_destructor */
+
+
+static a_boolean do_constexpr_std_meta_is_special_member(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_special_member(info).
+*/
+{
+  a_boolean           result = TRUE, answer = FALSE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  extract_reflected_entity(rvp);
+  if (rvp->entity.kind == iek_routine) {
+    a_routine  *rp = (a_routine*)rvp->entity.ptr;
+    a_boolean  is_move;
+    a_type_qualifier_set
+               tqs;
+    if (special_kind_is(rp, sfk_constructor) &&
+        (is_default_constructor(rp, /*is_declarative_context=*/TRUE) ||
+         is_copy_constructor(rp, parent_class_of(rp), &tqs,
+                             /*includ_move_ctors=*/TRUE,
+                             /*is_declarative_context=*/TRUE))) {
+    } else if (special_kind_is(rp, sfk_destructor)) {
+      answer = TRUE;
+    } else if (special_kind_is(rp, sfk_operator) &&
+               routine_is_copy_or_move_assign_operator(rp, &tqs, &is_move)) {
+      answer = TRUE;
+    }  /* if */
+  }  /* if */
+  if (answer) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_is_special_member */
+
+
 static a_template_ptr template_for_reflection(a_reflection_value  *rvp)
 /*
 Return the template associated with the given reflection if that reflection is
@@ -12284,6 +12381,15 @@ frame when the call has completed.
       break;
     case cit_std_meta_is_base:
       evaluator = do_constexpr_std_meta_is_base;
+      break;
+    case cit_std_meta_is_constructor:
+      evaluator = do_constexpr_std_meta_is_constructor;
+      break;
+    case cit_std_meta_is_destructor:
+      evaluator = do_constexpr_std_meta_is_destructor;
+      break;
+    case cit_std_meta_is_special_member:
+      evaluator = do_constexpr_std_meta_is_special_member;
       break;
     case cit_std_meta_has_template_arguments:
       evaluator = do_constexpr_std_meta_has_template_arguments;

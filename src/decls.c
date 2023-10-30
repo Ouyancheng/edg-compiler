@@ -9057,6 +9057,12 @@ interpreter) and if so mark it as such.
             tag = cit_std_meta_is_nsdm;
           } else if (strcmp(name, "is_base") == 0) {
             tag = cit_std_meta_is_base;
+          } else if (strcmp(name, "is_constructor") == 0) {
+            tag = cit_std_meta_is_base;
+          } else if (strcmp(name, "is_destructor") == 0) {
+            tag = cit_std_meta_is_base;
+          } else if (strcmp(name, "is_special_member") == 0) {
+            tag = cit_std_meta_is_base;
           }  /* if */
         }  /* if */
         break;
