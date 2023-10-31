@@ -111,6 +111,7 @@ enum a_constexpr_intrinsic {
   cit_std_meta_is_explicit,
   cit_std_meta_is_override,
   cit_std_meta_is_pure_virtual,
+  cit_std_meta_is_bit_field,
   cit_std_meta_has_static_storage_duration,
   cit_std_meta_has_template_arguments,
   cit_std_meta_template_arguments_of,
@@ -118,6 +119,11 @@ enum a_constexpr_intrinsic {
   cit_std_meta_type_of,
   cit_std_meta_parent_of,
   cit_std_meta_dealias,
+  cit_std_meta_size_of,
+  cit_std_meta_offset_of,
+  cit_std_meta_bit_size_of,
+  cit_std_meta_bit_offset_of,
+  cit_std_meta_alignment_of,
   cit_last
 };
 

@@ -36,6 +36,8 @@ interpret.c -- IL interpreter for constexpr functions
 #include "lower_il.h"
 #endif /* DO_IL_LOWERING */
 
+#include "layout.h"
+
 #include "templates.h"
 
 /* Conditionally open the "edg" namespace. */
@@ -11205,6 +11207,33 @@ Implement std::meta::is_pure_virtual(info).
 }  /* do_constexpr_std_meta_is_pure_virtual */
 
 
+static a_boolean do_constexpr_std_meta_is_bit_field(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_bit_field(info).
+*/
+{
+  a_boolean           result = TRUE, answer = FALSE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  extract_reflected_entity(rvp);
+  if (rvp->entity.kind == iek_field) {
+    answer = ((a_field*)rvp->entity.ptr)->is_bit_field;
+  }  /* if */
+  if (answer) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_is_bit_field */
+
+
 static a_boolean do_constexpr_std_meta_has_static_storage_duration(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
@@ -11510,9 +11539,9 @@ Implement std::meta::parent_of(info).
       break;
   }  /* switch */
   if (scp == NULL) {
+    do_constexpr_fail(result);
     info_with_pos(ec_invalid_reflection_for_intrinsic,
                   &call_node->position, ips);
-    do_constexpr_fail(result);
   } else if (scp->is_class_member) {
     result_rvp->entity.kind = iek_type;
     result_rvp->entity.ptr = (char*)scp_parent_class(scp);
@@ -11548,6 +11577,225 @@ Implement std::meta::dealias(info).
   }  /* if */
   return result;
 }  /* do_constexpr_std_meta_dealias */
+
+
+static a_boolean do_constexpr_std_meta_size_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::size_of(info).
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_type              *type = NULL;
+
+  extract_reflected_entity(rvp);
+  switch (rvp->entity.kind) {
+    case iek_type:
+      type = (a_type*)rvp->entity.ptr;
+      break;
+    case iek_variable:
+      type = ((a_variable*)rvp->entity.ptr)->type;
+      break;
+    case iek_base_class:
+      type = ((a_base_class*)rvp->entity.ptr)->type;
+      break;
+    case iek_constant:
+      type = ((a_constant*)rvp->entity.ptr)->type;
+      break;
+    case iek_field:
+      { a_field  *fp = (a_field*)rvp->entity.ptr;
+        if (!fp->is_bit_field) {
+          type = fp->type;
+        }  /* if */
+      }
+      break;
+    case iek_expr_node:
+      type = ((an_expr_node*)rvp->entity.ptr)->type;
+      break;
+    default:
+      break;
+  }  /* switch */
+  if (type == NULL || is_function_type(type) || is_incomplete_type(type)) {
+    do_constexpr_fail(result);
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+  } else if (!is_error_type(type)) {
+    if (is_any_reference_type(type)) {
+      type = type_pointed_to(type);
+    }  /* if */
+    set_integer_value((an_integer_value*)result_storage,
+                      (a_host_large_integer)size_of_type(type));
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_size_of */
+
+
+static a_boolean do_constexpr_std_meta_offset_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::offset_of(info).
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_targ_size_t       offset = 0;
+
+  extract_reflected_entity(rvp);
+  switch (rvp->entity.kind) {
+    case iek_base_class:
+      offset = ((a_base_class*)rvp->entity.ptr)->offset;
+      break;
+    case iek_field:
+      offset = ((a_base_class*)rvp->entity.ptr)->offset;
+      break;
+    default:
+      do_constexpr_fail(result);
+      break;
+  }  /* switch */
+  if (!result) {
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+  } else {
+    set_integer_value((an_integer_value*)result_storage,
+                      (a_host_large_integer)offset);
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_offset_of */
+
+
+static a_boolean do_constexpr_std_meta_bit_size_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::bit_size_of(info).
+*/
+{
+  a_boolean           result = FALSE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  extract_reflected_entity(rvp);
+  if (rvp->entity.kind == iek_field) {
+    a_field  *fp = (a_field*)rvp->entity.ptr;
+    if (fp->is_bit_field) {
+      result = TRUE;
+      set_integer_value((an_integer_value*)result_storage,
+                        (a_host_large_integer)fp->bit_size);
+    }  /* if */
+  }  /* if */
+  if (!result) {
+    do_constexpr_fail(result);
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_bit_size_of */
+
+
+static a_boolean do_constexpr_std_meta_bit_offset_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::bit_offset_of(info).
+*/
+{
+  a_boolean           result = FALSE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  extract_reflected_entity(rvp);
+  if (rvp->entity.kind == iek_field) {
+    a_field  *fp = (a_field*)rvp->entity.ptr;
+    if (fp->is_bit_field) {
+      result = TRUE;
+      set_integer_value((an_integer_value*)result_storage,
+                        (a_host_large_integer)fp->offset_bit_remainder);
+    }  /* if */
+  }  /* if */
+  if (!result) {
+    do_constexpr_fail(result);
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_bit_offset_of */
+
+
+static a_boolean do_constexpr_std_meta_alignment_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::alignment_of(info).
+*/
+{
+  a_boolean           result = TRUE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_type              *type = NULL;
+  a_targ_size_t       alignment = 0;
+
+  extract_reflected_entity(rvp);
+  switch (rvp->entity.kind) {
+    case iek_type:
+      type = (a_type*)rvp->entity.ptr;
+      break;
+    case iek_variable:
+      { a_variable  *vp = (a_variable*)rvp->entity.ptr;
+        type = vp->type;
+        alignment = vp->alignment;
+      }
+      break;
+    case iek_base_class:
+      type = ((a_base_class*)rvp->entity.ptr)->type;
+      break;
+    case iek_constant:
+      type = ((a_constant*)rvp->entity.ptr)->type;
+      break;
+    case iek_field:
+      { a_field  *fp = (a_field*)rvp->entity.ptr;
+        if (!fp->is_bit_field) {
+          alignment = alignment_of_field_full(fp, /*for_alignof=*/TRUE);
+        }  /* if */
+      }
+      break;
+    default:
+      break;
+  }  /* switch */
+  if ((type == NULL || is_function_type(type) || is_incomplete_type(type)) &&
+      alignment == 0) {
+    do_constexpr_fail(result);
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+  } else if (type != NULL && !is_error_type(type)) {
+    if (is_any_reference_type(type)) {
+      type = type_pointed_to(type);
+    }  /* if */
+    alignment = alignment_of_type(type);
+  }  /* if */
+  set_integer_value((an_integer_value*)result_storage,
+                    (a_host_large_integer)alignment);
+  return result;
+}  /* do_constexpr_std_meta_alignment_of */
 
 
 static a_constant_ptr
@@ -12781,6 +13029,9 @@ frame when the call has completed.
     case cit_std_meta_is_pure_virtual:
       evaluator = do_constexpr_std_meta_is_pure_virtual;
       break;
+    case cit_std_meta_is_bit_field:
+      evaluator = do_constexpr_std_meta_is_bit_field;
+      break;
     case cit_std_meta_has_static_storage_duration:
       evaluator = do_constexpr_std_meta_has_static_storage_duration;
       break;
@@ -12801,6 +13052,21 @@ frame when the call has completed.
       break;
     case cit_std_meta_dealias:
       evaluator = do_constexpr_std_meta_dealias;
+      break;
+    case cit_std_meta_size_of:
+      evaluator = do_constexpr_std_meta_size_of;
+      break;
+    case cit_std_meta_offset_of:
+      evaluator = do_constexpr_std_meta_offset_of;
+      break;
+    case cit_std_meta_bit_size_of:
+      evaluator = do_constexpr_std_meta_bit_size_of;
+      break;
+    case cit_std_meta_bit_offset_of:
+      evaluator = do_constexpr_std_meta_bit_offset_of;
+      break;
+    case cit_std_meta_alignment_of:
+      evaluator = do_constexpr_std_meta_alignment_of;
       break;
     default:
       unexpected_condition();

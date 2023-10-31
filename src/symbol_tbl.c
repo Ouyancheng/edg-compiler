@@ -18332,6 +18332,7 @@ static a_const_char* intrinsic_names[] = {
   "is_explicit",
   "is_override",
   "is_pure_virtual",
+  "is_bit_field",
   "has_static_storage_duration",
   "has_template_arguments",
   "template_arguments_of",
@@ -18339,6 +18340,11 @@ static a_const_char* intrinsic_names[] = {
   "type_of",
   "parent_of",
   "dealias",
+  "size_of",
+  "offset_of",
+  "bit_size_of",
+  "bit_offset_of",
+  "alignment_of",
   "main"
 };
 
