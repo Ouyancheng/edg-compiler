@@ -10875,6 +10875,366 @@ Implement std::meta::is_special_member(info).
 }  /* do_constexpr_std_meta_is_special_member */
 
 
+static a_boolean do_constexpr_std_meta_is_public(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_public(info).
+*/
+{
+  a_boolean           result = TRUE, answer = FALSE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  if (rvp->entity.kind == iek_base_class) {
+    answer = ((a_base_class*)rvp->entity.ptr)->derivation->access == as_public;
+  } else {
+    a_source_correspondence  *scp = source_corresp_for_reflection(rvp);
+    if (scp == NULL || !scp->is_class_member) {
+      do_constexpr_fail(result);
+      info_with_pos(ec_nonmember_reflection_for_intrinsic,
+                    &call_node->position, ips);
+    } else {
+      answer = scp->access == as_public;
+    }  /* if */
+  }  /* if */
+  if (answer) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_is_public */
+
+
+static a_boolean do_constexpr_std_meta_is_protected(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_protected(info).
+*/
+{
+  a_boolean           result = TRUE, answer = FALSE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  if (rvp->entity.kind == iek_base_class) {
+    answer = ((a_base_class*)rvp->entity.ptr)->derivation->access ==
+                                                                 as_protected;
+  } else {
+    a_source_correspondence  *scp = source_corresp_for_reflection(rvp);
+    if (scp == NULL || !scp->is_class_member) {
+      do_constexpr_fail(result);
+      info_with_pos(ec_nonmember_reflection_for_intrinsic,
+                    &call_node->position, ips);
+    } else {
+      answer = scp->access == as_protected;
+    }  /* if */
+  }  /* if */
+  if (answer) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_is_protected */
+
+
+static a_boolean do_constexpr_std_meta_is_private(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_private(info).
+*/
+{
+  a_boolean           result = TRUE, answer = FALSE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  if (rvp->entity.kind == iek_base_class) {
+    answer = ((a_base_class*)rvp->entity.ptr)->derivation->access ==
+                                                                   as_private;
+  } else {
+    a_source_correspondence  *scp = source_corresp_for_reflection(rvp);
+    if (scp == NULL || !scp->is_class_member) {
+      do_constexpr_fail(result);
+      info_with_pos(ec_nonmember_reflection_for_intrinsic,
+                    &call_node->position, ips);
+    } else {
+      answer = scp->access == as_private;
+    }  /* if */
+  }  /* if */
+  if (answer) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_is_private */
+
+
+static a_boolean do_constexpr_std_meta_is_accessible(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_accessible(info).
+*/
+{
+  a_boolean           result = TRUE, answer = FALSE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  if (rvp->entity.kind == iek_base_class) {
+    answer = is_accessible_base_class((a_base_class*)rvp->entity.ptr);
+  } else {
+    a_source_correspondence  *scp = source_corresp_for_reflection(rvp);
+    if (scp == NULL || !scp->is_class_member) {
+      do_constexpr_fail(result);
+      info_with_pos(ec_nonmember_reflection_for_intrinsic,
+                    &call_node->position, ips);
+    } else if (scp->assoc_info == NULL) {
+      do_constexpr_fail(result);
+      info_with_pos(ec_invalid_reflection_for_intrinsic,
+                    &call_node->position, ips);
+    } else {
+      answer = have_access_to_symbol((a_symbol*)scp->assoc_info);
+    }  /* if */
+  }  /* if */
+  if (answer) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_is_accessible */
+
+
+static a_boolean do_constexpr_std_meta_is_virtual(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_virtual(info).
+*/
+{
+  a_boolean           result = TRUE, answer = FALSE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  extract_reflected_entity(rvp);
+  if (rvp->entity.kind == iek_base_class) {
+    answer = ((a_base_class*)rvp->entity.ptr)->is_virtual;
+  } else if (rvp->entity.kind == iek_routine) {
+    answer = ((a_routine*)rvp->entity.ptr)->is_virtual;
+  } else {
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+  }  /* if */
+  if (answer) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_is_virtual */
+
+
+static a_boolean do_constexpr_std_meta_is_deleted(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_deleted(info).
+*/
+{
+  a_boolean           result = TRUE, answer = FALSE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  extract_reflected_entity(rvp);
+  if (rvp->entity.kind == iek_routine) {
+    answer = ((a_routine*)rvp->entity.ptr)->is_deleted;
+  } else {
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+  }  /* if */
+  if (answer) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_is_deleted */
+
+
+static a_boolean do_constexpr_std_meta_is_defaulted(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_defaulted(info).
+*/
+{
+  a_boolean           result = TRUE, answer = FALSE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  extract_reflected_entity(rvp);
+  if (rvp->entity.kind == iek_routine) {
+    answer = ((a_routine*)rvp->entity.ptr)->is_defaulted;
+  } else {
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+  }  /* if */
+  if (answer) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_is_defaulted */
+
+
+static a_boolean do_constexpr_std_meta_is_explicit(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_explicit(info).
+*/
+{
+  a_boolean           result = TRUE, answer = FALSE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  extract_reflected_entity(rvp);
+  if (rvp->entity.kind == iek_routine) {
+    a_routine  *rp = (a_routine*)rvp->entity.ptr;
+    answer = rp->is_explicit_constructor ||
+             rp->is_explicit_conversion_function;
+  } else {
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+  }  /* if */
+  if (answer) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_is_explicit */
+
+
+static a_boolean do_constexpr_std_meta_is_override(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_override(info).
+*/
+{
+  a_boolean           result = TRUE, answer = FALSE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  extract_reflected_entity(rvp);
+  if (rvp->entity.kind == iek_routine) {
+    answer = ((a_routine*)rvp->entity.ptr)->override;
+  } else {
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+  }  /* if */
+  if (answer) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_is_override */
+
+
+static a_boolean do_constexpr_std_meta_is_pure_virtual(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_pure_virtual(info).
+*/
+{
+  a_boolean           result = TRUE, answer = FALSE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  extract_reflected_entity(rvp);
+  if (rvp->entity.kind == iek_routine) {
+    answer = ((a_routine*)rvp->entity.ptr)->pure_virtual;
+  } else {
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+  }  /* if */
+  if (answer) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_is_pure_virtual */
+
+
+static a_boolean do_constexpr_std_meta_has_static_storage_duration(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::has_static_storage_duration(info).
+*/
+{
+  a_boolean           result = TRUE, answer = FALSE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  extract_reflected_entity(rvp);
+  if (rvp->entity.kind == iek_variable) {
+    answer = var_has_static_storage_duration((a_variable*)rvp->entity.ptr);
+  } else {
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+  }  /* if */
+  if (answer) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_has_static_storage_duration */
+
+
 static a_template_ptr template_for_reflection(a_reflection_value  *rvp)
 /*
 Return the template associated with the given reflection if that reflection is
@@ -12390,6 +12750,39 @@ frame when the call has completed.
       break;
     case cit_std_meta_is_special_member:
       evaluator = do_constexpr_std_meta_is_special_member;
+      break;
+    case cit_std_meta_is_public:
+      evaluator = do_constexpr_std_meta_is_public;
+      break;
+    case cit_std_meta_is_protected:
+      evaluator = do_constexpr_std_meta_is_protected;
+      break;
+    case cit_std_meta_is_private:
+      evaluator = do_constexpr_std_meta_is_private;
+      break;
+    case cit_std_meta_is_accessible:
+      evaluator = do_constexpr_std_meta_is_accessible;
+      break;
+    case cit_std_meta_is_virtual:
+      evaluator = do_constexpr_std_meta_is_virtual;
+      break;
+    case cit_std_meta_is_deleted:
+      evaluator = do_constexpr_std_meta_is_deleted;
+      break;
+    case cit_std_meta_is_defaulted:
+      evaluator = do_constexpr_std_meta_is_defaulted;
+      break;
+    case cit_std_meta_is_explicit:
+      evaluator = do_constexpr_std_meta_is_explicit;
+      break;
+    case cit_std_meta_is_override:
+      evaluator = do_constexpr_std_meta_is_override;
+      break;
+    case cit_std_meta_is_pure_virtual:
+      evaluator = do_constexpr_std_meta_is_pure_virtual;
+      break;
+    case cit_std_meta_has_static_storage_duration:
+      evaluator = do_constexpr_std_meta_has_static_storage_duration;
       break;
     case cit_std_meta_has_template_arguments:
       evaluator = do_constexpr_std_meta_has_template_arguments;

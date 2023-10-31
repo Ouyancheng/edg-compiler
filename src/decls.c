@@ -9023,6 +9023,8 @@ interpreter) and if so mark it as such.
              is_bool_type(rtp->variant.routine.return_type)) {
           if (strcmp(name, "has_template_arguments") == 0) {
             tag = cit_std_meta_has_template_arguments;
+          } else if (strcmp(name, "has_static_storage_duration") == 0) {
+            tag = cit_std_meta_has_static_storage_duration;
           }  /* if */
         }  /* if */
         break;
@@ -9063,6 +9065,26 @@ interpreter) and if so mark it as such.
             tag = cit_std_meta_is_base;
           } else if (strcmp(name, "is_special_member") == 0) {
             tag = cit_std_meta_is_base;
+          } else if (strcmp(name, "is_public") == 0) {
+            tag = cit_std_meta_is_public;
+          } else if (strcmp(name, "is_protected") == 0) {
+            tag = cit_std_meta_is_protected;
+          } else if (strcmp(name, "is_private") == 0) {
+            tag = cit_std_meta_is_private;
+          } else if (strcmp(name, "is_accessible") == 0) {
+            tag = cit_std_meta_is_accessible;
+          } else if (strcmp(name, "is_virtual") == 0) {
+            tag = cit_std_meta_is_virtual;
+          } else if (strcmp(name, "is_deleted") == 0) {
+            tag = cit_std_meta_is_deleted;
+          } else if (strcmp(name, "is_defaulted") == 0) {
+            tag = cit_std_meta_is_defaulted;
+          } else if (strcmp(name, "is_explicit") == 0) {
+            tag = cit_std_meta_is_explicit;
+          } else if (strcmp(name, "is_override") == 0) {
+            tag = cit_std_meta_is_override;
+          } else if (strcmp(name, "is_pure_virtual") == 0) {
+            tag = cit_std_meta_is_pure_virtual;
           }  /* if */
         }  /* if */
         break;

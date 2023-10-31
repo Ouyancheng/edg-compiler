@@ -174,6 +174,62 @@ namespace std {
       return false;  /* Dummy return.  Handled by interpreter. */
     }
 
+    consteval bool is_constructor(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool is_destructor(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool is_special_member(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool is_public(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool is_protected(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool is_private(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool is_accessible(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool is_virtual(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool is_deleted(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool is_defaulted(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool is_explicit(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool is_override(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool is_pure_virtual(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool has_static_storage_duration(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
     consteval bool has_template_arguments(info) {
       return false;  /* Dummy return.  Handled by interpreter. */
     }
