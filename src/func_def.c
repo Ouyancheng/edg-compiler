@@ -4260,6 +4260,17 @@ is considered already defined), force the definition now.
         a_type_ptr  parent_type = parent_class_of(rp);
         a_class_symbol_supplement_ptr
                     cssp = symbol_supplement_for_class(parent_type);
+        if (rp->is_defaulted && !rp->is_deleted &&
+            !is_move_function_with_explicit_exc_spec(rp) &&
+            !(gpp_version_is(< 100000) || clang_version_is(< 90000) ||
+              ms_version_is(< 1928))) {
+          /* For class template instances, we complete ("instantiate") the
+             exception specification if one is explicitly specified to ensure
+             that the explicit and implicit versions are equivalent.
+             This is now done at the point of use, but earlier compilers did
+             is at the point of instantiation. */
+          complete_defaulted_exc_spec_if_explicit(rp);
+        }  /* if */
         if (special_kind_is(rp, sfk_constructor) &&
             cssp->has_initializer_fixups &&
             /*lint -e(506)*/!is_immediate_managed_class_type(parent_type) &&

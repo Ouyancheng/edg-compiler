@@ -102,6 +102,10 @@ extern a_boolean check_if_constexpr_generated_default_constructor(
 
 extern void complete_defaulted_exc_spec(a_routine_ptr  rp);
 
+extern void complete_defaulted_exc_spec_if_explicit(a_routine_ptr  rp);
+
+extern a_boolean is_move_function_with_explicit_exc_spec(a_routine_ptr  rp);
+
 extern void remove_routine_typedef_if_needed(a_symbol_locator    *loc,
                                              a_decl_parse_state  *dps,
                                              a_boolean           no_cv_quals);

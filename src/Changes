@@ -1,5 +1,25 @@
 Version 6.6
 
+11/1/23  [EDGcpfe/22470,EDGcpfe/26748,EDGcpfe/26751]
+Spurious errors on defaulted members with an explicit exception specification
+
+Consider:
+
+  struct S {
+    S();
+    ~S() noexcept(false);
+  };
+  struct X {
+    X();
+    ~X() noexcept(false) = default;
+    S const s;
+  };
+  X x;
+
+This previously triggered a spurious error about the destructor of X being
+deleted.  That is now fixed.
+
+
 10/27/23 [EDGcpfe/24342]
 Type traits applied to array types
 

@@ -4651,7 +4651,7 @@ done:;
 }  /* complete_defaulted_exc_spec */
 
 
-static void complete_defaulted_exc_spec_if_explicit(a_routine_ptr  rp)
+void complete_defaulted_exc_spec_if_explicit(a_routine_ptr  rp)
 /*
 Call complete_defaulted_exc_spec for the given routine if that routine was
 declared with an explicit exception specification.
@@ -4683,7 +4683,7 @@ declared with an explicit exception specification.
 }  /* complete_defaulted_exc_spec_if_explicit */
 
 
-static a_boolean is_move_function_with_explicit_exc_spec(a_routine_ptr  rp)
+a_boolean is_move_function_with_explicit_exc_spec(a_routine_ptr  rp)
 /*
 Return TRUE if this is a move constructor or move assignment operator with an
 explicit exception specification.
@@ -4859,7 +4859,14 @@ after a class instantiation.
         /* Make sure we are in the right translation unit. */
         a_type_ptr  class_type = cfp->class_type;
         check_trans_unit_for_class(class_type, &trans_unit_pushed);
-        if (!class_type->variant.class_struct_union.is_nonreal_class) {
+        if (!class_type->variant.class_struct_union.is_nonreal_class &&
+            (gpp_version_is(< 100000) || clang_version_is(< 90000) ||
+              ms_version_is(< 1928))) {
+          /* Defaulted special members with an exception specification should
+             have those exception specifications "instantiated" to verify they
+             match the implied specification.  Earlier compilers did that when
+             the class was completed.  Now it is done at the point of use (see
+             force_definition_of_compiler_generated_routine). */
           complete_all_defaulted_exc_specs(class_type);
         }  /* if */
         inline_function_fixup_for_class(cfp->class_type,
