@@ -4268,7 +4268,7 @@ is considered already defined), force the definition now.
              exception specification if one is explicitly specified to ensure
              that the explicit and implicit versions are equivalent.
              This is now done at the point of use, but earlier compilers did
-             is at the point of instantiation. */
+             it at the point of instantiation. */
           complete_defaulted_exc_spec_if_explicit(rp);
         }  /* if */
         if (special_kind_is(rp, sfk_constructor) &&
