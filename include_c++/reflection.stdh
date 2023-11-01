@@ -93,9 +93,22 @@ namespace std {
       return infovec(0);  /* Dummy return.  Handled by interpreter. */
     }
 
+    consteval infovec static_data_members_of(info) {
+      return infovec(0);  /* Dummy return.  Handled by interpreter. */
+    }
+
     consteval infovec nonstatic_data_members_of(info) {
       return infovec(0);  /* Dummy return.  Handled by interpreter. */
     }
+
+    consteval infovec bases_of(info) {
+      return infovec(0);  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval infovec subobjects_of(info) {
+      return infovec(0);  /* Dummy return.  Handled by interpreter. */
+    }
+
     consteval infovec enumerators_of(info) {
       return infovec(0);  /* Dummy return.  Handled by interpreter. */
     }
@@ -123,6 +136,14 @@ namespace std {
     }
 
     consteval bool is_type(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool is_alias(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval bool is_incomplete_type(info) {
       return false;  /* Dummy return.  Handled by interpreter. */
     }
 

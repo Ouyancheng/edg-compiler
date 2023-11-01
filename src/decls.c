@@ -9009,12 +9009,18 @@ interpreter) and if so mark it as such.
         break;
       case 'b':
         if (t_args == NULL && ptp != NULL && ptp->next == NULL &&
-            is_reflection_type(ptp->type) &&
-            is_size_t_type(rtp->variant.routine.return_type)) {
-          if (strcmp(name, "bit_offset_of") == 0) {
-            tag = cit_std_meta_bit_offset_of;
-          } else if (strcmp(name, "bit_size_of") == 0) {
-            tag = cit_std_meta_bit_size_of;
+            is_reflection_type(ptp->type)) {
+          if (is_size_t_type(rtp->variant.routine.return_type)) {
+            if (strcmp(name, "bit_offset_of") == 0) {
+              tag = cit_std_meta_bit_offset_of;
+            } else if (strcmp(name, "bit_size_of") == 0) {
+              tag = cit_std_meta_bit_size_of;
+            }  /* if */
+          } else if (is_std_meta_infovec_type(
+                                          rtp->variant.routine.return_type)) {
+            if (strcmp(name, "bases_of") == 0) {
+              tag = cit_std_meta_bases_of;
+            }  /* if */
           }  /* if */
         }  /* if */
         break;
@@ -9055,6 +9061,10 @@ interpreter) and if so mark it as such.
           /* Check for a variety of predicate functions. */
           if (strcmp(name, "is_type") == 0) {
             tag = cit_std_meta_is_type;
+          } else if (strcmp(name, "is_alias") == 0) {
+            tag = cit_std_meta_is_alias;
+          } else if (strcmp(name, "is_incomplete_type") == 0) {
+            tag = cit_std_meta_is_incomplete_type;
           } else if (strcmp(name, "is_template") == 0) {
             tag = cit_std_meta_is_template;
           } else if (strcmp(name, "is_function_template") == 0) {
@@ -9180,11 +9190,20 @@ interpreter) and if so mark it as such.
               is_reflection_type(rtp->variant.routine.return_type)) {
             tag = cit_std_meta_substitute;
           }  /* if */
-        } else if (strcmp(name, "size_of") == 0 && t_args == NULL) {
-          if (ptp != NULL && ptp->next == NULL &&
-              is_reflection_type(ptp->type) &&
-              is_size_t_type(rtp->variant.routine.return_type)) {
-            tag = cit_std_meta_size_of;
+        } else if (ptp != NULL && ptp->next == NULL && t_args == NULL) {
+          if (is_reflection_type(ptp->type)) {
+            if (is_size_t_type(rtp->variant.routine.return_type)) {
+              if (strcmp(name, "size_of") == 0) {
+                tag = cit_std_meta_size_of;
+              }  /* if */
+            } else if (is_std_meta_infovec_type(
+                                          rtp->variant.routine.return_type)) {
+              if (strcmp(name, "static_data_members_of") == 0) {
+                tag = cit_std_meta_static_data_members_of;
+              } else if (strcmp(name, "subobjects_of") == 0) {
+                tag = cit_std_meta_subobjects_of;
+              }  /* if */
+            }  /* if */
           }  /* if */
         }  /* if */
         break;
