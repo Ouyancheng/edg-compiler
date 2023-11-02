@@ -3457,6 +3457,8 @@ ec_intrinsic_requires_template_instance;;"this intrinsic requires a reflection f
 ec_invalid_reflection_equality;;"incompatible types %t1 and %t2 for operator"
 ec_invalid_reflection_for_intrinsic;;"invalid reflection for intrinsic metafunction"
 ec_nonmember_reflection_for_intrinsic;;"intrinsic metafunction requires a reflection for a class member"
+ec_union_base;;"a class cannot not derive from a union"
+ec_base_with_flexible_array;;"cannot derive from a class with a flexible array member"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

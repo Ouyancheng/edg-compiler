@@ -9504,12 +9504,8 @@ issue an error and return FALSE.
   /* If it is the class now being defined or if it is a union or if it has
      been declared but not yet defined, issue an error and skip over this
      class: it is not a valid base class name. */
-  /* In Microsoft mode the last field of a class may be a zero-length array;
-     such a class may not be a base class. */
-  if (base_class_type->kind == (a_type_kind)tk_union ||
-      base_class_type->
-                  variant.class_struct_union.contains_flexible_array_member) {
-    pos_error(ec_bad_base_class, &error_position);
+  if (type_is(base_class_type, tk_union)) {
+    pos_error(ec_union_base, &error_position);
     okay = FALSE;
   } else {
     /* Force instantiation if the base class is a template class. */
@@ -32041,8 +32037,7 @@ wrap_up_class_definition.
 {
   a_source_position              saved_error_position;
   a_symbol_ptr                   tag_sym = symbol_for(class_type);
-  a_class_symbol_supplement_ptr  cssp
-                              = tag_sym->variant.class_struct_union.extra_info;
+  a_class_symbol_supplement_ptr  cssp = class_symbol_supp(tag_sym);
 
   if (class_state->last_field_is_incomplete_array) {
     /* The last field that was recorded was an incomplete array.  This is

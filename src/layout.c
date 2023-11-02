@@ -1657,7 +1657,8 @@ static void update_curr_base_extent(a_layout_block_ptr  lob,
                                     a_base_class_ptr    bcp)
 /*
 If the given base class extends beyond any previous base class, record the
-new extent.  This is used to accelerate the layout process.
+new extent.  This is used to accelerate the layout process.  Also check that
+the given base class contains no flexible array.
 */
 {
   a_targ_size_t  next_byte = offset_after_base(bcp);
@@ -1667,6 +1668,15 @@ new extent.  This is used to accelerate the layout process.
   }  /* if */
   if (next_byte > lob->curr_extent+1) {
     lob->curr_extent = next_byte-1;
+  }  /* if */
+  if (bcp->direct &&
+      bcp->type->variant.class_struct_union.contains_flexible_array_member &&
+      (!gpp_version_is(any_version) ||
+       (gpp_version_is(>=60000) && fields_of(lob->class_type) != NULL))) {
+    /* Most compilers diagnose inheriting from a base class with a flexible
+       array member.  GCC accepts it prior to version 6.x, after that it
+       appears to accept it if there are no subsequent fields. */
+    pos_error(ec_base_with_flexible_array, &bcp->decl_position);
   }  /* if */
 }  /* update_curr_base_extent */
 
