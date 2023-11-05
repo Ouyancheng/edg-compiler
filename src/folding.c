@@ -8713,7 +8713,29 @@ and, if pos is not NULL, an error will be reported.
         kind == bok_has_trivial_constructor ||
         kind == bok_is_trivially_copyable ||
         kind == bok_has_user_destructor) {
-      type = skip_array_types(type);
+      if (is_array_type(type)) {
+        type = skip_array_types(type);
+        if ((gpp_version_is(any_version) || microsoft_mode) &&
+            (kind == bok_has_copy ||
+             kind == bok_has_nothrow_copy ||
+             kind == bok_has_trivial_copy ||
+             kind == bok_has_trivial_destructor ||
+             kind == bok_has_trivial_move_constructor ||
+             kind == bok_has_nothrow_constructor ||
+             kind == bok_has_trivial_constructor ||
+             kind == bok_is_trivially_copyable ||
+             kind == bok_has_user_destructor)) {
+          /* GCC and MSVC appear to accept these intrinsics applied to
+             incomplete array types (if they are recognized at all).  However,
+             Microsoft produces a false value while GCC produces a true value
+             in that case.  */
+          complete_type_is_needed(type);
+          if (is_incomplete_type(type)) {
+            result = gpp_mode;
+            goto result_known;
+          }  /* if */
+        }  /* if */
+      }  /* if */
     }  /* if */
     type = skip_typerefs(type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
