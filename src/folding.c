@@ -524,7 +524,9 @@ type, but it may be an integer cast to a pointer type.
       }  /* if */
     }  /* if */
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
 done:;
+#endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* conv_integer_to_integer */
 
 
