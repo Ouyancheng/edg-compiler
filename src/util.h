@@ -97,7 +97,7 @@ struct Is_trivially_copyable_builtin_impl :
 
 /*
 An implementation of Is_trivially_copyable that relies on specializations to
-remaining independent of any underlying compiler or standard library
+remain independent of any underlying compiler or standard library
 implementation.
 
 Note: bool, true, and false are used in place of a_boolean, TRUE, and FALSE for
@@ -114,7 +114,7 @@ struct Is_trivially_copyable_edg_impl<char> : Integral_constant<bool, true> {
 
 /*
 This is an implementation of Is_trivially_copyable that uses the EDG
-specialization based trivial copyable implementation.  However, it additionally
+specialization-based trivial copyable implementation.  However, it additionally
 checks against the host compiler's builtin implementation as a safety check on
 the EDG based specializations.
 
