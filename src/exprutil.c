@@ -7528,8 +7528,10 @@ diagnostic if we're in a context where diagnostics should be suppressed, e.g.,
 a template deduction context.
 */
 {
-  if (expr_error_should_be_issued()) {
-    issue_incomplete_type_diag(pos, type, severity);
+  an_error_code error_code = incomplete_type_error_code(type);
+
+  if (expr_diagnostic_should_be_issued(severity, error_code, pos)) {
+    issue_incomplete_type_diag(error_code, pos, type, severity);
   }  /* if */
 }  /* expr_issue_incomplete_type_diag */
 
