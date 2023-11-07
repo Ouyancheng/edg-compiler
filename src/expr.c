@@ -13129,11 +13129,11 @@ previously-scanned sizeof expression, and return the result in *result
   } else if (is_incomplete_type(sizeof_type)) {
     if (gnu_mode && is_void_type(sizeof_type)) {
       /* GNU C/C++ evaluates sizeof(void) as 1. */
+      sizeof_type = integer_type((an_integer_kind)ik_char);
       if (gpp_mode) {
         expr_issue_incomplete_type_diag(&type_position, sizeof_type,
                                         /*severity=*/es_warning);
       }  /* if */
-      sizeof_type = integer_type((an_integer_kind)ik_char);
     } else if (gpp_mode && gnu_version < 30400 &&
                is_template_dependent_context() &&
                !do_dependent_name_processing &&
