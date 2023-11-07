@@ -14938,12 +14938,12 @@ static inline size_t size_of_str_lit_bytes(const an_ifc_string &str)
 /*
 Given an IFC string (representing an IFC string literal), return the number of
 bytes in the corresponding string literal constant excluding the implicit
-terminating null-character.
+terminating null character.
 
 This function fundamentally is equivalent to max(0, str.num_chars - 1).  This
-function also includes an additional diagnostic if the there is more than one
+function also includes an additional diagnostic if there is more than one
 character in the string literal and the last character in str.bytes is not a
-null-character.
+null character.
 */
 {
   size_t result = 0;
@@ -14954,7 +14954,7 @@ null-character.
 
     /* The IFC includes the null terminator in its encoding of string
        literals.  Check that all bytes of the final character have a value of
-       zero (i.e., compose a null-character). */
+       zero (i.e., compose a null character). */
     for (size_t i = 0; i < char_size; ++i) {
       if (str.bytes[start_last_char + i] != '\0') {
         ifc_unexpected(str.mod,
@@ -14971,7 +14971,7 @@ null-character.
 static inline size_t size_of_str_lit_constant(const an_ifc_string &str)
 /*
 Given an IFC string literal, return the number of bytes in the corresponding
-string literal constant including the implicit terminating null-character.
+string literal constant including the implicit terminating null character.
 */
 {
   return size_of_str_lit_bytes(str) + character_size[str.kind];
@@ -17440,7 +17440,7 @@ otherwise, return FALSE.
 
         /* Check to see if this string conforms to the IFC's empty string
            literal representation (i.e., contains only a single, one-byte,
-           null-character). */
+           null character). */
         if (ifc_str.kind == chk_char &&
             ifc_str.num_chars == 1 &&
             ifc_str.bytes[0] == '\0') {
