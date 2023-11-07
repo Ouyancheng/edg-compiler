@@ -1201,7 +1201,7 @@ static char *access_bytes_at_offset(an_ifc_text_offset offset,
 Return a pointer to the start of the character array in the IFC string table
 for a given TextOffset with the given num_bytes length.
 
-This function should be used very sparingly, prefer the higher level
+This function should be used very sparingly; prefer the higher level
 interfaces, get_string_at_offset for one-byte character null-terminated strings
 and get_encoded_string for potentially multi-byte character strings.
 */
@@ -14854,7 +14854,8 @@ done:
 namespace {
 
 /*
-This structure encapsulates a (potentially multi-byte) IFC string value.
+This structure encapsulates a (potentially multi-byte character) IFC string
+value.
 */
 struct an_ifc_string {
   inline an_ifc_string(an_ifc_module    *mod_val,
@@ -14935,8 +14936,14 @@ Given an IFC string index, return the corresponding encoded string value.
 
 static inline size_t size_of_str_lit_bytes(const an_ifc_string &str)
 /*
-Given an IFC string, return the number of bytes that contain characters
-included in the string literal.
+Given an IFC string (representing an IFC string literal), return the number of
+bytes in the corresponding string literal constant excluding the implicit
+terminating null-character.
+
+This function fundamentally is equivalent to max(0, str.num_chars - 1).  This
+function also includes an additional diagnostic if the there is more than one
+character in the string literal and the last character in str.bytes is not a
+null-character.
 */
 {
   size_t result = 0;
@@ -14946,7 +14953,8 @@ included in the string literal.
     size_t start_last_char = (str.num_chars - 1) * char_size;
 
     /* The IFC includes the null terminator in its encoding of string
-       literals. */
+       literals.  Check that all bytes of the final character have a value of
+       zero (i.e., compose a null-character). */
     for (size_t i = 0; i < char_size; ++i) {
       if (str.bytes[start_last_char + i] != '\0') {
         ifc_unexpected(str.mod,
@@ -14962,8 +14970,8 @@ included in the string literal.
 
 static inline size_t size_of_str_lit_constant(const an_ifc_string &str)
 /*
-Given an IFC string, return the number of bytes in the corresponding string
-literal constant.
+Given an IFC string literal, return the number of bytes in the corresponding
+string literal constant including the implicit terminating null-character.
 */
 {
   return size_of_str_lit_bytes(str) + character_size[str.kind];
