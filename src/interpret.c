@@ -12729,8 +12729,7 @@ invalid.
                 *rvp = (a_reflection_value*)p_arg_bytes[0];
   Dyn_array<a_meta_field_descr>
                 field_descrs(0);
-  a_type_ptr    callee_type = skip_typerefs(callee->type), class_type,
-                field_descr_type;
+  a_type_ptr    callee_type = skip_typerefs(callee->type), class_type;
   int           n_fields;
   a_param_type_ptr
                 ptp;
@@ -12854,6 +12853,17 @@ invalid.
                                    ips, fd.name, name_length,
                                    (a_constexpr_address*)(subobj+name_offset),
                                    &call_node->position);
+      }  /* if */
+      if (!subobject_is_initialized(subobj+alignment_offset, complete_obj)) {
+        do_constexpr_fail(result);
+        info_with_pos(ec_object_not_initialized, &call_node->position, ips);
+        goto done;
+      } else {
+      }  /* if */
+      if (!subobject_is_initialized(subobj+bit_width_offset, complete_obj)) {
+        do_constexpr_fail(result);
+        info_with_pos(ec_object_not_initialized, &call_node->position, ips);
+        goto done;
       }  /* if */
       // FIXME: Get alignment and bit width.
       field_descrs.push_back(fd);

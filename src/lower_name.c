@@ -4618,6 +4618,7 @@ do_unknown_function:
           case iek_type:
             mangled_encoding_for_type((a_type*)iep->ptr, mctl);
             break;
+#if IA64_ABI
           case iek_field:
           case iek_variable:
           case iek_routine:
@@ -4625,6 +4626,7 @@ do_unknown_function:
                                      iep->kind, (a_routine_info_block*)NULL,
                                      /*add_address_of=*/FALSE, mctl);
             break;
+#endif /* IA64_ABI */
           // FIXME: Other cases.
           default:
             unexpected_condition_str(
