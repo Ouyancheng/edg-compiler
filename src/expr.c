@@ -16498,13 +16498,15 @@ We do not advance to the token after the typename operator in this case.
     expr_pos_error(ec_nonconstant_splicer_operand, &operand.position);
     result = error_type();
   } else {
-    a_constant_ptr  cp = &operand.variant.constant;
-    if (cp->variant.reflection.entity.kind != iek_type) {
+    a_constant_ptr      cp = &operand.variant.constant;
+    a_reflection_value  rv = cp->variant.reflection;
+    strip_template_arg(&rv);
+    if (rv.entity.kind != iek_type) {
       /* FIXME: Should report what kind of reflection it is. */
       expr_pos_error(ec_not_a_type_reflection, &operand.position);
       result = error_type();
     } else {
-      result = (a_type_ptr)cp->variant.reflection.entity.ptr;
+      result = (a_type_ptr)rv.entity.ptr;
     }  /* if */
   }  /* if */
   if (is_error_type(result)) {
@@ -18873,6 +18875,7 @@ ck_reflection) of a special built-in type (of kind tk_reflection).
   a_source_position       end_pos;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_constant_ptr          refl_cp = local_constant();
+  a_boolean               is_dependent = FALSE;
 
   clear_constant(refl_cp, (a_constant_repr_kind)ck_reflection);
   /* If we're in the file-scope memory region instead of a function-scope
@@ -18948,9 +18951,9 @@ ck_reflection) of a special built-in type (of kind tk_reflection).
            been coalesced), not part of a cast (relying on class template
            argument deduction) or call (since it is not followed by "(" or
            "{").  The template itself is thus reflected. */
+        a_template  *templ = sym->variant.template_info->il_template_entry;
         refl_cp->variant.reflection.entity.kind = iek_template;
-        refl_cp->variant.reflection.entity.ptr =
-                         (char*)sym->variant.template_info->il_template_entry;
+        refl_cp->variant.reflection.entity.ptr = (char*)templ;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         end_pos = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -18968,6 +18971,9 @@ ck_reflection) of a special built-in type (of kind tk_reflection).
         }  /* if */
         refl_cp->variant.reflection.entity.kind = iek_type;
         refl_cp->variant.reflection.entity.ptr = (char*)dps.type;
+        if (is_instantiation_dependent_type(dps.type)) {
+          is_dependent = TRUE;
+        }  /* if */
       } else {
         an_operand        opnd;
         an_expr_node_ptr  node;
@@ -19018,6 +19024,9 @@ ck_reflection) of a special built-in type (of kind tk_reflection).
           }  /* if */
           if (con != NULL) release_local_constant(&con);
         }  /* if */
+        if (operand_is_instantiation_dependent(&opnd)) {
+          is_dependent = TRUE;
+        }  /* if */
       }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       end_pos = curr_construct_end_position;
@@ -19026,7 +19035,8 @@ ck_reflection) of a special built-in type (of kind tk_reflection).
     }  /* if */
     check_assertion(handled);
   }  /* if */
-  refl_cp->type = reflection_type();
+  refl_cp->type = is_dependent ? type_of_unknown_templ_param_nontype
+                               : reflection_type();
   make_constant_operand(refl_cp, result);
   set_operand_position(result, &start_pos, &end_pos, &start_pos);
   record_operator_position_in_rescan_info(result, &start_pos,

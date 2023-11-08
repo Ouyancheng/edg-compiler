@@ -34918,6 +34918,7 @@ given name and type in that class.
   (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
   /* Declare/create the field by calling decl_nonstatic_data_member. */
   initialize_member_decl_info(&decl_info, &null_source_position);
+  complete_type_is_needed(type);
   decl_info.decl_state.type = type;
   (void)decl_nonstatic_data_member(&loc, class_state, &decl_info,
                                    depth_scope_stack);
@@ -34988,6 +34989,38 @@ Create and return the __va_list_tag struct type that is predefined by certain
 #endif /* BACK_END_IS_CP_GEN_BE */
   return type;
 }  /* make_va_list_tag_type */
+
+
+void synth_class_definition(a_type_ptr                     class_type,
+                            Dyn_array<a_meta_field_descr>  *descr_array)
+/*
+Define the given class type according to the member declarations provided by
+*descr_array.  This is a helper function for the interpreter's implementation
+of std::meta::__define_class.
+*/
+{
+  a_class_def_state       class_state;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  Value_saver<a_boolean>  saver(&source_sequence_entries_disallowed,
+                                /*new_value=*/TRUE);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+
+  /* Start the class definition (and associated class scope). */
+  initialize_class_def_state(class_type, &class_state);
+  class_state.access = as_public;
+  class_type_supp(class_type)->assoc_scope =
+             push_scope(sck_class_struct_union, NO_SCOPE_NUMBER, class_type,
+                        (a_routine_ptr)NULL);
+  scope_stack_top().class_def_state = &class_state;
+  /* Add the fields. */
+  for (a_meta_field_descr  &fd : *descr_array) {
+    add_field_to_generated_type(fd.name, fd.type);
+  }  /* for */
+  /* Wrap up the definition. */
+  complete_class_definition(class_type, DEPTH_OF_FILE_SCOPE, &class_state);
+  symbol_for(class_type)->defined = TRUE;
+  pop_scope();
+}  /* synth_class_definition */
 
 
 /* Forward declaration for recursive call. */

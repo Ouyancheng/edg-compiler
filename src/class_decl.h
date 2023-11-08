@@ -408,6 +408,27 @@ extern void f_consume_any_stray_microsoft_rparen(void);
 
 extern a_type_ptr make_va_list_tag_type(void);
 
+/*
+Description of a field synthesized through reflection.  This type participates
+in the implementation of std::meta::define_class.
+*/
+struct a_meta_field_descr {
+  a_type	*type;	/* Type of the field to synthesize. */
+  char		*name;	/* Name of the field to synthesize. */
+  a_targ_size_t
+		alignment;
+			/* Alignment of the field to synthesize. */
+  a_targ_size_t
+		bit_width;
+			/* Bit width of the field to synthesize.
+			   Zero if it should not be a bit field. */
+};
+
+
+void synth_class_definition(a_type_ptr                     class_type,
+                            Dyn_array<a_meta_field_descr>  *descr_array);
+
+
 #if DEBUG
 extern unsigned long db_show_routine_fixups_used(unsigned long grand_total);
 

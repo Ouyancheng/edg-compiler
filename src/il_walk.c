@@ -2964,6 +2964,27 @@ it's the initializer for an aggregate.
         }  /* if */
       }  /* if */
       break;
+    case ck_reflection:
+      switch (constant->variant.reflection.entity.kind) {
+        case iek_type:
+          if (tblock->process_type != NULL) {
+            tblock->process_type(
+                    (a_type*)constant->variant.reflection.entity.ptr, tblock);
+            if (tblock->terminate) goto end_of_routine;
+          }  /* if */
+          break;
+        case iek_constant:
+          traverse_constant(
+                (a_constant*)constant->variant.reflection.entity.ptr, tblock);
+          break;
+        case iek_expr_node:
+          traverse_expr(
+              (an_expr_node*)constant->variant.reflection.entity.ptr, tblock);
+          break;
+        default:
+          break;
+      };
+      break;
     default:
       break;
   }  /* switch */

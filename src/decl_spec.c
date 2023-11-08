@@ -10634,30 +10634,41 @@ storage_class_specifier:
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_lbracket:
-        /* A Microsoft or C++11 attribute (presumably). */
-        if (next_token() == tok_lbracket) {
-          /* A C++11 standard attribute. */
-          if (!std_attributes_enabled) goto something_unexpected;
-        } else if (!ms_extensions ||
-                   (microsoft_version < 1700 ?
+        /* A Microsoft or C++11 attribute (presumably), or a splicer. */
+        { a_token_kind  next_tok = next_token();
+          if (next_tok == tok_lbracket) {
+            /* A C++11 standard attribute. */
+            if (!std_attributes_enabled) goto something_unexpected;
+          } else if (next_tok == tok_colon && reflection_enabled &&
+                     state->is_implicit_type_context) {
+            /* A splicer that can be assumed to be implicitly preceded by
+               "typename". */
+            a_token_cache  typename_cache;
+            clear_token_cache(&typename_cache, /*is_reusable=*/FALSE);
+            cache_token(&typename_cache, tok_typename, &pos_curr_token);
+            rescan_cached_tokens(&typename_cache);
+            goto general_identifier_case;
+          } else if (!ms_extensions ||
+                     (microsoft_version < 1700 ?
                               any_decl_specifiers_seen :
                               (decl_specifiers_seen & (DS_VOID | DS_TYPE))) || 
-                   (C_mode() && microsoft_version < 1400) ||
-                   (input_flags & DSI_MICROSOFT_ATTRIBUTES_ALLOWED) == 0) {
-          /* Microsoft attributes are only recognized in Microsoft C++ mode
-             and, when microsoft_version is at least 1400, in Microsoft C mode.
-             When microsoft_version < 1700 they must precede any specifiers;
-             otherwise, they must precede type specifiers. */
-          goto something_unexpected;
+                     (C_mode() && microsoft_version < 1400) ||
+                     (input_flags & DSI_MICROSOFT_ATTRIBUTES_ALLOWED) == 0) {
+            /* Microsoft attributes are only recognized in Microsoft C++ mode
+               and, when microsoft_version is at least 1400, in Microsoft C
+               mode.  When microsoft_version < 1700 they must precede any
+               specifiers; otherwise, they must precede type specifiers. */
+            goto something_unexpected;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        } else {
-          /* Microsoft attributes are valid here.  Append them to any
-             attributes that we might have seen before. */
-          scan_and_append_microsoft_attributes(
+          } else {
+            /* Microsoft attributes are valid here.  Append them to any
+               attributes that we might have seen before. */
+            scan_and_append_microsoft_attributes(
                  &state->ms_attributes, (input_flags & DSI_IS_PARAMETER) != 0);
-          goto no_get_token;
+            goto no_get_token;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        }  /* if */
+          }  /* if */
+        }
         FALLTHROUGH
       case tok_alignas:
 #if GNU_EXTENSIONS_ALLOWED

@@ -11463,6 +11463,78 @@ arguments can use default values.
 }  /* find_template_class_simple */
 
 
+a_boolean adjust_templ_arg_list_for_template(a_symbol_ptr          templ,  
+                                             a_template_arg_ptr    *arg_list,
+                                             a_template_param_ptr  param_list)
+/*
+Adjust the given template argument list to be a valid template argument list
+representation for the given template parameter list of the given template.
+This primarily involves marking template pack elements.  Return FALSE if the
+template argument list does not match the template.
+*/
+{
+  a_template_arg_ptr    *tap = arg_list, sop_entry;
+  a_template_param_ptr  tpp = param_list;
+  a_boolean             in_pack = FALSE, tap_is_pack = FALSE;
+  a_boolean             not_enough_args = FALSE, kind_mismatch = FALSE;
+
+  param_list = tpp;
+  while (tpp != NULL) {
+    if (*tap != NULL) {
+      if (is_start_of_pack_expansion_templ_arg(*tap)) {
+        tap_is_pack = TRUE;
+      } else if ((*tap)->kind !=
+                    templ_arg_kind_for_symbol_kind(tpp->param_symbol->kind)) {
+        /* Do not match, e.g., a nontype template argument with a type template
+           parameter.  E.g.:
+             template<template<typename...> class X> int f();
+             template<typename, int> struct S {};
+             int r = f<S>();  // Error.
+        */
+        kind_mismatch = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
+    if (!tpp->is_pack) {
+      if (*tap == NULL) {
+        if (!tap_is_pack) {
+          if (tpp->has_default_arg) {
+            /* No argument is provided by the caller, the template parameter
+               has a default. */
+            a_templ_arg_kind  arg_kind;
+            arg_kind = templ_arg_kind_for_symbol_kind(tpp->param_symbol->kind);
+            *tap = alloc_template_arg(arg_kind);
+            get_template_arg_value_from_default(templ, *tap, tpp, param_list);
+          } else {
+            not_enough_args = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      tpp = tpp->next;
+    } else {
+      if (!in_pack) {
+        /* This is the first time we see the pack parameter.  Create a
+           start-of-pack-expansion entry in the argument list.  Note that this
+           is done even for an empty expansion. */
+        sop_entry = alloc_template_arg(
+                               (a_templ_arg_kind)tak_start_of_pack_expansion);
+        sop_entry->next = *tap;
+        *tap = sop_entry;
+        tap = &sop_entry->next;
+        in_pack = TRUE;
+      }  /* if */
+    }  /* if */
+    if (*tap == NULL) {
+      break;
+    } else {
+      if (in_pack) (*tap)->is_pack_element = TRUE;
+      tap = &(*tap)->next;
+    }  /* if */
+  }  /* while */
+  return !not_enough_args && !kind_mismatch;
+}  /* adjust_templ_arg_list_for_template */
+
+
 a_symbol_ptr find_class_template_instance(a_symbol_ptr        class_templ,
                                           a_template_arg_ptr  *arg_list)
 /*
@@ -11541,7 +11613,7 @@ provided argument list).
       if (in_pack) (*tap)->is_pack_element = TRUE;
       tap = &(*tap)->next;
     }  /* if */
-  }  /* for */
+  }  /* while */
   if (!not_enough_args && !kind_mismatch) {
     sym = find_template_class(class_templ, arg_list,
                               /*any_prototype_allowed=*/FALSE,

@@ -129,11 +129,13 @@ enum a_constexpr_intrinsic {
   cit_std_meta_bit_size_of,
   cit_std_meta_bit_offset_of,
   cit_std_meta_alignment_of,
+  cit_std_meta_define_class,
   cit_last
 };
 
 void register_constexpr_intrinsic(a_constexpr_intrinsic  tag,
                                   a_routine_ptr          rp);
+
 
 #if DEBUG
 uintptr_t db_hash_ptr(void  *ptr);

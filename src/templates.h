@@ -657,6 +657,11 @@ extern a_symbol_ptr find_template_class(
 			     a_boolean		 do_not_create,
 			     a_boolean		 in_substitution);
 
+extern
+a_boolean adjust_templ_arg_list_for_template(a_symbol_ptr          templ,  
+                                             a_template_arg_ptr    *arg_list,
+                                             a_template_param_ptr  param_list);
+
 extern a_symbol_ptr find_class_template_instance(
                                               a_symbol_ptr        class_templ,
                                               a_template_arg_ptr  *arg_list);

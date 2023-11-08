@@ -18354,6 +18354,7 @@ static a_const_char* intrinsic_names[] = {
   "bit_size_of",
   "bit_offset_of",
   "alignment_of",
+  "__define_class",
   "main"
 };
 

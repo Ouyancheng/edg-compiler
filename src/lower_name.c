@@ -4611,6 +4611,27 @@ do_unknown_function:
       /* These may show up when mangling constants in compound literals;
          just ignore them. */
       break;
+    case ck_reflection:
+      { a_tagged_pointer  *iep = &con->variant.reflection.entity;
+        // FIXME: Add prefix and demangler support
+        switch (iep->kind) {
+          case iek_type:
+            mangled_encoding_for_type((a_type*)iep->ptr, mctl);
+            break;
+          case iek_field:
+          case iek_variable:
+          case iek_routine:
+            mangled_entity_reference((a_source_correspondence*)iep->ptr,
+                                     iep->kind, (a_routine_info_block*)NULL,
+                                     /*add_address_of=*/FALSE, mctl);
+            break;
+          // FIXME: Other cases.
+          default:
+            unexpected_condition_str(
+                               "literal_representation: bad reflection kind");
+        }  /* switch */
+      }
+      break;
 #if FIXED_POINT_ALLOWED
     case ck_fixed_point:
       /* C++ modes do not currently allowed fixed-point types, and therefore

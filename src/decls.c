@@ -8949,7 +8949,7 @@ interpreter) and if so mark it as such.
           a_type_ptr       rtp = skip_typerefs(rp->type);
           a_param_type_ptr ptp = function_type_params(rtp);
           if (ptp != NULL && is_pointer_type(ptp->type)) {
-            tag = cit_std_destroy_at;
+            // FIXME tag = cit_std_destroy_at;
           }  /* if */
         }  /* if */
         break;
@@ -8998,6 +8998,18 @@ interpreter) and if so mark it as such.
     a_param_type    *ptp = function_type_params(rtp);
     a_template_arg  *t_args = rp->template_arg_list;
     switch (name[0]) {
+      case '_':
+        if (strcmp(name, "__define_class") == 0 && t_args == NULL) {
+          if (ptp != NULL && ptp->next != NULL && ptp->next->next != NULL &&
+              ptp->next->next->next == NULL &&
+              is_reflection_type(ptp->type) &&
+              is_integral_type(ptp->next->type) &&
+              is_pointer_type(ptp->next->next->type) &&
+              is_void_type(rtp->variant.routine.return_type)) {
+            tag = cit_std_meta_define_class;
+          }  /* if */
+        }  /* if */
+        break;
       case 'a':
         if (t_args == NULL && ptp != NULL && ptp->next == NULL &&
             is_reflection_type(ptp->type) &&

@@ -3183,14 +3183,44 @@ extern a_source_correspondence *source_corresp_for_il_entry(
 
 extern a_boolean is_defined(char *entity_ptr, an_il_entry_kind kind);
 
+inline void strip_template_arg(a_reflection_value  *rvp)
+/*
+If rvp points to a reflection value for a template argument replace it by the
+reflection value for the underlying type, constant, or template.
+*/
+{
+  if (rvp->entity.kind == iek_template_arg) {
+    a_template_arg  *tap = (a_template_arg*)rvp->entity.ptr;
+    switch (tap->kind) {
+      case tak_type:
+        rvp->entity.kind = iek_type;
+        rvp->entity.ptr = (char*)tap->variant.type;
+        break;
+      case tak_nontype:
+        rvp->entity.kind = iek_constant;
+        rvp->entity.ptr = (char*)tap->variant.constant;
+        break;
+      case tak_template:
+        rvp->entity.kind = iek_template;
+        rvp->entity.ptr = (char*)tap->variant.templ.ptr;
+        break;
+      default:
+        unexpected_condition();
+    }  /* if */
+  }  /* if */
+}  /* strip_template_arg */
+
+
 inline a_source_correspondence *source_corresp_for_reflection(
-                                                      a_reflection_value  *rvp)
+                                                     a_reflection_value  *rvp)
 /*
 Return the source correspondence for the entity associated with rvp, if any.
 */
 {
-  return source_corresp_for_il_entry(rvp->entity.ptr,
-                                     (an_il_entry_kind)rvp->entity.kind);
+  a_reflection_value  rv = *rvp;
+  strip_template_arg(&rv);
+  return source_corresp_for_il_entry(rv.entity.ptr,
+                                     (an_il_entry_kind)rv.entity.kind);
 }  /* source_corresp_for_reflection */
 
 

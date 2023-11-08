@@ -12,6 +12,15 @@ This file should be included after the standard headers <string_view> and
 #include <initializer_list>
 
 namespace std {
+
+  constexpr void __report_constexpr_value(long long) {
+    /* Handled by interpreter. */
+  }
+
+  constexpr void __report_constexpr_value(char const*) {
+    /* Handled by interpreter. */
+  }
+
   namespace meta {
     using info = decltype(^::);
 
@@ -295,6 +304,81 @@ namespace std {
       return 0;  /* Dummy return.  Handled by interpreter. */
     }
 
+
+    struct nsdm_options {
+      std::optional<__str> name;
+      std::optional<int> alignment;
+      std::optional<int> bit_width;
+    };
+
+    struct nsdm_description {
+      constexpr nsdm_description(info type, nsdm_options options = {})
+        : type(type)
+        , name(nullptr)
+        , alignment(0)
+        , bit_width(0) {
+        if (options.name.has_value()) {
+          auto view = options.name.value();
+          auto data = view.data();
+          auto size = view.size();
+          auto name = new char[size+1];
+          int k = 0;
+          do {  // This is consteval: Don't worry about bounds checking.
+            name[k] = data[k];
+          } while (data[k++]);
+          this->name = name;
+        }
+        if (options.alignment.has_value()) {
+          this->alignment = options.alignment.value();
+        }
+        if (options.alignment.has_value()) {
+          this->bit_width = options.bit_width.value();
+        }
+      }
+
+      constexpr nsdm_description(nsdm_description const &orig)
+        : type(orig.type)
+        , name(orig.name)
+        , alignment(orig.alignment)
+        , bit_width(orig.bit_width) {
+        if (orig.name) {
+          auto n = __builtin_strlen(orig.name)+1;
+          this->name = new char[n];
+          __builtin_memcpy(this->name, orig.name, n);
+        }  /* if */
+      }
+
+      constexpr nsdm_description(nsdm_description &&orig)
+        : type(orig.type)
+        , name(orig.name)
+        , alignment(orig.alignment)
+        , bit_width(orig.bit_width) {
+        orig.name = nullptr;
+      }
+
+      constexpr ~nsdm_description() {
+        if (this->name) delete[] this->name;
+      }
+      void operator==(nsdm_description const&) = delete;
+      void operator==(nsdm_description &&) = delete;
+    private:
+      info type;
+      char *name;
+      std::size_t alignment;
+      std::size_t bit_width;
+    };
+
+    consteval void __define_class(info type,
+                                  int  n_fields,
+                                  nsdm_description *field_info) {
+      /* Handled by interpreter. */
+    };
+
+    consteval info define_class(info  type,
+                                std::vector<nsdm_description> fields) {
+      __define_class(type, fields.size(), fields.data());
+      return type;
+    }
   }
 }
 

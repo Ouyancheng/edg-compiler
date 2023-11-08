@@ -345,12 +345,12 @@ points to a list of these.
 */
 typedef struct a_constexpr_destruction {
   struct a_constexpr_destruction
-		*next;
-			/* Next destruction to perform, or NULL if this is the
+		*next;	/* Next destruction to perform, or NULL if this is the
 			   last destruction on the list. */
   a_dynamic_init_ptr
-		dip;
-			/* An entry describing the destructor to execute. */
+		dip;	/* An entry describing the destructor to execute. */
+  a_type	*type;	/* The type of the object to destroy.  It can be an
+			   array type. */
   a_byte	*sub_obj;
 			/* Address of the subobject to destroy (could be a
 			   complete object address). */
@@ -3004,7 +3004,7 @@ interpreter's limits; in that case, *p_result is set to FALSE.
      complete class). */
   total_size += sizeof(a_type_ptr);
   /* Allocate each proper field and record the field offsets. */
-  fp = tp->variant.class_struct_union.field_list;
+  fp = fields_of(tp);
   for (fp = next_alloc_field(fp);
        fp != NULL;
        fp = next_alloc_field(fp->next)) {
@@ -3103,8 +3103,7 @@ exceeds the interpreter's limits; in that case, *p_result is set to FALSE.
   prefix_size += sizeof(a_field_ptr);
   do_host_alignment(prefix_size);
   /* Determine the size of the largest field and record the field offsets. */
-  fp = tp->variant.class_struct_union.field_list;
-  for (; fp != NULL; fp = fp->next) {
+  for (fp = fields_of(tp); fp != NULL; fp = fp->next) {
     a_byte_count  field_size = value_bytes_for_type(ips, fp->type, p_result);
     if (!*p_result) {
       total_size = MAX_CONSTEXPR_TYPE_SIZE+1;
@@ -3146,7 +3145,7 @@ the end" of a field subobject, that field is returned.
     /* Search among base classes and fields for the one that covers the offset
        of the given address.  We search through direct subobjects in allocation
        order. */
-    a_field_ptr       fp = parent_type->variant.class_struct_union.field_list;
+    a_field_ptr       fp = fields_of(parent_type);
     a_field_ptr       last_fp = next_alloc_field(fp);
     a_base_class_ptr  bcp, last_bcp;
     a_boolean         okay = TRUE, check_virtual_bases = FALSE;
@@ -3667,7 +3666,7 @@ within the given complete object).
     case tk_struct:
       { /* Initialize fields and bases. */
         a_base_class_ptr  bcp = base_classes_of(tp);
-        a_field_ptr       fp = tp->variant.class_struct_union.field_list;
+        a_field_ptr       fp = fields_of(tp);
         fp = next_alloc_field(fp);
         for (; fp != NULL; fp = next_alloc_field(fp->next)) {
           a_type_ptr    ftp = skip_typerefs(fp->type);
@@ -3689,7 +3688,7 @@ within the given complete object).
       break;
     case tk_union:
       { /* Initialize the first field (if any). */
-        a_field_ptr  fp = tp->variant.class_struct_union.field_list;
+        a_field_ptr  fp = fields_of(tp);
         fp = next_alloc_field(fp);
         if (fp != NULL) {
           a_byte_count  offset;
@@ -3784,7 +3783,7 @@ latter evaluation will fail, as intended.
   if (type_is(tp, tk_struct) || type_is(tp, tk_class)) {
     if (tp->variant.class_struct_union.any_mutable_member) {
       a_base_class_ptr  bcp = base_classes_of(tp);
-      a_field_ptr       fp = tp->variant.class_struct_union.field_list;
+      a_field_ptr       fp = fields_of(tp);
       fp = next_alloc_field(fp);
       for (; fp != NULL; fp = next_alloc_field(fp->next)) {
         a_type_ptr    ftp = skip_typerefs(fp->type);
@@ -4161,7 +4160,7 @@ Output the contents of the interpreted object of type tp stored at addr.
     case tk_struct:
     case tk_class:
       {
-        a_field_ptr       fp = tp->variant.class_struct_union.field_list;
+        a_field_ptr       fp = fields_of(tp);
         a_base_class_ptr  bcp = base_classes_of(tp);
         a_byte_count      offset;
         (void)fprintf(f_debug, "{\n");
@@ -4750,13 +4749,29 @@ Perform the destructions for the current storage stack.
              *dlist = ips->storage_stack.destructions;
 
   do {
-    if (!do_constexpr_dtor(ips, dlist->dip->destructor, dlist->pos,
-                           dlist->sub_obj, dlist->complete_obj)) {
-      result = FALSE;
-      break;
+    int        n = 1;
+    a_byte     *sub_obj = dlist->sub_obj, *complete_obj = dlist->complete_obj;
+    a_routine  *dtor = dlist->dip->destructor;
+    a_type     *tp = dlist->type;
+    a_source_position
+               *pos = dlist->pos;
+    a_byte_count
+               size = 0;
+    if (type_is(tp, tk_array)) {
+      n = (int)num_array_elements(tp);
+      tp = skip_typerefs(underlying_array_element_type(tp));
+      size = value_bytes_for_type(ips, tp, &result); 
+      check_assertion(result);
     }  /* if */
+    for (int k = 0; k<n; ++k, sub_obj += size) {
+      if (!do_constexpr_dtor(ips, dtor, pos, sub_obj, complete_obj)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+    }  /* for */
     dlist = dlist->next;
   } while (dlist != NULL);
+done:
   return result;
 }  /* perform_destructions */
 
@@ -5590,7 +5605,7 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
           }  /* if */
         } else if (tp->kind == (a_type_kind)tk_struct ||
                    tp->kind == (a_type_kind)tk_class) {
-          a_field_ptr       fp = tp->variant.class_struct_union.field_list;
+          a_field_ptr       fp = fields_of(tp);
           a_base_class_ptr  bcp = base_classes_of(tp);
           a_constant_ptr    elem_con;
           if (con->uses_designated_initializers) {
@@ -5733,7 +5748,7 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
           a_byte          *this_bytes, *dst_bytes;
           elem_con = con->variant.aggregate.first_constant;
           if (elem_con == NULL) {
-            fp = tp->variant.class_struct_union.field_list;
+            fp = fields_of(tp);
             fp = next_alloc_field(fp);
             if (fp == NULL) {
               /* An empty union: Just clear the "active field". */
@@ -5760,7 +5775,7 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
             fp = elem_con->variant.designator.variant.field;
             elem_con = elem_con->next;
           } else {
-            fp = tp->variant.class_struct_union.field_list;
+            fp = fields_of(tp);
             fp = next_alloc_field(fp);
           }  /* if */
           if (fp == NULL || elem_con == NULL || elem_con->next != NULL) {
@@ -5996,7 +6011,7 @@ any subobject that is not initialized (the diagnostic is associated with pos).
     case tk_class:
       { /* Recursively handle fields and bases. */
         a_base_class_ptr  bcp = base_classes_of(tp);
-        a_field_ptr       fp = tp->variant.class_struct_union.field_list;
+        a_field_ptr       fp = fields_of(tp);
         fp = next_alloc_field(fp);
         for (; fp != NULL; fp = next_alloc_field(fp->next)) {
           a_type_ptr    ftp = skip_typerefs(fp->type);
@@ -6386,12 +6401,16 @@ by implied_src.
 
 static a_boolean register_destruction(an_interpreter_state  *ips,
                                       a_dynamic_init_ptr    dip,
+                                      a_type                *type,
                                       a_byte                *sub_obj,
                                       a_byte                *complete_obj,
                                       a_source_position     *pos)
 /*
 Register a destruction to be performed when the current storage stack state
-is released.
+is released.  dip describes the destructor to run.  type is the type of the
+object to destroy: It can be a class type or an array.  The object is
+located at the storage pointed to by sub_obj and is part of a complete object
+stored at complete_obj.  Diagnostics should be associated with pos by default.
 */
 {
   a_boolean  result = TRUE;
@@ -6407,6 +6426,7 @@ is released.
     destruction = (a_constexpr_destruction*)d_bytes;
     destruction->next = ips->storage_stack.destructions;
     destruction->dip = dip;
+    destruction->type = type;
     destruction->sub_obj = sub_obj;
     destruction->complete_obj = complete_obj;
     destruction->pos = pos;
@@ -6419,6 +6439,7 @@ is released.
 static a_boolean register_extended_destruction(
                                           an_interpreter_state  *ips,
                                           a_dynamic_init_ptr    dip,
+                                          a_type                *type,
                                           a_byte                *sub_obj,
                                           a_byte                *complete_obj,
                                           a_source_position     *pos)
@@ -6441,6 +6462,7 @@ state is released.
     destruction = (a_constexpr_destruction*)d_bytes;
     destruction->next = ips->extension_state->destructions;
     destruction->dip = dip;
+    destruction->type = type;
     destruction->sub_obj = sub_obj;
     destruction->complete_obj = complete_obj;
     destruction->pos = pos;
@@ -6525,7 +6547,7 @@ otherwise, this routine will look up that storage in ips->map.
     }  /* if */
     restore_storage_stack(ips, saved_stack_for_full_expr, result);
     if (result && dip->destructor != NULL) {
-      result = register_destruction(ips, dip, storage, storage, pos);
+      result = register_destruction(ips, dip, tp, storage, storage, pos);
     }  /* if */
   }  /* if */
 done:
@@ -7900,7 +7922,7 @@ __builtin_bit_cast.
           /* Visit subobjects.  Note that the order in which the subobjects
              are visited is immaterial. */
           if (result) {
-            a_field_ptr fp = tp->variant.class_struct_union.field_list;
+            a_field_ptr fp = fields_of(tp);
             for (fp = next_alloc_field(fp);
                  fp != NULL;
                  fp = next_alloc_field(fp->next)) {
@@ -9914,7 +9936,7 @@ the length of the given sequence of reflections.
   }  /* if */
   /* Store the pointer to the allocation and the length/capacity in the
      returned object. */
-  fp = tp->variant.class_struct_union.field_list;
+  fp = fields_of(tp);
   fp = next_alloc_field(fp);
   for (; fp != NULL; fp = next_alloc_field(fp->next)) {
     a_type_ptr    ftp = skip_typerefs(fp->type);
@@ -9995,7 +10017,7 @@ length of the sequence, respectively.
   }  /* if */
   /* Store the pointer to the allocation and the length/capacity in the
      returned object. */
-  fp = tp->variant.class_struct_union.field_list;
+  fp = fields_of(tp);
   fp = next_alloc_field(fp);
   for (; fp != NULL; fp = next_alloc_field(fp->next)) {
     a_type_ptr    ftp = skip_typerefs(fp->type);
@@ -10200,34 +10222,6 @@ value val and returns a reflection value referring to that constant.
 }  /* do_constexpr_std_meta_make_reflect_value */
 
 
-static void strip_template_arg(a_reflection_value  *rvp)
-/*
-If rvp points to a reflection value for a template argument replace it by the
-reflection value for the underlying type, constant, or template.
-*/
-{
-  if (rvp->entity.kind == iek_template_arg) {
-    a_template_arg  *tap = (a_template_arg*)rvp->entity.ptr;
-    switch (tap->kind) {
-      case tak_type:
-        rvp->entity.kind = iek_type;
-        rvp->entity.ptr = (char*)tap->variant.type;
-        break;
-      case tak_nontype:
-        rvp->entity.kind = iek_constant;
-        rvp->entity.ptr = (char*)tap->variant.constant;
-        break;
-      case tak_template:
-        rvp->entity.kind = iek_template;
-        rvp->entity.ptr = (char*)tap->variant.templ.ptr;
-        break;
-      default:
-        unexpected_condition();
-    }  /* if */
-  }  /* if */
-}  /* strip_template_arg */
-
-
 static a_boolean handle_pm_case_for_value_of(
                                          an_interpreter_state  *ips,
                                          a_constant_ptr        cp,
@@ -10290,6 +10284,7 @@ type T that is reflected by r.
   a_constant          *cp = NULL;
   a_variable          *vp = NULL;
   a_routine           *rp = NULL;
+  a_symbol            *sym = NULL;
 
   strip_template_arg(rvp);
   switch (rvp->entity.kind) {
@@ -10354,6 +10349,7 @@ type T that is reflected by r.
                                            complete_obj);
         }  /* if */
         mark_fs_node_reclaimed(new_node);
+        sym = symbol_for(vp);
       }
       break;
     case iek_routine:
@@ -10365,6 +10361,7 @@ type T that is reflected by r.
               !routine_type_is_nonstatic_member_function(rt)) {
             make_function_address(result_storage, rp);
             mark_subobject_initialized(result_storage, complete_obj);
+            result = TRUE;
           } else {
             info_with_pos_type2(ec_incompatible_std_meta_value_of_type,
                                 &call_node->position, val_type, rt, ips);
@@ -10382,6 +10379,7 @@ type T that is reflected by r.
                               &call_node->position, val_type, rt, ips);
           do_constexpr_fail(result);
         }  /* if */
+        sym = symbol_for(rp);
       }
       break;
     case iek_field:
@@ -10409,6 +10407,20 @@ type T that is reflected by r.
                     &call_node->position, ips);
       do_constexpr_fail(result);
       break;
+  }  /* if */
+  if (result && sym != NULL) {
+    /* If we're producing a reference to an instance of a function or variable
+       template, make sure it will get instantiated. */
+    if ((symbol_is(sym, sk_variable) &&
+         sym->variant.variable.instance_ptr == NULL) ||
+        (symbol_is(sym, sk_static_data_member) &&
+         sym->variant.static_data_member.instance_ptr == NULL) ||
+        (is_simple_function_symbol(sym) &&
+         sym->variant.routine.instance_ptr == NULL)) {
+      /* Not an instance of a template. */
+    } else {
+      set_instance_required(sym, /*value=*/TRUE, SIR_NONE);
+    }  /* if */
   }  /* if */
   return result;
 }  /* do_constexpr_std_meta_make_value_of */
@@ -11855,6 +11867,83 @@ Implement std::meta::alignment_of(info).
 }  /* do_constexpr_std_meta_alignment_of */
 
 
+static a_boolean get_interpreter_string_length(
+                                          an_interpreter_state  *ips,
+                                          a_constexpr_address   *cap,
+                                          a_byte_count          *p_length,
+                                          a_source_position     *diag_pos)
+/*
+Store in *p_length the length of the null-terminated narrow-character string
+pointed to by cap.  If this fails (e.g., because there is no data pointed to
+by cap), return FALSE and associate a diagnostic with the given position.
+*/
+{
+  a_boolean         result = TRUE, ovfl = FALSE;
+  an_integer_value  *chars = (an_integer_value*)cap->address;
+  a_byte_count      k = 0;
+
+  if (is_runtime_data_address(cap) || is_function_address(cap) ||
+      cap->complete_object == NULL) {
+    do_constexpr_fail(result);
+    info_with_pos(ec_constexpr_access_to_runtime_storage, diag_pos, ips);
+    goto done;
+  }  /* if */
+  for (;; ++k) {
+    a_host_large_integer  char_val;
+    if (!subobject_is_initialized((a_byte*)chars, cap->complete_object)) {
+      do_constexpr_fail(result);
+      info_with_pos(ec_object_not_initialized, diag_pos, ips);
+      break;
+    }  /* if */
+    conv_integer_value_to_host_large_integer(chars+k, /*is_signed=*/FALSE,
+                                             &char_val, &ovfl);
+    check_assertion(!ovfl);
+    if (char_val == 0) break;
+  }  /* for */
+  *p_length = k;
+done:
+  return result;
+}  /* get_interpreter_string_length */
+
+
+static a_boolean get_interpreter_string(an_interpreter_state  *ips,
+                                        char                  *str,
+                                        a_byte_count          length,
+                                        a_constexpr_address   *cap,
+                                        a_source_position     *diag_pos)
+/*
+cap points to a null-terminated narrow string literal of the given length and
+str points to an array of at least as many characters.  Store in the array
+pointed to by str the characters pointed to by cap.  If this fails (e.g.,
+because of an invalid cap value), return FALSE and associate a diagnostic
+with diag_pos.
+*/
+{
+  a_boolean         result = TRUE, ovfl = FALSE;
+  an_integer_value  *chars = (an_integer_value*)cap->address;
+
+  if (is_runtime_data_address(cap) || is_function_address(cap) ||
+      cap->complete_object == NULL) {
+    do_constexpr_fail(result);
+    info_with_pos(ec_constexpr_access_to_runtime_storage, diag_pos, ips);
+    goto done;
+  }  /* if */
+  for (a_byte_count k = 0; k<length; ++k) {
+    a_host_large_integer  char_val;
+    if (!subobject_is_initialized((a_byte*)chars, cap->complete_object)) {
+      do_constexpr_fail(result);
+      info_with_pos(ec_object_not_initialized, diag_pos, ips);
+      break;
+    }  /* if */
+    conv_integer_value_to_host_large_integer(chars+k, /*is_signed=*/FALSE,
+                                             &char_val, &ovfl);
+    check_assertion(!ovfl);
+    str[k] = (char)char_val;
+  }  /* for */
+done:
+  return result;
+}
+
 static a_constant_ptr
 		reflection_str_placeholder;
 			/* Dummy entry used to identify strings produced by
@@ -11948,7 +12037,7 @@ string_view object referring to that static array.
        reuse an IL constant (using the persistent map). */
     map_stack_bytes(ips, chars, (a_byte*)reflection_str_placeholder);
   }  /* if */
-  fp = tp->variant.class_struct_union.field_list;
+  fp = fields_of(tp);
   fp = next_alloc_field(fp);
   for (; fp != NULL; fp = next_alloc_field(fp->next)) {
     a_type_ptr    ftp = skip_typerefs(fp->type);
@@ -12002,10 +12091,12 @@ via the std::string_view(char_ptr, length) constructor.
   a_reflection_value
                 *rvp = (a_reflection_value*)p_arg_bytes[0];
   a_source_correspondence_ptr
-                scp = source_corresp_for_reflection(rvp);
+                scp;
   a_const_char  *name;
   a_type_ptr    rtp = skip_typerefs(callee->type), tp;
 
+  strip_template_arg(rvp);
+  scp = source_corresp_for_reflection(rvp);
   check_assertion(type_is(rtp, tk_routine));
   tp = skip_typerefs(rtp->variant.routine.return_type);
   if (scp == NULL) {
@@ -12051,6 +12142,7 @@ representing a member of the given entity.
     goto done;
   }  /* if */
   check_assertion(type_is(skip_typerefs(callee->type), tk_routine));
+  strip_template_arg(rvp);
   if (scp == NULL) {
     invalid_arg = TRUE;
   } else if (rvp->entity.kind == iek_type) {
@@ -12060,7 +12152,7 @@ representing a member of the given entity.
     if (is_immediate_class_type(parent_tp) && !parent_tp->incomplete) {
       /* Enumerate all the class members. */
       a_scope     *scope = class_type_supp(parent_tp)->assoc_scope;
-      a_field     *fp = parent_tp->variant.class_struct_union.field_list;
+      a_field     *fp = fields_of(parent_tp);
       a_routine   *rp;
       a_type      *tp;
       a_variable  *vp;
@@ -12132,7 +12224,7 @@ order).
   a_reflection_value
                 *rvp = (a_reflection_value*)p_arg_bytes[0];
   a_source_correspondence_ptr
-                scp = source_corresp_for_reflection(rvp);
+                scp;
   Dyn_array<a_reflection_value>
                 result_reflections(0);
 
@@ -12145,6 +12237,8 @@ order).
     goto done;
   }  /* if */
   check_assertion(type_is(skip_typerefs(callee->type), tk_routine));
+  strip_template_arg(rvp);
+  scp = source_corresp_for_reflection(rvp);
   if (scp == NULL) {
     invalid_arg = TRUE;
   } else if (rvp->entity.kind == iek_type) {
@@ -12198,7 +12292,7 @@ element representing a field of the given entity (in declaration order).
   a_reflection_value
                 *rvp = (a_reflection_value*)p_arg_bytes[0];
   a_source_correspondence_ptr
-                scp = source_corresp_for_reflection(rvp);
+                scp;
   Dyn_array<a_reflection_value>
                 result_reflections(0);
 
@@ -12211,6 +12305,8 @@ element representing a field of the given entity (in declaration order).
     goto done;
   }  /* if */
   check_assertion(type_is(skip_typerefs(callee->type), tk_routine));
+  strip_template_arg(rvp);
+  scp = source_corresp_for_reflection(rvp);
   if (scp == NULL) {
     invalid_arg = TRUE;
   } else if (rvp->entity.kind == iek_type) {
@@ -12219,7 +12315,7 @@ element representing a field of the given entity (in declaration order).
     complete_type_is_needed(parent_tp);
     if (is_immediate_class_type(parent_tp) && !parent_tp->incomplete) {
       /* Enumerate all the nonstatic data members. */
-      a_field  *fp = parent_tp->variant.class_struct_union.field_list;
+      a_field  *fp = fields_of(parent_tp);
       for (; fp != NULL; fp = fp->next) {
         a_reflection_value  mem_rvp;
         mem_rvp.entity.ptr = (char*)fp;
@@ -12276,6 +12372,7 @@ representing a direct base of the given class type (in declaration order).
     goto done;
   }  /* if */
   check_assertion(type_is(skip_typerefs(callee->type), tk_routine));
+  strip_template_arg(rvp);
   if (scp == NULL) {
     invalid_arg = TRUE;
   } else if (rvp->entity.kind == iek_type) {
@@ -12341,6 +12438,7 @@ type (in declaration order).
                   &call_node->position, ips);
     goto done;
   }  /* if */
+  strip_template_arg(rvp);
   check_assertion(type_is(skip_typerefs(callee->type), tk_routine));
   if (scp == NULL) {
     invalid_arg = TRUE;
@@ -12358,7 +12456,7 @@ type (in declaration order).
         result_reflections.push_back(mem_rvp);
       }  /* for */
       /* Enumerate all the nonstatic data members. */
-      a_field  *fp = parent_tp->variant.class_struct_union.field_list;
+      a_field  *fp = fields_of(parent_tp);
       for (; fp != NULL; fp = fp->next) {
         a_reflection_value  mem_rvp;
         mem_rvp.entity.ptr = (char*)fp;
@@ -12415,6 +12513,7 @@ element representing an enumerator constant for the given enumeration type.
                   &call_node->position, ips);
     goto done;
   }  /* if */
+  strip_template_arg(rvp);
   check_assertion(type_is(skip_typerefs(callee->type), tk_routine));
   if (scp == NULL) {
     invalid_arg = TRUE;
@@ -12458,7 +12557,7 @@ static a_boolean do_constexpr_std_meta_substitute(
                                         a_byte                *result_storage,
                                         a_byte                *complete_obj)
 /*
-Implement std::meta::members_of(<info>, <infovec>).  It returns a
+Implement std::meta::substitute(<info>, <infovec>).  It returns a
 reflection for an instance obtained by substituting the template arguments
 represented by <infovec> in the template represented by info.  A substitution
 error is communicated with an invalid reflection.
@@ -12488,10 +12587,12 @@ error is communicated with an invalid reflection.
   check_assertion(ptp != NULL && ptp->next != NULL);
   check_assertion(skip_typerefs(ptp->type) == reflection_type());
   infovec_type = skip_typerefs(ptp->next->type);
+  strip_template_arg(rvp);
   if (scp == NULL || scp->assoc_info == NULL ||
       rvp->entity.kind != iek_template) {
     do_constexpr_fail(result);
-    // FIXME: create invalid reflection
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
   } else if (load_infovec(ips, infovec_type, &arg_reflections,
                           &call_node->position,
                           p_arg_bytes[1], p_arg_bytes[1])) {
@@ -12523,20 +12624,22 @@ error is communicated with an invalid reflection.
     a_template  *templ = (a_template*)rvp->entity.ptr;
     a_reflection_value  *result_rvp = (a_reflection_value*)result_storage;
     if (templ->kind == templk_class) {
-      a_ctws_state      ctws_state;
-      a_template_param  *t_params = templ_params_of(symbol_for(templ));
-      a_type            *tp, *proto_tp = templ->prototype_instantiation.type;
-      a_boolean  copy_error = FALSE;
-      init_ctws_state(&ctws_state);
-      tp = copy_type_with_substitution(proto_tp, t_args, t_params,
-                                       &call_node->position, CTWS_NO_OPTIONS,
-                                       &copy_error, &ctws_state);
-      if (tp == NULL || copy_error) {
+      a_symbol_ptr  sym = NULL, templ_sym = symbol_for(templ);
+      if (adjust_templ_arg_list_for_template(templ_sym, &t_args,
+                                             templ_params_of(templ_sym))) {
+        sym = find_template_class(templ_sym, &t_args,
+                                  /*any_prototype_allowed=*/FALSE,
+                                  (a_symbol*)NULL,
+                                  /*instantiate_nonreal=*/FALSE,
+                                  /*do_not_create=*/FALSE,
+                                  /*in_substitution=*/TRUE);
+      }  /* if */
+      if (sym == NULL) {
         do_constexpr_fail(result);
         // FIXME: create invalid reflection
       } else {
         result_rvp->entity.kind = iek_type;
-        result_rvp->entity.ptr = (char*)tp;
+        result_rvp->entity.ptr = (char*)type_symbol_type(sym);
         result = TRUE;
       }  /* if */
     } else if (templ->kind == templk_variable) {
@@ -12571,7 +12674,23 @@ error is communicated with an invalid reflection.
       result_rvp->entity.ptr = (char*)con;
       result = TRUE;
     } else if (templ->kind == templk_function) {
-      do_constexpr_fail(result);
+      a_symbol_ptr  sym = NULL, templ_sym = symbol_for(templ);
+      if (adjust_templ_arg_list_for_template(templ_sym, &t_args,
+                                             templ_params_of(templ_sym))) {
+        sym = find_template_function(symbol_for(templ), &t_args,
+                                     /*explicit_arg_list_present=*/FALSE,
+                                     &call_node->position);
+      }  /* if */
+      if (sym == NULL ||
+          !(symbol_is(sym, sk_routine) ||
+            symbol_is(sym, sk_member_function))) {
+        do_constexpr_fail(result);
+        // FIXME: create invalid reflection
+      } else {
+        result_rvp->entity.kind = iek_routine;
+        result_rvp->entity.ptr = (char*)sym->variant.routine.ptr;
+        result = TRUE;
+      }  /* if */
     } else {
       do_constexpr_fail(result);
       // FIXME: create invalid reflection
@@ -12586,6 +12705,164 @@ done:
   }  /* if */
   return result;
 }  /* do_constexpr_std_meta_substitute */
+
+
+static a_boolean do_constexpr_std_meta_define_class(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_object)
+/*
+Implement std::meta::__define_class(<info>, n, <descriptions>).  It returns its
+first argument, which should be a reflection for an incomplete class type.
+The third argument of the call points to an array of n elements of type
+std::meta::ndsm_description that describe members that should be added to the
+definition of the given type.  This function triggers the definition of such a
+definition.  Return FALSE if this fails because the arguments to the call are
+invalid.
+*/
+{
+  a_boolean     result = TRUE;
+  a_reflection_value
+                *rvp = (a_reflection_value*)p_arg_bytes[0];
+  Dyn_array<a_meta_field_descr>
+                field_descrs(0);
+  a_type_ptr    callee_type = skip_typerefs(callee->type), class_type,
+                field_descr_type;
+  int           n_fields;
+  a_param_type_ptr
+                ptp;
+
+  if (!ips->is_constant_evaluated) {
+    /* Don't attempt to evaluate this call if a constant result is not needed,
+       because it could be somewhat expensive. */
+    do_constexpr_fail(result);
+    info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                  &call_node->position, ips);
+    goto done;
+  }  /* if */
+  check_assertion(type_is(callee_type, tk_routine));
+  if (rvp->entity.kind != iek_type ||
+      !(class_type = (a_type*)rvp->entity.ptr)->incomplete ||
+      !is_immediate_class_type(class_type)) {
+    do_constexpr_fail(result);
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+    goto done;
+  }  /* if */
+  ptp = function_type_params(callee_type)->next;
+  {
+    a_boolean             is_signed = is_signed_integral_type(ptp->type);
+    a_host_large_integer  val;
+    a_boolean             ovflo;
+    conv_integer_value_to_host_large_integer(
+                 (an_integer_value *)p_arg_bytes[1], is_signed, &val, &ovflo);
+    if (ovflo) {
+      do_constexpr_fail(result);
+      goto done;
+    }  /* if */
+    n_fields = (int)val;
+    field_descrs.reserve(n_fields);
+  }
+  {
+    a_constexpr_address  *cap = (a_constexpr_address*)p_arg_bytes[2];
+    a_type               *descr_type = type_pointed_to(ptp->next->type);
+    a_byte_count         descr_size;
+    a_field              *fp;
+    a_byte_count         type_offset, name_offset, alignment_offset,
+                         bit_width_offset;
+    a_byte               *subobj = cap->address,
+                         *complete_obj = cap->complete_object;
+    descr_type = skip_typerefs(descr_type);
+    descr_size = value_bytes_for_type(ips, descr_type, &result);
+    if (!result || !is_immediate_class_type(descr_type)) {
+      do_constexpr_fail(result);
+      goto done;
+    }  /* if */
+    fp = fields_of(descr_type);
+    if (fp == NULL || !is_reflection_type(fp->type)) {
+      do_constexpr_fail(result);
+      goto done;
+    }  /* if */
+    get_mapped_byte_count(&persistent_map, fp, type_offset);
+    fp = fp->next;
+    if (fp == NULL || !is_pointer_type(fp->type) ||
+        !is_character_type(type_pointed_to(fp->type))) {
+      do_constexpr_fail(result);
+      goto done;
+    }  /* if */
+    get_mapped_byte_count(&persistent_map, fp, name_offset);
+    fp = fp->next;
+    if (fp == NULL || !is_size_t_type(fp->type)) {
+      do_constexpr_fail(result);
+      goto done;
+    }  /* if */
+    get_mapped_byte_count(&persistent_map, fp, alignment_offset);
+    fp = fp->next;
+    if (fp == NULL || !is_size_t_type(fp->type)) {
+      do_constexpr_fail(result);
+      goto done;
+    }  /* if */
+    get_mapped_byte_count(&persistent_map, fp, bit_width_offset);
+    for (int k = 0; k<n_fields; ++k, subobj += descr_size) {
+      a_meta_field_descr   fd = {};
+      a_byte_count         name_length;
+      a_reflection_value   *ftr = (a_reflection_value*)(subobj+type_offset);
+      a_constexpr_address  *name_cap;
+      if (!subobject_is_initialized(subobj+type_offset, complete_obj)) {
+        do_constexpr_fail(result);
+        info_with_pos(ec_object_not_initialized, &call_node->position, ips);
+        goto done;
+      }  /* if */
+      if (ftr->entity.kind != iek_type) {
+        do_constexpr_fail(result);
+        info_with_pos(ec_invalid_reflection_for_intrinsic,
+                      &call_node->position, ips);
+        goto done;
+      }  /* if */
+      fd.type = (a_type*)ftr->entity.ptr;
+      if (!subobject_is_initialized(subobj+name_offset, complete_obj)) {
+        do_constexpr_fail(result);
+        info_with_pos(ec_object_not_initialized, &call_node->position, ips);
+        goto done;
+      }  /* if */
+      name_cap = (a_constexpr_address*)(subobj+name_offset);
+      if ((is_runtime_data_address(name_cap) &&
+           !is_null_pointer_value(name_cap->variant.addr_con)) ||
+          is_function_address(name_cap)) {
+        do_constexpr_fail(result);
+        info_with_pos(ec_constexpr_access_to_runtime_storage,
+                      &call_node->position, ips);
+        goto done;
+      } else if (name_cap->complete_object == NULL) {
+        /* Synthesize a field name. */
+        char  field_name[100];
+        (void)sprintf(field_name, "__field_%u\n", k);
+        fd.name = alloc_text_of_string_literal(strlen(field_name)+1);
+        (void)strcpy(fd.name, field_name);
+      } else {
+        if (!get_interpreter_string_length(
+                              ips, (a_constexpr_address*)(subobj+name_offset),
+                              &name_length, &call_node->position)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        fd.name = alloc_text_of_string_literal(name_length);
+        (void)get_interpreter_string(
+                                   ips, fd.name, name_length,
+                                   (a_constexpr_address*)(subobj+name_offset),
+                                   &call_node->position);
+      }  /* if */
+      // FIXME: Get alignment and bit width.
+      field_descrs.push_back(fd);
+    }  /* for */
+  }
+  synth_class_definition(class_type, &field_descrs);
+done:
+  return result;
+}  /* do_constexpr_std_meta_define_class */
 
 
 static void report_leftover_allocations(an_interpreter_state  *ips)
@@ -13071,7 +13348,8 @@ See do_constexpr_std_allocator_allocate for the meaning of the parameters.
     /* Don't generate output if a constant is not needed, but fail evaluation
        in that case.  That avoids repeated output due to the front end trying
        to fold the same sub-expression multiple times (when it doesn't really
-       need to). */
+       need to).  It also avoids folding the call prematurely and then not
+       evaluating the call later. */
     result = FALSE;
     goto done;
   }  /* if */
@@ -13358,6 +13636,9 @@ frame when the call has completed.
       break;
     case cit_std_meta_alignment_of:
       evaluator = do_constexpr_std_meta_alignment_of;
+      break;
+    case cit_std_meta_define_class:
+      evaluator = do_constexpr_std_meta_define_class;
       break;
     default:
       unexpected_condition();
@@ -15194,7 +15475,7 @@ cannot be performed.  Used in the implementation of __builtin_bit_cast.
           /* Visit subobjects.  Note that the order in which the subobjects
              are visited is immaterial. */
           if (result) {
-            a_field_ptr fp = tp->variant.class_struct_union.field_list;
+            a_field_ptr fp = fields_of(tp);
             for (fp = next_alloc_field(fp);
                  fp != NULL;
                  fp = next_alloc_field(fp->next)) {
@@ -15645,7 +15926,7 @@ transferred (retaining only the least significant bytes) and discard the
 last (eleventh) value.
 */
 {
-  a_field_ptr           fp = dest_tp->variant.class_struct_union.field_list;
+  a_field_ptr           fp = fields_of(dest_tp);
   a_type_ptr            ftp;
   int                   i = 0, k, n, n_digits;
   an_integer_value      *int_storage;
@@ -22331,7 +22612,7 @@ the value representation of the integer value.
                           tmp_bytes);
               alloc_seq_number = ips->extension_state->alloc_seq_number;
               if (dip->destructor != NULL &&
-                  !register_extended_destruction(ips, dip,
+                  !register_extended_destruction(ips, dip, tp,
                                                  tmp_bytes+prefix_size,
                                                  tmp_bytes+prefix_size,
                                                  &expr->position)) {
@@ -22406,8 +22687,8 @@ the value representation of the integer value.
           mark_subobject_initialized(tmp_bytes, tmp_complete_obj);
         }  /* if */
         if (result && dip->destructor != NULL && temp_lifetime) {
-          result = register_destruction(ips, dip, tmp_bytes, tmp_complete_obj,
-                                        &expr->position);
+          result = register_destruction(ips, dip, tp, tmp_bytes,
+                                        tmp_complete_obj, &expr->position);
         }  /* if */
       }
       break;
@@ -23274,7 +23555,7 @@ diagnostic in *ips.
         do_constexpr_fail(result);
       } else {
         a_base_class_ptr  bcp;
-        a_field_ptr       fp = type->variant.class_struct_union.field_list;
+        a_field_ptr       fp = fields_of(type);
         a_boolean         is_static_init_list;
         set_constant_kind(con, (a_constant_repr_kind)ck_aggregate);
         /* Add direct base sub-object constants first. */
@@ -23350,7 +23631,7 @@ diagnostic in *ips.
          field. */
       { a_field_ptr  fp, afp;
         set_constant_kind(con, (a_constant_repr_kind)ck_aggregate);
-        fp = type->variant.class_struct_union.field_list,
+        fp = fields_of(type);
         fp = next_alloc_field(fp);
         if (fp == NULL) {
           /* This should only happen with unions that have no field (other
