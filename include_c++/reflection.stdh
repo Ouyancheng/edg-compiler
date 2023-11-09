@@ -379,6 +379,11 @@ namespace std {
       __define_class(type, fields.size(), fields.data());
       return type;
     }
+
+    consteval info metacall(info, infovec) {
+      return ^::;  /* Dummy return.  Handled by interpreter. */
+    }
+
   }
 }
 

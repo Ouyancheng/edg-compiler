@@ -11726,7 +11726,7 @@ Implement std::meta::offset_of(info).
       offset = ((a_base_class*)rvp->entity.ptr)->offset;
       break;
     case iek_field:
-      offset = ((a_base_class*)rvp->entity.ptr)->offset;
+      offset = ((a_field*)rvp->entity.ptr)->offset;
       break;
     default:
       do_constexpr_fail(result);
@@ -12693,10 +12693,8 @@ error is communicated with an invalid reflection.
       }  /* if */
     } else {
       do_constexpr_fail(result);
-      // FIXME: create invalid reflection
     }  /* if */
   } else {
-    // FIXME: create invalid reflection?
     result = FALSE;
   }  /* if */
 done:
@@ -12873,6 +12871,81 @@ invalid.
 done:
   return result;
 }  /* do_constexpr_std_meta_define_class */
+
+
+static a_boolean do_constexpr_std_meta_metacall(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_object)
+/*
+Implement std::meta::metacall(<info>, <infovec>), where <info> represents a
+function F to call and <infovec> represents arguments to call F with.  The
+invocation produces a reflection for the constant result.
+*/
+{
+  a_boolean     result = FALSE;
+  a_reflection_value
+                *rvp = (a_reflection_value*)p_arg_bytes[0];
+  Dyn_array<a_reflection_value>
+                arg_reflections(0);
+  a_constant    *result_con = local_constant();
+  a_type_ptr    callee_type = skip_typerefs(callee->type), infovec_type;
+  a_param_type_ptr
+                ptp;
+
+  if (!ips->is_constant_evaluated) {
+    /* Don't attempt to evaluate this call if a constant result is not needed,
+       because it could be somewhat expensive. */
+    do_constexpr_fail(result);
+    info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                  &call_node->position, ips);
+    goto done;
+  }  /* if */
+  check_assertion(type_is(callee_type, tk_routine));
+  ptp = function_type_params(callee_type);
+  check_assertion(ptp != NULL && ptp->next != NULL);
+  check_assertion(skip_typerefs(ptp->type) == reflection_type());
+  infovec_type = skip_typerefs(ptp->next->type);
+  strip_template_arg(rvp);
+  extract_reflected_entity(rvp);
+  if (rvp->entity.kind != iek_routine) {
+    do_constexpr_fail(result);
+    info_with_pos(ec_invalid_reflection_for_intrinsic,
+                  &call_node->position, ips);
+    goto done;
+  } else if (!load_infovec(ips, infovec_type, &arg_reflections,
+                           &call_node->position,
+                           p_arg_bytes[1], p_arg_bytes[1])) {
+    result = FALSE;
+    goto done;
+  }  /* if */
+  /* Validate the argument kinds. */
+  for (a_reflection_value &rv: arg_reflections) {
+    strip_template_arg(&rv);
+    switch (rv.entity.kind) {
+      case iek_constant:
+        break;
+      default:
+        do_constexpr_fail(result);
+        info_with_pos(ec_invalid_reflection_for_intrinsic,
+                      &call_node->position, ips);
+        goto done;
+    }  /* switch */
+  }  /* for */
+  if (call_via_reflections(rvp, &arg_reflections, &call_node->position,
+                           result_con)) {
+    a_reflection_value  *result_rvp = (a_reflection_value*)result_storage;
+    result_rvp->entity.kind = iek_constant;
+    result_rvp->entity.ptr = (char*)move_local_constant_to_il(&result_con);
+    result = TRUE;
+  }  /* if */
+  if (result_con != NULL) release_local_constant(&result_con);
+done:
+  return result;
+}  /* do_constexpr_std_meta_metacall */
 
 
 static void report_leftover_allocations(an_interpreter_state  *ips)
@@ -13649,6 +13722,9 @@ frame when the call has completed.
       break;
     case cit_std_meta_define_class:
       evaluator = do_constexpr_std_meta_define_class;
+      break;
+    case cit_std_meta_metacall:
+      evaluator = do_constexpr_std_meta_metacall;
       break;
     default:
       unexpected_condition();

@@ -9034,7 +9034,8 @@ at the file scope (it would contain a pointer down into a function scope).
       }
       break;
     case ck_reflection:
-      has_nfs_ref = !in_file_scope(cp->variant.reflection.entity.ptr);
+      has_nfs_ref = cp->variant.reflection.entity.ptr != NULL &&
+                    !in_file_scope(cp->variant.reflection.entity.ptr);
       break;
     default:
       unexpected_condition_str("has_non_file_scope_ref: bad constant kind");
@@ -9790,31 +9791,36 @@ which case the resulting constant is an empty aggregate.
 {
   a_boolean                     return_value = FALSE;
   a_class_symbol_supplement_ptr cssp;
+  a_type_ptr                    utp = skip_typerefs(type);
 
-  if (is_any_reference_type(type)) {
+  if (is_any_reference_type(utp)) {
     /* Cannot create a value-initialized reference type.  This can
        result from upstream error recovery. */
-  } else if (is_scalar_type(type)) {
+  } else if (type_is(utp, tk_reflection)) {
+    clear_constant(con, ck_reflection);
+    con->type = type;
+    con->variant.reflection.entity.kind = iek_none;
+    con->variant.reflection.entity.ptr = (char*)NULL;
+    return_value = TRUE;
+  } else if (is_scalar_type(utp)) {
     make_zero_of_proper_type(type, con);
     return_value = TRUE;
-  } else if (is_error_type(type)) {
+  } else if (is_error_type(utp)) {
     set_error_constant(con);
     return_value = TRUE;
-  } else if (is_aggregate_type(type) || is_vector_type(type) ||
-             (is_class_struct_union_type(type) &&
-              (cssp = symbol_supplement_for_class(type),
+  } else if (is_aggregate_type(utp) || is_vector_type(utp) ||
+             (is_immediate_class_type(utp) &&
+              (cssp = class_symbol_supp(symbol_for(utp)),
                has_trivial_default_constructor(cssp)))) {
     return_value = TRUE;
-    clear_constant(con, (a_constant_repr_kind)ck_aggregate);
+    clear_constant(con, ck_aggregate);
     con->type = type;
-    type = skip_typerefs(type);
-    if (is_immediate_class_type(type)) {
+    if (is_immediate_class_type(utp)) {
       a_base_class_ptr bcp;
-      for (bcp = base_classes_of(type); bcp != NULL; bcp = bcp->next) {
+      for (bcp = base_classes_of(utp); bcp != NULL; bcp = bcp->next) {
         if (bcp->direct) {
           /* Add an empty aggregate for each direct base class. */
-          a_constant_ptr base_con =
-                            alloc_constant((a_constant_repr_kind)ck_aggregate);
+          a_constant_ptr base_con = alloc_constant(ck_aggregate);
           if (!make_value_initialized_constant(bcp->type, base_con)) {
             return_value = FALSE;
             break;
@@ -9825,9 +9831,8 @@ which case the resulting constant is an empty aggregate.
         }  /* if */
       }  /* for */
     }  /* if */
-    if (!is_immediate_class_type(type) ||
-        next_initializable_field(type->variant.class_struct_union.field_list)
-                                                                     != NULL) {
+    if (!is_immediate_class_type(utp) ||
+        next_initializable_field(fields_of(utp)) != NULL) {
       con->partial_aggr_value = TRUE;
       con->is_partially_initialized = TRUE;
     }  /* if */

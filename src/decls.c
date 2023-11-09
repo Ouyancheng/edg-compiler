@@ -9047,10 +9047,10 @@ interpreter) and if so mark it as such.
         }  /* if */
         break;
       case 'e':
-        if (strcmp(name, "enumerators_of") == 0 && t_args == NULL) {
-          if (ptp != NULL && ptp->next == NULL &&
-              is_reflection_type(ptp->type) &&
-              is_std_meta_infovec_type(rtp->variant.routine.return_type)) {
+        if (t_args == NULL && ptp != NULL && ptp->next == NULL &&
+            is_reflection_type(ptp->type) &&
+            is_std_meta_infovec_type(rtp->variant.routine.return_type)) {
+          if (strcmp(name, "enumerators_of") == 0) {
             tag = cit_std_meta_enumerators_of;
           }  /* if */
         }  /* if */
@@ -9145,6 +9145,14 @@ interpreter) and if so mark it as such.
               is_reflection_type(ptp->type) &&
               is_std_meta_infovec_type(rtp->variant.routine.return_type)) {
             tag = cit_std_meta_members_of;
+          }  /* if */
+        } else if (t_args == NULL && ptp != NULL && ptp->next != NULL &&
+                   ptp->next->next == NULL &&
+                   is_reflection_type(ptp->type) &&
+                   is_std_meta_infovec_type(ptp->next->type) &&
+                   is_reflection_type(rtp->variant.routine.return_type)) {
+          if (strcmp(name, "metacall") == 0) {
+            tag = cit_std_meta_metacall;
           }  /* if */
         }  /* if */
         break;

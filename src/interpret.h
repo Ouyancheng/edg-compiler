@@ -130,6 +130,7 @@ enum a_constexpr_intrinsic {
   cit_std_meta_bit_offset_of,
   cit_std_meta_alignment_of,
   cit_std_meta_define_class,
+  cit_std_meta_metacall,
   cit_last
 };
 

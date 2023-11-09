@@ -47137,6 +47137,94 @@ expression.
 }  /* scan_range_based_for_expression */
 
 
+a_boolean call_via_reflections(a_reflection_value             *target_rv,
+                               Dyn_array<a_reflection_value>  *arg_rvs,
+                               a_source_position              *diag_pos,
+                               a_constant                     *result_con)
+/*
+Evaluate a compile-time call described through refection values.  target_rv
+describes the function to call and arg_rvs the (constant-valued) arguments for
+the call.  The given position is the default position for diagnostics.  If
+the operation succeeds, return TRUE and represent the result in *result_con.
+*/
+{
+  a_boolean               success = FALSE;
+  a_memory_region_number  region_to_switch_back_to;
+  a_symbol_ptr            targ_sym;
+  an_arg_list_elem_ptr    args = NULL, *p_arg = &args;
+  an_expr_node_ptr        arg_nodes = NULL, func_call_node = NULL;
+  an_operand              call, fn_opnd, dummy_bound_func_selector;
+  an_expr_stack_entry     expr_stack_entry;
+
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  for (a_reflection_value &rv: *arg_rvs) {
+    *p_arg = alloc_init_component(ick_expression);
+    switch (rv.entity.kind) {
+      case iek_constant:
+        make_constant_operand((a_constant*)rv.entity.ptr,
+                              operand_of_arg_list_elem(*p_arg));
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+    p_arg = &(*p_arg)->next;
+  }  /* for */
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/FALSE);
+  targ_sym = symbol_for((a_routine*)target_rv->entity.ptr);
+  if (select_and_prepare_to_call_overloaded_function(
+                                  targ_sym,
+                                  /*is_template_id=*/FALSE,
+                                  (a_template_arg_ptr)NULL,
+                                  /*have_selector=*/FALSE,
+                                  (an_operand *)NULL,
+                                  &args,
+                                  /*do_arg_dep_lookup=*/FALSE,
+                                  /*use_pure_arg_dep_lookup=*/FALSE,
+                                  /*use_std_for_arg_dep_lookup=*/FALSE,
+                                  /*try_surrogate_functions=*/FALSE,
+                                  /*is_property=*/FALSE,
+                                  /*compiler_generated=*/TRUE,
+                                  oc_default,
+                                  (an_operand*)NULL,
+                                  diag_pos, curr_token_sequence_number,
+                                  (a_source_position*)NULL,
+                                  (a_boolean*)NULL,
+                                  &fn_opnd, &arg_nodes)) {
+    /* Generate the expression for the function call. */
+#ifdef _lint
+    /* We pass dummy_bound_function_selector rather than a null pointer
+       constant to avoid a spurious diagnostic by Gimpel lint. */
+#endif /* ifdef _lint */
+    assemble_function_call(&fn_opnd, &dummy_bound_func_selector, arg_nodes,
+                           /*compiler_generated=*/TRUE,
+                           /*arg_dep_lookup_suppressed=*/TRUE,
+                           /*is_qualified_name=*/TRUE,
+                           /*found_through_adl=*/FALSE,
+                           /*uses_operator_syntax=*/FALSE,
+                           /*start_position=*/diag_pos,
+                           /*operator_position=*/diag_pos,
+                           /*end_position=*/diag_pos,
+                           &call, /*p_folded=*/(a_boolean*)NULL,
+                           &func_call_node);
+    call.position = *diag_pos;
+    expr_stack->favor_constant_result = TRUE;
+    force_operand_to_constant_if_possible_full(
+                                       &call, /*is_constant_evaluated=*/TRUE);
+    if (is_constant_operand(&call)) {
+      copy_constant(&call.variant.constant, result_con);
+      success = TRUE;
+    }  /* if */
+    reclaim_fs_nodes_of_operand(&call);
+  }  /* if */
+  free_init_component_list(args);
+  pop_expr_stack();
+  switch_back_to_original_region(region_to_switch_back_to);
+  return success;
+}  /* call_via_reflections */
+
+
 void scan_default_arg_expr(a_param_type_ptr ptp,
                            a_boolean        is_member_or_friend,
                            a_boolean        for_consteval_function)

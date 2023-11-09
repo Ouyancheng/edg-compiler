@@ -202,7 +202,8 @@ predicates.
 #define is_scalar(tp) (is_arithmetic_or_enum(tp) || \
                        is_pointer_or_handle(tp) ||  \
                        is_ptr_to_member(tp) ||      \
-                       is_nullptr(tp))
+                       is_nullptr(tp) ||            \
+                       type_is(tp, tk_reflection))
 
 /* Array types are simply array types. */
 #define is_array(tp) ((tp)->kind == (a_type_kind)tk_array)
