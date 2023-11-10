@@ -35019,6 +35019,9 @@ of std::meta::__define_class.
   /* Wrap up the definition. */
   complete_class_definition(class_type, DEPTH_OF_FILE_SCOPE, &class_state);
   symbol_for(class_type)->defined = TRUE;
+  if (class_type->variant.class_struct_union.is_template_class) {
+    class_type->variant.class_struct_union.is_specialized = TRUE;
+  }  /* if */
   pop_scope();
 }  /* synth_class_definition */
 

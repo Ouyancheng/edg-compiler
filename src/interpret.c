@@ -12820,6 +12820,7 @@ invalid.
         info_with_pos(ec_object_not_initialized, &call_node->position, ips);
         goto done;
       }  /* if */
+      strip_template_arg(ftr);
       if (ftr->entity.kind != iek_type) {
         do_constexpr_fail(result);
         info_with_pos(ec_invalid_reflection_for_intrinsic,
