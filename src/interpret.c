@@ -3719,6 +3719,13 @@ within the given complete object).
         pm_value->this_class_adjustment = 0;
       }
       break;
+    case tk_reflection:
+      {
+        a_reflection_value  *rvp = (a_reflection_value*)subobj;
+        rvp->entity.kind = iek_none;
+        rvp->entity.ptr = (char*)NULL;
+      }
+      break;
     default:
       unexpected_condition();
   }  /* switch */
