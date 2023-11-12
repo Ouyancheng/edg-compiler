@@ -16284,7 +16284,7 @@ function definition or to a non-defining declaration; since this may affect the
 severity of the diagnostic, issuing the message is deferred.  func_info points
 to the block in which the deferral is recorded.  error_code and *pos indicate
 the particular diagnostic required and the error position.  assoc_type is the
-incomplete-type the diagnostic is associated with.
+incomplete type the diagnostic is associated with.
 */
 {
   an_exception_spec_error_descr_ptr  esedp, end_of_list;
