@@ -8457,7 +8457,7 @@ severity of the diagnostic.
       break;
     default:
       /* If this is reached, the caller has added support for a new error code
-         case that needs handled here. */
+         case that needs to be handled here. */
       unexpected_condition();
   }  /* switch */
 }  /* issue_incomplete_type_diag */
