@@ -63,7 +63,7 @@ This has now been changed to include the type:
 
   error: incomplete type "foo" is not allowed
 
-Additionally note, that this change modifies the error codes
+Additionally, note that this change modifies the error codes
 ec_incomplete_type_not_allowed and ec_ptr_or_ref_to_incomplete_type.  The error
 codes ec_ptr_to_incomplete_class_type_not_allowed and
 ec_incomplete_type_expr_not_allowed also have been retired.
