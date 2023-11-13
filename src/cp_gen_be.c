@@ -2045,14 +2045,21 @@ template, add its instances as well in case they may be needed.
   a_type_ptr targ_type;
   a_boolean  type_for_all_scopes = TRUE;
   a_boolean  targ_for_all_scopes = TRUE;
+  a_boolean  base_is_unknown;
 
   check_assertion(type->kind == (a_type_kind)tk_typeref);
   targ_type = type->variant.typeref.type;
+  /* We must suppress the addition of substitutes where the base type is
+     a tk_template_param/tptk_unknown type.  Such types can be reused in
+     unrelated typedefs and thus can lead to incorrect substitutions. */
+  base_is_unknown = (type_is(skip_typerefs(targ_type), tk_template_param) &&
+                     tptk_is(skip_typerefs(targ_type), tptk_unknown));
   if (targ_type->kind == (a_type_kind)tk_template_param &&
       targ_type->variant.template_param.extra_info->orig_nested_type != NULL) {
     targ_type = targ_type->variant.template_param.extra_info->orig_nested_type;
   }  /* if */
-  if (entity_name_is_accessible(&type->source_corresp, iek_type,
+  if (!base_is_unknown &&
+      entity_name_is_accessible(&type->source_corresp, iek_type,
                                 /*ignore_context=*/TRUE,
                                 &type_for_all_scopes) &&
       has_name_before_mangling(targ_type)) {
@@ -2072,7 +2079,8 @@ template, add its instances as well in case they may be needed.
     /* If we didn't add this typedef because its target is an accessible
        typedef, check the target of that typedef; we want to add this one
        if that target is inaccessible. */
-    while (!circular && !typedef_added && type_is_typedef(targ_type)) {
+    while (!base_is_unknown && !circular && !typedef_added &&
+           type_is_typedef(targ_type)) {
       targ_type = targ_type->variant.typeref.type;
       if (has_name_before_mangling(targ_type) &&
           !entity_name_is_accessible(&targ_type->source_corresp, iek_type,

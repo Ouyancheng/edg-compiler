@@ -1,5 +1,14 @@
 Version 6.6
 
+11/13/23 [EDGcpfe/26707]
+C++-generating back end: incorrect replacement of dependent typedef
+
+In some complex cases, the C++-generating back end replaced a use of a
+dependent typedef with the underlying type of an unrelated dependent
+typedef from a different context, resulting in incorrect generated code.
+This is now fixed.
+
+
 11/2/23  [EDGcpfe/26757]
 GNU C++ compatibility: Inheriting from classes with a flexible array member
 
