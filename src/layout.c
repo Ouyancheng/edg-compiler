@@ -1669,15 +1669,6 @@ the given base class contains no flexible array.
   if (next_byte > lob->curr_extent+1) {
     lob->curr_extent = next_byte-1;
   }  /* if */
-  if (bcp->direct &&
-      bcp->type->variant.class_struct_union.contains_flexible_array_member &&
-      (!gpp_version_is(any_version) ||
-       (gpp_version_is(>=60000) && fields_of(lob->class_type) != NULL))) {
-    /* Most compilers diagnose inheriting from a base class with a flexible
-       array member.  GCC accepts it prior to version 6.x, after that it
-       appears to accept it if there are no subsequent fields. */
-    pos_error(ec_base_with_flexible_array, &bcp->decl_position);
-  }  /* if */
 }  /* update_curr_base_extent */
 
 
@@ -2587,6 +2578,26 @@ of the class to the size of that field).
 
 #endif /* IA64_ABI */
 
+static void check_base_for_flex_array(a_layout_block  *lob,
+                                      a_base_class    *bcp)
+
+/*
+Check whether the given base class has a flexible array member and, if so,
+issue a diagnostic if needed.
+*/
+{
+  if (bcp->direct &&
+      bcp->type->variant.class_struct_union.contains_flexible_array_member &&
+      (!gpp_version_is(any_version) ||
+       (gpp_version_is(>=60000) && fields_of(lob->class_type) != NULL))) {
+    /* Most compilers diagnose inheriting from a base class with a flexible
+       array member.  GCC accepts it prior to version 6.x, after that it
+       appears to accept it if there are no subsequent fields. */
+    pos_error(ec_base_with_flexible_array, &bcp->decl_position);
+  }  /* if */
+}  /* check_base_for_flex_array */
+
+
 static a_boolean set_field_size_and_offset(a_field_ptr         field,
                                            a_layout_block_ptr  lob)
 /*
@@ -3296,6 +3307,7 @@ layout block used to track the layout of the current class.
 #if IA64_ABI
       update_curr_base_extent(lob, bcp);
 #endif /* IA64_ABI */
+      check_base_for_flex_array(lob, bcp);
     }  /* if */
   }  /* for */
 #if IA64_ABI
@@ -5173,6 +5185,7 @@ for handling virtual bases and functions.
         set_offset_for_nonvirtual_base_class(&lob, bcp);
       }  /* if */
       update_curr_base_extent(&lob, bcp);
+      check_base_for_flex_array(&lob, bcp);
     } else {
       /* If there is virtual function info, it comes first. */
       set_offset_for_virtual_function_info(&lob);
