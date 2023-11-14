@@ -1211,7 +1211,7 @@ and get_encoded_string for potentially multi-byte character strings.
 
   check_assertion(offset + num_bytes < string_table.size);
   return string_table.contents + offset;
-}  /* get_string_at_offset */
+}  /* access_bytes_at_offset */
 
 
 static a_module_import_decl_ptr transitive_import_module(
@@ -14965,7 +14965,7 @@ null character.
     result = (str.num_chars - 1) * character_size[str.kind];
   }  /* if */
   return result;
-}  /* size_of_str_constant */
+}  /* size_of_str_lit_bytes */
 
 
 static inline size_t size_of_str_lit_constant(const an_ifc_string &str)
@@ -14975,7 +14975,7 @@ string literal constant including the implicit terminating null character.
 */
 {
   return size_of_str_lit_bytes(str) + character_size[str.kind];
-}  /* size_of_str_constant */
+}  /* size_of_str_lit_constant */
 
 
 static char *alloc_text_of_string_literal(const an_ifc_string &str)
