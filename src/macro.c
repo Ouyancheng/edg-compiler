@@ -4976,7 +4976,7 @@ static a_feature_support feature_support_list[] = {
     &list_init_enabled,
     NULL,
     NULL },
-  { "cxx_generic_lambda",
+  { "cxx_generic_lambdas",
     201402,
     &generic_lambdas_enabled,
     NULL,		/* __cpp_generic_lambdas must be handled specially,

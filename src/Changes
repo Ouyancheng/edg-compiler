@@ -1,5 +1,12 @@
 Version 6.6
 
+11/14/23 [EDGcpfe/26786]
+Clang compatibility: Incorrect feature test macro name
+
+The Clang-specific cxx_generic_lambdas feature test macro had inadvertently
+been misspelled as cxx_generic_lambda and is now fixed.
+
+
 11/13/23 [EDGcpfe/26771]
 C++-generating back end: block-scope names in template arguments
 
