@@ -2767,7 +2767,23 @@ names is not public, set *for_all_scopes to FALSE.
       }  /* if */
     } else if (scp->access == as_public) {
       /* Either a public class member or a non-member. */
-      is_accessible = TRUE;
+      if (parent_class != NULL) {
+        /* Public members are accessible from any scope via qualified
+           names. */
+        is_accessible = TRUE;
+      } else {
+        a_scope_ptr sp = get_parent_scope_of(scp);
+        if (sp == NULL || sp->kind == sck_namespace) {
+          /* Namespace members are accessible from any scope via qualified
+             names. */
+          is_accessible = TRUE;
+        } else {
+          /* A name in a block scope is accessible only if its block is on
+             the name context stack. */
+          is_accessible = scope_number_is_in_name_context_stack(sp->number);
+          local_for_all_scopes = FALSE;
+        }  /* if */
+      }  /* if */
     } else if (!ignore_context) {
       local_for_all_scopes = FALSE;
       /* Check to see if the containing class is in the context stack.
