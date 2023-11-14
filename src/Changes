@@ -1,5 +1,29 @@
 Version 6.6
 
+11/13/23 [EDGcpfe/26771]
+C++-generating back end: block-scope names in template arguments
+
+The changes for EDGcpfe/20557 (not in a release, but widely distributed in
+patch form) revealed a preexisting but previously unlikely problem in the
+handling of block-scope names in template arguments.  In some cases, an
+out-of-scope name could appear in a template argument in the output of the
+C++-generating back end.  This is now fixed.  For example, with
+--gnu_version=130200:
+
+  template<typename> struct A { };
+  void f() {
+    {
+      enum B { z };
+      A<__underlying_type(B)> x;
+    }
+    {
+      enum C { z };
+      A<__underlying_type(C)> y;   // Previously generated as
+                                   // A<__underlying_type(B)>
+    }
+  }
+
+
 11/13/23 [EDGcpfe/26707]
 C++-generating back end: incorrect replacement of dependent typedef
 
