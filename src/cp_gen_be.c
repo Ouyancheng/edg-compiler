@@ -23752,9 +23752,9 @@ handle_as_definition:
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
     /* Now that we're done with the function, free its IL information if it
        is the top-level function of a memory region and if there are no
-       local expr node refs that we may need in the future. */
+       local expr node or scope refs that we may need in the future. */
     if (rout->is_top_level_in_mem_region &&
-        scope->expr_node_refs == NULL) {
+        scope->expr_node_refs == NULL && scope->scope_refs == NULL) {
       free_memory_region(scope_region_number);
     }  /* if */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
