@@ -8145,7 +8145,8 @@ the same constant.
                                         ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED)
                                      : ITF_SEEK_CORRESP;
   if (!(options & ETA_ALLOW_EQUIV_NESTING_DEPTHS)) {
-    itf_options |= ITF_EXACT_NESTING_DEPTHS_REQUIRED;
+    itf_options |= ITF_EXACT_NESTING_DEPTHS_REQUIRED |
+                   ITF_PLACEHOLDER_CONSTRAINT_MATCH_REQUIRED;
   }  /* if */
   cc_options = exact_match_required
                          ? (CC_EXACT_EQUIVALENCE |
@@ -17123,7 +17124,8 @@ from "tpp".  Return TRUE if the lists match.
                                                CTWS_NO_OPTIONS, copy_error,
                                                ctws_state);
       if (!f_types_are_compatible(tpp->variant.constant.ptr->type,
-                                  templ_type, TCF_REDECLARATION) ||
+                                  templ_type,
+                                  TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) ||
           *copy_error) {
         /* Nontype parameters with different types. */
         err = TRUE;

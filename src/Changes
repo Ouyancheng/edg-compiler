@@ -1,5 +1,18 @@
 Version 6.6
 
+11/15/23 [EDGcpfe/24256,EDGcpfe/26665]
+Partial specialization with constrained placeholder non-type template parameter
+
+Previously, the front end did not consider a partial specialization with a
+non-type template parameter of constrained placeholder type to be more
+specialized than the primary template.  For example, with --c++20:
+
+  template<class T> concept C = true;
+  template<auto> struct B;
+  template<C auto V>
+  struct B<V> { };  // Previously a spurious error.  Now okay.
+
+
 11/14/23 [EDGcpfe/26786]
 Clang compatibility: Incorrect feature test macro name
 

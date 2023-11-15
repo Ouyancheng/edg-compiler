@@ -955,7 +955,10 @@ typedef unsigned int an_itf_flag_set;
 #define ITF_IGNORE_TOP_LEVEL_NOEXCEPT 0x2000
 			/* TRUE if a top-level exception specifier should be
 			   ignored while comparing the types. */
-#define ITF_LAST ITF_IGNORE_TOP_LEVEL_NOEXCEPT
+#define ITF_PLACEHOLDER_CONSTRAINT_MATCH_REQUIRED 0x4000
+			/* TRUE if constraints on placeholder types must
+			   match. */
+#define ITF_LAST ITF_PLACEHOLDER_CONSTRAINT_MATCH_REQUIRED
 			/* Last bit in the bit vector that is in use. */
 
 #define identical_types(t1, t2) \
@@ -1135,7 +1138,10 @@ Bit flags for calls of f_types_are_compatible et al.
 			   should match exactly (when exception specifications
 			   are part of routine types).  Requires that the flag
 			   ICF_IMPLICIT_CONVERSION also be TRUE. */
-#define TCF_LAST TCF_STRICT_EXCEPTION_SPEC
+#define TCF_PLACEHOLDER_CONSTRAINT_MATCH_REQUIRED 0x800000
+			/* TRUE if constraints on placeholder types must
+			   match. */
+#define TCF_LAST TCF_PLACEHOLDER_CONSTRAINT_MATCH_REQUIRED
 			/* Last bit in the bit vector that is in use. */
 #define TCF_NO_FLAGS 0x0
 typedef int a_type_compat_flags_set;

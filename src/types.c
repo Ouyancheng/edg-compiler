@@ -6713,7 +6713,8 @@ ITF_EXACT_NESTING_DEPTHS_REQUIRED and ETA_ALLOW_EQUIV_NESTING_DEPTHS).
         itf_flags |= ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
       }  /* if */
       if (exact_nesting_depths_required) {
-        itf_flags |= ITF_EXACT_NESTING_DEPTHS_REQUIRED;
+        itf_flags |= ITF_EXACT_NESTING_DEPTHS_REQUIRED |
+                     ITF_PLACEHOLDER_CONSTRAINT_MATCH_REQUIRED;
       }  /* if */
       if (class_type_supp(type_1)->proxy_of_type != NULL &&
           class_type_supp(type_2)->proxy_of_type != NULL) {
@@ -7905,7 +7906,7 @@ check_typerefs:
                 if (identical &&
                     depth1 != CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH &&
                     depth2 != CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH &&
-                    (flags & ITF_EXACT_NESTING_DEPTHS_REQUIRED) != 0) {
+                    (flags & ITF_PLACEHOLDER_CONSTRAINT_MATCH_REQUIRED) != 0) {
                   /* Check that the constraints match. */
                   an_expr_node_ptr  constr1, constr2;
                   constr1 = tptsp_1->constraint.type_constraint;
@@ -8342,9 +8343,11 @@ is the source type and type_2 the destination type.
      this routine calls itself. */
   flags &= ~(a_type_compat_flags_set)TCF_ALLOW_BASE_DERIVED_THIS_MATCH;
   if (flags & TCF_REDECLARATION) {
-    /* TCF_REDECLARATION implies exact decltype expression matching, and
-       not just at the top level. */
-    flags |= TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
+    /* TCF_REDECLARATION implies exact decltype expression matching as well as
+       constraint matching on placeholder types, and not just at the top
+       level. */
+    flags |= TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED |
+             TCF_PLACEHOLDER_CONSTRAINT_MATCH_REQUIRED;
   }  /* if */
   /* Although the macros do the type_1 == type_2 test, repeat it here
      so it's present for the recursive calls.  Do not use the same_entities
@@ -8808,6 +8811,9 @@ check_typerefs:
             }  /* if */
             if (flags & TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) {
               it_flags |= ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED;
+            }  /* if */
+            if (flags & TCF_PLACEHOLDER_CONSTRAINT_MATCH_REQUIRED) {
+              it_flags |= ITF_PLACEHOLDER_CONSTRAINT_MATCH_REQUIRED;
             }  /* if */
             compat = f_identical_types(type_1, type_2, it_flags);
           }
