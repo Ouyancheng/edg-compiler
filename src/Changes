@@ -1,5 +1,21 @@
 Version 6.6
 
+11/15/23 [EDGcpfe/26683]
+Spurious floating-point underflow indications when -ffast-math is used
+
+The GNU compiler supports a -ffast-math option that enables a number of
+optimizations to support faster floating-point operations at run time.  These
+optimizations alter the semantics of the IEEE 754 floating-point operations
+(e.g., subnormals, NaNs, infinities and signed zeros are eliminated) so it
+is advised not to use this option when compiling and linking the front end.
+
+In certain cases, the linking of an application containing the front end
+(e.g., as a library) might occur with the -ffast-math command-line option
+causing the resulting executable to be linked with crtfastmath.o which alters
+the MXCSR register at process startup.  A change has been made to suppress
+the generation of spurious underflow errors in this case.
+
+
 11/15/23 [EDGcpfe/26773]
 GNU-mode abort on nonstandard subscript operation in a template
 

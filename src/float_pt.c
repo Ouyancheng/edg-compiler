@@ -868,7 +868,10 @@ underflow.  If the conversion can be done, return the result in "result".
     /* Convert to float and store a float in float_value. */
     float float_temp = (float)temp;
     *result = float_temp;
-    if (float_temp == 0.0 && temp != 0.0) {
+    /* The last condition in the test below is to prevent spurious underflow
+       errors when -ffast-math is used.  The use of -ffast-math is not
+       recommended. */
+    if (float_temp == 0.0 && temp != 0.0 && float_temp != temp) {
       /* Underflow. */
       *err = TRUE;
 #if !CAN_DO_FLT_MAX_TEST
@@ -1129,7 +1132,10 @@ underflow.  If the conversion can be done, return the result in "result".
     /* Convert to double and store a double in double_value. */
     double double_temp = (double)temp;
     *result = double_temp;
-    if (double_temp == 0.0 && temp != 0.0) {
+    /* The last condition in the test below is to prevent spurious underflow
+       errors when -ffast-math is used.  The use of -ffast-math is not
+       recommended. */
+    if (double_temp == 0.0 && temp != 0.0 && double_temp != temp) {
       /* Underflow. */
       *err = TRUE;
 #if !CAN_DO_DBL_MAX_TEST
