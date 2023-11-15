@@ -21,7 +21,7 @@ attempting to emulate GCC's behavior.  That is now fixed (the example is now
 accepted in GNU C++ mode).
 
 
-11/15/23 [EDGcpfe/26099]
+11/15/23 [EDGcpfe/21120,EDGcpfe/26099]
 Microsoft-mode abort on nonreal member using-declaration
 
 Consider:
