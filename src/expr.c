@@ -2346,6 +2346,7 @@ constructs, in which case offsetof_case is TRUE.
     if (!processed) {
       /* Normal case; not a C++/CLI array or GNU vector. */
       an_operand    *pointer_operand, *integer_operand;
+      a_type_ptr    ptr_op_type;
       a_boolean     pointer_operand_is_second = FALSE;
       an_error_code err_code = ec_expr_not_pointer_to_object;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -2380,10 +2381,11 @@ constructs, in which case offsetof_case is TRUE.
         pointer_operand = &operand_2;
         integer_operand = operand_1;
       }  /* if */
+      ptr_op_type = pointer_operand->type;
 
       if (gcc_mode &&
-          is_pointer_type(pointer_operand->type) &&
-          is_void_type(type_pointed_to(pointer_operand->type))) {
+          is_pointer_type(ptr_op_type) &&
+          is_void_type(type_pointed_to(ptr_op_type))) {
         /* GNU C allows a pointer to "void" to be subscripted. */
 #if GNU_EXTENSIONS_ALLOWED
         if (!expr_stack->marked_as_gnu_extension) {
@@ -2391,12 +2393,13 @@ constructs, in which case offsetof_case is TRUE.
                            &operator_position);
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-        result_type = type_pointed_to(pointer_operand->type);
+        result_type = type_pointed_to(ptr_op_type);
       } else if (gpp_version_is(any_version) &&
                  is_template_dependent_context() &&
                  !scope_stack_top().is_rescan &&
-                 is_pointer_type(pointer_operand->type) &&
-                 is_incomplete_type(type_pointed_to(pointer_operand->type))) {
+                  is_pointer_type(ptr_op_type) &&
+                  (is_incomplete_type(type_pointed_to(ptr_op_type)) ||
+                   !is_pointer_to_object_type(ptr_op_type))) {
         /* GCC allows subscripting pointers-to-incomplete types in template
            contexts.  Handle such cases like the template-dependent cases. */
         pos_warning(ec_expr_not_object_pointer, &pointer_operand->position);
@@ -2417,7 +2420,7 @@ constructs, in which case offsetof_case is TRUE.
                  check_object_pointer_operand(pointer_operand, err_code)
 #endif /* PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
                                                        ) {
-        result_type = type_pointed_to(pointer_operand->type);
+        result_type = type_pointed_to(ptr_op_type);
       } else {
         result_type = error_type();
       }  /* if */

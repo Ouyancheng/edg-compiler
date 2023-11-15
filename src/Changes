@@ -1,5 +1,26 @@
 Version 6.6
 
+11/15/23 [EDGcpfe/26773]
+GNU-mode abort on nonstandard subscript operation in a template
+
+Consider:
+
+  typedef void (*error_callback)();
+ 
+  template<int T> struct S {
+    static void (*pf)();
+    void f() {
+      pf[0] = 0;  // Previously aborted in GNU C++ mode.  Now okay.
+    }
+  };
+
+The subscripting of pf is invalid since pf is a pointer-to-function type.
+However, GCC accepts it in templates.  In GNU mode, however, the front end
+previously aborted with an internal error in type_pointed_to (types.c) while
+attempting to emulate GCC's behavior.  That is now fixed (the example is now
+accepted in GNU C++ mode).
+
+
 11/15/23 [EDGcpfe/26099]
 Microsoft-mode abort on nonreal member using-declaration
 
