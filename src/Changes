@@ -26,9 +26,18 @@ C++-generating back end.  This is now fixed.  For example, with
     {
       enum C { z };
       A<__underlying_type(C)> y;   // Previously generated as
-                                   // A<__underlying_type(B)>
+                                   // A<__underlying_type(B)>, now A<int>
     }
   }
+
+Both __underlying_type(B) and __underlying_type(C) resolve to "int", so
+both mentions of A refer to the same instance.  Because that instance was
+first instantiated with __underlying_type(B), the same template argument
+was previously erroneously used in the type of "y".  Now the C++-generating
+back end checks that the names in the template argument are usable in the
+current context and, since that is not the case in the type of "y", puts
+out the name of the instance using the resolved type, "int", as the
+template argument.
 
 
 11/13/23 [EDGcpfe/26707]
