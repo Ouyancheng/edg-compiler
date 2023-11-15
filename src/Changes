@@ -1,5 +1,21 @@
 Version 6.6
 
+11/15/23 [EDGcpfe/26099]
+Microsoft-mode abort on nonreal member using-declaration
+
+Consider:
+
+  struct B { int b; };
+  template<typename T> struct C: public T { };
+  template<int, typename T = B> struct D: C<T> { using C<T>::b; };
+  template<int N> struct X: D<N> {};
+
+In Microsoft mode, this previously caused the front end to abort with an
+internal error in create_member_using_declaration (in class_decl.c).  This
+occurred while performing a "nonreal base class instantiation" (a process that
+is specific to Microsoft mode).  This issue is now fixed.
+
+
 11/15/23 [EDGcpfe/24256,EDGcpfe/26665]
 Partial specialization with constrained placeholder non-type template parameter
 

@@ -26057,7 +26057,8 @@ entity if applicable.
           /* The class member using-declaration rules do not apply to a using
              of an enumerator. */
         } else if ((could_be_dependent_class_type(parent_class) ||
-                   has_dependent_base_class(class_type)) &&
+                    has_dependent_base_class(class_type) ||
+                    in_ms_nonreal_class_instantiation()) &&
                   (!parent_class->incomplete || gpp_mode || microsoft_mode) &&
                   !same_entities(class_type, parent_class)) {
           /* The qualifier is a dependent class or the enclosing class has a
