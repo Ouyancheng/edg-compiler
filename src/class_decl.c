@@ -18642,7 +18642,7 @@ template declaration and is NULL otherwise.
     dip->variable = var;
     var->initializer.dynamic = dip;
     (void)get_token();
-  } else if ((gpp_mode ||
+  } else if ((gpp_mode || microsoft_mode ||
               (decl_info->is_member_template &&
                class_state->is_template_instantiation &&
                !class_state->is_nonreal_instantiation))  &&
