@@ -1,5 +1,14 @@
 Version 6.6
 
+11/16/23 [EDGcpfe/26800]
+Spurious error on constexpr defaulted default constructor
+
+In somewhat complex cases, the front end issued a spurious error on a defaulted
+constructor declared constexpr because it erroneously considered a constructor
+in a base class to be inaccessible despite that constructor having protected
+accessibility.  That problem is now fixed.
+
+
 11/16/23 [EDGcpfe/26793]
 Permit invalid dependent string initializers
 

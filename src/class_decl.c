@@ -22692,6 +22692,7 @@ skip the base class portion of the check.
        dllimport class with virtual functions is not "constexpr" either.  Don't
        attempt to check this for nonreal classes because it is not always
        meaningful and the downstream code cannot always handle such classes. */
+    push_class_reactivation_scope(class_type, /*extend_namespace=*/FALSE);
     if (!class_type->variant.class_struct_union.is_nonreal_class &&
         fields_initialized_for_constexpr_constructor(class_type,
                                                      limited_check) &&
@@ -22705,6 +22706,7 @@ skip the base class portion of the check.
                                                                             ) {
       result = TRUE;
     }  /* if */
+    pop_class_reactivation_scope();
   }  /* if */
   return result;
 }  /* default_ctor_can_be_constexpr */
