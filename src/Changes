@@ -1,5 +1,14 @@
 Version 6.6
 
+11/15/23 [EDGcpfe/26758]
+Memory corruption on interpretation of lifetime-extended temporary
+
+Under certain circumstances a pointer in the interpreter state used to manage
+the handling of lifetime-extended temporary objects could be left dangling.
+Sometimes, that resulted in memory corruption and unpredictable aborts later
+on.  That is now fixed.
+
+
 11/15/23 [EDGcpfe/25416,EDGcpfe/26780]
 Abort on use of type of designator constant
 

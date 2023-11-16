@@ -6551,6 +6551,7 @@ otherwise, this routine will look up that storage in ips->map.
          The large blocks will be released by the call to
          restore_storage_stack below. */
       release_constexpr_stack(&ips->storage_stack);
+      ips->extension_state = NULL;
     }  /* if */
     restore_storage_stack(ips, saved_stack_for_full_expr, result);
     if (result && dip->destructor != NULL) {
