@@ -44,7 +44,7 @@ is advised not to use this option when compiling and linking the front end.
 
 In certain cases, the linking of an application containing the front end
 (e.g., as a library) might occur with the -ffast-math command-line option
-causing the resulting executable to be linked with crtfastmath.o which alters
+causing the resulting executable to be linked with crtfastmath.o, which alters
 the MXCSR register at process startup.  A change has been made to suppress
 the generation of spurious underflow errors in this case.
 
