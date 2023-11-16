@@ -2420,6 +2420,9 @@ constructs, in which case offsetof_case is TRUE.
                  check_object_pointer_operand(pointer_operand, err_code)
 #endif /* PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
                                                        ) {
+        /* The call to check_object_pointer_operand can change the operand's
+           type (in pre-C99 C modes). */
+        ptr_op_type = pointer_operand->type;
         result_type = type_pointed_to(ptr_op_type);
       } else {
         result_type = error_type();
