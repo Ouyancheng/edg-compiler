@@ -2773,9 +2773,11 @@ names is not public, set *for_all_scopes to FALSE.
         is_accessible = TRUE;
       } else {
         a_scope_ptr sp = get_parent_scope_of(scp);
-        if (sp == NULL || sp->kind == sck_namespace || sp->kind == sck_file) {
+        if (sp == NULL || sp->kind == sck_namespace || sp->kind == sck_file ||
+            sp->kind == sck_template_declaration) {
           /* Members of namespaces, including the global namespace, are
-             accessible from any scope via qualified names. */
+             accessible from any scope via qualified names.  We assume
+             template parameter names are in scope. */
           is_accessible = TRUE;
         } else {
           /* A name in a block scope is accessible only if its block is on
