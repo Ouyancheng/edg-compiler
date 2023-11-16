@@ -4679,6 +4679,7 @@ at this point.
       if (contains_ptr_to_data_member(f->type)) {
         a_constant_ptr descp = alloc_constant(
                                           (a_constant_repr_kind)ck_designator);
+        descp->type = void_type();
         descp->variant.designator.variant.field = f;
         cp = lower_zero_initialization(f->type);
         descp->next = cp;

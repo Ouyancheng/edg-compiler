@@ -23749,6 +23749,7 @@ diagnostic in *ips.
             if (fp != afp) {
               /* Add a designator for the active field. */
               des_con = alloc_constant((a_constant_repr_kind)ck_designator);
+              des_con->type = void_type();
               des_con->variant.designator.is_field_designator = TRUE;
               des_con->variant.designator.variant.field = afp;
               add_constant_to_aggregate(des_con, con, (a_base_class_ptr)NULL,

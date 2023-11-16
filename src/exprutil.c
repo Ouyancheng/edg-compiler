@@ -15756,6 +15756,7 @@ list.
        constant. */
     a_constant_ptr  des_con = local_constant();
     clear_constant(des_con, (a_constant_repr_kind)ck_designator);
+    des_con->type = void_type();
     des_con->variant.designator.is_field_designator = TRUE;
     des_con->variant.designator.is_generic = TRUE;
     des_con->variant.designator.variant.field_name =

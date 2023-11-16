@@ -1,5 +1,15 @@
 Version 6.6
 
+11/15/23 [EDGcpfe/25416,EDGcpfe/26780]
+Abort on use of type of designator constant
+
+Previously, designators in aggregate constants were represented by constant
+entries of kind ck_designator and with a null type field.  However, the front
+end occasionally queries the type of a_constant entries independently of the
+entry kind, and that easily resulted in aborts due to null pointer dereference.
+To address such issues, designator constants are now assigned the void type.
+
+
 11/15/23 [EDGcpfe/26138]
 Spurious Microsoft-mode error on in-class constexpr static data member
 

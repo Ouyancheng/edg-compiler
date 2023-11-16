@@ -27949,6 +27949,7 @@ aggregate constant.
   orig_operand = *source_operand;
   /* Build a designator indicating which field should be initialized. */
   designator_con = alloc_constant((a_constant_repr_kind)ck_designator);
+  designator_con->type = void_type();
   designator_con->variant.designator.is_field_designator = TRUE;
   designator_con->variant.designator.variant.field = field;
   /* Build a dynamic initializer indicating how the field should

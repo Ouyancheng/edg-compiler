@@ -1032,6 +1032,7 @@ of the whole initialization (*is) as appropriate.
       *init_con = NULL;
     } else if (!is->check_validity_only) {
       *init_con = alloc_constant((a_constant_repr_kind)ck_designator);
+      (*init_con)->type = void_type();
       (*init_con)->variant.designator.is_generic = TRUE;
       if (icp->variant.designator.field_name != NULL) {
         (*init_con)->variant.designator.is_field_designator = TRUE;
@@ -1607,6 +1608,7 @@ is->no_diagnostics is TRUE.
         /* Add a designator to indicate the field to initialize. */
         a_constant_ptr
                  des_con = alloc_constant((a_constant_repr_kind)ck_designator);
+        des_con->type = void_type();
         des_con->variant.designator.is_field_designator = TRUE;
         des_con->variant.designator.variant.field = fp;
         add_constant_to_aggregate(des_con, result, (a_base_class_ptr)NULL,
@@ -2130,6 +2132,7 @@ available.
          aggregate constant. */
       a_constant_ptr  des_con;
       des_con = alloc_constant((a_constant_repr_kind)ck_designator);
+      des_con->type = void_type();
       des_con->variant.designator.is_field_designator = FALSE;
       des_con->variant.designator.variant.array_element = *idx;
       des_con->source_corresp.decl_position = *init_component_pos(*p_icp);
@@ -2822,6 +2825,7 @@ members up to end_field, but not including end_field, should be initialized.
           /* Add a designator to indicate the field to initialize. */
           a_constant_ptr
                 des_con = alloc_constant((a_constant_repr_kind)ck_designator);
+          des_con->type = void_type();
           des_con->implicit_aggr_element = TRUE;
           des_con->variant.designator.is_field_designator = TRUE;
           des_con->variant.designator.variant.field = next_field;
@@ -3461,6 +3465,7 @@ initialization. */
     if (!is->check_validity_only) {
       a_constant_ptr  des_con;
       des_con = alloc_constant((a_constant_repr_kind)ck_designator);
+      des_con->type = void_type();
       des_con->variant.designator.is_field_designator = TRUE;
       des_con->variant.designator.variant.field = *field;
       des_con->source_corresp.decl_position = *init_component_pos(*p_icp);
