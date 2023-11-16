@@ -1,5 +1,19 @@
 Version 6.6
 
+11/16/23 [EDGcpfe/26793]
+Permit invalid dependent string initializers
+
+Consider:
+
+  template<typename T> struct S {
+    T const str[1] = "*";
+  };
+
+This is invalid because the literal "*" requires two characters and str only
+has one.  However, Clang, GCC, and MSVC do not diagnose this case.  The front
+end now emulates that behavior in the corresponding modes.
+
+
 11/15/23 [EDGcpfe/26758]
 Memory corruption on interpretation of lifetime-extended temporary
 

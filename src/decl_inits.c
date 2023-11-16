@@ -174,6 +174,12 @@ standard C behavior of trimming the terminating null character if needed),
          array length is a template parameter dependent constant, or with
          variable-length arrays (in modes that accept initializers for
          them). */
+    } else if (is_template_dependent &&
+               (gpp_version_is(any_version) || clang_version_is(any_version) ||
+                ms_version_is(any_version))) {
+      /* Most existing compilers do not check length constraints if the
+         underlying character type is dependent (even though that can be
+         done). */
     } else {
       /* The object being initialized is an array that has a definite
          size.  See if the string will fit in the array. */
