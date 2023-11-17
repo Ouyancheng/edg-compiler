@@ -19946,7 +19946,8 @@ no_applicable_operator_function:
                 }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
                 if (!is_expression_operand(result) ||
-                    result->variant.expression != call_node) {
+                    result->variant.expression != call_node ||
+                    candidate_functions->supplemental_comparison_candidate) {
                   /* The top-level node is not the actual call node (e.g., it
                      could be an enk_temp_init node created to hold the
                      returned value).  The caller will record the source

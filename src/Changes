@@ -1,5 +1,25 @@
 Version 6.6
 
+11/16/23 [EDGcpfe/26756]
+Position information for synthesized call to comparison function
+
+Consider:
+
+  #include <compare>
+  struct S {
+    int i;
+    friend std::strong_ordering operator<=>(S, S) = default;
+  };
+  void g(S x, S y) {
+    for(; x != y; ) {}
+  }
+
+The expression a != b is rewritten in terms of a call to a compiler-generated
+operator==.  Previously, the position range recorded for that call node
+extended from the beginning of the "!=" token to the semicolon token
+(inclusive).  Now it correctly starts at the x token and ends at the y token.
+
+
 11/16/23 [EDGcpfe/26800]
 Spurious error on constexpr defaulted default constructor
 
