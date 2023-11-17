@@ -16020,6 +16020,20 @@ general_case:
        template-dependent, the result is unknown because we can't reliably
        tell the value category, and therefore we can't tell if we should
        add a reference type. */
+    if ((ms_version_is(any_version) || gpp_version_is(<130000)) &&
+        scope_is(&scope_stack_top(), sck_template_instantiation) &&
+        scope_stack_top().in_prototype_instantiation &&
+        !scope_stack_top().in_template_deduction_context) {
+      /* MSVC and earlier GCC versions appear to sometimes treat nondependent
+         decltype constructs as dependent.  For example:
+             template<bool> int v;
+             template<typename> bool b = v<b<decltype(0)>>;
+         Ordinarily this is an error because b<decltype(0)> is clearly not a
+         valid template argument (e.g., it is not constant), but MSVC accepts
+         it (as do some GCC versions). */
+      result = type_of_unknown_templ_param_nontype;
+      goto done;
+    }  /* if */
     result = operand->type;
     if (operand_has_uncertain_value_category(operand)) {
       if (!is_error_operand(operand)) {
@@ -16053,6 +16067,7 @@ general_case:
       }  /* if */
     }  /* if */
   }  /* if */
+done:
   check_assertion(result != NULL);
   return result;
 }  /* decltype_from_operand */
@@ -16291,18 +16306,18 @@ name.  We do not advance to the token after the decltype in this case.
     result = decltype_from_operand(&operand, &no_parens_matters);
     reclaim_fs_nodes_of_operand(&operand);
   } else {
-    a_type_ptr  tp = alloc_type((a_type_kind)tk_typeref);
-    a_boolean   dependent_arg = is_template_dependent_context() &&
-                                operand_is_instantiation_dependent(&operand);
     a_boolean   no_parens_matters;
+    a_type_ptr  tp = alloc_type((a_type_kind)tk_typeref),
+                utp = decltype_from_operand(&operand, &no_parens_matters);
     a_memory_region_number
                 prev_region;
-    tp->variant.typeref.type = decltype_from_operand(&operand,
-                                                     &no_parens_matters);
+    tp->variant.typeref.type = utp;
     tp->variant.typeref.kind = trk_is_decltype;
     tp->variant.typeref.decltype_expr_not_parenthesized = no_parens_matters;
-    tp->variant.typeref.is_dependent_type_operator = dependent_arg;
-    if (dependent_arg) {
+    if (is_template_dependent_context() &&
+        (operand_is_instantiation_dependent(&operand) ||
+         utp == type_of_unknown_templ_param_nontype)) {
+      tp->variant.typeref.is_dependent_type_operator = TRUE;
       prep_generic_operand(&operand);
 #if IA64_ABI
     } else if (emulate_gnu_abi_bugs && is_expression_operand(&operand) &&

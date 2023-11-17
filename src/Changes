@@ -1,5 +1,21 @@
 Version 6.6
 
+11/17/23 [EDGcpfe/25799]
+Microsoft and GNU compatibility: Nondependent decltype constructs in templates
+
+Consider:
+
+  template<bool> int v;
+  template<typename> bool b = v<b<decltype(0)>>;
+
+Ordinarily, this is an error because because b<decltype(0)> is clearly not a
+valid template argument (e.g., it is not constant).  However, it is now
+accepted in Microsoft C++ modes and in GNU C++ modes with gnu_version < 130000
+(to match the behavior of the corresponding compilers).  This is achieved by
+treating the nondependent decltype(0) construct as dependent in some template
+contexts.
+
+
 11/16/23 [EDGcpfe/26756]
 Position information for synthesized call to comparison function
 
