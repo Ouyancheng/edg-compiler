@@ -106,6 +106,8 @@ enum a_diag_fill_in_kind {
 			/* A type name. */
   dfk_template_args,
 			/* A template argument list. */
+  dfk_reflection,
+			/* A reflection. */
 			/*lint -esym(749,*a_diag_fill_in_kind::dfk_last)*/
   dfk_last		/* Must be last. */
 };
@@ -201,6 +203,9 @@ typedef struct a_diag_fill_in {
 		template_args;
 			/* A pointer to the template argument list to be
 			   included in the diagnostic. */
+    /* When kind == dfk_reflection. */
+    a_reflection_value
+		reflection;
   } variant;
 } a_diag_fill_in;
 
@@ -1023,6 +1028,10 @@ is specified by "kind".
       break;
     case dfk_template_args:
       dfip->variant.template_args = NULL;
+      break;
+    case dfk_reflection:
+      dfip->variant.reflection.entity.kind = iek_none;
+      dfip->variant.reflection.entity.ptr = NULL;
       break;
     default:
       unexpected_condition();
@@ -3928,6 +3937,24 @@ report_gnu_cpp11_extension_if_needed.)
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+static void form_reflection(a_diag_fill_in_ptr	dfip)
+/*
+Format a string that represents the reflection value dfip into the message
+buffer.
+*/
+{
+  a_reflection_value       rv = dfip->variant.reflection;
+  a_source_correspondence  *scp = source_corresp_for_il_entry(rv.entity.ptr,
+                                                              rv.entity.kind);
+
+  if (scp != NULL && scp->assoc_info != NULL) {
+    form_symbol_name_for_error((a_symbol*)scp->assoc_info);
+  } else {
+    form_reflection(rv, &octl);
+  }  /* if */
+}  /* form_reflection */
+
+
 static void process_fill_in(a_diagnostic_ptr	dp,
 			    char		fill_in_char,
 			    char		*options,
@@ -3955,6 +3982,7 @@ null-terminated.
     case 's': kind = dfk_string;          break;
     case 't': kind = dfk_type;            break;
     case 'T': kind = dfk_template_args;   break;
+    case 'r': kind = dfk_reflection;      break;
     default:
       unexpected_condition_str2("process_fill_in:", "bad fill-in kind");
   }  /* switch */
@@ -4076,6 +4104,10 @@ null-terminated.
     case dfk_template_args:
       /* A template argument list fill-in. */
       form_template_arg_list(dfip);
+      break;
+    case dfk_reflection:
+      /* A reflection fill-in. */
+      form_reflection(dfip);
       break;
     default:
       break;
@@ -5072,6 +5104,19 @@ diag_ptr.
   dfip->variant.template_args = templ_args;
   add_fill_in_to_diagnostic(diag_ptr, dfip);
 }  /* add_template_arg_list_fill_in */
+
+
+static inline void add_reflection_fill_in(a_diagnostic_ptr    diag_ptr,
+                                          a_reflection_value  rv)
+/*
+Add a fill-in entry for "rv" to the diagnostic specified by diag_ptr.
+*/
+{
+  a_diag_fill_in_ptr dfip = alloc_diag_fill_in(dfk_reflection);
+
+  dfip->variant.reflection = rv;
+  add_fill_in_to_diagnostic(diag_ptr, dfip);
+}  /* add_reflection_fill_in */
 
 
 static inline void add_type_fill_in(a_diagnostic_ptr diag_ptr,
@@ -8339,6 +8384,17 @@ specified by diag.
 {
   add_type_fill_in(diag, value);
 }  /* Fill_in<a_type*>::add */
+
+
+void Fill_in<a_reflection_value>::add(a_diagnostic_ptr    diag,
+                                      a_reflection_value  rv)
+/*
+Add a reflection fill-in entry for the given reflection value to the
+diagnostic specified by diag.
+*/
+{
+  add_reflection_fill_in(diag, rv);
+}  /* Fill_in<a_reflection*>::add */
 
 }  /* detail */
 

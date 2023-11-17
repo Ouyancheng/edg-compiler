@@ -3907,12 +3907,12 @@ in C++.
   an_il_entity_list_entry_ptr  entity_list;
   a_boolean                    is_condition_decl, potential_decl_stmt = FALSE;
 
-  if (sp->kind == (a_statement_kind)stmk_for) {
+  if (sp->kind == stmk_for) {
     flags |= DFS_CONDITION_IS_FOR_STMT;
   } else if (selection_initializers_enabled &&
-             (sp->kind == (a_statement_kind)stmk_if ||
-              sp->kind == (a_statement_kind)stmk_constexpr_if ||
-              sp->kind == (a_statement_kind)stmk_switch)) {
+             (sp->kind == stmk_if ||
+              sp->kind == stmk_constexpr_if ||
+              sp->kind == stmk_switch)) {
     start_potential_decl_statement(&entity_list);
     potential_decl_stmt = TRUE;
   }  /* if */
@@ -3937,7 +3937,7 @@ in C++.
       /* An expression is next, but it may be followed by a condition
          declaration.  Cache the expression and check for a semicolon that
          follows it. */
-      cache = cache_expression();
+      cache = cache_expression(sp->kind == stmk_constexpr_if);
       if (curr_token == tok_semicolon) {
         scan_structured_control_value(sp, cache);
         is_condition_decl = TRUE;

@@ -3439,7 +3439,7 @@ ec_param_is_abstract;;"parameter number %d of %n has abstract type %t"
 ec_struct_bindings_is_cpp17;;"structured bindings are a C++17 feature"
 ec_capturing_struct_bindings_is_cpp20;;"capturing structured bindings is a C++20 feature"
 ec_bad_splicer_operand;;"operand of splicer has type %t instead of std::meta::info"
-ec_not_a_type_reflection;;"operand is not the reflection of a type"
+ec_not_a_type_reflection;;"operand (reflection for %r) is not the reflection of a type"
 ec_nonconstant_splicer_operand;;"nonconstant operand of splicer"
 ec_bad_std_string_view;;"use of %t instead of std::string_view (= std::basic_string_view<char>)"
 ec_inconsistent_std_string_view;;"std::string_view used here is inconsistent with use in other intrinsics"
@@ -3448,7 +3448,7 @@ ec_constexpr_reflection_not_of_constant;;"reflection is not that of a constant v
 ec_constexpr_cannot_make_zero_length_array;;"cannot make a zero-length array"
 ec_constexpr_length_too_long_for_make_constexpr_array;;"length (%d1) passed to make_constexpr_array is larger than number of elements available (%d2)"
 ec_invalid_infovec_for_reflection;;"definition of std::meta::infovec does not match assumptions of reflection (no bases classes and data members for pointer, length, and capacity)"
-ec_bad_reflection_kind_for_expression_splice;;"bad reflection kind for expression splice"
+ec_bad_reflection_kind_for_expression_splice;;"bad reflection (%r) for expression splice"
 ec_already_defined_with_pos;;"%n has already been defined (previous definition %p)"
 ec_infovec_not_initialized;;"infovec object not initialized"
 ec_incompatible_std_meta_value_of_type;;"value_of type %t1 is not compatible with the given reflection (entity with type %t2)"
@@ -3459,6 +3459,8 @@ ec_invalid_reflection_for_intrinsic;;"invalid reflection for intrinsic metafunct
 ec_nonmember_reflection_for_intrinsic;;"intrinsic metafunction requires a reflection for a class member"
 ec_union_base;;"a class cannot not derive from a union"
 ec_base_with_flexible_array;;"cannot derive from a class with a flexible array member"
+ec_null_reflection;;"null reflection"
+ec_namespace_alias;;"namespace alias"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

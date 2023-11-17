@@ -6023,6 +6023,117 @@ for debug output).
 }  /* form_dynamic_init_constant */
 
 
+void form_reflection(a_reflection_value                     rv,
+                     an_il_to_str_output_control_block_ptr  octl)
+/*
+Render the entity designated by the given reflection.
+*/
+{
+  if (octl->c_generating_back_end) {
+    /* Reflection values sometimes leak into the C++-generating back end,
+       but those values are not actually used. */
+    octl->output_str("(decltype(^0){})", octl);
+    goto done;
+  }  /* if */
+  strip_template_arg(&rv);
+  switch (rv.entity.kind) {
+    case iek_none:
+      if (!octl->gen_compilable_code) {
+        octl->output_str(error_text(ec_null_reflection), octl);
+      } else {
+        octl->output_str("(decltype(^0){})", octl);
+      }  /* if */
+      break;
+    case iek_base_class:
+      if (!octl->gen_compilable_code) {
+        a_base_class  *bcp = (a_base_class*)rv.entity.ptr;
+        form_type(bcp->type, octl);
+        octl->output_str(" ", octl);
+        octl->output_str(error_text(ec_in), octl);
+        octl->output_str(" ", octl);
+        form_type(bcp->derived_class, octl);
+      } else {
+        unexpected_condition();
+      }  /* if */
+      break;
+    case iek_type:
+      if (!octl->gen_compilable_code) {
+        octl->output_str(error_text(ec_type), octl);
+        octl->output_str(" ", octl);
+      }  /* if */
+      form_type((a_type*)rv.entity.ptr, octl);
+      break;
+    case iek_constant:
+      form_constant((a_constant*)rv.entity.ptr, /*need_parens=*/FALSE, octl);
+      break;
+    case iek_expr_node:
+      form_expression((an_expr_node*)rv.entity.ptr,  octl);
+      break;
+    case iek_field:
+      if (!octl->gen_compilable_code) {
+        octl->output_str(error_text(ec_field), octl);
+        octl->output_str(" ", octl);
+      } /* if */
+      form_name(&((a_field*)rv.entity.ptr)->source_corresp, iek_field, octl);
+      break;
+    case iek_routine:
+      if (!octl->gen_compilable_code) {
+        octl->output_str(error_text(ec_function), octl);
+        octl->output_str(" ", octl);
+      } /* if */
+      form_name(&((a_routine*)rv.entity.ptr)->source_corresp, iek_routine,
+                octl);
+      break;
+    case iek_variable:
+      if (!octl->gen_compilable_code) {
+        octl->output_str(error_text(ec_variable), octl);
+        octl->output_str(" ", octl);
+      } /* if */
+      form_name(&((a_variable*)rv.entity.ptr)->source_corresp, iek_routine,
+                octl);
+      break;
+    case iek_template:
+      if (!octl->gen_compilable_code) {
+        octl->output_str(error_text(ec_template), octl);
+        octl->output_str(" ", octl);
+      } /* if */
+      form_name(&((a_template*)rv.entity.ptr)->source_corresp, iek_template,
+                octl);
+      break;
+    case iek_namespace:
+      if (!octl->gen_compilable_code) {
+        octl->output_str(error_text(ec_namespace_alias), octl);
+        octl->output_str(" ", octl);
+      } /* if */
+      form_name(&((a_namespace*)rv.entity.ptr)->source_corresp,
+                iek_namespace, octl);
+      break;
+    case iek_scope:
+      { a_scope*  scope = (a_scope*)rv.entity.ptr;
+        if (scope_is(scope, sck_namespace) ||
+            scope_is(scope, sck_namespace_extension)) {
+          if (!octl->gen_compilable_code) {
+            octl->output_str(error_text(ec_namespace), octl);
+            octl->output_str(" ", octl);
+          } /* if */
+          form_name(&scope->variant.assoc_namespace->source_corresp,
+                    iek_namespace, octl);
+          break;
+        }  /* if */
+      }
+      FALLTHROUGH
+    default:
+      if (!octl->gen_compilable_code) {
+        octl->output_str("unknown reflection", octl);
+      } else {
+        unexpected_condition();
+      }  /* if */
+      break;
+  }  /* switch */
+done:;
+}  /* form_reflection */
+
+
 void form_constant(a_constant_ptr                        constant,
                    a_boolean                             need_parens,
                    an_il_to_str_output_control_block_ptr octl)
@@ -6846,8 +6957,15 @@ do_sizeof_cases:
       octl->output_str("((void)0)", octl);
       break;
     case ck_reflection:
-      octl->output_str("reflection of ???", octl);
-      // FIXME: More detailed output.
+      if (octl->c_generating_back_end) {
+        /* Reflection currently sometimes leak into the C-generating back end,
+           which treats them as void* pointers.  The values are not used by
+           the generated C code, however.  Just render a null pointer. */
+        octl->output_str("((void*)0)", octl);
+      } else {
+        octl->output_str("reflection of ???", octl);
+        // FIXME: More detailed output.
+      }  /* if */
       break;
     default:
 #if DEBUG

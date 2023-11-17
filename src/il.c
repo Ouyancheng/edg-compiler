@@ -20452,6 +20452,92 @@ expression nodes may be reclaimed later on
 }  /* copy_constant_for_rescan_if_needed */
 
                                           
+static void substitute_reflection_constant(a_constant          *refl_cp,
+                                           a_template_arg      *t_args,
+                                           a_template_param    *t_params,
+                                           a_ctws_options_set  options,
+                                           a_ctws_state_ptr    ctws_state,
+                                           a_source_position   *source_pos,
+                                           a_boolean           *copy_error)
+/*
+refl_cp is a reflection value (i.e., refl_cp->kind is ck_reflection).
+Substitute the given template parameters with the given template arguments in
+the associated entity (refl_cp->variant.reflection.entity).  If successful and
+the new entity is not instantiation dependent, replace refl_cp->type by the
+reflection type.  If substitution fails, set *copy_error. options, ctws_state,
+and source_pos are forwarded from copy_template_param_con.
+*/
+{
+  a_reflection_value  *rvp = &refl_cp->variant.reflection;
+  strip_template_arg(rvp);
+  switch (rvp->entity.kind) {
+    case iek_type:
+      { a_type  *type = copy_type_with_substitution((a_type*)rvp->entity.ptr,
+                                                    t_args, t_params,
+                                                    source_pos, options,
+                                                    copy_error, ctws_state);
+        rvp->entity.ptr = (char*)type;
+        if (!is_instantiation_dependent_type(type)) {
+          refl_cp->type = reflection_type();
+        }  /* if */
+      }
+      break;
+    case iek_constant:
+      { a_constant  *old_con = (a_constant*)rvp->entity.ptr,
+                    *temp_con = local_constant(),
+                    *new_con;
+        new_con = copy_template_param_con(old_con, t_args, t_params,
+                                          /*guide_type=*/(a_type*)NULL,
+                                          source_pos, options,
+                                          copy_error, ctws_state, temp_con);
+        if (!copy_error) {
+          if (new_con == NULL) {
+            new_con = move_local_constant_to_il(&temp_con);
+          }  /* if */
+          rvp->entity.ptr = (char*)new_con;
+          if (!constant_is_instantiation_dependent(new_con)) {
+            refl_cp->type = reflection_type();
+          }  /* if */
+        }  /* if */
+        if (temp_con != NULL) release_local_constant(&temp_con);
+      }
+      break;
+    case iek_expr_node:
+      { an_expr_node  *old_expr = (an_expr_node*)rvp->entity.ptr,
+                      *new_expr;
+        a_constant    *temp_con = local_constant();
+        a_rescan_control_block
+                      rcblock;
+        clear_rescan_control_block(&rcblock);
+        rcblock.template_arg_list = t_args;
+        rcblock.template_param_list = t_params;
+        rcblock.options = options;
+        rcblock.ctws_state = ctws_state;
+        new_expr = rescan_expr_with_substitution(old_expr,
+                                                 /*guide_type=*/(a_type*)NULL,
+                                                 &rcblock, temp_con);
+        if (rcblock.error_detected) {
+          subst_fail(*copy_error);
+        } else if (new_expr != NULL) {
+          if (!expr_is_instantiation_dependent(new_expr)) {
+            refl_cp->type = reflection_type();
+          }  /* if */
+          rvp->entity.ptr = (char*)new_expr;
+        } else {
+          if (!constant_is_instantiation_dependent(temp_con)) {
+            refl_cp->type = reflection_type();
+          }  /* if */
+          rvp->entity.ptr = (char*)move_local_constant_to_il(&temp_con);
+        }  /* if */
+        if (temp_con != NULL) release_local_constant(&temp_con);
+      }
+      break;
+    default:
+      subst_fail(*copy_error);
+  }  /* switch */
+}  /* substitute_reflection_constant */
+
+
 a_constant_ptr copy_template_param_con(
                                   a_constant_ptr           con,
                                   a_template_arg_ptr       template_arg_list,
@@ -20822,8 +20908,7 @@ options.
         unexpected_condition_str("copy_template_param_con: unexpected kind");
     }  /* switch */
   } else if (constant_is(con, ck_address) &&
-             con->variant.address.kind ==
-                                         (an_address_base_kind)abk_temporary &&
+             con->variant.address.kind == abk_temporary &&
              constant_is(con->variant.address.variant.constant,
                          ck_template_param)) {
     /* A ck_address is sometimes added on top of a ck_template_param when
@@ -20856,6 +20941,12 @@ options.
       constant->type = new_type;
       constant->variant.address.variant.constant = other_con;
     }  /* if */
+  } else if (constant_is(con, ck_reflection)) {
+    copy_constant(con, constant);
+    substitute_reflection_constant(constant, template_arg_list,
+                                   template_param_list, options, ctws_state,
+                                   source_pos, copy_error);
+    con_copy = NULL;
   } else if (cpp11_sfinae_enabled &&
              is_instantiation_dependent_type(con->type)) {
     /* A constant that is not a ck_template_param but that does have an

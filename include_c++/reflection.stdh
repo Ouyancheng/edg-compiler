@@ -24,27 +24,34 @@ namespace std {
   namespace meta {
     using info = decltype(^::);
 
-    struct infovec {
-      consteval infovec(long __cap)
+    struct __infovec {
+      consteval __infovec(long __cap)
         : __infos(new info[__cap]), __cap(__cap), __n(0) {}
-      consteval infovec(infovec const &__src)
+      consteval __infovec(__infovec const &__src)
         : __infos(new info[__src.__n]), __cap(__src.__n), __n(__src.__n)
         {
           for (long __k = 0; __k<__src.__n; ++__k) {
             std::construct_at(&this->__infos[__k], __src.__infos[__k]);
           }
         }
-      consteval infovec(infovec &&__src)
+      consteval __infovec(__infovec &&__src)
         : __infos(__src.__infos), __cap(__src.__cap), __n(__src.__n)
         { __src.__infos = nullptr; __src.__cap = 0; __src.__n = 0; }
-      consteval infovec(initializer_list<info>  __ili)
+      consteval __infovec(initializer_list<info>  __ili)
         : __infos(new info[__ili.size()]),
           __cap(__ili.size()), __n(__ili.size())
         {
           info  *__pi = this->__infos;
           for (info __i: __ili) *__pi++ = __i;
         }
-      constexpr ~infovec() { delete[] this->__infos; }
+      consteval __infovec(std::vector<info> const &__src)
+        : __infos(new info[__src.size()]),
+          __cap(__src.size()), __n(__src.size())
+        {
+          info  *__pi = this->__infos;
+          for (info __i: __src) *__pi++ = __i;
+        }
+      constexpr ~__infovec() { delete[] this->__infos; }
       consteval info const& operator[](long __i) const
         { return this->__infos[__i]; }
       consteval info& operator[](long __i) { return this->__infos[__i]; }
@@ -90,40 +97,76 @@ namespace std {
       return __str("", 0);  /* Dummy return.  Handled by interpreter. */
     }
 
-    struct __span_impl {
-      constexpr __span_impl(info  *first, int __length)
-        : __length(__length), __first(__first) {}
-      int __length;
-      info *__first;
-    };
-    using __span = __span_impl;
-
-    consteval infovec members_of(info) {
-      return infovec(0);  /* Dummy return.  Handled by interpreter. */
+    consteval __infovec members__impl(info) {
+      return __infovec(0);  /* Dummy return.  Handled by interpreter. */
     }
 
-    consteval infovec static_data_members_of(info) {
-      return infovec(0);  /* Dummy return.  Handled by interpreter. */
+    template<typename ... Filters>
+    consteval std::vector<info> members_of(info r, Filters ... filters) {
+      __infovec v = members__impl(r);
+      std::vector<info> result{};
+      for (info m: v) {
+        if ((filters(m) && ...)) result.push_back(v);
+      }
+      return result;
     }
 
-    consteval infovec nonstatic_data_members_of(info) {
-      return infovec(0);  /* Dummy return.  Handled by interpreter. */
+    consteval __infovec static_data_members__impl(info) {
+      return __infovec(0);  /* Dummy return.  Handled by interpreter. */
     }
 
-    consteval infovec bases_of(info) {
-      return infovec(0);  /* Dummy return.  Handled by interpreter. */
+    consteval std::vector<info> static_data_members_of(info r) {
+      __infovec v = static_data_members__impl(r);
+      return std::vector<info>(v.begin(), v.end());
     }
 
-    consteval infovec subobjects_of(info) {
-      return infovec(0);  /* Dummy return.  Handled by interpreter. */
+    consteval __infovec nonstatic_data_members__impl(info) {
+      return __infovec(0);  /* Dummy return.  Handled by interpreter. */
     }
 
-    consteval infovec enumerators_of(info) {
-      return infovec(0);  /* Dummy return.  Handled by interpreter. */
+    consteval std::vector<info> nonstatic_data_members_of(info r) {
+      __infovec v = nonstatic_data_members__impl(r);
+      return std::vector<info>(v.begin(), v.end());
     }
 
-    consteval info substitute(info, infovec) {
+    consteval __infovec bases__impl(info) {
+      return __infovec(0);  /* Dummy return.  Handled by interpreter. */
+    }
+
+    template<typename ... Filters>
+    consteval std::vector<info> members_of(info r) {
+      __infovec v = bases__impl(r);
+      std::vector<info> result{};
+      for (info m: v) {
+        if ((filters(m) && ...)) result.push_back(v);
+      }
+      return result;
+    }
+
+    consteval __infovec subobjects__impl(info) {
+      return __infovec(0);  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval __infovec subobjects_of(info r) {
+      __infovec v = subobjects__impl(r);
+      return std::vector<info>(v.begin(), v.end());
+    }
+
+    consteval __infovec enumerators__impl(info) {
+      return __infovec(0);  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval std::vector<info> enumerators_of(info r) {
+      __infovec v = enumerators__impl(r);
+      return std::vector<info>(v.begin(), v.end());
+    }
+
+    consteval info substitute__impl(info, __infovec) {
       return ^::;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval info substitute(info r, std::vector<info> v) {
+      return substitute__impl(r, v);
     }
 
     template<typename T>
@@ -137,11 +180,11 @@ namespace std {
     }
 
     consteval bool test_type(info templ, info type) {
-      return value_of<bool>(substitute(templ, {type}));
+      return value_of<bool>(substitute__impl(templ, {type}));
     }
 
-    consteval bool test_types(info templ, infovec types) {
-      return value_of<bool>(substitute(templ, types));
+    consteval bool test_types(info templ, std::vector<info> types) {
+      return value_of<bool>(substitute__impl(templ, types));
     }
 
     consteval bool is_type(info) {
@@ -264,8 +307,13 @@ namespace std {
       return false;  /* Dummy return.  Handled by interpreter. */
     }
 
-    consteval infovec template_arguments_of(info) {
-      return infovec(0);  /* Dummy return.  Handled by interpreter. */
+    consteval __infovec template_arguments__impl(info) {
+      return __infovec(0);  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval std::vector<info> template_arguments_of(info r) {
+      __infovec v = template_arguments__impl(r);
+      return std::vector<info>(v.begin(), v.end());
     }
 
     consteval info template_of(info) {
@@ -380,8 +428,12 @@ namespace std {
       return type;
     }
 
-    consteval info metacall(info, infovec) {
+    consteval info metacall__impl(info, __infovec) {
       return ^::;  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval info metacall(info r, std::vector<info> v) {
+      return metacall__impl(r, v);
     }
 
   }

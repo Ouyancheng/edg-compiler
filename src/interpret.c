@@ -11929,6 +11929,7 @@ with diag_pos.
 {
   a_boolean         result = TRUE, ovfl = FALSE;
   an_integer_value  *chars = (an_integer_value*)cap->address;
+  a_byte_count      k;
 
   if (is_runtime_data_address(cap) || is_function_address(cap) ||
       cap->complete_object == NULL) {
@@ -11936,7 +11937,7 @@ with diag_pos.
     info_with_pos(ec_constexpr_access_to_runtime_storage, diag_pos, ips);
     goto done;
   }  /* if */
-  for (a_byte_count k = 0; k<length; ++k) {
+  for (k = 0; k<length; ++k) {
     a_host_large_integer  char_val;
     if (!subobject_is_initialized((a_byte*)chars, cap->complete_object)) {
       do_constexpr_fail(result);
@@ -11948,6 +11949,7 @@ with diag_pos.
     check_assertion(!ovfl);
     str[k] = (char)char_val;
   }  /* for */
+  str[k] = (char)0;
 done:
   return result;
 }
@@ -12016,6 +12018,8 @@ string_view object referring to that static array.
   a_boolean     result = TRUE, ptr_done = FALSE, length_done = FALSE;
   a_byte_count  length = (a_byte_count)strlen(str);
   a_byte        *chars;
+  LOCAL_UNUSED a_byte
+                *old_chars;
   
   check_assertion(type_is(tp, tk_struct) || type_is(tp, tk_class));
   if (base_classes_of(tp) != NULL) {
@@ -12039,12 +12043,13 @@ string_view object referring to that static array.
       mark_subobject_initialized((a_byte*)value, chars);
     }  /* for */
     record_complete_object_type(integer_type(plain_char_int_kind), chars);
-    /* Map chars to a placeholder indicating that this is a reflection string.
-       If it needs to be materialized as an IL entry (ck_string), the function
-       copy_interpreter_object_to_constant will recognize it and create or
-       reuse an IL constant (using the persistent map). */
-    map_stack_bytes(ips, chars, (a_byte*)reflection_str_placeholder);
   }  /* if */
+  /* Map chars to a placeholder indicating that this is a reflection string.
+     If it needs to be materialized as an IL entry (ck_string), the function
+     copy_interpreter_object_to_constant will recognize it and create or
+     reuse an IL constant (using the persistent map). */
+  map_or_replace_ptr(&ips->map, chars, (a_byte*)reflection_str_placeholder,
+                     old_chars);
   fp = fields_of(tp);
   fp = next_alloc_field(fp);
   for (; fp != NULL; fp = next_alloc_field(fp->next)) {
@@ -12651,11 +12656,13 @@ error is communicated with an invalid reflection.
         result = TRUE;
       }  /* if */
     } else if (templ->kind == templk_variable) {
-      a_symbol_ptr  sym = find_template_variable(symbol_for(templ),
-                                                 &t_args,
-                                                 /*prototype_allowed=*/TRUE,
-                                                 /*is_use=*/FALSE,
-                                                 /*diagnose=*/FALSE);
+      a_symbol_ptr  sym = NULL, templ_sym = symbol_for(templ);
+      if (adjust_templ_arg_list_for_template(templ_sym, &t_args,
+                                             templ_params_of(templ_sym))) {
+        sym = find_template_variable(templ_sym, &t_args,
+                                     /*prototype_allowed=*/TRUE,
+                                     /*is_use=*/FALSE, /*diagnose=*/FALSE);
+      }  /* if */
       if (sym == NULL ||
           !(symbol_is(sym, sk_variable) ||
             symbol_is(sym, sk_static_data_member))) {
@@ -12855,7 +12862,7 @@ invalid.
           result = FALSE;
           goto done;
         }  /* if */
-        fd.name = alloc_text_of_string_literal(name_length);
+        fd.name = alloc_text_of_string_literal(name_length+1);
         (void)get_interpreter_string(
                                    ips, fd.name, name_length,
                                    (a_constexpr_address*)(subobj+name_offset),
@@ -24214,17 +24221,20 @@ can only be TRUE if the called function is "consteval").
                                 ips.reattempt_state);
         }  /* if */
       }  /* if */
-    } else if (ips.storage_stack.destructions != NULL ||
-               (!is_constant_evaluated &&
-                is_immediate_class_type(result_type) &&
-                has_nontrivial_destructor(
-                               class_symbol_supp(symbol_for(result_type))))) {
+    } else if (!is_constant_evaluated &&
+               (ips.storage_stack.destructions != NULL ||
+                (is_immediate_class_type(result_type) &&
+                 has_nontrivial_destructor(
+                              class_symbol_supp(symbol_for(result_type)))))) {
       /* Since we're just interpreting a call node, this isn't a full
          expression and we cannot evaluate the destruction of temporaries.
          (An exception are invocations of consteval functions, but the
          temporaries for those were handled by do_constexpr_call.  If there
          are destructions left, they are not part of the consteval invocation
-         proper.) */
+         proper.)  FIXME */
+      result = FALSE;
+    } else if (ips.storage_stack.destructions != NULL &&
+               !perform_destructions(&ips)) {
       result = FALSE;
     } else if (ips.dyn_allocations != NULL) {
       /* Leftover dynamic allocations are always invalid in this case. */
@@ -24241,6 +24251,23 @@ can only be TRUE if the called function is "consteval").
          expressions, do not record it as the backing expression since
          it could cause IL traversal problems later on. */
       result_con->expr = call_expr;
+    }  /* if */
+    if (result && is_constant_evaluated &&
+        ips.storage_stack.destructions != NULL &&
+        expr_stack->lifetime != NULL) {
+      /* Destructions were constant-evaluated.  They should not also be
+         run-time evaluated.  Therefore, remove them from the temporary
+         destruction schedule. */
+      a_constexpr_destruction  *dlist = ips.storage_stack.destructions;
+      a_dynamic_init           **dyndip = &expr_stack->lifetime->destructions;
+      do {
+        while (*dyndip != dlist->dip) {
+          dyndip = &(*dyndip)->next_in_destruction_list;
+        }  /* if */
+        *dyndip = (*dyndip)->next_in_destruction_list;
+        dlist = dlist->next;
+      } while (dlist != NULL);
+      
     }  /* if */
   }  /* if */
   *diag_list = ips.diag_list;

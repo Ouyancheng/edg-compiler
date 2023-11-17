@@ -8090,6 +8090,27 @@ type whose member being accessed is incomplete.
 }  /* field_selection_class_can_be_incomplete */
 
 
+static void make_generic_splicer_selection(an_operand    *opnd1,
+                                           an_expr_node  *splicer,
+                                           a_boolean     is_arrow,
+                                           an_operand    *result)
+/*
+We encountered an operation of the form opnd1.[: x :] or opnd1->[: x :] where
+x is instantiation-dependent.  Build in *result a representation of the
+operation.
+*/
+{
+  an_expr_node  *obj = make_node_from_operand(opnd1), *selection;
+
+  obj->next = splicer;
+  selection = make_operator_node(is_arrow ? eok_points_to_field
+                                          : eok_dot_field,
+                                 type_of_unknown_templ_param_nontype,
+                                 obj);
+  make_expression_operand(selection, result);
+}  /* make_generic_splicer_selection */
+
+
 static void scan_expr_splicer(a_rescan_control_block    *rcblock,
                               an_operand                *result);
 
@@ -8100,6 +8121,7 @@ static void scan_selection_second_operand(
                             a_boolean         is_arrow_operator,
                             a_boolean         offsetof_case,
                             a_symbol_locator  *locator,
+                            an_expr_node      **splicer,
                             a_type_ptr        *updated_class_type,
                             a_boolean         *err)
 /*
@@ -8117,7 +8139,9 @@ describes the result of looking up the name in the first operand's
 class, not just the name in the abstract.  *updated_class_type will be
 returned non-NULL if this routine wants to give the caller a new type
 to use for type_1 (that's used for some obscure pcc mode cases).
-Set *err to TRUE if there is an error.
+If the selection is of the form [: x :] where x is instantiation-dependent,
+return a representation of x through *splicer.  Set *err to TRUE if there is
+an error.
 */
 {
   an_identifier_options_set
@@ -8399,21 +8423,24 @@ qualified_name_check:
     an_operand  opnd2;
     clear_operand(ok_error, &opnd2);
     scan_expr_splicer((a_rescan_control_block*)NULL, &opnd2);
-    if (is_constant_operand(&opnd2)) {
+    if (operand_is_instantiation_dependent(&opnd2)) {
+      /* FIXME: Create an actual representation for this. */
+      *splicer = make_node_from_operand(&opnd2);
+    } else if (is_constant_operand(&opnd2)) {
       a_constant_ptr  refl_cp = &opnd2.variant.constant;
+      a_reflection_value  *rvp = &refl_cp->variant.reflection;
       check_assertion(constant_is(refl_cp, ck_reflection));
-      if (refl_cp->variant.reflection.entity.kind == iek_field) {
-        a_field_ptr  fp = (a_field*)refl_cp->variant.reflection.entity.ptr;
+      if (rvp->entity.kind == iek_field) {
+        a_field_ptr  fp = (a_field*)rvp->entity.ptr;
         make_locator_for_symbol(symbol_for(fp), locator);
         locator->source_position = opnd2.position;
-      } else if (refl_cp->variant.reflection.entity.kind == iek_routine) {
-        a_routine_ptr  rp = (a_routine*)refl_cp->variant.reflection.entity.ptr;
+      } else if (rvp->entity.kind == iek_routine) {
+        a_routine_ptr  rp = (a_routine*)rvp->entity.ptr;
         make_locator_for_symbol(symbol_for(rp), locator);
         locator->source_position = opnd2.position;
       } else {
-        // FIXME: Describe the actual reflection kind.
         expr_pos_error(ec_bad_reflection_kind_for_expression_splice,
-                       &opnd2.position);
+                       &opnd2.position, *rvp);
         *err = TRUE;
       }  /* if */
     } else {
@@ -9337,7 +9364,8 @@ make_proxy_type_if_needed:
     }  /* if */
   }  /* if */
   if (rcblock == NULL) {
-    a_type_ptr updated_class_type;
+    a_type_ptr     updated_class_type;
+    an_expr_node  *splicer = NULL;
     /* Advance past the operator and scan the second operand. */
     (void)get_token();
     scan_selection_second_operand(operand_1,
@@ -9345,6 +9373,7 @@ make_proxy_type_if_needed:
                                   is_arrow_operator,
                                   offsetof_case,
                                   &locator,
+                                  &splicer,
                                   &updated_class_type,
                                   &err);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -9357,6 +9386,13 @@ make_proxy_type_if_needed:
       check_assertion(C_dialect == C_dialect_pcc || SVR4_C_mode);
       orig_class_struct_union_type = updated_class_type;
       class_struct_union_type = skip_typerefs(updated_class_type);
+    }  /* if */
+    if (splicer != NULL) {
+      /* The selection is of a dependent splicer.  Create a generic
+         representation for the resulting selection operations. */
+      make_generic_splicer_selection(operand_1, splicer, is_arrow_operator,
+                                     result);
+      goto done;
     }  /* if */
   } else {
     /* Redoing semantic analysis on a previously-scanned selection. */
@@ -9945,6 +9981,7 @@ after_switch:;
     /* A field selection rules out an integral constant expression. */
     rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);
   }  /* if */
+done:
   record_operator_position_in_rescan_info(result,
                                           &operator_position,
                                           operator_tok_seq_number,
@@ -16523,8 +16560,7 @@ We do not advance to the token after the typename operator in this case.
     a_reflection_value  rv = cp->variant.reflection;
     strip_template_arg(&rv);
     if (rv.entity.kind != iek_type) {
-      /* FIXME: Should report what kind of reflection it is. */
-      expr_pos_error(ec_not_a_type_reflection, &operand.position);
+      expr_pos_error(ec_not_a_type_reflection, &operand.position, rv);
       result = error_type();
     } else {
       result = (a_type_ptr)rv.entity.ptr;
@@ -19056,6 +19092,8 @@ ck_reflection) of a special built-in type (of kind tk_reflection).
     }  /* if */
     check_assertion(handled);
   }  /* if */
+  /* FIXME The type should not really depend on whether the operand is
+     dependent, but for now this is an expedient way to parse templates. */
   refl_cp->type = is_dependent ? type_of_unknown_templ_param_nontype
                                : reflection_type();
   make_constant_operand(refl_cp, result);
@@ -38408,7 +38446,8 @@ FIXME: This is currently incomplete.
     make_error_operand(result);
   } else if (operand_is_instantiation_dependent(&opnd)) {
 // FIXME XXX
-    make_error_operand(result);
+    copy_operand(&opnd, result);
+    make_template_param_expr_constant_operand(result);
   } else if (!is_reflection_type(opnd.type)) {
     expr_pos_ty_error(ec_bad_splicer_operand, &opnd.position, opnd.type);
     make_error_operand(result);
@@ -38456,7 +38495,7 @@ FIXME: This is currently incomplete.
       } else {
         // FIXME: Describe the actual reflection kind.
         expr_pos_error(ec_bad_reflection_kind_for_expression_splice,
-                       &start_pos);
+                       &start_pos, *rvp);
         make_error_operand(result);
       }  /* if */
     }  /* if */
@@ -42906,7 +42945,7 @@ is considered a full-expression.
 }  /* scan_bool_constant_expression */
 
 
-an_init_component_ptr cache_expression(void)
+an_init_component_ptr cache_expression(bool  immediate_context)
 /*
 Scan an expression with PREC_LOWEST and EOPT_DISALLOW_COMMA_OPERATOR and
 return an init-component for it.
@@ -42921,6 +42960,7 @@ return an init-component for it.
                   /*force_object_lifetime=*/TRUE,
                   /*suppress_object_lifetime=*/FALSE);
   transfer_expr_context_if_applicable(saved_expr_stack);
+  expr_stack->consteval_call_need_not_fold = immediate_context;
   icp = scan_expr_as_init_component(/*bundle=*/TRUE, EOPT_NO_OPTIONS);
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);

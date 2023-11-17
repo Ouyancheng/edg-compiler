@@ -8906,7 +8906,7 @@ namespace std::meta.
       parent_namespace_of(tp) ==
                   symbol_for_namespace_std_meta->variant.namespace_info.ptr) {
     a_const_char  *name = unmangled_name_of(&tp->source_corresp);
-    if (strcmp(name, "infovec") == 0) {
+    if (strcmp(name, "__infovec") == 0) {
       result = TRUE;
     }  /* if */
   }  /* if */
@@ -8939,17 +8939,6 @@ interpreter) and if so mark it as such.
           a_param_type_ptr ptp = function_type_params(rtp);
           if (ptp != NULL && is_pointer_type(ptp->type)) {
             tag = cit_std_construct_at;
-          }  /* if */
-        }  /* if */
-        break;
-      case 'd':
-        if (strcmp(name, "destroy_at") == 0 &&
-            rp->template_arg_list != NULL &&
-            rp->template_arg_list->kind == (a_templ_arg_kind)tak_type) {
-          a_type_ptr       rtp = skip_typerefs(rp->type);
-          a_param_type_ptr ptp = function_type_params(rtp);
-          if (ptp != NULL && is_pointer_type(ptp->type)) {
-            // FIXME tag = cit_std_destroy_at;
           }  /* if */
         }  /* if */
         break;
@@ -9030,7 +9019,7 @@ interpreter) and if so mark it as such.
             }  /* if */
           } else if (is_std_meta_infovec_type(
                                           rtp->variant.routine.return_type)) {
-            if (strcmp(name, "bases_of") == 0) {
+            if (strcmp(name, "bases__impl") == 0) {
               tag = cit_std_meta_bases_of;
             }  /* if */
           }  /* if */
@@ -9050,7 +9039,7 @@ interpreter) and if so mark it as such.
         if (t_args == NULL && ptp != NULL && ptp->next == NULL &&
             is_reflection_type(ptp->type) &&
             is_std_meta_infovec_type(rtp->variant.routine.return_type)) {
-          if (strcmp(name, "enumerators_of") == 0) {
+          if (strcmp(name, "enumerators__impl") == 0) {
             tag = cit_std_meta_enumerators_of;
           }  /* if */
         }  /* if */
@@ -9140,7 +9129,7 @@ interpreter) and if so mark it as such.
               is_reflection_type(rtp->variant.routine.return_type)) {
             tag = cit_std_meta_make_constexpr_array;
           }  /* if */
-        } else if (strcmp(name, "members_of") == 0 && t_args == NULL) {
+        } else if (strcmp(name, "members__impl") == 0 && t_args == NULL) {
           if (ptp != NULL && ptp->next == NULL &&
               is_reflection_type(ptp->type) &&
               is_std_meta_infovec_type(rtp->variant.routine.return_type)) {
@@ -9151,7 +9140,7 @@ interpreter) and if so mark it as such.
                    is_reflection_type(ptp->type) &&
                    is_std_meta_infovec_type(ptp->next->type) &&
                    is_reflection_type(rtp->variant.routine.return_type)) {
-          if (strcmp(name, "metacall") == 0) {
+          if (strcmp(name, "metacall__impl") == 0) {
             tag = cit_std_meta_metacall;
           }  /* if */
         }  /* if */
@@ -9164,7 +9153,7 @@ interpreter) and if so mark it as such.
                                           rtp->variant.routine.return_type)) {
             tag = cit_std_meta_name_of;
           }  /* if */
-        } else if (strcmp(name, "nonstatic_data_members_of") == 0 &&
+        } else if (strcmp(name, "nonstatic_data_members__impl") == 0 &&
                    t_args == NULL) {
           if (ptp != NULL && ptp->next == NULL &&
               is_reflection_type(ptp->type) &&
@@ -9203,7 +9192,7 @@ interpreter) and if so mark it as such.
         }  /* if */
         break;
       case 's':
-        if (strcmp(name, "substitute") == 0 && t_args == NULL) {
+        if (strcmp(name, "substitute__impl") == 0 && t_args == NULL) {
           if (ptp != NULL && ptp->next != NULL && ptp->next->next == NULL &&
               is_reflection_type(ptp->type) &&
               is_std_meta_infovec_type(ptp->next->type) &&
@@ -9218,9 +9207,9 @@ interpreter) and if so mark it as such.
               }  /* if */
             } else if (is_std_meta_infovec_type(
                                           rtp->variant.routine.return_type)) {
-              if (strcmp(name, "static_data_members_of") == 0) {
+              if (strcmp(name, "static_data_members__impl") == 0) {
                 tag = cit_std_meta_static_data_members_of;
-              } else if (strcmp(name, "subobjects_of") == 0) {
+              } else if (strcmp(name, "subobjects__impl") == 0) {
                 tag = cit_std_meta_subobjects_of;
               }  /* if */
             }  /* if */
@@ -9231,7 +9220,7 @@ interpreter) and if so mark it as such.
         if  (t_args == NULL && ptp != NULL && ptp->next == NULL &&
              is_reflection_type(ptp->type)) {
           if (is_std_meta_infovec_type(rtp->variant.routine.return_type)) {
-            if (strcmp(name, "template_arguments_of") == 0) {
+            if (strcmp(name, "template_arguments__impl") == 0) {
               tag = cit_std_meta_template_arguments_of;
             }  /* if */
           } else if (is_reflection_type(rtp->variant.routine.return_type)) {

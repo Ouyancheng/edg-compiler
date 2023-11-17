@@ -1162,7 +1162,7 @@ extern an_expr_node_ptr scan_expr_for_attribute(void);
 extern an_expr_node_ptr process_boolean_attribute_expression(
                                                         an_expr_node_ptr expr);
 
-extern an_init_component_ptr cache_expression(void);
+extern an_init_component_ptr cache_expression(bool  immediate_context);
 
 typedef struct an_initializer_cache *an_initializer_cache_ptr;
 extern void prescan_parenthesized_mem_init_expr(

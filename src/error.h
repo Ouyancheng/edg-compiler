@@ -415,14 +415,13 @@ extern void check_expected_errors(void);
 #define default_is_unexpected_str(x) /* Nothing */
 #endif /* CHECK_SWITCH_DEFAULT_UNEXPECTED */
 
-/* Make sure that struct tags are referenced before their uses below.
-   Otherwise, the declarations would be in the prototype scopes.  The
-   "struct" form is used instead of the typedef name to avoid having to
+/* Forward declare some IL and front end types to avoid having to
    include symbol_tbl.h and il_def.h in this file. */
-typedef struct a_symbol a_symbol_dummy_typedef;
-typedef struct a_type a_type_dummy_typedef;
-typedef struct a_source_file a_source_file_dummy_typedef;
-typedef struct a_pending_pragma a_pending_pragma_dummy_typedef;
+struct a_symbol;
+struct a_type;
+struct a_reflection_value;
+struct a_source_file;
+struct a_pending_pragma;
 
 
 extern char *format_type_string(struct a_type *type,
@@ -1107,6 +1106,15 @@ template<>
 struct Fill_in<a_type*> {
   static void add(a_diagnostic_ptr diag,
                   a_type           *value);
+};  /* Fill_in */
+
+/*
+A diagnostic fill-in for reflections.
+*/
+template<>
+struct Fill_in<struct a_reflection_value> {
+  static void add(a_diagnostic_ptr           diag,
+                  struct a_reflection_value  rv);
 };  /* Fill_in */
 
 extern a_diagnostic_ptr create_primary_diagnostic(an_error_code     error_code,
