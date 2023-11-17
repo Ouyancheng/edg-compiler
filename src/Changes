@@ -14,7 +14,7 @@ Consider:
     for(; x != y; ) {}
   }
 
-The expression a != b is rewritten in terms of a call to a compiler-generated
+The expression x != y is rewritten in terms of a call to a compiler-generated
 operator==.  Previously, the position range recorded for that call node
 extended from the beginning of the "!=" token to the semicolon token
 (inclusive).  Now it correctly starts at the x token and ends at the y token.
