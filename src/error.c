@@ -3944,12 +3944,16 @@ buffer.
 */
 {
   a_reflection_value       rv = dfip->variant.reflection;
+#if !STANDALONE_UTILITY_PROGRAM
   a_source_correspondence  *scp = source_corresp_for_il_entry(rv.entity.ptr,
                                                               rv.entity.kind);
 
   if (scp != NULL && scp->assoc_info != NULL) {
     form_symbol_name_for_error((a_symbol*)scp->assoc_info);
-  } else {
+  } else
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+  /* Do not insert code here. */
+  {
     form_reflection(rv, &octl);
   }  /* if */
 }  /* form_reflection */
