@@ -8442,7 +8442,8 @@ associated with the argument should be reactivated in such cases.
          referred to later from a context in which the function parameters
          are not available.  Just put out the underlying type. */
       operator_suppressed = TRUE;
-    } else if (expr_is_unusable(expr)) {
+    } else if (!tp->variant.typeref.is_dependent_type_operator &&
+               expr_is_unusable(expr)) {
       /* The expression involves an inaccessible or out-of-scope name.
          Just put out the underlying type. */
       operator_suppressed = TRUE;
