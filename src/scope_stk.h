@@ -467,6 +467,10 @@ typedef struct a_pack_expansion_descr {
 			   expansion, this is the symbol header of the
 			   parameter.  Also recorded for function parameter
 			   packs. */
+  a_type_ptr	param_symbol_type;
+			/* For a template type parameter declaration that is a
+			   pack expansion, this is the type of the
+			   parameter; NULL otherwise. */
   int		tentative_pack_expansion_depth;
 			/* The number of nested tentative scans of function
 			   declarators in process at the time this pack

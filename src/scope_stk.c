@@ -10905,6 +10905,7 @@ to it.
   pedp->packs_referenced = NULL;
   pedp->ellipsis_position = null_source_position;
   pedp->param_symbol_header = NULL;
+  pedp->param_symbol_type = NULL;
   pedp->ellipsis_seen = FALSE;
   pedp->is_function_declarator = FALSE;
   pedp->uses_only_enclosing_packs = FALSE;

@@ -11966,6 +11966,9 @@ doing C++17-style template template parameter matching.
            check, exit the loop. */
         break;
       }  /* if */
+      if (is_special_pack && tpp->param_num != param_num) {
+        is_special_pack = FALSE;
+      }  /* if */
       if (specified_tap != NULL &&
           is_start_of_pack_expansion_templ_arg(specified_tap)) {
         /* If we encounter a placeholder, set the pack flag. */
@@ -12127,9 +12130,6 @@ doing C++17-style template template parameter matching.
         prev_tap->next = tap;
       }  /* if */
       prev_tap = tap;
-      if (is_special_pack && tpp->param_num != param_num) {
-        is_special_pack = FALSE;
-      }  /* if */
     }  /* for */
   }  /* if */
   if (arg_kind_mismatch && new_list != NULL) {
@@ -26661,8 +26661,20 @@ position information.
   /* Allocate a template parameter and set its fields based on sym. */
   template_param = alloc_template_param(sym);
   if (is_pack) {
-    template_param_is_variadic(sym, /*is_pack_element=*/FALSE,
-                               /*is_non_initial=*/FALSE,
+    a_boolean  is_pack_element;
+    if (constraint != NULL && constraint->variant.concept_id.args != NULL &&
+        any_packs_referenced_in_curr_context()) {
+      /* A type parameter pack with a type-constraint that contains an
+         unexpanded parameter pack is a pack expansion. */
+      is_pack_element = pack_expansion_stack->instantiation_descr != NULL;
+      if (!is_pack_element) {
+        template_param->is_pack_expansion = TRUE;
+      }  /* if */
+    } else {
+      is_pack_element = FALSE;
+    }  /* if */
+    template_param_is_variadic(sym, is_pack_element,
+                               is_non_initial_variadic_element(),
                                template_param, decl_state);
   }  /* if */
   return template_param;
@@ -26786,7 +26798,14 @@ represents the associated concept template.
   if (curr_token == tok_ellipsis && variadic_templates_enabled &&
       !decl_state->is_generic) {
     is_pack = TRUE;
-    (void)get_token();
+    if (constraint != NULL && constraint->variant.concept_id.args != NULL &&
+        any_packs_referenced_in_curr_context()) {
+      /* A type parameter pack with a type-constraint that contains an
+         unexpanded parameter pack is a pack expansion. */
+      record_pack_expansion_ellipsis();
+    } else {
+      (void)get_token();
+    }  /* if */
   }  /* if */
   is_named = curr_token == tok_identifier;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -26923,6 +26942,30 @@ Scan the default argument of the nontype template parameter specified by tpp.
      are still template dependent. */
   tpp->default_arg.constant = default_arg_constant;
 }  /* scan_nontype_template_param_default_arg */
+
+
+static a_symbol_ptr make_type_template_param_symbol(
+			a_boolean			is_unnamed,
+			a_symbol_locator		*param_locator,
+			a_type_ptr			param_type_ptr)
+/*
+Create the symbol for a template type parameter.  Return the symbol.
+is_unnamed is TRUE if the parameter has no name or should be considered
+unnamed.  param_locator points to the symbol locator for the identifier, or
+is NULL if there is no identifier.  param_type_ptr is the parameter type.
+*/
+{
+  a_symbol_ptr  sym;
+
+  /* Create a symbol and set its type. */
+  sym = create_template_param_symbol(sk_type,
+                                     is_unnamed ? (a_symbol_locator*)NULL
+                                                : param_locator,
+                                     is_unnamed, /*is_rescan=*/FALSE);
+  sym->variant.type.ptr = param_type_ptr;
+  record_template_param_symbol(sym);
+  return sym;
+}  /* make_type_template_param_symbol */
 
 
 static a_symbol_ptr make_nontype_template_param_symbol(
@@ -27478,12 +27521,14 @@ depends on a another template parameter.
 static a_template_param_ptr make_empty_template_param(
 			a_tmpl_decl_state_ptr		decl_state,
 			a_tmpl_param_state_ptr		param_state,
-			a_symbol_header_ptr		symbol_header)
+			a_symbol_header_ptr		symbol_header,
+			a_type_ptr			symbol_type)
 /*
 A template parameter declaration that expands an enclosing pack expands
 to an empty pack.  Add a placeholder parameter to record that information.
 symbol_header is the symbol header associated with the original parameter
-declaration.
+declaration.  If symbol_type is non-NULL, create a template type parameter
+with that type; otherwise, create a template nontype parameter.
 */
 {
   a_symbol_ptr		sym;
@@ -27492,12 +27537,17 @@ declaration.
 
   clear_locator(&locator, &null_source_position);
   locator.symbol_header = symbol_header;
-  sym = make_nontype_template_param_symbol(
+  if (symbol_type != NULL) {
+    sym = make_type_template_param_symbol(symbol_header->is_unnamed,
+                                          &locator, symbol_type);
+  } else {
+    sym = make_nontype_template_param_symbol(
                                    decl_state->nesting_depth,
                                    param_state->list_pos,
                                    symbol_header->is_unnamed, /*is_pack=*/TRUE,
                                    &locator,
                                    type_of_unknown_templ_param_nontype);
+  }  /* if */
   sym->is_pack_expansion = TRUE;
   template_param = alloc_template_param(sym);
   template_param->is_empty_pack = TRUE;
@@ -27567,7 +27617,8 @@ to represent the template parameters.
       /* A pack expands to an empty expansion.  Add a placeholder
          parameter. */
       template_param = make_empty_template_param(decl_state, &param_state,
-                                                 pedp->param_symbol_header);
+                                                 pedp->param_symbol_header,
+                                                 pedp->param_symbol_type);
       /* Add the template param to the end of the list. */
       if (template_param_list == NULL) {
         template_param_list = template_param;
@@ -27646,6 +27697,10 @@ to represent the template parameters.
         /* If this an expansion of a pack, record the symbol header
            in the pack expansion description. */
         pedp->param_symbol_header = template_param->param_symbol->header;
+        if (symbol_is(template_param->param_symbol, sk_type)) {
+          pedp->param_symbol_type = template_param->param_symbol
+                                                  ->variant.type.ptr;
+        }  /* if */
       }  /* if */
     }  /* while */
     remove_stop_token(tok_comma);
@@ -29641,7 +29696,8 @@ first declaration of the template.
          parameters -- there is no way it can be given a value. */
       pos_sy2_diagnostic(strict_ansi_discretionary_severity, ec_unusable_pack,
                          &param_sym->decl_position, param_sym, sym);
-    } else if (tpp->is_pack) {
+    } else if (tpp->is_pack && !tpp->is_pack_expansion &&
+               !tpp->is_pack_element) {
       pack_seen = TRUE;
     }  /* if */
     if (!param_used) {
@@ -41517,27 +41573,19 @@ this routine that handles just the argument list and not the parameter
 list.
 */
 {
-  uint32_t	param_num;
-
   check_assertion(tap != NULL);
   *tap = (*tap)->next;
-  /* If *tap points to a placeholder, skip to the next real argument. */
-  skip_start_of_pack_placeholders(tpp, tap, /*is_first=*/FALSE);
-  if (*tap == NULL || !(*tap)->is_pack_element) {
-    if (tpp != NULL && *tpp != NULL) {
-      param_num = (*tpp)->param_num;
+  if (tpp != NULL && (*tpp) != NULL) {
+    if (!(*tpp)->is_pack || (*tpp)->is_pack_element ||
+        *tap == NULL || !(*tap)->is_pack_element) {
+      /* Advance to the next template parameter unless *tap points to a pack
+         element and the corresponding template parameter is an unexpanded
+         template parameter pack. */
       *tpp = (*tpp)->next;
-      if (param_num > 0) {
-        /* When an enclosing template parameter pack is used as a nontype
-           template parameter, there will be a set of parameters with a
-           given parameter number.  Skip over any remaining parameters
-           with the same parameter number. */
-        while (*tpp != NULL && (*tpp)->param_num == param_num) {
-          *tpp = (*tpp)->next;
-        }  /* while */
-      }  /* if */
     }  /* if */
   }  /* if */
+  /* If *tap points to a placeholder, skip to the next real argument. */
+  skip_start_of_pack_placeholders(tpp, tap, /*is_first=*/TRUE);
 }  /* advance_to_next_template_arg */
 
 
