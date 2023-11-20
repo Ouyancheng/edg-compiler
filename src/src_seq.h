@@ -139,12 +139,12 @@ extern void f_remove_from_src_seq_list(a_source_sequence_entry_ptr ssep,
 
 extern void remove_src_seq_entry(a_source_sequence_entry_ptr  ssep);
 
-#if GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS
+#if GENERATE_SOURCE_SEQUENCE_LISTS
 
 extern void remove_src_seq_list(a_source_sequence_entry_ptr  head,
                                 a_source_sequence_entry_ptr  tail);
 
-#endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 extern a_source_sequence_entry_ptr last_matching_source_sequence_entry(
                                                                char *entity);
@@ -177,11 +177,9 @@ typedef unsigned int an_sssd_flag_set;
 			   originally_nonautonomous_definition in the
 			   secondary-decl entry. */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-#if GNU_EXTENSIONS_ALLOWED
 #define SSSD_MARKED_AS_GNU_EXTENSION ((an_sssd_flag_set)0x40)
 			/* If this bit it set, set marked_as_gnu_extension in
 			   the secondary-decl entry. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
 extern a_src_seq_secondary_decl_ptr set_src_seq_secondary_decl_fields(
                                            char                  *il_entry_ptr,

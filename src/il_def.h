@@ -2120,11 +2120,9 @@ typedef struct a_src_seq_secondary_decl {
 			   the source sequence entries for the S<int>::N
 			   definition should be inserted. */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-#if GNU_EXTENSIONS_ALLOWED
   a_bit_field	marked_as_gnu_extension:1;
 			/* TRUE if the corresponding declaration was preceded
 			   by the GNU keyword __extension__. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   a_bit_field	is_decl_after_first_in_comma_list:1;
 			/* This declaration appeared in a comma-separated
 			   declarator list and was not the first in that list.
@@ -3375,13 +3373,13 @@ typedef struct a_source_correspondence {
 			/* TRUE if the name was specified using a
 			   Microsoft __identifier operator. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS
+#if GENERATE_SOURCE_SEQUENCE_LISTS
   a_bit_field	marked_as_gnu_extension:1;
 			/* TRUE if the primary declaration was preceded by the
 			   GNU keyword __extension__.  (For other declarations
 			   a similar flag is present in the corresponding
 			   secondary source sequence entry.) */
-#endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   a_bit_field   is_deprecated_or_unavailable:1;
 			/* TRUE if this entity was marked as deprecated
 			   or unavailable (using an attribute). */
@@ -12239,12 +12237,10 @@ typedef struct a_routine {
 			/* In UPC mode, the UPC access method set at the
 			   point this routine was defined. */
 #endif /* UPC_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
   a_bit_field	contains_statement_expression:1;
 			/* TRUE if this routine's body contains one or more
 			   statement expressions, i.e., ({...}), a GNU
 			   extension. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if IA64_ABI
   a_bit_field	inline_in_class_definition:1;
 			/* TRUE if this routine is a member of a class and was
@@ -12932,9 +12928,7 @@ enum an_expr_node_kind : a_bit_field {
 			/* Used to represent nonstandard construct "&..."
 			   (when ALLOW_ADDRESS_OF_ELLIPSIS is TRUE, to support
 			   stdarg.h macro va_start). */
-#if GNU_EXTENSIONS_ALLOWED
   enk_statement,	/* GNU statement expression, ({...}). */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   enk_reuse_value,	/* Reuse a value computed elsewhere in the current
 			   expression tree.  Used for cases where a single
 			   expression is used twice but evaluated only once.
@@ -14173,11 +14167,9 @@ typedef struct an_expr_node {
 			   expression pointed to by a param-type entry; one
 			   such copy is associated with each call that uses
 			   the default argument. */
-#if GNU_EXTENSIONS_ALLOWED
   a_bit_field	marked_as_gnu_extension:1;
 			/* TRUE if the expression was preceded by the GNU
 			   keyword __extension__. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   a_bit_field	is_static_cast:1;
 			/* TRUE if this node represents a static_cast in
 			   the source.  Set only on enk_temp_init nodes and
@@ -14696,12 +14688,10 @@ typedef struct an_expr_node {
 		templ;	/* The argument of sizeof...(TT), in template form. */
       } variant;
     } sizeof_pack;
-#if GNU_EXTENSIONS_ALLOWED
     /* When kind == enk_statement: */
     a_statement_ptr
 		statement;
 			/* Enclosed compound statement. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
     /* When kind == enk_reuse_value: */
     a_dynamic_init_ptr
 		reused_value_init;
@@ -15016,12 +15006,10 @@ enum a_statement_kind : a_byte {
   stmk_assigned_goto,	/* Assigned GOTO. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   stmk_empty,		/* Empty ("null") statement. (";" in C/C++) */
-#if GNU_EXTENSIONS_ALLOWED
   stmk_stmt_expr_result,
 			/* A statement in a GNU statement expression producing
 			   the result value of that expression.  Always the
 			   last statement of its block. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   stmk_last
 };
 
@@ -15051,11 +15039,9 @@ typedef struct a_block {
   a_bit_field	end_of_block_reachable:1;
 			/* TRUE if the end of the block is reachable.  The
 			   safe setting is TRUE. */
-#if GNU_EXTENSIONS_ALLOWED
   a_bit_field	is_statement_expression:1;
 			/* TRUE if this block is the outer block created for
 			   a GNU statement expression. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   a_bit_field	implicit_scope_not_allowed:1;
 			/* TRUE if this block was added by the front end
 			   merely to allow grouping some statements together
@@ -15996,7 +15982,6 @@ typedef struct a_statement {
                            is allocated at this point. */
       } variant;
     } vla;
-#if GNU_EXTENSIONS_ALLOWED
     /* When kind == stmk_stmt_expr_result: */
     struct {
       a_dynamic_init_ptr
@@ -16008,7 +15993,6 @@ typedef struct a_statement {
 			   dik_constructor).  NULL otherwise.  This is non-NULL
 			   (C++ only) when expr is NULL, and vice versa. */
     } stmt_expr_result;
-#endif /* GNU_EXTENSIONS_ALLOWED */
   } variant;
 } a_statement;
 

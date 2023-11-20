@@ -3495,11 +3495,9 @@ as specified in the control block.
       break;
     case enk_address_of_ellipsis:
       break;
-#if GNU_EXTENSIONS_ALLOWED
     case enk_statement:
       traverse_statement(expr->variant.statement, tblock);
       break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
     case enk_reuse_value:
       break;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
@@ -3959,6 +3957,7 @@ as specified in the control block.
       /* Used for GNU "goto *expr;". */
       traverse_expr(statement->expr, tblock);
       break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     case stmk_stmt_expr_result:
       /* The final expression statement in a GNU statement expression
          (if any). */
@@ -3971,7 +3970,6 @@ as specified in the control block.
         unexpected_condition();
       }  /* if */
       break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
     case stmk_empty:
       break;
     default:

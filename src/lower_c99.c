@@ -4102,12 +4102,10 @@ second parameter.
     case enk_sizeof:
       lower_runtime_sizeof(expr);
       break;
-#if GNU_EXTENSIONS_ALLOWED
     case enk_statement:
       /* GNU C statement expression, ({...}). */
       lower_gnu_statement_expression(expr);
       break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
     case enk_reuse_value:
       lower_reuse_value_expr(expr);
       break;
@@ -4400,9 +4398,7 @@ Do C99 lowering on the indicated statement.
         case stmk_while:
         case stmk_end_test_while:
         case stmk_for:
-#if GNU_EXTENSIONS_ALLOWED
         case stmk_stmt_expr_result:
-#endif /* GNU_EXTENSIONS_ALLOWED */
           /* These cases are handled below in some special way. */
           break;
         default:
@@ -4430,14 +4426,12 @@ Do C99 lowering on the indicated statement.
       case stmk_asm:
         lower_asm_statement(statement);
         break;
-#if GNU_EXTENSIONS_ALLOWED
       case stmk_stmt_expr_result:
         /* In non-C++ mode, this cannot involve a "return-by-constructor-call"
            and so we just fall through to the ordinary expression case. */
         check_assertion(statement->variant.stmt_expr_result.dynamic_init ==
                                                                          NULL);
         FALLTHROUGH
-#endif /* GNU_EXTENSIONS_ALLOWED */
       case stmk_expr:
         /* Expression statement.  Pass in the statement to allow better
            inlining. */

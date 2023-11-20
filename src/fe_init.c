@@ -1221,8 +1221,10 @@ Install the keywords in the symbol table.
   if (c23_typeof_enabled) {
     enter_keyword((a_token_kind)tok_typeof_unqual, "typeof_unqual");
   }  /* if */
-  if (gnu_mode) {
+  if (gnu_mode || msc_version_is(>=1939)) {
     enter_keyword((a_token_kind)tok_extension, "__extension__");
+  }  /* if */
+  if (gnu_mode) {
     if (gcc_mode && gnu_version >= 40900) {
       enter_keyword((a_token_kind)tok_auto_type, "__auto_type");
     }  /* if */

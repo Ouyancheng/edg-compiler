@@ -6846,14 +6846,12 @@ sizeof_cases:
     case enk_address_of_ellipsis:
       write_tok_str("&...");
       break;
-#if GNU_EXTENSIONS_ALLOWED
     case enk_statement:
       /* GNU C statement expression, ({...}). */
       write_tok_str("({");
       dump_block(expr->variant.statement);
       write_tok_str("})");
       break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
     case enk_temp_init:
       /* Used for C99 compound literals. */
       dump_compound_literal(expr);

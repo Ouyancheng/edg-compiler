@@ -824,11 +824,11 @@ Display the indicated source correspondence entry.
     disp_boolean("  member_of_unknown_super", TRUE);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS
+#if GENERATE_SOURCE_SEQUENCE_LISTS
   if (scp->marked_as_gnu_extension) {
     disp_boolean("marked_as_gnu_extension", TRUE);
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (scp->is_deprecated_or_unavailable) { 
     disp_boolean("is_deprecated_or_unavailable", TRUE);
   }  /* if */
@@ -3864,11 +3864,9 @@ Display the indicated routine.
                                                       ptr->fx_accum_overflow));
   }  /* if */
 #endif /* FIXED_POINT_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
   if (ptr->contains_statement_expression) {
     disp_boolean("contains_statement_expression", TRUE);
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if IA64_ABI
   if (ptr->inline_in_class_definition) {
     disp_boolean("inline_in_class_definition", TRUE);
@@ -4464,11 +4462,9 @@ Display the indicated expression node.
   if (ptr->generated_default_arg) {
     disp_boolean("generated_default_arg", TRUE);
   }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
   if (ptr->marked_as_gnu_extension) {
     disp_boolean("marked_as_gnu_extension", TRUE);
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   if (ptr->is_static_cast) {
     disp_boolean("is_static_cast", TRUE);
   }  /* if */
@@ -4749,12 +4745,10 @@ sizeof_cases:
     case enk_address_of_ellipsis:
       (void)printf("enk_address_of_ellipsis\n");
       break;
-#if GNU_EXTENSIONS_ALLOWED
     case enk_statement:
       (void)printf("enk_statement\n");
       disp_ptr("statement", (char *)ptr->variant.statement, iek_statement);
       break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
     case enk_reuse_value:
       (void)printf("enk_reuse_value\n");
       disp_ptr("reused_value_init", (char *)ptr->variant.reused_value_init,
@@ -5160,11 +5154,9 @@ Display the indicated block.
   disp_ptr("lifetime", (char *)ptr->lifetime, iek_object_lifetime);
   disp_boolean("end_of_block_reachable",
                (a_boolean)ptr->end_of_block_reachable);
-#if GNU_EXTENSIONS_ALLOWED
   if (ptr->is_statement_expression) {
     disp_boolean("is_statement_expression", TRUE);
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   if (ptr->implicit_scope_not_allowed) {
     disp_boolean("implicit_scope_not_allowed", TRUE);
   }  /* if */
@@ -5555,6 +5547,7 @@ do_label:
       (void)printf("stmk_assigned_goto\n");
       disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
       break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
     case stmk_stmt_expr_result:
       (void)printf("stmk_stmt_expr_result\n");
       if (ptr->variant.stmt_expr_result.dynamic_init != NULL) {
@@ -5565,7 +5558,6 @@ do_label:
         disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
       }  /* if */
       break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
     default:
       (void)printf("**BAD STATEMENT KIND**\n");
   }  /* switch */
@@ -7754,11 +7746,9 @@ Display the indicated source sequence secondary declaration entry.
     disp_boolean("originally_nonautonomous_definition", TRUE);
   }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-#if GNU_EXTENSIONS_ALLOWED
   if (sssdp->marked_as_gnu_extension) {
     disp_boolean("marked_as_gnu_extension", TRUE);
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   if (sssdp->is_decl_after_first_in_comma_list) {
     disp_boolean("is_decl_after_first_in_comma_list", TRUE);
   }  /* if */

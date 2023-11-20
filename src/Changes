@@ -1,5 +1,13 @@
 Version 6.6
 
+11/20/23 [EDGcpfe/26795]
+Microsoft C compatibility: Statement expressions and __extension__
+
+In Microsoft C mode with microsoft_version >= 1939 the front end now accepts
+GNU-style statement expressions and well as the __extension__ keyword.  Both
+features no longer require GNU_EXTENSIONS_ALLOWED to be configured TRUE.
+
+
 11/20/23 [EDGcpfe/26770]
 C++-generating back end: parenthesized aggregate initialization
 

@@ -3217,7 +3217,6 @@ non-autonomous declaration or definition.
   }  /* if */
 }  /* skip_type_and_delay_definition */
 
-#if GNU_EXTENSIONS_ALLOWED
 
 static a_boolean curr_src_seq_entry_is_for_statement_expression(void)
 /*
@@ -3270,7 +3269,6 @@ corresponding end-of-construct entry.
   }  /* for */
 }  /* skip_block_statement */
 
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void f_skip_embedded_declarations(a_boolean  end_of_construct_marked)
 /*
@@ -3312,10 +3310,8 @@ autonomous may be skipped.  E.g.:
           !is_autonomous_decl(type, sec_decl)) {
         found_decl = TRUE;
       }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
     } else if (curr_src_seq_entry_is_for_statement_expression()) {
       found_decl = TRUE;
-#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     /* Go back to before any preprocessing entries skipped. */
     restore_source_sequence_scan_state(&saved_state);
@@ -3327,10 +3323,8 @@ autonomous may be skipped.  E.g.:
          a cast in an expression).  Skip it and mark it for later
          processing. */
       skip_type_and_delay_definition(type, is_definition);
-#if GNU_EXTENSIONS_ALLOWED
     } else {
       skip_block_statement();
-#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* for */
 }  /* f_skip_embedded_declarations */
@@ -16241,7 +16235,6 @@ operator or a template argument by a ",".
   return result;
 }  /* has_unprotected_gt_or_comma_operation */
 
-#if GNU_EXTENSIONS_ALLOWED
 
 static void gen_statement_expression(an_expr_node_ptr  expr)
 /*
@@ -16270,7 +16263,6 @@ Render the given GNU statement expression.
   }  /* if */
 }  /* gen_statement_expression */
 
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static void gen_fold_operand(an_expr_node_ptr expr)
 /*
@@ -17558,12 +17550,10 @@ sizeof_cases:
     case enk_address_of_ellipsis:
       write_tok_str("&...");
       break;
-#if GNU_EXTENSIONS_ALLOWED
     case enk_statement:
       /* GNU statement expression, ({...}). */
       gen_statement_expression(expr);
       break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
     case enk_reuse_value:
       /* This comes up in Microsoft property reference expansions. */
       dip = expr->variant.reused_value_init;

@@ -16397,9 +16397,7 @@ declaration modifiers.
 {
   decl_modifiers->flags = DM_NONE;
   decl_modifiers->direct_linkage_specifier = FALSE;
-#if GNU_EXTENSIONS_ALLOWED
   decl_modifiers->marked_as_gnu_extension = FALSE;
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   decl_modifiers->is_deprecated = FALSE;
   decl_modifiers->is_microsoft_intrinsic = FALSE;

@@ -570,12 +570,10 @@ typedef struct a_call_frame {
     a_source_position
 		*position;
 			/* The source position of the call. */
-#if GNU_EXTENSIONS_ALLOWED
     /* When routine == NULL: */
     an_expr_node_ptr
 		expr;	/* The statement expression associated with this
 			   frame. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   } variant;
   a_byte	*result_storage;
 			/* The storage in which returned expression results
@@ -1350,7 +1348,6 @@ Macros to push and pop call frames.
 #define pop_call_frame(ips)                                                  \
   ((ips)->curr_call_frame = (ips)->curr_call_frame->parent)
 
-#if GNU_EXTENSIONS_ALLOWED
 /*
 Macro to push a GNU statement expressions frame (which is a special kind of
 call frame).
@@ -1370,7 +1367,6 @@ call frame).
     (ips)->curr_call_frame = (p_frame);                                      \
     (ips)->call_seen = FALSE;                                                \
   }
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
 
 /*
@@ -7651,7 +7647,6 @@ successfully interpreted, FALSE otherwise.
       }
 done_with_return_statement:
       break;
-#if GNU_EXTENSIONS_ALLOWED
     case stmk_stmt_expr_result:
       { a_call_frame_ptr  frame = ips->curr_call_frame;
         a_byte            *result_storage = frame->result_storage;
@@ -7675,7 +7670,6 @@ done_with_return_statement:
         }  /* if */
       }
       break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
     case stmk_block:
       { a_block_ptr  block = stmt->variant.block.extra_info;
         result = do_constexpr_block_statement(ips, stmt, block->assoc_scope);
@@ -22872,7 +22866,6 @@ the value representation of the integer value.
       result = do_constexpr_builtin_operation(ips, expr, result_storage,
                                               complete_object);
       break;
-#if GNU_EXTENSIONS_ALLOWED
     case enk_statement:
       { a_call_frame     frame;
         a_statement_ptr  stmt = expr->variant.statement;
@@ -22891,7 +22884,6 @@ the value representation of the integer value.
         pop_call_frame(ips);
       }
       break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
     case enk_initializer:
       { a_constexpr_address  dst_addr;
         set_active_address(ips, &dst_addr, result_storage, complete_object);

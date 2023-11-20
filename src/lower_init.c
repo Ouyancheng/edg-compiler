@@ -10421,7 +10421,6 @@ do_assignment:;
       /* Initialize the entry by either calling a routine that returns its
          result via a constructor or invoking a GNU statement expression whose
          final statement "returns" the result via a constructor. */
-#if GNU_EXTENSIONS_ALLOWED
       if (dip->variant.expression->kind == (an_expr_node_kind)enk_statement) {
         /* The final statement of the GNU statement expression will initialize
            the entity being initialized here; save the information here to use
@@ -10436,10 +10435,7 @@ do_assignment:;
         gse_return_value_pointer_variable =
                                         save_gse_return_value_pointer_variable;
         gse_init_position = save_gse_init_position;
-      } else
-#endif /* GNU_EXTENSIONS_ALLOWED */
-      /* Do not insert code here. */
-      {
+      } else {
         /* The address of the temporary being initialized is added as an
            implicit argument of the call. */
         lower_call(dip->variant.expression, ipdp, (a_statement_ptr)NULL,

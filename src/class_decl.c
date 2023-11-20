@@ -16248,11 +16248,9 @@ implicitly declared member functions.
          declaration within a class definition is always the initial
          declaration. */
       sssd_flags = SSSD_FIRST_DECLARATION;
-#if GNU_EXTENSIONS_ALLOWED
       if (decl_state->marked_as_gnu_extension) {
         sssd_flags |= SSSD_MARKED_AS_GNU_EXTENSION;
       }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
       if (update_src_seq_secondary_decl((char *)rtn, tp, name_ref, sssd_flags,
                                         &decl_info->decl_pos_block) == NULL) {
         /* No source-sequence secondary declaration entity was found, which
@@ -16260,13 +16258,11 @@ implicitly declared member functions.
            to suppress copying the default arg expression to it later on. */
         func_info->declared_type = NULL;
       }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
     } else {
       /* An in-class definition (that will not be moved out-of-class). */
       /* Record whether the declaration was preceded by __extension__. */
       rtn->source_corresp.marked_as_gnu_extension =
                                           decl_state->marked_as_gnu_extension;
-#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
     wrapup_sse_for_simple_decl(decl_state);
     add_src_seq_end_of_routine_if_needed(decl_state);
@@ -18786,11 +18782,9 @@ template declaration and is NULL otherwise.
       }  /* if */
     } else if (!(srk_flags & (SRK_DEFINITION | SRK_INITIALIZATION))) {
       an_sssd_flag_set  flags = SSSD_FIRST_DECLARATION;
-#if GNU_EXTENSIONS_ALLOWED
       if (decl_state->marked_as_gnu_extension) {
         flags |= SSSD_MARKED_AS_GNU_EXTENSION;
       }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
       (void)update_src_seq_secondary_decl((char *)var, declared_type, name_ref,
                                           flags, &decl_info->decl_pos_block);
     } else {
@@ -20953,6 +20947,11 @@ be entered.
     diagnose_use_of_deprecated_or_unavailable_type(member_type,
                                                    &locator->source_position);
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Record whether the declaration was preceded by __extension__. */
+  field->source_corresp.marked_as_gnu_extension =
+                                          decl_state->marked_as_gnu_extension;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode) {
     /* An asm name is not allowed on a field. */
@@ -20961,11 +20960,6 @@ be entered.
     }  /* if */
     field->vla_treated_as_zero_length_array =
                            decl_state->vla_field_treated_as_zero_length_array;
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-    /* Record whether the declaration was preceded by __extension__. */
-    field->source_corresp.marked_as_gnu_extension =
-                                          decl_state->marked_as_gnu_extension;
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -25867,11 +25861,9 @@ entity if applicable.
       init_decl_parse_state(&dps);
       dps.in_class_scope = TRUE;
       dps.start_pos = using_pos;
-#if GNU_EXTENSIONS_ALLOWED
       if (marked_as_gnu_extension) {
         dps.marked_as_gnu_extension = TRUE;
       }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
       alias_declaration(&dps, &end_of_using_pos);
       result = dps.sym;
       goto done;
@@ -29812,11 +29804,9 @@ block of information that is provided if this is a member template declaration.
   dps->is_lambda = type_is_lambda_closure(class_type);
   dps->is_implicit_type_context = TRUE;
   dps->function_definition_allowed = TRUE;
-#if GNU_EXTENSIONS_ALLOWED
   if (marked_as_gnu_extension) {
     dps->marked_as_gnu_extension = TRUE;
   }  /* if */
-#endif /*GNU_EXTENSIONS_ALLOWED */
   if (!dps->is_lambda) {
     /* Normal case: Scan attributes and declaration specifiers. */
     if (!C_mode() && !is_member_template && !is_member_template_rescan) {
@@ -29852,14 +29842,14 @@ block of information that is provided if this is a member template declaration.
     /* Allow specifier attributes. */
     if (std_attributes_enabled)  dsi_flags |= DSI_STD_ATTRIBUTES_ALLOWED;
     if (gnu_attributes_enabled) dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
+    if (curr_token == tok_extension) {
+      dsi_flags |= DSI_MARKED_AS_GNU_EXTENSION;
+      dps->marked_as_gnu_extension = TRUE;
+      (void)get_token();
+    }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     if (gnu_mode) {
       dsi_flags |= DSI_EMPTY_DECL_SPECIFIERS_ALLOWED;
-      if (curr_token == tok_extension) {
-        dsi_flags |= DSI_MARKED_AS_GNU_EXTENSION;
-        dps->marked_as_gnu_extension = TRUE;
-        (void)get_token();
-      }  /* if */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -32983,12 +32973,10 @@ classes.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         a_boolean            bad_export = FALSE,
                              marked_as_gnu_extension = FALSE;
-#if GNU_EXTENSIONS_ALLOWED
         if (curr_token == tok_extension) {
           marked_as_gnu_extension = TRUE;
           (void)get_token();
         }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
         add_stop_token(tok_semicolon);
         if (curr_token == tok_export) {
           bad_export = TRUE;

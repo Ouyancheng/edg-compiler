@@ -1622,7 +1622,6 @@ types separated by commas (when single_type_required is FALSE).
   a_boolean	      is_start_of_type;
 
   db_enter(3, "is_decl_not_expr_full");
-#if GNU_EXTENSIONS_ALLOWED
   if (curr_token == tok_extension) {
     /* The GNU __extension__ keyword can start an expression or a declaration:
        temporarily skip the token, and restart disambiguation from the next
@@ -1635,7 +1634,6 @@ types separated by commas (when single_type_required is FALSE).
     rescan_cached_tokens(&cache);
     goto done;
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Determine whether the current identifier is a synthesized template
      parameter type symbol created in implicit_typename mode.  If so,
      we must do additional checking for casts to determine that the
@@ -1826,9 +1824,7 @@ restore_token_sequence:
     }  /* if */
     result = state.may_be_decl;
   }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
 done:
-#endif /* GNU_EXTENSIONS_ALLOWED */
   db_exit();
   return result;
 }  /* is_decl_not_expr_full */

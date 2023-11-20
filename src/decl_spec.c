@@ -3188,11 +3188,9 @@ __extension__.
                SSSD_ORIGINALLY_NONAUTONOMOUS_DEFINITION;
     }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-#if GNU_EXTENSIONS_ALLOWED
     if (gnu_extension) {
       flags |= SSSD_MARKED_AS_GNU_EXTENSION;
     }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
     (void)set_src_seq_secondary_decl_fields((char*)tag_type, (a_type*)NULL,
                                             name_ref, flags);
 #if GNU_EXTENSIONS_ALLOWED
@@ -3200,8 +3198,8 @@ __extension__.
     if (name_ref != NULL) {
       name_ref->used_in_primary_declarator = TRUE;
     }  /* if */
-    tag_type->source_corresp.marked_as_gnu_extension = gnu_extension;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+    tag_type->source_corresp.marked_as_gnu_extension = gnu_extension;
   }  /* if */
 }  /* update_sse_for_first_tag_declaration */
 
@@ -4433,11 +4431,9 @@ defined.  Detailed position information is recorded in *decl_pos_block.
           name_ref = qualifiable_name_reference(&locator,
                                                 &class_type->source_corresp);
         }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
         if (marked_as_gnu_extension) {
           flags |= SSSD_MARKED_AS_GNU_EXTENSION;
         }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
         (void)set_src_seq_secondary_decl_fields(
                                          (char *)class_type, (a_type_ptr)NULL,
                                          name_ref, flags);
@@ -10428,11 +10424,9 @@ corresponding change in prescan_decl_specifiers (in disambig.c).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
  
   db_enter(3, "decl_specifiers");
-#if GNU_EXTENSIONS_ALLOWED
   if (marked_as_gnu_extension) {
     state->decl_modifiers.marked_as_gnu_extension = TRUE;
   }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   decl_specifiers_seen = DS_NONE;
   type_specifier_allowed = (input_flags & DSI_TYPE_SPECIFIER_ALLOWED) != 0;
   vacuous_decl_allowed = (input_flags & DSI_VACUOUS_TAG_DECL_ALLOWED) != 0;

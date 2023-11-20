@@ -3035,12 +3035,10 @@ process_side_effect:
          so the initialization is the only thing left and therefore it has
          no ordering issues. */
       break;
-#if GNU_EXTENSIONS_ALLOWED
     case enk_statement:
       /* GNU statement expressions are much like function calls. */
       tblock->suppress_subtree_walk = TRUE;
       break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
     default:
       /* There are no ordering issues for other cases. */
       break;
@@ -6856,7 +6854,7 @@ diagnostic if appropriate.
   return result;
 }  /* consteval_failure */
 
-#if GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS
+#if GENERATE_SOURCE_SEQUENCE_LISTS
 
 static void eliminate_stmt_expr_sses_if_backing_expr_dropped(
                                                         an_expr_node_ptr  expr,
@@ -6873,10 +6871,10 @@ with GNU statement expressions in expr.
   }  /* if */
 }  /* eliminate_stmt_expr_sses_if_backing_expr_dropped */
 
-#else /* !(GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS) */
+#else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
 #define eliminate_stmt_expr_sses_if_backing_expr_dropped(expr, con) \
   /* Nothing */
-#endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 static a_boolean expr_fold_constexpr_call(an_expr_node_ptr  call_expr,
                                           a_routine_ptr     *p_rout,

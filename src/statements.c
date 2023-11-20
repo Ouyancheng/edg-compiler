@@ -3449,17 +3449,13 @@ block under the "try" in a function try block.
   a_struct_stmt_kind      kind;
   a_statement_ptr         block_stmt;
 
-#if GNU_EXTENSIONS_ALLOWED
   if (is_statement_expr) {
     /* A GNU statement expression.  Do not link the statement into
        the current statement on the statement stack. */
     block_stmt = alloc_statement((a_statement_kind)stmk_block);
     block_stmt->variant.block.extra_info->is_statement_expression = TRUE;
     block_stmt->position = pos_curr_token;
-  } else
-#endif /* GNU_EXTENSIONS_ALLOWED */
-  /* Do not insert code here. */
-  {
+  } else {
     /* Allocate a block statement and add it to the statements list. */
     block_stmt = add_statement_at_stmt_pos((a_statement_kind)stmk_block,
                                            generated_statement ?
@@ -3536,11 +3532,8 @@ the block statement.
 */
 {
   a_block_ptr block = block_stmt->variant.block.extra_info;
-  a_boolean   is_statement_expression = FALSE;
+  a_boolean   is_statement_expression = block->is_statement_expression;
 
-#if GNU_EXTENSIONS_ALLOWED
-  is_statement_expression = block->is_statement_expression;
-#endif /* GNU_EXTENSIONS_ALLOWED */
   /* Remember whether or not the end of the block is reachable.  This
      is helpful in IL lowering. */
   block->end_of_block_reachable = curr_reachability.reachable;
@@ -5225,7 +5218,6 @@ the statement was preceded by the GNU C __extension__ keyword.
   expr = scan_void_expression(/*repeated_in_loop=*/FALSE,
                               marked_as_gnu_extension, is_statement_expr,
                               &dip, (an_init_component*)NULL);
-#if GNU_EXTENSIONS_ALLOWED
   if (dip != NULL) {
     /* The result of a GNU statement expression that requires nontrivial
        initialization or destruction semantics. */
@@ -5238,9 +5230,6 @@ the statement was preceded by the GNU C __extension__ keyword.
        stmk_stmt_expr_result entry for easy identification. */
     set_statement_kind(sp, (a_statement_kind)stmk_stmt_expr_result);
   }  /* if */
-#else /* !GNU_EXTENSIONS_ALLOWED */
-  check_assertion(!is_statement_expr && dip == NULL);
-#endif /* GNU_EXTENSIONS_ALLOWED */
   if (expr != NULL) {
     sp->expr = expr;
     /* If the expression is a throw expression or the call of a function that

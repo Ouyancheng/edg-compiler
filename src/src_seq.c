@@ -62,7 +62,6 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       }  /* if */
       if (sp->kind == (a_statement_kind)stmk_expr) {
         db_expr_summary(sp->expr);
-#if GNU_EXTENSIONS_ALLOWED
       } else if (sp->kind == (a_statement_kind)stmk_stmt_expr_result) {
         if (sp->expr != NULL) {
           db_expr_summary(sp->expr);
@@ -70,7 +69,6 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           a_dynamic_init_ptr dip = sp->variant.stmt_expr_result.dynamic_init;
           db_dynamic_initializer(dip, /*level=*/0);
         }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
       }  /* if */
     } else if (kind == (an_il_entry_kind)iek_pragma) {
       a_pragma_ptr  pp = (a_pragma_ptr)ssep->entity.ptr;
@@ -1362,7 +1360,7 @@ with: It considers all active scopes if needed.
   }  /* if */
 }  /* remove_src_seq_entry */
 
-#if GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS
+#if GENERATE_SOURCE_SEQUENCE_LISTS
 
 void remove_src_seq_list(a_source_sequence_entry_ptr  head,
                          a_source_sequence_entry_ptr  tail)
@@ -1382,7 +1380,7 @@ to tail.
   }  /* for */
 }  /* remove_src_seq_list */
 
-#endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 a_src_seq_secondary_decl_ptr make_source_sequence_secondary_decl(
                                             char               *ptr,
@@ -2219,11 +2217,9 @@ in the secondary source sequence entry that need to be set.
         sssdp->originally_nonautonomous_definition = TRUE;
       }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-#if GNU_EXTENSIONS_ALLOWED
       if (flags & SSSD_MARKED_AS_GNU_EXTENSION) {
         sssdp->marked_as_gnu_extension = TRUE;
       }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
   return sssdp;

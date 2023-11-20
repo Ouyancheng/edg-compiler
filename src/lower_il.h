@@ -631,7 +631,6 @@ EXTERN a_variable_ptr
 			   at which the result will be stored; NULL
 			   otherwise. */
 
-#if GNU_EXTENSIONS_ALLOWED
 EXTERN a_variable_ptr
                 gse_return_value_pointer_variable;
                         /* Somewhat similar to return_value_pointer_variable
@@ -649,7 +648,6 @@ EXTERN an_init_pos_descr_ptr
                            GNU statement expression.  For example:
                               S *p = new S(({ S(); }));
                            NULL otherwise. */
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
 #if DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING
 /*
@@ -1403,9 +1401,7 @@ extern a_variable_ptr make_ifunc_resolver_var(a_routine_ptr rp);
 extern void lower_ifunc_expr(an_expr_node_ptr expr);
 #endif /* LOWER_IFUNC */
 
-#if GNU_EXTENSIONS_ALLOWED
 extern void lower_gnu_statement_expression(an_expr_node_ptr expr);
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
 extern an_expr_node_ptr make_class_lvalue_from_var(a_variable_ptr var);
 

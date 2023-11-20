@@ -536,9 +536,7 @@ static void promote_static_variable_out_of_function(
 static a_routine_ptr lowered_mv_routine(a_routine_ptr routine);
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
 
-#if GNU_EXTENSIONS_ALLOWED
 static void change_block_into_statement_expression(a_statement_ptr block);
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
 
 static void clear_insert_location(an_insert_location      *insert_location,
@@ -15981,7 +15979,6 @@ wrapper routine if applicable.
 }  /* lower_thread_local_variable */
 
 #endif /* USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES */
-#if GNU_EXTENSIONS_ALLOWED
 
 void lower_gnu_statement_expression(an_expr_node_ptr  expr)
 /*
@@ -16089,7 +16086,6 @@ expression).  This routine is used in lowering both C and C++.
   }  /* if */
 }  /* lower_gnu_statement_expression */
 
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static an_expr_node_ptr spaceship_result_constant_expr(int         val,
                                                        a_type_ptr  tp)
@@ -17036,12 +17032,10 @@ cast.  See lower_expr for typical invocation.
     case enk_result_of_overriding_function:
       break;
 #endif /* ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
-#if GNU_EXTENSIONS_ALLOWED
     case enk_statement:
       /* GNU statement expression, ({ ... }). */
       lower_gnu_statement_expression(expr);
       break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
     case enk_reuse_value:
       lower_reuse_value_expr(expr);
       break;
@@ -18058,7 +18052,6 @@ Do lowering on the constants pointed to by the given switch case entry.
   }  /* if */
 }  /* lower_switch_case */
 
-#if GNU_EXTENSIONS_ALLOWED
 
 static void change_block_into_statement_expression(a_statement_ptr block)
 /*
@@ -18121,7 +18114,6 @@ sure the last expression in the statement expression returns a value:
   set_expr_result_not_used(block->expr);
 }  /* change_block_into_statement_expression */
 
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
 void turn_statement_into_block(a_statement_ptr        statement,
                                an_insert_location_ptr insert_location,
@@ -20091,6 +20083,7 @@ Do IL lowering of the indicated statement and everything under it.
            there should never be a top-level call operation). */
         lower_full_expr(stmt_expr, (a_statement_ptr)NULL);
         break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
       case stmk_stmt_expr_result:
         /* This statement is the last in a GNU statement expression, and it
            returns a value. */
@@ -20153,7 +20146,6 @@ Do IL lowering of the indicated statement and everything under it.
           check_assertion(!keep_dynamic_init);
         }  /* if */
         break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
       case stmk_coroutine:
         lower_coroutine(statement);
         break;
@@ -22871,10 +22863,8 @@ for each translation unit.
   lowering_file_scope = FALSE;
   curr_context = NULL;
   return_value_pointer_variable = NULL;
-#if GNU_EXTENSIONS_ALLOWED
   gse_return_value_pointer_variable = NULL;
   gse_init_position = NULL;
-#endif /* GNU_EXTENSIONS_ALLOWED */
   pure_virtual_called_routine = NULL;
   deleted_virtual_called_routine = NULL;
   vptp_type = NULL;

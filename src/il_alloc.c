@@ -3149,9 +3149,7 @@ to it.  The entry is allocated in the file scope memory region.
 #if UPC_EXTENSIONS_ALLOWED
   rp->upc_access_method = (a_upc_access_method)upc_access_unspecified;
 #endif /* UPC_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
   rp->contains_statement_expression = FALSE;
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if IA64_ABI
   rp->inline_in_class_definition  = FALSE;
 #endif /* IA64_ABI */
@@ -3661,11 +3659,9 @@ fields to default values.
       node->variant.sizeof_pack.is_template_template = FALSE;
       node->variant.sizeof_pack.variant.type = NULL;
       break;
-#if GNU_EXTENSIONS_ALLOWED
     case enk_statement:
       node->variant.statement = NULL;
       break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
     case enk_reuse_value:
       node->variant.reused_value_init = NULL;
       break;
@@ -3770,9 +3766,7 @@ its kind to the indicated kind.
   node->result_is_not_used = FALSE;
   node->is_initialization_guard = FALSE;
   node->generated_default_arg = FALSE;
-#if GNU_EXTENSIONS_ALLOWED
   node->marked_as_gnu_extension = FALSE;
-#endif /* GNU_EXTENSIONS_ALLOWED */
   node->is_static_cast = FALSE;
   node->is_functional_notation_cast = FALSE;
   node->is_brace_notation_cast = FALSE;
@@ -4264,9 +4258,7 @@ fields to default values.
       bp->assoc_scope            = NULL;
       bp->lifetime               = NULL;
       bp->end_of_block_reachable = TRUE;
-#if GNU_EXTENSIONS_ALLOWED
       bp->is_statement_expression = FALSE;
-#endif /* GNU_EXTENSIONS_ALLOWED */
       bp->implicit_scope_not_allowed = FALSE;
 #if UPC_EXTENSIONS_ALLOWED
       bp->upc_access_method      = (a_upc_access_method)upc_access_unspecified;
@@ -4325,11 +4317,9 @@ fields to default values.
       sp->variant.vla.is_typedef_decl  = FALSE;
       sp->variant.vla.variant.variable = NULL;
       break;
-#if GNU_EXTENSIONS_ALLOWED
     case stmk_stmt_expr_result:
       sp->variant.stmt_expr_result.dynamic_init = NULL;
       break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
     default:
       unexpected_condition_str("set_statement_kind: bad kind");
   }  /* switch */
@@ -4979,9 +4969,7 @@ and return a pointer to it.
   sssdp->compiler_generated_forward_decl = FALSE;
   sssdp->originally_nonautonomous_definition = FALSE;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-#if GNU_EXTENSIONS_ALLOWED
   sssdp->marked_as_gnu_extension     = FALSE;
-#endif /* GNU_EXTENSIONS_ALLOWED */
   sssdp->is_decl_after_first_in_comma_list = FALSE;
   sssdp->explicit_storage_class      = FALSE;
   sssdp->is_alias                    = FALSE;
@@ -6306,9 +6294,9 @@ in il_alloc_init.)
   def_source_corresp.member_of_unknown_super = FALSE;
   def_source_corresp.microsoft_identifier_used = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS
+#if GENERATE_SOURCE_SEQUENCE_LISTS
   def_source_corresp.marked_as_gnu_extension = FALSE;
-#endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   def_source_corresp.is_deprecated_or_unavailable = FALSE;
   def_source_corresp.externalized = FALSE;
 #if IA64_ABI

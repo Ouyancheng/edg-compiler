@@ -1830,11 +1830,9 @@ do_set_proper_definition_needed_flag:
           case enk_address_of_ellipsis:
             /* No pointers. */
             break;
-#if GNU_EXTENSIONS_ALLOWED
           case enk_statement:
             walk_ptr(eptr->variant.statement, a_statement_ptr, iek_statement);
             break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
           case enk_reuse_value:
             remap_ptr_not_needed(eptr->variant.reused_value_init,
                                  a_dynamic_init_ptr,
@@ -2161,7 +2159,6 @@ do_set_proper_definition_needed_flag:
       {
 #define eptr ((a_block_ptr)entry_ptr)
 #if !NEEDED_FLAG_WALK
-#if GNU_EXTENSIONS_ALLOWED
         if (eptr->is_statement_expression) {
           /* The block scope for a statement expression that appears in a
              nonlocal scope (in an unevaluated context) doesn't appear on any
@@ -2169,9 +2166,7 @@ do_set_proper_definition_needed_flag:
           walk_ptr(eptr->assoc_scope, a_scope_ptr, iek_scope);
           walk_ptr(eptr->lifetime, an_object_lifetime_ptr,
                    iek_object_lifetime);
-        } else
-#endif /* GNU_EXTENSIONS_ALLOWED */
-        {
+        } else {
           /* The associated scope, if any, will appear on the list of local
              scopes for the current scope.  Therefore, here we just remap
              the pointer but do not walk the subtree. */
@@ -2333,12 +2328,10 @@ do_set_proper_definition_needed_flag:
                         iek_variable);
             }  /* if */
             break;
-#if GNU_EXTENSIONS_ALLOWED
           case stmk_stmt_expr_result:
             walk_ptr(eptr->variant.stmt_expr_result.dynamic_init,
                      a_dynamic_init_ptr, iek_dynamic_init);
             break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
           default:
             unexpected_condition_str(
                                  "walk_entry_and_subtree: bad statement kind");

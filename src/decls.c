@@ -1343,6 +1343,7 @@ of declarations that are permitted.
   } else if (curr_token == tok_auto_type) {
     /* GNU C's __auto_type always starts a declaration. */
     is_start = TRUE;
+#endif /* GNU_EXTENSIONS_ALLOWED */
   } else if (curr_token == tok_extension) {
     /* The __extension__ keyword could be followed by an arbitrary expression
        or declaration.  Cache the token and recursively examine what
@@ -1353,7 +1354,6 @@ of declarations that are permitted.
     (void)get_token();
     is_start = is_decl_start(options);
     rescan_cached_tokens(&cache);
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
   } else if (is_sun_link_scope_specifier()) {
     is_start = TRUE;
@@ -7773,11 +7773,9 @@ for use in generating cross-reference output describing this declaration.
   if (!is_variable_def || (srk_flags & SRK_TENTATIVE_DEF)) {
     an_sssd_flag_set  flags = SSSD_NO_FLAGS;
     if (dps->first_decl) flags |= SSSD_FIRST_DECLARATION;
-#if GNU_EXTENSIONS_ALLOWED
     if (dps->decl_modifiers.marked_as_gnu_extension) {
       flags |= SSSD_MARKED_AS_GNU_EXTENSION;
     }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
     (void)update_src_seq_secondary_decl((char *)variable_ptr, declared_type,
                                         name_ref, flags, decl_pos_block);
   } else {
@@ -7789,11 +7787,9 @@ for use in generating cross-reference output describing this declaration.
     if (variable_ptr->declared_type == NULL) {
       variable_ptr->declared_type = declared_type;
     }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
     if (dps->decl_modifiers.marked_as_gnu_extension) {
       variable_ptr->source_corresp.marked_as_gnu_extension = TRUE;
     }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (variable_ptr->storage_class == (a_storage_class)sc_static &&
@@ -10865,11 +10861,9 @@ skip_overloading:;
          Enable the default-arg fixup processing to find the declared type. */
       func_info->declared_type = routine_ptr->declared_type;
     }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
     if (decl_modifiers->marked_as_gnu_extension) {
       routine_ptr->source_corresp.marked_as_gnu_extension = TRUE;
     }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
   if (!is_function_def
 #if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
@@ -10901,11 +10895,9 @@ skip_overloading:;
     }  /* if */
     if (is_friend_decl) flags |= SSSD_FRIEND_DECL;
     if (dps->first_decl) flags |= SSSD_FIRST_DECLARATION;
-#if GNU_EXTENSIONS_ALLOWED
     if (decl_modifiers->marked_as_gnu_extension) {
       flags |= SSSD_MARKED_AS_GNU_EXTENSION;
     }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
     (void)update_src_seq_secondary_decl((char *)routine_ptr, declared_type,
                                         name_ref, flags, decl_pos_block);
   } else {
@@ -12131,11 +12123,9 @@ the symbol through dps->sym and its linkage (which is always "none") through
             ss_entry_kind(dps->source_sequence_entry) ==
                                                  iek_src_seq_secondary_decl) {
           an_sssd_flag_set  sssd_flags = SSSD_NO_FLAGS;
-#if GNU_EXTENSIONS_ALLOWED
           if (dps->marked_as_gnu_extension) {
             sssd_flags |= SSSD_MARKED_AS_GNU_EXTENSION;
           }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
           (void)update_src_seq_secondary_decl((char*)var, dps->declared_type,
                                               name_ref, sssd_flags,
                                               decl_pos_block);
@@ -12549,11 +12539,9 @@ symbol entry, and return a pointer to it in state->sym.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
             an_sssd_flag_set  sssd_flags = SSSD_NO_FLAGS;
             a_type_ptr        declared_type = type_ptr;
-#if GNU_EXTENSIONS_ALLOWED
             if (state->marked_as_gnu_extension) {
               sssd_flags |= SSSD_MARKED_AS_GNU_EXTENSION;
             }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
             /* When we applied attributes, we may have created a typeref entry
                to apply attributes to later on, but that entry isn't needed for
                a redeclaration. */
@@ -12785,11 +12773,11 @@ symbol entry, and return a pointer to it in state->sym.
       tp = alloc_type((a_type_kind)tk_typeref);
       tp->variant.typeref.type = type_ptr;
     }  /* if */
-#if GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS
+#if GENERATE_SOURCE_SEQUENCE_LISTS
     if (state->marked_as_gnu_extension) {
       tp->source_corresp.marked_as_gnu_extension = TRUE;
     }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* Create a new symbol for this type and bind it to the new type. */
     sym = enter_typedef_symbol(tp, locator, decl_scope_level,
                                suppress_redecl_error);
@@ -21835,8 +21823,7 @@ parameters are scanned by scan_a_template_parameter_declaration.
   dps->auto_type_allowed = auto_type_specifier_enabled;
   copy_source_position(pos_curr_token, dps->start_pos);
   clear_decl_pos_block(&decl_pos_block);
-  if (gnu_mode && !dps->marked_as_gnu_extension &&
-      curr_token == tok_extension) {
+  if (!dps->marked_as_gnu_extension && curr_token == tok_extension) {
     /* Record the GNU C __extension__ annotation. */
     (void)get_token();
     dps->marked_as_gnu_extension = TRUE;

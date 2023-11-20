@@ -6216,9 +6216,7 @@ object or a prvalue that is a pointer (or C++/CLI handle) to an object.
       case enk_alignof:
       case enk_sizeof_pack:
       case enk_type_operand:
-#if GNU_EXTENSIONS_ALLOWED
       case enk_statement:
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN
       case enk_result_of_overriding_function:
 #endif /* DO_IL_LOWERING && ABI_CHANGES_FOR_COVARIANT_VIRTUAL_FUNC_RETURN */
@@ -6256,9 +6254,7 @@ object or a prvalue that is a pointer (or C++/CLI handle) to an object.
       case enk_routine:
       case enk_temp_init:
       case enk_address_of_ellipsis:
-#if GNU_EXTENSIONS_ALLOWED
       case enk_statement:
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
       case enk_lowered_eh_construct:
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
