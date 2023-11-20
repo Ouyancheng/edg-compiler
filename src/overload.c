@@ -27419,7 +27419,7 @@ will be an lvalue instead of the usual prvalue.
       skip_constexpr_init_folding(dip)->is_explicit_cast = TRUE;
     }  /* if */
     if (braced_init) {
-      if (!is->paren_as_aggregate_init) {
+      if (is == NULL || !is->paren_as_aggregate_init) {
         dip->is_braced_initializer = TRUE;
         skip_constexpr_init_folding(dip)->is_braced_initializer = TRUE;
       }  /* if */
