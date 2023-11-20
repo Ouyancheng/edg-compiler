@@ -594,9 +594,9 @@ struct an_ovl_res_stack {
   const an_ovl_resolution_descr &top() const
     { return this->underlying_array.back_elem(); }
   an_ovl_resolution_descr &bottom()
-    { return this->underlying_array.back_elem(); }
+    { return this->underlying_array.front_elem(); }
   const an_ovl_resolution_descr &bottom() const
-    { return this->underlying_array.back_elem(); }
+    { return this->underlying_array.front_elem(); }
 
   a_boolean is_empty() const
     { return this->underlying_array.length() == 0; }
