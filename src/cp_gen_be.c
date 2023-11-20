@@ -695,7 +695,7 @@ static a_boolean strip_lvalue_cast_sequence(an_expr_node_ptr *expr);
 static void gen_initializer_constant(a_constant_ptr     constant,
                                      a_type_ptr         type,
                                      a_boolean          transparent_case,
-                                     a_boolean          suppress_braces,
+                                     a_boolean          suppress_delims,
                                      a_dynamic_init_ptr dip = NULL);
 static void gen_initializer_expr(an_expr_node_ptr expr,
                                  a_type_ptr       type,
@@ -7202,7 +7202,7 @@ compound literal.
       }  /* if */
     }  /* if */
     gen_initializer_constant(literal_con, literal_type, transparent_case,
-                             /*suppress_braces=*/FALSE);
+                             /*suppress_delims=*/FALSE);
     if (sub_con != NULL) {
       /* Restore the explicit-cast flags cleared above. */
       dip2->is_explicit_cast = TRUE;
@@ -7502,22 +7502,22 @@ one step instead of class-by-class, return TRUE.
 static void gen_designator(a_constant_ptr con,
                            a_field_ptr    *field,
                            a_constant_ptr *p_eff_con,
-                           a_boolean      *suppress_braces)
+                           a_boolean      *suppress_delims)
 /*
 Generate code for a ck_designator constant, i.e., a designator in a
-designated initializer.  If the designator is for a field, set *field
-to the field.  If the designator is for a repeated initialization,
-return *repeated set to TRUE.  *p_eff_con is set to the constant that
-the designator applies to (usually the next constant, but the one
-under a ck_init_repeat for a repeated initialization).
-*suppress_braces is returned TRUE to indicate that *p_eff_con is an
-aggregate constant and braces around it should be suppressed.
+designated initializer.  If the designator is for a field, set *field to
+the field.  If the designator is for a repeated initialization, return
+*repeated set to TRUE.  *p_eff_con is set to the constant that the
+designator applies to (usually the next constant, but the one under a
+ck_init_repeat for a repeated initialization).  *suppress_delims is
+returned TRUE to indicate that *p_eff_con is an aggregate constant and the
+brace/parenthesis delimiters around it should be suppressed.
 */
 {
   a_boolean      use_old_form = FALSE, close = TRUE;
   a_constant_ptr eff_con;
 
-  *suppress_braces = FALSE;
+  *suppress_delims = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
   if (gpp_mode && gnu_target_version_number < 40700) {
     /* g++ versions prior to 4.7.0 accepted only an older form of
@@ -7575,7 +7575,7 @@ aggregate constant and braces around it should be suppressed.
        a difference.  Don't put out braces if they were implied
        in the source. */
     if (!eff_con->explicit_braces_on_aggregate) {
-      *suppress_braces = TRUE;
+      *suppress_delims = TRUE;
       if (eff_con->variant.aggregate.first_constant != NULL &&
           eff_con->variant.aggregate.first_constant->kind ==
                                          (a_constant_repr_kind)ck_designator) {
@@ -7594,20 +7594,20 @@ aggregate constant and braces around it should be suppressed.
 static void gen_initializer_constant(a_constant_ptr     constant,
                                      a_type_ptr         type,
                                      a_boolean          transparent_case,
-                                     a_boolean          suppress_braces,
+                                     a_boolean          suppress_delims,
                                      a_dynamic_init_ptr dip)
 /*
 Generate an initializer constant, which differs from a normal constant in
-that it can contain aggregates and dynamic initializations.  type is
-the type of the entity being initialized; it can be NULL if the constant
-is not an aggregate or dynamic initialization, and if the entity being
-initialized is not a reference.  If suppress_braces is TRUE, if the
-constant is an aggregate the braces around it are suppressed.  When
+that it can contain aggregates and dynamic initializations.  type is the
+type of the entity being initialized; it can be NULL if the constant is not
+an aggregate or dynamic initialization, and if the entity being initialized
+is not a reference.  If suppress_delims is TRUE, if the constant is an
+aggregate the brace/parenthesis delimiters around it are suppressed.  When
 transparent_case is TRUE, the constant represents an expression being
-passed as an argument to a parameter that is a transparent union (a GNU
-C extension); in this case, the braces are also suppressed, as is the
-field designator.  If dip is non-NULL, it describes the dynamic initializer
-for which constant is the value.
+passed as an argument to a parameter that is a transparent union (a GNU C
+extension); in this case, the braces are also suppressed, as is the field
+designator.  If dip is non-NULL, it describes the dynamic initializer for
+which constant is the value.
 */
 {
   a_constant_ptr    sub_con;
@@ -7633,14 +7633,13 @@ for which constant is the value.
         !constant->explicit_cast_applied &&
         !(first_con != NULL &&
           first_con->kind == (a_constant_repr_kind)ck_designator)) {
-      suppress_braces = TRUE;
+      suppress_delims = TRUE;
     }  /* if */
-    if (!suppress_braces && !transparent_case) {
+    if (!suppress_delims && !transparent_case) {
       if (constant->explicit_cast_applied) {
-        /* A functional-notation cast with braces; e.g., "X{1, 2}".  (The
-           type name and left brace were already put out by the caller when
-           suppress_braces is TRUE.)  In C++20 mode, this might also be using
-           parentheses instead of braces. */
+        /* A functional-notation cast; e.g., "X{1, 2}".  (The type name and
+           left brace/parenthesis delimiter were already put out by the
+           caller when suppress_delims is TRUE.) */
         a_type_ptr cast_type = type != NULL ? type : constant->type;
         a_boolean  need_closing_paren = FALSE;
         /* Skip type qualifiers (which can be specified on the cast). */
@@ -7777,7 +7776,7 @@ for which constant is the value.
       a_boolean  first_elem = TRUE;
       while (sub_con != NULL) {
         a_constant_ptr eff_sub_con = sub_con;
-        a_boolean      local_suppress_braces = FALSE;
+        a_boolean      local_suppress_delims = FALSE;
         a_boolean      need_close_paren = FALSE;
         a_boolean      after_designator = FALSE;
         if (!first_elem) {
@@ -7789,7 +7788,7 @@ for which constant is the value.
           if (!transparent_case) {
             /* Put out the introduction for a designated initializer. */
             gen_designator(sub_con, &field, &eff_sub_con,
-                           &local_suppress_braces);
+                           &local_suppress_delims);
           } else {
             /* Skip over the designator */
             eff_sub_con = eff_sub_con->next;
@@ -7835,7 +7834,7 @@ for which constant is the value.
         }  /* if */
         gen_initializer_constant(eff_sub_con, sub_type,
                                  /*transparent_case=*/FALSE,
-                                 local_suppress_braces);
+                                 local_suppress_delims);
         if (eff_sub_con->is_pack_expansion) {
           if (need_close_paren) {
             write_tok_ch(')');
@@ -7870,7 +7869,7 @@ for which constant is the value.
         }  /* if */
       }  /* for */
     }  /* if */
-    if (!suppress_braces && !transparent_case) {
+    if (!suppress_delims && !transparent_case) {
       write_tok_ch(use_parens ? ')' : '}');
     }  /* if */
   } else if (constant->kind == (a_constant_repr_kind)ck_dynamic_init) {
@@ -20630,7 +20629,7 @@ when possible.
   a_boolean        braced_init;
   a_boolean        is_value_init;
   a_type_ptr       bare_init_entity_type;
-  a_boolean        suppress_braces = FALSE;
+  a_boolean        suppress_delims = FALSE;
   a_boolean        saved_suppress_template_args = octl.suppress_template_args;
   a_boolean        suppress_template_args =
                                      dip->suppress_template_arguments_for_cast;
@@ -20653,7 +20652,7 @@ when possible.
       /* The initializer list is already brace-enclosed, so the argument to
          the std::initializer_list constructor should not have additional
          braces. */
-      suppress_braces = TRUE;
+      suppress_delims = TRUE;
     }  /* if */
     if (!dip->is_explicit_cast && !dip->is_compound_literal) {
       dip = dipa;
@@ -20975,7 +20974,7 @@ output_functional_notation_cast_arguments:
         }  /* if */
       }  /* if */
       gen_initializer_constant(con, init_entity_type,
-                               /*transparent_case=*/FALSE, suppress_braces);
+                               /*transparent_case=*/FALSE, suppress_delims);
       break;
     case dik_bitwise_copy:
       /* A bitwise copy.  Only the cases with an explicit source expression
@@ -21015,7 +21014,7 @@ output_functional_notation_cast_arguments:
       } else {
         /* Put out the aggregate constant. */
         gen_initializer_constant(con, init_entity_type,
-                                 /*transparent_case=*/FALSE, suppress_braces);
+                                 /*transparent_case=*/FALSE, suppress_delims);
       }  /* if */
       break;
     case dik_lambda:
@@ -21163,11 +21162,12 @@ and the output of the type name.
         need_disambiguation_close_paren = TRUE;
       }  /* if */
       /* Put out the constant. */
-      /* For an aggregate constant, when paren_form is FALSE, the braces
-         were already put out above. */
-      gen_initializer_constant(con, init_entity_type,
-                               /*transparent_case=*/FALSE,
-                               /*suppress_braces=*/!paren_form, dip);
+      /* For an aggregate constant, the delimiters were already put out
+         above. */
+      gen_initializer_constant(
+                            con, init_entity_type, /*transparent_case=*/FALSE,
+                            /*suppress_delims=*/constant_is(con, ck_aggregate),
+                            dip);
       break;
     case dik_nonconstant_aggregate:
       /* Nonconstant aggregate constant, used in cases like
@@ -21185,7 +21185,7 @@ and the output of the type name.
         /* When paren_form is FALSE, the braces were already put out above. */
         gen_initializer_constant(con, init_entity_type,
                                  /*transparent_case=*/FALSE,
-                                 /*suppress_braces=*/!paren_form);
+                                 /*suppress_delims=*/!paren_form);
       }  /* if */
       break;
     case dik_expression:
@@ -21437,7 +21437,7 @@ Output the initializer, if any, for the indicated variable.
           }  /* if */
           gen_initializer_constant(con, var->type,
                                    /*transparent_case=*/FALSE,
-                                   /*suppress_braces=*/braced_init);
+                                   /*suppress_delims=*/braced_init);
           if (braced_init) {
             write_tok_ch('}');
           } else if (parenthesized_init && con->explicit_braces_on_aggregate) {

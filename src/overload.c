@@ -27419,8 +27419,10 @@ will be an lvalue instead of the usual prvalue.
       skip_constexpr_init_folding(dip)->is_explicit_cast = TRUE;
     }  /* if */
     if (braced_init) {
-      dip->is_braced_initializer = TRUE;
-      skip_constexpr_init_folding(dip)->is_braced_initializer = TRUE;
+      if (!is->paren_as_aggregate_init) {
+        dip->is_braced_initializer = TRUE;
+        skip_constexpr_init_folding(dip)->is_braced_initializer = TRUE;
+      }  /* if */
     }  /* if */
     if (braced_init && expr_stack->possible_rescan_context) {
       /* For brace-initialized cases, save the original braced-init-list as

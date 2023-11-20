@@ -285,6 +285,9 @@ typedef struct a_new_parse_state {
   a_bit_field	has_braced_initializer:1;
 			/* TRUE if the new initializer took the form of a
 			   braced initializer list. */
+  a_bit_field	parens_for_aggr_init:1;
+			/* TRUE if the new initializer took the form of a
+			   parenthesized initializer list. */
   a_bit_field	placement_new:1;
 			/* TRUE if the "new" expression has (a) placement
 			   argument(s). */
@@ -21758,6 +21761,7 @@ braced initializer list.
   expr_list->variant.braced.end_pos = pos_curr_token;
   dps->init_state.paren_as_aggregate_init = TRUE;
   nps->has_braced_initializer = TRUE;
+  nps->parens_for_aggr_init = TRUE;
   /* Check for closing parenthesis. */
   (void)required_token(tok_rparen, ec_exp_rparen);
   return expr_list;
@@ -23224,7 +23228,8 @@ Create the resulting operand for "new".
   ndsp->aligned_version = nps->has_alignment_arg;
   ndsp->global_new_or_delete = nps->use_global_new;
   ndsp->has_new_initializer = nps->has_new_initializer;
-  ndsp->new_initializer_is_brace_enclosed = nps->has_braced_initializer;
+  ndsp->new_initializer_is_brace_enclosed = nps->has_braced_initializer &&
+                                            !nps->parens_for_aggr_init;
   ndsp->deducible_type = nps->deducible_new_type;
   ndsp->parenthesized_type_id = nps->parenthesized_type_id;
   ndsp->type = nps->new_type;

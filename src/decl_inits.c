@@ -2253,8 +2253,11 @@ initialization).  *is describes the initialization as a whole.
         (*init_con)->end_position = *init_component_end_pos(icp);
       }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      (*init_con)->explicit_braces_on_aggregate = braced &&
-                                                  !is->paren_as_aggregate_init;
+      if (is->paren_as_aggregate_init && !is->non_top_level_aggregate) {
+        (*init_con)->explicit_parentheses_on_aggregate = braced;
+      } else {
+        (*init_con)->explicit_braces_on_aggregate = braced;
+      }  /* if */
     }  /* if */
     if (braced) {
       /* The element values are enclosed in braces. */
@@ -3645,8 +3648,11 @@ issued if no more specific position is available.
         (*init_con)->end_position = *init_component_end_pos(icp);
       }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      (*init_con)->explicit_braces_on_aggregate = braced &&
-                                                  !is->paren_as_aggregate_init;
+      if (is->paren_as_aggregate_init && !is->non_top_level_aggregate) {
+        (*init_con)->explicit_parentheses_on_aggregate = braced;
+      } else {
+        (*init_con)->explicit_braces_on_aggregate = braced;
+      }  /* if */
     }  /* if */
     if (braced) {
       /* The element values are enclosed in braces. */
@@ -4217,7 +4223,8 @@ are TRUE.
       is->init_dip = expr_stack != NULL ? alloc_expr_dynamic_init(dik)
                                         : alloc_dynamic_init(dik);
       is->init_dip->variant.constant.ptr = is->init_con;
-      is->init_dip->is_braced_initializer = TRUE;
+      is->init_dip->is_braced_initializer =
+                             !is->init_con->explicit_parentheses_on_aggregate;
       is->init_dip->is_partially_initialized = is->partial_initializer;
       record_dtor_in_dynamic_init(dtor_rp, is->init_dip,
                                   !is->not_potentially_evaluated);

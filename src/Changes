@@ -1,5 +1,21 @@
 Version 6.6
 
+11/20/23 [EDGcpfe/26770]
+C++-generating back end: parenthesized aggregate initialization
+
+Given the following declaration, with --c++20,
+
+  auto a = new int[][2] ( { 1 }, { 2, 3 } );
+
+the C++-generating back end previously generated this as:
+
+  auto a = new int[][2] { 1, 2, 3 };
+
+omitting the braces around the nested aggregates and replacing the outer
+parentheses with braces.  This has now been fixed, and the generated code
+correctly reflects the syntax used in the original source.
+
+
 11/17/23 [EDGcpfe/25799]
 Microsoft and GNU compatibility: Nondependent decltype constructs in templates
 
