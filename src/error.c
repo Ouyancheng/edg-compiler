@@ -1087,6 +1087,18 @@ buffer.
   add_string_to_text_buffer(msg_buffer, "\"");
   form_type(dfip->variant.type, &octl);
   add_string_to_text_buffer(msg_buffer, "\"");
+
+#if !STANDALONE_UTILITY_PROGRAM
+  if (is_or_contains_alias_type(dfip->variant.type)) {
+    a_boolean prev_suppress_alias_names = octl.suppress_alias_names;
+
+    octl.suppress_alias_names = TRUE;
+    add_string_to_text_buffer(msg_buffer, " (aka \"");
+    form_type(dfip->variant.type, &octl);
+    add_string_to_text_buffer(msg_buffer, "\")");
+    octl.suppress_alias_names = prev_suppress_alias_names;
+  }  /* if */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 }  /* form_type_summary */
 
 

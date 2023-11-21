@@ -127,6 +127,7 @@ Clear an output control block to default values.
   octl->defer_vector_attribute    = FALSE;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   octl->suppress_template_args    = FALSE;
+  octl->suppress_alias_names      = FALSE;
   octl->suppress_ptr_to_data_member_parens = FALSE;
   octl->suppress_compiler_generated_parameters = FALSE;
   octl->processing_nontype_template_argument = FALSE;
@@ -2543,6 +2544,11 @@ by octl.
 }  /* form_type_specifier */
 
 
+static inline a_boolean typedef_is_invisible(
+                          a_type_ptr                            type,
+                          a_type_ptr                            *resolved_type,
+                          a_boolean                             suppress_const,
+                          an_il_to_str_output_control_block_ptr octl)
 /*
 Return TRUE if the indicated typedef is "invisible" now because (a) it's
 local to a function and we're suppressing local typedefs, or
@@ -2551,13 +2557,22 @@ typedef contains a const qualifier, or (c) suppress_typedefs is TRUE, or
 (d) a user visibility test routine (pointed to by the is_typedef_visible
 control field) returns TRUE.
 */
-#define typedef_is_invisible(type, resolved_type,suppress_const, octl) \
- (((type)->source_corresp.is_local_to_function &&                      \
-   (octl)->suppress_local_typedefs) ||                                 \
-  ((suppress_const) && is_const_qualified_type(type)) ||               \
-  (octl)->suppress_typedefs ||                                         \
-  ((octl)->is_typedef_invisible != NULL &&                             \
-   (octl)->is_typedef_invisible(type, resolved_type)))
+{
+  a_boolean result = FALSE;
+
+  if (type->source_corresp.is_local_to_function &&
+      octl->suppress_local_typedefs) {
+    result = TRUE;
+  } else if ((suppress_const) && is_const_qualified_type(type)) {
+    result = TRUE;
+  } else if (octl->suppress_typedefs) {
+    result = TRUE;
+  } else if (octl->is_typedef_invisible != NULL &&
+             octl->is_typedef_invisible(type, resolved_type)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* typedef_is_invisible */
 
 
 static a_boolean can_use_qualified_array_typedef(
@@ -3583,6 +3598,11 @@ void form_type(a_type_ptr                            type,
 Output a string for a type.  Do the output in the way described by octl.
 */
 {
+  if (octl->suppress_alias_names && type_is_alias(type)) {
+    /* Alias names are suppressed, skip the alias type and form the type name
+       for the underlying type. */
+    type = type->variant.typeref.type;
+  }  /* if */
   if (type == NULL) {
     check_assertion(!octl->gen_compilable_code);
     octl->output_str("<null-type>", octl);

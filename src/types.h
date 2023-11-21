@@ -577,6 +577,16 @@ Return TRUE if the given type represents a typedef.
   return type_is(tp, tk_typeref) && typeref_is_typedef((tp));
 }  /* type_is_typedef */
 
+
+inline a_boolean type_is_alias(a_type_ptr  tp)
+/*
+Return TRUE if the given type represents a type alias.
+*/
+{
+  return type_is(tp, tk_typeref) && typeref_is_alias(tp);
+}  /* type_is_alias */
+
+
 extern a_boolean is_possibly_qualified_typedef(a_type_ptr  tp);
 
 #define type_is_overaligned_for_new(tp)                                      \
@@ -1538,6 +1548,7 @@ extern a_boolean overload_distinguishable(a_symbol_ptr        old_sym_ptr,
                                           a_decl_parse_state  *dps,
                                           an_error_code       *err_code);
 extern a_boolean is_or_contains_error_type(a_type_ptr  type_ptr);
+extern a_boolean is_or_contains_alias_type(a_type_ptr  type_ptr);
 extern a_boolean is_or_contains_local_type(a_type_ptr  type_ptr);
 extern a_boolean is_or_contains_unnamed_namespace_type(a_type_ptr  type_ptr);
 extern a_boolean is_or_contains_type_with_no_name_linkage(

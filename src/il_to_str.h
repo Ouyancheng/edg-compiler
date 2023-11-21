@@ -325,6 +325,10 @@ typedef struct an_il_to_str_output_control_block {
 			/* Suppress the output of template arguments in
 			   type names. */
   a_byte_boolean
+	suppress_alias_names;
+			/* Suppress the output of aliased names in type names,
+			   instead outputting the true type names. */
+  a_byte_boolean
 	suppress_ptr_to_data_member_parens;
 			/* If TRUE, do not parenthesize the declarator of a
 			   type that is a pointer to data member.  The
