@@ -117,7 +117,6 @@ Clear an output control block to default values.
   octl->force_qualified_name      = FALSE;
   octl->gen_vla_array_as_asterisk_bound_array = FALSE;
   octl->gen_raw_tab_in_literals   = FALSE;
-  octl->keep_template_typedefs    = TRUE;
   octl->suppress_line_breaking    = FALSE;
   octl->suppress_cast_on_short_integral_const = FALSE;
   octl->suppress_name_in_template_cast_enum_const = FALSE;
@@ -2620,35 +2619,6 @@ block, needed because it indicates whether local typedefs are invisible.
 }  /* can_use_qualified_array_typedef */
 
 
-static a_boolean is_member_typedef_that_should_be_ignored(
-				a_type_ptr				type,
-				an_il_to_str_output_control_block_ptr	octl)
-/*
-"type" is a typedef.  Return TRUE if the typedef is one that should be
-replaced with the underlying type.  This is done for typedefs that are
-members of template classes.
-*/
-{
-  a_boolean	result = FALSE;
-
-  if (!octl->keep_template_typedefs) {
-    if (is_typeref_kind(type, trk_is_template_alias) &&
-        !type->variant.typeref.is_dependent) {
-      /* Drop the alias, unless the alias is dependent. */
-      result = TRUE;
-    } else if (type->source_corresp.is_class_member) {
-      /* Drop the typedef if it was defined in a template class.  This is
-         done even if the class was specialized. */
-      a_type_ptr	parent_type = parent_class_of(type);
-      if (parent_type->variant.class_struct_union.is_template_class) {
-        result = TRUE;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* is_member_typedef_that_should_be_ignored */
-
-
 static a_boolean is_type_operator_to_be_rendered(
                                    a_type_ptr                            type,
                                    an_il_to_str_output_control_block_ptr octl)
@@ -2844,10 +2814,8 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
        ultimately be used, so we skip over any typedef and type operator
        typerefs and just accumulate qualifiers and attributes. */
     if (resolved_type == NULL && typeref_is_typedef(type)) {
-      /* Typedef.  Stop unless it's invisible, or if it is a typedef that
-         should be dropped in diagnostic output. */
-      if (!typedef_is_invisible(type, &resolved_type, suppress_const, octl) &&
-          !is_member_typedef_that_should_be_ignored(type, octl)) {
+      /* Typedef: stop unless it's invisible. */
+      if (!typedef_is_invisible(type, &resolved_type, suppress_const, octl)) {
         break;
       }  /* if */
     } else if (resolved_type == NULL &&
@@ -3484,10 +3452,8 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
        ultimately be used, so we skip over any typedef and type operator
        typerefs and just accumulate qualifiers and attributes. */
     if (resolved_type == NULL && typeref_is_typedef(type)) {
-      /* Typedef.  Stop unless it's invisible, or if it is a typedef that
-         should be dropped in diagnostic output. */
-      if (!typedef_is_invisible(type, &resolved_type, suppress_const, octl) &&
-          !is_member_typedef_that_should_be_ignored(type, octl)) {
+      /* Typedef: stop unless it's invisible. */
+      if (!typedef_is_invisible(type, &resolved_type, suppress_const, octl)) {
         break;
       }  /* if */
     } else if (resolved_type == NULL &&

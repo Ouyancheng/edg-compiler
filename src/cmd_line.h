@@ -268,7 +268,6 @@ enum an_option_kind {
   optk_trigraphs,
   optk_nonstandard_default_arg_deduction,
   optk_stdc_zero_in_system_headers,
-  optk_template_typedefs_in_diagnostics,
   optk_defer_parse_function_templates,
   optk_uliterals,
 #if MICROSOFT_EXTENSIONS_ALLOWED

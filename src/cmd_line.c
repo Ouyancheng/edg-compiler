@@ -1355,14 +1355,6 @@ Initialize the option information table.
                          "no_stdc_zero_in_system_headers",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
-  add_option_description(optk_template_typedefs_in_diagnostics,
-                         "template_typedefs_in_diagnostics",
-                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
-                         pchek_command_line);
-  add_option_description(optk_template_typedefs_in_diagnostics,
-                         "no_template_typedefs_in_diagnostics",
-                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
-                         pchek_command_line);
 #if FUNCTION_PROTOTYPE_INSTANTIATION_DEFERRAL_ALLOWED
   add_option_description(optk_defer_parse_function_templates,
                          "defer_parse_function_templates",
@@ -6688,13 +6680,6 @@ file.
 #else /* !defined(DEFAULT_DISPLAY_ERROR_NUMBER) */
   comment_undefined_macro_name(DEFAULT_DISPLAY_ERROR_NUMBER);
 #endif /* defined(DEFAULT_DISPLAY_ERROR_NUMBER) */
-#if defined(DEFAULT_DISPLAY_TEMPLATE_TYPEDEFS_IN_DIAGNOSTICS)
-  define_numeric_valued_macro(
-                             DEFAULT_DISPLAY_TEMPLATE_TYPEDEFS_IN_DIAGNOSTICS);
-#else /* !defined(DEFAULT_DISPLAY_TEMPLATE_TYPEDEFS_IN_DIAGNOSTICS) */
-  comment_undefined_macro_name(
-                             DEFAULT_DISPLAY_TEMPLATE_TYPEDEFS_IN_DIAGNOSTICS);
-#endif /* defined(DEFAULT_DISPLAY_TEMPLATE_TYPEDEFS_IN_DIAGNOSTICS) */
 #if defined(DEFAULT_DISTINCT_TEMPLATE_SIGNATURES)
   define_numeric_valued_macro(DEFAULT_DISTINCT_TEMPLATE_SIGNATURES);
 #else /* !defined(DEFAULT_DISTINCT_TEMPLATE_SIGNATURES) */
@@ -11349,9 +11334,6 @@ enable_microsoft_mode:
         break;
       case optk_stdc_zero_in_system_headers:
         stdc_zero_in_system_headers = opt_value;
-        break;
-      case optk_template_typedefs_in_diagnostics:
-        display_template_typedefs_in_diagnostics = opt_value;
         break;
       case optk_defer_parse_function_templates:
         /* Defer prototype instantiation of function templates. */

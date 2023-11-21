@@ -1074,7 +1074,6 @@ called.
   /* For diagnostics in C99 mode we want to see "_Bool" rather "bool" or the
      type underlying _Bool. */
   octl.render_c99_bool = c99_mode;
-  octl.keep_template_typedefs = display_template_typedefs_in_diagnostics;
 }  /* set_up_output_control_block */
 
 
@@ -1526,8 +1525,8 @@ specified by dp.
   a_symbol_ptr			corresp_template_sym = NULL;
   a_template_instance_ptr	tip = NULL;
   a_symbol_ptr			sym_to_display = NULL;
-  a_boolean			saved_keep_template_typedefs;
   a_symbol_ptr			sym = dfip->variant.symbol.ptr;
+  a_boolean			saved_suppress_alias_names;
   a_boolean  			saved_render_auto_deduction_typerefs =
 				          octl.render_auto_deduction_typerefs;
 
@@ -1830,8 +1829,10 @@ symbol_name:
       }
       /* When outputting a type based on a template definition, don't remove
          member typedefs. */
-      saved_keep_template_typedefs = octl.keep_template_typedefs;
-      octl.keep_template_typedefs = corresp_template_sym != NULL;
+      saved_suppress_alias_names = octl.suppress_alias_names;
+      if (corresp_template_sym == NULL) {
+        octl.suppress_alias_names = TRUE;
+      }  /* if */
       if (routine != NULL) {
         if (dfip->variant.symbol.force_function_params) {
           /* "%np" was specified for this fill-in. */
@@ -1903,7 +1904,7 @@ symbol_name:
       }  /* if */
       /* Restore the typedef removal state before outputting the template
          argument values. */
-      octl.keep_template_typedefs = saved_keep_template_typedefs;
+      octl.suppress_alias_names = saved_suppress_alias_names;
       if (distinct_template_signatures) {
         /* Display the template argument information, if any. */
         a_symbol_ptr	templ_arg_sym;
@@ -8185,8 +8186,6 @@ line processing is done.
   do_not_wrap_diagnostics = FALSE;
   display_error_context_on_catastrophe =
                                   DEFAULT_DISPLAY_ERROR_CONTEXT_ON_CATASTROPHE;
-  display_template_typedefs_in_diagnostics =
-                              DEFAULT_DISPLAY_TEMPLATE_TYPEDEFS_IN_DIAGNOSTICS;
 #if FULLY_RESOLVED_MACRO_POSITIONS
   macro_positions_in_diagnostics = DEFAULT_MACRO_POSITIONS_IN_DIAGNOSTICS;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
