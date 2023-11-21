@@ -11839,7 +11839,8 @@ arrays with class elements.
   if (dip != NULL && dip->kind != (a_dynamic_init_kind)dik_zero) {
     /* There is a dynamic init entry to initialize the storage after it is
        allocated.  dik_zero initialization is handled below. */
-    if (ndsp->new_initializer_is_brace_enclosed) {
+    if (ndsp->new_initializer_is_brace_enclosed ||
+        ndsp->new_initializer_is_paren_aggr_init) {
       /* The array needs to be initialized after it is allocated, but it
          can't be done by a call to the runtime routine.  Indicate that
          dynamic initialization is needed after the storage is allocated. */

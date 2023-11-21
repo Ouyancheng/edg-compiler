@@ -3570,6 +3570,7 @@ fields to default values.
       ndsp->global_new_or_delete            = FALSE;
       ndsp->has_new_initializer             = FALSE;
       ndsp->new_initializer_is_brace_enclosed = FALSE;
+      ndsp->new_initializer_is_paren_aggr_init = FALSE;
       ndsp->deducible_type                  = FALSE;
       ndsp->parenthesized_type_id           = FALSE;
       ndsp->type                            = NULL;

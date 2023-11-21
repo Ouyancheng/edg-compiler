@@ -23224,6 +23224,7 @@ Create the resulting operand for "new".
   ndsp->has_new_initializer = nps->has_new_initializer;
   ndsp->new_initializer_is_brace_enclosed = nps->has_braced_initializer &&
                                             !nps->parens_for_aggr_init;
+  ndsp->new_initializer_is_paren_aggr_init = nps->parens_for_aggr_init;
   ndsp->deducible_type = nps->deducible_new_type;
   ndsp->parenthesized_type_id = nps->parenthesized_type_id;
   ndsp->type = nps->new_type;

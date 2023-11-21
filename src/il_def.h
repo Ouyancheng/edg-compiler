@@ -13886,6 +13886,9 @@ typedef struct a_new_delete_supplement {
 			/* When has_new_initializer is TRUE, this is TRUE if
 			   the new-initializer is enclosed in braces, e.g.,
 			   new int{1}. */
+  a_bit_field	new_initializer_is_paren_aggr_init:1;
+			/* This is TRUE if the operator has a parenthesized
+			   aggregate initializer. */
   a_bit_field	deducible_type:1;
 			/* For a new in a prototype instantiation, TRUE if
 			   the type to be allocated was specified by way of
