@@ -2285,12 +2285,21 @@ template argument matching.
           break;
         }  /* if */
       }  /* if */
-      if (param_num > 0 &&
-          tap != NULL && tap->is_pack_element &&
-          tpp->next != NULL && tpp->next->param_num == param_num) {
-        /* There are more arguments and parameters associated with a given
-           template parameter that is an expansion.  Do another iteration
-           of the loop. */
+      if (tap->is_pack_element) {
+        if (tpp->next != NULL && tpp->next->is_pack_element &&
+            tpp->next->param_num == param_num) {
+          /* There are more arguments and parameters associated with a given
+             template parameter that is an expansion.  Do another iteration of
+             the loop. */
+        } else {
+          if (tap->next != NULL && tap->next->is_pack_element &&
+              !tpp->is_pack) {
+            /* Too many template arguments were deduced for an expanded
+               template parameter pack. */
+            result = false;
+          }  /* if */
+          break;
+        }  /* if */
       } else {
         break;
       }  /* if */

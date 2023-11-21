@@ -1,5 +1,22 @@
 Version 6.6
 
+11/21/23 [EDGcpfe/26742]
+Expansion of constrained template type parameters
+
+Previously, the front end never considered a type-constraint to be expandable,
+even if it included a template argument list containing an unexpanded template
+parameter pack.  For example, with --c++20:
+
+  template<typename T, typename U>
+  concept C = sizeof(T) == sizeof(U);
+  template<typename ... T>
+  struct B {
+    template<C<T> ... U>
+    static int f(U ...);
+  };
+  auto v = B<char, int>::f('a', 2);  // Previously a spurious error.  Now okay.
+
+
 11/20/23 [EDGcpfe/26795]
 Microsoft C compatibility: Statement expressions and __extension__
 
