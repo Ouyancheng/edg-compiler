@@ -21155,9 +21155,11 @@ and the output of the type name.
       /* For an aggregate constant, the delimiters were already put out
          above. */
       gen_initializer_constant(
-                            con, init_entity_type, /*transparent_case=*/FALSE,
-                            /*suppress_delims=*/constant_is(con, ck_aggregate),
-                            dip);
+                    con, init_entity_type, /*transparent_case=*/FALSE,
+                    /*suppress_delims=*/(constant_is(con, ck_aggregate) &&
+                                         !(paren_form &&
+                                           con->explicit_braces_on_aggregate)),
+                    dip);
       break;
     case dik_nonconstant_aggregate:
       /* Nonconstant aggregate constant, used in cases like
