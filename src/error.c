@@ -1526,7 +1526,6 @@ specified by dp.
   a_template_instance_ptr	tip = NULL;
   a_symbol_ptr			sym_to_display = NULL;
   a_symbol_ptr			sym = dfip->variant.symbol.ptr;
-  a_boolean			saved_suppress_alias_names;
   a_boolean  			saved_render_auto_deduction_typerefs =
 				          octl.render_auto_deduction_typerefs;
 
@@ -1827,12 +1826,6 @@ symbol_name:
           sym_to_display = corresp_template_sym;
         }  /* if */
       }
-      /* When outputting a type based on a template definition, don't remove
-         member typedefs. */
-      saved_suppress_alias_names = octl.suppress_alias_names;
-      if (corresp_template_sym == NULL) {
-        octl.suppress_alias_names = TRUE;
-      }  /* if */
       if (routine != NULL) {
         if (dfip->variant.symbol.force_function_params) {
           /* "%np" was specified for this fill-in. */
@@ -1902,9 +1895,6 @@ symbol_name:
                                        &octl);
         }  /* if */
       }  /* if */
-      /* Restore the typedef removal state before outputting the template
-         argument values. */
-      octl.suppress_alias_names = saved_suppress_alias_names;
       if (distinct_template_signatures) {
         /* Display the template argument information, if any. */
         a_symbol_ptr	templ_arg_sym;
