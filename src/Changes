@@ -21,7 +21,7 @@ parameter pack.  For example, with --c++20:
 Microsoft C compatibility: Statement expressions and __extension__
 
 In Microsoft C mode with microsoft_version >= 1939 the front end now accepts
-GNU-style statement expressions and well as the __extension__ keyword.  Both
+GNU-style statement expressions as well as the __extension__ keyword.  Both
 features no longer require GNU_EXTENSIONS_ALLOWED to be configured TRUE.
 
 
