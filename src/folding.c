@@ -3150,7 +3150,7 @@ description of the parameters.
   result_type = skip_typerefs(result_type);
   check_assertion(result_type->kind == (a_type_kind)tk_vector &&
                   constant->kind == (a_constant_repr_kind)ck_aggregate);
-  result_elem_type = result_type->variant.vector.element_type;
+  result_elem_type = skip_typerefs(result_type->variant.vector.element_type);
   num_result_elements = result_type->size / result_elem_type->size;
   if (op == (an_expr_operator_kind) eok_vector_not) {
     op = eok_not;

@@ -1,5 +1,16 @@
 Version 6.6
 
+11/22/23 [EDGcpfe/26808]
+Divide by zero
+
+A missing skip_typerefs had caused a division by zero floating-point exception
+on cases where the underlying type of a vector has a typeref (with --clang):
+
+  using my_char = char;
+  using vec __attribute__((vector_size(4))) = my_char;
+  auto x = ~vec{1, 2, 10, 20};
+
+
 11/21/23 [EDGcpfe/26742]
 Expansion of constrained template type parameters
 
