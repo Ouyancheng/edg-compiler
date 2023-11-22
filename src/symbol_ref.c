@@ -137,7 +137,7 @@ should only be called if cross-reference information is being generated
        them how to write a string to the xref file. */
     clear_il_to_str_output_control_block(&octl);
     octl.output_str = write_string_to_xref_file;
-    octl.suppress_alias_names = TRUE;
+    octl.keep_template_typedefs = FALSE;
     octl.render_auto_deduction_typerefs = TRUE;
     output_control_block_has_been_set_up = TRUE;
   }  /* if */

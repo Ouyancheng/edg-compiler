@@ -319,6 +319,13 @@ EXTERN a_boolean
                         /* TRUE if error context information should be
 			   displayed following a catastrophic error. */
 
+EXTERN a_boolean
+		display_template_typedefs_in_diagnostics;
+			/* TRUE if typedefs from class templates should be
+			   included in diagnostic output.  When this is FALSE
+			   the underlying type is displayed in place of the
+			   typedef. */
+
 #if FULLY_RESOLVED_MACRO_POSITIONS
 EXTERN a_boolean
 		macro_positions_in_diagnostics;
