@@ -21405,12 +21405,15 @@ placement and initializer from a rescan block for the operator.
     /* Set up the argument list for the new initializer. */
     a_dynamic_init_ptr init_dip;
     if (rescan_ndsp != NULL &&
-      (init_dip = rescan_ndsp->dynamic_init) != NULL &&
-        init_dip->is_braced_initializer &&
+        (init_dip = rescan_ndsp->dynamic_init) != NULL &&
         init_dip->rescan_info != NULL &&
-        is_braced_init_list_operand(&init_dip->rescan_info->saved_operand)) {
+        ((init_dip->is_braced_initializer &&
+          is_braced_init_list_operand(
+                                    &init_dip->rescan_info->saved_operand)) ||
+         rescan_ndsp->new_initializer_is_paren_aggr_init)) {
       /* A braced-init-list was saved with the dynamic init for the rescan.
-         Use it. */
+         Use it.  Also treat the case of parenthesized aggregate initialization
+         in this way. */
       nps->has_braced_initializer = TRUE;
       nps->braced_init_list = rescan_init_component(
                 init_dip->rescan_info->saved_operand.variant.braced_init_list,
