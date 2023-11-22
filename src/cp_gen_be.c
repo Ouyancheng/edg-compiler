@@ -21174,11 +21174,15 @@ and the output of the type name.
         /* This is default or value initialization for a whole class array,
            so put nothing inside the parens or braces. */
       } else {
-        /* Put out the aggregate constant. */
-        /* When paren_form is FALSE, the braces were already put out above. */
-        gen_initializer_constant(con, init_entity_type,
-                                 /*transparent_case=*/FALSE,
-                                 /*suppress_delims=*/!paren_form);
+        /* Put out the aggregate constant.  If it is an aggregate, the
+           delimiters were put out above and must be suppressed, except in
+           the case of a parenthesized initializer containing a
+           brace-enclosed aggregate. */
+        gen_initializer_constant(
+                   con, init_entity_type, /*transparent_case=*/FALSE,
+                   /*suppress_delims=*/(constant_is(con, ck_aggregate) &&
+                                        !(paren_form &&
+                                          con->explicit_braces_on_aggregate)));
       }  /* if */
       break;
     case dik_expression:
