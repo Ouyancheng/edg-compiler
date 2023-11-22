@@ -21151,9 +21151,10 @@ and the output of the type name.
         write_tok_ch('(');
         need_disambiguation_close_paren = TRUE;
       }  /* if */
-      /* Put out the constant. */
-      /* For an aggregate constant, the delimiters were already put out
-         above. */
+      /* Put out the constant.  If it is an aggregate, the delimiters were
+         put out above and must be suppressed, except in the case of a
+         parenthesized initializer containing a brace-enclosed
+         aggregate. */
       gen_initializer_constant(
                     con, init_entity_type, /*transparent_case=*/FALSE,
                     /*suppress_delims=*/(constant_is(con, ck_aggregate) &&
