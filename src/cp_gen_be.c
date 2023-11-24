@@ -21151,8 +21151,8 @@ and the output of the type name.
         write_tok_ch('(');
         need_disambiguation_close_paren = TRUE;
       }  /* if */
-      /* Put out the constant.  If it is an aggregate, the delimiters were
-         put out above and must be suppressed, except in the case of a
+      /* Put out the constant.  If it is an aggregate, the delimiters are
+         put out here and must be suppressed, except in the case of a
          parenthesized initializer containing a brace-enclosed
          aggregate. */
       gen_initializer_constant(
@@ -21171,18 +21171,16 @@ and the output of the type name.
                          "gen_paren_or_brace_dynamic_init: bad nonconst aggr");
       if (default_class_array_initialization(dip, &is_value_init) ||
           is_value_init) {
-        /* This is default or value initialization for a whole class array,
-           so put nothing inside the parens or braces. */
+        /* This is default or value initialization for a whole class or
+           array, so put nothing inside the parens or braces. */
       } else {
-        /* Put out the aggregate constant.  If it is an aggregate, the
-           delimiters were put out above and must be suppressed, except in
-           the case of a parenthesized initializer containing a
-           brace-enclosed aggregate. */
+        /* Put out the aggregate constant.  The delimiters are put out here
+           and must be suppressed, except in the case of a parenthesized
+           initializer containing a brace-enclosed aggregate. */
         gen_initializer_constant(
-                   con, init_entity_type, /*transparent_case=*/FALSE,
-                   /*suppress_delims=*/(constant_is(con, ck_aggregate) &&
-                                        !(paren_form &&
-                                          con->explicit_braces_on_aggregate)));
+                     con, init_entity_type, /*transparent_case=*/FALSE,
+                     /*suppress_delims=*/!(paren_form &&
+                                           con->explicit_braces_on_aggregate));
       }  /* if */
       break;
     case dik_expression:
