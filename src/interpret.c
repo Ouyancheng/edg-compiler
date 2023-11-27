@@ -12044,6 +12044,8 @@ string_view object referring to that static array.
      reuse an IL constant (using the persistent map). */
   map_or_replace_ptr(&ips->map, chars, (a_byte*)reflection_str_placeholder,
                      old_chars);
+  /* Silence a warning about old_chars being unused: */
+  check_assertion(old_chars != chars);
   fp = fields_of(tp);
   fp = next_alloc_field(fp);
   for (; fp != NULL; fp = next_alloc_field(fp->next)) {
