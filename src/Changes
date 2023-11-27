@@ -1,5 +1,21 @@
 Version 6.6
 
+11/27/23 [EDGcpfe/26814]
+GCC compatibility: Using-declarations and dependent base classes
+
+Consider:
+
+  struct E {};
+  template<typename BT> struct D: BT {
+    using E::x;  // Previously an error in all modes.
+  };             // Now okay in GNU C++ modes.
+
+This is invalid C++ because E has no member x.  However, GCC accepts the
+example, presumably under the assumption that BT might instantiate to a type
+named E (although attempting to instantiate D with such a type still results
+in an error with GCC).  The front end now emulates this behavior.
+
+
 11/27/23 [EDGcpfe/26743]
 Subobjects as nontype template arguments
 

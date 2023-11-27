@@ -3215,6 +3215,40 @@ end_lookup:
 }  /* look_for_projected_symbol */
 
 
+a_type_ptr look_up_type_in_dependent_bases(a_type_ptr  tp)
+/*
+The given type (call it T) is a nondependent type in GCC mode, but GCC treats
+it as a dependent type inherited from a dependent base.  The current scope is
+a class scope.  Return a nonreal type with the same name as T as would result
+from a looking that name up in a nonreal base class of the current class scope.
+*/
+{
+  a_symbol          *sym;
+  a_symbol_locator  loc;
+  a_type_ptr        result = tp;
+
+  check_assertion(gpp_version_is(any_version) &&
+                  scope_is(&scope_stack_top(), sck_class_struct_union));
+  make_locator_for_symbol(symbol_for(tp), &loc);
+  clear_specific_symbol(loc);
+  if (find_projected_symbol(scope_stack_top().assoc_type, &loc,
+                            IDL_MUST_BE_CLASS,
+                            /*look_in_dependent_bases=*/TRUE,
+                            /*look_in_interfaces=*/FALSE,
+                            /*tentative_type_lookup=*/FALSE,
+                            /*tentative_template_lookup=*/FALSE,
+                            /*do_not_create_proj_sym=*/FALSE,
+                            /*add_to_active_list=*/FALSE,
+                            /*insert_sym=*/(a_symbol*)NULL,
+                            &sym,
+                            /*can_create_nonreal=*/TRUE)) {
+    reduce_projection_symbol_to_fundamental_symbol(sym);
+    result = type_symbol_type(sym);
+  }  /* if */
+  return result;
+}  /* look_up_qualifier_in_dependent_bases */
+
+
 a_symbol_ptr find_conversion_template_instance(
 			a_symbol_locator		*locator,
 			a_symbol_list_entry_ptr		conversion_templates,
@@ -3750,7 +3784,7 @@ routine.
          found a symbol, look for a conversion template that can match
          the specified type. */
       if (sym == NULL && locator->is_conversion_name) {
-        a_type_ptr			class_type = ssep->assoc_type;
+        a_type_ptr  class_type = ssep->assoc_type;
         check_assertion(class_type != NULL);
         sym = look_up_conversion_template_instance(locator, class_type);
       }  /* if */

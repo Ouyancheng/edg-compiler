@@ -362,6 +362,8 @@ is a template parameter type.
     ? f_orig_nested_type_if_nonreal_nested_type(tp)			\
     : (tp))
 
+extern a_type_ptr look_up_type_in_dependent_bases(a_type_ptr  tp);
+
 extern a_symbol_ptr find_conversion_template_instance(
                                 a_symbol_locator         *locator,
                                 a_symbol_list_entry_ptr  conversion_templates,

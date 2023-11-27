@@ -24366,6 +24366,24 @@ See also coalesce_and_lookup_generalized_identifier.
             } else {
               /* Look up the id in the class scope. */
               a_boolean	qualifier_is_enum_type;
+              if (ilm == ilm_using_declaration &&
+                  gpp_version_is(any_version) &&
+                  scope_is(&scope_stack_top(), sck_class_struct_union)) {
+                /* GCC accepts the following:
+                     struct E {};
+                     template<typename BT> struct D: BT {
+                       using E::x;
+                     };
+                   We emulate that by replacing qualifier_type by a type of
+                   the same name looked up in a dependent base. */
+                a_type_ptr  curr_class = scope_stack_top().assoc_type;
+                if (curr_class->variant.class_struct_union
+                                       .is_prototype_instantiation &&
+                    !is_template_dependent_type(qualifier_type)) {
+                  qualifier_type = look_up_type_in_dependent_bases(
+                                                              qualifier_type);
+                }  /* if */
+              }  /* if */
               qualifier_is_enum_type = enum_qualifiers_enabled &&
                                        qualifier_is_type &&
                                        is_enum_type(qualifier_type);

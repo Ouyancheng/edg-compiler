@@ -15728,12 +15728,12 @@ a_boolean find_projected_symbol(
                         a_symbol_ptr             *projected_symbol,
                         a_boolean		 can_create_nonreal)
 /*
-Given class_ptr, which identifies a class (or struct or union) type,
-search its base classes for a symbol that projects the name specified
-in *locator into the class.  If such a symbol is found, create a
-projection symbol for it (marked "ambiguous" if there is more than one
-possible progenitor) and return it to the caller; otherwise, return
-NULL.  The new symbol is added to the symbol table in one of two ways,
+Given class_ptr, which identifies a class (or struct or union) type, search
+its base classes for a symbol that projects the name specified in *locator
+into the class.  If such a symbol is found, create a projection symbol for it
+(marked "ambiguous" if there is more than one possible progenitor) and return
+it to the caller through *projected_symbol; otherwise, set *projected_symbol
+to NULL.  The new symbol is added to the symbol table in one of two ways,
 depending on how add_to_active_list is set: if the flag is FALSE, the
 new symbol is added to the beginning of the locator's inactive list;
 if it is TRUE, it is inserted in the locator's active list (which is
