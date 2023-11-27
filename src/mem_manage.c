@@ -1923,6 +1923,23 @@ Add the specified string to a text buffer.  This version can be called
 }  /* add_to_text_buffer */
 
 
+void truncate_text_buffer_to(a_text_buffer_ptr buffer,
+                             sizeof_t          length)
+/*
+Truncate the given text buffer to the given length.
+*/
+{
+  check_assertion(buffer->size >= length);
+  buffer->size = length;
+#if DEBUG
+  /* Text buffers do not guarantee a null-terminator.  However, to improve the
+     display of a truncated buffer in a debugger, take advantage of the extra
+     space and add a null-terminator past the "end" of the buffer. */
+  buffer->buffer[length] = '\0';
+#endif /* DEBUG */
+}  /* truncate_text_buffer_to */
+
+
 void remove_null_terminator_from_text_buffer(a_text_buffer_ptr	buffer)
 /*
 If the last character of the text buffer is a null terminator, update

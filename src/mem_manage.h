@@ -371,6 +371,9 @@ extern void add_to_text_buffer(a_text_buffer_ptr	buffer,
 extern void f_add_string_to_text_buffer(a_text_buffer_ptr	buffer,
 				        a_const_char		*string);
 
+extern void truncate_text_buffer_to(a_text_buffer_ptr buffer,
+                                    sizeof_t          length);
+
 extern
 void remove_null_terminator_from_text_buffer(a_text_buffer_ptr	buffer);
 
