@@ -127,7 +127,7 @@ Clear an output control block to default values.
   octl->defer_vector_attribute    = FALSE;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   octl->suppress_template_args    = FALSE;
-  octl->suppress_alias_names      = FALSE;
+  octl->suppress_typedef_names    = FALSE;
   octl->suppress_ptr_to_data_member_parens = FALSE;
   octl->suppress_compiler_generated_parameters = FALSE;
   octl->processing_nontype_template_argument = FALSE;
@@ -2905,8 +2905,15 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
       && !type->variant.pointer.is_pin_ptr
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                           ) {
+    a_type_ptr pointee = type->variant.pointer.type;
+
+    if (octl->suppress_typedef_names && type_is_typedef(pointee)) {
+      /* Alias names are suppressed, skip the alias type and form the type name
+         for the underlying type. */
+      pointee = pointee->variant.typeref.type;
+    }  /* if */
     /* Pointer or reference type. */
-    form_type_first_part(type->variant.pointer.type,
+    form_type_first_part(pointee,
                          /*under_lhs_declarator=*/TRUE,
                          /*need_trailing_space=*/TRUE,
                          TQ_NONE, options, octl);
@@ -3523,8 +3530,15 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
       && !type->variant.pointer.is_pin_ptr
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                           ) {
+    a_type_ptr pointee = type->variant.pointer.type;
+
+    if (octl->suppress_typedef_names && type_is_typedef(pointee)) {
+      /* Alias names are suppressed, skip the alias type and form the type name
+         for the underlying type. */
+      pointee = pointee->variant.typeref.type;
+    }  /* if */
     /* Pointer or reference type. */
-    form_type_second_part(type->variant.pointer.type,
+    form_type_second_part(pointee,
                           /*under_lhs_declarator=*/TRUE,
                           options, octl);
   } else if (kind == (a_type_kind)tk_ptr_to_member) {
@@ -3598,7 +3612,7 @@ void form_type(a_type_ptr                            type,
 Output a string for a type.  Do the output in the way described by octl.
 */
 {
-  if (octl->suppress_alias_names && type_is_alias(type)) {
+  if (octl->suppress_typedef_names && type_is_typedef(type)) {
     /* Alias names are suppressed, skip the alias type and form the type name
        for the underlying type. */
     type = type->variant.typeref.type;

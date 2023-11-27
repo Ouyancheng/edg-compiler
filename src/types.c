@@ -14745,21 +14745,25 @@ is a class type it caches the result in its class type supplement.
 }  /* ttt_post_is_error_type */
 
 
-static a_boolean ttt_is_alias_type(a_type_ptr  type_ptr,
-                                   a_boolean   *force_end_of_traversal)
+static a_boolean ttt_is_typedef_type(a_type_ptr  type_ptr,
+                                     a_boolean   *force_end_of_traversal)
 /*
 This is a service function designed to be called from traverse_type_tree
-(whence the ttt_ prefix).  It returns TRUE if type_ptr is an alias type.
+(whence the ttt_ prefix).  It returns TRUE if type_ptr is represents a
+typedef-name.
+
+Note typedef-names include both type aliases formed via the typedef specifier
+and those formed via alias-declaration syntax.
 */
 {
   a_boolean  result = FALSE;
 
-  if (type_is_alias(type_ptr)) {
+  if (type_is_typedef(type_ptr)) {
     result = TRUE;
     *force_end_of_traversal = TRUE;
   }  /* if */
   return result;
-}  /* ttt_is_alias_type */
+}  /* ttt_is_typedef_type */
 
 
 /* Static variables used to pass information back to the routine
@@ -16327,10 +16331,13 @@ or is a type tree containing such a type.
 }  /* is_or_contains_error_type */
 
 
-a_boolean is_or_contains_alias_type(a_type_ptr  type_ptr)
+a_boolean is_or_contains_typedef_type(a_type_ptr  type_ptr)
 /*
-Return TRUE if the type pointed to by type_ptr is itself an alias type or is a
-type tree containing such a type.
+Return TRUE if the type pointed to by type_ptr is itself an typedef-name type
+or is a type tree containing such a type.
+
+Note typedef-names include both type aliases formed via the typedef specifier
+and those formed via alias-declaration syntax.
 */
 {
   a_boolean                       result;
@@ -16340,10 +16347,9 @@ type tree containing such a type.
                                                TTT_TEMPLATE_ARGS |
                                                TTT_EXCEPTION_SPECS |
                                                TTT_PARENT_CLASSES);
-  add_implicit_ttt_flags(&ttt_flags);
-  result = traverse_type_tree(type_ptr, ttt_is_alias_type, ttt_flags);
+  result = traverse_type_tree(type_ptr, ttt_is_typedef_type, ttt_flags);
   return result;
-}  /* is_or_contains_alias_type */
+}  /* is_or_contains_typedef_type */
 
 
 a_boolean is_template_dependent_type(a_type_ptr  type_ptr)

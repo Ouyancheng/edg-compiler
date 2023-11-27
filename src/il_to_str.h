@@ -280,9 +280,11 @@ typedef struct an_il_to_str_output_control_block {
   a_byte_boolean
 	keep_template_typedefs;
 			/* TRUE if typedefs from class templates should not be
-			   replaced with their underlying type and nondependent
-			   alias template instances should not be replaced with
-			   their underlying type. */
+			   replaced with their underlying type and
+			   non-dependent alias template instances should not be
+			   replaced with their underlying type.  Note
+			   suppress_typedef_names takes precedence over this
+			   option. */
   a_byte_boolean
 	suppress_line_breaking;
 			/* Suppress any processing that breaks long output
@@ -325,9 +327,11 @@ typedef struct an_il_to_str_output_control_block {
 			/* Suppress the output of template arguments in
 			   type names. */
   a_byte_boolean
-	suppress_alias_names;
-			/* Suppress the output of aliased names in type names,
-			   instead outputting the true type names. */
+	suppress_typedef_names;
+			/* Suppress the output of typedef-names in type names,
+			   instead outputting the true type names.  Note this
+			   option takes precedence over
+			   keep_template_typedefs. */
   a_byte_boolean
 	suppress_ptr_to_data_member_parens;
 			/* If TRUE, do not parenthesize the declarator of a

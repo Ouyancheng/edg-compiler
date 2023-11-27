@@ -1084,19 +1084,68 @@ Format a string that represents the type pointed to by dfip into the message
 buffer.
 */
 {
+#if STANDALONE_UTILITY_PROGRAM
   add_string_to_text_buffer(msg_buffer, "\"");
   form_type(dfip->variant.type, &octl);
   add_string_to_text_buffer(msg_buffer, "\"");
+#else /* !STANDALONE_UTILITY_PROGRAM */
+  Value_saver<a_byte_boolean>
+                keep_template_typedefs_saved(&octl.keep_template_typedefs);
 
-#if !STANDALONE_UTILITY_PROGRAM
-  if (is_or_contains_alias_type(dfip->variant.type)) {
-    a_boolean prev_suppress_alias_names = octl.suppress_alias_names;
+  octl.keep_template_typedefs = TRUE;
+  add_string_to_text_buffer(msg_buffer, "\"");
 
-    octl.suppress_alias_names = TRUE;
-    add_string_to_text_buffer(msg_buffer, " (aka \"");
+  auto               type_str_fn = [dfip]() {
     form_type(dfip->variant.type, &octl);
+  };
+  a_text_buffer_view type_str = capture_buffer_append(msg_buffer, type_str_fn);
+  add_string_to_text_buffer(msg_buffer, "\"");
+  /* If the type contains an aliased type, include a string showing the aliased
+     type, e.g.:
+
+       "a_type" (aka "unsigned int")
+               ^^^^^^^^^^^^^^^^^^^^^
+  */
+  if (is_or_contains_typedef_type(dfip->variant.type)) {
+    Value_saver<a_byte_boolean>
+                suppress_typedef_names_saved(&octl.suppress_typedef_names);
+    sizeof_t    original_start = msg_buffer->size;
+
+    octl.suppress_typedef_names = TRUE;
+    octl.keep_template_typedefs = FALSE;
+    add_string_to_text_buffer(msg_buffer, " (aka \"");
+
+    auto               aka_type_str_fn = [dfip]() {
+      form_type(dfip->variant.type, &octl);
+    };
+    a_text_buffer_view aka_type_str = capture_buffer_append(msg_buffer,
+                                                            aka_type_str_fn);
     add_string_to_text_buffer(msg_buffer, "\")");
-    octl.suppress_alias_names = prev_suppress_alias_names;
+    if (type_str == aka_type_str) {
+      /* In some cases the front end encounters a typedef type that's
+         invisible in the printed type, e.g.:
+
+           typedef void (*func)(int*);
+           template <func f> struct my_struct {};
+
+           // If my_struct<&some_function> appears in a diagnostic, the above
+           // function type results in a non-visible typedef usage being
+           // detected by is_or_contains_typedef_type.
+           my_struct<&some_function> *a1;
+
+           // The front end associates "x" with the struct, so if this appears
+           // in a diagnostic it will appear with a redundant name.
+           typedef struct { } x;
+
+         this results in the front end printing out a redundant "aka".  These
+         cases are non-trivial to detect via traversal and aggressively culling
+         them can result in valid cases not being handled correctly.  Thus, we
+         perform this post-processing check for the redundancy in the
+         "rendered" type name and (when the names match) revert the msg_buffer
+         to its prior state.
+       */
+      truncate_text_buffer_to(msg_buffer, original_start);
+    }  /* if */
   }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 }  /* form_type_summary */
@@ -1130,17 +1179,26 @@ dfip into the message buffer.
 char *format_type_string(a_type_ptr tp,
                          sizeof_t   *len_ptr)
 /*
-A NULL terminated character string representation of the type pointed to
-by tp is formatted into the first segment of the error diagnostic segment
-list (pointed to by the static variable error_message_head).  The address
-of the string created is returned and the length of the string is passed 
-to the caller by *len_ptr.  Note that the string length does not include
-the terminating NULL character.  The caller should make a copy of the
-string immediately into whichever memory region is appropriate.
+A NULL terminated character string representation of the type pointed to by tp
+is formatted into the first segment of the error diagnostic segment list
+(pointed to by the static variable error_message_head).  The formatted type is
+always stripped of any type aliases.  The address of the string created is
+returned and the length of the string is passed to the caller by *len_ptr.
+Note that the string length does not include the terminating NULL character.
+The caller should make a copy of the string immediately into whichever memory
+region is appropriate.
 */
 {
   /* Set up for use of the il_to_str routines. */
   set_up_output_control_block();
+
+  /* Form the type string. */
+  Value_saver<a_byte_boolean>
+                keep_template_typedefs_saved(&octl.keep_template_typedefs);
+  Value_saver<a_byte_boolean>
+                suppress_typedef_names_saved(&octl.suppress_typedef_names);
+  octl.suppress_typedef_names = TRUE;
+  octl.keep_template_typedefs = FALSE;
   form_type(tp, &octl);
   add_char_to_text_buffer(msg_buffer, '\0');
   /* Provide the length of the string and the address of the string
