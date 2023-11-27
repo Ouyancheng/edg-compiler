@@ -1,5 +1,20 @@
 Version 6.6
 
+11/27/23 [EDGcpfe/26743]
+Subobjects as nontype template arguments
+
+Prior to C++20, the standard required a nontype template argument of pointer or
+reference type to refer to a complete object.  This restriction has been
+removed in C++20 and a nontype template argument can now also refer to a
+subobject.  For example, with --c++20:
+
+  template<int &> struct C { };
+  struct B {
+    int i, j;
+  } b;
+  C<b.j> c;  // Previously a spurious error.  Now okay.
+
+
 11/22/23 [EDGcpfe/26808]
 Divide by zero
 

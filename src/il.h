@@ -2410,6 +2410,8 @@ extern a_boolean is_generated_dynamic_init(a_dynamic_init_ptr dip);
 
 extern a_boolean is_error_dynamic_init(a_dynamic_init_ptr dip);
 
+extern a_boolean is_valid_object_for_nontype_arg(a_constant_ptr  con);
+
 extern a_boolean is_valid_ptr_or_ptr_to_member_templ_arg_constant(
                                                          a_constant_ptr  con);
 

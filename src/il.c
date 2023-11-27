@@ -18979,6 +18979,54 @@ nullptr type, set *copy_error to TRUE.  (No checking is needed or done if
 }  /* check_template_nullptr_operation */
 
 
+a_boolean is_valid_object_for_nontype_arg(a_constant_ptr  con)
+/*
+Return TRUE if the given address constant refers to an object that is valid as
+a nontype template argument.  This must be a complete object in pre-C++20
+modes, but can be a subobject in C++20 and later.
+*/
+{
+  a_boolean             result = TRUE;
+  a_targ_size_t         num_elements = 1;
+  a_subobject_path_ptr  path;
+  a_type_ptr            tp;
+
+  check_assertion(con->kind == ck_address &&
+                  con->variant.address.kind == abk_variable);
+  path = con->variant.address.subobject_path;
+  if (!cpp20_mode && path != NULL) {
+    /* Prior to C++20, subobjects were never valid as nontype template
+       arguments. */
+    result = FALSE;
+    goto done;
+  }  /* if */
+  tp = skip_typerefs(con->variant.address.variant.variable->type);
+  if (type_is(tp, tk_array) && !is_incomplete_array_type(tp)) {
+    num_elements = num_array_elements(tp);
+  }  /* if */
+  while (result && path != NULL) {
+    if (path->is_offset) {
+      /* Make sure we are pointing to an element of the array/object. */
+      result = path->variant.ptr_offset >= 0 &&
+               (a_targ_size_t)path->variant.ptr_offset < num_elements;
+    } else if (path->is_base_class) {
+      num_elements = 1;
+    } else {
+      a_field_ptr  fp = path->variant.field;
+      tp = skip_typerefs(fp->type);
+      if (type_is(tp, tk_array)) {
+        num_elements = num_array_elements(tp);
+      } else {
+        num_elements = 1;
+      }  /* if */
+    }  /* if */
+    path = path->next;
+  }  /* while */
+done:
+  return result;
+}  /* is_valid_object_for_nontype_arg */
+
+
 a_boolean is_valid_ptr_or_ptr_to_member_templ_arg_constant(a_constant_ptr  con)
 /*
 Return TRUE if the given constant represents a valid pointer or pointer-to-
@@ -19012,9 +19060,10 @@ member template argument.
       if (con->variant.address.variant.variable == NULL) {
         result = null_value_okay;
       } else {
-        /* Check that this is not the address of a proper subobject.  Some
-           modes accept subobject addresses, however. */
-        result = con->variant.address.subobject_path == NULL ||
+        /* Check that this variable address constant is valid as a nontype
+           argument.  Older versions of GCC accept subobject addresses in
+           pre-C++20 modes. */
+        result = is_valid_object_for_nontype_arg(con) ||
                  (con->variant.address.offset == 0 &&
                   (gnu_version_is(<30400)));
       }  /* if */

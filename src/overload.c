@@ -24438,7 +24438,7 @@ reference type.  Return TRUE if it is acceptable.
     if (cp->variant.address.kind == (an_address_base_kind)abk_variable &&
         !is_any_reference_type(cp->variant.address.variant.variable->type) &&
         !cp->variant.address.variant.variable->is_struct_binding &&
-        cp->variant.address.subobject_path == NULL) {
+        is_valid_object_for_nontype_arg(cp)) {
       /* A nonreference variable whose "address" has been folded. */
       valid = TRUE;
     } else if (cp->variant.address.kind == (an_address_base_kind)abk_routine) {

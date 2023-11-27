@@ -21382,6 +21382,13 @@ structure.
       tap->variant.type = strip_local_and_nonreal_typedefs(
                                       tap->variant.type, /*local_only=*/FALSE);
     } else if (is_nontype_templ_arg(tap)) {
+      if (is_class_struct_union_type(tap->variant.constant->type)) {
+        /* A (C++20) nontype template argument of a class type. */
+        if (!is_valid_class_templ_arg_constant(tap->variant.constant)) {
+          pos_ty_error(ec_invalid_nontype_template_argument,
+                       source_pos, tap->variant.constant->type);
+        }  /* if */
+      }  /* if */
       if (nontype_templ_arg_constant_involves_invalid_linkage(
                                                       tap->variant.constant)) {
         pos_error(ec_nonexternal_entity_in_template_arg, source_pos);
