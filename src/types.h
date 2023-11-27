@@ -494,26 +494,30 @@ not been specialized.
 
 inline a_boolean typeref_is_typedef(a_type_ptr  tp)
 /*
-Return TRUE if a tk_typeref type represents a typedef name.  Note that this
-is not identical to !typeref_is_qualified -- though typeref_is_qualified
-and typeref_is_typedef can never be true at the same time -- since there
-are cases in which typerefs are produced that are empty, with neither name
-nor qualifier.
+Return TRUE if a tk_typeref type represents a typedef-name.
+
+Note typedef-names include both type aliases formed via the typedef specifier
+and those formed via alias-declaration syntax.
+
+Additionally note, that this is not identical to !typeref_is_qualified --
+though typeref_is_qualified and typeref_is_typedef can never be true at the
+same time -- since there are cases in which typerefs are produced that are
+empty, with neither name nor qualifier.
 */
 {
   return tp->source_corresp.name != NULL;
 }  /* typeref_is_typedef */
 
 
-inline a_boolean typeref_is_alias(a_type_ptr  tp)
+inline a_boolean typeref_is_using_decl_alias(a_type_ptr  tp)
 /*
-Return TRUE if a tk_typeref type represents an alias (including an instance of
-an alias template).
+Return TRUE if a tk_typeref type represents an alias-declaration (including an
+instance of an alias template).
 */
 {
   return tp->variant.typeref.kind == trk_is_alias ||
          tp->variant.typeref.kind == trk_is_template_alias;
-}  /* typeref_is_alias */
+}  /* typeref_is_using_decl_alias */
 
 
 inline a_boolean typeref_is_type_operator(

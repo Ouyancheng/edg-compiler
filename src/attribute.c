@@ -8645,7 +8645,7 @@ attribute turns it into an interior pointer to T.
     a_type_ptr  tp;
     check_assertion(entity_kind == iek_type);
     tp = (a_type_ptr)entity;
-    if (!type_is_typedef(tp) || !typeref_is_alias(tp)) {
+    if (!type_is_typedef(tp) || !typeref_is_using_decl_alias(tp)) {
       report_bad_attribute_target(es_error, ap);
     } else {
       tp->variant.typeref.type =
@@ -8673,7 +8673,7 @@ turns it into an pin pointer to T.
     a_type_ptr  tp;
     check_assertion(entity_kind == iek_type);
     tp = (a_type_ptr)entity;
-    if (!type_is_typedef(tp) || !typeref_is_alias(tp)) {
+    if (!type_is_typedef(tp) || !typeref_is_using_decl_alias(tp)) {
       report_bad_attribute_target(es_error, ap);
     } else {
       tp->variant.typeref.type = make_pin_ptr_type(tp->variant.typeref.type);

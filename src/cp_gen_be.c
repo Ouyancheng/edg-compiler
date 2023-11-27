@@ -11036,7 +11036,7 @@ declaration following this one is such a continuation.
   } else {
     under_type = type->variant.typeref.type;
     attributes = type->source_corresp.attributes;
-    is_alias = typeref_is_alias(type);
+    is_alias = typeref_is_using_decl_alias(type);
     embedded_constructs =
                         type->variant.typeref.embedded_source_sequence_entries;
   }  /* if */
