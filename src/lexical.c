@@ -14133,52 +14133,6 @@ literals are left unchanged.
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static void scan_unqualid_construct(void)
-/*
-Scan a splicer of the form:
-
-	unqualid(<expr>)
-
-where <expr> has a std::string_view or std::meta::info type.
-
-FIXME: Rework this to a new splicer syntax (e.g., [# info #]).
-*/
-{
-  if (fetch_pp_tokens) {
-    /* When fetching preprocessing tokens, just return tok_unqualid.
-       Nothing else needs to be done here for this case. */
-  } else {
-    a_pending_pragma_ptr  saved_curr_token_pragmas = curr_token_pragmas;
-    a_const_char          *id_str;
-    /* Push a new lexical state so that the tokens scanned by this routine
-       will not be cached by the background caching mechanism. */
-    push_lexical_state_stack();
-    /* Clear the curr_token_pragmas list so that it can be restored after the
-       tokens of the unqualid construct have been scanned. */
-    curr_token_pragmas = NULL;
-    /* Skip the unqualid token. */
-    (void)get_token();
-    if (curr_token == tok_lparen) {
-      (void)get_token();
-    } else {
-      pos_error(ec_exp_lparen, &error_position);
-    }  /* if */
-    add_stop_token(tok_rparen);
-    id_str = scan_unqualid_operand();
-    (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
-    remove_stop_token(tok_rparen);
-    (void)find_symbol_header(id_str, (sizeof_t)strlen(id_str),
-                             &locator_for_curr_id);
-    curr_token = tok_identifier;
-    /* Pop the lexical state pushed by this routine. */
-    pop_lexical_state_stack();
-    /* Add the saved curr_token_pragmas (if any) to the current list. */
-  add_to_curr_token_pragma_list(saved_curr_token_pragmas);
-  }  /* if */
-}  /* scan_unqualid_construct */
-
-
-
 static void adjust_pp_int_constant(void)
 /*
 The current token is an integer constant scanned within a preprocessing #if
@@ -16773,12 +16727,6 @@ id_scan:
 	      } else if (ctoken == tok_false || ctoken == tok_true) {
                 /* A C++ boolean constant. */
                 scan_boolean_constant(ctoken);
-                goto end_id_scan;
-              } else if (ctoken == tok_unqualid) {
-                /* An unqualid(...) splicer.  FIXME: Remove once a bracket-
-                   based alternative is implemented. */
-                scan_unqualid_construct();
-                ctoken = tok_identifier;
                 goto end_id_scan;
               } else if (clang_mode && curr_token == tok_struct &&
                          token_names[ctoken][0] == '_' &&

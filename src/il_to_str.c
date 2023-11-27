@@ -6124,7 +6124,7 @@ Render the entity designated by the given reflection.
       FALLTHROUGH
     default:
       if (!octl->gen_compilable_code) {
-        octl->output_str("unknown reflection", octl);
+        octl->output_str(error_text(ec_unspecified_reflection), octl);
       } else {
         unexpected_condition();
       }  /* if */
@@ -6963,8 +6963,7 @@ do_sizeof_cases:
            the generated C code, however.  Just render a null pointer. */
         octl->output_str("((void*)0)", octl);
       } else {
-        octl->output_str("reflection of ???", octl);
-        // FIXME: More detailed output.
+        form_reflection(constant->variant.reflection, octl);
       }  /* if */
       break;
     default:

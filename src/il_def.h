@@ -1279,9 +1279,6 @@ enum a_token_kind : unsigned short {
   tok_typename,
   tok_static_assert,
   tok_decltype,
-  tok_unqualid,
-  tok_exprid,
-  tok_valueof,
   /* Recognized in GNU C and C++ modes only. */
   tok_auto_type,
   tok_extension,
@@ -1563,7 +1560,6 @@ EXTERN a_const_char
    "export", "export", "export", "import", "module",
    "mutable", "namespace", "reinterpret_cast", "static_cast", "typeid",
    "using", "bool", "false", "true", "typename", "static_assert", "decltype",
-   "unqualid", "exprid", "valueof",
    "__auto_type", "__extension__", "__null", "typeof", "typeof_unqual",
    "overload",
 #if SUN_EXTENSIONS_ALLOWED

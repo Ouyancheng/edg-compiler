@@ -1580,13 +1580,6 @@ Install the keywords in the symbol table.
      function declarations that can appear in both modes. */
   enter_keyword(C_mode() ? (a_token_kind)tok_edg_throw :
                            (a_token_kind)tok_throw,   "__edg_throw__");
-  if (reflection_enabled) {
-    // FIXME: Drop these operators one the new splicing syntax is
-    // fully implemented.
-    enter_keyword((a_token_kind)tok_unqualid, "unqualid");
-    enter_keyword((a_token_kind)tok_exprid, "exprid");
-    enter_keyword((a_token_kind)tok_valueof, "valueof");
-  }  /* if */
   db_exit();
 }  /* keyword_init */
 

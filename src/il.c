@@ -2609,6 +2609,7 @@ Dump a string identifying a constant-representation kind, for debug purposes.
     case ck_init_repeat:      s = "ck_init_repeat";	 break;
     case ck_template_param:   s = "ck_template_param";	 break;
     case ck_designator:       s = "ck_designator";	 break;
+    case ck_reflection:       s = "ck_reflection";	 break;
 #if UPC_EXTENSIONS_ALLOWED
     case ck_upc_threads:      s = "ck_upc_threads"; 	 break;
     case ck_upc_mythread:     s = "ck_upc_mythread";	 break;
@@ -12029,6 +12030,7 @@ types that were expected to be std::string_view.
 done:
   return result;
 }  /* check_consistent_string_view_type */
+
 
 namespace {
 

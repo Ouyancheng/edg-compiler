@@ -3218,9 +3218,9 @@ Return the source correspondence for the entity associated with rvp, if any.
 */
 {
   a_reflection_value  rv = *rvp;
+
   strip_template_arg(&rv);
-  return source_corresp_for_il_entry(rv.entity.ptr,
-                                     (an_il_entry_kind)rv.entity.kind);
+  return source_corresp_for_il_entry(rv.entity.ptr, rv.entity.kind);
 }  /* source_corresp_for_reflection */
 
 

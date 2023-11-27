@@ -3461,6 +3461,7 @@ ec_union_base;;"a class cannot not derive from a union"
 ec_base_with_flexible_array;;"cannot derive from a class with a flexible array member"
 ec_null_reflection;;"null reflection"
 ec_namespace_alias;;"namespace alias"
+ec_unspecified_reflection;;"reflection (details unavailable)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

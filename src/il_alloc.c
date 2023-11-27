@@ -3848,8 +3848,8 @@ Allocate and initialize an expression node.
 
 an_expr_node_ptr fs_alloc_expr_node(an_expr_node_kind kind)
 /*
-This function is a wrapper for alloc_expr_node that ensures and expression
-node is allocated in file-scope memory.  kind is the kind passed on to
+This function is a wrapper for alloc_expr_node that ensures an expression node
+is allocated in file-scope memory.  kind is the kind passed on to
 alloc_expr_node.
 */
 {

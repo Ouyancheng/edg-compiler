@@ -38263,138 +38263,6 @@ called.
 }  /* scan_this */
 
 
-a_const_char* scan_unqualid_operand()
-/*
-Scan the operand to a unqualid splicer construct (called from
-scan_unqualid_construct in lexical.c).  Return an immutable string encoding
-the corresponding identifier.
-
-FIXME: This function is incomplete and should be changed to use the new
-       splicer syntax.
-*/
-{
-  an_expr_stack_entry  *saved_expr_stack;
-  an_expr_stack_entry  expr_stack_entry;
-  an_operand           opnd;
-  a_const_char         *result = "<error>";
-  
-  save_expr_stack(&saved_expr_stack);
-  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                  /*force_object_lifetime=*/TRUE,
-                  /*suppress_object_lifetime=*/FALSE);
-  transfer_expr_context_if_applicable(saved_expr_stack);
-  begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
-  scan_expr(&opnd, PREC_LOWEST, EOPT_NO_OPTIONS);
-  if (operand_is_instantiation_dependent(&opnd) && is_error_operand(&opnd)) {
-    /* Create a string from the cached tokens and use that as the "identifier"
-       for now.  That allows, e.g., some matching to occur between in-class
-       member declarations and out-of-class definitions. */
-#if 0
-    a_token_cache_ptr  tcp = alloc_token_cache();
-    a_token_sequence_number
-                       last_tsn = last_token_sequence_number_of_token;
-    copy_tokens_from_cache(curr_lexical_state_cache(), first_tsn, last_tsn,
-                           /*include_last_token=*/TRUE, tcp);
-    // Use add_token_to_string
-#endif /* FIXME */
-  } else {
-    /* Handle the char-array, ptr-to-char-array, and string_view cases. */
-    do_operand_transformations(&opnd, TOPT_NO_OPTIONS);
-#if 0
-  if (is_address_of_string_constant(con)) ...
-  process_converted_constant_expression(&operand,
-                                        is_error_type(switch_type) ?
-                                            NULL :
-                                            switch_type,
-                                        (a_builtin_type_kind_set)
-                                         (BTK_INTEGRAL | BTK_BOOL | BTK_ENUM),
-                                        /*is_array_bound=*/FALSE,
-                                        /*is_enum=*/FALSE,
-                                        constant);
-    if (is_char_array_type(opnd.type) || ) {
-#endif /* FIXME */
-    if (expr_interpret_expression_operand(&opnd, /*force_constant=*/TRUE,
-                                          /*is_constant_evaluated=*/TRUE)) {
-      // FIXME
-#if DEBUG
-      db_operand(&opnd);
-#endif /* DEBUG */
-    }  /* if */
-  }  /* if */
-  end_caching_fetched_tokens();
-  pop_expr_stack();
-  restore_expr_stack(saved_expr_stack);
-  return result;
-}  /* scan_unqualid_operand */
-
-
-static void scan_valueof_operator(a_rescan_control_block    *rcblock,
-                                  a_local_expr_options_set  local_options,
-                                  int                       prec_level,
-                                  an_operand                *result)
-/*
-Scan an expression of the form
-	valueof(<reflection-value>)
-where <reflection-value> is a constant-expression of type "std::meta::info".
-The parentheses are required, unlike for sizeof.  If rcblock is non-NULL, redo
-semantic analysis on a previously-scanned valueof operator.  Either way, store
-the result in *result.
-
-FIXME: This function is obsolete.  Instead, it should be changed to implement
-       the more general expression splicing construct ([: <info> :]).
-*/
-{
-  an_operand         opnd;
-  a_boolean          consume_right_paren = FALSE;
-
-  if (rcblock != NULL) {
-  
-  } else {
-    /* Normal, non-rescan, processing. */
-    /* Skip the "valueof" token. */
-    check_assertion(curr_token == tok_valueof);
-    (void)get_token();
-    /* Check for and pass over the left parenthesis. */
-    (void)required_token(tok_lparen, ec_exp_lparen);
-    add_stop_token(tok_rparen);
-    scan_expr(&opnd, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-    (void)required_token_no_advance(tok_rparen, ec_exp_rparen);
-    remove_stop_token(tok_rparen);
-    consume_right_paren = TRUE;
-    force_operand_to_constant_if_possible_full(&opnd,
-                                               /*is_constant_evaluated=*/TRUE);
-  }  /* if */
-  if (is_error_operand(&opnd) || is_error_type(opnd.type)) {
-    make_error_operand(result);
-  } else if (operand_is_instantiation_dependent(&opnd)) {
-// FIXME XXX
-    make_error_operand(result);
-  } else if (!is_reflection_type(opnd.type)) {
-    expr_pos_ty_error(ec_bad_splicer_operand, &opnd.position, opnd.type);
-    make_error_operand(result);
-  } else if (!is_constant_operand(&opnd)) {
-    expr_pos_error(ec_nonconstant_splicer_operand, &opnd.position);
-    make_error_operand(result);
-  } else {
-    a_constant_ptr  cp = &opnd.variant.constant;
-    if (!constant_is(cp, ck_reflection)) {
-      unexpected_condition();
-    } else {
-      a_reflection_value  *rvp = &cp->variant.reflection;
-      an_il_entry_kind    iek = (an_il_entry_kind)rvp->entity.kind;
-      if (iek == iek_constant) {
-        make_constant_operand((a_constant_ptr)rvp->entity.ptr, result);
-      } else {
-        // FIXME: Error
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  if (consume_right_paren) {
-    (void)required_token(tok_rparen, ec_exp_rparen);
-  }  /* if */
-}  /* scan_valueof_operator */
-
-
 static void scan_expr_splicer(a_rescan_control_block    *rcblock,
                               an_operand                *result)
 /*
@@ -38415,7 +38283,9 @@ FIXME: This is currently incomplete.
 
   expr_stack->favor_constant_result = TRUE;
   if (rcblock != NULL) {
-  
+    /* Rescanning of splicers is not implemented yet. */
+    subst_fail(rcblock->error_detected);
+    make_error_operand(result);
   } else {
     /* Normal, non-rescan, processing. */
     /* Skip the left bracket and the colon. */
@@ -38436,7 +38306,7 @@ FIXME: This is currently incomplete.
   if (is_error_operand(&opnd) || is_error_type(opnd.type)) {
     make_error_operand(result);
   } else if (operand_is_instantiation_dependent(&opnd)) {
-// FIXME XXX
+    /* FIXME: Generate an actual representation of the splice. */
     copy_operand(&opnd, result);
     make_template_param_expr_constant_operand(result);
   } else if (!is_reflection_type(opnd.type)) {
@@ -38457,11 +38327,12 @@ FIXME: This is currently incomplete.
       } else if (iek == iek_expr_node) {
         an_expr_node_ptr  node = (an_expr_node*)rvp->entity.ptr;
         if (node_is(node, enk_variable)) {
+          /* FIXME: Ensure that the variable is still "live". */
           make_expression_operand(node, result);
         } else if (node_is(node, enk_routine)) {
-          // FIXME?
           make_expression_operand(node, result);
         } else if (node_is(node, enk_constant)) {
+          /* FIXME: Ensure that the constant is still "live". */
           make_constant_operand(node_constant(node), result);
         } else {
         }  /* if */
@@ -38484,7 +38355,6 @@ FIXME: This is currently incomplete.
                                       (a_ref_entry_ptr)NULL,
                                       result);
       } else {
-        // FIXME: Describe the actual reflection kind.
         expr_pos_error(ec_bad_reflection_kind_for_expression_splice,
                        &start_pos, *rvp);
         make_error_operand(result);
@@ -41943,11 +41813,6 @@ type_start:
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
-    case tok_valueof:  // FIXME
-      scan_valueof_operator((a_rescan_control_block*)NULL, local_options,
-                            prec_level, &local_result);
-      break;
-
     case tok_edg_internal_opnd:
       scan_internal_operand(&local_result);
       break;
@@ -42922,7 +42787,9 @@ is considered a full-expression.
 an_init_component_ptr cache_expression(bool  immediate_context)
 /*
 Scan an expression with PREC_LOWEST and EOPT_DISALLOW_COMMA_OPERATOR and
-return an init-component for it.
+return an init-component for it.  immediate_context is TRUE if the expression
+appears in an immediate context (i.e., a context where call to consteval
+functions should not be immediately folded).
 */
 {
   an_expr_stack_entry  *saved_expr_stack;
@@ -47181,6 +47048,7 @@ Evaluate a compile-time call described through refection values.  target_rv
 describes the function to call and arg_rvs the (constant-valued) arguments for
 the call.  The given position is the default position for diagnostics.  If
 the operation succeeds, return TRUE and represent the result in *result_con.
+Otherwise, return FALSE.
 */
 {
   a_boolean               success = FALSE;
@@ -47273,6 +47141,9 @@ in a template instantiation) just do the scan.  is_member_or_friend is
 TRUE if the function being declared is a class member or friend.  Similarly,
 for_consteval_function is TRUE if the function being declared is a consteval
 function.
+
+(This is used to implement evaluation of std::meta::metacall(...) in the
+interpreter.)
 */
 {
   an_operand              result;
@@ -50936,9 +50807,6 @@ a enclosing expression).
       case tok_builtin_bit_cast:
         scan_builtin_bit_cast(rcblock, result);
         break;
-     case tok_valueof:  // FIXME: Change to logic for scan_expr_splicer
-       scan_valueof_operator(rcblock, local_options, PREC_LOWEST, result);
-       break;
       default:
         unexpected_condition();
     }  /* switch */
