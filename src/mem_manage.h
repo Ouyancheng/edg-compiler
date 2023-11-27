@@ -386,6 +386,71 @@ Add the specified string to a text buffer.
   (add_to_text_buffer(buffer, string, (sizeof_t)(len)))
 
 /*
+This structure is used to represent a portion of a text buffer (it's
+effectively a string_view for a_text_buffer).  Thus while the structure does
+not itself contain text, the text in the buffer at the stored position
+information is compared when determining equality.
+
+Unlike a normal string_view, this type is safe if the buffer underlying
+a_text_buffer is reallocated.
+*/
+struct a_text_buffer_view {
+  inline a_boolean operator==(const a_text_buffer_view &other) const;
+  inline a_boolean operator!=(const a_text_buffer_view &other) const
+    { return !(*this == other); }
+
+  a_text_buffer *buffer;
+                        /* The underlying text buffer. */
+  sizeof_t      start;  /* The start of this substring. */
+  size_t        length; /* The length of this substring. */
+};  /* a_text_buffer_view */
+
+
+a_boolean a_text_buffer_view::operator==(const a_text_buffer_view &other) const
+/*
+Return TRUE if this text buffer view is equal to the given text buffer view;
+otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  /* If one of these assertions fail, the respective buffer has either shrunk
+     since construction or the view itself was not properly constructed. */
+  check_assertion(this->start + this->length <= this->buffer->size);
+  check_assertion(other.start + other.length <= other.buffer->size);
+  if (this->length != other.length) {
+    result = FALSE;
+  } else if (strncmp(this->buffer->buffer + this->start,
+                     other.buffer->buffer + other.start,
+                     this->length) != 0) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* a_text_buffer_view::operator== */
+
+
+template<typename a_Function>
+inline a_text_buffer_view capture_buffer_append(a_text_buffer *buffer,
+                                                a_Function    func)
+/*
+Given a text buffer and a function to execute that will append 0 or more
+characters to the buffer, run the function and return a text buffer view
+representing the content added to the text buffer.
+*/
+{
+  sizeof_t start = buffer->size;
+
+  func();
+
+  sizeof_t end = buffer->size;
+  /* If this assertion fails the buffer was shrunk during the call to func
+     instead of expanded via an append. */
+  check_assertion(end >= start);
+  return a_text_buffer_view{buffer, start, end - start};
+}  /* capture_buffer_append */
+
+
+/*
 Make sure that the specified buffer has at least "length" total bytes in it.
 If not, expand the buffer by reallocating it.
 */
