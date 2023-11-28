@@ -24380,7 +24380,7 @@ See also coalesce_and_lookup_generalized_identifier.
                 if (curr_class->variant.class_struct_union
                                        .is_prototype_instantiation &&
                     !is_template_dependent_type(qualifier_type)) {
-                  qualifier_type = look_up_type_in_dependent_bases(
+                  qualifier_type = look_up_qualifier_in_dependent_bases(
                                                               qualifier_type);
                 }  /* if */
               }  /* if */
