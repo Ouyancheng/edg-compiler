@@ -16,7 +16,7 @@ named E (although attempting to instantiate D with such a type still results
 in an error with GCC).  The front end now emulates this behavior.
 
 
-11/27/23 [EDGcpfe/26743]
+11/27/23 [EDGcpfe/26569,EDGcpfe/26743]
 Subobjects as nontype template arguments
 
 Prior to C++20, the standard required a nontype template argument of pointer or
