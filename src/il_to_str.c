@@ -2620,6 +2620,50 @@ block, needed because it indicates whether local typedefs are invisible.
 }  /* can_use_qualified_array_typedef */
 
 
+static inline a_boolean is_typedef_in_dealiasable_scope(a_type_ptr type)
+/*
+Return TRUE if the namespace of the given typedef-type is in a namespace
+(including the global namespace) that is dealiasable; otherwise, return FALSE.
+*/
+{
+  check_assertion(type_is_typedef(type));
+  a_boolean result = TRUE;
+
+  if (is_namespace_member(type)) {
+    a_namespace_ptr nsp = parent_namespace_of(type);
+
+    if (symbol_for(nsp) == symbol_for_namespace_std) {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_typedef_in_dealiasable_scope */
+
+
+static inline a_boolean typedef_should_be_dealiased(
+                                    a_type_ptr                            type,
+                                    an_il_to_str_output_control_block_ptr octl)
+/*
+Return TRUE if the given type is a typedef that should be dealiased; otherwise,
+return FALSE.
+
+Note: Some additional legacy cases are handled through
+is_member_typedef_that_should_be_ignored.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!octl->suppress_typedef_names) {
+    result = FALSE;
+  } else if (!type_is_typedef(type)) {
+    result = FALSE;
+  } else if (!is_typedef_in_dealiasable_scope(type)) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* typedef_should_be_dealiased */
+
+
 static a_boolean is_member_typedef_that_should_be_ignored(
 				a_type_ptr				type,
 				an_il_to_str_output_control_block_ptr	octl)
@@ -2631,7 +2675,9 @@ members of template classes.
 {
   a_boolean	result = FALSE;
 
-  if (!octl->keep_template_typedefs) {
+  if (!octl->keep_template_typedefs &&
+      (!octl->suppress_typedef_names ||
+       typedef_should_be_dealiased(type, octl))) {
     if (is_typeref_kind(type, trk_is_template_alias) &&
         !type->variant.typeref.is_dependent) {
       /* Drop the alias, unless the alias is dependent. */
@@ -2907,7 +2953,7 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
                                           ) {
     a_type_ptr pointee = type->variant.pointer.type;
 
-    if (octl->suppress_typedef_names && type_is_typedef(pointee)) {
+    if (typedef_should_be_dealiased(pointee, octl)) {
       /* Alias names are suppressed, skip the alias type and form the type name
          for the underlying type. */
       pointee = pointee->variant.typeref.type;
@@ -3532,7 +3578,7 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
                                           ) {
     a_type_ptr pointee = type->variant.pointer.type;
 
-    if (octl->suppress_typedef_names && type_is_typedef(pointee)) {
+    if (typedef_should_be_dealiased(pointee, octl)) {
       /* Alias names are suppressed, skip the alias type and form the type name
          for the underlying type. */
       pointee = pointee->variant.typeref.type;
@@ -3612,7 +3658,7 @@ void form_type(a_type_ptr                            type,
 Output a string for a type.  Do the output in the way described by octl.
 */
 {
-  if (octl->suppress_typedef_names && type_is_typedef(type)) {
+  if (typedef_should_be_dealiased(type, octl)) {
     /* Alias names are suppressed, skip the alias type and form the type name
        for the underlying type. */
     type = type->variant.typeref.type;

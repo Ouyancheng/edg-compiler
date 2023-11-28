@@ -1143,6 +1143,13 @@ buffer.
          perform this post-processing check for the redundancy in the
          "rendered" type name and (when the names match) revert the msg_buffer
          to its prior state.
+
+         Similarly note, when a typedef is in a namespace that inhibits typedef
+         dealiasing, is_or_contains_typedef_type will still return TRUE (to
+         keep the said function straight forward).  form_type handles the
+         actual process of ignoring the normal rules for ignoring dealiasing.
+         Thus, if the produced "aka" type name is equivalent to the original
+         type name, this code handles the associated cleanup.
        */
       truncate_text_buffer_to(msg_buffer, original_start);
     }  /* if */
