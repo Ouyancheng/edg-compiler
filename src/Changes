@@ -1,5 +1,35 @@
 Version 6.6
 
+12/1/23  [EDGcpfe/26831]
+Show the underlying type in type placeholder diagnostics
+
+The front end previously would fulfil diagnostic messages using type
+placeholders like the following:
+
+  ec_example;;"the example type is %t"
+
+as something like:
+
+  error: the example type is "typedef_type<int, other_typedef_type>"
+
+This has been changed, when an alias is detected the front end now displays
+the underlying type, e.g.:
+
+  error: the example type is "typedef_type<int, other_typedef_type>"
+         (aka "tuple<int, float>")
+
+As an additional note, typedefs in the std namespace are excluded from this
+behavior.  This means that if "std::string" is appears in a diagnostic the
+underlying type will not be displayed, i.e., things like "std::string" (aka
+"std::basic_string<char>") will not appear.
+
+As a matter of implementation quality, the front end's previous behavior for
+DISPLAY_TEMPLATE_TYPEDEFS_IN_DIAGNOSTICS (and the associated command line
+switches) no longer affect type placeholders.  However, other instances of
+types in front end output (such as those in an instantiation backtrace) are
+still affected by this option.
+
+
 12/1/23  [EDGcpfe/26842]
 C++23 mode update
 
