@@ -1,5 +1,19 @@
 Version 6.6
 
+11/28/23 [EDGcpfe/24472]
+GCC compatibility: Parameterized incomplete base classes
+
+Consider:
+
+  struct I;
+  template<typename> using A = I;
+  template<typename T> struct D: A<T> {};  // Now accepted in GNU modes.
+
+The base class specifier A<T> is parameterized, but it resolves to a known
+incomplete class I, which is an error.  However, GCC accepts such cases and
+the front end now emulates that behavior in GNU C++ modes.
+
+
 11/27/23 [EDGcpfe/26814]
 GCC compatibility: Using-declarations and dependent base classes
 

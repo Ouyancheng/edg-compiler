@@ -9563,14 +9563,22 @@ issue an error and return FALSE.
     }  /* if */
     if (is_incomplete_type(base_class_type)) {
       a_class_type_supplement_ptr ctsp = class_type_supp(base_class_type);
-      if ((gpp_mode || microsoft_mode) &&
-          !scope_is_null_or_placeholder(ctsp->assoc_scope) &&
-          is_template_param_or_nonreal_class_type(base_class_type)) {
-        /* Microsoft and GNU compilers never check the completeness of a
+      if (((microsoft_mode || gpp_mode) &&
+           !scope_is_null_or_placeholder(ctsp->assoc_scope) &&
+           is_template_param_or_nonreal_class_type(base_type)) ||
+          (gpp_version_is(any_version) &&
+           is_instantiation_dependent_type(base_type))) {
+        /* MSVC, GCC and Clang do not require the completeness of a
            parameterized base class that has not been fully parsed yet.
            That causes the following example to be accepted:
              template<class T> struct S { struct N: S<T> {}; };
-           In other modes, such cases result in an error. */
+           In other modes, such cases result in an error.  GCC goes even
+           further, and does not require the completeness of a base type
+           expressed via a parameterized alias:
+             struct I;
+             template<typename> using A = I;
+             template<typename T> struct D: A<T> {};  // GCC accepts this.
+        */
         pos_warning(ec_unfinished_base_class, &error_position);
       } else if (microsoft_mode &&
                  is_immediate_class_type(type) &&
