@@ -31,6 +31,8 @@ struct Value_saver {
   inline Value_saver(a_Var_type * const var_to_be_saved,
                      const a_Var_type   &new_value);
   inline ~Value_saver();
+
+  inline void restore_now() const;
 private:
   a_Var_type *const
                 saved_var;
@@ -72,6 +74,16 @@ template<typename a_Var_type>
 inline Value_saver<a_Var_type>::~Value_saver()
 /*
 Restore the variable given during construction to its saved state.
+*/
+{
+  this->restore_now();
+}  /* Value_saver::~Value_saver */
+
+
+template<typename a_Var_type>
+inline void Value_saver<a_Var_type>::restore_now() const
+/*
+Immediately restore the variable given during construction to its saved state.
 */
 {
   *saved_var = saved_value;
