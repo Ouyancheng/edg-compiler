@@ -2351,6 +2351,24 @@ stack.
 }  /* info_with_pos */
 
 
+static void info_with_pos_refl(an_error_code         err_code,
+                               a_source_position     *pos,
+                               a_reflection_value    rv,
+                               an_interpreter_state  *ips)
+/*
+Record the given error code at the given position as a diagnostic annotation
+for interpretation failure.  Also record annotations describing the call
+stack.  Use the given reflection to replace fill-ins.
+*/
+{
+  if (!ips->suspend_diag_list) {
+    a_diagnostic  *dp = pos_start_diagnostic(es_more_info, err_code, pos, rv);
+    ips->diag_list.append(dp);
+    info_call_stack(ips);
+  }  /* if */
+}  /* info_with_pos_type */
+
+
 static void info_with_pos_type(an_error_code         err_code,
                                a_source_position     *pos,
                                a_type_ptr            tp,
@@ -12624,6 +12642,8 @@ error is communicated with an invalid reflection.
           break;
         default:
           do_constexpr_fail(result);
+          info_with_pos_refl(ec_std_meta_substitute_bad_reflection,
+                             &call_node->position, arg_rv, ips);
           // FIXME: create invalid reflection
           goto done;
       }  /* switch */

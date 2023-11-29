@@ -56,6 +56,7 @@ typedef struct a_diag_list {
   a_diagnostic_ptr
 		tail;
 			/* The end of the list. */
+  void append(a_diagnostic_ptr  dp);
 } a_diag_list;
 
 

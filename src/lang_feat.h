@@ -303,6 +303,22 @@ options.
 #endif /* ifndef DEFAULT_MODULE_IMPORT_DIAG_ENABLED */
 
 /*
+Flag that is TRUE if reflection features can be enabled.
+*/
+#ifndef REFLECTION_ENABLING_POSSIBLE
+#define REFLECTION_ENABLING_POSSIBLE FALSE
+#endif /* ifndef REFLECTION_ENABLING_POSSIBLE */
+
+/*
+Flag that is TRUE if reflection features should be enabled by default.  (This
+flag has no effect if REFLECTION_ENABLING_POSSIBLE is FALSE.)
+*/
+#ifndef DEFAULT_REFLECTION_ENABLED
+#define DEFAULT_REFLECTION_ENABLED FALSE
+#endif /* ifndef DEFAULT_REFLECTION_ENABLED */
+
+
+/*
 Flag that is TRUE if, in C++, an "inline" function is allowed to have
 external linkage.  It is the default value for global variable
 extern_inline_allowed, which can be modified by the "--extern_inline" and

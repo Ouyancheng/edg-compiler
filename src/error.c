@@ -338,6 +338,20 @@ typedef struct a_diagnostic {
 } a_diagnostic;
 
 
+void a_diag_list::append(a_diagnostic_ptr  dp)
+/*
+Append the given diagnostic entry to *this.
+*/
+{
+  if (this->head == NULL) {
+    this->head = dp;
+  } else {
+    this->tail->next = dp;
+  }  /* if */
+  this->tail = dp;
+}  /* a_diag_list::append */
+
+
 /*
 Describe a label fill-in entry.  Label fill-in entries are used to specify
 at run time which of two different strings (as specified by error codes)
@@ -7685,12 +7699,7 @@ fill-in.
   add_number_fill_in(dp, num);
   check_assertion(diag_list != NULL);
   /* Add the diagnostic to the given list. */
-  if (diag_list->head == NULL) {
-    diag_list->head = dp;
-  } else {
-    diag_list->tail->next = dp;
-  }  /* if */
-  diag_list->tail = dp;
+  diag_list->append(dp);
 }  /* more_info_num_diagnostic */
 
 
@@ -7712,12 +7721,7 @@ diagnostics pointed to by diag_list.  The given numbers are used for fill-ins
   add_number_fill_in(dp, num2);
   check_assertion(diag_list != NULL);
   /* Add the diagnostic to the given list. */
-  if (diag_list->head == NULL) {
-    diag_list->head = dp;
-  } else {
-    diag_list->tail->next = dp;
-  }  /* if */
-  diag_list->tail = dp;
+  diag_list->append(dp);
 }  /* more_info_num2_diagnostic */
 
 
@@ -7739,12 +7743,7 @@ diagnostics pointed to by diag_list.  The given symbol is used to replace the
   add_number_fill_in(dp, num);
   check_assertion(diag_list != NULL);
   /* Add the diagnostic to the given list. */
-  if (diag_list->head == NULL) {
-    diag_list->head = dp;
-  } else {
-    diag_list->tail->next = dp;
-  }  /* if */
-  diag_list->tail = dp;
+  diag_list->append(dp);
 }  /* more_info_sym_num_diagnostic */
 
 
@@ -7768,12 +7767,7 @@ type are used for fill-ins.
   add_type_fill_in(dp, tp);
   check_assertion(diag_list != NULL);
   /* Add the diagnostic to the given list. */
-  if (diag_list->head == NULL) {
-    diag_list->head = dp;
-  } else {
-    diag_list->tail->next = dp;
-  }  /* if */
-  diag_list->tail = dp;
+  diag_list->append(dp);
 }  /* more_info_sym_num_ty_diagnostic */
 
 
@@ -7795,12 +7789,7 @@ diagnostics pointed to by diag_list.  The given string is used to replace the
   add_number_fill_in(dp, num);
   check_assertion(diag_list != NULL);
   /* Add the diagnostic to the given list. */
-  if (diag_list->head == NULL) {
-    diag_list->head = dp;
-  } else {
-    diag_list->tail->next = dp;
-  }  /* if */
-  diag_list->tail = dp;
+  diag_list->append(dp);
 }  /* more_info_st_num_diagnostic */
 
 

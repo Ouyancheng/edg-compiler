@@ -3462,6 +3462,7 @@ ec_base_with_flexible_array;;"cannot derive from a class with a flexible array m
 ec_null_reflection;;"null reflection"
 ec_namespace_alias;;"namespace alias"
 ec_unspecified_reflection;;"reflection (details unavailable)"
+ec_std_meta_substitute_bad_reflection;;"bad reflection (%r) for std::meta::substitute"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -38276,13 +38276,15 @@ expression splicer.  Either way, store the result in *result.
 FIXME: This is currently incomplete.
 */
 {
-  an_operand         opnd;
-  a_source_position  start_pos;
-  a_boolean          consume_right_bracket = FALSE;
-  a_boolean          saved_favor_constant_result =
-                                            expr_stack->favor_constant_result;
+  an_operand           opnd;
+  a_source_position    start_pos;
+  a_boolean            consume_right_bracket = FALSE;
+  an_expr_stack_entry  expr_stack_entry;
 
-  expr_stack->favor_constant_result = TRUE;
+  push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  expr_stack->consteval_call_need_not_fold = TRUE;
   if (rcblock != NULL) {
     /* Rescanning of splicers is not implemented yet. */
     subst_fail(rcblock->error_detected);
@@ -38301,9 +38303,8 @@ FIXME: This is currently incomplete.
     remove_stop_token(tok_rbracket);
     consume_right_bracket = TRUE;
     do_operand_transformations(&opnd, TOPT_NO_OPTIONS);
-    force_operand_to_constant_if_possible_full(&opnd,
-                                               /*is_constant_evaluated=*/TRUE);
   }  /* if */
+  pop_expr_stack();
   if (is_error_operand(&opnd) || is_error_type(opnd.type)) {
     make_error_operand(result);
   } else if (operand_is_instantiation_dependent(&opnd)) {
@@ -38313,13 +38314,17 @@ FIXME: This is currently incomplete.
   } else if (!is_reflection_type(opnd.type)) {
     expr_pos_ty_error(ec_bad_splicer_operand, &opnd.position, opnd.type);
     make_error_operand(result);
-  } else if (!is_constant_operand(&opnd)) {
-    expr_pos_error(ec_nonconstant_splicer_operand, &opnd.position);
+  } else if (!is_constant_operand(&opnd) &&
+             !expr_interpret_expression_operand(
+                                            &opnd, /*must_be_constant=*/TRUE,
+                                            /*is_constant_evaluated=*/TRUE)) {
+    expr_expect_error();
     make_error_operand(result);
   } else {
     a_constant_ptr  cp = &opnd.variant.constant;
     if (!constant_is(cp, ck_reflection)) {
-      unexpected_condition();
+      expr_expect_error();
+      make_error_operand(result);
     } else {
       a_reflection_value  *rvp = &cp->variant.reflection;
       an_il_entry_kind    iek = (an_il_entry_kind)rvp->entity.kind;
@@ -38340,11 +38345,17 @@ FIXME: This is currently incomplete.
       } else if (iek == iek_field) {
         copy_operand(&opnd, result);
       } else if (iek == iek_variable) {
-        make_lvalue_variable_operand((a_variable*)rvp->entity.ptr,
-                                     &opnd.position,
-                                     end_position_or_null(
-                                               &curr_construct_end_position),
-                                     result, (a_ref_entry_ptr)NULL);
+        a_variable  *vp = (a_variable*)rvp->entity.ptr;
+        if (!is_template_dependent_context()) {
+          /* If this is a reference to a static data member of a class
+             template, we may have to instantiate its initializer to know its
+             complete type. */
+          complete_variable_type_is_needed(vp);
+        }  /* if */
+        make_lvalue_variable_operand(
+                  vp, &opnd.position, end_position_or_null(
+                                                &curr_construct_end_position),
+                  result, ref_entry(symbol_for(vp), &opnd.position));
       } else if (iek == iek_routine) {
         make_function_designator_operand(
                                       symbol_for((a_routine*)rvp->entity.ptr),
@@ -38365,7 +38376,6 @@ FIXME: This is currently incomplete.
   if (consume_right_bracket) {
     (void)required_token(tok_rbracket, ec_exp_rbracket);
   }  /* if */
-  expr_stack->favor_constant_result = saved_favor_constant_result;
 }  /* scan_expr_splicer */
 
 

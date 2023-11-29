@@ -1,15 +1,18 @@
 /* Edison Design Group, 2019-2023. */
 /*
-reflection -- Include file for std::meta facilities
+meta -- Include file for std::meta facilities
 
-This file should be included after the standard headers <string_view> and
-<memory> (for construct_at).
+This is an experimental header approximating support for facilities as
+described in the C++ committee's paper P2996.
 */
 #ifndef __REFLECTION_STDH
 #define __REFLECTION_STDH
 
-#include <new>
 #include <initializer_list>
+#include <new>
+#include <optional>
+#include <string_view>
+#include <vector>
 
 namespace std {
 
@@ -436,6 +439,58 @@ namespace std {
       return metacall__impl(r, v);
     }
 
+    /* Alternatives to P1306 expansion statements.
+       Example usage:
+          expand_over([] consteval { return nonstatic_data_members_of(^S); },
+                      []<std::meta::info r> {
+                        printf("%s\n", name_of(r).data());
+                      });
+       and
+          [:expand(nonstatic_data_members_of(^S)):] >>
+          []<auto r> {
+            printf("%s\n", name_of(r).data());
+          };
+    */
+    namespace __impl {
+      template<typename F, auto ... vals>
+      constexpr void expander(F f) {
+        (f.template operator()<vals>(), ...);
+      }
+
+      template<typename F, typename R>
+      consteval std::meta::info substitute_expander(R make_range) {
+        auto vals = make_range();
+        std::meta::__infovec args{ ^F };
+        for (auto val : vals) {
+          args.push_back(std::meta::reflect_value(val));
+        }
+        return substitute__impl(^expander, args);
+      }
+    }  // namespace __impl
+
+    template<typename F, typename R>
+    constexpr void expand_over(R make_range, F body = {}) {
+      [:__impl::substitute_expander<F>(make_range):](body);
+    }
+
+    namespace __impl {
+      template<auto ... vals>
+      struct replicator_type {
+        template<typename F>
+          void operator>>(F body) const {
+            (body.template operator()<vals>(), ...);
+          }
+      };
+      template<auto ... vals>
+      replicator_type<vals...> replicator = {};
+    }  // namespace __impl
+
+    template<typename R>
+    consteval auto const expand(R range) {
+      std::vector<std::meta::info> args;
+      for (auto r: range) args.push_back(reflect_value(r));
+      return substitute(^__impl::replicator, args);
+    }
   }
 }
 

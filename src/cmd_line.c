@@ -2345,7 +2345,9 @@ static a_flag_name
   { "preload_builtin_functions", &preload_builtin_functions },
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
   { "gen_edg_special_types", &gen_edg_special_types },
+#if REFLECTION_ENABLING_POSSIBLE
   { "reflection", &reflection_enabled },
+#endif /* REFLECTION_ENABLING_POSSIBLE */
   { "lazy_field_initializers", &always_delay_field_initializer_processing },
   { "core_constant_expr_is_noexcept", &core_constant_expr_is_noexcept },
   { "null_template_ptr_arg_enabled", &null_template_ptr_arg_enabled },
@@ -7103,6 +7105,11 @@ file.
 #else /* !defined(DEFAULT_RECORD_FORM_OF_NAME_REFERENCE) */
   comment_undefined_macro_name(DEFAULT_RECORD_FORM_OF_NAME_REFERENCE);
 #endif /* defined(DEFAULT_RECORD_FORM_OF_NAME_REFERENCE) */
+#if defined(DEFAULT_REFLECTION_ENABLED)
+  define_numeric_valued_macro(DEFAULT_REFLECTION_ENABLED);
+#else /* !defined(DEFAULT_REFLECTION_ENABLED) */
+  comment_undefined_macro_name(DEFAULT_REFLECTION_ENABLED);
+#endif /* defined(DEFAULT_REFLECTION_ENABLED) */
 #if defined(DEFAULT_REMOVE_QUALIFIERS_FROM_PARAM_TYPES)
   define_numeric_valued_macro(DEFAULT_REMOVE_QUALIFIERS_FROM_PARAM_TYPES);
 #else /* !defined(DEFAULT_REMOVE_QUALIFIERS_FROM_PARAM_TYPES) */
@@ -8562,7 +8569,12 @@ file.
   define_numeric_valued_macro(REF_DESTRUCTORS_FOR_PARAMETER_VARIABLES);
 #else /* !defined(REF_DESTRUCTORS_FOR_PARAMETER_VARIABLES) */
   comment_undefined_macro_name(REF_DESTRUCTORS_FOR_PARAMETER_VARIABLES);
-#endif /* defined(REF_DESTRUCTORS_FOR_PARAMETER_VARIABLES) */
+#endif /* defined(REFLECTION_ENABLING_POSSIBLE) */
+#if defined(REFLECTION_ENABLING_POSSIBLE)
+  define_numeric_valued_macro(REFLECTION_ENABLING_POSSIBLE);
+#else /* !defined(REFLECTION_ENABLING_POSSIBLE) */
+  comment_undefined_macro_name(REFLECTION_ENABLING_POSSIBLE);
+#endif /* defined(REFLECTION_ENABLING_POSSIBLE) */
 #if defined(REMOVE_INLINE_BODIES_FROM_CLASS_TEMPLATE_DEFINITIONS)
   define_numeric_valued_macro(
                          REMOVE_INLINE_BODIES_FROM_CLASS_TEMPLATE_DEFINITIONS);
@@ -13138,7 +13150,9 @@ variables declared in cmd_line.h.
   ms_await = FALSE;
   ms_await_strict = FALSE;
   fold_expressions_enabled = FALSE;
-  reflection_enabled = FALSE;
+#if REFLECTION_ENABLING_POSSIBLE
+  reflection_enabled = DEFAULT_REFLECTION_ENABLED;
+#endif /* REFLECTION_ENABLING_POSSIBLE */
   variadic_using_decls_enabled = FALSE;
   class_template_arg_deduction_enabled = FALSE;
   auto_template_params_enabled = FALSE;
