@@ -1,5 +1,18 @@
 Version 6.6
 
+11/28/23 [EDGcpfe/26700]
+C++-generating back end: ambiguities with type-transforming intrinsics
+
+In some complex examples, the C++-generating back end put out a
+type-transforming intrinsic (see the entry for EDGcpfe/26193) in a position
+where syntactic disambiguation would result in treating the intrinsic name
+as the start of an expression instead of the start of a type, leading to
+syntax errors when compiling the generated code.  This is now fixed; the
+generated code now uses the type resulting from application of the
+intrinsic in place of the intrinsic construct in contexts that would result
+in incorrect disambiguation.
+
+
 11/28/23 [EDGcpfe/24472]
 GCC compatibility: Parameterized incomplete base classes
 
