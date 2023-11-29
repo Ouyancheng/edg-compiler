@@ -3220,9 +3220,8 @@ a_type_ptr look_up_qualifier_in_dependent_bases(a_type_ptr  tp)
 The given type (call it T) is a nondependent type used as a name qualifier in
 GCC mode (in a using-declaration), but GCC treats it as a dependent type
 inherited from a dependent base.  The current scope is a class scope.  If the
-associated class has dependent bases return a nonreal type with the same name
-as T as would result from a looking that name up in a nonreal base class of
-the current class scope.
+associated class has dependent bases, return a nonreal type obtained by
+looking up the name of T in those nonreal bases.
 */
 {
   a_symbol          *sym;
