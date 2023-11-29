@@ -2657,6 +2657,8 @@ is_member_typedef_that_should_be_ignored.
     result = FALSE;
   } else if (!type_is_typedef(type)) {
     result = FALSE;
+  } else if (is_unknown_type(type)) {
+    result = FALSE;
   } else if (!is_typedef_in_dealiasable_scope(type)) {
     result = FALSE;
   }  /* if */

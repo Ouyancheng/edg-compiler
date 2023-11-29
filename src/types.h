@@ -444,7 +444,15 @@ the given type is a tk_integer type.
 #define is_tag_type(type)                                             \
   (is_immediate_class_type((type)) || is_immediate_enum_type((type)))
 
-#define is_unknown_type(tp) ((tp)->kind == (a_type_kind)tk_unknown)
+
+inline a_boolean is_unknown_type(a_type_ptr tp)
+/*
+Return TRUE if the given type is an unknown type.
+*/
+{
+  return type_is(skip_typerefs(tp), tk_unknown);
+}  /* is_unknown_type */
+
 
 /*
 Return TRUE or FALSE about the qualifiers of a tk_typeref type.
