@@ -1,11 +1,13 @@
 Version 6.6
 
 11/29/23 [EDGcpfe/26664]
-Expansion of nested init capture pack
+Expansion of nested init capture pack (IL CHANGE)
 
 Previously, the front end would repeatedly expand only the first element of an
-init capture pack that was captured in a nested lambda.  For example, with
---c++20:
+init capture pack that was captured in a nested lambda.  As part of this
+change, the a_lambda_capture field captured.init_capture_field, a union member,
+points to the field of the init capture for any such indirect capture.  For
+example, with --c++20:
 
   template <typename ... T> constexpr int f(T ... t) {
     return [...c = t] {
