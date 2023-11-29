@@ -23200,7 +23200,7 @@ special member functions (e.g., whether they're suppressed).
 }  /* generate_move_assignment_operator */
 
 
-static void generate_destructor(
+static a_routine_ptr generate_destructor(
                               a_class_def_state_ptr               class_state,
                               a_generated_special_function_descr  *gsfd)
 /*
@@ -23208,7 +23208,8 @@ Add a declaration for a destructor to the class definition described by
 class_state.  If gsfd->suppressed is TRUE, make that destructor "deleted" (or,
 in some Microsoft modes, record that the body cannot be generated).  If
 constexpr destructors are enabled and gsfd->dtor_not_constexpr is FALSE, make
-the destructor constexpr.
+the destructor constexpr.  Return a pointer to the IL entry for the generated
+destructor.
 */
 {
   a_type_ptr          class_type = class_state->class_type;
@@ -23227,6 +23228,7 @@ the destructor constexpr.
              constexpr_dynamic_alloc_enabled) {
     decl_info.decl_state.sym->variant.routine.ptr->is_constexpr = TRUE;
   }  /* if */
+  return decl_info.decl_state.sym->variant.routine.ptr;
 }  /* generate_destructor */
 
 
@@ -24354,7 +24356,7 @@ The routine body is not generated until it is known to be needed.
       class_type->variant.class_struct_union.dtor_decl_suppressed = TRUE;
     } else {
       /* Add the declaration of the destructor. */
-      generate_destructor(class_state, &gsfd);
+      (void)generate_destructor(class_state, &gsfd);
     }  /* if */
   } else if (cssp->destructor != NULL) {
     a_routine_ptr  rp = cssp->destructor->variant.routine.ptr;
@@ -34893,12 +34895,12 @@ For example:
 }  /* scan_lambda */
 
 
-static void add_field_to_generated_type(a_const_char *name,
-                                        a_type_ptr   type)
+static a_field_ptr add_field_to_generated_type(a_const_char *name,
+                                               a_type_ptr   type)
 /*
 A sck_class_struct_union scope is currently on top of the scope stack.  It
 is associated with a compiler-generated class type.  Declare a field with the
-given name and type in that class.
+given name and type in that class.  Return a pointer to the field's IL entry.
 */
 {
   a_class_def_state_ptr  class_state = scope_stack_top().class_def_state;
@@ -34913,8 +34915,8 @@ given name and type in that class.
   initialize_member_decl_info(&decl_info, &null_source_position);
   complete_type_is_needed(type);
   decl_info.decl_state.type = type;
-  (void)decl_nonstatic_data_member(&loc, class_state, &decl_info,
-                                   depth_scope_stack);
+  return decl_nonstatic_data_member(&loc, class_state, &decl_info,
+                                    depth_scope_stack);
 }  /* add_field_to_generated_type */
 
 
@@ -34962,11 +34964,11 @@ Create and return the __va_list_tag struct type that is predefined by certain
   scope_stack_top().class_def_state = &class_state;
   /* Add the fields. */
   uint_type = integer_type((an_integer_kind)ik_unsigned_int);
-  add_field_to_generated_type("gp_offset", uint_type);
-  add_field_to_generated_type("fp_offset", uint_type);
+  (void)add_field_to_generated_type("gp_offset", uint_type);
+  (void)add_field_to_generated_type("fp_offset", uint_type);
   voidptr_type = make_pointer_type(void_type());
-  add_field_to_generated_type("overflow_arg_area", voidptr_type);
-  add_field_to_generated_type("reg_save_area", voidptr_type);
+  (void)add_field_to_generated_type("overflow_arg_area", voidptr_type);
+  (void)add_field_to_generated_type("reg_save_area", voidptr_type);
   /* Wrap up the definition. */
   complete_class_definition(type, DEPTH_OF_FILE_SCOPE, &class_state);
   sym->defined = TRUE;
@@ -34993,6 +34995,7 @@ of std::meta::__define_class.
 */
 {
   a_class_def_state       class_state;
+  a_boolean               has_trivial_destructor = TRUE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   Value_saver<a_boolean>  saver(&source_sequence_entries_disallowed,
                                 /*new_value=*/TRUE);
@@ -35007,10 +35010,32 @@ of std::meta::__define_class.
   scope_stack_top().class_def_state = &class_state;
   /* Add the fields. */
   for (a_meta_field_descr  &fd : *descr_array) {
-    add_field_to_generated_type(fd.name, fd.type);
+    a_field  *fp = add_field_to_generated_type(fd.name, fd.type);
+    if (fp != NULL) {
+      if (fd.alignment != 0) {
+        fp->alignment = fd.alignment;
+      }  /* if */
+      if (fd.bit_width != 0 && is_integral_or_enum_type(fp->type)) {
+        fp->is_bit_field = TRUE;
+        fp->bit_size = fd.bit_width;
+      }  /* if */
+    }  /* if */
+    if (has_trivial_destructor) {
+      a_type  *tp = skip_typerefs(skip_array_types(fd.type));
+      if (is_immediate_class_type(tp) &&
+          has_nontrivial_destructor(class_symbol_supp(symbol_for(tp)))) {
+        has_trivial_destructor = FALSE;
+      }  /* if */
+    }  /* if */
   }  /* for */
-  /* Wrap up the definition. */
-  complete_class_definition(class_type, DEPTH_OF_FILE_SCOPE, &class_state);
+  if (type_is(class_type, tk_union) && !has_trivial_destructor) {
+    /* By default, the union's generated destructor would be deleted.  However,
+       it is more useful to make it a do-nothing destructor. */
+    a_generated_special_function_descr  gsfd;
+    init_generated_special_function_descr(&gsfd);
+    force_definition_of_compiler_generated_routine(
+                                    generate_destructor(&class_state, &gsfd));
+  }  /* if */
   symbol_for(class_type)->defined = TRUE;
   if (class_type->variant.class_struct_union.is_template_class) {
     class_type->variant.class_struct_union.is_specialized = TRUE;

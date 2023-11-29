@@ -12642,9 +12642,8 @@ error is communicated with an invalid reflection.
           break;
         default:
           do_constexpr_fail(result);
-          info_with_pos_refl(ec_std_meta_substitute_bad_reflection,
+          info_with_pos_refl(ec_std_meta_substitute_bad_arg_reflection,
                              &call_node->position, arg_rv, ips);
-          // FIXME: create invalid reflection
           goto done;
       }  /* switch */
       p_t_args = &(*p_t_args)->next;
@@ -12665,7 +12664,8 @@ error is communicated with an invalid reflection.
       }  /* if */
       if (sym == NULL) {
         do_constexpr_fail(result);
-        // FIXME: create invalid reflection
+        info_with_pos_refl(ec_std_meta_substitute_bad_arg_reflection,
+                           &call_node->position, *rvp, ips);
       } else {
         result_rvp->entity.kind = iek_type;
         result_rvp->entity.ptr = (char*)type_symbol_type(sym);
@@ -12683,7 +12683,8 @@ error is communicated with an invalid reflection.
           !(symbol_is(sym, sk_variable) ||
             symbol_is(sym, sk_static_data_member))) {
         do_constexpr_fail(result);
-        // FIXME: create invalid reflection
+        info_with_pos_refl(ec_std_meta_substitute_bad_arg_reflection,
+                           &call_node->position, *rvp, ips);
       } else {
         result_rvp->entity.kind = iek_variable;
         result_rvp->entity.ptr = (char*)variable_for_symbol(sym);
@@ -12716,7 +12717,8 @@ error is communicated with an invalid reflection.
           !(symbol_is(sym, sk_routine) ||
             symbol_is(sym, sk_member_function))) {
         do_constexpr_fail(result);
-        // FIXME: create invalid reflection
+        info_with_pos_refl(ec_std_meta_substitute_bad_arg_reflection,
+                           &call_node->position, *rvp, ips);
       } else {
         result_rvp->entity.kind = iek_routine;
         result_rvp->entity.ptr = (char*)sym->variant.routine.ptr;
@@ -12724,6 +12726,8 @@ error is communicated with an invalid reflection.
       }  /* if */
     } else {
       do_constexpr_fail(result);
+      info_with_pos_refl(ec_std_meta_substitute_bad_arg_reflection,
+                         &call_node->position, *rvp, ips);
     }  /* if */
   } else {
     result = FALSE;
@@ -12788,6 +12792,7 @@ invalid.
     conv_integer_value_to_host_large_integer(
                  (an_integer_value *)p_arg_bytes[1], is_signed, &val, &ovflo);
     if (ovflo) {
+      // FIXME
       do_constexpr_fail(result);
       goto done;
     }  /* if */
@@ -12889,13 +12894,40 @@ invalid.
         info_with_pos(ec_object_not_initialized, &call_node->position, ips);
         goto done;
       } else {
+        a_host_large_integer  align_val;
+        a_boolean             ovflo = FALSE;
+        conv_integer_value_to_host_large_integer(
+                              (an_integer_value*)(subobj+alignment_offset),
+                              /*is_signed=*/FALSE,
+                              &align_val, &ovflo);
+        if (ovflo) {
+          do_constexpr_fail(result);
+          info_with_pos(ec_integer_overflow, &call_node->position, ips);
+          goto done;
+        } else if (!check_pack_alignment_value(align_val, &fd.alignment)) {
+          do_constexpr_fail(result);
+          info_with_pos(ec_bad_pack_alignment, &call_node->position, ips);
+        }  /* if */
       }  /* if */
       if (!subobject_is_initialized(subobj+bit_width_offset, complete_obj)) {
         do_constexpr_fail(result);
         info_with_pos(ec_object_not_initialized, &call_node->position, ips);
         goto done;
+      } else {
+        a_host_large_integer  bit_width_val;
+        a_boolean             ovflo = FALSE;
+        conv_integer_value_to_host_large_integer(
+                              (an_integer_value*)(subobj+bit_width_offset),
+                              /*is_signed=*/FALSE,
+                              &bit_width_val, &ovflo);
+        if (ovflo) {
+          do_constexpr_fail(result);
+          info_with_pos(ec_integer_overflow, &call_node->position, ips);
+          goto done;
+        } else {
+          fd.bit_width = (a_targ_size_t)bit_width_val;
+        }  /* if */
       }  /* if */
-      // FIXME: Get alignment and bit width.
       field_descrs.push_back(fd);
     }  /* for */
   }

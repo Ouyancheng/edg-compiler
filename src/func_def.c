@@ -3113,12 +3113,18 @@ static void make_default_destructor_body(a_scope_ptr  scope)
 Create the body for a default destructor.  It will return no value.
 */
 {
-  a_routine_ptr rp;
+  a_routine_ptr  rp;
+  a_type_ptr     class_type;
 
   db_enter(4, "make_default_destructor_body");
   rp = scope->variant.routine.ptr;
-  /* Create entries describing destructions to be done in the wrapper code. */
-  scope->variant.routine.constructor_inits = dtor_initializer(rp);
+  class_type = parent_class_of(rp);
+  if (!type_is(class_type, tk_union)) {
+    /* Create entries describing destructions to be done in the wrapper
+       code.  Do not do this for a union (the only union type that should
+       get here are those created by std::meta::define_class). */
+    scope->variant.routine.constructor_inits = dtor_initializer(rp);
+  }  /* if */
   /* Create a statement block that is empty except for the return
      statement. */
   scope->assoc_block = alloc_statement((a_statement_kind)stmk_block);

@@ -415,7 +415,7 @@ in the implementation of std::meta::define_class.
 struct a_meta_field_descr {
   a_type	*type;	/* Type of the field to synthesize. */
   char		*name;	/* Name of the field to synthesize. */
-  a_targ_size_t
+  a_targ_alignment
 		alignment;
 			/* Alignment of the field to synthesize. */
   a_targ_size_t
