@@ -8403,7 +8403,12 @@ associated with the argument should be reactivated in such cases.
     activate_delayed_type_definition_sse(tp);
     adv_curr_source_sequence_entry();
   }  /* if */
-  if (type_opnd != NULL) {
+  if (tp->suppress_operator) {
+    /* A type operator following a left parenthesis in a function
+       declaration or C-style cast can be misparsed as an expression
+       instead of a type, so use the underlying type directly. */
+    operator_suppressed = TRUE;
+  } else if (type_opnd != NULL) {
     a_boolean for_all_scopes = FALSE;
     skip_embedded_declarations();
     if (entity_name_is_accessible(&type_opnd->source_corresp, iek_type,
@@ -9357,6 +9362,32 @@ Generate an "__event __interface" declaration for the specified type.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static a_boolean set_type_operator_suppression(a_type_ptr type,
+                                               a_boolean  value)
+/*
+If type is a tk_typeref, scan through any further typerefs in the chain of
+its underlying types setting the suppress_operator flag to value for each
+typeref type that is a type-transforming intrinsic.  This is used to avoid
+putting out a type operator in a context where it might be interpreted as
+the start of an expression instead of a type.  Return TRUE if any flags
+were set during the traversal.
+*/
+{
+  a_boolean result = FALSE;
+
+  while (type_is(type, tk_typeref)) {
+    a_type_ptr under_type = type->variant.typeref.type;
+    if (type_is(under_type, tk_typeref) &&
+        typeref_is_type_transforming_intrinsic(under_type)) {
+      under_type->suppress_operator = value;
+      result = TRUE;
+    }  /* if */
+    type = under_type;
+  }  /* while */
+  return result;
+}  /* set_type_operator_suppression */
+
+
 static void gen_param_list(a_param_type_ptr  param_list,
                            a_scope_ptr       scope,
                            a_boolean         suppress_def_args,
@@ -9374,6 +9405,7 @@ for_ctor is TRUE, this is the parameter list of a constructor.
   a_boolean         saved_in_parameter_pack_declaration =
                                                  in_parameter_pack_declaration;
   a_boolean         id_equiv_attribs_as_prefix = FALSE;
+  a_boolean         type_operators_suppressed = FALSE;
 
   if (gcc_is_generated_code_target && gnu_target_version_number < 30400) {
     /* Versions of g++ prior to 3.4 did not accept attributes applying to a
@@ -9410,6 +9442,12 @@ for_ctor is TRUE, this is the parameter list of a constructor.
       }  /* if */
       /* Watch out for unnamed parameters in C++. */
       in_parameter_pack_declaration = param->is_parameter_pack;
+      if (param == param_list) {
+        /* This is the first parameter; avoid type operators that could
+           be misparsed as expressions. */
+        type_operators_suppressed =
+                 set_type_operator_suppression(param_var->declared_type, TRUE);
+      }  /* if */
       gen_general_declaration_using_type(
                                       param_var->declared_type,
                                       has_name(param_var) ?
@@ -9420,6 +9458,10 @@ for_ctor is TRUE, this is the parameter list of a constructor.
                                       /*suppress_specifiers=*/FALSE,
                                       gdo_flags,
                                       (a_name_reference_ptr)NULL);
+      if (type_operators_suppressed) {
+        (void)set_type_operator_suppression(param_var->declared_type, FALSE);
+        type_operators_suppressed = FALSE;
+      }  /* if */
       in_parameter_pack_declaration = saved_in_parameter_pack_declaration;
       param_var = param_var->next;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -9435,6 +9477,12 @@ for_ctor is TRUE, this is the parameter list of a constructor.
       gen_ms_attribute_block(param->ms_attributes);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       in_parameter_pack_declaration = param->is_parameter_pack;
+      if (param == param_list) {
+        /* This is the first parameter; avoid type operators that could
+           be misparsed as expressions. */
+        type_operators_suppressed =
+                              set_type_operator_suppression(param->type, TRUE);
+      }  /* if */
       form_type_first_part_simple(param->type,
                                   /*under_lhs_declarator=*/FALSE,
                                   /*need_trailing_space=*/TRUE,
@@ -9454,6 +9502,10 @@ for_ctor is TRUE, this is the parameter list of a constructor.
       form_type_second_part_simple(param->type,
                                    /*under_lhs_declarator=*/FALSE,
                                    &octl);
+      if (type_operators_suppressed) {
+        (void)set_type_operator_suppression(param->type, FALSE);
+        type_operators_suppressed = FALSE;
+      }  /* if */
       in_parameter_pack_declaration = saved_in_parameter_pack_declaration;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else {
@@ -9482,6 +9534,12 @@ for_ctor is TRUE, this is the parameter list of a constructor.
       gen_ms_attribute_block(param->ms_attributes);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       in_parameter_pack_declaration = param->is_parameter_pack;
+      if (param == param_list) {
+        /* This is the first parameter; avoid type operators that could
+           be misparsed as expressions. */
+        type_operators_suppressed =
+                               set_type_operator_suppression(param_type, TRUE);
+      }  /* if */
       form_type_first_part(param_type, /*under_lhs_declarator=*/FALSE,
                            /*need_trailing_space=*/FALSE,
                            extra_qual, FTO_NO_OPTIONS, &octl);
@@ -9504,6 +9562,10 @@ for_ctor is TRUE, this is the parameter list of a constructor.
       }  /* if */
       form_type_second_part_simple(param_type,
                                    /*under_lhs_declarator=*/FALSE, &octl);
+      if (type_operators_suppressed) {
+        (void)set_type_operator_suppression(param->type, FALSE);
+        type_operators_suppressed = FALSE;
+      }  /* if */
       in_parameter_pack_declaration = saved_in_parameter_pack_declaration;
     }  /* if */
     gen_attributes(param->attributes, al_postfix, /*primary_only=*/FALSE);
@@ -13654,9 +13716,14 @@ static void gen_cast(a_type_ptr type)
 Generate an old-style cast to the indicated type.  No operand is put out.
 */
 {
+  a_boolean type_operators_suppressed =
+                                     set_type_operator_suppression(type, TRUE);
   m_write_tok_ch('(');
   gen_type(type);
   m_write_tok_ch(')');
+  if (type_operators_suppressed) {
+    (void)set_type_operator_suppression(type, FALSE);
+  }  /* if */
 }  /* gen_cast */
 
 

@@ -9401,6 +9401,15 @@ typedef struct a_type {
 			   this class template instance was suppressed
 			   because it would have been invalid. */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+  a_bit_field	suppress_operator:1;
+			/* A type operator following a left parenthesis in
+			   a function declaration or C-style case can be
+			   misparsed as an expression instead of a type.
+			   This flag is set and cleared, only in the
+			   C++-generating back end itself, to mark such
+			   uses of type operators, indicating that the
+			   underlying type a should be put out instead of
+			   the type operator. */
 #endif /* BACK_END_IS_CP_GEN_BE */
   a_bit_field	alignment_set_explicitly:1;
 			/* TRUE if this type differs from the type it
