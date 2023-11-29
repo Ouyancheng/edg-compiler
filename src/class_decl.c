@@ -9568,12 +9568,12 @@ issue an error and return FALSE.
            is_template_param_or_nonreal_class_type(base_type)) ||
           (gpp_version_is(any_version) &&
            is_instantiation_dependent_type(base_type))) {
-        /* MSVC, GCC and Clang do not require the completeness of a
+        /* MSVC, GCC, and Clang do not require the completeness of a
            parameterized base class that has not been fully parsed yet.
            That causes the following example to be accepted:
              template<class T> struct S { struct N: S<T> {}; };
            In other modes, such cases result in an error.  GCC goes even
-           further, and does not require the completeness of a base type
+           further and does not require the completeness of a base type
            expressed via a parameterized alias:
              struct I;
              template<typename> using A = I;
