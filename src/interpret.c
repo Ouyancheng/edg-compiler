@@ -12904,7 +12904,8 @@ invalid.
           do_constexpr_fail(result);
           info_with_pos(ec_integer_overflow, &call_node->position, ips);
           goto done;
-        } else if (!check_pack_alignment_value(align_val, &fd.alignment)) {
+        } else if (align_val != 0 &&
+                   !check_pack_alignment_value(align_val, &fd.alignment)) {
           do_constexpr_fail(result);
           info_with_pos(ec_bad_pack_alignment, &call_node->position, ips);
         }  /* if */

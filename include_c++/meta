@@ -5,8 +5,8 @@ meta -- Include file for std::meta facilities
 This is an experimental header approximating support for facilities as
 described in the C++ committee's paper P2996.
 */
-#ifndef __REFLECTION_STDH
-#define __REFLECTION_STDH
+#ifndef __META_STDH
+#define __META_STDH
 
 #include <initializer_list>
 #include <new>
@@ -495,4 +495,4 @@ namespace std {
 }
 
 
-#endif  /* ifndef __REFLECTION_STDH */
+#endif  /* ifndef __META_STDH */
