@@ -24366,7 +24366,7 @@ See also coalesce_and_lookup_generalized_identifier.
             } else {
               /* Look up the id in the class scope. */
               a_boolean	qualifier_is_enum_type;
-              if (ilm == ilm_using_declaration &&
+              if (ilm == ilm_using_declaration && qualifier_is_type &&
                   gpp_version_is(any_version) &&
                   scope_is(&scope_stack_top(), sck_class_struct_union)) {
                 /* GCC accepts the following:
