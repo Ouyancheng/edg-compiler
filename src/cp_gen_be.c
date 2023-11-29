@@ -16007,7 +16007,8 @@ Render the list of lambda captures, including the delimiting brackets.
   }  /* if */
   for (; lcp != NULL; lcp = lcp->next) {
     a_boolean is_this = (!lcp->is_init_capture &&
-                         ((lcp->captured.variable != NULL &&
+                         ((!lcp->is_indirect_init_capture &&
+                           lcp->captured.variable != NULL &&
                            lcp->captured.variable->is_this_parameter) ||
                           lcp->is_param_ref_capture ||
                           (lcp->capture_info.source_closure_field != NULL &&

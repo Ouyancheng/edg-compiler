@@ -16515,7 +16515,8 @@ is within the given complete_object.
             result = FALSE;
           }  /* if */
         }  /* if */
-      } else if (cap->captured.variable == NULL ||
+      } else if (cap->is_indirect_init_capture ||
+                 (cap->captured.variable == NULL) ||
                  (cap->capture_info.source_closure_field != NULL &&
                   !cap->captured.variable->is_this_parameter)) {
         /* This is a capture of "this" or "*this" in a field initializer or a

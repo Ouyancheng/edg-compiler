@@ -2683,11 +2683,13 @@ Dump debug information on a dynamic initialization entry of kind dik_lambda.
     for (a = 0; a < level; a++) fputs(" ", f_debug);
     if (cap->is_init_capture) {
       fputs(cap->closure_field->source_corresp.name, f_debug);
-    } else if (cap->captured.variable != NULL &&
-               !cap->captured.variable->is_this_parameter) {
-      fputs(cap->captured.variable->source_corresp.name, f_debug);
-    } else if (cap->captured.variable != NULL) {
-      fputs("this", f_debug);
+    } else if (!cap->is_indirect_init_capture) {
+      if (cap->captured.variable != NULL &&
+          !cap->captured.variable->is_this_parameter) {
+        fputs(cap->captured.variable->source_corresp.name, f_debug);
+      } else {
+        fputs("this", f_debug);
+      }  /* if */
     } else {
       fputs("<no captured variable>", f_debug);
     }  /* if */
@@ -2700,6 +2702,7 @@ Dump debug information on a dynamic initialization entry of kind dik_lambda.
       db_dynamic_initializer(sub_dip, level + 2);
       if (sub_dip->kind == (a_dynamic_init_kind)dik_bitwise_copy &&
           sub_dip->variant.bitwise_copy.source == NULL &&
+          !cap->is_indirect_init_capture &&
           cap->captured.variable != NULL) {
         /* Give more information on the implicit source. */
         for (a = 0; a < level + 2; a++) fputs(" ", f_debug);

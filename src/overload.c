@@ -12887,6 +12887,7 @@ The selection is an lvalue selection if is_lvalue is TRUE.
 
   sel_expr = field_lvalue_selection_expr(lambda_expr, closure_field);
   if (!lambda_capture->is_init_capture &&
+      !lambda_capture->is_indirect_init_capture &&
       ((lambda_capture->captured.variable != NULL &&
         lambda_capture->captured.variable->is_this_parameter) ||
        lambda_capture->is_param_ref_capture) &&

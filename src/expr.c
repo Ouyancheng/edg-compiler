@@ -36428,7 +36428,8 @@ Return TRUE if the given variable is captured "by copy" by the given lambda.
   if (var->source_corresp.is_local_to_function) {
     a_lambda_capture_ptr  lcp;
     for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
-      if (!lcp->is_init_capture && lcp->captured.variable == var) {
+      if (!lcp->is_init_capture && !lcp->is_indirect_init_capture &&
+          lcp->captured.variable == var) {
         break;
       }  /* if */
     }  /* for */
@@ -39460,7 +39461,8 @@ fields of the closure object.  Return a pointer to the dynamic init entry.
       nonconstant = TRUE;
     } else {
       /* A simple capture. */
-      a_variable_ptr  var = lcp->captured.variable;
+      a_variable_ptr  var = lcp->is_indirect_init_capture ?
+                                 (a_variable_ptr)NULL : lcp->captured.variable;
       a_field_ptr     source_field = lcp->capture_info.source_closure_field;
       if (var != NULL) {
         /* Watch out for "this", which has no associated symbol. */

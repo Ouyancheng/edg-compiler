@@ -3932,7 +3932,12 @@ handle_class_type_supplement_for_class:
                    iek_dynamic_init);
           conditionally_clear_fe_pointer(eptr->capture_info.init_capture_dps);
         } else {
-          remap_ptr(eptr->captured.variable, a_variable_ptr, iek_variable);
+          if (eptr->is_indirect_init_capture) {
+            remap_ptr(eptr->captured.init_capture_field, a_field_ptr,
+                      iek_field);
+          } else {
+            remap_ptr(eptr->captured.variable, a_variable_ptr, iek_variable);
+          }  /* if */
           remap_ptr(eptr->capture_info.source_closure_field, a_field_ptr,
                     iek_field);
         }  /* if */

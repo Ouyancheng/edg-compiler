@@ -1,5 +1,22 @@
 Version 6.6
 
+11/29/23 [EDGcpfe/26664]
+Expansion of nested init capture pack
+
+Previously, the front end would repeatedly expand only the first element of an
+init capture pack that was captured in a nested lambda.  For example, with
+--c++20:
+
+  template <typename ... T> constexpr int f(T ... t) {
+    return [...c = t] {
+      return [c...] {
+        return (c + ...);
+      }();
+    }();
+  }
+  static_assert(f(1, 2) == 3);  // Previously a spurious error.  Now okay.
+
+
 11/28/23 [EDGcpfe/26700]
 C++-generating back end: ambiguities with type-transforming intrinsics
 

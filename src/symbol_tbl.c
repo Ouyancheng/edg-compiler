@@ -4790,17 +4790,23 @@ this is not allowed, an error will be issued by the caller.
       pos_st_warning(ec_decl_hides_function_parameter, &new_sym->decl_position,
 		     new_sym->header->identifier);
     }  /* if */
+  } else if (symbol_is(old_sym, sk_field) && symbol_is(new_sym, sk_field) &&
+             old_sym->variant.field.ptr->is_captured_pack_element) {
+    /* Multiple elements of a captured pack are allowed. */
+    err = FALSE;
+    /* Keep the first element of the pack at the head of the list and set the
+       is_invisible flag on the new symbol. */
+    if (insert_sym != NULL) *insert_sym = old_sym;
+    new_sym->is_invisible = TRUE;
 #if GNU_EXTENSIONS_ALLOWED
-  } else if (old_sym->kind == (a_symbol_kind)sk_field &&
-             new_sym->kind == (a_symbol_kind)sk_field &&
-             !old_sym->variant.field.ptr->is_captured_pack_element) {
+  } else if (symbol_is(old_sym, sk_field) && symbol_is(new_sym, sk_field)) {
     /* Some modes ignore conflicts between fields if one of those fields comes
        from an anonymous union.  The first declaration prevails in such cases.
        We cannot use the insert_sym mechanism for this because these symbols
        are normally found on the inactive list (where ordering is ignored).
        Therefore, we set the is_invisible flag on the new symbol. */
-    /* (Avoid this branch for closure fields with duplicate names that result
-       from capturing pack elements.) */
+    /* (Closure fields with duplicate names that result from capturing pack
+       elements have already been handled above.) */
     if (gcc_mode || (microsoft_bugs && !C_mode())) {
       if (old_sym->variant.field.anonymous_parent_object != NULL ||
           suppress_error) {

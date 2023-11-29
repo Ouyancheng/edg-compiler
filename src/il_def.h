@@ -17197,7 +17197,7 @@ typedef struct a_lambda_capture {
 		next;	/* Pointer to the next entry on the capture list, or
 			   NULL for the last entry. */
   union {
-    /* When is_init_capture is FALSE. */
+    /* When is_init_capture is FALSE and is_indirect_init_capture is FALSE. */
     a_variable_ptr
 		variable;
 			/* Pointer to the variable entry for the local variable
@@ -17207,6 +17207,9 @@ typedef struct a_lambda_capture {
 			   field capture_info.source_closure_field (below) will
 			   indicate which field of the enclosing lambda should
 			   be used instead. */
+    /* When is_init_capture is FALSE and is_indirect_init_capture is TRUE. */
+    a_field_ptr	init_capture_field;
+			/* Pointer to the field for the init-capture. */
     /* When is_init_capture is TRUE. */
     a_dynamic_init_ptr
 		initializer;
@@ -17246,9 +17249,13 @@ typedef struct a_lambda_capture {
 		is_init_capture:1;
 			/* TRUE if this entry represents a C++14-style
 			   init-capture (which isn't really a capture at all).
-			   If this is TRUE, is_implicit and is_pack_expansion
-			   must be FALSE, and variable and source_closure_field
-			   must both be NULL. */
+			   If this is TRUE, is_indirect_init_capture and
+			   is_implicit must be FALSE, and source_closure_field
+			   must be NULL. */
+  a_bit_field
+		is_indirect_init_capture:1;
+			/* TRUE if this entry represents an indirect capture of
+			   a C++14-style init-capture. */
   a_bit_field
 		is_param_ref_capture:1;
 			/* TRUE if this represents the capture of a "this"

@@ -1891,30 +1891,21 @@ or field (i.e., init-capture), return a pointer it.  Otherwise, return NULL.
 
   if (vp != NULL) {
     for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
-      if (!lcp->is_init_capture && lcp->captured.variable == vp) {
+      if (!lcp->is_init_capture && !lcp->is_indirect_init_capture &&
+          lcp->captured.variable == vp) {
         break;
       }  /* if */
     }  /* for */
   } else if (fp != NULL) {
-    a_symbol_header_ptr  sym_hdr;
     check_assertion(fp->is_init_capture);
-    /* Since fp is visible in the current context, we can just look for a
-       capture with an associated field of the same name as fp. */
-    sym_hdr = symbol_for(fp)->header;
     for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
-      a_field_ptr   closure_field = lcp->closure_field;
-      a_symbol_ptr  field_sym;
-      if (closure_field == NULL || closure_field->is_captured_this) {
-        /* This is not a capture of a field. */
-        continue;
-      }  /* if */
-      field_sym = symbol_for(closure_field);
-      if (field_sym == NULL) {
-        expect_error();
-      } else if (field_sym->header == sym_hdr) {
+      if (lcp->is_init_capture && lcp->closure_field == fp) {
+        break;
+      } else if (lcp->is_indirect_init_capture &&
+                 lcp->captured.init_capture_field == fp) {
         break;
       }  /* if */
-    }  /* if */
+    }  /* for */
   } else {
     /* A "this" capture in a context that has no "this" variable (e.g., a
        field initializer). */
@@ -1955,7 +1946,8 @@ capture described by lcp.  Return the field entry.
                                            source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-  vp = lcp->is_init_capture ? (a_variable_ptr)NULL : lcp->captured.variable;
+  vp = (lcp->is_init_capture || lcp->is_indirect_init_capture) ?
+                                 (a_variable_ptr)NULL : lcp->captured.variable;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Don't issue source sequence entries for generated fields. */
   source_sequence_entries_disallowed = TRUE;
@@ -2371,10 +2363,12 @@ being done.
                                          file_scope_region_number :
                                          scope_stack[depth].il_memory_region);
   lcp = alloc_capture_for_lambda(lambda);
-  /* Note that lcp->captured.variable is set even when enclosing_lcp is
-     non-NULL.  That's for the convenience of the front end.  The field will
-     be cleared soon after it's been used to generate the capture copy code. */
-  lcp->captured.variable = vp;
+  if (fp == NULL) {
+    lcp->captured.variable = vp;
+  } else {
+    lcp->captured.init_capture_field = fp;
+    lcp->is_indirect_init_capture = TRUE;
+  }  /* if */
   lcp->field_pending = TRUE;
   if (enclosing_lcp != NULL) {
     lcp->capture_info.source_capture = enclosing_lcp;

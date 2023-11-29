@@ -5916,7 +5916,14 @@ Display the indicated lambda capture.
 {
   disp_ptr("next", (char*)ptr->next, iek_lambda_capture);
   if (!ptr->is_init_capture) {
-    disp_ptr("captured.variable", (char*)ptr->captured.variable, iek_variable);
+    if (ptr->is_indirect_init_capture) {
+      disp_ptr("captured.init_capture_field",
+               (char*)ptr->captured.init_capture_field,
+               iek_field);
+    } else {
+      disp_ptr("captured.variable", (char*)ptr->captured.variable,
+               iek_variable);
+    }
     disp_ptr("source_closure_field",
              (char*)ptr->capture_info.source_closure_field, iek_field);
   } else {

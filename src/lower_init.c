@@ -1967,8 +1967,9 @@ for an array initialization in GNU C++ mode).
     a_variable_ptr var;
     check_assertion(!source_desc->runtime_throw &&
                     !source_desc->capture->is_init_capture);
-    src_field = source_desc->capture->capture_info.source_closure_field; 
-    var = source_desc->capture->captured.variable;
+    src_field = source_desc->capture->capture_info.source_closure_field;
+    var = source_desc->capture->is_indirect_init_capture ?
+                (a_variable_ptr)NULL : source_desc->capture->captured.variable;
     if (src_field == NULL) {
       check_assertion(!source_desc->capture->is_init_capture);
       /* The implied source is a local variable from a lambda capture. */
@@ -4479,7 +4480,8 @@ a parameter in expr (if one exists) with a corresponding parameter.
       for (orig_ptr = tblock->orig_params, new_ptr = tblock->new_params;
            orig_ptr != NULL && new_ptr != NULL;
            orig_ptr = orig_ptr->next, new_ptr = new_ptr->next) {
-        if (!ptr->is_init_capture && ptr->captured.variable == orig_ptr) {
+        if (!ptr->is_init_capture && !ptr->is_indirect_init_capture &&
+            ptr->captured.variable == orig_ptr) {
           check_assertion(identical_types(orig_ptr->type, new_ptr->type) &&
                     orig_ptr->is_parameter &&
                     new_ptr->is_parameter &&
