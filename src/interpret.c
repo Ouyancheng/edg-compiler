@@ -10128,13 +10128,6 @@ Implement std::meta::make_constexpr_array(T*, prtdiff_t p).  It creates IL for
 a constexpr namespace-scope array of n elements of type T with internal
 linkage, initialized with the values pointed to by the first argument.  A
 reflection value for the generated variable is returned.
-
-FIXME: How to get the dimensions of an array if the reflected constant
-       represents an array constant?  We don't want to allocate the constant
-       up front, nor its type. Maybe we can use a placeholder constant (like
-       we do for string_view results).  Alternatively, introduce a new
-       reflection entity kind for "interpreter values" (not an actual IL
-       entry kind).
 */
 {
   a_boolean            result = TRUE;
@@ -10692,8 +10685,14 @@ Implement std::meta::is_constant(info).
   if (rvp->entity.kind == iek_constant) {
     answer = TRUE;
   } else if (rvp->entity.kind == iek_expr_node) {
-    /* FIXME: Should we attempt to fold expressions here somehow?
-       As an lvalue or as a prvalue?  Maybe only fold prvalues?*/
+    /* Produce a "true" result if the node is a prvalue and can be folded
+       to a constant (with std::is_constant_evaluated() == false). */
+    a_constant    *dummy_con = local_constant();
+    an_expr_node  *expr = (an_expr_node*)rvp->entity.ptr;
+    if (fold_expr(expr, dummy_con)) {
+      answer = TRUE;
+    }  /* if */
+    release_local_constant(&dummy_con);
   }  /* if */
   if (answer) {
     *(an_integer_value*)result_storage = one_int;
@@ -12792,8 +12791,8 @@ invalid.
     conv_integer_value_to_host_large_integer(
                  (an_integer_value *)p_arg_bytes[1], is_signed, &val, &ovflo);
     if (ovflo) {
-      // FIXME
       do_constexpr_fail(result);
+      info_with_pos(ec_integer_overflow, &call_node->position, ips);
       goto done;
     }  /* if */
     n_fields = (int)val;
@@ -24287,7 +24286,7 @@ can only be TRUE if the called function is "consteval").
          (An exception are invocations of consteval functions, but the
          temporaries for those were handled by do_constexpr_call.  If there
          are destructions left, they are not part of the consteval invocation
-         proper.)  FIXME */
+         proper.) */
       result = FALSE;
     } else if (ips.storage_stack.destructions != NULL &&
                !perform_destructions(&ips)) {
