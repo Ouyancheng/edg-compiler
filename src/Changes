@@ -1,5 +1,34 @@
 Version 6.6
 
+11/30/23 [EDGcpfe/26759]
+Multi-line comments on multiple-inclusion guards
+
+The front end reduces compilation overhead by recognizing common patterns
+of preprocessor directives that enclose the contents of a header file and
+suppressing the inclusion of the header altogether if the guarding
+condition is not satisfied.  The changes (in version 6.5) for
+EDGcpfe/24782,EDGcpfe/25697,EDGcpfe/25898 introduced a bug in this
+processing that could result in suppressing an inclusion that should have
+been performed when the guarding preprocessor directive ends in a
+multi-line comment.  For example, given a header file x.h,
+
+  #ifdef M  /* Multi-line comment.
+    */
+  typedef int I;
+  #endif
+
+and a source file,
+
+  #include "x.h"
+  #define M
+  #include "x.h"
+  I i;   // Relies on the second #include for the definition of "I"
+
+the front end could previously incorrectly suppress the second inclusion of
+"x.h" and thus fail to define the type I, resulting in a spurious error.
+This is now fixed.
+
+
 11/29/23 [EDGcpfe/26664]
 Expansion of nested init capture pack (IL CHANGE)
 

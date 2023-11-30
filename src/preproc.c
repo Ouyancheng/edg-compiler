@@ -618,13 +618,13 @@ Push a new entry on the preprocessing-if stack (pp_if_stack).
 
 static a_boolean check_if_defined_macro(a_boolean    is_ifdef,
                                         a_boolean    *condition,
-                                        a_const_char **id_spelling,
-                                        sizeof_t     *id_length)
+                                        a_const_char **id_spelling)
 /*
 Scan the operand of a #ifdef, #ifndef, #elifdef, or #elifndef directive;
 is_ifdef is TRUE for the "ifdef" variants and FALSE for the "ifndef" variants.
 If the operand is an identifier:
-  - if non-NULL, set *id_spelling and *id_length to designate the identifier;
+  - if id_spelling is non-NULL, set *id_spelling to point to a
+    null-terminated copy of the identifier in front end memory;
   - if the identifier is the name of a macro, set *condition to TRUE for the
     "ifdef" variants and FALSE for the "ifndef" variants, and vice versa if
     the identifier is not the name of a macro; and
@@ -658,10 +658,9 @@ Otherwise, issue a diagnostic, set *condition to FALSE, and return FALSE.
                                          /*force_ucn=*/FALSE);
     }  /* if */
     if (id_spelling != NULL) {
-      *id_spelling = id_ptr;
-    }  /* if */
-    if (id_length != NULL) {
-      *id_length = id_len;
+      *id_spelling = alloc_fe(id_len + 2);
+      strncpy((char*)*id_spelling, id_ptr, size_t_arg(id_len));
+      ((char*)*id_spelling)[id_len] = 0;
     }  /* if */
     /* The identifier __VA_ARGS__ is not allowed if variadic macros are
        accepted, and similarly for __VA_OPT__ when va_opt_enabled is
@@ -756,8 +755,7 @@ the newline of the preprocessing directive that is causing this skip.
           } else {
             /* Check whether a macro is defined or not. */
             (void)check_if_defined_macro(/*is_ifdef=*/directive == ppd_elifdef,
-                                         &condition, /*id_spelling=*/NULL,
-                                         /*id_length=*/NULL);
+                                         &condition, /*id_spelling=*/NULL);
           }  /* if */
           /* If the condition is TRUE, stop skipping. */
           if (condition) goto end_skip;
@@ -944,23 +942,19 @@ FALSE, respectively).
   a_boolean    condition;
   a_byte       ifg_state = get_ifg_state();
   a_const_char *id_ptr;
-  sizeof_t     id_len;
 
-  if (check_if_defined_macro(is_ifdef, &condition, &id_ptr, &id_len)) {
+  if (check_if_defined_macro(is_ifdef, &condition, &id_ptr)) {
     if (ifg_state == IFG_STATE_START) {
       /* If we are at the start of an include file then record 
          information about this @ifdef so that it can be used later to
          see if subsequent includes can be suppressed. */
-      char *nm = alloc_fe(id_len + 2);
-      strncpy(nm, id_ptr, size_t_arg(id_len));
-      nm[id_len] = 0;
       set_ifg_state(IFG_STATE_INTERMED);
       if (is_ifdef) {
         curr_ise->include_history->ifdef_guard = TRUE;
       } else {
         curr_ise->include_history->ifndef_guard = TRUE;
       }  /* if */
-      curr_ise->include_history->controlling_macro_name = nm;
+      curr_ise->include_history->controlling_macro_name = id_ptr;
     } else if (ifg_state == IFG_STATE_ACCEPT) {
       set_ifg_state(IFG_STATE_FAIL);
     } else {
