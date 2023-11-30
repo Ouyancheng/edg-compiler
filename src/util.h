@@ -2803,6 +2803,34 @@ template<typename a_Type>
 struct String_formatter;
 
 /*
+A string formatter for char* (C-string) values.
+*/
+template<>
+struct String_formatter<char*> {
+  static size_t size_hint_of(char *value)
+    { return strlen(value); }
+  template<typename a_Dyn_array>
+  static inline void append_into(a_Dyn_array &underlying_array,
+                                 char        *chars,
+                                 size_t      size_hint);
+};  /* String_formatter */
+
+
+template<typename a_Dyn_array>
+void
+String_formatter<char*>::append_into(a_Dyn_array &underlying_array,
+                                     char        *chars,
+                                     size_t      size_hint)
+/*
+Append the given characters into the underlying array.  size_hint is the number
+of characters to append.
+*/
+{
+  underlying_array.insert(underlying_array.length(), chars, size_hint);
+}  /* String_formatter::append_into */
+
+
+/*
 A string formatter for a_const_char* (C-string) values.
 */
 template<>
