@@ -12929,10 +12929,18 @@ invalid.
           fd.bit_width = (a_targ_size_t)bit_width_val;
         }  /* if */
       }  /* if */
+      if (fd.bit_width != 0 || *fd.name == '\0') {
+        /* A bit field. */
+        if (!is_integral_or_enum_type(fp->type)) {
+          do_constexpr_fail(result);
+          info_with_pos(ec_bad_bit_field_type, &call_node->position, ips);
+          goto done;
+        }  /* if */
+      }  /* if */
       field_descrs.push_back(fd);
     }  /* for */
   }
-  synth_class_definition(class_type, &field_descrs);
+  synth_class_definition(class_type, &field_descrs, &call_node->position);
 done:
   return result;
 }  /* do_constexpr_std_meta_define_class */

@@ -20091,11 +20091,11 @@ must be unsigned.
 }  /* check_enum_type_for_bit_field */
 
 
-static void apply_bit_field_size(a_field_ptr       field,
-                                 a_constant_ptr    size_constant,
-                                 a_boolean         *unnamed_bit_field,
-                                 a_type_ptr        *p_base_type,
-                                 a_symbol_locator  *locator)
+static void apply_bit_field_size(a_field_ptr        field,
+                                 a_constant_ptr     size_constant,
+                                 a_boolean          *unnamed_bit_field,
+                                 a_type_ptr         *p_base_type,
+                                 a_source_position  *diag_pos)
 /*
 The given field is declared as a bit field with the given size constant:
 
@@ -20104,7 +20104,7 @@ The given field is declared as a bit field with the given size constant:
 
 If *unnamed_bit_field is TRUE, the bit-field is unnamed.  *p_base_type gives
 the base type of the declaration (unsigned int in the above example); it may
-be updated on return.
+be updated on return.  Any diagnostics are issued at the given position.
 */
 {
   unsigned long    bit_field_size, max_size_allowed;
@@ -20196,13 +20196,11 @@ be updated on return.
            initialized and may generate invalid C as a result) and it means
            the field cannot be referenced (again, cfront allows it and
            generates invalid C). */
-        pos_warning(ec_zero_length_bit_field_must_be_unnamed,
-                    &locator->source_position);
+        pos_warning(ec_zero_length_bit_field_must_be_unnamed, diag_pos);
         *unnamed_bit_field = TRUE;
       } else {
         /* Error. */
-        pos_error(ec_zero_length_bit_field_must_be_unnamed,
-                  &locator->source_position);
+        pos_error(ec_zero_length_bit_field_must_be_unnamed, diag_pos);
         bit_field_size = 1;
         err = TRUE;
       }  /* if */
@@ -20274,7 +20272,7 @@ be updated on return.
      by the field; so we don't issue another warning here. */
   if (!err && !*unnamed_bit_field && is_signed && bit_field_size == 1 &&
       !bit_field_type->variant.integer.enum_type) {
-    pos_warning(ec_signed_one_bit_field, &locator->source_position);
+    pos_warning(ec_signed_one_bit_field, diag_pos);
   }  /* if */
   /* Set base_type to bit_field_type with the proper type qualifiers. */
   if (bit_field_type == skip_typerefs(base_type)) {
@@ -20820,7 +20818,8 @@ be entered.
   if (field->is_bit_field) {
     /* Scan the bit-field size and determine the bit-field type. */
     apply_bit_field_size(field, decl_info->bit_field_size,
-                         &unnamed_field, &member_type, locator);
+                         &unnamed_field, &member_type,
+                         &locator->source_position);
     release_local_constant(&decl_info->bit_field_size);
   }  /* if */
   /* Copy the type (which may have been changed by apply_bit_field_size) into
@@ -34987,11 +34986,13 @@ Create and return the __va_list_tag struct type that is predefined by certain
 
 
 void synth_class_definition(a_type_ptr                     class_type,
-                            Dyn_array<a_meta_field_descr>  *descr_array)
+                            Dyn_array<a_meta_field_descr>  *descr_array,
+                            a_source_position              *diag_pos)
 /*
 Define the given class type according to the member declarations provided by
 *descr_array.  This is a helper function for the interpreter's implementation
-of std::meta::__define_class.
+of std::meta::__define_class.  Any diagnostics should be issued at the given
+position.
 */
 {
   a_class_def_state       class_state;
@@ -35012,12 +35013,17 @@ of std::meta::__define_class.
   for (a_meta_field_descr  &fd : *descr_array) {
     a_field  *fp = add_field_to_generated_type(fd.name, fd.type);
     if (fp != NULL) {
+      a_boolean  is_unnamed = *fd.name == '\0';
       if (fd.alignment != 0) {
         fp->alignment = fd.alignment;
       }  /* if */
-      if (fd.bit_width != 0 && is_integral_or_enum_type(fp->type)) {
+      if (fd.bit_width != 0 || is_unnamed) {
+        /* A bit field. */
+        a_constant  *size_con = fs_constant(ck_integer);
+        set_integer_constant(size_con, (a_host_large_integer)fd.bit_width,
+                             ik_int);
         fp->is_bit_field = TRUE;
-        fp->bit_size = fd.bit_width;
+        apply_bit_field_size(fp, size_con, &is_unnamed, &fp->type, diag_pos);
       }  /* if */
     }  /* if */
     if (has_trivial_destructor) {

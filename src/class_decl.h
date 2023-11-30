@@ -425,8 +425,10 @@ struct a_meta_field_descr {
 };
 
 
+extern
 void synth_class_definition(a_type_ptr                     class_type,
-                            Dyn_array<a_meta_field_descr>  *descr_array);
+                            Dyn_array<a_meta_field_descr>  *descr_array,
+                            a_source_position              *diag_pos);
 
 
 #if DEBUG

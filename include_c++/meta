@@ -382,7 +382,7 @@ namespace std {
         if (options.alignment.has_value()) {
           this->alignment = options.alignment.value();
         }
-        if (options.alignment.has_value()) {
+        if (options.bit_width.has_value()) {
           this->bit_width = options.bit_width.value();
         }
       }
