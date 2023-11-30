@@ -35019,11 +35019,12 @@ position.
       }  /* if */
       if (fd.bit_width != 0 || is_unnamed) {
         /* A bit field. */
-        a_constant  *size_con = fs_constant(ck_integer);
+        a_constant  *size_con = local_constant();
         set_integer_constant(size_con, (a_host_large_integer)fd.bit_width,
                              ik_int);
         fp->is_bit_field = TRUE;
         apply_bit_field_size(fp, size_con, &is_unnamed, &fp->type, diag_pos);
+        release_local_constant(&size_con);
       }  /* if */
     }  /* if */
     if (has_trivial_destructor) {
