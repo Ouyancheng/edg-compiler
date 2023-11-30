@@ -3377,6 +3377,136 @@ null-terminated.
 }  /* mangled_name_with_length */
 
 
+static void mangled_encoding_for_integer(char                     *str,
+                                         ARG_UNUSED a_type_ptr    type,
+                                         ARG_UNUSED a_boolean     old_form,
+                                         a_mangling_control_block *mctl)
+/*
+Emit a mangled encoding for the integer whose value is represented by the
+"str" string and whose type is specified by "type".  If old_form is TRUE use
+the old form for encoding literals.  The type is unused in the Cfront ABI and
+old_form is unused in the IA-64 ABI.
+*/
+{
+#if !IA64_ABI
+  sizeof_t            str_length;
+
+  /* Integer: the encoding is like
+       L3n12  <-- encoding for "-12"
+          ^^----- Literal value.
+         ^------- "n" indicates negative.
+        ^-------- Length of the literal.
+       ^--------- "L" indicates a number.
+     This is compatible with cfront 3.0.1. */
+  /* Use "n" to represent a minus sign. */
+  if (str[0] == '-') str[0] = 'n';
+  str_length = strlen(str);  /* Includes "-" sign if any. */
+  add_to_mangled_name('L', mctl);
+  store_digits_and_underscore((unsigned long)str_length, old_form, mctl);
+  add_str_to_mangled_name(str, mctl);
+#else /* IA64_ABI */
+  /* Integer: the encoding is
+       L <type> <value number> E
+     The <number> is like the above, with "n" indicating negative.
+  */
+  add_to_mangled_name('L', mctl);
+  mangled_encoding_for_type(type, mctl);
+  /* Note that this string is determined after the encoding for the type
+     because the type may contain a nontype template argument that
+     recursively invokes this routine and could cause the buffer that "str"
+     points to to be overwritten. */
+  /* Use "n" to represent a minus sign. */
+  if (str[0] == '-') str[0] = 'n';
+  if (!is_or_was_nullptr_type(type)) {
+    /* As a special case, nullptr is mangled without the value 
+       (i.e., "L Dn E"). */
+    add_str_to_mangled_name(str, mctl);
+  }  /* if */
+  add_to_mangled_name('E', mctl);
+#endif /* IA64_ABI */
+}  /* mangled_encoding_for_integer */
+
+
+static void mangled_field_name(a_field_ptr                     field,
+                               ARG_UNUSED a_name_reference_ptr name_reference,
+                               a_mangling_control_block        *mctl);
+
+static void mangled_encoding_for_address_constant(
+                                               a_constant_ptr           con,
+                                               a_mangling_control_block *mctl);
+
+static void mangled_subobject_path(a_constant_ptr           con,
+                                   a_subobject_path         *path,
+                                   a_mangling_control_block *mctl)
+/*
+Provide a mangling for a portion of a subobject path (as specified in path)
+for the given constant.  If path is NULL, provide a mangling for the address
+constant itself.  This routine is called recursively, in reverse order, for
+every element of the subobject path.
+
+For example, for this code:
+
+  void g(A<&b.j[0]+1>) {}
+
+The generated (IA-64 ABI) mangled name is: _Z1g1AIXadixdtL_Z1bE1jLl1EEE.  The
+corresponding subobject_path has two components (db_subobject_path output):
+".B::j->[1]" and when traversed in reverse order, each iteration contributes
+to the mangled name as such:
+
+  _Z1g1AIXadixdtL_Z1bE1jLl1EEE
+            ix          Ll1E // component 2 (!is_offset && !is_base_class)
+              dt      1j     // component 1 (is_offset)
+                L_Z1bE       // address constant itself (path == NULL)
+*/
+{
+  if (path == NULL) {
+    mangled_encoding_for_address_constant(con, mctl);
+  } else {
+    if (path->is_offset) {
+      add_str_to_mangled_name(MANGLING_STRING_FOR_OPERATOR_SUBSCRIPT, mctl);
+      mangled_subobject_path(con, path->next, mctl);
+      char buffer[50];
+      (void)sprintf(buffer, "%ld", (long)path->variant.ptr_offset);
+      mangled_encoding_for_integer(buffer,
+                                   integer_type(targ_ptrdiff_t_int_kind),
+                                   /*old_form=*/FALSE,
+                                   mctl);
+    } else if (path->is_base_class) {
+      /* This does not contribute to the mangled name. */
+      mangled_subobject_path(con, path->next, mctl);
+    } else {
+      add_str_to_mangled_name(MANGLING_STRING_FOR_OPERATOR_DOT, mctl);
+      mangled_subobject_path(con, path->next, mctl);
+      mangled_field_name(path->variant.field, (a_name_reference*)NULL, mctl);
+    }  /* if */
+  }  /* if */
+}  /* mangled_subobject_path */
+
+
+static void mangled_encoding_for_address_constant_and_possible_subobject_path(
+                                                a_constant_ptr           con,
+                                                a_mangling_control_block *mctl)
+/*
+Provide a mangled encoding for an address constant that might possibly
+contain a subobject path.  The later case occurs only in references to
+subobjects as arguments to nontype template parameters.
+*/
+{
+  a_subobject_path *soj_path = con->variant.address.subobject_path;
+
+  if (soj_path == NULL) {
+    mangled_encoding_for_address_constant(con, mctl);
+  } else {
+    /* To generate the mangled encoding for a subobject path, reverse it and
+       perform a recursive traversal (then reverse it again to restore it to
+       the original state. */
+    soj_path = reverse_simple_list(soj_path);
+    mangled_subobject_path(con, soj_path, mctl);
+    (void)reverse_simple_list(soj_path);
+  }  /* if */
+}  /* mangled_encoding_for_address_constant_and_possible_subobject_path */
+
+
 static void mangled_encoding_for_address_constant(
                                                 a_constant_ptr           con,
                                                 a_mangling_control_block *mctl)
@@ -4321,6 +4451,7 @@ only).
 #endif /* !IA64_ABI */
 }  /* mangled_encoding_for_unknown_function */
 
+
 static void literal_representation(
                                   a_constant_ptr           con,
                                   a_boolean                old_form,
@@ -4338,10 +4469,6 @@ operator on some template constants when suppress_address_of is TRUE
 (only in the IA-64 ABI).
 */
 {
-#if !IA64_ABI
-  sizeof_t            str_length;
-#endif /* !IA64_ABI */
-  char                *str;
   a_boolean           has_template_args;
   a_template_arg_ptr  template_arg_list;
   a_constant_ptr      unk_func_con;
@@ -4384,42 +4511,8 @@ operator on some template constants when suppress_address_of is TRUE
         break;
       }  /* if */
 #endif /* IA64_ABI */
-#if !IA64_ABI
-      /* Integer: the encoding is like
-           L3n12  <-- encoding for "-12"
-              ^^----- Literal value.
-             ^------- "n" indicates negative.
-            ^-------- Length of the literal.
-           ^--------- "L" indicates a number.
-         This is compatible with cfront 3.0.1. */
-      str = decimal_str_for_integer_constant(con);
-      /* Use "n" to represent a minus sign. */
-      if (str[0] == '-') str[0] = 'n';
-      str_length = strlen(str);  /* Includes "-" sign if any. */
-      add_to_mangled_name('L', mctl);
-      store_digits_and_underscore((unsigned long)str_length, old_form, mctl);
-      add_str_to_mangled_name(str, mctl);
-#else /* IA64_ABI */
-      /* Integer: the encoding is
-           L <type> <value number> E
-         The <number> is like the above, with "n" indicating negative.
-      */
-      add_to_mangled_name('L', mctl);
-      mangled_encoding_for_type(con->type, mctl);
-      /* Note that this string is determined after the encoding for the type
-         because the type may contain a nontype template argument that
-         recursively invokes this routine and could cause the buffer that "str"
-         points to to be overwritten. */
-      str = decimal_str_for_integer_constant(con);
-      /* Use "n" to represent a minus sign. */
-      if (str[0] == '-') str[0] = 'n';
-      if (!is_or_was_nullptr_type(con->type)) {
-        /* As a special case, nullptr is mangled without the value 
-           (i.e., "L Dn E"). */
-        add_str_to_mangled_name(str, mctl);
-      }  /* if */
-      add_to_mangled_name('E', mctl);
-#endif /* IA64_ABI */
+      mangled_encoding_for_integer(decimal_str_for_integer_constant(con),
+                                   con->type, old_form, mctl);
       break;
     case ck_float:
       /* Float constant. */
@@ -4439,7 +4532,8 @@ operator on some template constants when suppress_address_of is TRUE
                                       /*suppress_address_of=*/FALSE,
                                       mctl);
       } else {
-        mangled_encoding_for_address_constant(con, mctl);
+        mangled_encoding_for_address_constant_and_possible_subobject_path(con,
+                                                                         mctl);
       }  /* if */
       break;
     case ck_ptr_to_member:
@@ -6650,6 +6744,25 @@ with no arguments.
 }  /* mangled_encoding_for_lambda */
 
 
+static void mangled_field_name(a_field_ptr                     field,
+                               ARG_UNUSED a_name_reference_ptr name_reference,
+                               a_mangling_control_block        *mctl)
+/*
+Provide a mangled encoding for the specified field (which may have an optional
+name_reference).
+*/
+{
+#if IA64_ABI
+  mangled_entity_reference(&field->source_corresp, iek_field,
+                           (a_routine_info_block *)NULL,
+                           /*add_address_of=*/FALSE, mctl);
+#else /* !IA64_ABI */
+  mangled_simple_id(&field->source_corresp, (a_template_arg_ptr)NULL,
+                    name_reference, /*include_length=*/TRUE, mctl);
+#endif /* IA64_ABI */
+}  /* mangled_field_name */
+
+
 static void mangled_encoding_for_expression_full(
                                   an_expr_node_ptr         expr,
                                   a_boolean                in_dependent_expr,
@@ -6918,18 +7031,8 @@ is TRUE.
                       scp_parent_class(&node_field(expr)->source_corresp))->
                                                         anonymous_union_kind !=
                                             (an_anonymous_union_kind)auk_none);
-#if IA64_ABI
-      mangled_entity_reference(&node_field(expr)->source_corresp,
-                               (an_il_entry_kind)iek_field,
-                               (a_routine_info_block *)NULL,
-                               /*add_address_of=*/FALSE, mctl);
-#else /* !IA64_ABI */
-      mangled_simple_id(&node_field(expr)->source_corresp,
-                        (a_template_arg_ptr)NULL,
-                        expr->variant.field.name_reference,
-                        /*include_length=*/TRUE,
-                        mctl);
-#endif /* IA64_ABI */
+      mangled_field_name(node_field(expr), expr->variant.field.name_reference,
+                         mctl);
       break;
     case enk_routine:
 #if IA64_ABI

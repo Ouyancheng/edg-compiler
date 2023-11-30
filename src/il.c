@@ -1912,7 +1912,7 @@ Output a subobject path for debug purposes.
     } else {
       fprintf(f_debug, ".");
       db_name_full(&path->variant.field->source_corresp, iek_field);
-    }  /* switch */
+    }  /* if */
     if (path->next != NULL) {
       fprintf(f_debug, "->");
     }  /* if */
