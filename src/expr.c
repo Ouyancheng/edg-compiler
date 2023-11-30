@@ -41713,13 +41713,18 @@ type_start:
         a_type_ptr cast_type;
 
         if (curr_token == tok_typename) {
-          /* "typename X::Y" is an allowed form of type. */
-          a_symbol_ptr	type_sym;
-          typename_specifier(&cast_type, &type_sym,
-                             /*within_using_decl=*/FALSE,
-                             /*is_decl_specifier=*/FALSE,
-                             (a_decl_parse_state*)NULL,
-                             (a_decl_pos_block_ptr)NULL);
+          if (reflection_enabled && next_token() == tok_lbracket) {
+            cast_type = scan_typename_operator((a_rescan_control_block *)NULL,
+                                               /*might_be_id_start=*/FALSE);
+          } else {
+            /* "typename X::Y" is an allowed form of type. */
+            a_symbol_ptr	type_sym;
+            typename_specifier(&cast_type, &type_sym,
+                               /*within_using_decl=*/FALSE,
+                               /*is_decl_specifier=*/FALSE,
+                               (a_decl_parse_state*)NULL,
+                               (a_decl_pos_block_ptr)NULL);
+          }  /* if */
         } else if (curr_token == tok_decltype) {
           /* This should not come up except in error cases as the decltype
              should have been coalesced before the switch above. */
