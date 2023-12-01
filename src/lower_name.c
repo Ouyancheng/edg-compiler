@@ -3411,10 +3411,6 @@ old_form is unused in the IA-64 ABI.
   */
   add_to_mangled_name('L', mctl);
   mangled_encoding_for_type(type, mctl);
-  /* Note that this string is determined after the encoding for the type
-     because the type may contain a nontype template argument that
-     recursively invokes this routine and could cause the buffer that "str"
-     points to to be overwritten. */
   /* Use "n" to represent a minus sign. */
   if (str[0] == '-') str[0] = 'n';
   if (!is_or_was_nullptr_type(type)) {
@@ -4511,8 +4507,16 @@ operator on some template constants when suppress_address_of is TRUE
         break;
       }  /* if */
 #endif /* IA64_ABI */
-      mangled_encoding_for_integer(decimal_str_for_integer_constant(con),
-                                   con->type, old_form, mctl);
+      { Small_string<50> value(decimal_str_for_integer_constant(con));
+        /* Note that the string for the integer constant is copied here
+           (because in some cases the buffer that
+           decimal_str_for_integer_constant uses can be re-used and
+           overwritten).  Note also that the "const" is cast away here because
+           mangled_encoding_for_integer might overwrite the buffer (though
+           the number of characters remains the same). */
+        mangled_encoding_for_integer((char *)value.as_temp_characters(),
+                                     con->type, old_form, mctl);
+      }
       break;
     case ck_float:
       /* Float constant. */
