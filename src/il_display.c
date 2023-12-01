@@ -1490,6 +1490,13 @@ display_constant_value:
         }  /* if */
       }  /* if */
       break;
+    case ck_reflection:
+      (void)printf("ck_reflection\n");
+      disp_ptr("entity", (char *)ptr->variant.reflection.entity.ptr,
+               (an_il_entry_kind)ptr->variant.reflection.entity.kind);
+      disp_int32("local_scope_number",
+                 ptr->variant.reflection.local_scope_number);
+      break;
     case ck_template_param:
       disp_template_param_constant(ptr);
       break;

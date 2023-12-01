@@ -3464,6 +3464,8 @@ ec_namespace_alias;;"namespace alias"
 ec_unspecified_reflection;;"reflection (details unavailable)"
 ec_std_meta_substitute_bad_arg_reflection;;"bad reflection (%r) for template argument in std::meta::substitute"
 ec_std_meta_substitute_failed;;"call to std::meta::substitute (for %r) failed"
+ec_expired_reflection_value;;"reflection value refers to inactive entity"
+ec_cannot_splice_general_expression;;"an expression splice must splice a constant value, a variable, or a function"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

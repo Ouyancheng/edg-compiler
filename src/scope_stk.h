@@ -1689,6 +1689,21 @@ typedef struct a_scope_stack_entry {
 			   in other cases. */
 } a_scope_stack_entry;
 
+EXTERN a_scope_stack_entry_ptr
+		scope_stack;
+			/* Stack of entries describing active scopes.
+			   scope_stack[0] is the entry for the file scope,
+			   scope_stack[1] is an entry for a function scope,
+			   etc.  Dynamically allocated; can be expanded
+			   if necessary.  size_scope_stack gives the
+			   number of elements currently allocated.
+			   Allocation is not per-file. */
+
+EXTERN a_scope_depth
+		depth_scope_stack;
+			/* Current depth of the scope stack.  NO_SCOPE_DEPTH
+			   (i.e., -1) indicates that the stack is empty. */
+
 /*
 Convenience macro to access the top of the scope stack.
 */
@@ -1703,13 +1718,31 @@ scope entry.
   ((scope)->kind == (a_scope_kind)(sck))
 
 
-
 /*
 Given a scope depth, return a pointer to the scope stack entry or
 a NULL pointer if the scope depth is NO_SCOPE_DEPTH.
 */
 #define scope_stack_entry_for(depth)					\
   ((depth) == NO_SCOPE_DEPTH ? NULL : &scope_stack[(depth)])
+
+
+inline a_boolean scope_number_is_active(a_scope_number n)
+/*
+Return TRUE if the given scope number is on the scope stack.
+*/
+{
+  a_boolean            result = FALSE;
+  a_scope_stack_entry  *ssep = &scope_stack_top();
+
+  do {
+    if (ssep->number == n) {
+      result = TRUE;
+      break;
+    }  /* if */
+  } while (!scope_is(ssep--, sck_file));
+  return result;
+}  /* scope_number_is_active */
+
 
 /*
 Return TRUE if we are in the partial instantiation of a function template.
@@ -2025,23 +2058,10 @@ non_local_class_fixup_depth for more information.
                          : depth_innermost_function_scope].class_fixup_header)
 
 
-EXTERN a_scope_stack_entry_ptr
-		scope_stack;
-			/* Stack of entries describing active scopes.
-			   scope_stack[0] is the entry for the file scope,
-			   scope_stack[1] is an entry for a function scope,
-			   etc.  Dynamically allocated; can be expanded
-			   if necessary.  size_scope_stack gives the
-			   number of elements currently allocated.
-			   Allocation is not per-file. */
 /* Note that the following variables, which give positions in the scope stack,
    are defined as indexes into the array, not as pointers.  Pointers into
    the scope stack are dangerous because the scope stack can be reallocated
    and moved on a push_scope. */
-EXTERN a_scope_depth
-		depth_scope_stack;
-			/* Current depth of the scope stack.  NO_SCOPE_DEPTH
-			   (i.e., -1) indicates that the stack is empty. */
 EXTERN a_scope_depth
 		depth_of_initial_lookup_scope;
 			/* Scope depth of the scope at which name lookup

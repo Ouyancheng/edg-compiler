@@ -3738,6 +3738,7 @@ within the given complete object).
         a_reflection_value  *rvp = (a_reflection_value*)subobj;
         rvp->entity.kind = iek_none;
         rvp->entity.ptr = (char*)NULL;
+        rvp->local_scope_number = FILE_SCOPE_NUMBER;
       }
       break;
     default:
@@ -5950,8 +5951,18 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
       /* void values have no representation: Nothing to do. */
       break;
     case ck_reflection:
-      /* Just copy the embedded reflection value. */
-      *(a_reflection_value*)value = con->variant.reflection;
+      /* Copy the embedded reflection value, but not if it is associated
+         with a local scope number that is not on the stack. */
+      { a_scope_number  sn = con->variant.reflection.local_scope_number;
+        if (sn != FILE_SCOPE_NUMBER && !scope_number_is_active(sn)) {
+          info_with_pos(ec_expired_reflection_value,
+                        constant_pos(con, ips), ips);
+          
+          do_constexpr_fail(result);
+        } else {
+          *(a_reflection_value*)value = con->variant.reflection;
+        }
+      }
       break;
     default:
       { info_with_pos(ec_constexpr_invalid_constant_kind,
@@ -10196,6 +10207,7 @@ reflection value for the generated variable is returned.
     set_source_corresp(&vp->source_corresp, sym);
     rvp->entity.kind = iek_variable;
     rvp->entity.ptr = (char*)vp;
+    rvp->local_scope_number = FILE_SCOPE_NUMBER;
   }  /* if */
 done:
   return result;
@@ -10225,9 +10237,13 @@ value val and returns a reflection value referring to that constant.
     do_constexpr_fail(result);
     release_local_constant(&val_cp);
   } else {
+    a_memory_region_number  region_to_switch_back_to;
+    switch_to_file_scope_region(&region_to_switch_back_to);
     val_cp = move_local_constant_to_il(&val_cp);
     rvp->entity.kind = iek_constant;
     rvp->entity.ptr = (char*)val_cp;
+    rvp->local_scope_number = FILE_SCOPE_NUMBER;
+    switch_back_to_original_region(region_to_switch_back_to);
     mark_subobject_initialized(result_storage, complete_obj);
     result = TRUE;
   }  /* if */
@@ -10732,6 +10748,9 @@ reflection for that entity.
       default:
         break;
     }  /* switch */
+    if (in_file_scope(rvp->entity.ptr)) {
+      rvp->local_scope_number = FILE_SCOPE_NUMBER;
+    }  /* if */
   }  /* if */
 }  /* extract_reflected_entity */
 
@@ -11515,6 +11534,7 @@ Implement std::meta::template_of(info).
     a_reflection_value  *result_rvp = (a_reflection_value*)result_storage;
     result_rvp->entity.kind = iek_template;
     result_rvp->entity.ptr = (char*)templ;
+    result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
   } else {
     info_with_pos(ec_intrinsic_requires_template_instance,
                   &call_node->position, ips);
@@ -11573,6 +11593,7 @@ Implement std::meta::type_of(info).
   } else {
     result_rvp->entity.kind = iek_type;
     result_rvp->entity.ptr = (char*)tp;
+    result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
   }  /* if */
   return result;
 }  /* do_constexpr_std_meta_type_of */
@@ -11633,6 +11654,7 @@ Implement std::meta::parent_of(info).
     result_rvp->entity.kind = iek_scope;
     result_rvp->entity.ptr = (char*)scp->parent_scope;
   }  /* if */
+  result_rvp->local_scope_number = rvp->local_scope_number;
   return result;
 }  /* do_constexpr_std_meta_parent_of */
 
@@ -11700,6 +11722,11 @@ Implement std::meta::size_of(info).
       { a_field  *fp = (a_field*)rvp->entity.ptr;
         if (!fp->is_bit_field) {
           type = fp->type;
+        } else {
+          /* For bit fields, report a size of zero. */
+          set_integer_value((an_integer_value*)result_storage,
+                            (a_host_large_integer)0);
+          goto done;
         }  /* if */
       }
       break;
@@ -11720,6 +11747,7 @@ Implement std::meta::size_of(info).
     set_integer_value((an_integer_value*)result_storage,
                       (a_host_large_integer)size_of_type(type));
   }  /* if */
+done:
   return result;
 }  /* do_constexpr_std_meta_size_of */
 
@@ -12186,30 +12214,35 @@ representing a member of the given entity.
         a_reflection_value  mem_rvp;
         mem_rvp.entity.ptr = (char*)fp;
         mem_rvp.entity.kind = (an_il_entry_kind)iek_field;
+        mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
         result_reflections.push_back(mem_rvp);
       }  /* for */
       for (rp = scope->routines; rp != NULL; rp = rp->next) {
         a_reflection_value  mem_rvp;
         mem_rvp.entity.ptr = (char*)rp;
         mem_rvp.entity.kind = (an_il_entry_kind)iek_routine;
+        mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
         result_reflections.push_back(mem_rvp);
       }  /* if */
       for (rp = scope->routines; rp != NULL; rp = rp->next) {
         a_reflection_value  mem_rvp;
         mem_rvp.entity.ptr = (char*)rp;
         mem_rvp.entity.kind = (an_il_entry_kind)iek_routine;
+        mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
         result_reflections.push_back(mem_rvp);
       }  /* if */
       for (tp = scope->types; tp != NULL; tp = tp->next) {
         a_reflection_value  mem_rvp;
         mem_rvp.entity.ptr = (char*)tp;
         mem_rvp.entity.kind = (an_il_entry_kind)iek_type;
+        mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
         result_reflections.push_back(mem_rvp);
       }  /* if */
       for (vp = scope->variables; vp != NULL; vp = vp->next) {
         a_reflection_value  mem_rvp;
         mem_rvp.entity.ptr = (char*)vp;
         mem_rvp.entity.kind = (an_il_entry_kind)iek_variable;
+        mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
         result_reflections.push_back(mem_rvp);
       }  /* if */
     } else {
@@ -12279,6 +12312,7 @@ order).
         a_reflection_value  mem_rvp;
         mem_rvp.entity.ptr = (char*)vp;
         mem_rvp.entity.kind = (an_il_entry_kind)iek_variable;
+        mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
         result_reflections.push_back(mem_rvp);
       }  /* for */
     } else {
@@ -12346,6 +12380,7 @@ element representing a field of the given entity (in declaration order).
         a_reflection_value  mem_rvp;
         mem_rvp.entity.ptr = (char*)fp;
         mem_rvp.entity.kind = (an_il_entry_kind)iek_field;
+        mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
         result_reflections.push_back(mem_rvp);
       }  /* for */
     } else {
@@ -12412,6 +12447,7 @@ representing a direct base of the given class type (in declaration order).
         a_reflection_value  mem_rvp;
         mem_rvp.entity.ptr = (char*)bcp;
         mem_rvp.entity.kind = (an_il_entry_kind)iek_base_class;
+        mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
         result_reflections.push_back(mem_rvp);
       }  /* for */
     } else {
@@ -12479,6 +12515,7 @@ type (in declaration order).
         a_reflection_value  mem_rvp;
         mem_rvp.entity.ptr = (char*)bcp;
         mem_rvp.entity.kind = (an_il_entry_kind)iek_base_class;
+        mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
         result_reflections.push_back(mem_rvp);
       }  /* for */
       /* Enumerate all the nonstatic data members. */
@@ -12487,6 +12524,7 @@ type (in declaration order).
         a_reflection_value  mem_rvp;
         mem_rvp.entity.ptr = (char*)fp;
         mem_rvp.entity.kind = (an_il_entry_kind)iek_field;
+        mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
         result_reflections.push_back(mem_rvp);
       }  /* for */
     } else {
@@ -12553,6 +12591,7 @@ element representing an enumerator constant for the given enumeration type.
         a_reflection_value  mem_rvp;
         mem_rvp.entity.ptr = (char*)cp;
         mem_rvp.entity.kind = (an_il_entry_kind)iek_constant;
+        mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
         result_reflections.push_back(mem_rvp);
       }  /* for */
     } else {
@@ -12668,6 +12707,7 @@ error is communicated with an invalid reflection.
       } else {
         result_rvp->entity.kind = iek_type;
         result_rvp->entity.ptr = (char*)type_symbol_type(sym);
+        result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
         result = TRUE;
       }  /* if */
     } else if (templ->kind == templk_variable) {
@@ -12687,6 +12727,7 @@ error is communicated with an invalid reflection.
       } else {
         result_rvp->entity.kind = iek_variable;
         result_rvp->entity.ptr = (char*)variable_for_symbol(sym);
+        result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
         result = TRUE;
       }  /* if */
     } else if (templ->kind == templk_concept) {
@@ -12703,6 +12744,7 @@ error is communicated with an invalid reflection.
       make_bool_constant_value(val, con);
       result_rvp->entity.kind = iek_constant;
       result_rvp->entity.ptr = (char*)con;
+      result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
       result = TRUE;
     } else if (templ->kind == templk_function) {
       a_symbol_ptr  sym = NULL, templ_sym = symbol_for(templ);
@@ -12721,6 +12763,7 @@ error is communicated with an invalid reflection.
       } else {
         result_rvp->entity.kind = iek_routine;
         result_rvp->entity.ptr = (char*)sym->variant.routine.ptr;
+        result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
         result = TRUE;
       }  /* if */
     } else {
@@ -13012,6 +13055,7 @@ invocation produces a reflection for the constant result.
     a_reflection_value  *result_rvp = (a_reflection_value*)result_storage;
     result_rvp->entity.kind = iek_constant;
     result_rvp->entity.ptr = (char*)move_local_constant_to_il(&result_con);
+    result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
     result = TRUE;
   }  /* if */
   if (result_con != NULL) release_local_constant(&result_con);
@@ -23625,7 +23669,6 @@ diagnostic in *ips.
                      constant. */
                   if (curr_il_region_number != file_scope_region_number) {
                     a_memory_region_number  region_to_switch_back_to;
-
                     switch_to_file_scope_region(&region_to_switch_back_to);
                     /* Unmap the constant, and replace it with one in the file
                        scope memory region. */

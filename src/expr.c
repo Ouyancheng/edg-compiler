@@ -19076,6 +19076,10 @@ ck_reflection) of a special built-in type (of kind tk_reflection).
               refl_cp->variant.reflection.entity.ptr = (char*)node;
             }  /* if */
           }  /* if */
+          if (!in_file_scope(refl_cp->variant.reflection.entity.ptr)) {
+            refl_cp->variant.reflection.local_scope_number =
+                                                     scope_stack_top().number;
+          }  /* if */
           if (con != NULL) release_local_constant(&con);
         }  /* if */
         if (operand_is_instantiation_dependent(&opnd)) {
@@ -38280,6 +38284,8 @@ FIXME: This is currently incomplete.
   a_source_position    start_pos;
   a_boolean            consume_right_bracket = FALSE;
   an_expr_stack_entry  expr_stack_entry;
+  a_variable           *vp = NULL;
+  a_routine            *rp = NULL;
 
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
@@ -38330,22 +38336,29 @@ FIXME: This is currently incomplete.
       an_il_entry_kind    iek = (an_il_entry_kind)rvp->entity.kind;
       if (iek == iek_constant) {
         make_constant_operand((a_constant_ptr)rvp->entity.ptr, result);
+      } else if (rvp->local_scope_number != FILE_SCOPE_NUMBER &&
+                 !scope_number_is_active(rvp->local_scope_number)) {
+        expr_pos_error(ec_expired_reflection_value, &opnd.position);
+        make_error_operand(result);
       } else if (iek == iek_expr_node) {
         an_expr_node_ptr  node = (an_expr_node*)rvp->entity.ptr;
         if (node_is(node, enk_variable)) {
-          /* FIXME: Ensure that the variable is still "live". */
-          make_expression_operand(node, result);
+          vp = node_variable(node);
+          goto variable_case;
         } else if (node_is(node, enk_routine)) {
-          make_expression_operand(node, result);
+          rp = node_routine(node);
+          goto routine_case;
         } else if (node_is(node, enk_constant)) {
-          /* FIXME: Ensure that the constant is still "live". */
           make_constant_operand(node_constant(node), result);
         } else {
+          expr_pos_error(ec_cannot_splice_general_expression, &opnd.position);
+          make_error_operand(result);
         }  /* if */
       } else if (iek == iek_field) {
         copy_operand(&opnd, result);
       } else if (iek == iek_variable) {
-        a_variable  *vp = (a_variable*)rvp->entity.ptr;
+        vp = (a_variable*)rvp->entity.ptr;
+variable_case:
         if (!is_template_dependent_context()) {
           /* If this is a reference to a static data member of a class
              template, we may have to instantiate its initializer to know its
@@ -38357,15 +38370,17 @@ FIXME: This is currently incomplete.
                                                 &curr_construct_end_position),
                   result, ref_entry(symbol_for(vp), &opnd.position));
       } else if (iek == iek_routine) {
-        make_function_designator_operand(
-                                      symbol_for((a_routine*)rvp->entity.ptr),
-                                      /*is_qualified_name=*/FALSE,
-                                      /*compiler_generated=*/TRUE,
-                                      &opnd.position,
-                                      end_position_or_null(
+        rp = (a_routine*)rvp->entity.ptr;
+routine_case:
+        make_function_designator_operand(symbol_for(rp),
+                                         /*is_qualified_name=*/FALSE,
+                                         /*compiler_generated=*/TRUE,
+                                         &opnd.position,
+                                         end_position_or_null(
                                                &curr_construct_end_position),
-                                      (a_ref_entry_ptr)NULL,
-                                      result);
+                                         ref_entry(symbol_for(rp),
+                                                   &opnd.position),
+                                         result);
       } else {
         expr_pos_error(ec_bad_reflection_kind_for_expression_splice,
                        &start_pos, *rvp);

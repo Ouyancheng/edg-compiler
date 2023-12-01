@@ -4454,11 +4454,35 @@ typedef union a_field_or_base {
 } a_field_or_base;
 #endif /* DO_IL_LOWERING */
 
+/*
+Numbering for scopes.  Each new scope is given a number.  These
+numbers are unique identifiers for each scope, not simply the nesting
+level of the scope.  Also, each struct or union has a unique scope
+number for its member fields, even though no true scope with that
+number is created.  In C++, a class/struct/union has a true scope
+associated with it.  These scope numbers are mostly of interest to the
+front end.
+*/
+typedef int32_t a_scope_number;
+#define MAX_SCOPE_NUMBER INT32_MAX
+#define NO_SCOPE_NUMBER ((a_scope_number)-1)
+			/* Scope number used for things without scope. */
+#define FILE_SCOPE_NUMBER 0
+			/* Scope number for the file scope.  Note that in
+			   the front end the variable file_scope_number
+			   should be used instead if a secondary translation
+			   unit might be involved. */
+
 
 typedef struct a_reflection_value {
   a_tagged_pointer
 		entity;
 			/* The entity represented by this reflection value. */
+  a_scope_number
+		local_scope_number;
+			/* If the entity referred to by the reflection value
+			   is local, this holds the scope number of the nearest
+			   enclosing scope of that entity. */
 } a_reflection_value;
 
 
@@ -16094,25 +16118,6 @@ typedef struct a_constructor_init {
                            the original source form. */
 } a_constructor_init;
 
-
-/*
-Numbering for scopes.  Each new scope is given a number.  These
-numbers are unique identifiers for each scope, not simply the nesting
-level of the scope.  Also, each struct or union has a unique scope
-number for its member fields, even though no true scope with that
-number is created.  In C++, a class/struct/union has a true scope
-associated with it.  These scope numbers are mostly of interest to the
-front end.
-*/
-typedef int32_t a_scope_number;
-#define MAX_SCOPE_NUMBER INT32_MAX
-#define NO_SCOPE_NUMBER ((a_scope_number)-1)
-			/* Scope number used for things without scope. */
-#define FILE_SCOPE_NUMBER 0
-			/* Scope number for the file scope.  Note that in
-			   the front end the variable file_scope_number
-			   should be used instead if a secondary translation
-			   unit might be involved. */
 
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
 

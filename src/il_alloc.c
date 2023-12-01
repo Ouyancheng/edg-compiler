@@ -932,6 +932,7 @@ fields to default values.
       break;
     case ck_reflection:
       clear_tagged_ptr(cp->variant.reflection.entity);
+      cp->variant.reflection.local_scope_number = FILE_SCOPE_NUMBER;
       break;
     default:
       unexpected_condition_str("set_constant_kind: bad kind");
