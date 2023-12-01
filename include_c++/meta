@@ -477,7 +477,7 @@ namespace std {
       template<auto ... vals>
       struct replicator_type {
         template<typename F>
-          void operator>>(F body) const {
+          constexpr void operator>>(F body) const {
             (body.template operator()<vals>(), ...);
           }
       };

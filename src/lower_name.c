@@ -4726,6 +4726,7 @@ do_unknown_function:
           case iek_field:
           case iek_variable:
           case iek_routine:
+          case iek_constant:
             mangled_entity_reference((a_source_correspondence*)iep->ptr,
                                      iep->kind, (a_routine_info_block*)NULL,
                                      /*add_address_of=*/FALSE, mctl);
