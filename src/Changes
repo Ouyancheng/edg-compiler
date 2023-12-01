@@ -8,9 +8,9 @@ of preprocessor directives that enclose the contents of a header file and
 suppressing the inclusion of the header altogether if the guarding
 condition is not satisfied.  The changes (in version 6.5) for
 EDGcpfe/24782,EDGcpfe/25697,EDGcpfe/25898 introduced a bug in this
-processing that could result in suppressing an inclusion that should have
-been performed when the guarding preprocessor directive ends in a
-multi-line comment.  For example, given a header file x.h,
+processing that could result in incorrectly suppressing or performing an
+inclusion when the guarding preprocessor directive ends in a multi-line
+comment.  For example, given a header file x.h,
 
   #ifdef M  /* Multi-line comment.
     */
