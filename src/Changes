@@ -1,5 +1,27 @@
 Version 6.6
 
+12/1/23  [EDGcpfe/26698]
+Experimental reflection support
+
+The front end now includes optional experimental support for reflection
+features along the lines of the C++ standardization committee's evolving
+paper P2996.  This support is considered "experimental" because:
+  1) it is known to be incomplete,
+  2) it currently does not work correctly with the C++-generating back end,
+  2) it has only been lightly tested, and
+  3) it may be drastically revised or removed altogether depending on how
+     the P2996 proposal progresses through the standardization process.
+To enable access to these experimental features, the configuration macro
+REFLECTION_ENABLING_POSSIBLE must be set to TRUE.  When that is the case,
+reflection support can be enabled with the command-line option
+--set_flag=reflection or by also setting the configuration macro
+DEFAULT_REFLECTION_ENABLED to TRUE.  Along with the front end implementation
+proper also comes a new standard-like header "meta.stdh": It is recommended
+that this be placed in a directory such that it can be included with:
+
+  #include <experimental/meta>
+
+
 11/30/23 [EDGcpfe/26759]
 Multi-line comments on multiple-inclusion guards
 

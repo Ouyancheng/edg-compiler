@@ -8569,7 +8569,7 @@ file.
   define_numeric_valued_macro(REF_DESTRUCTORS_FOR_PARAMETER_VARIABLES);
 #else /* !defined(REF_DESTRUCTORS_FOR_PARAMETER_VARIABLES) */
   comment_undefined_macro_name(REF_DESTRUCTORS_FOR_PARAMETER_VARIABLES);
-#endif /* defined(REFLECTION_ENABLING_POSSIBLE) */
+#endif /* defined(REF_DESTRUCTORS_FOR_PARAMETER_VARIABLES) */
 #if defined(REFLECTION_ENABLING_POSSIBLE)
   define_numeric_valued_macro(REFLECTION_ENABLING_POSSIBLE);
 #else /* !defined(REFLECTION_ENABLING_POSSIBLE) */
