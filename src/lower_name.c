@@ -3456,7 +3456,15 @@ to the mangled name as such:
   } else {
     if (path->is_offset) {
       add_str_to_mangled_name(MANGLING_STRING_FOR_OPERATOR_SUBSCRIPT, mctl);
+#if !IA64_ABI
+      /* Count of operands. */
+      store_digits_and_underscore(2UL, /*old_form=*/FALSE, mctl);
+#endif /* !IA64_ABI */
       mangled_subobject_path(con, path->next, mctl);
+#if !IA64_ABI
+      add_to_mangled_name('C', mctl);
+      mangled_encoding_for_type(integer_type(targ_ptrdiff_t_int_kind), mctl);
+#endif /* !IA64_ABI */
       char buffer[50];
       (void)sprintf(buffer, "%ld", (long)path->variant.ptr_offset);
       mangled_encoding_for_integer(buffer,
@@ -3468,18 +3476,15 @@ to the mangled name as such:
       mangled_subobject_path(con, path->next, mctl);
     } else {
       add_str_to_mangled_name(MANGLING_STRING_FOR_OPERATOR_DOT, mctl);
+#if !IA64_ABI
+      /* Count of operands. */
+      store_digits_and_underscore(2UL, /*old_form=*/FALSE, mctl);
+#endif /* !IA64_ABI */
       mangled_subobject_path(con, path->next, mctl);
       a_const_char *field_name =
          unmangled_or_fabricated_name_of(&path->variant.field->source_corresp);
-#if IA64_ABI
       /* It appears that an un-qualified field name is used here. */
       mangled_name_with_length(field_name, mctl);
-#else /* !IA64_ABI */
-      a_length_reservation  length_reservation;
-      reserve_space_for_length(&length_reservation, mctl);
-      add_str_to_mangled_name(field_name, mctl);
-      fill_in_length(&length_reservation, mctl);
-#endif /* IA64_ABI */
     }  /* if */
   }  /* if */
 }  /* mangled_subobject_path */
@@ -3502,9 +3507,17 @@ subobjects as arguments to nontype template parameters.
     /* To generate the mangled encoding for a subobject path, reverse it and
        perform a recursive traversal (then reverse it again to restore it to
        the original state. */
+#if !IA64_ABI
+    /* Demangle as an "operation". */
+    add_to_mangled_name('O', mctl);
+#endif /* !IA64_ABI */
     soj_path = reverse_simple_list(soj_path);
     mangled_subobject_path(con, soj_path, mctl);
     (void)reverse_simple_list(soj_path);
+#if !IA64_ABI
+    /* End of the "operation". */
+    add_to_mangled_name('O', mctl);
+#endif /* !IA64_ABI */
   }  /* if */
 }  /* mangled_encoding_for_address_constant_and_possible_subobject_path */
 
