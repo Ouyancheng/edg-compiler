@@ -1971,7 +1971,8 @@ for an array initialization in GNU C++ mode).
     var = source_desc->capture->is_indirect_init_capture ?
                 (a_variable_ptr)NULL : source_desc->capture->captured.variable;
     if (src_field == NULL) {
-      check_assertion(!source_desc->capture->is_init_capture);
+      check_assertion(!source_desc->capture->is_init_capture &&
+                      !source_desc->capture->is_indirect_init_capture);
       /* The implied source is a local variable from a lambda capture. */
       if (is_reference_type(var->type) ||
           (var->is_this_parameter &&
