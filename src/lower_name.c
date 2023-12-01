@@ -3423,10 +3423,6 @@ old_form is unused in the IA-64 ABI.
 }  /* mangled_encoding_for_integer */
 
 
-static void mangled_field_name(a_field_ptr                     field,
-                               ARG_UNUSED a_name_reference_ptr name_reference,
-                               a_mangling_control_block        *mctl);
-
 static void mangled_encoding_for_address_constant(
                                                a_constant_ptr           con,
                                                a_mangling_control_block *mctl);
@@ -3473,7 +3469,17 @@ to the mangled name as such:
     } else {
       add_str_to_mangled_name(MANGLING_STRING_FOR_OPERATOR_DOT, mctl);
       mangled_subobject_path(con, path->next, mctl);
-      mangled_field_name(path->variant.field, (a_name_reference*)NULL, mctl);
+      a_const_char *field_name =
+         unmangled_or_fabricated_name_of(&path->variant.field->source_corresp);
+#if IA64_ABI
+      /* It appears that an un-qualified field name is used here. */
+      mangled_name_with_length(field_name, mctl);
+#else /* !IA64_ABI */
+      a_length_reservation  length_reservation;
+      reserve_space_for_length(&length_reservation, mctl);
+      add_str_to_mangled_name(field_name, mctl);
+      fill_in_length(&length_reservation, mctl);
+#endif /* IA64_ABI */
     }  /* if */
   }  /* if */
 }  /* mangled_subobject_path */
@@ -6748,25 +6754,6 @@ with no arguments.
 }  /* mangled_encoding_for_lambda */
 
 
-static void mangled_field_name(a_field_ptr                     field,
-                               ARG_UNUSED a_name_reference_ptr name_reference,
-                               a_mangling_control_block        *mctl)
-/*
-Provide a mangled encoding for the specified field (which may have an optional
-name_reference).
-*/
-{
-#if IA64_ABI
-  mangled_entity_reference(&field->source_corresp, iek_field,
-                           (a_routine_info_block *)NULL,
-                           /*add_address_of=*/FALSE, mctl);
-#else /* !IA64_ABI */
-  mangled_simple_id(&field->source_corresp, (a_template_arg_ptr)NULL,
-                    name_reference, /*include_length=*/TRUE, mctl);
-#endif /* IA64_ABI */
-}  /* mangled_field_name */
-
-
 static void mangled_encoding_for_expression_full(
                                   an_expr_node_ptr         expr,
                                   a_boolean                in_dependent_expr,
@@ -7035,8 +7022,18 @@ is TRUE.
                       scp_parent_class(&node_field(expr)->source_corresp))->
                                                         anonymous_union_kind !=
                                             (an_anonymous_union_kind)auk_none);
-      mangled_field_name(node_field(expr), expr->variant.field.name_reference,
-                         mctl);
+#if IA64_ABI
+      mangled_entity_reference(&node_field(expr)->source_corresp,
+                               (an_il_entry_kind)iek_field,
+                               (a_routine_info_block *)NULL,
+                               /*add_address_of=*/FALSE, mctl);
+#else /* !IA64_ABI */
+      mangled_simple_id(&node_field(expr)->source_corresp,
+                        (a_template_arg_ptr)NULL,
+                        expr->variant.field.name_reference,
+                        /*include_length=*/TRUE,
+                        mctl);
+#endif /* IA64_ABI */
       break;
     case enk_routine:
 #if IA64_ABI
