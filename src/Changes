@@ -1,5 +1,16 @@
 Version 6.6
 
+10/28/21 [EDGcpfe/24800]
+C++23 mode update
+
+The front end now sets the value of the global variable std_version and the
+value of the predefined __cplusplus macro to 202302 in C++23 mode (in
+correspondence with the latest state of the working paper).
+
+Additionally, the front end configuration macro, DEFAULT_CPP_MODE now accepts
+202302 for use of C++23 mode by default.
+
+
 12/1/23  [EDGcpfe/26698]
 Experimental reflection support
 

@@ -9,7 +9,7 @@ stdfloat -- Include file for extended floating-point types ([stdfloat.syn])
  #error -- <stdfloat> header requires C++ mode
 #endif /* ifndef __cplusplus */
 
-#if __cplusplus >= 202300L
+#if __cplusplus >= 202302L
 
 /* Only try to parse the extended literal suffixes in C++23 mode. */
 
@@ -37,7 +37,7 @@ using bfloat16_t = decltype(1.0bf16);
 
 }  /* namespace std */
 
-#endif /* __cplusplus >= 202300 */
+#endif /* __cplusplus >= 202302 */
 
 #ifdef __EDG_IMPLICIT_USING_STD
 /* Implicitly include a using directive for the STD namespace when this

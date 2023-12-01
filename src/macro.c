@@ -11493,7 +11493,7 @@ command line -D options.
     if (cpp23_mode && !microsoft_mode) {
       /* The value for C++23 mode is temporary, and will be adjusted when the
          final standard value is determined. */
-      val = "202300L";
+      val = "202302L";
     } else if (cpp20_mode && !microsoft_mode) {
       val = "202002L";
     } else if (ms_extensions && !gnu_mode) {

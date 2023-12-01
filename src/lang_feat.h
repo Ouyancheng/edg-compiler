@@ -2538,7 +2538,7 @@ by the C++20 standard or later C++ standards.
 Macro that is TRUE when the front end should accept language features defined
 by the C++23 standard or later C++ standards.
 */
-#define cpp23_mode (!C_mode() && std_version >= 202300)
+#define cpp23_mode (!C_mode() && std_version >= 202302)
 
 EXTERN a_boolean
 		right_shift_can_be_angle_brackets;

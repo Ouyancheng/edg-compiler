@@ -793,7 +793,7 @@ std_version.
     (DEFAULT_CPP_MODE != 201402) && \
     (DEFAULT_CPP_MODE != 201703) && \
     (DEFAULT_CPP_MODE != 202002) && \
-    (DEFAULT_CPP_MODE != 202300)
+    (DEFAULT_CPP_MODE != 202302)
  #error -- Invalid value for DEFAULT_CPP_MODE
 #endif /* (DEFAULT_CPP_MODE != 199711) && ... */
 
