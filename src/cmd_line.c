@@ -5770,6 +5770,7 @@ command line switches.
     C++14               std_version >= 201402            --c++14
     C++17               std_version >= 201703            --c++17
     C++20               std_version >= 202002            --c++20
+    C++23               std_version >= 202300            --c++23
     "normal"
       strict            strict_ansi_mode                 -A, -a, etc.
 
