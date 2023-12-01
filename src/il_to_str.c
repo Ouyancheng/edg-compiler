@@ -4673,6 +4673,49 @@ parentheses are not needed.
     if (local_type_decay_used) *type_decay_used = TRUE;
   } else if (base_entity_only) {
     /* We've been told not to look at addressing modifiers, so stop here. */
+#if !DO_IL_LOWERING
+  } else if (constant->variant.address.subobject_path != NULL) {
+    /* Use the subobject path to form the lvalue. */
+    a_subobject_path_ptr  path = constant->variant.address.subobject_path;
+    while (path != NULL) {
+      if (is_array_type(type) && !path->is_offset) {
+        /* An array subscripting operation with offset 0 was elided. */
+        while (is_array_type(type)) {
+          if (gen_output) {
+            octl->output_str("[0]", octl);
+          }  /* if */
+          type = array_element_type(type);
+        }  /* while */
+      }  /* if */
+      if (path->is_offset) {
+        if (is_array_type(type)) {
+          if (gen_output) {
+            octl->output_str("[", octl);
+            form_num(path->variant.ptr_offset, octl);
+            octl->output_str("]", octl);
+          }  /* if */
+          type = array_element_type(type);
+          *offset -= path->variant.ptr_offset * size_of_type(type);
+        } else {
+          /* Can only handle array subscripting operations. */
+          break;
+        }  /* if */
+      } else if (path->is_base_class) {
+        type = path->variant.base_class->type;
+        *offset -= path->variant.base_class->offset;
+      } else {
+        field = path->variant.field;
+        if (gen_output) {
+          octl->output_str(".", octl);
+          form_unqualified_name(&field->source_corresp, iek_field, octl);
+        }  /* if */
+        type = field->type;
+        *offset -= field->offset;
+      }  /* if */
+      path = path->next;
+    }  /* while */
+    *formed_useful_lvalue = TRUE;
+#endif /* !DO_IL_LOWERING */
   } else {
     /* Loop, refining the lvalue each time around, until we get something with
        the right type and right address, or until we decide to give up. */
@@ -6642,8 +6685,10 @@ precedence confusion.  Do the output in the way described by octl.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case ck_address:
       /* Address constant. */
-      form_address_constant(constant, /*form_lvalue=*/FALSE, need_parens,
-                            octl);
+      form_address_constant(constant,
+                            (!octl->c_generating_back_end &&
+                             is_reference_type(constant->type)),
+                            need_parens, octl);
       break;
     case ck_ptr_to_member:
       /* Pointer-to-member constant. */
