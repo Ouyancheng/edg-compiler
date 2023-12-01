@@ -2957,7 +2957,7 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
                                           ) {
     a_type_ptr pointee = type->variant.pointer.type;
 
-    if (typedef_should_be_dealiased(pointee, octl)) {
+    while (typedef_should_be_dealiased(pointee, octl)) {
       /* Alias names are suppressed, skip the alias type and form the type name
          for the underlying type. */
       pointee = pointee->variant.typeref.type;
@@ -3582,7 +3582,7 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
                                           ) {
     a_type_ptr pointee = type->variant.pointer.type;
 
-    if (typedef_should_be_dealiased(pointee, octl)) {
+    while (typedef_should_be_dealiased(pointee, octl)) {
       /* Alias names are suppressed, skip the alias type and form the type name
          for the underlying type. */
       pointee = pointee->variant.typeref.type;
@@ -3662,7 +3662,7 @@ void form_type(a_type_ptr                            type,
 Output a string for a type.  Do the output in the way described by octl.
 */
 {
-  if (typedef_should_be_dealiased(type, octl)) {
+  while (typedef_should_be_dealiased(type, octl)) {
     /* Alias names are suppressed, skip the alias type and form the type name
        for the underlying type. */
     type = type->variant.typeref.type;
