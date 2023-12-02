@@ -11491,8 +11491,6 @@ command line -D options.
     a_const_char *clang_cpp17_date = "201406L";
     a_const_char *cpp17_date = "201703L";
     if (cpp23_mode && !microsoft_mode) {
-      /* The value for C++23 mode is temporary, and will be adjusted when the
-         final standard value is determined. */
       val = "202302L";
     } else if (cpp20_mode && !microsoft_mode) {
       val = "202002L";
