@@ -4529,7 +4529,7 @@ operator on some template constants when suppress_address_of is TRUE
       { Small_string<50> value(decimal_str_for_integer_constant(con));
         /* Note that the string for the integer constant is copied here
            (because in some cases the buffer that
-           decimal_str_for_integer_constant uses can be re-used and
+           decimal_str_for_integer_constant uses can be reused and
            overwritten).  Note also that the "const" is cast away here because
            mangled_encoding_for_integer might overwrite the buffer (though
            the number of characters remains the same). */
