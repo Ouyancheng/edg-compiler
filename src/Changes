@@ -35,9 +35,9 @@ C++23 mode update
 
 The front end now sets the value of the global variable std_version and the
 value of the predefined __cplusplus macro to 202302 in C++23 mode (in
-correspondence with the latest state of the working paper).
+correspondence with the value specified by the Draft International Standard).
 
-Additionally, the front end configuration macro, DEFAULT_CPP_MODE now accepts
+Additionally, the front end configuration macro DEFAULT_CPP_MODE now accepts
 202302 for use of C++23 mode by default.
 
 
