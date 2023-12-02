@@ -1836,9 +1836,9 @@ Reset the specified buffer to indicate that it is empty.
 {
   buffer->size = 0;
 #if DEBUG
-  /* Text buffers do not guarantee a null-terminator.  However, to improve the
+  /* Text buffers do not guarantee a null terminator.  However, to improve the
      display of the buffer in a debugger, take advantage of the extra space and
-     add a null-terminator past the "end" of the buffer. */
+     add a null terminator past the "end" of the buffer. */
   buffer->buffer[0] = '\0';
 #endif /* DEBUG */
 }  /* reset_text_buffer */
@@ -1892,15 +1892,15 @@ Add "length" characters of "string" to the text buffer pointed to "buffer".
   sizeof_t new_size = buffer->size + length;
 
 #if DEBUG
-  /* Add an extra byte for a null-terminator in debug builds. */
+  /* Add an extra byte for a null terminator in debug builds. */
   ++new_size;
 #endif /* DEBUG */
   ensure_text_buffer_space(buffer, new_size);
   /* Copy the characters into the buffer. */
   memcpy(&buffer->buffer[buffer->size], string, size_t_arg(length));
 #if DEBUG
-  /* Text buffers do not guarantee a null-terminator.  However, to improve the
-     display of the buffer in a debugger, add a null-terminator past the "end"
+  /* Text buffers do not guarantee a null terminator.  However, to improve the
+     display of the buffer in a debugger, add a null terminator past the "end"
      of the buffer. */
   --new_size;
   buffer->buffer[new_size] = '\0';
@@ -1932,9 +1932,9 @@ Truncate the given text buffer to the given length.
   check_assertion(buffer->size >= length);
   buffer->size = length;
 #if DEBUG
-  /* Text buffers do not guarantee a null-terminator.  However, to improve the
+  /* Text buffers do not guarantee a null terminator.  However, to improve the
      display of a truncated buffer in a debugger, take advantage of the extra
-     space and add a null-terminator past the "end" of the buffer. */
+     space and add a null terminator past the "end" of the buffer. */
   buffer->buffer[length] = '\0';
 #endif /* DEBUG */
 }  /* truncate_text_buffer_to */
