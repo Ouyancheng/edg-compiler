@@ -3495,7 +3495,7 @@ static void mangled_encoding_for_address_constant_and_possible_subobject_path(
                                                 a_mangling_control_block *mctl)
 /*
 Provide a mangled encoding for an address constant that might possibly
-contain a subobject path.  The later case occurs only in references to
+contain a subobject path.  The latter case occurs only in references to
 subobjects as arguments to nontype template parameters.
 */
 {
