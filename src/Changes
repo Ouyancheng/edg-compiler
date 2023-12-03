@@ -55,7 +55,7 @@ paper P2996.  This support is considered "experimental" because:
 To enable access to these experimental features, the configuration macro
 REFLECTION_ENABLING_POSSIBLE must be set to TRUE.  When that is the case,
 reflection support can be enabled with the command-line option
---set_flag=reflection or by also setting the configuration macro
+--set_flag=reflection or by setting the configuration macro
 DEFAULT_REFLECTION_ENABLED to TRUE.  Along with the front end implementation
 proper also comes a new standard-like header "meta.stdh": It is recommended
 that this be placed in a directory such that it can be included with:
