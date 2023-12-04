@@ -2668,6 +2668,23 @@ is_member_typedef_that_should_be_ignored.
 }  /* typedef_should_be_dealiased */
 
 
+static inline a_type_ptr skip_dealiasable_typedefs(
+                                    a_type_ptr                            type,
+                                    an_il_to_str_output_control_block_ptr octl)
+/*
+Given a type pointer, skip any top level dealiasable typedefs and return the
+resulting type.
+*/
+{
+  a_type_ptr result = type;
+
+  while (typedef_should_be_dealiased(result, octl)) {
+    result = result->variant.typeref.type;
+  }  /* if */
+  return result;
+}  /* skip_dealiasable_typedefs */
+
+
 static a_boolean is_member_typedef_that_should_be_ignored(
 				a_type_ptr				type,
 				an_il_to_str_output_control_block_ptr	octl)
@@ -2955,13 +2972,9 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
       && !type->variant.pointer.is_pin_ptr
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                           ) {
-    a_type_ptr pointee = type->variant.pointer.type;
+    a_type_ptr pointee = skip_dealiasable_typedefs(type->variant.pointer.type,
+                                                   octl);
 
-    while (typedef_should_be_dealiased(pointee, octl)) {
-      /* Alias names are suppressed, skip the alias type and form the type name
-         for the underlying type. */
-      pointee = pointee->variant.typeref.type;
-    }  /* if */
     /* Pointer or reference type. */
     form_type_first_part(pointee,
                          /*under_lhs_declarator=*/TRUE,
@@ -3027,13 +3040,16 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
     }  /* if */
   } else if (kind == (a_type_kind)tk_ptr_to_member) {
     /* Pointer-to-member type. */
-    form_type_first_part(type->variant.ptr_to_member.type,
+    a_type_ptr mem_type = skip_dealiasable_typedefs(
+                                              type->variant.ptr_to_member.type,
+                                              octl);
+
+    form_type_first_part(mem_type,
                          /*under_lhs_declarator=*/TRUE,
                          /*need_trailing_space=*/TRUE,
                          TQ_NONE, options, octl);
     /* Output Classname::*. */
-    if (octl->gen_compilable_code &&
-        type->variant.ptr_to_member.type->kind != (a_type_kind)tk_routine &&
+    if (octl->gen_compilable_code && mem_type->kind != tk_routine &&
         !octl->suppress_ptr_to_data_member_parens) {
       /* The class name might be put out as a qualified name with a leading
          "::", so the declarator must be enclosed in parentheses to prevent
@@ -3046,8 +3062,7 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
       octl->output_str("(", octl);
     }  /* if */
     form_class_qualifier(type->variant.ptr_to_member.class_of_which_a_member,
-                         type->variant.ptr_to_member.type->kind !=
-                                                       (a_type_kind)tk_routine,
+                         mem_type->kind != tk_routine,
                          octl);
     /* form_class_qualifier put out "::".  Add the final "*" here.  That's
        okay; it's a separate token. */
@@ -3098,7 +3113,11 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
         octl->output_str("auto ", octl);
       }  /* if */
     } else {
-      form_type_first_part(type->variant.routine.return_type,
+      a_type_ptr return_type = skip_dealiasable_typedefs(
+                                             type->variant.routine.return_type,
+                                             octl);
+
+      form_type_first_part(return_type,
                            /*under_lhs_declarator=*/FALSE,
                            /*need_trailing_space=*/TRUE,
                            TQ_NONE, options, octl);
@@ -3124,6 +3143,10 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (kind == (a_type_kind)tk_array) {
     /* Array type. */
+    a_type_ptr elem_type = skip_dealiasable_typedefs(
+                                              type->variant.array.element_type,
+                                              octl);
+
     /* A qualifier on an array type shouldn't be possible, period. */
     check_assertion_str(qualifiers == TQ_NONE,
                         "form_type_first_part: qualifier on array type");
@@ -3134,7 +3157,7 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
       goto handle_specifiers_type;
     }  /* if */
     if (suppress_const) options |= FTO_SUPPRESS_CONST;
-    form_type_first_part(type->variant.array.element_type,
+    form_type_first_part(elem_type,
                          /*under_lhs_declarator=*/FALSE,
                          /*need_trailing_space=*/TRUE,
                          TQ_NONE,
@@ -3580,21 +3603,20 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
       && !type->variant.pointer.is_pin_ptr
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                           ) {
-    a_type_ptr pointee = type->variant.pointer.type;
+    a_type_ptr pointee = skip_dealiasable_typedefs(type->variant.pointer.type,
+                                                   octl);
 
-    while (typedef_should_be_dealiased(pointee, octl)) {
-      /* Alias names are suppressed, skip the alias type and form the type name
-         for the underlying type. */
-      pointee = pointee->variant.typeref.type;
-    }  /* if */
     /* Pointer or reference type. */
     form_type_second_part(pointee,
                           /*under_lhs_declarator=*/TRUE,
                           options, octl);
   } else if (kind == (a_type_kind)tk_ptr_to_member) {
     /* Pointer-to-member type. */
-    if (octl->gen_compilable_code &&
-        type->variant.ptr_to_member.type->kind != (a_type_kind)tk_routine &&
+    a_type_ptr mem_type = skip_dealiasable_typedefs(
+                                              type->variant.ptr_to_member.type,
+                                              octl);
+
+    if (octl->gen_compilable_code && mem_type->kind != tk_routine &&
         !octl->suppress_ptr_to_data_member_parens) {
       /* When we put out the first part of the type, we added a "(" to
          separate the member type from a possible leading global qualifier
@@ -3602,7 +3624,7 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
          here. */
       octl->output_str(")", octl);
     }  /* if */
-    form_type_second_part(type->variant.ptr_to_member.type,
+    form_type_second_part(mem_type,
                           /*under_lhs_declarator=*/TRUE,
                           options, octl);
   } else if (kind == (a_type_kind)tk_routine) {
@@ -3621,7 +3643,11 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
          generating back end does not attempt to render routine types with
          trailing return types, since those are a C++ feature.) */
     } else {
-      form_type_second_part(type->variant.routine.return_type,
+      a_type_ptr return_type = skip_dealiasable_typedefs(
+                                             type->variant.routine.return_type,
+                                             octl);
+
+      form_type_second_part(return_type,
                             /*under_lhs_declarator=*/FALSE,
                             options, octl);
     }  /* if */
@@ -3633,6 +3659,10 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
          a typedef of an array type.  The type was handled as a specifiers
          type. */
     } else {
+      a_type_ptr elem_type = skip_dealiasable_typedefs(
+                                              type->variant.array.element_type,
+                                              octl);
+
       /* This is a right-side declarator, so if it's under a left-side
          declarator parentheses are needed. */
       if (under_lhs_declarator) octl->output_str(")", octl);
@@ -3641,7 +3671,7 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
         output_type_attributes(orig_type, attrib_stop_type, octl);
       }  /* if */
       if (suppress_const) options |= FTO_SUPPRESS_CONST;
-      form_type_second_part(type->variant.array.element_type,
+      form_type_second_part(elem_type,
                             /*under_lhs_declarator=*/FALSE,
                             options, octl);
     }  /* if */
@@ -3662,11 +3692,7 @@ void form_type(a_type_ptr                            type,
 Output a string for a type.  Do the output in the way described by octl.
 */
 {
-  while (typedef_should_be_dealiased(type, octl)) {
-    /* Alias names are suppressed, skip the alias type and form the type name
-       for the underlying type. */
-    type = type->variant.typeref.type;
-  }  /* if */
+  type = skip_dealiasable_typedefs(type, octl);
   if (type == NULL) {
     check_assertion(!octl->gen_compilable_code);
     octl->output_str("<null-type>", octl);
