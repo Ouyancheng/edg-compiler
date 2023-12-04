@@ -3424,105 +3424,6 @@ old_form is unused in the IA-64 ABI.
 
 
 static void mangled_encoding_for_address_constant(
-                                               a_constant_ptr           con,
-                                               a_mangling_control_block *mctl);
-
-static void mangled_subobject_path(a_constant_ptr           con,
-                                   a_subobject_path         *path,
-                                   a_mangling_control_block *mctl)
-/*
-Provide a mangling for a portion of a subobject path (as specified in path)
-for the given constant.  If path is NULL, provide a mangling for the address
-constant itself.  This routine is called recursively, in reverse order, for
-every element of the subobject path.
-
-For example, for this code:
-
-  void g(A<&b.j[0]+1>) {}
-
-The generated (IA-64 ABI) mangled name is: _Z1g1AIXadixdtL_Z1bE1jLl1EEE.  The
-corresponding subobject_path has two components (db_subobject_path output):
-".B::j->[1]" and when traversed in reverse order, each iteration contributes
-to the mangled name as such:
-
-  _Z1g1AIXadixdtL_Z1bE1jLl1EEE
-            ix          Ll1E // component 2 (!is_offset && !is_base_class)
-              dt      1j     // component 1 (is_offset)
-                L_Z1bE       // address constant itself (path == NULL)
-*/
-{
-  if (path == NULL) {
-    mangled_encoding_for_address_constant(con, mctl);
-  } else {
-    if (path->is_offset) {
-      add_str_to_mangled_name(MANGLING_STRING_FOR_OPERATOR_SUBSCRIPT, mctl);
-#if !IA64_ABI
-      /* Count of operands. */
-      store_digits_and_underscore(2UL, /*old_form=*/FALSE, mctl);
-#endif /* !IA64_ABI */
-      mangled_subobject_path(con, path->next, mctl);
-#if !IA64_ABI
-      add_to_mangled_name('C', mctl);
-      mangled_encoding_for_type(integer_type(targ_ptrdiff_t_int_kind), mctl);
-#endif /* !IA64_ABI */
-      char buffer[50];
-      (void)sprintf(buffer, "%ld", (long)path->variant.ptr_offset);
-      mangled_encoding_for_integer(buffer,
-                                   integer_type(targ_ptrdiff_t_int_kind),
-                                   /*old_form=*/FALSE,
-                                   mctl);
-    } else if (path->is_base_class) {
-      /* This does not contribute to the mangled name. */
-      mangled_subobject_path(con, path->next, mctl);
-    } else {
-      add_str_to_mangled_name(MANGLING_STRING_FOR_OPERATOR_DOT, mctl);
-#if !IA64_ABI
-      /* Count of operands. */
-      store_digits_and_underscore(2UL, /*old_form=*/FALSE, mctl);
-#endif /* !IA64_ABI */
-      mangled_subobject_path(con, path->next, mctl);
-      a_const_char *field_name =
-         unmangled_or_fabricated_name_of(&path->variant.field->source_corresp);
-      /* It appears that an un-qualified field name is used here. */
-      mangled_name_with_length(field_name, mctl);
-    }  /* if */
-  }  /* if */
-}  /* mangled_subobject_path */
-
-
-static void mangled_encoding_for_address_constant_and_possible_subobject_path(
-                                                a_constant_ptr           con,
-                                                a_mangling_control_block *mctl)
-/*
-Provide a mangled encoding for an address constant that might possibly
-contain a subobject path.  The latter case occurs only in references to
-subobjects as arguments to nontype template parameters.
-*/
-{
-  a_subobject_path *soj_path = con->variant.address.subobject_path;
-
-  if (soj_path == NULL) {
-    mangled_encoding_for_address_constant(con, mctl);
-  } else {
-    /* To generate the mangled encoding for a subobject path, reverse it and
-       perform a recursive traversal (then reverse it again to restore it to
-       the original state. */
-#if !IA64_ABI
-    /* Demangle as an "operation". */
-    add_to_mangled_name('O', mctl);
-#endif /* !IA64_ABI */
-    soj_path = reverse_simple_list(soj_path);
-    mangled_subobject_path(con, soj_path, mctl);
-    (void)reverse_simple_list(soj_path);
-#if !IA64_ABI
-    /* End of the "operation". */
-    add_to_mangled_name('O', mctl);
-#endif /* !IA64_ABI */
-  }  /* if */
-}  /* mangled_encoding_for_address_constant_and_possible_subobject_path */
-
-
-static void mangled_encoding_for_address_constant(
                                                 a_constant_ptr           con,
                                                 a_mangling_control_block *mctl)
 /*
@@ -3674,6 +3575,101 @@ template classes.
   add_to_mangled_name('E', mctl);
 #endif /* IA64_ABI */
 }  /* mangled_encoding_for_address_constant */
+
+
+static void mangled_subobject_path(a_constant_ptr           con,
+                                   a_subobject_path         *path,
+                                   a_mangling_control_block *mctl)
+/*
+Provide a mangling for a portion of a subobject path (as specified in path)
+for the given constant.  If path is NULL, provide a mangling for the address
+constant itself.  This routine is called recursively, in reverse order, for
+every element of the subobject path.
+
+For example, for this code:
+
+  void g(A<&b.j[0]+1>) {}
+
+The generated (IA-64 ABI) mangled name is: _Z1g1AIXadixdtL_Z1bE1jLl1EEE.  The
+corresponding subobject_path has two components (db_subobject_path output):
+".B::j->[1]" and when traversed in reverse order, each iteration contributes
+to the mangled name as such:
+
+  _Z1g1AIXadixdtL_Z1bE1jLl1EEE
+            ix          Ll1E // component 2 (!is_offset && !is_base_class)
+              dt      1j     // component 1 (is_offset)
+                L_Z1bE       // address constant itself (path == NULL)
+*/
+{
+  if (path == NULL) {
+    mangled_encoding_for_address_constant(con, mctl);
+  } else {
+    if (path->is_offset) {
+      add_str_to_mangled_name(MANGLING_STRING_FOR_OPERATOR_SUBSCRIPT, mctl);
+#if !IA64_ABI
+      /* Count of operands. */
+      store_digits_and_underscore(2UL, /*old_form=*/FALSE, mctl);
+#endif /* !IA64_ABI */
+      mangled_subobject_path(con, path->next, mctl);
+#if !IA64_ABI
+      add_to_mangled_name('C', mctl);
+      mangled_encoding_for_type(integer_type(targ_ptrdiff_t_int_kind), mctl);
+#endif /* !IA64_ABI */
+      char buffer[50];
+      (void)sprintf(buffer, "%ld", (long)path->variant.ptr_offset);
+      mangled_encoding_for_integer(buffer,
+                                   integer_type(targ_ptrdiff_t_int_kind),
+                                   /*old_form=*/FALSE,
+                                   mctl);
+    } else if (path->is_base_class) {
+      /* This does not contribute to the mangled name. */
+      mangled_subobject_path(con, path->next, mctl);
+    } else {
+      add_str_to_mangled_name(MANGLING_STRING_FOR_OPERATOR_DOT, mctl);
+#if !IA64_ABI
+      /* Count of operands. */
+      store_digits_and_underscore(2UL, /*old_form=*/FALSE, mctl);
+#endif /* !IA64_ABI */
+      mangled_subobject_path(con, path->next, mctl);
+      a_const_char *field_name =
+         unmangled_or_fabricated_name_of(&path->variant.field->source_corresp);
+      /* It appears that an un-qualified field name is used here. */
+      mangled_name_with_length(field_name, mctl);
+    }  /* if */
+  }  /* if */
+}  /* mangled_subobject_path */
+
+
+static void mangled_encoding_for_address_constant_and_possible_subobject_path(
+                                                a_constant_ptr           con,
+                                                a_mangling_control_block *mctl)
+/*
+Provide a mangled encoding for an address constant that might possibly
+contain a subobject path.  The latter case occurs only in references to
+subobjects as arguments to nontype template parameters.
+*/
+{
+  a_subobject_path *soj_path = con->variant.address.subobject_path;
+
+  if (soj_path == NULL) {
+    mangled_encoding_for_address_constant(con, mctl);
+  } else {
+    /* To generate the mangled encoding for a subobject path, reverse it and
+       perform a recursive traversal (then reverse it again to restore it to
+       the original state. */
+#if !IA64_ABI
+    /* Demangle as an "operation". */
+    add_to_mangled_name('O', mctl);
+#endif /* !IA64_ABI */
+    soj_path = reverse_simple_list(soj_path);
+    mangled_subobject_path(con, soj_path, mctl);
+    (void)reverse_simple_list(soj_path);
+#if !IA64_ABI
+    /* End of the "operation". */
+    add_to_mangled_name('O', mctl);
+#endif /* !IA64_ABI */
+  }  /* if */
+}  /* mangled_encoding_for_address_constant_and_possible_subobject_path */
 
 #if DO_IL_LOWERING || (!IA64_ABI && ABI_COMPATIBILITY_VERSION < 520)
 
