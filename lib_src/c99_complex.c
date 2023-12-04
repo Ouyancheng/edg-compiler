@@ -273,7 +273,7 @@ ITOC    (__c99_ibfloat16_to_cbfloat16, _Complex_bfloat16, _EDG_bfloat16_t)
 RTOC    (__c99_bfloat16_to_cbfloat16, _Complex_bfloat16, _EDG_bfloat16_t)
 CTOI    (__c99_cbfloat16_to_ibfloat16, _EDG_bfloat16_t, _Complex_bfloat16)
 CTOR    (__c99_cbfloat16_to_bfloat16, _EDG_bfloat16_t, _Complex_bfloat16)
-#if __EDG_HOST_HAS_FLOAT16_TYPE */
+#if __EDG_HOST_HAS_FLOAT16_TYPE
 CAST    (__c99_cbfloat16_to_cfloat16, _Complex_float16, _Complex_bfloat16,
                                       _Float16)
 #endif /* __EDG_HOST_HAS_FLOAT16_TYPE */
