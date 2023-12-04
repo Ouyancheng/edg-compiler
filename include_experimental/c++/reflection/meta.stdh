@@ -302,6 +302,10 @@ namespace std {
       return false;  /* Dummy return.  Handled by interpreter. */
     }
 
+    consteval bool is_bit_field(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
     consteval bool has_static_storage_duration(info) {
       return false;  /* Dummy return.  Handled by interpreter. */
     }

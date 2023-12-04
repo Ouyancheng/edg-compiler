@@ -9112,6 +9112,8 @@ interpreter) and if so mark it as such.
             tag = cit_std_meta_is_override;
           } else if (strcmp(name, "is_pure_virtual") == 0) {
             tag = cit_std_meta_is_pure_virtual;
+          } else if (strcmp(name, "is_bit_field") == 0) {
+            tag = cit_std_meta_is_bit_field;
           }  /* if */
         }  /* if */
         break;

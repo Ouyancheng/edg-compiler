@@ -3368,12 +3368,16 @@ static void mangled_name_with_length(a_const_char             *name,
 /*
 Add to the mangled name the encoding for a name, with a prefix that
 indicates the length, e.g., "3abc" for the name "abc".  name is
-null-terminated.
+null-terminated or it is a null pointer (which is encoded as an empty
+string, i.e., "0").
 */
 {
-  check_assertion(name != NULL);
-  add_number_to_mangled_name((unsigned long)strlen(name), mctl);
-  add_str_to_mangled_name(name, mctl);
+  if (name != NULL) {
+    add_number_to_mangled_name((unsigned long)strlen(name), mctl);
+    add_str_to_mangled_name(name, mctl);
+  } else {
+    add_number_to_mangled_name(0UL, mctl);
+  }  /* if */
 }  /* mangled_name_with_length */
 
 
