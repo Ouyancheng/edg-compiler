@@ -12,8 +12,8 @@ as something like:
 
   error: the example type is "typedef_type<int, other_typedef_type>"
 
-This has been changed, when an alias is detected the front end now displays
-the underlying type, e.g.:
+This has been changed, so that when an alias is detected the front end now
+displays the underlying type, e.g.:
 
   error: the example type is "typedef_type<int, other_typedef_type>"
          (aka "tuple<int, float>")
