@@ -109,7 +109,7 @@ namespace std {
       __infovec v = members__impl(r);
       std::vector<info> result{};
       for (info m: v) {
-        if ((filters(m) && ...)) result.push_back(v);
+        if ((filters(m) && ...)) result.push_back(m);
       }
       return result;
     }
@@ -141,7 +141,7 @@ namespace std {
       __infovec v = bases__impl(r);
       std::vector<info> result{};
       for (info m: v) {
-        if ((filters(m) && ...)) result.push_back(v);
+        if ((filters(m) && ...)) result.push_back(m);
       }
       return result;
     }
