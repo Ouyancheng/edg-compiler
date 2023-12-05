@@ -1,3 +1,13 @@
+Version 6.6
+
+12/5/23  [EDGcpfe/26698]
+Experimental reflection support
+
+The <meta> header (meta.stdh) has been added in support of experimental
+reflection features.  Because of the experimental nature of this header, it
+has been added in a separate subdirectory (include_experimental).
+
+-------------------------------------------------------------------------------
 Version 6.5, June 21, 2023
 
 -------------------------------------------------------------------------------

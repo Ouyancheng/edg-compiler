@@ -6182,7 +6182,7 @@ void form_reflection(a_reflection_value                     rv,
 Render the entity designated by the given reflection.
 */
 {
-  if (octl->c_generating_back_end) {
+  if (octl->gen_compilable_code) {
     /* Reflection values sometimes leak into the C++-generating back end,
        but those values are not actually used. */
     octl->output_str("(decltype(^0){})", octl);

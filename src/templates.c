@@ -11509,8 +11509,8 @@ template argument list does not match the template.
       if (*tap == NULL) {
         if (!tap_is_pack) {
           if (tpp->has_default_arg) {
-            /* No argument is provided by the caller, the template parameter
-               has a default. */
+            /* No argument is provided by the caller, but the template
+               parameter has a default. */
             a_templ_arg_kind  arg_kind;
             arg_kind = templ_arg_kind_for_symbol_kind(tpp->param_symbol->kind);
             *tap = alloc_template_arg(arg_kind);
@@ -11591,8 +11591,8 @@ provided argument list).
       if (*tap == NULL) {
         if (!tap_is_pack) {
           if (tpp->has_default_arg) {
-            /* No argument is provided by the caller, the template parameter
-               has a default. */
+            /* No argument is provided by the caller, but the template
+               parameter has a default. */
             a_templ_arg_kind  arg_kind;
             arg_kind = templ_arg_kind_for_symbol_kind(tpp->param_symbol->kind);
             *tap = alloc_template_arg(arg_kind);

@@ -5232,8 +5232,8 @@ typedef struct a_constant {
     /* When kind == ck_reflection: */
     a_reflection_value
 		reflection;
-			/* The representation of a reflection value (which is
-			   currently just a tagged pointer). */
+			/* The representation of a reflection value (which
+			   consists of a tagged pointer and a scope number). */
   } variant;
 } a_constant;
 

@@ -16384,7 +16384,7 @@ name.  We do not advance to the token after the decltype in this case.
     expr = make_node_from_operand(&operand);
     switch_back_to_original_region(prev_region);
     /* The type entry is stored in the file scope memory region.  If the
-       expression is a local expression,  the type entry cannot point
+       expression is a local expression, the type entry cannot point
        directly to it, and instead we use the "a_local_expr_node_ref"
        mechanism. */
     if (in_file_scope(expr)) {
@@ -16605,7 +16605,7 @@ We do not advance to the token after the typename operator in this case.
       }  /* if */
     }  /* if */
     /* The type entry is stored in the file scope memory region.  If the
-       expression is a local expression,  the type entry cannot point
+       expression is a local expression, the type entry cannot point
        directly to it, and instead we use the "a_local_expr_node_ref"
        mechanism. */
     if (in_file_scope(expr)) {
@@ -17149,7 +17149,7 @@ the expression-processing routines.
         }  /* if */
       }  /* if */
       /* The type entry is stored in the file scope memory region.  If the
-         expression is a local expression,  the type entry cannot point
+         expression is a local expression, the type entry cannot point
          directly to it, and instead we use the "a_local_expr_node_ref"
          mechanism. */
       if (in_file_scope(expr)) {

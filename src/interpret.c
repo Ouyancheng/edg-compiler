@@ -6516,7 +6516,9 @@ static a_boolean register_extended_destruction(
                                           a_source_position     *pos)
 /*
 Register a destruction to be performed when the "extension" storage stack
-state is released.
+state is released.  dip describes the destruction, which if for an object of
+the given type stored at address sub_obj (part of the complete object stored
+at complete_obj).  Diagnostics should be associated with pos by default.
 */
 {
   a_boolean  result = TRUE;
@@ -9946,6 +9948,8 @@ static a_boolean do_constexpr_std_is_constant_evaluated(
 /*
 Return TRUE and set *result_storage to "true" if ips->is_constant_evaluated is
 TRUE.  Otherwise result FALSE.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean result = TRUE;
@@ -10178,6 +10182,8 @@ Implement std::meta::make_constexpr_array(T*, prtdiff_t p).  It creates IL for
 a constexpr namespace-scope array of n elements of type T with internal
 linkage, initialized with the values pointed to by the first argument.  A
 reflection value for the generated variable is returned.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean            result = TRUE;
@@ -10263,6 +10269,8 @@ static a_boolean do_constexpr_std_meta_reflect_value(
 /*
 Implement std::meta::reflect_value(T val).  It creates IL (a_constant) for the
 value val and returns a reflection value referring to that constant.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = FALSE;
@@ -10343,6 +10351,8 @@ static a_boolean do_constexpr_std_meta_value_of(
 /*
 Implement std::meta::value_of<T>(r).  Return at result_storage the value of
 type T that is reflected by r.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = FALSE;
@@ -10503,6 +10513,8 @@ static a_boolean do_constexpr_std_meta_is_type(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::is_type(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE;
@@ -10527,6 +10539,8 @@ static a_boolean do_constexpr_std_meta_is_alias(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::is_alias(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE;
@@ -10553,6 +10567,8 @@ static a_boolean do_constexpr_std_meta_is_incomplete_type(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::is_incomplete_type(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE;
@@ -10578,6 +10594,8 @@ static a_boolean do_constexpr_std_meta_is_template(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::is_template(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE;
@@ -10602,6 +10620,8 @@ static a_boolean do_constexpr_std_meta_is_function_template(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::is_function_template(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE;
@@ -10627,6 +10647,8 @@ static a_boolean do_constexpr_std_meta_is_variable_template(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::is_variable_template(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE;
@@ -10652,6 +10674,8 @@ static a_boolean do_constexpr_std_meta_is_class_template(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::is_class_template(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE;
@@ -10679,6 +10703,8 @@ static a_boolean do_constexpr_std_meta_is_alias_template(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::is_alias_template(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE;
@@ -10706,6 +10732,8 @@ static a_boolean do_constexpr_std_meta_is_concept_template(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::is_concept_template(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE;
@@ -10731,6 +10759,8 @@ static a_boolean do_constexpr_std_meta_is_constant(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::is_constant(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE, answer = FALSE;
@@ -10767,6 +10797,8 @@ static a_boolean do_constexpr_std_meta_is_variable(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::is_variable(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE;
@@ -10791,6 +10823,8 @@ static a_boolean do_constexpr_std_meta_is_function(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::is_function(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE;
@@ -10815,6 +10849,8 @@ static a_boolean do_constexpr_std_meta_is_namespace(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::is_namespace(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE, answer = FALSE;
@@ -10848,6 +10884,8 @@ static a_boolean do_constexpr_std_meta_is_nsdm(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::is_nsdm(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE;
@@ -10872,6 +10910,8 @@ static a_boolean do_constexpr_std_meta_is_base(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::is_base(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE;
@@ -10895,6 +10935,8 @@ static a_boolean do_constexpr_std_meta_is_constructor(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::is_constructor(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE, answer = FALSE;
@@ -10923,6 +10965,8 @@ static a_boolean do_constexpr_std_meta_is_destructor(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::is_destructor(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE, answer = FALSE;
@@ -10951,6 +10995,8 @@ static a_boolean do_constexpr_std_meta_is_special_member(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::is_special_member(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE, answer = FALSE;
@@ -10992,6 +11038,8 @@ static a_boolean do_constexpr_std_meta_is_public(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::is_public(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE, answer = FALSE;
@@ -11027,6 +11075,8 @@ static a_boolean do_constexpr_std_meta_is_protected(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::is_protected(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE, answer = FALSE;
@@ -11063,6 +11113,8 @@ static a_boolean do_constexpr_std_meta_is_private(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::is_private(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE, answer = FALSE;
@@ -11099,6 +11151,8 @@ static a_boolean do_constexpr_std_meta_is_accessible(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::is_accessible(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE, answer = FALSE;
@@ -11138,6 +11192,8 @@ static a_boolean do_constexpr_std_meta_is_virtual(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::is_virtual(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE, answer = FALSE;
@@ -11170,6 +11226,8 @@ static a_boolean do_constexpr_std_meta_is_deleted(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::is_deleted(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE, answer = FALSE;
@@ -11200,6 +11258,8 @@ static a_boolean do_constexpr_std_meta_is_defaulted(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::is_defaulted(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE, answer = FALSE;
@@ -11230,6 +11290,8 @@ static a_boolean do_constexpr_std_meta_is_explicit(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::is_explicit(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE, answer = FALSE;
@@ -11262,6 +11324,8 @@ static a_boolean do_constexpr_std_meta_is_override(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::is_override(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE, answer = FALSE;
@@ -11292,6 +11356,8 @@ static a_boolean do_constexpr_std_meta_is_pure_virtual(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::is_pure_virtual(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE, answer = FALSE;
@@ -11322,6 +11388,8 @@ static a_boolean do_constexpr_std_meta_is_bit_field(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::is_bit_field(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE, answer = FALSE;
@@ -11349,6 +11417,8 @@ static a_boolean do_constexpr_std_meta_has_static_storage_duration(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::has_static_storage_duration(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE, answer = FALSE;
@@ -11427,6 +11497,8 @@ static a_boolean do_constexpr_std_meta_has_template_arguments(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::has_template_arguments(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE;
@@ -11489,6 +11561,8 @@ static a_boolean do_constexpr_std_meta_template_arguments_of(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::template_arguments_of(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE;
@@ -11527,6 +11601,8 @@ static a_boolean do_constexpr_std_meta_template_of(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::template_of(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE;
@@ -11556,6 +11632,8 @@ static a_boolean do_constexpr_std_meta_type_of(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::type_of(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE;
@@ -11611,6 +11689,8 @@ static a_boolean do_constexpr_std_meta_parent_of(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::parent_of(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean                result = TRUE;
@@ -11671,6 +11751,8 @@ static a_boolean do_constexpr_std_meta_dealias(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::dealias(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE;
@@ -11701,6 +11783,8 @@ static a_boolean do_constexpr_std_meta_size_of(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::size_of(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE;
@@ -11764,6 +11848,8 @@ static a_boolean do_constexpr_std_meta_offset_of(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::offset_of(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE;
@@ -11802,6 +11888,8 @@ static a_boolean do_constexpr_std_meta_bit_size_of(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::bit_size_of(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = FALSE;
@@ -11834,6 +11922,8 @@ static a_boolean do_constexpr_std_meta_bit_offset_of(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::bit_offset_of(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = FALSE;
@@ -11866,6 +11956,8 @@ static a_boolean do_constexpr_std_meta_alignment_of(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::alignment_of(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean           result = TRUE;
@@ -11994,7 +12086,7 @@ with diag_pos.
   str[k] = (char)0;
 done:
   return result;
-}
+}  /* get_interpreter_string */
 
 static a_constant_ptr
 		reflection_str_placeholder;
@@ -12142,6 +12234,8 @@ static a_boolean do_constexpr_std_meta_name_of(
 /*
 Implement std::meta::name_of(<reflection_value>).  It returns a "string view"
 via the std::string_view(char_ptr, length) constructor.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean     result = FALSE;
@@ -12180,6 +12274,8 @@ static a_boolean do_constexpr_std_meta_members_of(
 Implement std::meta::members_of(<reflection_value>).  It returns a vector-like
 container (struct std::meta::infovec) of reflections, with each element
 representing a member of the given entity.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean     result = FALSE, invalid_arg = FALSE;
@@ -12280,6 +12376,8 @@ Implement std::meta::static_data_members_of(<reflection_value>).  It returns
 a vector-like container (struct std::meta::infovec) of reflections, with each
 element representing a static data member of the given entity (in declaration
 order).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean     result = FALSE, invalid_arg = FALSE;
@@ -12349,6 +12447,8 @@ static a_boolean do_constexpr_std_meta_nonstatic_data_members_of(
 Implement std::meta::nonstatic_data_members_of(<reflection_value>).  It returns
 a vector-like container (struct std::meta::infovec) of reflections, with each
 element representing a field of the given entity (in declaration order).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean     result = FALSE, invalid_arg = FALSE;
@@ -12417,6 +12517,8 @@ static a_boolean do_constexpr_std_meta_bases_of(
 Implement std::meta::bases_of(<reflection_value>).  It returns a vector-like
 container (struct std::meta::infovec) of reflections, with each element
 representing a direct base of the given class type (in declaration order).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean     result = FALSE, invalid_arg = FALSE;
@@ -12485,6 +12587,8 @@ Implement std::meta::subobjects_of(<reflection_value>).  It returns a
 vector-like container (struct std::meta::infovec) of reflections, with each
 element representing a direct base or nonstatic data member of the given class
 type (in declaration order).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean     result = FALSE, invalid_arg = FALSE;
@@ -12562,6 +12666,8 @@ Implement std::meta::enumerators_of(<reflection_value>).  It returns
 a vector-like container (struct std::meta::infovec) of reflections, with each
 element representing an enumerator constant for the given enumeration type.
 (Evaluation fails if the given reflection is not that of an enumeration type.)
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean     result = FALSE, invalid_arg = FALSE;
@@ -12588,7 +12694,7 @@ element representing an enumerator constant for the given enumeration type.
     a_type_ptr  parent_tp = (a_type_ptr)rvp->entity.ptr;
     parent_tp = skip_typerefs(parent_tp);
     if (is_enum_type(parent_tp)) {
-      /* Enumerate all the data members. */
+      /* Enumerate all the enumerator constants. */
       a_constant  *cp = enum_constants(parent_tp);
       for (; cp != NULL; cp = cp->next) {
         a_reflection_value  mem_rvp;
@@ -12629,6 +12735,8 @@ Implement std::meta::substitute(<info>, <infovec>).  It returns a
 reflection for an instance obtained by substituting the template arguments
 represented by <infovec> in the template represented by info.  A substitution
 error is communicated with an invalid reflection.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean     result = FALSE;
@@ -12797,9 +12905,12 @@ Implement std::meta::__define_class(<info>, n, <descriptions>).  It returns its
 first argument, which should be a reflection for an incomplete class type.
 The third argument of the call points to an array of n elements of type
 std::meta::ndsm_description that describe members that should be added to the
-definition of the given type.  This function triggers the definition of such a
-definition.  Return FALSE if this fails because the arguments to the call are
-invalid.
+definition of the given type.  This function triggers the completion of the
+class type designated by its first argument with members as described by the
+third argument.  Return FALSE if this fails because the arguments to the call
+are invalid.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean     result = TRUE;
@@ -12824,13 +12935,14 @@ invalid.
   if (rvp->entity.kind != iek_type ||
       !(class_type = (a_type*)rvp->entity.ptr)->incomplete ||
       !is_immediate_class_type(class_type)) {
+    /* The first operand doesn't designate an incomplete class type. */
     do_constexpr_fail(result);
     info_with_pos(ec_invalid_reflection_for_intrinsic,
                   &call_node->position, ips);
     goto done;
   }  /* if */
   ptp = function_type_params(callee_type)->next;
-  {
+  { /* Extract the second argument and use it to dimension field_descrs. */
     a_boolean             is_signed = is_signed_integral_type(ptp->type);
     a_host_large_integer  val;
     a_boolean             ovflo;
@@ -12844,7 +12956,7 @@ invalid.
     n_fields = (int)val;
     field_descrs.reserve(n_fields);
   }
-  {
+  { /* Load the array pointed-to by the third argument. */
     a_constexpr_address  *cap = (a_constexpr_address*)p_arg_bytes[2];
     a_type               *descr_type = type_pointed_to(ptp->next->type);
     a_byte_count         descr_size;
@@ -12853,12 +12965,20 @@ invalid.
                          bit_width_offset;
     a_byte               *subobj = cap->address,
                          *complete_obj = cap->complete_object;
+    /* The array elements should be of a class type. */
     descr_type = skip_typerefs(descr_type);
     descr_size = value_bytes_for_type(ips, descr_type, &result);
     if (!result || !is_immediate_class_type(descr_type)) {
       do_constexpr_fail(result);
       goto done;
     }  /* if */
+    /*Load the offsets associated with the fields of the array elements.
+      These should include in order:
+          1) a type reflection
+          2) a pointer to a null-terminated char array
+          3) an alignment value
+          4) a bit width
+    */
     fp = fields_of(descr_type);
     if (fp == NULL || !is_reflection_type(fp->type)) {
       do_constexpr_fail(result);
@@ -12889,6 +13009,9 @@ invalid.
       a_byte_count         name_length;
       a_reflection_value   *ftr = (a_reflection_value*)(subobj+type_offset);
       a_constexpr_address  *name_cap;
+      /* Use the offsets computed above to load the components of each array
+         element into field_descrs, via fd.  For every component, check that
+         the value is initialized and generally valid. */
       if (!subobject_is_initialized(subobj+type_offset, complete_obj)) {
         do_constexpr_fail(result);
         info_with_pos(ec_object_not_initialized, &call_node->position, ips);
@@ -12916,7 +13039,7 @@ invalid.
                       &call_node->position, ips);
         goto done;
       } else if (name_cap->complete_object == NULL) {
-        /* Synthesize a field name. */
+        /* Synthesize a field name if no name is given explicitly. */
         char  field_name[100];
         (void)sprintf(field_name, "__field_%u\n", k);
         fd.name = alloc_text_of_string_literal(strlen(field_name)+1);
@@ -13002,6 +13125,8 @@ static a_boolean do_constexpr_std_meta_metacall(
 Implement std::meta::metacall(<info>, <infovec>), where <info> represents a
 function F to call and <infovec> represents arguments to call F with.  The
 invocation produces a reflection for the constant result.
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
   a_boolean     result = FALSE;

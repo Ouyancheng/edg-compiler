@@ -8381,11 +8381,11 @@ static void make_symbol_for_predeclared_namespace(a_const_char     *name,
                                                   a_symbol_ptr     *sym)
 /*
 Predeclare the namespace with the indicated name -- that is, create the name
-space entry and add it to the namespaces list in the file scope, and create
-the symbol entry for the namespace and return it in *sym.  However, don't
-actually add the symbol to the symbol table (since the user is actually
-free to use the name for other entities as long as the namespace is never
-declared).
+space entry and add it to the namespaces list in the indicated parent
+namespace (or the file scope if parent is NULL), and create the symbol entry
+for the namespace and return it in *sym.  However, don't actually add the
+symbol to the symbol table (since the user is actually free to use the name
+for other entities as long as the namespace is never declared).
 */
 {
   a_namespace_ptr  nsp;
@@ -9296,7 +9296,7 @@ indicates where a declaration of namespace std was encountered in the source.
 
 void enter_symbol_for_namespace_std_meta(a_symbol_locator  *locator)
 /*
-Namespace std::m eta was predeclared: Its symbol was created but wasn't added
+Namespace std::meta was predeclared: Its symbol was created but wasn't added
 to the symbol table.  Enter it now, if it has not already been entered.
 *locator indicates where a declaration of namespace std::meta was encountered
 in the source.
