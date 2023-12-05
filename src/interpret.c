@@ -10178,7 +10178,7 @@ static a_boolean do_constexpr_std_meta_make_constexpr_array(
                                         a_byte                *result_storage,
                                         a_byte                *complete_obj)
 /*
-Implement std::meta::make_constexpr_array(T*, prtdiff_t p).  It creates IL for
+Implement std::meta::make_constexpr_array(T*, prtdiff_t n).  It creates IL for
 a constexpr namespace-scope array of n elements of type T with internal
 linkage, initialized with the values pointed to by the first argument.  A
 reflection value for the generated variable is returned.
