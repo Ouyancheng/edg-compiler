@@ -14749,7 +14749,7 @@ static a_boolean ttt_is_typedef_type(a_type_ptr  type_ptr,
                                      a_boolean   *force_end_of_traversal)
 /*
 This is a service function designed to be called from traverse_type_tree
-(whence the ttt_ prefix).  It returns TRUE if type_ptr is represents a
+(whence the ttt_ prefix).  It returns TRUE if type_ptr represents a
 typedef-name.
 
 Note typedef-names include both type aliases formed via the typedef specifier
