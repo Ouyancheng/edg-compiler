@@ -1,4 +1,4 @@
-/******************************************************************************
+******************************************************************************
 *                                                             \  ___  /       *
 *                                                               /   \         *
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
@@ -507,7 +507,7 @@ Return TRUE if a tk_typeref type represents a typedef-name.
 Note typedef-names include both type aliases formed via the typedef specifier
 and those formed via alias-declaration syntax.
 
-Additionally note, that this is not identical to !typeref_is_qualified --
+Additionally, note that this is not identical to !typeref_is_qualified --
 though typeref_is_qualified and typeref_is_typedef can never be true at the
 same time -- since there are cases in which typerefs are produced that are
 empty, with neither name nor qualifier.
