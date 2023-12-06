@@ -9959,7 +9959,7 @@ the length of the given sequence of reflections.
 {
   a_boolean     result = TRUE, other_fields = FALSE;
   int           n_ptr_fields = 0, n_integral_fields = 0;
-  a_byte_count  length = reflections->length();
+  a_byte_count  length = (a_byte_count)reflections->length();
   a_type_ptr    info_type = reflection_type();
   a_byte_count  info_size = value_bytes_for_type(ips, info_type, &result);
   a_field_ptr   fp;
@@ -10084,8 +10084,8 @@ length of the sequence, respectively.
       a_host_large_integer  value;
       a_boolean             ovfl = FALSE;
       get_int_val_from(result_storage+offset, ftp, value, ovfl);
-      if (n_integral_fields == 0 || value < length) {
-        length = value;
+      if (n_integral_fields == 0 || (a_byte_count)value < length) {
+        length = (a_byte_count)value;
       }  /* if */
       n_integral_fields += 1;
     } else {
