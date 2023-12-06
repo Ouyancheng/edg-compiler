@@ -1026,7 +1026,15 @@ handle_next_entry:
             }  /* switch */
             break;
           case ck_reflection:
-            /* FIXME */
+            { an_il_entry_kind  kind = eptr->variant.reflection.entity.kind;
+              if (kind == iek_expr_node || kind == iek_constant) {
+                walk_ptr(eptr->variant.reflection.entity.ptr, a_char_ptr,
+                         kind);
+              } else {
+                remap_ptr(eptr->variant.reflection.entity.ptr, a_char_ptr,
+                          kind);
+              }  /* if */
+            }
             break;
           default:
             unexpected_condition_str(

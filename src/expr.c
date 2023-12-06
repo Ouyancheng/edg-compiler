@@ -47164,6 +47164,7 @@ Otherwise, return FALSE.
     force_operand_to_constant_if_possible_full(
                                        &call, /*is_constant_evaluated=*/TRUE);
     if (is_constant_operand(&call)) {
+      call.variant.constant.expr = NULL;
       copy_constant(&call.variant.constant, result_con);
       success = TRUE;
     }  /* if */
