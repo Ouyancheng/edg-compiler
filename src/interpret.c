@@ -11680,9 +11680,14 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
       scp = &((a_template*)rvp->entity.ptr)->source_corresp;
       break;
     case iek_type:
-      /* Only consider named types (class, enum, typedef): */
-      scp = &((a_type*)rvp->entity.ptr)->source_corresp;
-      if (scp->name == NULL) scp = NULL;
+      /* Only consider class types, enumeration types, and typedefs. */
+      { a_type  *tp = (a_type*)rvp->entity.ptr;
+        if (is_immediate_class_type(tp) ||
+            is_immediate_enum_type(tp) ||
+            type_is_typedef(tp)) {
+          scp = &tp->source_corresp;
+        }  /* if */
+      }
       break;
     case iek_variable:
       scp = &((a_variable*)rvp->entity.ptr)->source_corresp;
