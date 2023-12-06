@@ -2983,7 +2983,7 @@ it's the initializer for an aggregate.
           break;
         default:
           break;
-      };
+      }  /* switch */
       break;
     default:
       break;

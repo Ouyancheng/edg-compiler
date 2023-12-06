@@ -10119,7 +10119,7 @@ length of the sequence, respectively.
         goto done;
       }  /* if */
       reflections->push_back(*rvp);
-    }  /* if */
+    }  /* for */
   }
 done:
   return result;
@@ -10208,7 +10208,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     vp->init_kind = (an_init_kind)initk_static;
     vp->initializer.constant = init_cp;
     vp->is_constexpr = TRUE;
-    sprintf(name, "__ce_array_%ld", ++n);
+    (void)sprintf(name, "__ce_array_%ld", ++n);
     clear_locator(&loc, &call_node->position);
     (void)find_symbol(name, strlen(name), &loc);
     sym = make_symbol((a_symbol_kind)sk_variable, &loc);
@@ -10449,7 +10449,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
                     &call_node->position, ips);
       do_constexpr_fail(result);
       break;
-  }  /* if */
+  }  /* switch */
   if (result && sym != NULL) {
     /* If we're producing a reference to an instance of a function or variable
        template, make sure it will get instantiated. */
@@ -12360,21 +12360,21 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
         mem_rvp.entity.kind = (an_il_entry_kind)iek_routine;
         mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
         result_reflections.push_back(mem_rvp);
-      }  /* if */
+      }  /* for */
       for (tp = scope->types; tp != NULL; tp = tp->next) {
         a_reflection_value  mem_rvp;
         mem_rvp.entity.ptr = (char*)tp;
         mem_rvp.entity.kind = (an_il_entry_kind)iek_type;
         mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
         result_reflections.push_back(mem_rvp);
-      }  /* if */
+      }  /* for */
       for (vp = scope->variables; vp != NULL; vp = vp->next) {
         a_reflection_value  mem_rvp;
         mem_rvp.entity.ptr = (char*)vp;
         mem_rvp.entity.kind = (an_il_entry_kind)iek_variable;
         mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
         result_reflections.push_back(mem_rvp);
-      }  /* if */
+      }  /* for */
     } else {
       invalid_arg = TRUE;
     }  /* if */
@@ -12603,7 +12603,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   }  /* if */
 done:
   return result;
-}  /* do_constexpr_std_meta_nonstatic_bases_of */
+}  /* do_constexpr_std_meta_bases_of */
 
 
 static a_boolean do_constexpr_std_meta_subobjects_of(
@@ -12682,7 +12682,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   }  /* if */
 done:
   return result;
-}  /* do_constexpr_std_meta_nonstatic_bases_of */
+}  /* do_constexpr_std_meta_subobjects_of */
 
 
 static a_boolean do_constexpr_std_meta_enumerators_of(
@@ -13003,8 +13003,8 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
       do_constexpr_fail(result);
       goto done;
     }  /* if */
-    /*Load the offsets associated with the fields of the array elements.
-      These should include in order:
+    /* Load the offsets associated with the fields of the array elements.
+       These should include in order:
           1) a type reflection
           2) a pointer to a null-terminated char array
           3) an alignment value

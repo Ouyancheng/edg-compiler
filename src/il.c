@@ -11986,7 +11986,7 @@ Make or find a type entry for a reflection type, and return a pointer to it.
 */
 {
   if (il_reflection_type == NULL) {
-    il_reflection_type = alloc_type((a_type_kind)tk_reflection);
+    il_reflection_type = alloc_type(tk_reflection);
     set_type_size(il_reflection_type);
 #if ORPHAN_PROCESSING_NEEDED
     /* Record the type entry as an orphan in case it is discarded now
@@ -20517,6 +20517,7 @@ and source_pos are forwarded from copy_template_param_con.
 */
 {
   a_reflection_value  *rvp = &refl_cp->variant.reflection;
+
   strip_template_arg(rvp);
   switch (rvp->entity.kind) {
     case iek_type:

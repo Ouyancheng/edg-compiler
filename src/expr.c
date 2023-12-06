@@ -41532,7 +41532,7 @@ handle_cli_typeid:
       break;
 
     case tok_excl_or:
-      /* The reflection operator (e.g., "^std::list<int>". */
+      /* The reflection operator (e.g., "^std::list<int>"). */
       if (reflection_enabled) {
         scan_reflection_operator((a_rescan_control_block *)NULL,
                                  &local_result);

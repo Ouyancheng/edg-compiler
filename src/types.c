@@ -569,7 +569,7 @@ thereof.
 {
   tp = skip_typerefs(tp);
   return type_is(tp, tk_reflection);
-}  /* is_void_type */
+}  /* is_reflection_type */
 
 
 a_boolean is_nullptr_type(a_type_ptr tp)

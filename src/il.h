@@ -3396,7 +3396,7 @@ reflection value for the underlying type, constant, or template.
         break;
       default:
         unexpected_condition();
-    }  /* if */
+    }  /* switch */
   }  /* if */
 }  /* strip_template_arg */
 
