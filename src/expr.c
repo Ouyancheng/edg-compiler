@@ -16537,6 +16537,14 @@ We do not advance to the token after the typename operator in this case.
   scope_stack_top().in_decltype_context = saved_in_decltype_context;
   expr_stack->suppress_diagnostics = saved_suppress_diagnostics;
   do_operand_transformations(&operand, TOPT_NO_OPTIONS);
+  if (is_class_struct_union_type(operand.type)) {
+    /* Contextually convert the operand to std::meta::info. */
+    a_boolean  converted = FALSE;
+    (void)try_to_convert_class_operand_to_builtin_type(
+                                        &operand, reflection_type(), BTK_NONE,
+                                        CCO_ALLOW_EXPLICIT_CONV_FUNCTIONS,
+                                        &converted);
+  }  /* if */
   if (!is_constant_operand(&operand) && !is_error_operand(&operand)) {
     (void)expr_interpret_expression_operand(&operand,
                                             /*must_be_constant=*/TRUE,
@@ -38308,7 +38316,15 @@ FIXME: This is currently incomplete.
     (void)required_token(tok_colon, ec_exp_colon);
     remove_stop_token(tok_rbracket);
     consume_right_bracket = TRUE;
-    do_operand_transformations(&opnd, TOPT_NO_OPTIONS);
+  }  /* if */
+  do_operand_transformations(&opnd, TOPT_NO_OPTIONS);
+  if (is_class_struct_union_type(opnd.type)) {
+    /* Contextually convert the operand to std::meta::info. */
+    a_boolean  converted = FALSE;
+    (void)try_to_convert_class_operand_to_builtin_type(
+                                           &opnd, reflection_type(), BTK_NONE,
+                                           CCO_ALLOW_EXPLICIT_CONV_FUNCTIONS,
+                                           &converted);
   }  /* if */
   pop_expr_stack();
   if (is_error_operand(&opnd) || is_error_type(opnd.type)) {

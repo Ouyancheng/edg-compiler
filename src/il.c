@@ -5603,14 +5603,14 @@ fix them.
          the expression. */
       if (!in_file_scope(cp->expr)) cp->expr = NULL;
     }  /* if */
-    if (cp->kind == (a_constant_repr_kind)ck_template_param) {
+    if (cp->kind == ck_template_param) {
       a_template_param_constant_kind kind = cp->variant.template_param.kind;
-      if (kind == (a_template_param_constant_kind)tpck_sizeof ||
-          kind == (a_template_param_constant_kind)tpck_alignof ||
-          kind == (a_template_param_constant_kind)tpck_uuidof ||
-          kind == (a_template_param_constant_kind)tpck_typeid ||
-          kind == (a_template_param_constant_kind)tpck_noexcept ||
-          kind == (a_template_param_constant_kind)tpck_expression) {
+      if (kind == tpck_sizeof ||
+          kind == tpck_alignof ||
+          kind == tpck_uuidof ||
+          kind == tpck_typeid ||
+          kind == tpck_noexcept ||
+          kind == tpck_expression) {
         /* If a constant in the file scope memory region has an attached
            expression in a function scope memory region, break the link to the
            expression.  In configurations that record prototype instantiations
@@ -5618,7 +5618,7 @@ fix them.
            that the expression can be recovered using the function
            find_local_expr_node. */
         an_expr_node_ptr *expr;
-        if (kind == (a_template_param_constant_kind)tpck_expression) {
+        if (kind == tpck_expression) {
           expr = &cp->variant.template_param.variant.expr;
         } else {
           expr = &cp->variant.template_param.variant.templ_sizeof.expr;
@@ -5635,18 +5635,22 @@ fix them.
           }  /* if */
           if (sp != NULL) {
             make_local_expr_node_ref(
-                 *expr,
-                 (kind == (a_template_param_constant_kind)tpck_expression)
-                             ? (a_local_expr_node_ref_kind)lerk_tpl_param_expr
-                             : (a_local_expr_node_ref_kind)lerk_generic_sizeof,
-                 (char*)cp, sp);
+                              *expr,
+                              (kind == tpck_expression) ? lerk_tpl_param_expr
+                                                        : lerk_generic_sizeof,
+                              (char*)cp, sp);
           }  /* if */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
           *expr = NULL;
         }  /* if */
       }  /* if */
+    } else if (cp->kind == ck_reflection) {
+      if (cp->variant.reflection.entity.ptr != NULL &&
+          !in_file_scope(cp->variant.reflection.entity.ptr)) {
+        extract_reflected_entity(&cp->variant.reflection);
+      }  /* if */
 #if DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS
-    } else if (cp->kind == (a_constant_repr_kind)ck_string) {
+    } else if (cp->kind == ck_string) {
       /* If a string literal with an assigned sequence number is copied to the
          file scope, the sequence number no longer applies. */
       cp->variant.string.sequence_number = 0;

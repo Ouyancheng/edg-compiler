@@ -4744,8 +4744,25 @@ do_unknown_function:
                                      iep->kind, (a_routine_info_block*)NULL,
                                      /*add_address_of=*/FALSE, mctl);
             break;
+#else /* !IA64_ABI */
+          case iek_field:
+          case iek_variable:
+          case iek_routine:
+            { a_length_reservation length_reservation;
+              reserve_space_for_length(&length_reservation, mctl);
+              mangled_name_with_possible_qualification(
+                                (a_source_correspondence*)iep->ptr, iep->kind,
+                                (a_template_ptr)NULL, mctl);
+              fill_in_length(&length_reservation, mctl);
+            }
+            break;
+          case iek_constant:
+            literal_representation(
+                              (a_constant*)con->variant.reflection.entity.ptr,
+                              old_form, /*in_dependent_expr=*/FALSE,
+                              /*suppress_address_of=*/FALSE, mctl);
 #endif /* IA64_ABI */
-          // FIXME: Other cases.
+          // FIXME: Other cases?
           default:
             unexpected_condition_str(
                                "literal_representation: bad reflection kind");

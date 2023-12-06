@@ -5080,42 +5080,6 @@ extract_value_from_constant for the meaning of the parameters.
 }  /* copy_val_from_constant */
 
 
-static void extract_reflected_entity(a_reflection_value  *rvp)
-/*
-If rvp represents an expression node that is a simple reference to an entity
-(enk_variable, enk_field, enk_routine, enk_constant), replace rvp by a
-reflection for that entity.
-*/
-{
-  if (rvp->entity.kind == iek_expr_node) {
-    an_expr_node  *node = (an_expr_node*)rvp->entity.ptr;
-    switch (node->kind) {
-      case enk_variable:
-        rvp->entity.kind = iek_variable;
-        rvp->entity.ptr = (char*)node_variable(node);
-        break;
-      case enk_constant:
-        rvp->entity.kind = iek_constant;
-        rvp->entity.ptr = (char*)node_constant(node);
-        break;
-      case enk_field:
-        rvp->entity.kind = iek_field;
-        rvp->entity.ptr = (char*)node_field(node);
-        break;
-      case enk_routine:
-        rvp->entity.kind = iek_routine;
-        rvp->entity.ptr = (char*)node_routine(node);
-        break;
-      default:
-        break;
-    }  /* switch */
-    if (in_file_scope(rvp->entity.ptr)) {
-      rvp->local_scope_number = FILE_SCOPE_NUMBER;
-    }  /* if */
-  }  /* if */
-}  /* extract_reflected_entity */
-
-
 static a_boolean extract_value_from_constant(
                                     an_interpreter_state  *ips,
                                     a_constant_ptr        con,

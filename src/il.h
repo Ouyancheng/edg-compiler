@@ -3185,6 +3185,194 @@ extern a_source_correspondence *source_corresp_for_il_entry(
 
 extern a_boolean is_defined(char *entity_ptr, an_il_entry_kind kind);
 
+
+/*
+Macro that is TRUE if the node is of the given kind.
+*/
+#define node_is(node, node_kind)                                        \
+  ((node)->kind == (an_expr_node_kind)(node_kind))
+
+/*
+Macro that is TRUE if the node is an operation node.
+*/
+#define is_operation_node(node)	 node_is(node, enk_operation)
+
+/*
+Macro that is TRUE if the node is a constant node.
+*/
+#define is_constant_node(node)  node_is(node, enk_constant)
+
+/*
+Macro to get the constant from a constant node.
+*/
+#define node_constant(node)  ((node)->variant.constant.ptr)
+
+/*
+Macro to test for a constant kind in a constant node.
+*/
+#define node_constant_is(node, con_kind)                                \
+  constant_is(node_constant(node), (con_kind))
+
+/*
+Macro that is TRUE if the node is a variable node.
+*/
+#define is_variable_node(node)  node_is(node, enk_variable)
+
+/*
+Macro to get the variable from a variable node.
+*/
+#define node_variable(node)  ((node)->variant.variable.ptr)
+
+/*
+Macro that is TRUE if the node is a field node.
+*/
+#define is_field_node(node)  node_is(node, enk_field)
+
+/*
+Macro to get the field from a field node.
+*/
+#define node_field(node)  ((node)->variant.field.ptr)
+
+/*
+Macro that is TRUE if the node is a routine node.
+*/
+#define is_routine_node(node)  node_is(node, enk_routine)
+
+/*
+Macro to get the routine from a routine node.
+*/
+#define node_routine(node)  ((node)->variant.routine.ptr)
+
+/*
+Macro that is TRUE if the node is a type operand node.
+*/
+#define is_type_node(node)  node_is(node, enk_type_operand)
+
+/*
+Macro to get the type from a type operand node.
+*/
+#define type_operand_type(node)  ((node)->variant.type_operand.type)
+
+/*
+Macro that is TRUE if the node is a temporary node (enk_temp_init/enk_lambda).
+*/
+#define is_temp_node(node)						\
+	(node_is(node, enk_temp_init) || node_is(node, enk_lambda))
+
+/*
+Macro that is TRUE if the node is an error node.
+*/
+#define is_error_node(node)  node_is(node, enk_error)
+
+/*
+Return TRUE if the node is a glvalue, meaning an lvalue or an xvalue.
+*/
+#define is_glvalue_node(node)						\
+  ((node)->is_lvalue || (node)->is_xvalue)
+
+/*
+Return TRUE if the operator in the given node (which must be an operation
+node) is "op".
+*/
+#define node_operator_is(node, op)                                      \
+  ((node)->variant.operation.kind == (an_expr_operator_kind)(op))
+
+
+inline a_boolean node_is_operator(an_expr_node_ptr       node,
+                                  an_expr_operator_kind  kind)
+/*
+Return TRUE if (and only if) the given node is an enk_operator node for the
+given operator kind.
+*/
+{
+  return is_operation_node(node) && node_operator_is(node, kind);
+}  /* node_is_operator */
+
+
+/*
+Return TRUE if the given node (which must be an operation node) has its
+type_kind field set to the given value.
+*/
+#define node_operator_type_kind_is(node, tkind)                    \
+  ((node)->variant.operation.type_kind == (a_type_kind)(tkind))
+
+/*
+Return TRUE if "node" is a function call operation.
+*/
+#define is_call_node(node)                                              \
+  (is_operation_node((node)) &&                                         \
+   (node_operator_is((node), eok_call) ||                               \
+    node_operator_is((node), eok_dot_member_call) ||                    \
+    node_operator_is((node), eok_points_to_member_call) ||              \
+    node_operator_is((node), eok_dot_pm_call) ||                        \
+    node_operator_is((node), eok_points_to_pm_call)))
+
+/*
+Return TRUE if "node" is a vacuous destructor call.
+*/
+#define is_vacuous_dtor_call_node(node)                                 \
+  (is_operation_node((node)) &&                                         \
+   (node_operator_is((node), eok_dot_vacuous_destructor_call) ||        \
+    node_operator_is((node), eok_points_to_vacuous_destructor_call)))
+
+
+#if GNU_EXTENSIONS_ALLOWED
+
+/*
+Return TRUE if the given operator is a gnu min/max operator (>? or <?).
+*/
+#define is_gnu_min_max_operator(op) \
+ ((op) == (an_expr_operator_kind)eok_gnu_min || \
+  (op) == (an_expr_operator_kind)eok_gnu_max)
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
+/*
+The operands for eok_subscript or eok_padd are a pointer and an
+integral subscript which can appear in either order.  This macro returns
+the pointer operand of these nodes.
+*/
+#define subscript_or_padd_pointer_operand(node)                        \
+        ((node)->variant.operation.pointer_operand_is_second ?         \
+         (node)->variant.operation.operands->next :                    \
+         (node)->variant.operation.operands)
+
+
+inline void extract_reflected_entity(a_reflection_value  *rvp)
+/*
+If rvp represents an expression node that is a simple reference to an entity
+(enk_variable, enk_field, enk_routine, enk_constant), replace rvp by a
+reflection for that entity.
+*/
+{
+  if (rvp->entity.kind == iek_expr_node) {
+    an_expr_node  *node = (an_expr_node*)rvp->entity.ptr;
+    switch (node->kind) {
+      case enk_variable:
+        rvp->entity.kind = iek_variable;
+        rvp->entity.ptr = (char*)node_variable(node);
+        break;
+      case enk_constant:
+        rvp->entity.kind = iek_constant;
+        rvp->entity.ptr = (char*)node_constant(node);
+        break;
+      case enk_field:
+        rvp->entity.kind = iek_field;
+        rvp->entity.ptr = (char*)node_field(node);
+        break;
+      case enk_routine:
+        rvp->entity.kind = iek_routine;
+        rvp->entity.ptr = (char*)node_routine(node);
+        break;
+      default:
+        break;
+    }  /* switch */
+    if (in_file_scope(rvp->entity.ptr)) {
+      rvp->local_scope_number = FILE_SCOPE_NUMBER;
+    }  /* if */
+  }  /* if */
+}  /* extract_reflected_entity */
+
+
 inline void strip_template_arg(a_reflection_value  *rvp)
 /*
 If rvp points to a reflection value for a template argument replace it by the
