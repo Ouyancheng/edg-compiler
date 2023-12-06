@@ -136,16 +136,6 @@ namespace std {
       return __infovec(0);  /* Dummy return.  Handled by interpreter. */
     }
 
-    template<typename ... Filters>
-    consteval std::vector<info> members_of(info r) {
-      __infovec v = bases__impl(r);
-      std::vector<info> result{};
-      for (info m: v) {
-        if ((filters(m) && ...)) result.push_back(m);
-      }
-      return result;
-    }
-
     consteval __infovec subobjects__impl(info) {
       return __infovec(0);  /* Dummy return.  Handled by interpreter. */
     }
