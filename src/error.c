@@ -1095,9 +1095,7 @@ buffer.
   octl.keep_template_typedefs = TRUE;
   add_string_to_text_buffer(msg_buffer, "\"");
 
-  auto               type_str_fn = [dfip]() {
-    form_type(dfip->variant.type, &octl);
-  };
+  auto type_str_fn = [dfip]() { form_type(dfip->variant.type, &octl); };
   a_text_buffer_view type_str = capture_buffer_append(msg_buffer, type_str_fn);
   add_string_to_text_buffer(msg_buffer, "\"");
   /* If the type contains an aliased type, include a string showing the aliased
@@ -1115,9 +1113,7 @@ buffer.
     octl.keep_template_typedefs = FALSE;
     add_string_to_text_buffer(msg_buffer, " (aka \"");
 
-    auto               aka_type_str_fn = [dfip]() {
-      form_type(dfip->variant.type, &octl);
-    };
+    auto aka_type_str_fn = [dfip]() { form_type(dfip->variant.type, &octl); };
     a_text_buffer_view aka_type_str = capture_buffer_append(msg_buffer,
                                                             aka_type_str_fn);
     add_string_to_text_buffer(msg_buffer, "\")");
@@ -1150,7 +1146,7 @@ buffer.
          actual process of ignoring the normal rules for ignoring dealiasing.
          Thus, if the produced "aka" type name is equivalent to the original
          type name, this code handles the associated cleanup.
-       */
+      */
       truncate_text_buffer_to(msg_buffer, original_start);
     }  /* if */
   }  /* if */

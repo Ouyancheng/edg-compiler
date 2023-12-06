@@ -2701,7 +2701,7 @@ resulting type.
 
   while (typedef_should_be_dealiased(result, octl)) {
     result = result->variant.typeref.type;
-  }  /* if */
+  }  /* while */
   return result;
 }  /* skip_dealiasable_typedefs */
 
