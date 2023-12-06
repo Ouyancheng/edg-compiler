@@ -8889,7 +8889,7 @@ adjust *dps and *idlbp as needed.
 
 static a_boolean is_std_meta_infovec_type(a_type_ptr  tp)
 /*
-Return TRUE if the given type is a class type named infovec belonging to
+Return TRUE if the given type is a class type named __infovec belonging to
 namespace std::meta.
 */
 {
@@ -9087,11 +9087,11 @@ interpreter) and if so mark it as such.
           } else if (strcmp(name, "is_base") == 0) {
             tag = cit_std_meta_is_base;
           } else if (strcmp(name, "is_constructor") == 0) {
-            tag = cit_std_meta_is_base;
+            tag = cit_std_meta_is_constructor;
           } else if (strcmp(name, "is_destructor") == 0) {
-            tag = cit_std_meta_is_base;
+            tag = cit_std_meta_is_constructor;
           } else if (strcmp(name, "is_special_member") == 0) {
-            tag = cit_std_meta_is_base;
+            tag = cit_std_meta_is_special_member;
           } else if (strcmp(name, "is_public") == 0) {
             tag = cit_std_meta_is_public;
           } else if (strcmp(name, "is_protected") == 0) {
@@ -9100,6 +9100,8 @@ interpreter) and if so mark it as such.
             tag = cit_std_meta_is_private;
           } else if (strcmp(name, "is_accessible") == 0) {
             tag = cit_std_meta_is_accessible;
+          } else if (strcmp(name, "is_static_member") == 0) {
+            tag = cit_std_meta_is_static_member;
           } else if (strcmp(name, "is_virtual") == 0) {
             tag = cit_std_meta_is_virtual;
           } else if (strcmp(name, "is_deleted") == 0) {

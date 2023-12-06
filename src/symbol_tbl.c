@@ -18339,6 +18339,7 @@ static a_const_char* intrinsic_names[] = {
   "is_protected",
   "is_private",
   "is_accessible",
+  "is_static_member",
   "is_virtual",
   "is_deleted",
   "is_defaulted",

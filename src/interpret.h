@@ -110,6 +110,7 @@ enum a_constexpr_intrinsic {
   cit_std_meta_is_protected,
   cit_std_meta_is_private,
   cit_std_meta_is_accessible,
+  cit_std_meta_is_static_member,
   cit_std_meta_is_virtual,
   cit_std_meta_is_deleted,
   cit_std_meta_is_defaulted,

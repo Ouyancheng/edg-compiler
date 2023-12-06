@@ -9947,7 +9947,7 @@ static a_boolean make_infovec(an_interpreter_state          *ips,
                               a_byte                        *result_storage,
                               a_byte                        *complete_obj)
 /*
-Initialize an infovec (type tp, which is struct std::meta::infovec) at
+Initialize an infovec (type tp, which is struct std::meta::__infovec) at
 result_storage (part of the complete object at complete_obj) with the given
 sequence of reflections.  ips is the current interpreter state and diag_pos is
 the position associated with any diagnostics.  The type tp is assumed to be a
@@ -10031,7 +10031,7 @@ static a_boolean load_infovec(an_interpreter_state          *ips,
                               a_byte                        *result_storage,
                               a_byte                        *complete_obj)
 /*
-Load an infovec (type tp, which is struct std::meta::infovec) stored at
+Load an infovec (type tp, which is struct std::meta::__infovec) stored at
 result_storage (part of the complete object at complete_obj) into *reflections.
 ips is the current interpreter state and diag_pos is the position associated
 with any diagnostics (e.g., if the infovec is not initialized).  The type tp
@@ -11147,6 +11147,44 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
 }  /* do_constexpr_std_meta_is_accessible */
 
 
+static a_boolean do_constexpr_std_meta_is_static_member(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::is_static_member(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean           result = TRUE, answer = FALSE;
+  a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+
+  extract_reflected_entity(rvp);
+  if (rvp->entity.kind == iek_variable) {
+    a_variable  *vp = (a_variable*)rvp->entity.ptr;
+    if (vp->source_corresp.is_class_member) {
+      /* A static data member: Always return a true value. */
+      answer = TRUE;
+    }  /* if */
+  } else if (rvp->entity.kind == iek_routine) {
+    a_routine  *rp = (a_routine*)rvp->entity.ptr;
+    if (rp->source_corresp.is_class_member) {
+      answer = !routine_type_is_nonstatic_member_function(rp->type);
+    }  /* if */
+  }  /* if */
+  if (answer) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_is_static_member */
+
+
 static a_boolean do_constexpr_std_meta_is_virtual(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
@@ -12242,7 +12280,7 @@ static a_boolean do_constexpr_std_meta_members_of(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::members_of(<reflection_value>).  It returns a vector-like
-container (struct std::meta::infovec) of reflections, with each element
+container (struct std::meta::__infovec) of reflections, with each element
 representing a member of the given entity.
 
 See do_constexpr_intrinsic_call for the meaning of the parameters.
@@ -12336,7 +12374,7 @@ static a_boolean do_constexpr_std_meta_static_data_members_of(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::static_data_members_of(<reflection_value>).  It returns
-a vector-like container (struct std::meta::infovec) of reflections, with each
+a vector-like container (struct std::meta::__infovec) of reflections, with each
 element representing a static data member of the given entity (in declaration
 order).
 
@@ -12408,7 +12446,7 @@ static a_boolean do_constexpr_std_meta_nonstatic_data_members_of(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::nonstatic_data_members_of(<reflection_value>).  It returns
-a vector-like container (struct std::meta::infovec) of reflections, with each
+a vector-like container (struct std::meta::__infovec) of reflections, with each
 element representing a field of the given entity (in declaration order).
 
 See do_constexpr_intrinsic_call for the meaning of the parameters.
@@ -12478,7 +12516,7 @@ static a_boolean do_constexpr_std_meta_bases_of(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::bases_of(<reflection_value>).  It returns a vector-like
-container (struct std::meta::infovec) of reflections, with each element
+container (struct std::meta::__infovec) of reflections, with each element
 representing a direct base of the given class type (in declaration order).
 
 See do_constexpr_intrinsic_call for the meaning of the parameters.
@@ -12547,7 +12585,7 @@ static a_boolean do_constexpr_std_meta_subobjects_of(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::subobjects_of(<reflection_value>).  It returns a
-vector-like container (struct std::meta::infovec) of reflections, with each
+vector-like container (struct std::meta::__infovec) of reflections, with each
 element representing a direct base or nonstatic data member of the given class
 type (in declaration order).
 
@@ -12626,7 +12664,7 @@ static a_boolean do_constexpr_std_meta_enumerators_of(
                                         a_byte                *complete_obj)
 /*
 Implement std::meta::enumerators_of(<reflection_value>).  It returns
-a vector-like container (struct std::meta::infovec) of reflections, with each
+a vector-like container (struct std::meta::__infovec) of reflections, with each
 element representing an enumerator constant for the given enumeration type.
 (Evaluation fails if the given reflection is not that of an enumeration type.)
 
@@ -13869,6 +13907,9 @@ frame when the call has completed.
       break;
     case cit_std_meta_is_accessible:
       evaluator = do_constexpr_std_meta_is_accessible;
+      break;
+    case cit_std_meta_is_static_member:
+      evaluator = do_constexpr_std_meta_is_static_member;
       break;
     case cit_std_meta_is_virtual:
       evaluator = do_constexpr_std_meta_is_virtual;
