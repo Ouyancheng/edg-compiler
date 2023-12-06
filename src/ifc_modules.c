@@ -880,19 +880,6 @@ Given an IFC partition kind index, return an IFC decl index.
 }  /* to_decl_index */
 
 
-static inline uintptr_t hash_ptr(an_ifc_partition_kind_index  idx)
-/*
-Return a hash value for the given IFC partition index.
-*/
-{
-  uintptr_t  result = 17*31 + hash_ptr((void*)idx.file);
-
-  result = result*31 + (uintptr_t)idx.partition_kind;
-  result = result*31 + (uintptr_t)idx.value;
-  return result;
-}  /* hash_ptr */
-
-
 static inline uintptr_t hash_ptr(an_ifc_decl_index  idx)
 /*
 Return a hash value for the given IFC declaration index.
@@ -19474,7 +19461,7 @@ decisions about what to cache.
       cache_name(cache, name);
     }  /* if */
   };
-  auto cache_scope_fn = [this, cache, base, type, decl_idx, scope, &cinfo]() {
+  auto cache_scope_fn = [cache, base, type, decl_idx, scope, &cinfo]() {
     /* Read the fundamental type so that we can determine if we're caching a
        namespace. */
     Opt<an_ifc_type_fundamental> opt_itf;
@@ -21160,7 +21147,7 @@ about the current cache context to help inform decisions about what to cache.
           cache_declarator_qualifier(cache, decl, cinfo);
           cache_simple_template_id(cache, decl);
         };
-        auto cache_scope_fn = [this, cache, &decl]() {
+        auto cache_scope_fn = [cache, &decl]() {
           an_ifc_sentence_index body = get_ifc_body(get_ifc_entity(decl));
 
           if (body != 0) {
@@ -21307,8 +21294,7 @@ current cache context to help inform decisions about what to cache.
           cache_scope_decl(cache, decl_idx, get_ifc_type(ids), cache_name_fn,
                            cache_scope_fn);
         } else {
-          auto cache_scope_fn =
-                            [this, cache, &cinfo, &ids, templated_decl_idx]() {
+          auto cache_scope_fn = [cache, &cinfo, &ids, templated_decl_idx]() {
             if (!cinfo.ignore_definition) {
               an_ifc_type_index base = get_ifc_base(ids);
 
@@ -21527,7 +21513,7 @@ is responsible for ensuring that the brackets are cached appropriately.
         an_ifc_nestable_word        word = get_ifc_word(iab);
         an_ifc_source_location      locus = get_ifc_locus(word);
         an_ifc_source_position_hint pos_hint(cache, locus);
-        auto cache_fn = [cache, &word, this]() {
+        auto cache_fn = [cache, &word]() {
           cache_word(cache, word);
         };
         if (cache_brackets) {
@@ -21550,7 +21536,7 @@ is responsible for ensuring that the brackets are cached appropriately.
         an_ifc_nestable_word        member = get_ifc_member(ias);
         an_ifc_source_location      locus = get_ifc_locus(scope);
         an_ifc_source_position_hint pos_hint(cache, locus);
-        auto cache_fn = [cache, &scope, &member, this]() {
+        auto cache_fn = [cache, &scope, &member]() {
           cache_word(cache, scope);
           cache_token(cache, tok_colon_colon);
           cache_word(cache, member);
@@ -21664,7 +21650,7 @@ is responsible for ensuring that the brackets are cached appropriately.
         }  /* if */
 
         an_ifc_attr_elaborated iae = *opt_iae;
-        auto cache_fn = [cache, &iae, this]() {
+        auto cache_fn = [cache, &iae]() {
           cache_expr(cache, get_ifc_expression(iae), /*cinfo=*/{});
         };
         if (cache_brackets) {
