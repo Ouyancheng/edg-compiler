@@ -4761,6 +4761,7 @@ do_unknown_function:
                               (a_constant*)con->variant.reflection.entity.ptr,
                               old_form, /*in_dependent_expr=*/FALSE,
                               /*suppress_address_of=*/FALSE, mctl);
+            break;
 #endif /* IA64_ABI */
           // FIXME: Other cases?
           default:
