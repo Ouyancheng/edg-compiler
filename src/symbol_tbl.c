@@ -18711,6 +18711,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(global_namespace_list_entry),
       pch_saved_var_array_elem(symbol_for_namespace_std),
       pch_saved_var_array_elem(symbol_for_namespace_std_entered),
+      pch_saved_var_array_elem(symbol_for_namespace_std_meta),
       pch_saved_var_array_elem(symbol_for_namespace_std_meta_entered),
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pch_array_saved_var_array_elem(cli_symbols),
@@ -18799,6 +18800,7 @@ are handled in symbol_tbl_init.)
   register_trans_unit_variable(global_namespace_list_entry);
   register_trans_unit_variable(symbol_for_namespace_std);
   register_trans_unit_variable(symbol_for_namespace_std_entered);
+  register_trans_unit_variable(symbol_for_namespace_std_meta);
   register_trans_unit_variable(symbol_for_namespace_std_meta_entered);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   register_trans_unit_array(cli_symbols),
@@ -18849,6 +18851,7 @@ given translation unit.
   /* Initialize the predeclared symbol for namespace "std". */
   symbol_for_namespace_std = NULL;
   symbol_for_namespace_std_entered = FALSE;
+  symbol_for_namespace_std_meta = NULL;
   symbol_for_namespace_std_meta_entered = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   memzero((char *)cli_symbols, sizeof(cli_symbols));
