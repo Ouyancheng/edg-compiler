@@ -49,8 +49,8 @@ features along the lines of the C++ standardization committee's evolving
 paper P2996.  This support is considered "experimental" because:
   1) it is known to be incomplete,
   2) it currently does not work correctly with the C++-generating back end,
-  2) it has only been lightly tested, and
-  3) it may be drastically revised or removed altogether depending on how
+  3) it has only been lightly tested, and
+  4) it may be drastically revised or removed altogether depending on how
      the P2996 proposal progresses through the standardization process.
 To enable access to these experimental features, the configuration macro
 REFLECTION_ENABLING_POSSIBLE must be set to TRUE.  When that is the case,
