@@ -8380,8 +8380,8 @@ static void make_symbol_for_predeclared_namespace(a_const_char     *name,
                                                   a_namespace_ptr  parent,
                                                   a_symbol_ptr     *sym)
 /*
-Predeclare the namespace with the indicated name -- that is, create the name
-space entry and add it to the namespaces list in the indicated parent
+Predeclare the namespace with the indicated name -- that is, create the
+namespace entry and add it to the namespaces list in the indicated parent
 namespace (or the file scope if parent is NULL), and create the symbol entry
 for the namespace and return it in *sym.  However, don't actually add the
 symbol to the symbol table (since the user is actually free to use the name
