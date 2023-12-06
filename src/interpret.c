@@ -6480,7 +6480,7 @@ static a_boolean register_extended_destruction(
                                           a_source_position     *pos)
 /*
 Register a destruction to be performed when the "extension" storage stack
-state is released.  dip describes the destruction, which if for an object of
+state is released.  dip describes the destruction, which is for an object of
 the given type stored at address sub_obj (part of the complete object stored
 at complete_obj).  Diagnostics should be associated with pos by default.
 */
