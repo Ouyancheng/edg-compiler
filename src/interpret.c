@@ -11682,6 +11682,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     case iek_type:
       /* Only consider class types, enumeration types, and typedefs. */
       { a_type  *tp = (a_type*)rvp->entity.ptr;
+        tp = skip_typerefs_not_typedefs_or_type_operators(tp);
         if (is_immediate_class_type(tp) ||
             is_immediate_enum_type(tp) ||
             type_is_typedef(tp)) {
