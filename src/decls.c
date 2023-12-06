@@ -9091,7 +9091,7 @@ interpreter) and if so mark it as such.
           } else if (strcmp(name, "is_constructor") == 0) {
             tag = cit_std_meta_is_constructor;
           } else if (strcmp(name, "is_destructor") == 0) {
-            tag = cit_std_meta_is_constructor;
+            tag = cit_std_meta_is_destructor;
           } else if (strcmp(name, "is_special_member") == 0) {
             tag = cit_std_meta_is_special_member;
           } else if (strcmp(name, "is_public") == 0) {
