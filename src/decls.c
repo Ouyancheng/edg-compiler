@@ -9048,6 +9048,8 @@ interpreter) and if so mark it as such.
             tag = cit_std_meta_has_template_arguments;
           } else if (strcmp(name, "has_static_storage_duration") == 0) {
             tag = cit_std_meta_has_static_storage_duration;
+          } else if (strcmp(name, "has_internal_linkage") == 0) {
+            tag = cit_std_meta_has_internal_linkage;
           }  /* if */
         }  /* if */
         break;

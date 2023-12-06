@@ -304,6 +304,10 @@ namespace std {
       return false;  /* Dummy return.  Handled by interpreter. */
     }
 
+    consteval bool has_internal_linkage(info) {
+      return false;  /* Dummy return.  Handled by interpreter. */
+    }
+
     consteval bool has_template_arguments(info) {
       return false;  /* Dummy return.  Handled by interpreter. */
     }

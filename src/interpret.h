@@ -119,6 +119,7 @@ enum a_constexpr_intrinsic {
   cit_std_meta_is_pure_virtual,
   cit_std_meta_is_bit_field,
   cit_std_meta_has_static_storage_duration,
+  cit_std_meta_has_internal_linkage,
   cit_std_meta_has_template_arguments,
   cit_std_meta_template_arguments_of,
   cit_std_meta_template_of,

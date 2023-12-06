@@ -18348,6 +18348,7 @@ static a_const_char* intrinsic_names[] = {
   "is_pure_virtual",
   "is_bit_field",
   "has_static_storage_duration",
+  "has_internal_linkage",
   "has_template_arguments",
   "template_arguments__impl",
   "template_of",

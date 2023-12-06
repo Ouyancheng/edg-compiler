@@ -11442,6 +11442,36 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
 }  /* do_constexpr_std_meta_has_static_storage_duration */
 
 
+static a_boolean do_constexpr_std_meta_has_internal_linkage(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::has_internal_linkage(info).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean                result = TRUE, answer = FALSE;
+  a_reflection_value       *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_source_correspondence  *scp;
+
+  strip_template_arg(rvp);
+  extract_reflected_entity(rvp);
+  scp = source_corresp_for_reflection(rvp);
+  answer = scp->name_linkage == nlk_internal;
+  if (answer) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+  return result;
+}  /* do_constexpr_std_meta_has_internal_linkage */
+
+
 static a_template_ptr template_for_reflection(a_reflection_value  *rvp)
 /*
 Return the template associated with the given reflection if that reflection is
@@ -13934,6 +13964,9 @@ frame when the call has completed.
       break;
     case cit_std_meta_has_static_storage_duration:
       evaluator = do_constexpr_std_meta_has_static_storage_duration;
+      break;
+    case cit_std_meta_has_internal_linkage:
+      evaluator = do_constexpr_std_meta_has_internal_linkage;
       break;
     case cit_std_meta_has_template_arguments:
       evaluator = do_constexpr_std_meta_has_template_arguments;
