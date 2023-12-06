@@ -12293,13 +12293,6 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
         mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
         result_reflections.push_back(mem_rvp);
       }  /* if */
-      for (rp = scope->routines; rp != NULL; rp = rp->next) {
-        a_reflection_value  mem_rvp;
-        mem_rvp.entity.ptr = (char*)rp;
-        mem_rvp.entity.kind = (an_il_entry_kind)iek_routine;
-        mem_rvp.local_scope_number = FILE_SCOPE_NUMBER;
-        result_reflections.push_back(mem_rvp);
-      }  /* if */
       for (tp = scope->types; tp != NULL; tp = tp->next) {
         a_reflection_value  mem_rvp;
         mem_rvp.entity.ptr = (char*)tp;
