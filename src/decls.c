@@ -8979,9 +8979,9 @@ interpreter) and if so mark it as such.
     /* A member of namespace "std::meta", which holds meta-functions when
        reflection is enabled. */
     a_const_char   *name = sym_hdr->identifier;
-    a_type          *rtp = skip_typerefs(rp->type);
-    a_param_type    *ptp = function_type_params(rtp);
-    a_template_arg  *t_args = rp->template_arg_list;
+    a_type         *rtp = skip_typerefs(rp->type);
+    a_param_type   *ptp = function_type_params(rtp);
+    a_template_arg *t_args = rp->template_arg_list;
     switch (name[0]) {
       case '_':
         if (strcmp(name, "__define_class") == 0 && t_args == NULL) {

@@ -18925,7 +18925,7 @@ where <construct> is one of:
   - a type-id
   - an expression
 
-The result  (stored in *result) is a compile-time constant value (of kind
+The result (stored in *result) is a compile-time constant value (of kind
 ck_reflection) of a special built-in type (of kind tk_reflection).
 */
 {

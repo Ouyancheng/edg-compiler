@@ -390,7 +390,7 @@ namespace std {
           auto n = __builtin_strlen(orig.name)+1;
           this->name = new char[n];
           __builtin_memcpy(this->name, orig.name, n);
-        }  /* if */
+        }
       }
 
       constexpr nsdm_description(nsdm_description &&orig)
