@@ -10468,6 +10468,20 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
 }  /* do_constexpr_std_meta_make_value_of */
 
 
+static inline void set_bool_value(a_boolean  value,
+                                  a_byte     *result_storage)
+/*
+Store the given boolean value as an_integer_value in the given storage.
+*/
+{
+  if (value) {
+    *(an_integer_value*)result_storage = one_int;
+  } else {
+    *(an_integer_value*)result_storage = zero_int;
+  }  /* if */
+}  /* set_bool_value */
+
+
 static a_boolean do_constexpr_std_meta_is_type(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
@@ -10485,11 +10499,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
   strip_template_arg(rvp);
-  if (rvp->entity.kind == iek_type) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  set_bool_value(rvp->entity.kind == iek_type, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_type */
 
@@ -10507,17 +10517,14 @@ Implement std::meta::is_alias(info).
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
-  a_boolean           result = TRUE;
+  a_boolean           result = TRUE, answer;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
   strip_template_arg(rvp);
-  if ((rvp->entity.kind == iek_type &&
-       type_is_typedef((a_type*)rvp->entity.ptr)) ||
-      rvp->entity.kind == iek_namespace) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  answer = ((rvp->entity.kind == iek_type &&
+             type_is_typedef((a_type*)rvp->entity.ptr)) ||
+            rvp->entity.kind == iek_namespace);
+  set_bool_value(answer, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_alias */
 
@@ -10535,16 +10542,13 @@ Implement std::meta::is_incomplete_type(info).
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
-  a_boolean           result = TRUE;
+  a_boolean           result = TRUE, answer;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
   strip_template_arg(rvp);
-  if (rvp->entity.kind == iek_type &&
-      is_incomplete_type((a_type*)rvp->entity.ptr)) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  answer = (rvp->entity.kind == iek_type &&
+            is_incomplete_type((a_type*)rvp->entity.ptr));
+  set_bool_value(answer, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_incomplete_type */
 
@@ -10566,11 +10570,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
   strip_template_arg(rvp);
-  if (rvp->entity.kind == iek_template) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  set_bool_value(rvp->entity.kind == iek_template, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_template */
 
@@ -10588,16 +10588,13 @@ Implement std::meta::is_function_template(info).
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
-  a_boolean           result = TRUE;
+  a_boolean           result = TRUE, answer;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
   strip_template_arg(rvp);
-  if (rvp->entity.kind == iek_template &&
-      ((a_template*)rvp->entity.ptr)->kind == templk_function) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  answer = (rvp->entity.kind == iek_template &&
+            ((a_template*)rvp->entity.ptr)->kind == templk_function);
+  set_bool_value(answer, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_function_template */
 
@@ -10615,16 +10612,13 @@ Implement std::meta::is_variable_template(info).
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
-  a_boolean           result = TRUE;
+  a_boolean           result = TRUE, answer;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
   strip_template_arg(rvp);
-  if (rvp->entity.kind == iek_template &&
-      ((a_template*)rvp->entity.ptr)->kind == templk_variable) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  answer = (rvp->entity.kind == iek_template &&
+            ((a_template*)rvp->entity.ptr)->kind == templk_variable);
+  set_bool_value(answer, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_variable_template */
 
@@ -10642,18 +10636,15 @@ Implement std::meta::is_class_template(info).
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
-  a_boolean           result = TRUE;
+  a_boolean           result = TRUE, answer;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
   strip_template_arg(rvp);
-  if (rvp->entity.kind == iek_template &&
-      ((a_template*)rvp->entity.ptr)->kind == templk_class &&
-      is_immediate_class_type(((a_template*)rvp->entity.ptr)
-                                            ->prototype_instantiation.type)) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  answer = (rvp->entity.kind == iek_template &&
+            ((a_template*)rvp->entity.ptr)->kind == templk_class &&
+            is_immediate_class_type(((a_template*)rvp->entity.ptr)
+                                             ->prototype_instantiation.type));
+  set_bool_value(answer, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_class_template */
 
@@ -10671,18 +10662,15 @@ Implement std::meta::is_alias_template(info).
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
-  a_boolean           result = TRUE;
+  a_boolean           result = TRUE, answer;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
   strip_template_arg(rvp);
-  if (rvp->entity.kind == iek_template &&
-      ((a_template*)rvp->entity.ptr)->kind == templk_class &&
-      !is_immediate_class_type(((a_template*)rvp->entity.ptr)
-                                            ->prototype_instantiation.type)) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  answer = (rvp->entity.kind == iek_template &&
+            ((a_template*)rvp->entity.ptr)->kind == templk_class &&
+            !is_immediate_class_type(((a_template*)rvp->entity.ptr)
+                                             ->prototype_instantiation.type));
+  set_bool_value(answer, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_alias_template */
 
@@ -10700,16 +10688,13 @@ Implement std::meta::is_concept_template(info).
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
-  a_boolean           result = TRUE;
+  a_boolean           result = TRUE, answer;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
   strip_template_arg(rvp);
-  if (rvp->entity.kind == iek_template &&
-      ((a_template*)rvp->entity.ptr)->kind == templk_concept) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  answer = (rvp->entity.kind == iek_template &&
+            ((a_template*)rvp->entity.ptr)->kind == templk_concept);
+  set_bool_value(answer, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_concept_template */
 
@@ -10743,11 +10728,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     }  /* if */
     release_local_constant(&dummy_con);
   }  /* if */
-  if (answer) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  set_bool_value(answer, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_constant */
 
@@ -10769,11 +10750,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
   extract_reflected_entity(rvp);
-  if (rvp->entity.kind == iek_variable) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  set_bool_value(rvp->entity.kind == iek_variable, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_variable */
 
@@ -10795,11 +10772,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
   extract_reflected_entity(rvp);
-  if (rvp->entity.kind == iek_routine) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  set_bool_value(rvp->entity.kind == iek_routine, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_function */
 
@@ -10830,11 +10803,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
       answer = TRUE;
     }  /* if */
   }  /* if */
-  if (answer == TRUE) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  set_bool_value(answer, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_namespace */
 
@@ -10856,11 +10825,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
   extract_reflected_entity(rvp);
-  if (rvp->entity.kind == iek_field) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  set_bool_value(rvp->entity.kind == iek_field, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_nsdm */
 
@@ -10881,11 +10846,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   a_boolean           result = TRUE;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
-  if (rvp->entity.kind == iek_base_class) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  set_bool_value(rvp->entity.kind == iek_base_class, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_base */
 
@@ -10911,11 +10872,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     a_routine  *rp = (a_routine*)rvp->entity.ptr;
     answer = special_kind_is(rp, sfk_constructor);
   }  /* if */
-  if (answer) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  set_bool_value(answer, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_constructor */
 
@@ -10941,11 +10898,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     a_routine  *rp = (a_routine*)rvp->entity.ptr;
     answer = special_kind_is(rp, sfk_destructor);
   }  /* if */
-  if (answer) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  set_bool_value(answer, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_destructor */
 
@@ -10984,11 +10937,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
       answer = TRUE;
     }  /* if */
   }  /* if */
-  if (answer) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  set_bool_value(answer, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_special_member */
 
@@ -11009,6 +10958,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   a_boolean           result = TRUE, answer = FALSE;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
+  extract_reflected_entity(rvp);
   if (rvp->entity.kind == iek_base_class) {
     answer = ((a_base_class*)rvp->entity.ptr)->derivation->access == as_public;
   } else {
@@ -11021,11 +10971,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
       answer = scp->access == as_public;
     }  /* if */
   }  /* if */
-  if (answer) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  set_bool_value(answer, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_public */
 
@@ -11046,6 +10992,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   a_boolean           result = TRUE, answer = FALSE;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
+  extract_reflected_entity(rvp);
   if (rvp->entity.kind == iek_base_class) {
     answer = ((a_base_class*)rvp->entity.ptr)->derivation->access ==
                                                                  as_protected;
@@ -11059,11 +11006,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
       answer = scp->access == as_protected;
     }  /* if */
   }  /* if */
-  if (answer) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  set_bool_value(answer, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_protected */
 
@@ -11084,6 +11027,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   a_boolean           result = TRUE, answer = FALSE;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
+  extract_reflected_entity(rvp);
   if (rvp->entity.kind == iek_base_class) {
     answer = ((a_base_class*)rvp->entity.ptr)->derivation->access ==
                                                                    as_private;
@@ -11097,11 +11041,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
       answer = scp->access == as_private;
     }  /* if */
   }  /* if */
-  if (answer) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  set_bool_value(answer, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_private */
 
@@ -11122,6 +11062,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   a_boolean           result = TRUE, answer = FALSE;
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
+  extract_reflected_entity(rvp);
   if (rvp->entity.kind == iek_base_class) {
     answer = is_accessible_base_class((a_base_class*)rvp->entity.ptr);
   } else {
@@ -11138,11 +11079,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
       answer = have_access_to_symbol((a_symbol*)scp->assoc_info);
     }  /* if */
   }  /* if */
-  if (answer) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  set_bool_value(answer, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_accessible */
 
@@ -11176,11 +11113,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
       answer = !routine_type_is_nonstatic_member_function(rp->type);
     }  /* if */
   }  /* if */
-  if (answer) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  set_bool_value(answer, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_static_member */
 
@@ -11210,11 +11143,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     info_with_pos(ec_invalid_reflection_for_intrinsic,
                   &call_node->position, ips);
   }  /* if */
-  if (answer) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  set_bool_value(answer, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_virtual */
 
@@ -11242,11 +11171,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     info_with_pos(ec_invalid_reflection_for_intrinsic,
                   &call_node->position, ips);
   }  /* if */
-  if (answer) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  set_bool_value(answer, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_deleted */
 
@@ -11274,11 +11199,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     info_with_pos(ec_invalid_reflection_for_intrinsic,
                   &call_node->position, ips);
   }  /* if */
-  if (answer) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  set_bool_value(answer, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_defaulted */
 
@@ -11308,11 +11229,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     info_with_pos(ec_invalid_reflection_for_intrinsic,
                   &call_node->position, ips);
   }  /* if */
-  if (answer) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  set_bool_value(answer, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_explicit */
 
@@ -11340,11 +11257,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     info_with_pos(ec_invalid_reflection_for_intrinsic,
                   &call_node->position, ips);
   }  /* if */
-  if (answer) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  set_bool_value(answer, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_override */
 
@@ -11372,11 +11285,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     info_with_pos(ec_invalid_reflection_for_intrinsic,
                   &call_node->position, ips);
   }  /* if */
-  if (answer) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  set_bool_value(answer, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_pure_virtual */
 
@@ -11401,11 +11310,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   if (rvp->entity.kind == iek_field) {
     answer = ((a_field*)rvp->entity.ptr)->is_bit_field;
   }  /* if */
-  if (answer) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  set_bool_value(answer, result_storage);
   return result;
 }  /* do_constexpr_std_meta_is_bit_field */
 
@@ -11433,11 +11338,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     info_with_pos(ec_invalid_reflection_for_intrinsic,
                   &call_node->position, ips);
   }  /* if */
-  if (answer) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  set_bool_value(answer, result_storage);
   return result;
 }  /* do_constexpr_std_meta_has_static_storage_duration */
 
@@ -11462,12 +11363,10 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   strip_template_arg(rvp);
   extract_reflected_entity(rvp);
   scp = source_corresp_for_reflection(rvp);
-  answer = scp->name_linkage == nlk_internal;
-  if (answer) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
+  if (scp != NULL) {
+    answer = scp->name_linkage == nlk_internal;
   }  /* if */
+  set_bool_value(answer, result_storage);
   return result;
 }  /* do_constexpr_std_meta_has_internal_linkage */
 
@@ -11537,11 +11436,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
 
   strip_template_arg(rvp);
-  if (template_for_reflection(rvp) != NULL) {
-    *(an_integer_value*)result_storage = one_int;
-  } else {
-    *(an_integer_value*)result_storage = zero_int;
-  }  /* if */
+  set_bool_value(template_for_reflection(rvp) != NULL, result_storage);
   return result;
 }  /* do_constexpr_std_meta_has_template_arguments */
 
@@ -18860,8 +18755,7 @@ the value representation of the integer value.
             { a_boolean  bool_val;
               if (check_boolean_condition(ips, opnd1_value, opnd1, opnd1_type,
                                           &bool_val)) {
-                *(an_integer_value *)result_storage = bool_val ? one_int
-                                                               : zero_int;
+                set_bool_value(bool_val, result_storage);
               } else {
                 do_constexpr_fail(result);
               }  /* if */
@@ -19056,11 +18950,7 @@ the value representation of the integer value.
             { a_boolean  bool_val;
               if (check_boolean_condition(ips, opnd1_value, opnd1, opnd1_type,
                                            &bool_val)) {
-                if (bool_val) {
-                  *(an_integer_value *)result_storage = zero_int;
-                } else {
-                  *(an_integer_value *)result_storage = one_int;
-                }  /* if */
+                set_bool_value(!bool_val, result_storage);
               } else {
                 do_constexpr_fail(result);
               }  /* if */
@@ -19079,11 +18969,7 @@ the value representation of the integer value.
               for (k = 0; k<len; ++k) {
                 a_boolean  bool_val;
                 if (check_boolean_condition(ips, src, expr, setp, &bool_val)) {
-                  if (bool_val) {
-                    *(an_integer_value *)dst = zero_int;
-                  } else {
-                    *(an_integer_value *)dst = one_int;
-                  }  /* if */
+                  set_bool_value(!bool_val, dst);
                 } else {
                   do_constexpr_fail(result);
                   break;
@@ -20342,8 +20228,7 @@ the value representation of the integer value.
                                                        ptr1->variant.addr_con,
                                                        ptr2->variant.addr_con,
                                                        &cmp)) {
-                    *(an_integer_value *)result_storage = cmp ? one_int:
-                                                                zero_int;
+                    set_bool_value(cmp, result_storage);
                   } else {
                     do_constexpr_fail(result);
                     info_with_pos(ec_constexpr_address_unknown,
@@ -20383,8 +20268,8 @@ the value representation of the integer value.
                                   *rvp2 = (a_reflection_value*)opnd2_value;
               strip_template_arg(rvp1);
               strip_template_arg(rvp2);
-              *(an_integer_value *)result_storage =
-                    rvp1->entity.ptr == rvp2->entity.ptr ? one_int : zero_int;
+              set_bool_value(rvp1->entity.ptr == rvp2->entity.ptr,
+                             result_storage);
 #if C99_IL_EXTENSIONS_SUPPORTED
             } else if (tp->kind == (a_type_kind)tk_complex) {
               /* A complex floating-point type. */
@@ -20456,8 +20341,7 @@ the value representation of the integer value.
                                                        ptr1->variant.addr_con,
                                                        ptr2->variant.addr_con,
                                                        &cmp)) {
-                    *(an_integer_value *)result_storage = cmp ? zero_int:
-                                                                one_int;
+                    set_bool_value(cmp, result_storage);
                   } else {
                     do_constexpr_fail(result);
                     info_with_pos(ec_constexpr_address_unknown,
@@ -20499,8 +20383,8 @@ the value representation of the integer value.
                                   *rvp2 = (a_reflection_value*)opnd2_value;
               strip_template_arg(rvp1);
               strip_template_arg(rvp2);
-              *(an_integer_value *)result_storage =
-                    rvp1->entity.ptr != rvp2->entity.ptr ? one_int : zero_int;
+              set_bool_value(rvp1->entity.ptr != rvp2->entity.ptr,
+                             result_storage);
 #if C99_IL_EXTENSIONS_SUPPORTED
             } else if (tp->kind == (a_type_kind)tk_complex) {
               /* A complex floating-point type. */
@@ -20553,10 +20437,9 @@ the value representation of the integer value.
                     info_with_pos(ec_constexpr_pointers_not_comparable,
                                   &expr->position, ips);
                     do_constexpr_fail(result);
-                  } else if (ptr1->address < ptr2->address) {
-                    *(an_integer_value *)result_storage = one_int;
                   } else {
-                    *(an_integer_value *)result_storage = zero_int;
+                    set_bool_value(ptr1->address < ptr2->address,
+                                   result_storage);
                   }  /* if */
                 } else if (is_null_pointer_value(ptr1->variant.addr_con) &&
                            is_null_pointer_value(ptr2->variant.addr_con)) {
@@ -20620,10 +20503,9 @@ the value representation of the integer value.
                     info_with_pos(ec_constexpr_pointers_not_comparable,
                                   &expr->position, ips);
                     do_constexpr_fail(result);
-                  } else if (ptr1->address > ptr2->address) {
-                    *(an_integer_value *)result_storage = one_int;
                   } else {
-                    *(an_integer_value *)result_storage = zero_int;
+                    set_bool_value(ptr1->address > ptr2->address,
+                                   result_storage);
                   }  /* if */
                 } else if (is_null_pointer_value(ptr1->variant.addr_con) &&
                            is_null_pointer_value(ptr2->variant.addr_con)) {
@@ -20689,10 +20571,9 @@ the value representation of the integer value.
                     info_with_pos(ec_constexpr_pointers_not_comparable,
                                   &expr->position, ips);
                     do_constexpr_fail(result);
-                  } else if (ptr1->address <= ptr2->address) {
-                    *(an_integer_value *)result_storage = one_int;
                   } else {
-                    *(an_integer_value *)result_storage = zero_int;
+                    set_bool_value(ptr1->address <= ptr2->address,
+                                   result_storage);
                   }  /* if */
                 } else if (is_null_pointer_value(ptr1->variant.addr_con) &&
                            is_null_pointer_value(ptr2->variant.addr_con)) {
@@ -20758,10 +20639,9 @@ the value representation of the integer value.
                     info_with_pos(ec_constexpr_pointers_not_comparable,
                                   &expr->position, ips);
                     do_constexpr_fail(result);
-                  } else if (ptr1->address >= ptr2->address) {
-                    *(an_integer_value *)result_storage = one_int;
                   } else {
-                    *(an_integer_value *)result_storage = zero_int;
+                    set_bool_value(ptr1->address >= ptr2->address,
+                                   result_storage);
                   }  /* if */
                 } else if (is_null_pointer_value(ptr1->variant.addr_con) &&
                            is_null_pointer_value(ptr2->variant.addr_con)) {
