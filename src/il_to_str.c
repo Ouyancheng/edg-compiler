@@ -77,28 +77,6 @@ static a_boolean is_type_operator_to_be_rendered(
                                    an_il_to_str_output_control_block_ptr octl);
 
 
-static inline a_boolean is_for_c_gen_be(
-                                    an_il_to_str_output_control_block_ptr octl)
-/*
-Return TRUE if the output targeted by octl is aimed at the C-generating back
-end; otherwise, return FALSE.
-*/
-{
-  return octl->gen_compilable_code && octl->c_generating_back_end;
-}  /* is_for_c_gen_be */
-
-
-static inline a_boolean is_for_cp_gen_be(
-                                    an_il_to_str_output_control_block_ptr octl)
-/*
-Return TRUE if the output targeted by octl is aimed at the C++-generating back
-end; otherwise, return FALSE.
-*/
-{
-  return octl->gen_compilable_code && !octl->c_generating_back_end;
-}  /* is_for_cp_gen_be */
-
-
 void clear_il_to_str_output_control_block(
                                     an_il_to_str_output_control_block_ptr octl)
 /*
@@ -1566,7 +1544,7 @@ way described by octl.
 
 #if BACK_END_IS_C_GEN_BE
 #if LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C
-  if (is_for_c_gen_be(octl)) {
+  if (octl->c_generating_back_end) {
     if (kind == (a_float_kind)fk_long_double) {
       /* When generating K&R C from the C-generating back end, put out
          "double" for "long double" and issue a one-time-only warning. */
@@ -1581,7 +1559,7 @@ way described by octl.
   }  /* if */
 #endif /* LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C */
 #endif /* BACK_END_IS_C_GEN_BE */
-  str = float_kind_name(kind, is_for_c_gen_be(octl) || C_mode()
+  str = float_kind_name(kind, octl->c_generating_back_end || C_mode()
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
                         || (octl->gen_compilable_code &&
                             gcc_is_generated_code_target &&
@@ -1635,7 +1613,7 @@ Do the output in the way described by octl.
   } else {
 #if BACK_END_IS_C_GEN_BE && SUPPRESS_CONST_IN_GENERATED_C
     /* Suppress "const" in the output of the C-generating back end. */
-    if (is_for_c_gen_be(octl)) qualifiers &= ~TQ_CONST;
+    if (octl->c_generating_back_end) qualifiers &= ~TQ_CONST;
 #endif /* BACK_END_IS_C_GEN_BE && SUPPRESS_CONST_IN_GENERATED_C */
     output_qualifier(TQ_C11_ATOMIC, "_Atomic");
     output_qualifier(TQ_CONST, "const"); /*lint !e774*/
@@ -1798,7 +1776,8 @@ be FALSE).
   if (calling_convention != (a_calling_convention)cc_default) {
     /* Put out nothing for the default calling convention. */
     if (calling_convention == (a_calling_convention)cc_thiscall &&
-        is_for_c_gen_be(octl)) {
+        octl->gen_compilable_code &&
+        octl->c_generating_back_end) {
       /* Suppress __thiscall in generated C code (it's not valid in C because
          there's no "this" pointer). */
     } else {
@@ -2163,14 +2142,14 @@ by octl.
                - don't generate enums with an explicit underlying type
                - don't generate empty enums (valid in C++, but not in C)
              In these cases, the underlying integer type is used instead. */
-          !(is_for_c_gen_be(octl) &&
+          !(octl->c_generating_back_end && 
             (octl->gen_pcc_code ||
              type->variant.integer.has_explicit_enum_base ||
              enum_constants(type) == NULL))) {
         /* Output a reference to the enum type. */
         form_tag_reference(type, octl);
       } else if (type->variant.integer.wchar_t_type &&
-                 !is_for_c_gen_be(octl)) {
+                 !octl->c_generating_back_end) {
         /* Output a wchar_t type as "wchar_t", except in the C generating
            back end, where it is output as its underlying type. */
         if (ms_extensions && microsoft_version >= 1300) {
@@ -2183,12 +2162,12 @@ by octl.
           octl->output_str("wchar_t", octl);
         }  /* if */
       } else if (type->variant.integer.char8_t_type &&
-                 !is_for_c_gen_be(octl)) {
+                 !octl->c_generating_back_end) {
         /* Output a char8_t type as "char8_t", except in the C-generating
            back end, where it is output as its underlying type. */
         octl->output_str("char8_t", octl);
       } else if (type->variant.integer.char16_t_type &&
-                 !is_for_c_gen_be(octl)) {
+                 !octl->c_generating_back_end) {
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
         /* Output a char16_t type as "char16_t", except in the C generating
            back end, where it is output as its underlying type. */
@@ -2203,7 +2182,7 @@ by octl.
           octl->output_str("char16_t", octl);
         }  /* if */
       } else if (type->variant.integer.char32_t_type &&
-                 !is_for_c_gen_be(octl)) {
+                 !octl->c_generating_back_end) {
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
         /* Output a char32_t type as "char32_t", except in the C generating
            back end, where it is output as its underlying type. */
@@ -2218,7 +2197,7 @@ by octl.
           octl->output_str("char32_t", octl);
         }  /* if */
       } else if (type->variant.integer.bool_type &&
-                 (!is_for_c_gen_be(octl) || octl->render_c99_bool)) {
+                 (!octl->c_generating_back_end || octl->render_c99_bool)) {
         /* Output a bool type as "bool", except in the C generating
            back end, where it is output as its underlying type. */
         octl->output_str((char *)(octl->render_c99_bool ? "_Bool" : "bool"),
@@ -2533,7 +2512,7 @@ by octl.
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case tk_nullptr:
-      check_assertion(!is_for_c_gen_be(octl));
+      check_assertion(!octl->c_generating_back_end);
       /* If this is the standard nullptr type, put it out as the name of the
          standard C++ typedef; otherwise, use decltype. */
       if (is_standard_nullptr_type(type)) {
@@ -2750,14 +2729,14 @@ portable).
 {
   a_boolean render = FALSE;
 
-  if (is_for_cp_gen_be(octl) &&
+  if (octl->gen_compilable_code && !octl->c_generating_back_end &&
       typeref_is_type_operator(type, /*include_intrinsics=*/TRUE)) {
     /* The C++-generating back end should include these operators in the
        generated code. */
     render = TRUE;
   } else if (typeref_is_type_operator(type, /*include_intrinsics=*/TRUE)) {
     an_expr_node_ptr expr = decltype_arg(type);
-    if (is_for_c_gen_be(octl)) {
+    if (octl->c_generating_back_end) {
       /* Never render a type operator in the C-generating back end. */
       render = FALSE;
     } else if (typeref_is_type_transforming_intrinsic(type) ||
@@ -2788,7 +2767,7 @@ portable).
         render = TRUE;
       }  /* if */
     }  /* if */
-  } else if (!is_for_c_gen_be(octl) &&
+  } else if (!octl->c_generating_back_end &&
              octl->render_auto_deduction_typerefs &&
              (is_typeref_kind(type, trk_is_deduced_decltype_auto) ||
               is_typeref_kind(type, trk_is_deduced_auto) ||
@@ -3003,7 +2982,7 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
                          TQ_NONE, options, octl);
     /* Output "*" or "&" for pointer or reference. */
     /* Or, "^" or "%" for C++/CLI handles and references. */
-    if (type->variant.pointer.is_reference && !is_for_c_gen_be(octl)) {
+    if (type->variant.pointer.is_reference && !octl->c_generating_back_end) {
       if (type->variant.pointer.is_rvalue_reference) {
         octl->output_str("&&", octl);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3030,7 +3009,8 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       octl->output_str("*", octl);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (type->has_microsoft_w64_specifier && !is_for_c_gen_be(octl)) {
+      if (type->has_microsoft_w64_specifier &&
+          !(octl->gen_compilable_code && octl->c_generating_back_end)) {
         /* Do not propagate the "__w64" specifier to the C-generating back
            end. */
         octl->output_str("__w64", octl);
@@ -3121,7 +3101,7 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
       is_deduction_guide = TRUE;
     }  /* if */
     if ((rtsp->trailing_return_type || is_lambda || is_deduction_guide) &&
-        !is_for_c_gen_be(octl)) {
+        !octl->c_generating_back_end) {
       /* For a routine type specified with a trailing return type, the 
          type specifiers are simply "auto", except for lambda expressions
          where the specifiers are omitted altogether.  (The C-generating back
@@ -3219,7 +3199,8 @@ handle_specifiers_type:
         output_type_attributes(orig_type, attrib_stop_type, octl);
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (type->has_microsoft_w64_specifier && !is_for_c_gen_be(octl)) {
+      if (type->has_microsoft_w64_specifier &&
+          !(octl->gen_compilable_code && octl->c_generating_back_end)) {
         /* Do not propagate the "__w64" specifier to the C-generating back
            end. */
         octl->output_str(" __w64", octl);
@@ -3395,7 +3376,8 @@ in the way described by octl.
     } else if (rtsp->ref_qualifiers == (a_ref_qualifier_kind)rqk_rvalue) {
       octl->output_str(" &&", octl);
     }  /* if */
-    if ((rtsp->trailing_return_type || is_lambda) && !is_for_c_gen_be(octl)) {
+    if ((rtsp->trailing_return_type || is_lambda) &&
+        !octl->c_generating_back_end) {
       octl->output_str("->", octl);
       form_type(type->variant.routine.return_type, octl);
     }  /* if */
@@ -3413,6 +3395,8 @@ Output an array declarator for the indicated array type.  Do the output in
 the way described by octl.
 */
 {
+  a_boolean need_parens = FALSE;
+
   octl->output_str("[", octl);
   form_type_qualifier(type->variant.array.qualifiers, UPC_BLOCK_SIZE_NONE,
                       /*need_trailing_space=*/TRUE, octl);
@@ -3453,11 +3437,9 @@ the way described by octl.
   } else if (type->variant.array.is_variable_size_array) {
     an_expr_node_ptr count = type->variant.array.variant.element_count_expr;
     form_expression(count, octl);
-#if BACK_END_IS_CP_GEN_BE && BACK_END_SHOULD_BE_CALLED
-    /* Do not add code here. */
   } else if (type->variant.array.constant_bound_expr_in_local_expr_node_ref &&
              innermost_function_scope != NULL &&
-             is_for_cp_gen_be(octl)) {
+             !octl->c_generating_back_end) {
     /* The bound expression has a reference to a local variable and is
        consequently represented by an a_local_expr_node_ref entry. */
     an_expr_node_ptr expr = find_local_expr_node(
@@ -3467,22 +3449,20 @@ the way described by octl.
     form_expression(expr, octl);
   } else if (type->variant.array.bound_constant != NULL &&
              !type->variant.array.is_template_dependent_size_array &&
-             is_for_cp_gen_be(octl) &&
+             !octl->c_generating_back_end &&
              octl->output_expression != NULL) {
     /* Use the recorded a_constant entry rather than a plain integer.  This
        allows the output to be closer to the original bound expression when
        the bound is more than just a literal (e.g., "2*2" instead of "4"). */
     a_constant_ptr con = type->variant.array.bound_constant;
-    a_boolean      need_parens = FALSE;
-
+#if BACK_END_IS_CP_GEN_BE && BACK_END_SHOULD_BE_CALLED
     if (con->expr != NULL) {
       /* It is an error if a comma appears outside of parentheses in a
          bound expression. */
       need_parens = expr_has_comma_operation(con->expr);
     }  /* if */
-    form_constant(con, need_parens, octl);
 #endif /* BACK_END_IS_CP_GEN_BE && BACK_END_SHOULD_BE_CALLED */
-    /* Do not add code here. */
+    form_constant(con, need_parens, octl);
   } else if (type->variant.array.is_template_dependent_size_array) {
     a_constant_ptr constant =
                             type->variant.array.variant.element_count_constant;
@@ -3657,7 +3637,8 @@ If options contains FTO_SUPPRESS_CONST, suppress generation of top-level
       output_type_attributes(orig_type, attrib_stop_type, octl);
     }  /* if */
     if ((type->variant.routine.extra_info->trailing_return_type ||
-         is_lambda_body_routine_type(type)) && !is_for_c_gen_be(octl)) {
+         is_lambda_body_routine_type(type)) &&
+        !octl->c_generating_back_end) {
       /* Suppress the normal return type for trailing return types.  (The C-
          generating back end does not attempt to render routine types with
          trailing return types, since those are a C++ feature.) */
@@ -3900,7 +3881,7 @@ precedence confusion.  Do the output in the way described by octl.
       ((integer_type_constant && con_type->variant.integer.enum_type &&
       /* Don't do this in the C-generating back end when generating K&R C,
          because enum types don't appear. */
-        !(is_for_c_gen_be(octl) && octl->gen_pcc_code)) ||
+        !(octl->c_generating_back_end && octl->gen_pcc_code)) ||
       /* ... or, it's a constant that's shorter than int, ... */
        (integer_type_constant && (int)ikind < (int)ik_int &&
         !octl->suppress_cast_on_short_integral_const) ||
@@ -4042,7 +4023,7 @@ output.
     switch (ch) {
                                   /* pcc does not recognize \a.  Also, some
                                      SVR4 compilers give a warning on it. */
-      case TARG_ALERT_CHAR:       if (!is_for_c_gen_be(octl) &&
+      case TARG_ALERT_CHAR:       if (!octl->c_generating_back_end &&
                                       !octl->gen_pcc_code) c = 'a';
                                   break;
       case TARG_BACKSPACE_CHAR:   c = 'b'; break;
@@ -4679,7 +4660,7 @@ parentheses are not needed.
       { a_variable_ptr var = constant->variant.address.variant.variable;
         /* In C++, an anonymous union cannot be named directly, so we have to
            find a field within the union. */
-        if (var->is_anonymous_parent_object && !is_for_c_gen_be(octl)) {
+        if (var->is_anonymous_parent_object && !octl->c_generating_back_end) {
           a_type_ptr  union_type = skip_typerefs(var->type);
           field = select_union_field_for_addr_constant(union_type,
                                                        desired_type,
@@ -4915,10 +4896,10 @@ parentheses are not needed.
              a field is just omitted.  In the C-generating back end, however,
              references to anonymous union fields can't be omitted, so give
              up. */
-          if (is_for_c_gen_be(octl)) break;
+          if (octl->c_generating_back_end) break;
 #if DO_IL_LOWERING
         } else if (field->is_optimized_empty_class &&
-                   is_for_c_gen_be(octl)) {
+                   octl->c_generating_back_end) {
           /* If the field has been eliminated from the lowered struct,
              we can't use that field in the generated output.  Let the caller
              use an appropriate cast instead. */
@@ -4942,7 +4923,7 @@ parentheses are not needed.
               octl->output_str(".", octl);
             }  /* if */
 #if DO_IL_LOWERING
-            if (is_for_c_gen_be(octl)) {
+            if (octl->c_generating_back_end) {
               /* Set up for the next pass to use "_" instead of ".". */
               prev_field_was_base_class_subobject_with_tail_padding =
                                  field->base_class_subobject_with_tail_padding;
@@ -5119,7 +5100,7 @@ precedence confusion.  Do the output in the way described by octl.
 #if DEBUG
              !octl->debug_output &&
 #endif /* DEBUG */
-             !is_for_c_gen_be(octl) &&
+             !octl->c_generating_back_end &&
              constant->implicit_cast &&
              !(constant->explicit_cast_applied ||
                constant->is_compound_literal)) {
@@ -5156,7 +5137,7 @@ precedence confusion.  Do the output in the way described by octl.
     desired_type = con_type;
     desired_type = type_pointed_to(desired_type);
   }  /* if */
-  if (constant->is_reinterpret_cast && !is_for_c_gen_be(octl)) {
+  if (constant->is_reinterpret_cast && !octl->c_generating_back_end) {
     reinterpret_cast_needed = TRUE;
   }  /* if */
   /* Examine the addressed entity (without generating any code) to
@@ -5650,7 +5631,7 @@ it represents a backing expression for the floating-point constant value.
 #if LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C
       /* No suffix when generating long double as double in the
          C-generating back end. */
-      if (is_for_c_gen_be(octl)) suffix = "";
+      if (octl->c_generating_back_end) suffix = "";
 #endif /* LONG_DOUBLE_AS_DOUBLE_IN_GENERATED_C */
 #endif /* BACK_END_IS_C_GEN_BE */
 #if (BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && \
@@ -6344,7 +6325,7 @@ precedence confusion.  Do the output in the way described by octl.
     }  /* if */
 #endif /* CHECKING */
   } else if (constant_should_be_put_out_as_expr(constant) &&
-             !is_for_c_gen_be(octl) &&
+             !octl->c_generating_back_end &&
              octl->output_expression != NULL &&
              (expr = expr_node_from_constant(constant)) != NULL &&
              !(octl->expr_is_unusable != NULL &&
@@ -6381,7 +6362,7 @@ precedence confusion.  Do the output in the way described by octl.
       } else
 #endif /* BACK_END_IS_CP_GEN_BE */
       /* Do not insert code here. */
-      if (constant->is_reinterpret_cast && !is_for_c_gen_be(octl)) {
+      if (constant->is_reinterpret_cast && !octl->c_generating_back_end) {
         /* The source form used reinterpret_cast, so a cast is needed. */
         need_cast = TRUE;
         need_reinterpret_cast = TRUE;
@@ -6391,7 +6372,8 @@ precedence confusion.  Do the output in the way described by octl.
         if (kind == (a_constant_repr_kind)ck_string) {
           /* This was a compound literal in the source, but the generated
              C code should just have the string form. */
-          need_cast = !is_for_c_gen_be(octl);
+          need_cast = (!octl->gen_compilable_code ||
+                       !octl->c_generating_back_end);
 #if GNU_VECTOR_TYPES_ALLOWED
         } else if (kind == (a_constant_repr_kind)ck_aggregate &&
                    octl->suppress_cast_on_vector_const &&
@@ -6406,7 +6388,7 @@ precedence confusion.  Do the output in the way described by octl.
 #if DEBUG
             (octl->debug_output && !is_nullptr_type(con_type)) ||
 #endif /* DEBUG */
-            is_for_c_gen_be(octl)) {
+            octl->c_generating_back_end) {
 #if GCC_BUILTIN_VARARGS
           a_type_ptr tp;
           a_boolean  builtin_va_list = FALSE;
@@ -6473,7 +6455,7 @@ precedence confusion.  Do the output in the way described by octl.
         output_optional_open_paren(&need_parens, &need_cast_close_paren, octl);
         if (constant->kind == (a_constant_repr_kind)ck_aggregate &&
             !constant->is_compound_literal &&
-            !is_for_c_gen_be(octl)) {
+            !octl->c_generating_back_end) {
           /* This must have been a cast like T{}, so just put out the type
              name here; the ck_aggregate output will provide the braces. */
           form_type(orig_type, octl);
@@ -6500,10 +6482,10 @@ precedence confusion.  Do the output in the way described by octl.
     case ck_integer:
       /* See if the constant is an enum constant, but don't emit enum
          constants when generating K&R C from the C-generating back end. */
-      is_enum = !(is_for_c_gen_be(octl) && octl->gen_pcc_code) &&
+      is_enum = !(octl->c_generating_back_end && octl->gen_pcc_code) &&
                 is_enum_constant(constant) && !is_undefined_opaque_enum;
       if (is_enum && has_name(constant) &&
-          !(is_for_c_gen_be(octl) &&
+          !(octl->c_generating_back_end &&
             !constant->is_named_constant_definition)) {
         /* A named enum constant.  The original constant entry used to
            represent the enumerator constant declaration can always just be
@@ -6547,11 +6529,11 @@ precedence confusion.  Do the output in the way described by octl.
         check_assertion(equiv_constant != NULL);
         form_name(&equiv_constant->source_corresp, iek_constant, octl);
 #if GNU_EXTENSIONS_ALLOWED
-      } else if (!is_for_c_gen_be(octl) && constant->null_keyword) {
+      } else if (!octl->c_generating_back_end && constant->null_keyword) {
         /* The GNU C++ __null keyword. */
         octl->output_str("__null", octl);
 #endif /* GNU_EXTENSIONS_ALLOWED */
-      } else if (!is_for_c_gen_be(octl) &&
+      } else if (!octl->c_generating_back_end &&
                  (is_nullptr_type(con_type) || constant->nullptr_keyword)) {
         /* The C++ and C++/CLI nullptr keyword.  (We test the type in
            addition to checking constant->nullptr_keyword in order to
@@ -6563,12 +6545,13 @@ precedence confusion.  Do the output in the way described by octl.
            constant should still be put out as the nullptr keyword.) */
         octl->output_str("nullptr", octl);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (!is_for_c_gen_be(octl) && constant->native_nullptr_keyword) {
+      } else if (!octl->c_generating_back_end &&
+                                            constant->native_nullptr_keyword) {
         /* The Microsoft __nullptr keyword. */
         octl->output_str("__nullptr", octl);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* coverity[var_deref_model] */
-      } else if (!is_for_c_gen_be(octl) &&
+      } else if (!octl->c_generating_back_end &&
                  il_header.source_language == sl_Cplusplus &&
                  is_bool_type(con_type)) {
         /* A bool constant. */
@@ -6577,7 +6560,7 @@ precedence confusion.  Do the output in the way described by octl.
                             (a_host_large_integer)0) != 0 ? "true" : "false"),
                          octl);
         /* coverity[var_deref_model] */
-      } else if (!is_for_c_gen_be(octl) &&
+      } else if (!octl->c_generating_back_end &&
                  il_header.source_language == sl_Cplusplus &&
                  is_character_type(con_type)) {
         /* In C++, character constants have char type. */
@@ -6603,7 +6586,7 @@ precedence confusion.  Do the output in the way described by octl.
         output_partial_token_str("'", octl);
         output_optional_close_paren(need_char_cast_close_paren, octl);
         /* coverity[var_deref_op] */
-      } else if (!is_for_c_gen_be(octl) &&
+      } else if (!octl->c_generating_back_end &&
                  con_type->kind == (a_type_kind)tk_integer &&
                  (constant->character_kind == (a_character_kind)chk_char8_t ||
                   !is_normal_character_kind(constant->character_kind))) {
@@ -6655,7 +6638,7 @@ precedence confusion.  Do the output in the way described by octl.
                       character_kind =
                          enum_cast<a_character_kind>(constant->character_kind);
 #if BACK_END_IS_C_GEN_BE
-        if (is_for_c_gen_be(octl) && constant->assoc_var != NULL &&
+        if (octl->c_generating_back_end && constant->assoc_var != NULL &&
             !is_normal_character_kind(character_kind)) {
           /* The C-generating back end transforms wide string literals: it
              creates a variable initialized with the string value and then
@@ -6668,7 +6651,8 @@ precedence confusion.  Do the output in the way described by octl.
 #endif /* BACK_END_IS_C_GEN_BE */
         /* Do not insert code here.  This is the "else" of an "if". */
         {
-          if (constant->is_compound_literal && !is_for_c_gen_be(octl)) {
+          if (constant->is_compound_literal &&
+              (!octl->gen_compilable_code || !octl->c_generating_back_end)) {
             /* The string was originally a compound literal and, except in
                generated C code, should be put out that way. */
             octl->output_str("{", octl);
@@ -6741,7 +6725,8 @@ precedence confusion.  Do the output in the way described by octl.
             }  /* for */
             output_partial_token_str("\"", octl);
           }  /* if */
-          if (constant->is_compound_literal && !is_for_c_gen_be(octl)) {
+          if (constant->is_compound_literal &&
+              (!octl->gen_compilable_code || !octl->c_generating_back_end)) {
             /* The string was originally a compound literal and, except in
                generated C code, should be put out that way. */
             octl->output_str("}", octl);
@@ -6811,7 +6796,7 @@ precedence confusion.  Do the output in the way described by octl.
     case ck_address:
       /* Address constant. */
       form_address_constant(constant,
-                            (!is_for_c_gen_be(octl) &&
+                            (!octl->c_generating_back_end &&
                              is_reference_type(constant->type)),
                             need_parens, octl);
       break;
@@ -6865,7 +6850,8 @@ precedence confusion.  Do the output in the way described by octl.
         }  /* if */
         octl->output_str("{", octl);
         for (; sub_con != NULL; sub_con = sub_con->next) {
-          if (sub_con->implicit_aggr_element && !is_for_c_gen_be(octl)) {
+          if (sub_con->implicit_aggr_element &&
+              !octl->c_generating_back_end) {
 #if DEBUG
             if (octl->debug_output) {
               /* Emit the constant (with an indication that it is implicit). */
@@ -7126,7 +7112,7 @@ do_sizeof_cases:
       octl->output_str("((void)0)", octl);
       break;
     case ck_reflection:
-      if (is_for_c_gen_be(octl)) {
+      if (octl->c_generating_back_end) {
         /* Reflection currently sometimes leak into the C-generating back end,
            which treats them as void* pointers.  The values are not used by
            the generated C code, however.  Just render a null pointer. */
@@ -7386,7 +7372,7 @@ Do the output in the way described by octl.
                       rtsp = skip_typerefs(type)->variant.routine.extra_info;
 
   form_alignment_attributes(type, need_leading_space, octl);
-  if (rtsp->result_should_be_used && !is_for_c_gen_be(octl)) {
+  if (rtsp->result_should_be_used && !octl->c_generating_back_end) {
     /* If we're generating output for the C-generating back end, we do not
        output the attribute __warn_unused_result__ because any diagnostics it
        might trigger were already issued by the front end. */
@@ -7436,7 +7422,7 @@ Do the output in the way described by octl.
     }  /* switch */
   }  /* if */
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
-  if (!is_for_c_gen_be(octl)) {
+  if (!octl->c_generating_back_end) {
     /* Don't emit the following attributes in generated C code to avoid having
        a back-end C compiler duplicate a diagnostic already emitted by the
        front end. */
@@ -7471,7 +7457,7 @@ static inline void form_deprecated_or_unavailable_attribute(
 Output "deprecated" and/or "unavailable" attributes if applicable.
 */
 {
-  if (scp->is_deprecated_or_unavailable && !is_for_c_gen_be(octl)) {
+  if (scp->is_deprecated_or_unavailable && !octl->c_generating_back_end) {
     /* If we're generating output for the C-generating back end, we do not
        output the __deprecated__ or __unavailable__ attributes because any
        diagnostics it might trigger were already issued by the front end. */
@@ -7512,11 +7498,11 @@ described by octl.
          is rendered by output_type_attributes. */
     }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-    if (is_immediate_class_type(type) && !is_for_c_gen_be(octl)) {
+    if (is_immediate_class_type(type) && !octl->c_generating_back_end) {
       form_ELF_visibility_attribute(enum_cast<an_ELF_visibility_kind>(
                                         class_type_supp(type)->ELF_visibility),
                                     &need_leading_space, octl);
-    } else if (is_immediate_enum_type(type) && !is_for_c_gen_be(octl)) {
+    } else if (is_immediate_enum_type(type) && !octl->c_generating_back_end) {
       form_ELF_visibility_attribute(enum_cast<an_ELF_visibility_kind>(
                                          type->variant.integer.ELF_visibility),
                                     &need_leading_space, octl);
@@ -7572,7 +7558,7 @@ Do the output in the way described by octl.
                                        &need_leading_space, octl);
     }  /* if */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-    if (var->init_priority != 0 && !is_for_c_gen_be(octl)) {
+    if (var->init_priority != 0 && !octl->c_generating_back_end) {
       /* The init_priority is a C++-only attribute; it is ignored with a
          warning by GNU C compilers.  To avoid the warning, we do not emit it
          in the C-generating back end.  (IL lowering ensures the
