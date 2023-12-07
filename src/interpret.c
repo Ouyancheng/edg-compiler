@@ -20341,7 +20341,7 @@ the value representation of the integer value.
                                                        ptr1->variant.addr_con,
                                                        ptr2->variant.addr_con,
                                                        &cmp)) {
-                    set_bool_value(cmp, result_storage);
+                    set_bool_value(!cmp, result_storage);
                   } else {
                     do_constexpr_fail(result);
                     info_with_pos(ec_constexpr_address_unknown,
