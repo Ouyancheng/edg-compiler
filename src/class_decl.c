@@ -34997,6 +34997,7 @@ position.
 {
   a_class_def_state       class_state;
   a_boolean               has_trivial_destructor = TRUE;
+  a_routine               *nontrivial_dtor = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   Value_saver<a_boolean>  saver(&source_sequence_entries_disallowed,
                                 /*new_value=*/TRUE);
@@ -35040,8 +35041,7 @@ position.
        it is more useful to make it a do-nothing destructor. */
     a_generated_special_function_descr  gsfd;
     init_generated_special_function_descr(&gsfd);
-    force_definition_of_compiler_generated_routine(
-                                    generate_destructor(&class_state, &gsfd));
+    nontrivial_dtor = generate_destructor(&class_state, &gsfd);
   }  /* if */
   /* Wrap up the definition. */
   complete_class_definition(class_type, DEPTH_OF_FILE_SCOPE, &class_state);
@@ -35050,6 +35050,9 @@ position.
     class_type->variant.class_struct_union.is_specialized = TRUE;
   }  /* if */
   pop_scope();
+  if (nontrivial_dtor != NULL) {
+    force_definition_of_compiler_generated_routine(nontrivial_dtor);
+  }  /* if */
 }  /* synth_class_definition */
 
 
