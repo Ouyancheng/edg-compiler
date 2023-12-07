@@ -8444,6 +8444,24 @@ qualified_name_check:
                        &opnd2.position, *rvp);
         *err = TRUE;
       }  /* if */
+    } else if (is_expression_operand(&opnd2)) {
+      an_expr_node  *node2 = make_node_from_operand(&opnd2);
+      if (node_is(node2, enk_routine)) {
+        a_routine_ptr  rp = node_routine(node2);
+        make_locator_for_symbol(symbol_for(rp), locator);
+        locator->source_position = opnd2.position;
+      } else if (node_is(node2, enk_field)) {
+        a_field_ptr  fp = node_field(node2);
+        make_locator_for_symbol(symbol_for(fp), locator);
+        locator->source_position = opnd2.position;
+      } else if (node_is(node2, enk_variable)) {
+        a_variable_ptr  vp = node_variable(node2);
+        make_locator_for_symbol(symbol_for(vp), locator);
+        locator->source_position = opnd2.position;
+      } else {
+        expr_pos_error(ec_cannot_splice_member_access, &opnd2.position);
+        *err = TRUE;
+      }  /* if */
     } else {
       check_assertion(is_error_operand(&opnd2));
       *err = TRUE;
