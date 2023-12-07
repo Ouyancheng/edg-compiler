@@ -1,5 +1,24 @@
 Version 6.6
 
+12/7/23  [EDGcpfe/26869]
+Function-style macros with '#' not followed by a parameter name
+
+In a function-style macro definition, the C and C++ Standards require that
+the stringize operator, '#', be followed by a parameter name, and the front
+end reports an error when that requirement is violated.  Some compilers do
+not enforce that rule, however, when preprocessing assembly code
+(designated by the file suffix ".S") and simply copy the '#' into the
+expanded text when the macro is invoked.  Although the front end does not
+directly support preprocessing assembly code or sensitivity to the suffixes
+of source files, it has now been updated to allow emulating this behavior,
+treating this error as discretionary and producing the same expanded text
+when such a macro is invoked.  For example, with -E
+--diag_suppress=exp_macro_param:
+
+  #define M(x) # 3   // No error reported
+  M(abc)             // Expands to "# 3"
+
+
 12/1/23  [EDGcpfe/26831]
 Show the underlying type in type placeholder diagnostics
 
