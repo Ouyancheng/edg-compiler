@@ -22,7 +22,7 @@ when such a macro is invoked.  For example, with -E
 12/1/23  [EDGcpfe/26831]
 Show the underlying type in type placeholder diagnostics
 
-The front end previously would fulfil diagnostic messages using type
+The front end previously would fulfill diagnostic messages using type
 placeholders like the following:
 
   ec_example;;"the example type is %t"
