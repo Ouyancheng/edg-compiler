@@ -9384,7 +9384,6 @@ Scan and process a #define directive.
              stringizing "#" operator, but it produces a character literal
              instead of a string literal. */
           a_boolean    charize = curr_token != tok_sharp;
-          a_const_char *tok_sharp_start = start_of_curr_token;
           (void)mdefn_get_token(param_list, &param_num, &param_ptr,
                                 &any_white_space_skipped);
           if (curr_token == tok_identifier && va_opt_enabled && !charize &&
@@ -9396,19 +9395,7 @@ Scan and process a #define directive.
             param_num = MAX_REPL_TEXT_NUMBER;
           }  /* if */
           if (param_num == 0) {
-            /* '#' followed by something that isn't a parameter name.  Some
-               compilers allow this when preprocessing assembly code,
-               simply copying the '#' into the output.  To allow emulating
-               that behavior, issue a discretionary error instead of a hard
-               error, reset the lexical state as it was after seeing the
-               '#', and treat it as an ordinary token. */
-            pos_diagnostic(es_discretionary_error, ec_exp_macro_param,
-                           &error_position);
-            curr_token = tok_sharp;
-            start_of_curr_token = tok_sharp_start;
-            len_of_curr_token = 1;
-            curr_char_loc = start_of_curr_token + 1;
-            goto process_ordinary_token;
+            pos_error(ec_exp_macro_param, &error_position);
           } else {
             put_start_of_non_text_section(charize ? rt_charized_raw_argument
                                                   : rt_stringized_raw_argument,
@@ -9512,7 +9499,6 @@ process_va_opt:
             last_param->need_expanded_form = TRUE;
           }  /* if */
         } else {
-process_ordinary_token:
           /* Any other tokens -- not special, just put into macro buffer
              as raw text. */
           a_const_char *str = start_of_curr_token;
