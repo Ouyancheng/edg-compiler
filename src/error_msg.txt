@@ -39,12 +39,14 @@
 # The text string includes markers indicating the location of fill-ins
 # in the message (e.g., %t for a type).  The supported fill-ins are:
 #
-#  d#		- a signed integer numeric insertion.
-#  u#		- an unsigned integer numeric insertion.
+#  d#		- signed integer numeric insertion.
+#  u#		- unsigned integer numeric insertion.
 #  s[q]#	- user provided string insertion.
 #  t#		- type insertion in double quotes.
 #  n[f|o|a|t][d|T]#
 #		- symbol name insertion in double quotes.
+#  T            - template argument list enclosed in angle brackets
+#  r            - reflection description
 #  p#		- insert a source position.
 #  %		- insert a percent sign.
 #  [label]	- choose one of two fill-ins depending on the value

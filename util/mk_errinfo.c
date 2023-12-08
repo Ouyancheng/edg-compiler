@@ -750,6 +750,9 @@ static void me_create_doc_fillin(a_const_char **ptr_to_ptr)
       case 'u':
         output_doc_string("n", 0, fk_em);
         break;
+      case 'r':
+        output_doc_string("reflection-description", 0, fk_em);
+        break;
       default:
         me_error("unexpected message fill-in: %s", orig_ptr);
     }  /* switch */
