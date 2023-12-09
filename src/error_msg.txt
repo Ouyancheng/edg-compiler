@@ -45,8 +45,8 @@
 #  t#		- type insertion in double quotes.
 #  n[f|o|a|t][d|T]#
 #		- symbol name insertion in double quotes.
-#  T            - template argument list enclosed in angle brackets
-#  r            - reflection description
+#  T		- template argument list enclosed in angle brackets
+#  r		- reflection description
 #  p#		- insert a source position.
 #  %		- insert a percent sign.
 #  [label]	- choose one of two fill-ins depending on the value
