@@ -268,7 +268,7 @@ namespace std {
       return false;  /* Dummy return.  Handled by interpreter. */
     }
 
-    consteval bool is_static(info) {
+    consteval bool is_static_member(info) {
       return false;  /* Dummy return.  Handled by interpreter. */
     }
 
