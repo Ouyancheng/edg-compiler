@@ -136,11 +136,16 @@ namespace std {
       return __infovec(0);  /* Dummy return.  Handled by interpreter. */
     }
 
+    consteval std::vector<info> bases_of(info r) {
+      __infovec v = bases__impl(r);
+      return std::vector<info>(v.begin(), v.end());
+    }
+
     consteval __infovec subobjects__impl(info) {
       return __infovec(0);  /* Dummy return.  Handled by interpreter. */
     }
 
-    consteval __infovec subobjects_of(info r) {
+    consteval std::vector<info> subobjects_of(info r) {
       __infovec v = subobjects__impl(r);
       return std::vector<info>(v.begin(), v.end());
     }
