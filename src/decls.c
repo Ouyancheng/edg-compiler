@@ -9028,6 +9028,11 @@ interpreter) and if so mark it as such.
             if (strcmp(name, "dealias") == 0) {
               tag = cit_std_meta_dealias;
             }  /* if */
+          } else if (check_consistent_string_view_type(
+                                          rtp->variant.routine.return_type)) {
+            if (strcmp(name, "display_name_of") == 0) {
+              tag = cit_std_meta_display_name_of;
+            }  /* if */
           }  /* if */
         }  /* if */
         break;
@@ -20015,7 +20020,8 @@ if one is present.
 #endif /* DEBUG */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   copy_source_position(locator->source_position, error_position);
-  if (var_ptr != NULL && !is_error_locator(*locator)) {
+  if (var_ptr != NULL && !is_error_locator(*locator) &&
+      !scope_stack_top().in_prototype_instantiation) {
     if (is_incomplete_type(var_ptr->type)) {
       /* Issue an error on a variable defined with an incomplete type.  Also,
          in C mode, issue an error on a static variable with incomplete type
