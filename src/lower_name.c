@@ -4763,6 +4763,11 @@ do_unknown_function:
                               /*suppress_address_of=*/FALSE, mctl);
             break;
 #endif /* IA64_ABI */
+          case iek_expr_node:
+            mangled_encoding_for_expression(
+                            (an_expr_node*)con->variant.reflection.entity.ptr,
+                            /*in_dependent_expr=*/FALSE, mctl);
+            break;
           // FIXME: Other cases?
           default:
             unexpected_condition_str(

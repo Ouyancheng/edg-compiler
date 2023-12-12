@@ -19106,6 +19106,8 @@ ck_reflection) of a special built-in type (of kind tk_reflection).
             refl_cp->variant.reflection.local_scope_number =
                                                      scope_stack_top().number;
           }  /* if */
+          /* Canonicalize expressions that refer to specific entities. */
+          extract_reflected_entity(&refl_cp->variant.reflection);
           if (con != NULL) release_local_constant(&con);
         }  /* if */
         if (operand_is_instantiation_dependent(&opnd)) {
