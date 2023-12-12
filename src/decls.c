@@ -20016,14 +20016,19 @@ if one is present.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   copy_source_position(locator->source_position, error_position);
   if (var_ptr != NULL && !is_error_locator(*locator)) {
-    if (is_incomplete_type(var_ptr->type)) {
+    if (is_incomplete_type(var_ptr->type) &&
+        !(reflection_enabled && is_immediate_class_type(var_ptr->type) &&
+          scope_stack_top().in_prototype_instantiation)) {
       /* Issue an error on a variable defined with an incomplete type.  Also,
          in C mode, issue an error on a static variable with incomplete type
          (6.7.2 para 3) or an externally linked variable with a tentative
          definition but an uncompletable type (a case like "void i;" at file
          scope).  And in C++ mode, since no object may be of void type, issue
          the error for cases like "extern void i;" even though it is not a
-         defining declaration. */
+         defining declaration.  (If reflection is enabled, we cannot reliably
+         know if a class type is complete in prototype instantiations because
+         metafunctions that cannot be evaluated yet could complete the type in
+         a real instantiation context.) */
       if (is_variable_def ||
           (!C_mode() && is_void_type(state->type)) ||
           (is_tentative_def && is_void_type(state->type))) {
