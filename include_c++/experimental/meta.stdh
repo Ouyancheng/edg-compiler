@@ -442,6 +442,11 @@ namespace std {
       return ^::;  /* Dummy return.  Handled by interpreter. */
     }
 
+    consteval info reflect_invoke(info r, std::vector<info> v) {
+      return metacall__impl(r, v);
+    }
+
+    [[deprecated("metacall has been renamed to reflect_invoke")]]
     consteval info metacall(info r, std::vector<info> v) {
       return metacall__impl(r, v);
     }
