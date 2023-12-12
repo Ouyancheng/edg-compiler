@@ -13112,8 +13112,8 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     result_rvp->local_scope_number = FILE_SCOPE_NUMBER;
     result = TRUE;
   }  /* if */
-  if (result_con != NULL) release_local_constant(&result_con);
 done:
+  if (result_con != NULL) release_local_constant(&result_con);
   return result;
 }  /* do_constexpr_std_meta_metacall */
 

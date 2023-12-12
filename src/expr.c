@@ -47119,37 +47119,55 @@ the operation succeeds, return TRUE and represent the result in *result_con.
 Otherwise, return FALSE.
 */
 {
-  a_boolean               success = FALSE;
+  a_boolean               success = FALSE, have_selector = FALSE,
+                          first_arg = TRUE;
   a_memory_region_number  region_to_switch_back_to;
-  a_symbol_ptr            targ_sym;
+  a_routine_ptr           targ_rp;
   an_arg_list_elem_ptr    args = NULL, *p_arg = &args;
   an_expr_node_ptr        arg_nodes = NULL, func_call_node = NULL;
-  an_operand              call, fn_opnd, dummy_bound_func_selector;
+  an_operand              call, fn_opnd, bound_func_selector;
   an_expr_stack_entry     expr_stack_entry;
 
+  check_assertion(target_rv->entity.kind == iek_routine);
+  targ_rp = (a_routine*)target_rv->entity.ptr;
+  if (routine_type_is_nonstatic_member_function(targ_rp->type)) {
+    have_selector = TRUE;
+  }  /* if */
   switch_to_file_scope_region(&region_to_switch_back_to);
   for (a_reflection_value &rv: *arg_rvs) {
-    *p_arg = alloc_init_component(ick_expression);
+    an_operand  *opnd;
+    if (first_arg && have_selector) {
+      opnd = &bound_func_selector;
+    } else {
+      *p_arg = alloc_init_component(ick_expression);
+      opnd = operand_of_arg_list_elem(*p_arg);
+      p_arg = &(*p_arg)->next;
+    }  /* if */
     switch (rv.entity.kind) {
       case iek_constant:
-        make_constant_operand((a_constant*)rv.entity.ptr,
-                              operand_of_arg_list_elem(*p_arg));
+        make_constant_operand((a_constant*)rv.entity.ptr, opnd);
         break;
       default:
         unexpected_condition();
     }  /* switch */
-    p_arg = &(*p_arg)->next;
+    if (first_arg && have_selector) {
+      bind_member_function_operand_to_selector(
+                                         &bound_func_selector,
+                                         /*selector_is_object_pointer=*/FALSE,
+                                         opnd);
+    }  /* if */
+    first_arg = FALSE;
   }  /* for */
   push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
-  targ_sym = symbol_for((a_routine*)target_rv->entity.ptr);
   if (select_and_prepare_to_call_overloaded_function(
-                                  targ_sym,
+                                  symbol_for(targ_rp),
                                   /*is_template_id=*/FALSE,
                                   (a_template_arg_ptr)NULL,
-                                  /*have_selector=*/FALSE,
-                                  (an_operand *)NULL,
+                                  have_selector,
+                                  have_selector ? &bound_func_selector
+                                                : (an_operand *)NULL,
                                   &args,
                                   /*do_arg_dep_lookup=*/FALSE,
                                   /*use_pure_arg_dep_lookup=*/FALSE,
@@ -47168,7 +47186,7 @@ Otherwise, return FALSE.
     /* We pass dummy_bound_function_selector rather than a null pointer
        constant to avoid a spurious diagnostic by Gimpel lint. */
 #endif /* ifdef _lint */
-    assemble_function_call(&fn_opnd, &dummy_bound_func_selector, arg_nodes,
+    assemble_function_call(&fn_opnd, &bound_func_selector, arg_nodes,
                            /*compiler_generated=*/TRUE,
                            /*arg_dep_lookup_suppressed=*/TRUE,
                            /*is_qualified_name=*/TRUE,
