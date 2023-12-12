@@ -11668,7 +11668,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     result_rvp->entity.ptr = (char*)scp_parent_class(scp);
   } else {
     result_rvp->entity.kind = iek_scope;
-    result_rvp->entity.ptr = (char*)scp->parent_scope;
+    result_rvp->entity.ptr = (char*)get_parent_scope_of(scp);
   }  /* if */
   result_rvp->local_scope_number = rvp->local_scope_number;
   return result;
