@@ -1,4 +1,4 @@
-Version 6.6
+Version 6.6, December 13, 2023
 
 9/19/23  [EDGcpfe/26466]
 C++23, gcc, and clang compatibility: complex bfloat16 types
