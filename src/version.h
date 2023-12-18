@@ -22,7 +22,7 @@ BEGIN_EDG_NAMESPACE
 Definition of the version number of this version.  It is made a separate
 file to make updates easy.
 */
-#define VERSION_NUMBER "6.6"  /* December 13, 2023. */
+#define VERSION_NUMBER "6.6"  /* December 18, 2023. */
 
 /*
 Version number used to set a predefined macro that expands to the
