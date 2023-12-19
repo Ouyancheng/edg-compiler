@@ -1035,7 +1035,7 @@ particular asm statement.
         for (cp = constraint_string; *cp != '\0'; cp++) {
           /* The constraints below indicate some form of a memory operand
              (meaning that the operand should not be converted). */
-          if (*cp == 'm' || *cp == 'o' || *cp == 'v' ||
+          if (*cp == 'm' || *cp == 'o' || *cp == 'v' || *cp == 'g' ||
               *cp == '>' || *cp == '<') {
             is_memory_operand = TRUE;
             break;
