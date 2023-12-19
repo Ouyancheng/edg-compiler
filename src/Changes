@@ -10,7 +10,7 @@ assertion in scan_function_body (func_def.c).  For example, with --c++14:
 
   template<typename ... T>
   auto f() {
-    return [](auto, T ...) { };
+    return [](auto, T ...) { };  // Previously triggered an abort.  Now okay.
   }
   auto l = f<short, int>();
 
