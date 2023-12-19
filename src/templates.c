@@ -12594,7 +12594,10 @@ list of a template function.  Returns TRUE if a match is found.
                                         MTT_NO_FLAGS);
         } else if (!tpp->variant.constant.type_involves_template_param) {
           if (!identical_types(constant->type, templ_constant->type) &&
-              !is_template_dependent_type(constant->type) &&
+              (!is_template_dependent_type(constant->type) ||
+               /* A plain auto type is always considered to be compatible. */
+               (!is_auto_type(constant->type) &&
+                is_auto_type(find_bottom_of_type(constant->type)))) &&
               !(clang_mode && (flags & MTT_PARTIAL_SPEC) != 0 &&
                 (flags & MTT_NESTED_TYPE_MATCH) != 0)) {
             match = FALSE;
@@ -17133,11 +17136,23 @@ from "tpp".  Return TRUE if the lists match.
                                                templ_param_list, source_pos,
                                                CTWS_NO_OPTIONS, copy_error,
                                                ctws_state);
-      if (!f_types_are_compatible(tpp->variant.constant.ptr->type,
-                                  templ_type,
-                                  TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) ||
-          *copy_error) {
-        /* Nontype parameters with different types. */
+      if (*copy_error) {
+        err = TRUE;
+      } else if (tpp->uses_auto) {
+        /* Attempt deduction of the placeholder type. */
+        a_template_arg_ptr  deduced_templ_args = NULL;
+        err = !matches_template_type(templ_type,
+                                     tpp->variant.constant.ptr->type,
+                                     &deduced_templ_args, templ_param_list,
+                                     MTT_NO_FLAGS);
+        free_template_arg_list(deduced_templ_args);
+      } else if (!is_auto_type(templ_type) &&
+                 !f_types_are_compatible(
+                                     tpp->variant.constant.ptr->type,
+                                     templ_type,
+                                     TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED)) {
+        /* Note that a plain auto type is always considered to be
+           compatible. */
         err = TRUE;
       }  /* if */
     } else {
