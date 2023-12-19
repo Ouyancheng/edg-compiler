@@ -1,5 +1,15 @@
 Version 6.7
 
+12/29/23 [EDGcpfe/26902]
+Correct handling of null values for deallocation functions
+
+Previously, the front end could end up with unusable memory blocks in the front
+end memory pool if free_fe is called with a NULL value.  This is now fixed.
+
+Additionally, the behavior of deallocation functions in general has been
+updated to consistently and correctly handle deallocation of NULL values.
+
+
 12/19/23 [EDGcpfe/26899]
 Allow --time_limit command-line option in configurations where DEBUG == 0
 

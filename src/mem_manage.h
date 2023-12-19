@@ -99,7 +99,7 @@ divisible by HOST_ALIGNMENT_REQUIRED.
 extern char *alloc_general(sizeof_t size);
 /* Free space in "general" storage. */
 extern void free_general(a_void_ptr ptr,
-                    sizeof_t   size);
+                         sizeof_t   size);
 /* Allocate memory that can be resized later. */
 extern char *alloc_resizable_buffer(sizeof_t size);
 /* Resize allocated space in "general" storage. */

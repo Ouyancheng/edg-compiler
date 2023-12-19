@@ -503,9 +503,8 @@ struct Allocation {
   typedef an_Elem an_elem;
   an_elem* const
 		start;
-			/* Pointer to the first allocated element.  This should
-			   never be NULL: An allocator should abort the front
-			   end's execution if no storage can be allocated. */
+			/* Pointer to the first allocated element.  If NULL,
+			   n_allocated must be zero. */
   const a_ptrdiff
 		n_allocated;
 			/* Number of allocated elements. */
@@ -576,6 +575,7 @@ The caller is responsible for ensuring the allocation contains no live
 objects.
 */
 {
+  /* Note that free_fe will correctly handle a null allocation. */
   free_fe((void*)a.start, a.n_allocated*sizeof(an_elem));
 }  /* FE_allocator::dealloc */
 
@@ -600,8 +600,10 @@ Destroy and delete an object of type an_Object that was allocated in front end
 memory.
 */
 {
-  destroy(p);
-  FE_allocator<an_Object>::dealloc(Allocation<an_Object>{p, 1});
+  if (p != NULL) {
+    destroy(p);
+    FE_allocator<an_Object>::dealloc(Allocation<an_Object>{p, 1});
+  }  /* if */
 }  /* delete_fe */
 
 
@@ -670,6 +672,7 @@ The caller is responsible for ensuring the allocation contains no live
 objects.
 */
 {
+  /* Note that free_fe will correctly handle a null allocation. */
   free_general(a.start, a.n_allocated*sizeof(an_elem));
 }  /* General_allocator::dealloc */
 
@@ -694,8 +697,10 @@ Destroy and delete an object of type an_Object that was allocated in
 general memory.
 */
 {
-  destroy(p);
-  General_allocator<an_Object>::dealloc(Allocation<an_Object>{p, 1});
+  if (p != NULL) {
+    destroy(p);
+    General_allocator<an_Object>::dealloc(Allocation<an_Object>{p, 1});
+  }  /* if */
 }  /* delete_general */
 
 
@@ -707,7 +712,6 @@ struct IL_allocator {
   typedef a_ptrdiff a_size;
   typedef Allocation<an_elem> an_allocation;
   typedef IL_allocator<an_elem> an_allocator;
-  typedef IL_allocator<an_elem> a_deallocator;
   inline static auto alloc(a_size n) -> an_allocation;
 };  /* IL_allocator */
 

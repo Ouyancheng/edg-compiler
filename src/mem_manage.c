@@ -1238,17 +1238,23 @@ void free_general(a_void_ptr          ptr,
 Free a block of memory to general storage.
 */
 {
-  a_memory_allocation_ptr	map;
-
-  /* Find the memory allocation entry for this memory and clear the pointer
-     so that it won't be freed again, or found by a subsequent search. */
-  map = find_memory_allocation(ptr, /*resizable=*/FALSE);
-  map->buffer = NULL;
-  map->size = 0;
-  free((char*)ptr);
+  if (ptr == NULL) {
+    /* If this assertion fails a non-null block of memory was given with a
+       non-zero size.  Thus, either the caller got the pointer to the block of
+       memory or the size wrong. */
+    check_assertion(size == 0);
+  } else {
+    /* Find the memory allocation entry for this memory and clear the pointer
+       so that it won't be freed again, or found by a subsequent search. */
+    a_memory_allocation_ptr map = find_memory_allocation(ptr,
+                                                         /*resizable=*/FALSE);
+    map->buffer = NULL;
+    map->size = 0;
+    free((char*)ptr);
 #if DEBUG
-  total_general_mem_allocated -= (unsigned long)size;
+    total_general_mem_allocated -= (unsigned long)size;
 #endif /* DEBUG */
+  }  /* if */
 }  /* free_general */
 
 
@@ -1965,19 +1971,27 @@ Free the block of memory pointed to by ptr of the specified size.  The block
 is recorded for possible reuse later.
 */
 {
-  /* Create the map to the freed memory if it has not already been created. */
-  if (freed_fe_map == NULL) {
-    freed_fe_map = new_general<a_size_to_ptr_map>(1);
+  if (ptr == NULL) {
+    /* If this assertion fails a non-null block of memory was given with a
+       non-zero size.  Thus, either the caller got the pointer to the block of
+       memory or the size wrong. */
+    check_assertion(size == 0);
+  } else {
+    /* Create the map to the freed memory if it has not already been
+       created. */
+    if (freed_fe_map == NULL) {
+      freed_fe_map = new_general<a_size_to_ptr_map>(1);
+    }  /* if */
+
+    a_dyn_array_of_void_ptrs_ptr freed_blocks = freed_fe_map->get(size);
+    if (freed_blocks == NULL) {
+      /* Create a new dynamic array and add it to the map. */
+      freed_blocks = new_general<a_dyn_array_of_void_ptrs>(1);
+      freed_fe_map->map(size, freed_blocks);
+    }  /* if */
+    /* Add the new entry to the array. */
+    freed_blocks->push_back(ptr);
   }  /* if */
-  a_dyn_array_of_void_ptrs_ptr   freed_blocks;
-  freed_blocks = freed_fe_map->get(size);
-  if (freed_blocks == NULL) {
-    /* Create a new dynamic array and add it to the map. */
-    freed_blocks = new_general<a_dyn_array_of_void_ptrs>(1);
-    freed_fe_map->map(size, freed_blocks);
-  }  /* if */
-  /* Add the new entry to the array. */
-  freed_blocks->push_back(ptr);
 }  /* free_fe */
 
 #if DEBUG
