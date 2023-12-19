@@ -2827,9 +2827,10 @@ done.
   eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
   pedep = eriep->saved_operand.pack_expansion_descr;
   check_assertion(expr->is_pack_expansion && pedep != NULL);
-  if (rcblock->ctws_state->in_parent_substitution &&
-      !pedep->uses_any_enclosing_packs &&
-      !(rcblock->options & CTWS_SUBST_PARENT_CLASS_ARGS)) {
+  if ((rcblock->options & CTWS_ADJUST_COORDINATES) != 0 ||
+      (rcblock->ctws_state->in_parent_substitution &&
+       !pedep->uses_any_enclosing_packs &&
+       !(rcblock->options & CTWS_SUBST_PARENT_CLASS_ARGS))) {
     add_expr_copy = TRUE;
   } else {
     any_more = begin_rescan_pack_expansion_context(pedep,
@@ -12721,7 +12722,8 @@ indication in *rcblock).
       rescan_err = TRUE;
       any_more = FALSE;
     } else {
-      if ((rcblock->options & CTWS_PRESERVE_DEDUCED_PACKS) != 0) {
+      if ((rcblock->options & (CTWS_PRESERVE_DEDUCED_PACKS |
+                               CTWS_ADJUST_COORDINATES)) != 0) {
         /* Just copy the saved operand for another rescan later on. */
         copy_operand(&rcblock->expr->extra.rescan_info->saved_operand, result);
         make_template_param_expr_constant_operand(result);
@@ -54331,6 +54333,8 @@ cases the selector is returned via bound_function_selector).
     }  /* if */
   } else {
     opnd_list = rescan_expr_list(generic_opnds, rcblock);
+    /* Produce a generic representation if we still have a pack expansion. */
+    generic = opnd_list != NULL && opnd_list->pack_expansion_descr != NULL;
   }  /* if */
   assemble_fold_expression_operand(result, bound_function_selector,
                                    &saved_opnd->position, op_pos,

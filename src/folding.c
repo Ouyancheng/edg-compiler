@@ -6320,8 +6320,9 @@ expression is a glvalue, do not fold (see fold_glvalue_expr instead).
   if (is_glvalue_node(expr)) {
     /* Only fold expressions that produce prvalue results. */
     folded = FALSE;
-  } else if (is_template_dependent_context() && !scope_stack_top().is_rescan) {
-    /* Don't attempt to fold expressions that may be dependent. */
+  } else if (is_template_dependent_context() && !scope_stack_top().is_rescan &&
+             expr_is_instantiation_dependent(expr)) {
+    /* Don't attempt to fold expressions that are dependent. */
     folded = FALSE;
   } else {
     a_diag_list  diag_list;

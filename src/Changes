@@ -1,5 +1,23 @@
 Version 6.7
 
+12/19/23 [EDGcpfe/26867]
+Template parameter pack in requires clause of friend template declaration
+
+Previously, the front end considered a requires clause for a friend template
+declaration containing a parameter pack in some contexts to be incompatible
+with the corresponding out-of-class declaration.  For example, with --c++20:
+
+  template<typename ...> concept C = true;
+  struct A {
+    template<typename ... T>
+    requires (C<T> && ...)
+    friend class B;
+  };
+  template<typename ... T>
+  requires (C<T> && ...)  // Previously a spurious error.  Now okay.
+  class B;
+
+
 12/19/23 [EDGcpfe/26775]
 Abort on generic lambda with function parameter pack that is an expansion of an
 outer pack

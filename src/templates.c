@@ -16122,6 +16122,7 @@ parameters.
       new_ptp = make_param_type(tp, &null_source_position);
       new_ptp->declared_type = declared_type;
       new_ptp->qualifiers = param_qualifiers;
+      new_ptp->name = ptp->name;
       new_ptp->param_num = ptp->param_num;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* Copy the C++/CLI param array state to the deduced parameter. */
@@ -34851,6 +34852,7 @@ this routine, *is_dependent is set to TRUE.
   /*coverity[var_deref_model]*/
   complete_template_decl(decl_info->template_decl, decl_info->parameters);
   if (update_nesting_depths && orig_nesting_depth != 0 &&
+      orig_nesting_depth != decl_state->nesting_depth &&
       decl_info->template_decl != NULL) {
     a_requires_clause_ptr  rcp =
                           decl_info->template_decl->constraint.requires_clause;
