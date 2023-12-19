@@ -4001,11 +4001,11 @@ extern char *generate_instantiation_output_file_name(
                                                    a_const_char *mangled_name);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 
-#if DEBUG
 #if !EDG_WIN32
 extern void set_cpu_time_limit(int	seconds);
 #endif /* !EDG_WIN32 */
 
+#if DEBUG
 extern void db_incl_search_path(void);
 #endif /* DEBUG */
 

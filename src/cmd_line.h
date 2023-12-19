@@ -97,8 +97,8 @@ enum an_option_kind {
 #endif /* !BACK_END_IS_C_GEN_BE */
 #if DEBUG
   optk_debug,
-  optk_time_limit,
 #endif /* DEBUG */
+  optk_time_limit,
   optk_diag_suppress,
   optk_diag_remark,
   optk_diag_warning,

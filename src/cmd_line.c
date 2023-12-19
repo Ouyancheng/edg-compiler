@@ -410,13 +410,13 @@ Initialize the option information table.
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_none);
 #endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
+#endif /* DEBUG */
 #if !EDG_WIN32
   /* This option is only available on Unix. */
   add_option_description(optk_time_limit, "time_limit", '\0',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_none);
 #endif /* !EDG_WIN32 */
-#endif /* DEBUG */
   add_option_description(optk_diag_suppress, "diag_suppress", '\0',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
@@ -10533,17 +10533,16 @@ Process the arguments on the command line that invoked the compiler.
         }  /* if */
         break;
 #endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
+#endif /* DEBUG */
 #if !EDG_WIN32
       case optk_time_limit:
-        /* Debugging option to limit the amount of CPU time used
-           during a compilation. */
+        /* Option to limit the amount of CPU time used during a compilation. */
         { int time_limit;
           time_limit = (int)scan_opt_arg_number(opt_arg);
           set_cpu_time_limit(time_limit);
         }
         break;
 #endif /* !EDG_WIN32 */
-#endif /* DEBUG */
       case optk_diag_suppress:
       case optk_diag_remark:
       case optk_diag_warning:

@@ -3933,7 +3933,6 @@ a memory fault.
 }  /* svr4_trap_null_pointer_references */
 #endif /* SVR4_TRAP_NULL_POINTER_REFERENCES */
 
-#if DEBUG
 #if !EDG_WIN32
 
 #if __BSD__
@@ -3967,7 +3966,6 @@ in case it had been previously changed by set_cpu_time_limit.
 }  /* reset_cpu_time_limit */
 
 #endif /* !EDG_WIN32 */
-#endif /* DEBUG */
 
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
 
@@ -6176,11 +6174,9 @@ This is done before command line processing.
   mmap_file_number = 0;
 #endif /* EDG_WIN32 */
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
-#if DEBUG
 #if !EDG_WIN32
   reset_cpu_time_limit();
 #endif /* !EDG_WIN32 */
-#endif /* DEBUG */
 #if MICROSOFT_EXTENSIONS_ALLOWED && (!CPPCLI_ENABLING_POSSIBLE || !EDG_WIN32)
 #if READ_CPPCLI_PORTABLE_ASSEMBLIES && !STANDALONE_UTILITY_PROGRAM
   portable_assembly_table = NULL;

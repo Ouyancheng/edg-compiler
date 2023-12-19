@@ -1,5 +1,13 @@
 Version 6.7
 
+12/19/23 [EDGcpfe/26899]
+Allow --time_limit command-line option in configurations where DEBUG == 0
+
+Previously the --time_limit command-line option was only enabled in
+configurations where DEBUG == 1.  Now the --time_limit command-line option is
+enabled regardless of the setting of DEBUG.
+
+
 12/19/23 [EDGcpfe/26867]
 Template parameter pack in requires clause of friend template declaration
 
