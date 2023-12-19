@@ -13409,6 +13409,7 @@ form.
           prp->param_num = pack_symbol->variant.variable.ptr
                                       ->variant.assoc_param_type->param_num;
           if (depth_innermost_function_scope == NO_SCOPE_DEPTH ||
+              pack_symbol->is_pack_expansion ||
               pack_symbol->decl_scope !=
                           scope_stack[depth_innermost_function_scope].number) {
             prp->uses_enclosing_pack = TRUE;

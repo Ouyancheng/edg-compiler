@@ -611,8 +611,7 @@ variable.
 static void decl_parameter(a_param_id_ptr        param_id,
                            ARG_UNUSED a_type_ptr declared_type,
                            a_param_type_ptr      ptp,
-                           a_boolean             function_instantiation,
-                           a_boolean             non_initial_variadic_param)
+                           a_boolean             function_instantiation)
 /*
 Enter the declaration of an identifier for a parameter.  The param_id
 points to an sk_parameter symbol, which under ordinary circumstances, is
@@ -620,8 +619,7 @@ turned into an sk_variable symbol; but if function_instantiation is TRUE,
 a new symbol is created and entered in the symbol table.  When declared
 types are recorded, declared_type points to the type of this parameter as
 it was originally declared (before any transformations such as array-to-
-pointer decay).  non_initial_variadic_param is TRUE if this is a parameter
-associated with a variadic parameter, but not the initial one.
+pointer decay).
 */
 {
   a_symbol_ptr      sym;
@@ -760,10 +758,11 @@ associated with a variadic parameter, but not the initial one.
     if (function_instantiation) {
       sym = enter_local_symbol((a_symbol_kind)sk_variable, &locator,
                                decl_scope_level,
-                               /*suppress_redecl_error=*/
-                                                   non_initial_variadic_param);
-      /* Mark all but the first pack element symbol as invisible. */
-      sym->is_invisible = non_initial_variadic_param;
+                               /*suppress_redecl_error=*/FALSE);
+      if (param_id->uses_only_enclosing_pack) {
+        /* A parameter that uses an enclosing pack is a pack expansion. */
+        sym->is_pack_expansion = TRUE;
+      }  /* if */
     } else {
       set_symbol_kind(sym, (a_symbol_kind)sk_variable);
       /* In some modes, the parameter symbols (in the prototype scopes) are
@@ -950,8 +949,8 @@ specializations and lambdas.  rout_ptr is the routine being defined.
 
   if (rout_ptr->is_template_function && !rout_ptr->is_specialized &&
       next_ptp != NULL && next_ptp->param_num == (*ptp)->param_num &&
-      next_ptp->param_num != 0) {
-    /* The next parameter type entry is for the same variadic parameter.
+      next_ptp->param_num != 0 && !(*param_id)->is_pack_element) {
+    /* The next parameter type entry is for the same variadic parameter pack.
        Don't advance the param_id. */
   } else {
     *param_id = (*param_id)->next;
@@ -1555,7 +1554,6 @@ of lambda expressions.
     check_assertion(func_info->param_id_list == NULL);
   } else {
     /* Correctly declared function type. */
-    a_param_id_ptr               prev_param_id = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (func_info->prototype_scope_ss_list != NULL) {
       /* Step through the segment of file-scope source sequence entries
@@ -1742,7 +1740,7 @@ of lambda expressions.
         empty_ptp->type = type_of_unknown_templ_param_nontype;
         empty_ptp->declared_type = type_of_unknown_templ_param_nontype;
         decl_parameter(param_id, param_id->type, empty_ptp,
-                       is_instantiation, /*non_initial_variadic_param=*/FALSE);
+                       is_instantiation);
         free_param_type_list(empty_ptp);
         param_id = param_id->next;
       }  /* while */
@@ -1764,13 +1762,10 @@ of lambda expressions.
         declared_param_type = orig_param_id->declared_type;
         orig_param_id = orig_param_id->next;
       }  /* if */
-      decl_parameter(param_id, declared_param_type, ptp, is_instantiation,
-                     /*non_initial_variadic_param=*/param_id == prev_param_id);
+      decl_parameter(param_id, declared_param_type, ptp, is_instantiation);
 #else /* !GENERATE_SOURCE_SEQUENCE_LISTS */
-      decl_parameter(param_id, (a_type_ptr)NULL, ptp, is_instantiation,
-                     /*non_initial_variadic_param=*/param_id == prev_param_id);
+      decl_parameter(param_id, (a_type_ptr)NULL, ptp, is_instantiation);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      prev_param_id = param_id;
     }  /* for */
     if ((param_id == NULL) != (ptp == NULL) &&
         param_id != NULL && !param_id->is_parameter_pack) {

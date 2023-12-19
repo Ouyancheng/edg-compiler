@@ -4790,9 +4790,14 @@ this is not allowed, an error will be issued by the caller.
       pos_st_warning(ec_decl_hides_function_parameter, &new_sym->decl_position,
 		     new_sym->header->identifier);
     }  /* if */
-  } else if (symbol_is(old_sym, sk_field) && symbol_is(new_sym, sk_field) &&
-             old_sym->variant.field.ptr->is_captured_pack_element) {
-    /* Multiple elements of a captured pack are allowed. */
+  } else if ((symbol_is(old_sym, sk_variable) &&
+              symbol_is(new_sym, sk_variable) &&
+              old_sym->variant.variable.ptr->is_parameter &&
+              old_sym->variant.variable.ptr->is_pack_element) ||
+             (symbol_is(old_sym, sk_field) && symbol_is(new_sym, sk_field) &&
+              old_sym->variant.field.ptr->is_captured_pack_element)) {
+    /* Multiple elements of a pack (either a function parameter pack or a
+       capture pack) are allowed. */
     err = FALSE;
     /* Keep the first element of the pack at the head of the list and set the
        is_invisible flag on the new symbol. */
