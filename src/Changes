@@ -58,7 +58,7 @@ thereby inhibiting the implicit conversion to an arithmetic type.
 12/18/23 [EDGcpfe/26854]
 Microsoft compatibility: Ambiguous member access and using-declarations
 
-The Changes for EDGcpfe/16204,EDGcpfe/26719 contained an error causing some
+The changes for EDGcpfe/16204,EDGcpfe/26719 contained an error causing some
 cases accepted by MSVC to still fail.  For example (in Microsoft C++ mode):
 
   struct B { void f() const; };
