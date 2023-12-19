@@ -12191,8 +12191,9 @@ corresponding base class of the type of X.
           sym->variant.projection.is_using_decl &&
           /* Make sure this projection is actually on a derivation associated
              with bcp. */
-          find_base_class_of(bcp->derived_class,
-                             sym_parent_class(sym)) != NULL) {
+          (bcp->derived_class == sym_parent_class(sym) ||
+           find_base_class_of(bcp->derived_class,
+                              sym_parent_class(sym)) != NULL)) {
         /* A using-declaration for the same name as proj. */
         a_type  *qualifier = sym->variant.projection.extra_info->naming_type;
         a_base_class
