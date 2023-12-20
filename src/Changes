@@ -18,7 +18,7 @@ committee paper P1616R1).  The front end has therefore been changed to also
 accept this.
 
 
-12/29/23 [EDGcpfe/26687]
+12/19/23 [EDGcpfe/26687]
 C++-generating back end: aggregate initializers in function template
 definitions
 
