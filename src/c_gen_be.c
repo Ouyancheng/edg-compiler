@@ -2083,7 +2083,6 @@ is non-NULL, in which case that is the function scope.
   /* Push an entry onto the function prototype stack. */
   fpse.params = rtsp->param_type_list;
   fpse.outside_parameter_list = FALSE;
-  fpse.is_prototype_instantiation = FALSE;
   push_function_prototype(&fpse, &octl);
   if (scope != NULL) {
     param_var = scope->variant.routine.parameters;

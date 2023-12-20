@@ -1,5 +1,24 @@
 Version 6.7
 
+12/29/23 [EDGcpfe/26687]
+C++-generating back end: aggregate initializers in function template
+definitions
+
+In configurations in which function template definitions are generated from
+the prototype instantiation IL, the front end could abort with an assertion
+failure in gen_initializer_constant when the source contains an aggregate
+initializer appearing before the function declarator.  This is now fixed.
+For example, with --c++14:
+
+  struct C { int a[3]; int i; };
+  struct B { C c[3]; };
+  struct A { B b[3]; };
+  template<typename T, int N>
+  decltype(A{ 9 , 1 , 0 , N }, T()) f(T t) {  // Previously aborted
+    return t;
+  }
+
+
 12/29/23 [EDGcpfe/26902]
 Correct handling of null values for deallocation functions
 
