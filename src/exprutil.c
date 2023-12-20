@@ -22846,9 +22846,11 @@ by an "&" in the source, and *ampersand_position gives its position.
   a_boolean    allow_addr_of_managed_member = FALSE, force_node = FALSE;
 
   has_required_ampersand = (ampersand_position != NULL &&
-                            /* Watch out for &(A::f). */
+                            /* Watch out for &(A::f), except in Microsoft
+                               mode. */
                             operand->is_id_expression &&
-                            !operand->id_expression_was_parenthesized);
+                            (!operand->id_expression_was_parenthesized ||
+                             microsoft_bugs));
   orig_operand = *operand;
   check_assertion(is_sym_for_member_operand(operand));
   member_sym = operand->symbol;

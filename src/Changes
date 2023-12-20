@@ -1,5 +1,25 @@
 Version 6.7
 
+12/20/23 [EDGcpfe/26900]
+Microsoft bugs compatibility: &(X::Y) pointer-to-member formation
+
+Consider, in Microsoft C++ mode:
+
+  template<typename> using Void = void;
+  struct S {
+    int& f();
+  };
+  template<typename, typename = void> constexpr bool Cond = false;
+  template<typename T> constexpr bool Cond<T, Void<decltype(&(T::f))>> = true;
+  static_assert(Cond<S>);
+
+The static assertion should fail, because the partial specialization of Cond
+fails substitution since &(T::f) with T=S is not valid (&T::f would create a
+pointer-to-member constant, but the parentheses are not permitted).  MSVC,
+however, does accept the case and the front end now emulates that behavior in
+Microsoft bugs mode.
+
+
 12/20/23 [EDGcpfe/26894]
 Erroneous deletion of a default constructor due to a const member
 
