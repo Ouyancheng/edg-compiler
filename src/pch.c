@@ -2193,6 +2193,8 @@ from the PCH file) to reflect the information loaded from the file.
   rebuild_structures_on_il_read();
   /* Re-open module files that might have been open. */
   modules_pch_reset();
+  /* Reset any necessary memory management state. */
+  mem_manage_reset();
 }  /* pch_fixup_part_1 */
 
 

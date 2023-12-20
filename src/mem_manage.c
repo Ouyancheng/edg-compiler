@@ -1069,8 +1069,13 @@ is used for allocation of general front end memory (i.e., not IL).
 {
   char                   *temp_ptr;
   a_mem_block_header_ptr hdr;
+
+  /* Ensure at least one byte is allocated to ensure that zero size objects
+     have distinct memory addresses. */
+  size = max_val(size, (sizeof_t)1);
+
 #if DEBUG
-  sizeof_t               orig_size = size;
+  sizeof_t orig_size = size;
 #endif /* DEBUG */
   /* Round up the size if necessary to preserve alignment.  Note that
      aside from keeping the data correctly aligned, this also keeps the
@@ -1239,9 +1244,9 @@ Free a block of memory to general storage.
 */
 {
   if (ptr == NULL) {
-    /* If this assertion fails a non-null block of memory was given with a
-       non-zero size.  Thus, either the caller got the pointer to the block of
-       memory or the size wrong. */
+    /* If this assertion fails a null block of memory was given with a non-zero
+       size.  Thus, either the caller got the pointer to the block of memory or
+       the size wrong. */
     check_assertion(size == 0);
   } else {
     /* Find the memory allocation entry for this memory and clear the pointer
@@ -1946,10 +1951,13 @@ a new block.
 {
   void  *ptr = NULL;
 
+  /* Ensure at least one byte is allocated to ensure that zero size objects
+     have distinct memory addresses. */
+  size = max_val(size, (sizeof_t)1);
   /* If the freed map exists, look for a previously freed block. */
   if (freed_fe_map != NULL) {
-    a_dyn_array_of_void_ptrs_ptr   freed_blocks;
-    freed_blocks = freed_fe_map->get(size);
+    a_dyn_array_of_void_ptrs_ptr freed_blocks = freed_fe_map->get(size);
+
     if (freed_blocks != NULL && freed_blocks->length() > 0) {
       /* Return the entry at the end of the array and remove it. */
       ptr = freed_blocks->back_elem();
@@ -1972,11 +1980,13 @@ is recorded for possible reuse later.
 */
 {
   if (ptr == NULL) {
-    /* If this assertion fails a non-null block of memory was given with a
-       non-zero size.  Thus, either the caller got the pointer to the block of
-       memory or the size wrong. */
+    /* If this assertion fails a null block of memory was given with a non-zero
+       size.  Thus, either the caller got the pointer to the block of memory or
+       the size wrong. */
     check_assertion(size == 0);
   } else {
+    /* All allocations from alloc_fe are at least 1 byte. */
+    size = max_val(size, (sizeof_t)1);
     /* Create the map to the freed memory if it has not already been
        created. */
     if (freed_fe_map == NULL) {
@@ -2194,6 +2204,20 @@ This is done before command line processing.
   mem_region_table = NULL;
   size_of_mem_region_table = 0;
   size_of_function_def_table = 0;
+}  /* mem_manage_early_init */
+
+
+void mem_manage_reset(void)
+/*
+Called when a PCH file has just been read to reset memory management state.
+*/
+{
+  /* If there's currently a freed_fe_map, reset it to an empty state.  This
+     prevents issues where the front end memory region has been replaced
+     resulting in alloc_fe handing out memory addresses already in use. */
+  if (freed_fe_map != NULL) {
+    freed_fe_map->clear();
+  }  /* if */
 }  /* mem_manage_early_init */
 
 

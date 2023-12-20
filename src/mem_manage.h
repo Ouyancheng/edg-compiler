@@ -203,6 +203,7 @@ extern void show_mem_manage_space_used(unsigned long total_accounted_for);
 #endif /* DEBUG */
 /* Early initialization of memory management routines. */
 extern void mem_manage_early_init(void);
+extern void mem_manage_reset();
 /* One-time initialization of memory management routines. */
 extern void mem_manage_one_time_init(void);
 /* Initialize memory management. */

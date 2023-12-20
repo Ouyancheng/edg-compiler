@@ -3470,6 +3470,8 @@ private:
 			   grows. */
   an_index	n_elements;
 			/* The number of elements stored in the table. */
+  inline a_boolean contains_element(an_index idx) const
+    { return this->table[idx].ptr != a_key(); }
   void map_colliding_key(a_key          new_key,
                          const a_value  &new_value,
                          an_index       idx);
@@ -3511,7 +3513,7 @@ Release the storage for the map.
   an_index  n_slots = mask+1;
 
   for (an_index k = 0; k<n_slots; ++k) {
-    if (table[k].ptr != a_key()) destroy(&table[k].value);
+    if (this->contains_element(k)) destroy(&table[k].value);
   }  /* for */
   this->dealloc(an_allocation{ this->table, (a_ptrdiff)n_slots });
   this->table = NULL;
@@ -3535,6 +3537,9 @@ if not found.  hash is the precomputed hash value for the key.
   a_key      tptr;
   a_value    result = a_value();
 
+  /* If this assertion fails no value could possibly be found as the key is
+     indistinguishable from an unused entry in the table. */
+  check_assertion(key != a_key());
   for (;;) {
     tptr = tbl[idx].ptr;
     if (tptr == key) {
@@ -3585,10 +3590,14 @@ value of that key.
 {
   an_index   mask = this->hash_mask;
   an_index   idx = hash & mask;
-  an_entry   *tbl = this->table;
 
+  /* If this assertion fails the mapped value will be lost as the key is
+     indistinguishable from an unused entry in the table. */
+  check_assertion(key != a_key());
   check_traced_key_ptr(key, "mapped");
-  if (tbl[idx].ptr == a_key()) {
+  if (!this->contains_element(idx)) {
+    an_entry *tbl = this->table;
+
     tbl[idx].ptr = key;
     tbl[idx].value = value;
   } else {
@@ -3617,6 +3626,9 @@ the precomputed hash of that key.
   an_entry   *tbl = this->table;
   a_key      ptr = tbl[idx].ptr;
 
+  /* If this assertion fails the mapped value will be lost as the key is
+     indistinguishable from an unused entry in the table. */
+  check_assertion(key != a_key());
   check_traced_key_ptr(key, "replaced");
   for (;;) {
     if (ptr == key) {
@@ -3647,11 +3659,13 @@ precomputed hash of that key.
   an_index   mask = this->hash_mask;
   an_index   idx = hash & mask, idx0 = idx;
   an_entry   *tbl = this->table;
-  a_key      ptr = tbl[idx].ptr;
   a_value    old_value = a_value();
 
+  /* If this assertion fails the mapped value will be lost as the key is
+     indistinguishable from an unused entry in the table. */
+  check_assertion(key != a_key());
   check_traced_key_ptr(key, "mapped or replaced");
-  if (ptr == a_key()) {
+  if (!this->contains_element(idx)) {
     tbl[idx].ptr = key;
     tbl[idx].value = value;
     this->n_elements += 1;
@@ -3659,6 +3673,8 @@ precomputed hash of that key.
       this->expand_table();
     }  /* if */
   } else {
+    a_key ptr = tbl[idx].ptr;
+
     for (;;) {
       if (ptr == key) {
         old_value = tbl[idx].value;
@@ -3739,7 +3755,7 @@ new value at the given location.
   /* Move the existing mapping to the next available spot. */
   for (;;) {
     idx = (idx+1) & mask;
-    if (tbl[idx].ptr == a_key()) {
+    if (!this->contains_element(idx)) {
       tbl[idx].ptr = tbl[idx0].ptr;
       tbl[idx].value = move_from(&tbl[idx0].value);
       break;
@@ -3850,11 +3866,12 @@ Output some information about the map's key contents to f_debug.
   an_index  n_slots = mask+1;
 
   for (an_index k = 0; k<n_slots; ++k) {
-    a_key  ptr = tbl[k].ptr;
     fprintf(f_debug, "[%2u] ", k);
-    if (ptr == a_key()) {
+    if (!this->contains_element(k)) {
       fprintf(f_debug, "(empty)\n");
     } else {
+      a_key  ptr = tbl[k].ptr;
+
       fprintf(f_debug, "h = %2u  %p\n",
               (an_index)hash_ptr(ptr) & mask, (void*)ptr);
     }  /* if */
