@@ -1,5 +1,27 @@
 Version 6.7
 
+12/20/23 [EDGcpfe/26894]
+Erroneous deletion of a default constructor due to a const member
+
+Consider:
+
+  struct S {
+    int i;
+    template<typename...> S();
+  };
+  template<typename> struct W {
+    S s;
+  };
+  struct X {
+    W<int> const w;
+  };
+  X x;  // Previously an error.  Now okay.
+
+Previously, the front end issued an error claiming the default constructor of
+X is deleted due to an error in the algorithm determining whether a class type
+is const-default-constructible. That is now fixed.
+
+
 12/20/23 [EDGcpfe/26764]
 Matching of template template parameters with auto-type non-type parameters
 

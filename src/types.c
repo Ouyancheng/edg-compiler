@@ -2313,13 +2313,19 @@ Return TRUE if the given type is a const-default-constructible class type or an
 array thereof.
 */
 {
-  a_boolean  result;
+  a_boolean  result, error_detected, err;
 
   tp = skip_array_types(tp);
   tp = skip_typerefs(tp);
   if (!is_immediate_class_type(tp)) {
     result = FALSE;
-  } else if (type_has_user_provided_default_constructor(tp)) {
+  } else if (select_default_constructor_full(tp, &error_position, tp,
+                                             /*declarative_context=*/FALSE,
+                                             /*evaluated=*/FALSE,
+                                             /*check_access=*/FALSE,
+                                             /*no_explicit=*/FALSE,
+                                             &error_detected, &err) != NULL ||
+                                             error_detected) {
     result = TRUE;
   } else {
     a_class_symbol_supplement_ptr
