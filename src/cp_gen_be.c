@@ -165,6 +165,12 @@ static a_boolean
 			   allowing it to be used as a type in a function
 			   parameter pack. */
 
+static a_boolean
+		in_prototype_instantiation_context;
+			/* TRUE if we are currently generating a template
+			   definition from its prototype instantiation
+			   IL. */
+
 static a_source_sequence_entry_ptr
 		curr_source_sequence_entry;
 			/* The current source sequence entry. */
@@ -797,7 +803,6 @@ static void gen_variable_name(a_variable_ptr var);
 static a_boolean template_should_be_generated_from_prototype_instantiation(
                                                 a_template_ptr  tp,
                                                 a_boolean       is_definition);
-static a_boolean in_prototype_instantiation_context(void);
 
 /*
 Macro that returns TRUE for a cast (eok_cast, eok_base_class_cast, etc.) if
@@ -1244,7 +1249,7 @@ This routine can be called for both C and C++.
        in template definitions. */
     check_assertion(scope != NULL ||
                     class_type->variant.class_struct_union.is_nonreal_class ||
-                    in_prototype_instantiation_context());
+                    in_prototype_instantiation_context);
   }  /* if */
   push_name_context_full(scope, class_type,
                          /*restrict_to_class_base_list=*/FALSE);
@@ -1528,43 +1533,6 @@ Return TRUE if the name context stack contains an entry for a class.
 }  /* any_class_in_name_context_stack */
 
 #endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
-
-static a_boolean in_prototype_instantiation_context(void)
-/*
-Return TRUE if the current context is within the prototype instantiation of
-a class template or function template.
-*/
-{
-  a_boolean          found_prototype_instantiation;
-  a_name_context_ptr ncp;
-
-  if (octl.func_prototype_stack != NULL) {
-    /* While processing the parameter list of a function definition, the
-       scope for the function will not have been pushed yet.  However, g++
-       has special treatment for aggregate initializers in prototype
-       instantiations (see gen_initializer_constant where this function is
-       called), even in the parameter list, so the fact that a prototype
-       instantiation is being processed is recorded in the
-       func_prototype_stack_entry before processing the parameter list. */
-    found_prototype_instantiation =
-                         octl.func_prototype_stack->is_prototype_instantiation;
-  } else {
-    found_prototype_instantiation = FALSE;
-  }  /* if */
-  for (ncp = curr_name_context; ncp != NULL && !found_prototype_instantiation;
-       ncp = ncp->next) {
-    if ((ncp->class_type != NULL &&
-         ncp->class_type->
-                      variant.class_struct_union.is_prototype_instantiation) ||
-        (ncp->assoc_scope != NULL &&
-         ncp->assoc_scope->kind == (a_scope_kind)sck_function &&
-         ncp->assoc_scope->variant.routine.ptr->is_prototype_instantiation)) {
-      found_prototype_instantiation = TRUE;
-    }  /* if */
-  }  /* for */
-  return found_prototype_instantiation;
-}  /* in_prototype_instantiation_context */
-
 
 static a_boolean entity_is_member_of_current_instantiation(
                                         a_source_correspondence_ptr scp,
@@ -6137,7 +6105,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       if (used_qualified_name || curr_name_context->field_selection_context) {
         if ((class_type->variant.class_struct_union.is_nonreal_class ||
              (gcc_or_clang_is_generated_code_target &&
-              in_prototype_instantiation_context())) &&
+              in_prototype_instantiation_context)) &&
             !is_partial_spec_prototype_inst &&
             !(options & GN_SUPPRESS_TEMPLATE_KEYWORD) &&
             (!((options & GN_DECLARATION) &&!(options & GN_FRIEND_DECL)) ||
@@ -7798,7 +7766,7 @@ which constant is the value.
              except with arrays where all the elements have the same type. */
           template_dependent_case = TRUE;
         }  /* if */
-        if (template_dependent_case || in_prototype_instantiation_context()) {
+        if (template_dependent_case || in_prototype_instantiation_context) {
           /* No constraints on the type: use the type of the constant.  Even
              when the type is nondependent, we cannot always match up the
              initializer with the type if the initializer is dependent because
@@ -9588,12 +9556,10 @@ for_ctor is TRUE, this is the parameter list of a constructor.
 }  /* gen_param_list */
 
 
-static void gen_function_declarator_with_scope(
-                                       a_type_ptr   type,
-                                       a_scope_ptr  scope,
-                                       a_boolean    top_level_decl,
-                                       a_boolean    suppress_def_args,
-                                       a_boolean    is_prototype_instantiation)
+static void gen_function_declarator_with_scope(a_type_ptr   type,
+                                               a_scope_ptr  scope,
+                                               a_boolean    top_level_decl,
+                                               a_boolean    suppress_def_args)
 /*
 Output a function declarator for the indicated routine type.
 This is the top-level type of a function definition only if scope is non-NULL,
@@ -9601,8 +9567,6 @@ in which case that is the function scope.  top_level_decl is TRUE when we are
 emitting a declarator for an actual function declaration (as opposed, e.g.,
 to a parameter or variable with function type).  suppress_def_args is TRUE if
 default arguments should be suppressed (needed for template specializations).
-is_prototype_instantiation is TRUE if the function associated with this
-declarator is the prototype instantiation of a function template.
 */
 {
   a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
@@ -9612,7 +9576,6 @@ declarator is the prototype instantiation of a function template.
   /* Push an entry onto the function prototype stack. */
   fpse.params = type->variant.routine.extra_info->param_type_list;
   fpse.outside_parameter_list = FALSE;
-  fpse.is_prototype_instantiation = is_prototype_instantiation;
   push_function_prototype(&fpse, &octl);
   /* The code here is similar to code in form_function_declarator. */
   write_tok_ch('(');
@@ -9748,8 +9711,7 @@ used as an interface to the il_to_str routines.
 {
   gen_function_declarator_with_scope(type, (a_scope_ptr)NULL,
                                      /*top_level_decl=*/FALSE,
-                                     /*suppress_def_args=*/FALSE,
-                                     /*is_prototype_instantiation=*/FALSE);
+                                     /*suppress_def_args=*/FALSE);
 }  /* gen_function_declarator */
 
 
@@ -14420,7 +14382,7 @@ function reference.
         }  /* if */
       }  /* if */
       if (gcc_or_clang_is_generated_code_target &&
-          in_prototype_instantiation_context() &&
+          in_prototype_instantiation_context &&
           name_has_template_arguments(&rout->source_corresp, iek_routine,
                                       /*arg_ptr=*/NULL, /*param_ptr=*/NULL,
                                       /*insert_space=*/NULL)) {
@@ -16179,8 +16141,7 @@ Render code for the given lambda.
                      /*primary_only=*/FALSE);
       gen_function_declarator_with_scope(rp->type, scope,
                                          /*top_level_decl=*/TRUE,
-                                         /*suppress_def_args=*/FALSE,
-                                         rp->is_prototype_instantiation);
+                                         /*suppress_def_args=*/FALSE);
       write_space();
     }  /* if */
     save_function_state(&state);
@@ -16485,7 +16446,6 @@ Render the given requires-expression.
      resolved. */
   fpse.params = expr->variant.requires_expr.parameters;
   fpse.outside_parameter_list = TRUE;
-  fpse.is_prototype_instantiation = FALSE;
   push_function_prototype(&fpse, &octl);
   if (fpse.params != NULL) {
     write_tok_ch('(');
@@ -18617,8 +18577,9 @@ instantiation is available.
 */
 {
   a_boolean  result = FALSE;
-
   a_boolean  another_decl_in_comma_list;
+
+  in_prototype_instantiation_context = TRUE;
   switch (tp->kind) {
     case templk_function:
     case templk_member_function:
@@ -18686,6 +18647,7 @@ instantiation is available.
                                 "bad template kind");
       break;
   }  /* switch */
+  in_prototype_instantiation_context = FALSE;
   return result;
 }  /* gen_template_from_prototype_instantiation */
 
@@ -20289,7 +20251,6 @@ one that yields the value) of a statement expression.
             fpse.params = curr_routine_type->variant.routine.extra_info
                                            ->param_type_list;
             fpse.outside_parameter_list = TRUE;
-            fpse.is_prototype_instantiation = FALSE;
             push_function_prototype(&fpse, &octl);
             check_assertion(statement->variant.return_dynamic_init != NULL);
             write_space();
@@ -22584,8 +22545,7 @@ declarator (or NULL if it wasn't recorded).
                                           (rout->is_template_function &&
                                            !rout->is_prototype_instantiation &&
                                            !rout->is_specialized &&
-                                           !decl_within_class),
-                                       rout->is_prototype_instantiation);
+                                           !decl_within_class));
     if (return_type_needed && !rtsp->trailing_return_type) {
       /* Put out the remainder of the return type.  If the routine type is
          expressed with a trailing return type, the return type was already
@@ -22633,7 +22593,6 @@ declarator (or NULL if it wasn't recorded).
       a_func_prototype_stack_entry  fpse;
       fpse.params = function_type_params(skip_typerefs(rout->type));
       fpse.outside_parameter_list = TRUE;
-      fpse.is_prototype_instantiation = FALSE;
       push_function_prototype(&fpse, &octl);
       write_tok_ch('(');
       gen_expression(rcp->constraint);
@@ -24273,6 +24232,7 @@ Initialize for the C++/C-generating back end.
   }  /* if */
   in_template_argument_list = FALSE;
   in_parameter_pack_declaration = FALSE;
+  in_prototype_instantiation_context = FALSE;
   curr_pack_alignment = 0;
   need_pragma_pack_restore = FALSE;
   entities_for_decltype = NULL;

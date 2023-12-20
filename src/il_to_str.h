@@ -93,9 +93,6 @@ typedef struct a_func_prototype_stack_entry {
   a_boolean	outside_parameter_list;
 			/* TRUE if we have already rendered the list of
 			   parameters for this function prototype scope. */
-  a_boolean	is_prototype_instantiation;
-			/* TRUE if this parameter list is from the
-			   prototype instantiation of a function template. */
 } a_func_prototype_stack_entry;
   
 extern void push_function_prototype(
