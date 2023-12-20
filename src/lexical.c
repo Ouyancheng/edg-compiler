@@ -7315,8 +7315,8 @@ is_system_include.
                                  header_unit_angle_map : header_unit_quote_map;
     for (const auto& entry : *unresolved_map) {
       a_const_char *resolved_entry;
-      if (!entry.key_set()) continue;
-      resolved_entry = resolve_header(entry.ptr.ptr, is_system_include,
+      if (!entry.has_value()) continue;
+      resolved_entry = resolve_header(entry.key().ptr, is_system_include,
                                       /*is_include_next=*/FALSE,
                                       /*suppress_diagnostics=*/TRUE);
       if (header_file == resolved_entry) {
@@ -7331,7 +7331,7 @@ is_system_include.
           /* We should not reach this point if the entry already exists in the
              header unit map. */
           check_assertion(header_unit_map->get(new_header_file) == NULL);
-          module_path = entry.value;
+          module_path = entry.value();
           header_unit_map->map(new_header_file, module_path);
           /* In Microsoft compatibility mode, continue the search to check for
              duplicate matches. */

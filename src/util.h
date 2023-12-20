@@ -3404,14 +3404,94 @@ template<typename a_Ptr_key, typename a_Value>
 struct Ptr_map_entry {
   typedef a_Ptr_key a_key;
   typedef a_Value a_value;
-  a_key		ptr;
-			/* The pointer value mapped by this entry.  (A "key" in
-			   the hash table.) */
-  a_value	value;
-			/* A value associated with ptr. */
-  inline a_boolean key_set() const
-    { return ptr != a_key(); }
+  typedef Ptr_map_entry<a_Ptr_key, a_Value> an_entry;
+  Ptr_map_entry()
+    : stored_key()
+    {}
+  Ptr_map_entry(const a_key &init_key, const a_value &init_value)
+    : stored_key(init_key), stored_value(init_value)
+    {}
+  Ptr_map_entry(const an_entry &other) = delete;
+  inline Ptr_map_entry(an_entry &&other);
+  inline ~Ptr_map_entry();
+
+  inline a_boolean has_value() const
+    { return this->stored_key != a_key(); }
+
+  inline a_key &key()
+    { return this->stored_key; }
+  inline const a_key &key() const
+    { return this->stored_key; }
+  inline a_value &value()
+    { check_assertion(this->has_value()); return this->stored_value; }
+  inline const a_value &value() const
+    { check_assertion(this->has_value()); return this->stored_value; }
+
+  auto operator=(const an_entry &other) -> an_entry& = delete;
+  inline auto operator=(an_entry &&other) -> an_entry&;
+private:
+  a_key         stored_key;
+                        /* The pointer value mapped by this entry.  (A "key" in
+                           the hash table.) */
+#ifdef UNION_AS_STRUCT
+/* FIXME: Workaround for union-as-struct build issue. */
+#undef union
+#endif /* ifdef UNION_AS_STRUCT */
+  union {
+    a_Value     stored_value;
+                        /* A value associated with ptr. Represented as a union
+                           so the value can be uninitialized, and construction
+                           and destruction are manually managed. */
+#ifdef UNION_AS_STRUCT
+#define union struct
+#endif /* ifdef UNION_AS_STRUCT */
+  };
 };  /* Ptr_map_entry */
+
+
+template<typename a_Ptr_key, typename a_Value>
+Ptr_map_entry<a_Ptr_key, a_Value>::Ptr_map_entry(an_entry &&other)
+/*
+Move construct a Ptr_map_entry from another Ptr_map_entry.
+*/
+  : stored_key(other.stored_key)
+{
+  if (this->has_value()) {
+    construct(&this->stored_value, move_from(&other.stored_value));
+  }  /* if */
+}  /* Ptr_map_entry::~Ptr_map_entry */
+
+
+template<typename a_Ptr_key, typename a_Value>
+Ptr_map_entry<a_Ptr_key, a_Value>::~Ptr_map_entry()
+/*
+Destruct a Ptr_map_entry invoking the destructor for the stored value if there
+is one.
+*/
+{
+  if (this->has_value()) {
+    destroy(&this->stored_value);
+  }  /* if */
+}  /* Ptr_map_entry::~Ptr_map_entry */
+
+
+template<typename a_Ptr_key, typename a_Value>
+auto Ptr_map_entry<a_Ptr_key, a_Value>::operator=(an_entry &&other) ->
+                                                                      an_entry&
+/*
+Move assign into this Ptr_map_entry from another Ptr_map_entry.
+*/
+{
+  if (this->has_value() && other.has_value()) {
+    this->stored_value = move_from(&other.stored_value);
+  } else if (other.has_value()) {
+    construct(&this->stored_value, move_from(&other.stored_value));
+  } else if (this->has_value()) {
+    construct(&other.stored_value, move_from(&this->stored_value));
+  }  /* if */
+  this->stored_key = move_from(&other.stored_key);
+  return *this;
+}  /* Ptr_map_entry::operator= */
 
 
 /*lint -esym(1510,*Ptr_map)*/
@@ -3449,6 +3529,7 @@ struct Ptr_map: private Allocator<Ptr_map_entry<a_Ptr_key, a_Value>> {
   inline auto map_or_replace(a_key  key, const a_value  &value) -> a_value
     { return this->map_or_replace_with_hash(key, value, hash_ptr(key)); }
   inline void unmap(a_key  key);
+  inline void clear();
   inline auto number_of_elements() const -> an_index
     { return this->n_elements; }
 #if DEBUG
@@ -3470,13 +3551,17 @@ private:
 			   grows. */
   an_index	n_elements;
 			/* The number of elements stored in the table. */
-  inline a_boolean contains_element(an_index idx) const
-    { return this->table[idx].ptr != a_key(); }
-  void map_colliding_key(a_key          new_key,
-                         const a_value  &new_value,
-                         an_index       idx);
-  void expand_table();
-  void check_deleted_slot(an_index  idx0);
+  inline a_boolean has_value_at(an_index idx) const
+    { return this->table[idx].has_value(); }
+  inline void map_colliding_key(an_index       idx,
+                                const a_key    &new_key,
+                                const a_value  &new_value);
+  inline void construct_entry_at(an_index      idx,
+                                 const a_key   &new_key,
+                                 const a_value &new_value);
+  inline auto create_table(unsigned n_slots) -> an_entry*;
+  inline void expand_table();
+  inline void check_deleted_slot(an_index  idx0);
 };  /* Ptr_map */
 
 
@@ -3490,13 +3575,9 @@ Initialize the given pointer map with a capacity for 1<<mask_width slots.
 */
   : an_allocator(a)
 {
-  unsigned       n_slots = (1<<mask_width);
-  an_index       size = (an_index)(n_slots*sizeof(an_entry));
-  an_allocation  allocation = this->alloc(n_slots);
+  unsigned n_slots = (1<<mask_width);
 
-  check_assertion(allocation.n_allocated == (a_ptrdiff)n_slots);
-  this->table = allocation.start;
-  memzero((char*)this->table, size_t_arg(size));
+  this->table = create_table(n_slots);
   this->hash_mask = n_slots-1;
   this->n_elements = 0;
 }  /* Ptr_map::Ptr_map */
@@ -3513,7 +3594,7 @@ Release the storage for the map.
   an_index  n_slots = mask+1;
 
   for (an_index k = 0; k<n_slots; ++k) {
-    if (this->contains_element(k)) destroy(&table[k].value);
+    destroy(&table[k]);
   }  /* for */
   this->dealloc(an_allocation{ this->table, (a_ptrdiff)n_slots });
   this->table = NULL;
@@ -3534,18 +3615,18 @@ if not found.  hash is the precomputed hash value for the key.
   an_index   mask = this->hash_mask;
   an_index   idx = hash & mask;
   an_entry   *tbl = this->table;
-  a_key      tptr;
   a_value    result = a_value();
 
   /* If this assertion fails no value could possibly be found as the key is
      indistinguishable from an unused entry in the table. */
   check_assertion(key != a_key());
   for (;;) {
-    tptr = tbl[idx].ptr;
-    if (tptr == key) {
-      result = tbl[idx].value;
+    an_entry &entry = tbl[idx];
+
+    if (entry.key() == key) {
+      result = tbl[idx].value();
       break;
-    } else if (tptr == a_key()) {
+    } else if (!entry.has_value()) {
       break;
     }  /* if */
     idx = (idx+1) & mask;
@@ -3595,17 +3676,10 @@ value of that key.
      indistinguishable from an unused entry in the table. */
   check_assertion(key != a_key());
   check_traced_key_ptr(key, "mapped");
-  if (!this->contains_element(idx)) {
-    an_entry *tbl = this->table;
-
-    tbl[idx].ptr = key;
-    tbl[idx].value = value;
+  if (!this->has_value_at(idx)) {
+    this->construct_entry_at(idx, key, value);
   } else {
-    this->map_colliding_key(key, value, idx);
-  }  /* if */
-  this->n_elements += 1;
-  if (this->n_elements*2 > mask) {
-    this->expand_table();
+    this->map_colliding_key(idx, key, value);
   }  /* if */
 }  /* Ptr_map::map_with_hash */
 
@@ -3624,19 +3698,19 @@ the precomputed hash of that key.
   an_index   mask = this->hash_mask;
   an_index   idx = hash & mask;
   an_entry   *tbl = this->table;
-  a_key      ptr = tbl[idx].ptr;
 
   /* If this assertion fails the mapped value will be lost as the key is
      indistinguishable from an unused entry in the table. */
   check_assertion(key != a_key());
   check_traced_key_ptr(key, "replaced");
   for (;;) {
-    if (ptr == key) {
-      tbl[idx].value = value;
+    an_entry &entry = tbl[idx];
+
+    if (entry.key() == key) {
+      entry.value() = value;
       break;
     } else {
       idx = (idx+1) & mask;
-      ptr = tbl[idx].ptr;
     }  /* if */
   }  /* for */
 }  /* Ptr_map::replace_with_hash */
@@ -3657,7 +3731,7 @@ precomputed hash of that key.
 */
 {
   an_index   mask = this->hash_mask;
-  an_index   idx = hash & mask, idx0 = idx;
+  an_index   idx = hash & mask;
   an_entry   *tbl = this->table;
   a_value    old_value = a_value();
 
@@ -3665,32 +3739,20 @@ precomputed hash of that key.
      indistinguishable from an unused entry in the table. */
   check_assertion(key != a_key());
   check_traced_key_ptr(key, "mapped or replaced");
-  if (!this->contains_element(idx)) {
-    tbl[idx].ptr = key;
-    tbl[idx].value = value;
-    this->n_elements += 1;
-    if (this->n_elements*2 > mask) {
-      this->expand_table();
-    }  /* if */
+  if (!this->has_value_at(idx)) {
+    this->construct_entry_at(idx, key, value);
   } else {
-    a_key ptr = tbl[idx].ptr;
-
     for (;;) {
-      if (ptr == key) {
-        old_value = tbl[idx].value;
-        tbl[idx].value = value;
+      an_entry &entry = tbl[idx];
+
+      if (entry.key() == key) {
+        old_value = move_from(&entry.value());
+        entry.value() = value;
         break;
       } else {
         idx = (idx+1) & mask;
-        ptr = tbl[idx].ptr;
-        if (ptr == a_key()) {
-          tbl[idx] = tbl[idx0];
-          tbl[idx].ptr = key;
-          tbl[idx].value = value;
-          this->n_elements += 1;
-          if (this->n_elements*2 > mask) {
-            this->expand_table();
-          }  /* if */
+        if (!this->has_value_at(idx)) {
+          this->construct_entry_at(idx, key, value);
           break;
         }  /* if */
       }  /* if */
@@ -3714,15 +3776,15 @@ Remove the given key from the table (it must exist).
 
   check_traced_key_ptr(key, "UNmapped");
   /* Find the item to delete (we're assuming it exists). */
-  while (tbl[idx].ptr != key) {
+  while (tbl[idx].key() != key) {
     idx = (idx+1) & mask;
   }  /* while */
   /* Delete the entry. */
-  tbl[idx].ptr = a_key();
-  destroy(&tbl[idx].value);
+  destroy(&tbl[idx]);
+  construct(&tbl[idx]);
   /* If the next slot is empty, we're done.  Otherwise, we may have to move
      another element into the emptied slot. */
-  if (tbl[(idx+1) & mask].ptr != a_key()) {
+  if (tbl[(idx+1) & mask].key() != a_key()) {
     this->check_deleted_slot(idx);
   }  /* if */
   this->n_elements -= 1;
@@ -3731,20 +3793,35 @@ Remove the given key from the table (it must exist).
 
 template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
-void Ptr_map<a_Ptr_key, a_Value, Allocator>::map_colliding_key(
-                                                    a_key          new_key,
-                                                    const a_value  &new_value,
-                                                    an_index       idx)
+inline void Ptr_map<a_Ptr_key, a_Value, Allocator>::clear()
 /*
-The given key has a hash value that collides with an existing mapping.  Move
-that existing mapping to the next free entry, and record the given new key and
-new value at the given location.
+Remove all entries in the Ptr_map.
 */
 {
-  an_index  idx0 = idx;
   an_index  mask = this->hash_mask;
-  an_entry  *tbl = this->table;
+  an_index  n_slots = mask+1;
 
+  for (an_index k = 0; k<n_slots; ++k) {
+    if (this->has_value_at(k)) {
+      /* If the entry was used, replace it. */
+      destroy(&table[k]);
+      construct(&table[k]);
+    }  /* if */
+  }  /* for */
+}  /* Ptr_map::unmap */
+
+
+template<typename a_Ptr_key, typename a_Value,
+         template<typename> class Allocator>
+void Ptr_map<a_Ptr_key, a_Value, Allocator>::map_colliding_key(
+                                                     an_index       idx,
+                                                     const a_key    &new_key,
+                                                     const a_value  &new_value)
+/*
+The given key has a hash value that collides with an existing mapping.  Record
+the given new key and new value at the next available location.
+*/
+{
 #if EXPENSIVE_CHECKING
   { a_value  old_val = this->get(new_key);
     if (old_val != a_value()) {
@@ -3752,19 +3829,57 @@ new value at the given location.
     }  /* if */
   }
 #endif /* EXPENSIVE_CHECKING */
+
   /* Move the existing mapping to the next available spot. */
+  an_index initial_hit = idx;
   for (;;) {
-    idx = (idx+1) & mask;
-    if (!this->contains_element(idx)) {
-      tbl[idx].ptr = tbl[idx0].ptr;
-      tbl[idx].value = move_from(&tbl[idx0].value);
+    idx = (idx+1) & this->hash_mask;
+    if (!this->has_value_at(idx)) {
+      swap_at(&this->table[idx], &this->table[initial_hit]);
       break;
     }  /* if */
   }  /* for */
   /* Record the new mapping. */
-  tbl[idx0].ptr = new_key;
-  tbl[idx0].value = new_value;
+  this->construct_entry_at(initial_hit, new_key, new_value);
 }  /* Ptr_map::map_colliding_key */
+
+
+template<typename a_Ptr_key, typename a_Value,
+         template<typename> class Allocator>
+void Ptr_map<a_Ptr_key, a_Value, Allocator>::construct_entry_at(
+                                                      an_index      idx,
+                                                      const a_key   &new_key,
+                                                      const a_value &new_value)
+/*
+Construct a new entry with the given key and value at the given index.
+*/
+{
+  an_entry new_entry(new_key, new_value);
+
+  this->table[idx] = move_from(&new_entry);
+  this->n_elements += 1;
+  if (this->n_elements * 2 > this->hash_mask) {
+    this->expand_table();
+  }  /* if */
+}  /* Ptr_map::construct_entry_at */
+
+
+template<typename a_Ptr_key, typename a_Value,
+         template<typename> class Allocator>
+auto Ptr_map<a_Ptr_key, a_Value, Allocator>::create_table(unsigned n_slots)
+                                                                   -> an_entry*
+/*
+Create a new table with the given number of slots.
+*/
+{
+  an_allocation  allocation = this->alloc(n_slots);
+
+  check_assertion(allocation.n_allocated == (a_ptrdiff)n_slots);
+  for (unsigned i = 0; i < n_slots; ++i) {
+    construct(&allocation.start[i]);
+  }  /* for */
+  return allocation.start;
+}  /* Ptr_map::expand_table */
 
 
 template<typename a_Ptr_key, typename a_Value,
@@ -3774,28 +3889,25 @@ void Ptr_map<a_Ptr_key, a_Value, Allocator>::expand_table()
 Double the size of the hash table (and rehash entries as needed).
 */
 {
-  an_entry       *new_table, *old_table = this->table;
-  an_index       mask = this->hash_mask;
-  an_index       n_slots = mask+1;
-  an_index       old_size = n_slots*(an_index)sizeof(an_entry);
-  an_allocation  allocation = this->alloc(2*n_slots);
+  an_index n_slots = this->hash_mask+1;
+  an_index new_mask = (this->hash_mask * 2) + 1;
+  an_entry *new_table = this->create_table(2*n_slots);
+  an_entry *old_table = this->table;
 
-  check_assertion(allocation.n_allocated == 2*n_slots);
-  new_table = allocation.start;
-  memzero((char*)new_table, size_t_arg(2*old_size));
-  mask = mask*2+1;
   for (an_index k = 0; k<n_slots; ++k) {
-    a_key  ptr = old_table[k].ptr;
-    if (ptr != a_key()) {
-      an_index  idx = hash_ptr(ptr) & mask;
-      while (new_table[idx].ptr != a_key()) {
-        idx = (idx+1) & mask;
+    an_entry &entry = old_table[k];
+
+    if (entry.has_value()) {
+      an_index idx = hash_ptr(entry.key()) & new_mask;
+
+      while (new_table[idx].has_value()) {
+        idx = (idx+1) & new_mask;
       }  /* while */
-      new_table[idx] = old_table[k];
+      new_table[idx] = move_from(&entry);
     }  /* if */
   }  /* for */
   this->table = new_table;
-  this->hash_mask = mask;
+  this->hash_mask = new_mask;
   this->dealloc(an_allocation{ old_table, (a_ptrdiff)n_slots });
 }  /* Ptr_map::expand_table */
 
@@ -3817,14 +3929,12 @@ we know that the subsequent slot is not empty.
 {
   an_entry  *tbl = this->table;
   an_index  mask = this->hash_mask;
-  an_index  idx, ridx;
-  a_key     rptr;
+  an_index  idx = (idx0+1) & mask;
+  an_index  ridx;
 
-  idx = (idx0+1) & mask;
-  rptr = tbl[idx].ptr;
   for (;;) {
     for (;;) {
-      ridx = hash_ptr(rptr) & mask;
+      ridx = hash_ptr(tbl[idx].key()) & mask;
       /* See if we can move the entry at idx to idx0.  ridx is its "ideal"
          slot: the place from where probing will start.  So we cannot move it
          ahead of there.  I.e., if idx0 lies outside [ridx, idx-1] (considering
@@ -3837,17 +3947,13 @@ we know that the subsequent slot is not empty.
         break;
       } else {
         idx = (idx+1) & mask;
-        rptr = tbl[idx].ptr;
-        if (rptr == a_key()) goto done;
+        if (!tbl[idx].has_value()) goto done;
       }  /* if */
     }  /* for */
-    tbl[idx0].ptr = tbl[idx].ptr;
-    tbl[idx0].value = move_from(&tbl[idx].value);
-    tbl[idx].ptr = a_key();
+    swap_at(&tbl[idx0], &tbl[idx]);
     idx0 = idx;
     idx = (idx0+1) & mask;
-    rptr = tbl[idx].ptr;
-    if (rptr == a_key()) goto done;
+    if (!tbl[idx].has_value()) goto done;
   }  /* for */
 done:;
 }  /* Ptr_map::check_deleted_slot */
@@ -3867,10 +3973,10 @@ Output some information about the map's key contents to f_debug.
 
   for (an_index k = 0; k<n_slots; ++k) {
     fprintf(f_debug, "[%2u] ", k);
-    if (!this->contains_element(k)) {
+    if (!this->has_value_at(k)) {
       fprintf(f_debug, "(empty)\n");
     } else {
-      a_key  ptr = tbl[k].ptr;
+      a_key  ptr = tbl[k].key();
 
       fprintf(f_debug, "h = %2u  %p\n",
               (an_index)hash_ptr(ptr) & mask, (void*)ptr);

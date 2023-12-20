@@ -361,24 +361,24 @@ ignored.
                                                 module_file);
     /* Note any module mappings pointing to this file. */
     for (const a_module_file_map::an_entry &entry : *mod_map) {
-      if (entry.ptr == NULL) {
+      if (!entry.has_value()) {
         continue;
       }  /* if */
-      if (strcmp(entry.value, module_file) == 0) {
+      if (strcmp(entry.value(), module_file) == 0) {
         /* A mapping for this file exists, add it to the diagnostic. */
-        a_const_char *module_name = entry.ptr.ptr;
+        a_const_char *module_name = entry.key().ptr;
         str_add_diag_info(dp, ec_found_from_module_map, module_name);
       }  /* if */
     }  /* for */
     /* FIXME: Should lazy_mod_map_arr elements be reported here? */
     /* Note any header unit mappings pointing to this file. */
     for (const a_header_unit_map::an_entry &entry : *header_unit_map) {
-      if (entry.ptr == NULL) {
+      if (!entry.has_value()) {
         continue;
       }  /* if */
-      if (strcmp(entry.value, module_file) == 0) {
+      if (strcmp(entry.value(), module_file) == 0) {
         /* A mapping for this file exists, add it to the diagnostic. */
-        a_const_char *header_path = entry.ptr.ptr;
+        a_const_char *header_path = entry.key().ptr;
         str_add_diag_info(dp, ec_found_from_header_unit_map, header_path);
       }  /* if */
     }  /* for */
