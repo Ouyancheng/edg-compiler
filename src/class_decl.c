@@ -22964,7 +22964,7 @@ classes in the suppression determination.
                 !is_const_default_constructible(utp)) {
               /* Default initialization of a const member is only allowed for
                  const-default-constructible types (N4861 [class.default.ctor]
-                 bullet (2.4)), but earlier versions of Clang still require a
+                 bullet (2.4)), but earlier versions of Clang still required a
                  user-provided default constructor. */
               gsfd->suppress_default_ctor = TRUE;
               break;
