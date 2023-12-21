@@ -42,8 +42,8 @@ X is deleted due to an error in the algorithm determining whether a class type
 is const-default-constructible. That is now fixed.  Furthermore, older versions
 of Clang previously did not consider the const-default-constructible property
 in this context and the front end emulated that (see the Changes for
-EDGcpfe/23439).  Clang 15, however, addressed that and the front end now limits
-its emulation to clang_version < 150000.
+EDGcpfe/23439).  Clang 15, however, addressed that and the front end now
+matches the current Clang behavior when clang_version < 150000.
 
 
 12/20/23 [EDGcpfe/26764]
