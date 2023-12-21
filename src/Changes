@@ -84,10 +84,10 @@ Correct memory management bugs with null and zero-sized allocations
 
 Previously, the front end could end up with unusable memory blocks in the front
 end memory pool if free_fe is called with a NULL value or alloc_fe was called
-for zero-sized allocation.  This is now fixed.
+for a zero-sized allocation.  This is now fixed.
 
 Additionally, downstream memory issues where the wrong values were read from a
-PCH have been fixed.
+precompiled header have been fixed.
 
 Furthermore, the behavior of deallocation functions in general has been
 updated to consistently and correctly handle deallocation of NULL values.
