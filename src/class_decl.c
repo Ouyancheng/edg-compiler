@@ -22960,11 +22960,12 @@ classes in the suppression determination.
             const_member_okay = TRUE;
           }  /* if */
           if (!const_member_okay && is_const_qualified_type(tp)) {
-            if (clang_mode || !is_const_default_constructible(utp)) {
+            if (clang_version_is(<150000) ||
+                !is_const_default_constructible(utp)) {
               /* Default initialization of a const member is only allowed for
                  const-default-constructible types (N4861 [class.default.ctor]
-                 bullet (2.4)), but Clang still requires a user-provided
-                 default constructor (verified for Clang 10.0). */
+                 bullet (2.4)), but earlier versions of Clang still require a
+                 user-provided default constructor. */
               gsfd->suppress_default_ctor = TRUE;
               break;
             }  /* if */
