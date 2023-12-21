@@ -17396,7 +17396,9 @@ TRUE.  If the member is a bit field, issue an error.
          in 2.95 through 4.1). */
     } else if (microsoft_mode) {
       /* MSVC++ allows the nonstandard forms in versions before 1400. */
-      if (microsoft_version < 1400) severity = (an_error_severity)es_none;
+      if (microsoft_version < 1400) {
+        severity = (an_error_severity)es_none;
+      }  /* if */
     } else if (any_cfront_mode()) {
       /* Cfront allows the nonstandard forms in all versions. */
       severity = (an_error_severity)es_none;
@@ -23164,9 +23166,10 @@ handle_expr:
       operand->is_operand_of_address_of = TRUE;
       operand->ampersand_position = *ampersand_position;
       if (operand->is_id_expression &&
-          !operand->id_expression_was_parenthesized) {
+          (!operand->id_expression_was_parenthesized || microsoft_mode)) {
         /* Remember that the operand has the right form for a pointer to
-           member (no parentheses around the identifier). */
+           member (no parentheses around the identifier, except in Microsoft
+           mode). */
         operand->has_required_ptr_to_member_form = TRUE;
       }  /* if */
     } else {
