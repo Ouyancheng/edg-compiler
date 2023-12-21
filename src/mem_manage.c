@@ -2209,7 +2209,7 @@ This is done before command line processing.
 
 void mem_manage_reset(void)
 /*
-Called when a PCH file has just been read to reset memory management state.
+Called when a PCH file has just been read to reset the memory management state.
 */
 {
   /* If there's currently a freed_fe_map, reset it to an empty state.  This
@@ -2218,7 +2218,7 @@ Called when a PCH file has just been read to reset memory management state.
   if (freed_fe_map != NULL) {
     freed_fe_map->clear();
   }  /* if */
-}  /* mem_manage_early_init */
+}  /* mem_manage_reset */
 
 
 void mem_manage_init(void)
