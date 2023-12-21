@@ -3483,7 +3483,9 @@ Move assign into this Ptr_map_entry from another Ptr_map_entry.
 */
 {
   if (this->has_value() && other.has_value()) {
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
     this->stored_value = move_from(&other.stored_value);
+END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
   } else if (other.has_value()) {
     construct(&this->stored_value, move_from(&other.stored_value));
   } else if (this->has_value()) {
