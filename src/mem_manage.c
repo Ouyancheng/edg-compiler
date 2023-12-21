@@ -1070,7 +1070,7 @@ is used for allocation of general front end memory (i.e., not IL).
   char                   *temp_ptr;
   a_mem_block_header_ptr hdr;
 
-  /* Ensure at least one byte is allocated to ensure that zero size objects
+  /* Ensure at least one byte is allocated to ensure that zero-sized objects
      have distinct memory addresses. */
   size = max_val(size, (sizeof_t)1);
 
@@ -1951,7 +1951,7 @@ a new block.
 {
   void  *ptr = NULL;
 
-  /* Ensure at least one byte is allocated to ensure that zero size objects
+  /* Ensure at least one byte is allocated to ensure that zero-sized objects
      have distinct memory addresses. */
   size = max_val(size, (sizeof_t)1);
   /* If the freed map exists, look for a previously freed block. */
