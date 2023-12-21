@@ -3881,7 +3881,7 @@ Create a new table with the given number of slots.
     construct(&allocation.start[i]);
   }  /* for */
   return allocation.start;
-}  /* Ptr_map::expand_table */
+}  /* Ptr_map::create_table */
 
 
 template<typename a_Ptr_key, typename a_Value,
