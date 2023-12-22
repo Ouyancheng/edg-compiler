@@ -6867,7 +6867,8 @@ FALSE is returned) for non-class objects.
         }  /* if */
       } else if (var->is_constexpr || var->declared_constinit) {
         check_assertion_or_expect_error(!has_nontrivial_destructor(cssp) ||
-                                        constexpr_dynamic_alloc_enabled);
+                                        constexpr_dynamic_alloc_enabled ||
+                                        var->declared_constinit);
         if (ctor == NULL && dtor == NULL) {
           /* This should only be possible with nonreal classes or in some
              error cases. */

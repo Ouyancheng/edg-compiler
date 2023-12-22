@@ -1,5 +1,18 @@
 Version 6.7
 
+12/22/23 [EDGcpfe/26908]
+Internal error on __constinit in pre-C++20 GNU modes
+
+An incorrectly-written assertion check in the front end caused it to fail that
+assertion in pre-C++20 GNU mode when a default-initialized __constinit variable
+has a nontrivial destructor.  For example:
+
+  struct S { ~S(); };
+  __constinit S s;  // Previously triggered an internal error in some modes.
+
+That is now fixed.
+
+
 12/20/23 [EDGcpfe/26900]
 Microsoft bugs compatibility: &(X::Y) pointer-to-member formation
 
