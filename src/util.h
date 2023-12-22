@@ -3454,7 +3454,7 @@ Ptr_map_entry<a_Ptr_key, a_Value>::Ptr_map_entry(an_entry &&other)
 /*
 Move construct a Ptr_map_entry from another Ptr_map_entry.
 */
-  : stored_key(other.stored_key)
+  : stored_key(move_from(&other.stored_key))
 {
   if (this->has_value()) {
     construct(&this->stored_value, move_from(&other.stored_value));
@@ -3482,16 +3482,8 @@ auto Ptr_map_entry<a_Ptr_key, a_Value>::operator=(an_entry &&other) ->
 Move assign into this Ptr_map_entry from another Ptr_map_entry.
 */
 {
-  if (this->has_value() && other.has_value()) {
-BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
-    this->stored_value = move_from(&other.stored_value);
-END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
-  } else if (other.has_value()) {
-    construct(&this->stored_value, move_from(&other.stored_value));
-  } else if (this->has_value()) {
-    construct(&other.stored_value, move_from(&this->stored_value));
-  }  /* if */
-  this->stored_key = move_from(&other.stored_key);
+  destroy(this);
+  construct(this, move_from(&other));
   return *this;
 }  /* Ptr_map_entry::operator= */
 
