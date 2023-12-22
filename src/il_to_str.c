@@ -6561,7 +6561,16 @@ precedence confusion.  Do the output in the way described by octl.
            are necessary as sometimes the type of the constant will have
            been adjusted to something other than std:nullptr_t but the
            constant should still be put out as the nullptr keyword.) */
-        octl->output_str("nullptr", octl);
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+        if (clang_is_generated_code_target && octl->gen_compilable_code) {
+          /* Clang accepts "__nullptr" in all C++ modes. */
+          octl->output_str("__nullptr", octl);
+        } else
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+        /* Do not insert code here. */
+        {
+          octl->output_str("nullptr", octl);
+        }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (!is_for_c_gen_be(octl) && constant->native_nullptr_keyword) {
         /* The Microsoft __nullptr keyword. */

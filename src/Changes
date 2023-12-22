@@ -1,5 +1,13 @@
 Version 6.7
 
+12/22/23 [EDGcpfe/26898]
+Clang C++ compatibility: __nullptr
+
+Clang appears to accept __nullptr as a synonym for the C++11 nullptr keyword,
+but also accepts it in pre-C++11 modes.  The front end now emulates that
+behavior Clang modes.
+
+
 12/22/23 [EDGcpfe/26908]
 Internal error on __constinit in pre-C++20 GNU modes
 

@@ -2635,7 +2635,9 @@ EXTERN a_boolean
 EXTERN a_boolean
 		nullptr_enabled;
 			/* When TRUE, the C++11 keyword "nullptr" is
-			   enabled. */
+			   enabled.  Note that even when FALSE other equivalent
+			   tokens may exist (e.g., "__nullptr" in Clang C++03
+			   mode). */
 
 EXTERN a_boolean
 		c23_typeof_enabled;

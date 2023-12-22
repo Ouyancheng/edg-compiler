@@ -1492,6 +1492,11 @@ Install the keywords in the symbol table.
     if (nullptr_enabled) {
       enter_keyword((a_token_kind)tok_nullptr, "nullptr");
     }  /* if */
+    if (clang_mode) {
+      /* Clang defines a __nullptr token that matches nullptr even in modes
+         that don't allow nullptr (like C++03). */
+      enter_keyword((a_token_kind)tok_nullptr, "__nullptr");
+    }  /* if */
     if (noexcept_enabled) {
       enter_keyword((a_token_kind)tok_noexcept, "noexcept");
     }  /* if */
