@@ -362,9 +362,11 @@ void swap_at(a_Ptr  p1,
 Swap the values pointed to by p1 and p2.
 */
 {
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
   Value_for_ptr<a_Ptr>  tmp = move_from(p1);
   *p1 = move_from(p2);
   *p2 = move_from(&tmp);
+END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 }  /* swap_at */
 
 
