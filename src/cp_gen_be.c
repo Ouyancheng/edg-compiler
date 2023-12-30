@@ -16050,12 +16050,18 @@ Render the list of lambda captures, including the delimiting brackets.
 
 static void gen_lambda(a_lambda_ptr lambda)
 /*
-Render code for the given lambda.
+Generate code for the given lambda.
 */
 {
-  a_scope_ptr             closure_scope;
-  a_routine_ptr           rp = lambda->lambda_routine;
+  a_scope_ptr   closure_scope;
+  a_routine_ptr rp = lambda->lambda_routine;
+  a_boolean     saved_proto_context = in_prototype_instantiation_context;
 
+  if (lambda->is_generic) {
+    /* The code for a generic lambda should be handled as a prototype
+       instantiation. */
+    in_prototype_instantiation_context = TRUE;
+  }  /* if */
   gen_lambda_captures(lambda);
   closure_scope = class_type_supp(lambda->closure_class)->assoc_scope;
   if (lambda->is_generic && !il_header.il_has_all_prototype_instantiations) {
@@ -16162,6 +16168,7 @@ Render code for the given lambda.
     pop_name_context();
   }  /* if */
   lambda->closure_class->has_been_defined = TRUE;
+  in_prototype_instantiation_context = saved_proto_context;
 }  /* gen_lambda */
 
 
