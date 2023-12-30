@@ -1,5 +1,15 @@
 Version 6.7
 
+12/30/23 [EDGcpfe/26913]
+C++-generating back end: undefined behavior with MAKE_FRONT_END_CALLABLE
+
+The changes for EDGcpfe/26339 (in version 6.6) introduced a global variable
+that was not properly reinitialized in configurations in which
+MAKE_FRONT_END_CALLABLE is TRUE, potentially leading to undefined behavior
+as a result of use of invalid pointers from previous invocations of the
+front end.  This is now fixed.
+
+
 12/22/23 [EDGcpfe/26898]
 Clang C++ compatibility: __nullptr
 

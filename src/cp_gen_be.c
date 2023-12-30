@@ -24381,6 +24381,11 @@ the point at which the compilation was terminated.
 */
 {
   close_file_if_open(&f_C_output);
+  if (var_init_map != NULL) {
+    var_init_map->~a_var_initializer_map();
+    free_general(var_init_map, sizeof(a_var_initializer_map));
+    var_init_map = NULL;
+  }  /* if */
 }  /* cp_gen_be_cleanup */
 
 #endif /* MAKE_FRONT_END_CALLABLE */
