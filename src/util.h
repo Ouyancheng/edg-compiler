@@ -428,7 +428,7 @@ copy_elements(an_Array_A       &dest_array,
               size_t           num_to_copy)
 /*
 Copy the given number of non-trivially copyable elements from the source
-array-like type to the the destination array-like type.
+array-like type to the destination array-like type.
 
 Note: both an_Array_A and an_Array_B must represent all elements to be copied
 as contiguous memory blocks to use this interface.
@@ -447,7 +447,7 @@ copy_elements(an_Array_A       &dest_array,
               size_t           num_to_copy)
 /*
 Copy the given number of trivially copyable elements from the source array-like
-type to the the destination array-like type.
+type to the destination array-like type.
 
 Note: both an_Array_A and an_Array_B must represent all elements to be copied
 as contiguous memory blocks to use this interface.
@@ -3461,7 +3461,7 @@ Move construct a Ptr_map_entry from another Ptr_map_entry.
   if (this->has_value()) {
     construct(&this->stored_value, move_from(&other.stored_value));
   }  /* if */
-}  /* Ptr_map_entry::~Ptr_map_entry */
+}  /* Ptr_map_entry::Ptr_map_entry */
 
 
 template<typename a_Ptr_key, typename a_Value>
@@ -3804,7 +3804,7 @@ Remove all entries in the Ptr_map.
       construct(&table[k]);
     }  /* if */
   }  /* for */
-}  /* Ptr_map::unmap */
+}  /* Ptr_map::clear */
 
 
 template<typename a_Ptr_key, typename a_Value,
