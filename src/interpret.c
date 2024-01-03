@@ -12946,7 +12946,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
                     &call_node->position, ips);
       goto done;
     }  /* if */
-  }  /* if */
+  }
   ptp = function_type_params(callee_type)->next;
   { /* Extract the second argument and use it to dimension field_descrs. */
     a_boolean             is_signed = is_signed_integral_type(ptp->type);
