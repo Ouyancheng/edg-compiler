@@ -18319,6 +18319,7 @@ static a_const_char* intrinsic_names[] = {
   "bases__impl",
   "subobjects__impl",
   "enumerators__impl",
+  "parameters__impl",
   "substitute__impl",
   "reflect_value",
   "value_of",

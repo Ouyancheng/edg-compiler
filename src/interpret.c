@@ -11591,6 +11591,9 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     case iek_variable:
       tp = ((a_variable*)rvp->entity.ptr)->type;
       break;
+    case iek_param_type:
+      tp = ((a_param_type*)rvp->entity.ptr)->type;
+      break;
     default:
       break;
   }  /* switch */
@@ -12130,6 +12133,7 @@ string_view object referring to that static array.
       clear_address(cap, chars);
       cap->flags = CA_ARRAY_ELEMENT | CA_CONST_STORAGE;
       cap->length = length+1;
+      cap->variant.base_address = chars;
       mark_subobject_initialized(subobj+offset, complete_obj);
       ptr_done = TRUE;
     } else if (type_is(ftp, tk_integer) && !length_done) {
@@ -12180,16 +12184,20 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   a_type_ptr    rtp = skip_typerefs(callee->type), tp;
 
   strip_template_arg(rvp);
-  scp = source_corresp_for_reflection(rvp);
+  if (rvp->entity.kind == iek_param_type) {
+    name = ((a_param_type*)rvp->entity.ptr)->name;
+  } else {
+    scp = source_corresp_for_reflection(rvp);
+    if (scp == NULL) {
+      name = "<invalid>";
+    } else if (scp->name != NULL) {
+      name = unmangled_name_of(scp);
+    } else {
+      name = "";
+    }  /* if */
+  }  /* if */
   check_assertion(type_is(rtp, tk_routine));
   tp = skip_typerefs(rtp->variant.routine.return_type);
-  if (scp == NULL) {
-    name = "<invalid>";
-  } else if (scp->name != NULL) {
-    name = unmangled_name_of(scp);
-  } else {
-    name = "";
-  }  /* if */
   result = make_reflective_string_view(ips, tp, name,
                                        result_storage, complete_obj);
   return result;
@@ -12649,6 +12657,77 @@ done:
 }  /* do_constexpr_std_meta_enumerators_of */
 
 
+static a_boolean do_constexpr_std_meta_parameters_of(
+                                        an_interpreter_state  *ips,
+                                        a_routine_ptr         callee,
+                                        an_expr_node_ptr      call_node,
+                                        a_byte                **p_arg_bytes,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_obj)
+/*
+Implement std::meta::parameters__impl(<reflection_value>).  It returns a
+vector-like container (struct std::meta::__infovec) of reflections, with each
+element representing a parameter of the given function or function-type
+reflection (in declaration order).
+
+See do_constexpr_intrinsic_call for the meaning of the parameters.
+*/
+{
+  a_boolean     result = FALSE, invalid_arg = FALSE;
+  a_reflection_value
+                *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_source_correspondence_ptr
+                scp = source_corresp_for_reflection(rvp);
+  a_type_ptr    rtp = NULL;
+
+  if (!ips->is_constant_evaluated || !constexpr_dynamic_alloc_enabled) {
+    /* Don't attempt to evaluate this call if a constant result is not needed,
+       because it could be somewhat expensive. */
+    do_constexpr_fail(result);
+    info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                  &call_node->position, ips);
+    goto done;
+  }  /* if */
+  check_assertion(type_is(skip_typerefs(callee->type), tk_routine));
+  strip_template_arg(rvp);
+  if (scp == NULL) {
+    invalid_arg = TRUE;
+  } else if (rvp->entity.kind == iek_type) {
+    rtp = skip_typerefs((a_type_ptr)rvp->entity.ptr);
+    if (!type_is(rtp, tk_routine)) {
+      invalid_arg = TRUE;
+    }  /* if */
+  } else if (rvp->entity.kind == iek_routine) {
+    rtp = ((a_routine_ptr)rvp->entity.ptr)->type;
+    rtp = skip_typerefs(rtp);
+    check_assertion(rtp->kind == tk_routine);
+  } else {
+    invalid_arg = TRUE;
+  }  /* if */
+  if (invalid_arg) {
+    do_constexpr_fail(result);
+    info_with_pos(ec_invalid_reflection_for_intrinsic, &call_node->position,
+                  ips);
+  } else {
+    a_type_ptr    result_tp = skip_typerefs(call_node->type);
+    a_param_type  *ptp = function_type_params(rtp);
+    Dyn_array<a_reflection_value>
+                  result_reflections(0);
+    for (; ptp != NULL; ptp = ptp->next) {
+      a_reflection_value  rv;
+      rv.entity.ptr = (char*)ptp;
+      rv.entity.kind = iek_param_type;
+      rv.local_scope_number = FILE_SCOPE_NUMBER;
+      result_reflections.push_back(rv);
+    }  /* for */
+    result = make_infovec(ips, result_tp, &result_reflections,
+                          &call_node->position, result_storage, complete_obj);
+  }  /* if */
+done:
+  return result;
+}  /* do_constexpr_std_meta_parameters_of */
+
+
 static a_boolean do_constexpr_std_meta_substitute(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
@@ -12829,7 +12908,7 @@ static a_boolean do_constexpr_std_meta_define_class(
 /*
 Implement std::meta::__define_class(<info>, n, <descriptions>).  It returns its
 first argument, which should be a reflection for an incomplete class type.
-The third argument of the call points to an array of n elements of type
+The third argument of the call points to an array of n elements of type FIXME
 std::meta::ndsm_description that describe members that should be added to the
 definition of the given type.  This function triggers the completion of the
 class type designated by its first argument with members as described by the
@@ -12839,15 +12918,12 @@ are invalid.
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
 {
-  a_boolean     result = TRUE;
-  a_reflection_value
-                *rvp = (a_reflection_value*)p_arg_bytes[0];
+  a_boolean         result = TRUE;
   Dyn_array<a_meta_field_descr>
-                field_descrs(0);
-  a_type_ptr    callee_type = skip_typerefs(callee->type), class_type;
-  int           n_fields;
-  a_param_type_ptr
-                ptp;
+                    field_descrs(0);
+  a_type_ptr        callee_type = skip_typerefs(callee->type), class_type;
+  int               n_fields;
+  a_param_type_ptr  ptp;
 
   if (!ips->is_constant_evaluated) {
     /* Don't attempt to evaluate this call if a constant result is not needed,
@@ -12858,14 +12934,18 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     goto done;
   }  /* if */
   check_assertion(type_is(callee_type, tk_routine));
-  if (rvp->entity.kind != iek_type ||
-      !(class_type = (a_type*)rvp->entity.ptr)->incomplete ||
-      !is_immediate_class_type(class_type)) {
-    /* The first operand doesn't designate an incomplete class type. */
-    do_constexpr_fail(result);
-    info_with_pos(ec_invalid_reflection_for_intrinsic,
-                  &call_node->position, ips);
-    goto done;
+  { /* Check the first argument: It should be a reflection for an incomplete
+       type. */
+    a_reflection_value  *rvp = (a_reflection_value*)p_arg_bytes[0];
+    if (rvp->entity.kind != iek_type ||
+        !(class_type = (a_type*)rvp->entity.ptr)->incomplete ||
+        !is_immediate_class_type(class_type)) {
+      /* The first operand doesn't designate an incomplete class type. */
+      do_constexpr_fail(result);
+      info_with_pos(ec_invalid_reflection_for_intrinsic,
+                    &call_node->position, ips);
+      goto done;
+    }  /* if */
   }  /* if */
   ptp = function_type_params(callee_type)->next;
   { /* Extract the second argument and use it to dimension field_descrs. */
@@ -12882,19 +12962,32 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     n_fields = (int)val;
     field_descrs.reserve(n_fields);
   }
-  { /* Load the array pointed-to by the third argument. */
+  if (n_fields != 0) {
+    /* Load the array pointed-to by the third argument. */
     a_constexpr_address  *cap = (a_constexpr_address*)p_arg_bytes[2];
-    a_type               *descr_type = type_pointed_to(ptp->next->type);
+    a_type               *descr_type;
     a_byte_count         descr_size;
     a_field              *fp;
     a_byte_count         type_offset, name_offset, alignment_offset,
                          bit_width_offset;
-    a_byte               *subobj = cap->address,
-                         *complete_obj = cap->complete_object;
+    a_byte               *subobj, *complete_obj;
+    a_reflection_value   *rvp = (a_reflection_value*)cap->address;
+    if (!is_pointer_type(ptp->next->type) ||
+        !is_reflection_type(type_pointed_to(ptp->next->type))) {
+      // FIXME: Diagnostic
+      do_constexpr_fail(result);
+      goto done;
+    }  /* if */
+    if (rvp->entity.kind != iek_constant) {
+      // FIXME: Diagnostic
+      do_constexpr_fail(result);
+      goto done;
+    }  /* if */
     /* The array elements should be of a class type. */
-    descr_type = skip_typerefs(descr_type);
+    descr_type = skip_typerefs(((a_constant*)rvp->entity.ptr)->type);
     descr_size = value_bytes_for_type(ips, descr_type, &result);
     if (!result || !is_immediate_class_type(descr_type)) {
+      // FIXME: Diagnostic
       do_constexpr_fail(result);
       goto done;
     }  /* if */
@@ -12930,11 +13023,25 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
       goto done;
     }  /* if */
     get_mapped_byte_count(&persistent_map, fp, bit_width_offset);
-    for (int k = 0; k<n_fields; ++k, subobj += descr_size) {
+
+    alloc_stack_bytes(ips, descr_size, subobj);
+    complete_obj = subobj;
+    for (int k = 0; k<n_fields; ++k, ++rvp, subobj += descr_size) {
       a_meta_field_descr   fd = {};
       a_byte_count         name_length;
       a_reflection_value   *ftr = (a_reflection_value*)(subobj+type_offset);
       a_constexpr_address  *name_cap;
+      if (rvp->entity.kind != iek_constant) {
+        do_constexpr_fail(result);
+        info_with_pos(ec_invalid_reflection_for_intrinsic,
+                      &call_node->position, ips);
+        goto done;
+      }  /* if */
+      if (!extract_value_from_constant(ips, (a_constant*)rvp->entity.ptr,
+                                       subobj, subobj)) {
+        result = FALSE;
+        break;
+      }  /* if */
       /* Use the offsets computed above to load the components of each array
          element into field_descrs, via fd.  For every component, check that
          the value is initialized and generally valid. */
@@ -13757,6 +13864,9 @@ frame when the call has completed.
       break;
     case cit_std_meta_enumerators_of:
       evaluator = do_constexpr_std_meta_enumerators_of;
+      break;
+    case cit_std_meta_parameters_of:
+      evaluator = do_constexpr_std_meta_parameters_of;
       break;
     case cit_std_meta_substitute:
       evaluator = do_constexpr_std_meta_substitute;

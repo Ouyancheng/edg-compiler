@@ -9180,6 +9180,11 @@ interpreter) and if so mark it as such.
             if (strcmp(name, "parent_of") == 0) {
               tag = cit_std_meta_parent_of;
             }  /* if */
+          } else if (is_std_meta_infovec_type(
+                                          rtp->variant.routine.return_type)) {
+            if (strcmp(name, "parameters__impl") == 0) {
+              tag = cit_std_meta_parameters_of;
+            }  /* if */
           }  /* if */
         }  /* if */
         break;

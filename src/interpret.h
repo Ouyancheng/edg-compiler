@@ -85,6 +85,7 @@ enum a_constexpr_intrinsic {
   cit_std_meta_bases_of,
   cit_std_meta_subobjects_of,
   cit_std_meta_enumerators_of,
+  cit_std_meta_parameters_of,
   cit_std_meta_substitute,
   cit_std_meta_reflect_value,
   cit_std_meta_value_of,

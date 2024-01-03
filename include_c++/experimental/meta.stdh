@@ -159,6 +159,15 @@ namespace std {
       return std::vector<info>(v.begin(), v.end());
     }
 
+    consteval __infovec parameters__impl(info) {
+      return __infovec(0);  /* Dummy return.  Handled by interpreter. */
+    }
+
+    consteval std::vector<info> parameters_of(info r) {
+      __infovec v = parameters__impl(r);
+      return std::vector<info>(v.begin(), v.end());
+    }
+
     consteval info substitute__impl(info, __infovec) {
       return ^::;  /* Dummy return.  Handled by interpreter. */
     }
@@ -428,13 +437,19 @@ namespace std {
 
     consteval void __define_class(info type,
                                   int  n_fields,
-                                  nsdm_description *field_info) {
+                                  info *field_info) {
       /* Handled by interpreter. */
     };
 
     consteval info define_class(info  type,
                                 std::vector<nsdm_description> fields) {
-      __define_class(type, fields.size(), fields.data());
+      auto       n = fields.size();
+      __infovec  infos(n);
+      
+      for (auto &field: fields) {
+        infos.push_back(reflect_value(field));
+      }
+      __define_class(type, n, infos.begin());
       return type;
     }
 
