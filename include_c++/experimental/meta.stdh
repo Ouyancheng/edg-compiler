@@ -437,19 +437,13 @@ namespace std {
 
     consteval void __define_class(info type,
                                   int  n_fields,
-                                  info *field_info) {
+                                  nsdm_description *field_info) {
       /* Handled by interpreter. */
     };
 
     consteval info define_class(info  type,
                                 std::vector<nsdm_description> fields) {
-      auto       n = fields.size();
-      __infovec  infos(n);
-      
-      for (auto &field: fields) {
-        infos.push_back(reflect_value(field));
-      }
-      __define_class(type, n, infos.begin());
+      __define_class(type, fields.size(), fields.data());
       return type;
     }
 
