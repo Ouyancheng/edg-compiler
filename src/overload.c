@@ -23993,6 +23993,13 @@ The type of the operand will be updated if necessary.
        meaningful when the data member is an unknown-bound array). */
     a_type_ptr orig_var_type = var->type;
     complete_variable_type_is_needed(var);
+    if (gpp_mode && is_incomplete_array_type(var->type) &&
+        var->is_template_variable &&
+        var->source_corresp.is_class_member) {
+      /* A static data member with an incomplete array type may see its type
+         completed once its initializer (if any) is parsed. */
+      ensure_inclass_static_member_constant_initializer_is_scanned(var);
+    }  /* if */
     if (var->type != orig_var_type) {
       /* Modify the operand to get the right type in all the right places. */
       if (is_an_lvalue(operand)) {
