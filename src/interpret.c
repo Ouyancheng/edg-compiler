@@ -12961,7 +12961,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     n_fields = (int)val;
     field_descrs.reserve(n_fields);
   }
-  { /* Load the array pointed-to by the third argument. */
+  { /* Load the array pointed to by the third argument. */
     a_constexpr_address  *cap = (a_constexpr_address*)p_arg_bytes[2];
     a_type               *descr_type = type_pointed_to(ptp->next->type);
     a_byte_count         descr_size;
