@@ -2528,14 +2528,16 @@ static void get_runtime_array_pos(an_interpreter_state  *ips,
                                   a_type_ptr            elem_type,
                                   a_byte_count          elem_size,
                                   a_byte_count          *a_len,
-                                  a_byte_count          *p_pos)
+                                  a_byte_count          *p_pos,
+                                  a_boolean             *p_result)
 /*
 cap represents a run-time address constant or null pointer and elem_size the
 size of the element type (elem_type) being addressed.  For null pointers, set
 *a_len and *p_pos to zero.  Otherwise, return in *a_len the number of objects
 pointed to if known (the length of an array or one for a non-array object); if
 unknown, return MAX_ARRAY_LENGTH.  Return in *p_pos the "array" position being
-addressed (with non-array objects treated as arrays of one element).
+addressed (with non-array objects treated as arrays of one element).  Set
+*p_result to FALSE if an error occurs.
 */
 {
   a_constant_ptr  con_addr = cap->variant.addr_con;
@@ -2621,7 +2623,10 @@ addressed (with non-array objects treated as arrays of one element).
              a subarray and that of the first element in that array.  For the
              latter case, etype will equal elem_type. */
           a_type_ptr  etype;
-          check_assertion(type_is(atype, tk_array));
+          if (!type_is(atype, tk_array)) {
+            *p_result = FALSE;
+            break;
+          }  /* if */
           etype = skip_typerefs(atype->variant.array.element_type);
           if (etype != elem_type) {
             atype = etype;
@@ -2683,7 +2688,7 @@ arithmetic on void* pointers and treats them as pointing to byte arrays.)
 {
   if (is_runtime_data_address(cap)) {
     *e_size = type_is(elem_type, tk_void) ? 1 : (a_byte_count)elem_type->size;
-    get_runtime_array_pos(ips, cap, elem_type, *e_size, a_len, pos);
+    get_runtime_array_pos(ips, cap, elem_type, *e_size, a_len, pos, p_result);
   } else {
     *e_size = value_bytes_for_type(ips, elem_type, p_result);
     if (*p_result) {
@@ -22451,15 +22456,18 @@ the value representation of the integer value.
                   if ((clang_mode || gpp_version_is(>= 90000)) &&
                       is_lambda_closure_type(parent_class_of(field)) &&
                       is_reference_type(field->type) &&
-                      is_class_struct_union_type(
-                                              type_pointed_to(field->type))) {
+                      identical_types(field->type, tp)) {
                     /* Clang and GCC accept x.f() where x is a run-time local
                        variable even when x is captured by reference and the
                        expression becomes something like __closure.ref_x.f()
                        where an lvalue-to-rvalue transformation applies to
                        __closure.ref_x.  We emulate that conversion by just
                        copying over the local-variable address: Any attempt
-                       to use it will create an error later on. */
+                       to use it will trigger an error later on. */
+                    result_addr.variant.addr_con =
+                            make_interpreter_copy_of_constant(
+                                           ips, result_addr.variant.addr_con);
+                    result_addr.variant.addr_con->type = tp;
                     *(a_constexpr_address*)result_storage = result_addr;
                     break;
                   }  /* if */
