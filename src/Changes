@@ -1,5 +1,14 @@
 Version 6.7
 
+1/5/24   [EDGcpfe/26924]
+Clang C++11 compatibility: Statements in constexpr function templates
+
+The changes made for EDGcpfe/26319, which cause statements other than return
+statements to be accepted in GNU-C++11-mode constexpr function templates, have
+been extended to apply to Clang C++11 mode with clang_version >= 30300.
+Furthermore, a warning is now issued when that extension is relied on.
+
+
 1/5/24   [EDGcpfe/26927]
 Incorrect constant-evaluation of comparison of certain addresses
 

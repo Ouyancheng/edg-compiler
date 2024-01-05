@@ -7889,8 +7889,7 @@ expr_statement:
   }  /* switch */
   if (current_rp != NULL && current_rp->is_constexpr &&
       !can_appear_in_constexpr_body) {
-    if ((current_rp->is_declared_constexpr || current_rp->is_consteval) &&
-        !(gpp_version_is(>=120000) && current_rp->is_template_function)) {
+    if (current_rp->is_declared_constexpr || current_rp->is_consteval) {
       /* Report an error if the statement is not one that is allowed in a
          constexpr function or constexpr constructor. */
       if (current_rp->is_prototype_instantiation &&
@@ -7898,6 +7897,9 @@ expr_statement:
         /* In uninstantiated templates common practice is to either not
            diagnose this (GCC, MSVC) or to just issue a warning (Clang).  We
            therefore only issue a warning in nonstrict modes. */
+        in_constexpr_body_sev = es_warning;
+      } else if ((gpp_version_is(>=120000) || clangcpp_version_is(>=30300)) &&
+                 current_rp->is_template_function) {
         in_constexpr_body_sev = es_warning;
       }  /* if */
       pos_diagnostic(in_constexpr_body_sev,
