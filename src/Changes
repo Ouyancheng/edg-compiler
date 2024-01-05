@@ -1,5 +1,23 @@
 Version 6.7
 
+1/5/24   [EDGcpfe/26027,EDGcpfe/26926]
+GNU/Clang-mode abort on constant pointer arithmetic with zero-sized types
+
+Consider, in GNU or Clang C++ modes:
+
+  typedef int Z[0];
+  constexpr bool g() {
+    auto arr = new Z[2];
+    auto d = arr[1];
+    return true;
+  }
+  bool a = g();
+
+Previously this aborted with an internal error in get_array_pos (interpret.c)
+due to the subscripting of an array with zero-sized elements.  That is now
+fixed.
+
+
 1/4/24   [EDGcpfe/26918]
 Abort on by-reference capture of array in GNU/Clang mode
 

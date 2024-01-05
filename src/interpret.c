@@ -2695,8 +2695,11 @@ arithmetic on void* pointers and treats them as pointing to byte arrays.)
       if (is_array_element(cap)) {
         *a_len = cap->length;
         *pos = (a_byte_count)(cap->address - get_base_address(cap));
-        check_assertion(*e_size != 0);
-        *pos /= *e_size;
+        if (*e_size != 0) {
+          *pos /= *e_size;
+        } else {
+          *pos = 0;
+        }  /* if */
       } else {
         *a_len = 1;
         *pos = cannot_dereference(cap) ? 1: 0;
