@@ -1,5 +1,22 @@
 Version 6.7
 
+1/4/24   [EDGcpfe/26918]
+Abort on by-reference capture of array in GNU/Clang mode
+
+Consider:
+
+  int main() {
+    int arr[5][5];
+    auto lambda = [&arr]() {
+      int x = arr[1][1];
+    };
+  }
+
+The changes for EDGcpfe/26341 introduced a regression in version 6.6 of the
+front end causing the example above to abort with an internal error in
+get_runtime_array_pos (interpret.c).  That is now fixed.
+
+
 1/2/24   [EDGcpfe/25475,EDGcpfe/26903]
 Spurious GNU-mode incomplete-type error for static data member of template
 

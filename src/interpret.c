@@ -22450,7 +22450,9 @@ the value representation of the integer value.
                     field->is_bit_field) {
                   if ((clang_mode || gpp_version_is(>= 90000)) &&
                       is_lambda_closure_type(parent_class_of(field)) &&
-                      is_reference_type(field->type)) {
+                      is_reference_type(field->type) &&
+                      is_class_struct_union_type(
+                                              type_pointed_to(field->type))) {
                     /* Clang and GCC accept x.f() where x is a run-time local
                        variable even when x is captured by reference and the
                        expression becomes something like __closure.ref_x.f()
