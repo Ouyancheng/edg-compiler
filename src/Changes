@@ -1,5 +1,29 @@
 Version 6.7
 
+1/5/24   [EDGcpfe/26927]
+Incorrect constant-evaluation of comparison of certain addresses
+
+Consider:
+
+  constexpr bool is_same_object(const int &x, const int &y) {
+    return &x == &y;
+  }
+  constexpr bool is_not_same_object(const int &x, const int &y) {
+    return &x != &y;
+  }
+  int i = 0;
+  static_assert(is_same_object(i, 42) == false, "");
+    // Previously failed (wrong result).  Now okay.
+  static_assert(is_not_same_object(i, 42), "");
+    // Previously failed to constant-evaluate.  Now okay.
+
+When comparing a run-time address (such as that of i in the example) with a
+constant-evaluated address (e.g., the address of the temporary created for 42
+in the example), the == operator incorrectly produced a true result.  In
+similar circumstances, the != operator incorrectly failed constant-evaluation
+(the addresses are known to be distinct).  That problem is now fixed.
+
+
 1/5/24   [EDGcpfe/26027,EDGcpfe/26926]
 GNU/Clang-mode abort on constant pointer arithmetic with zero-sized types
 

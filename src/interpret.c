@@ -20325,6 +20325,11 @@ the value representation of the integer value.
                                   &expr->position, ips);
                   }  /* if */
                 }  /* if */
+              } else {
+                /* One address is a "run-time data address" and the other is an
+                   "interpreter address" or a "function address": Those are
+                   definitely distinct. */
+                *(an_integer_value *)result_storage = zero_int;
               }  /* if */
               release_variant_path_if_needed(ptr1);
               release_variant_path_if_needed(ptr2);
@@ -20439,7 +20444,10 @@ the value representation of the integer value.
                   }  /* if */
                 }  /* if */
               } else {
-                do_constexpr_fail(result);
+                /* One address is a "run-time data address" and the other is an
+                   "interpreter address" or a "function address": Those are
+                   definitely distinct. */
+                *(an_integer_value *)result_storage = one_int;
               }  /* if */
               release_variant_path_if_needed(ptr1);
               release_variant_path_if_needed(ptr2);
