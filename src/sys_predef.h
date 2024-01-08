@@ -230,6 +230,7 @@ enum a_builtin_user_function_kind {
   bufk_u8memcmp,                  /* __builtin_u8memcmp */
   bufk_u8strlen,                  /* __builtin_u8strlen */
   bufk_FUNCSIG,                   /* __builtin_FUNCSIG */
+  bufk_FILE_NAME,                 /* __builtin_FILE_NAME */
   bufk_last                       /* final entry */
 };
 
@@ -434,7 +435,7 @@ EXTERN a_builtin_user_descr builtin_user_table[]
   { "__builtin_FILE",      "Lx(90000-)s+(202002-)m+(1927-)",
     "const char*(void) __edg_throw__()", bfk_FILE },
   { "__builtin_FILE_NAME", "Lx(170000-)",
-    "const char*(void) __edg_throw__()", bfk_FILE_NAME },
+    "const char*(void) __edg_throw__()", bufk_FILE_NAME },
   { "__builtin_FUNCTION",  "Lx(90000-)s+(202002-)m+(1927-)",
     "const char*(void) __edg_throw__()", bfk_FUNCTION },
 

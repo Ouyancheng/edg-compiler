@@ -9186,7 +9186,7 @@ when the expression is being copied to set up a constructor's initializers.
           mark_complete_object_initialized(result_storage);
         }  /* if */
         break;
-      case bfk_FILE_NAME:
+      case bufk_FILE_NAME:
         do_constexpr_write_source_file_name(ips, use_pos, result_storage,
                                             p_result);
         if (p_result) {
@@ -9886,7 +9886,7 @@ to FALSE and the reason for the failure is recorded in *ips.
     case bfk_COLUMN:
     case bfk_LINE:
     case bfk_FILE:
-    case bfk_FILE_NAME:
+    case bufk_FILE_NAME:
     case bfk_FUNCTION:
     case bufk_FUNCSIG:
       /* Handle source location intrinsics. */

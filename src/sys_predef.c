@@ -253,7 +253,7 @@ consteval builtin.
     case bfk_COLUMN:
     case bfk_LINE:
     case bfk_FILE:
-    case bfk_FILE_NAME:
+    case bufk_FILE_NAME:
     case bfk_FUNCTION:
     case bufk_FUNCSIG:
       result = TRUE;
