@@ -2653,6 +2653,9 @@ Return TRUE if the namespace of the given typedef-type is in a namespace
   if (is_namespace_member(type)) {
     a_namespace_ptr nsp = parent_namespace_of(type);
 
+    while (nsp->is_inline) {
+      nsp = parent_namespace_of(nsp);
+    }  /* while */
     if (symbol_for(nsp) == symbol_for_namespace_std) {
       result = FALSE;
     }  /* if */
