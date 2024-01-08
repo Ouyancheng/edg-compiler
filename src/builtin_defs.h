@@ -7630,6 +7630,7 @@ enum a_builtin_function_kind_tag {
   bfk_none = 0, /* flag meaning the routine is not a builtin */
   bfk_COLUMN,
   bfk_FILE,
+  bfk_FILE_NAME,
   bfk_FUNCTION,
   bfk_GOMP_atomic_end,
   bfk_GOMP_atomic_start,

@@ -1,5 +1,17 @@
 Version 6.7
 
+1/8/24   [EDGcpfe/26919]
+Implement __builtin_FILE_NAME() and changes to file name builtins
+
+Clang 17 added a new __builtin_FILE_NAME() builtin function.  This function
+returns the file name without any qualifying path (i.e., it's just the file
+name).  This function is now implemented in Clang mode.
+
+Additionally, for closer conformance with other compiler implementations of
+__builtin_FILE() and __builtin_source_location(), the EDG front end now returns
+the file name with path qualification.
+
+
 1/5/24   [EDGcpfe/26924]
 Clang C++11 compatibility: Statements in constexpr function templates
 

@@ -9003,9 +9003,32 @@ static void do_constexpr_write_source_file(
                                           a_boolean            *p_result)
 /*
 Given the associated storage and interpreter state for the resulting const char
-pointer data (c-string), convert and store the source file name associated with
-the given position (use_pos).  If any problems are encountered, the pointee of
-p_result will be set to FALSE.
+pointer data (c-string), convert and store the long source file name (i.e., the
+full path string) associated with the given position (use_pos).  If any
+problems are encountered, the pointee of p_result will be set to FALSE.
+*/
+{
+  a_line_number  line_number;
+  a_boolean      at_end_of_source;
+  a_const_char   *file_name, *full_name;
+
+  (void)conv_seq_to_file_and_line(use_pos->seq, &file_name,
+                                  &full_name, &line_number,
+                                  &at_end_of_source);
+  do_constexpr_write_cstring(ips, full_name, result_storage, p_result);
+}  /* do_constexpr_write_source_file */
+
+
+static void do_constexpr_write_source_file_name(
+                                          an_interpreter_state *ips,
+                                          a_source_position    *use_pos,
+                                          a_byte               *result_storage,
+                                          a_boolean            *p_result)
+/*
+Given the associated storage and interpreter state for the resulting const char
+pointer data (c-string), convert and store the short source file name (i.e.,
+only the file name itself) associated with the given position (use_pos).  If
+any problems are encountered, the pointee of p_result will be set to FALSE.
 */
 {
   a_line_number  line_number;
@@ -9016,7 +9039,7 @@ p_result will be set to FALSE.
                                   &full_name, &line_number,
                                   &at_end_of_source);
   do_constexpr_write_cstring(ips, file_name, result_storage, p_result);
-}  /* do_constexpr_write_source_line */
+}  /* do_constexpr_write_source_file_name */
 
 
 static void do_constexpr_write_source_function(
@@ -9159,6 +9182,13 @@ when the expression is being copied to set up a constructor's initializers.
         break;
       case bfk_FILE:
         do_constexpr_write_source_file(ips, use_pos, result_storage, p_result);
+        if (p_result) {
+          mark_complete_object_initialized(result_storage);
+        }  /* if */
+        break;
+      case bfk_FILE_NAME:
+        do_constexpr_write_source_file_name(ips, use_pos, result_storage,
+                                            p_result);
         if (p_result) {
           mark_complete_object_initialized(result_storage);
         }  /* if */
@@ -9856,6 +9886,7 @@ to FALSE and the reason for the failure is recorded in *ips.
     case bfk_COLUMN:
     case bfk_LINE:
     case bfk_FILE:
+    case bfk_FILE_NAME:
     case bfk_FUNCTION:
     case bufk_FUNCSIG:
       /* Handle source location intrinsics. */

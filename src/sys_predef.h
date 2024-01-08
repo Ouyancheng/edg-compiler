@@ -427,13 +427,15 @@ EXTERN a_builtin_user_descr builtin_user_table[]
 
   /* Clang supports these builtin functions (but they are not reported as
      typical builtins, so they're manually added here). */
-  { "__builtin_COLUMN",   "Lx(90000-)s+(202002-)m+(1927-)",
+  { "__builtin_COLUMN",    "Lx(90000-)s+(202002-)m+(1927-)",
     "int (void) __edg_throw__()", bfk_COLUMN},
-  { "__builtin_LINE",     "Lx(90000-)s+(202002-)m+(1927-)",
+  { "__builtin_LINE",      "Lx(90000-)s+(202002-)m+(1927-)",
     "int (void) __edg_throw__()", bfk_LINE },
-  { "__builtin_FILE",     "Lx(90000-)s+(202002-)m+(1927-)",
+  { "__builtin_FILE",      "Lx(90000-)s+(202002-)m+(1927-)",
     "const char*(void) __edg_throw__()", bfk_FILE },
-  { "__builtin_FUNCTION", "Lx(90000-)s+(202002-)m+(1927-)",
+  { "__builtin_FILE_NAME", "Lx(170000-)",
+    "const char*(void) __edg_throw__()", bfk_FILE_NAME },
+  { "__builtin_FUNCTION",  "Lx(90000-)s+(202002-)m+(1927-)",
     "const char*(void) __edg_throw__()", bfk_FUNCTION },
 
   /* Microsoft supports __builtin_FUNCSIG (which returns the same as their
