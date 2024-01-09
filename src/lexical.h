@@ -296,462 +296,462 @@ typedef struct a_token_cache {
 EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
 #if VAR_INITIALIZERS
 = {
-   (an_opname_kind)onk_none,          /* tok_error */
-   (an_opname_kind)onk_none,          /* tok_identifier */
-   (an_opname_kind)onk_none,          /* tok_float_constant */
-   (an_opname_kind)onk_none,          /* tok_fixed_point_constant */
-   (an_opname_kind)onk_none,          /* tok_int_constant */
-   (an_opname_kind)onk_none,          /* tok_char_constant */
-   (an_opname_kind)onk_none,          /* tok_aggr_constant */
-   (an_opname_kind)onk_none,          /* tok_string_literal */
-   (an_opname_kind)onk_none,          /* tok_ud_literal */
-   (an_opname_kind)onk_none,          /* tok_end_of_source */
-   (an_opname_kind)onk_none,          /* tok_newline */
-   (an_opname_kind)onk_none,          /* tok_header_name */
-   (an_opname_kind)onk_none,          /* tok_pp_number */
-   (an_opname_kind)onk_none,          /* tok_digit_sequence */
-   (an_opname_kind)onk_none,          /* tok_cpp_quote */
-   (an_opname_kind)onk_none,          /* tok_ptr_to_member */
-   (an_opname_kind)onk_none,          /* tok_removed_default_arg */
-   (an_opname_kind)onk_none,          /* tok_removed_template_body */
+   onk_none,          /* tok_error */
+   onk_none,          /* tok_identifier */
+   onk_none,          /* tok_float_constant */
+   onk_none,          /* tok_fixed_point_constant */
+   onk_none,          /* tok_int_constant */
+   onk_none,          /* tok_char_constant */
+   onk_none,          /* tok_aggr_constant */
+   onk_none,          /* tok_string_literal */
+   onk_none,          /* tok_ud_literal */
+   onk_none,          /* tok_end_of_source */
+   onk_none,          /* tok_newline */
+   onk_none,          /* tok_header_name */
+   onk_none,          /* tok_pp_number */
+   onk_none,          /* tok_digit_sequence */
+   onk_none,          /* tok_cpp_quote */
+   onk_none,          /* tok_ptr_to_member */
+   onk_none,          /* tok_removed_default_arg */
+   onk_none,          /* tok_removed_template_body */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-   (an_opname_kind)onk_none,          /* tok_cli_typeid */
+   onk_none,          /* tok_cli_typeid */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-   (an_opname_kind)onk_none,          /* tok_decltype_construct */
-   (an_opname_kind)onk_none,          /* tok_pending_ifc_var_init */
-   (an_opname_kind)onk_none,          /* tok_pending_ifc_expr  */
-   (an_opname_kind)onk_none,          /* tok_ifc_entity_ref */
-   (an_opname_kind)onk_none,          /* tok_ifc_decl_ref */
-   (an_opname_kind)onk_none,          /* tok_ifc_decl */
-   (an_opname_kind)onk_none,          /* tok_unimplemented */
-   (an_opname_kind)onk_subscript,     /* operator[] starts with tok_lbracket */
-   (an_opname_kind)onk_none,          /* tok_rbracket */
-   (an_opname_kind)onk_function_call, /* operator() starts with tok_lparen */
-   (an_opname_kind)onk_none,          /* tok_rparen */
-   (an_opname_kind)onk_none,          /* tok_period */
-   (an_opname_kind)onk_arrow,
-   (an_opname_kind)onk_plus_plus,
-   (an_opname_kind)onk_minus_minus,
-   (an_opname_kind)onk_ampersand,
-   (an_opname_kind)onk_star,
-   (an_opname_kind)onk_plus,
-   (an_opname_kind)onk_minus,
-   (an_opname_kind)onk_compl,
-   (an_opname_kind)onk_not,
-   (an_opname_kind)onk_divide,
-   (an_opname_kind)onk_remainder,
-   (an_opname_kind)onk_shift_left,
-   (an_opname_kind)onk_shift_right,
-   (an_opname_kind)onk_lt,
-   (an_opname_kind)onk_gt,
-   (an_opname_kind)onk_le,
-   (an_opname_kind)onk_ge,
-   (an_opname_kind)onk_eq,
-   (an_opname_kind)onk_ne,
-   (an_opname_kind)onk_spaceship,
-   (an_opname_kind)onk_excl_or,
-   (an_opname_kind)onk_or,
-   (an_opname_kind)onk_and_and,
-   (an_opname_kind)onk_or_or,
-   (an_opname_kind)onk_question,      /* Used only in front end. */
-   (an_opname_kind)onk_none,          /* tok_colon */
-   (an_opname_kind)onk_assign,
-   (an_opname_kind)onk_times_assign,
-   (an_opname_kind)onk_divide_assign,
-   (an_opname_kind)onk_remainder_assign,
-   (an_opname_kind)onk_plus_assign,
-   (an_opname_kind)onk_minus_assign,
-   (an_opname_kind)onk_shift_left_assign,
-   (an_opname_kind)onk_shift_right_assign,
-   (an_opname_kind)onk_and_assign,
-   (an_opname_kind)onk_excl_or_assign,
-   (an_opname_kind)onk_or_assign,
-   (an_opname_kind)onk_comma,
-   (an_opname_kind)onk_none,          /* tok_sharp */
-   (an_opname_kind)onk_none,          /* tok_paste */
-   (an_opname_kind)onk_gnu_min,       /* tok_gnu_min */
-   (an_opname_kind)onk_gnu_max,       /* tok_gnu_max */
-   (an_opname_kind)onk_none,          /* tok_lbrace */
-   (an_opname_kind)onk_none,          /* tok_rbrace */
-   (an_opname_kind)onk_none,          /* tok_semicolon */
-   (an_opname_kind)onk_none,          /* tok_ellipsis */
-   (an_opname_kind)onk_none,          /* tok_auto */
-   (an_opname_kind)onk_none,          /* tok_break */
-   (an_opname_kind)onk_none,          /* tok_case */
-   (an_opname_kind)onk_none,          /* tok_char */
-   (an_opname_kind)onk_none,          /* tok_const */
-   (an_opname_kind)onk_none,          /* tok_continue */
-   (an_opname_kind)onk_none,          /* tok_default */
-   (an_opname_kind)onk_none,          /* tok_do */
-   (an_opname_kind)onk_none,          /* tok_double */
-   (an_opname_kind)onk_none,          /* tok_else */
-   (an_opname_kind)onk_none,          /* tok_enum */
-   (an_opname_kind)onk_none,          /* tok_extern */
-   (an_opname_kind)onk_none,          /* tok_float */
-   (an_opname_kind)onk_none,          /* tok_for */
-   (an_opname_kind)onk_none,          /* tok_goto */
-   (an_opname_kind)onk_none,          /* tok_if */
-   (an_opname_kind)onk_none,          /* tok_int */
-   (an_opname_kind)onk_none,          /* tok_long */
-   (an_opname_kind)onk_none,          /* tok_register */
-   (an_opname_kind)onk_none,          /* tok_return */
-   (an_opname_kind)onk_none,          /* tok_short */
-   (an_opname_kind)onk_none,          /* tok_signed */
-   (an_opname_kind)onk_none,          /* tok_sizeof */
-   (an_opname_kind)onk_none,          /* tok_static */
-   (an_opname_kind)onk_none,          /* tok_struct */
-   (an_opname_kind)onk_none,          /* tok_switch */
-   (an_opname_kind)onk_none,          /* tok_typedef */
-   (an_opname_kind)onk_none,          /* tok_union */
-   (an_opname_kind)onk_none,          /* tok_unsigned */
-   (an_opname_kind)onk_none,          /* tok_void */
-   (an_opname_kind)onk_none,          /* tok_volatile */
-   (an_opname_kind)onk_none,          /* tok_while */
-   (an_opname_kind)onk_none,          /* tok_c99_generic */
-   (an_opname_kind)onk_none,          /* tok_c99_genericfx */
-   (an_opname_kind)onk_none,          /* tok_ext_alignof */
-   (an_opname_kind)onk_none,          /* tok_intaddr */
-   (an_opname_kind)onk_none,          /* tok_va_start */
-   (an_opname_kind)onk_none,          /* tok_va_arg */
-   (an_opname_kind)onk_none,          /* tok_va_end */
-   (an_opname_kind)onk_none,          /* tok_va_copy */
-   (an_opname_kind)onk_none,          /* tok_builtin_offsetof */
-   (an_opname_kind)onk_none,          /* tok_restrict */
-   (an_opname_kind)onk_none,          /* tok_gnu_restrict */
-   (an_opname_kind)onk_none,          /* tok_c99_bool */
-   (an_opname_kind)onk_none,          /* tok_c99_complex */
-   (an_opname_kind)onk_none,          /* tok_c99_imaginary */
-   (an_opname_kind)onk_none,          /* tok_imaginary_unit */
-   (an_opname_kind)onk_none,          /* tok_nan */
-   (an_opname_kind)onk_none,          /* tok_infinity */
-   (an_opname_kind)onk_none,          /* tok_char16_t */
-   (an_opname_kind)onk_none,          /* tok_char32_t */
-   (an_opname_kind)onk_none,          /* tok_char8_t */
-   (an_opname_kind)onk_none,          /* tok_fract */
-   (an_opname_kind)onk_none,          /* tok_accum */
-   (an_opname_kind)onk_none,          /* tok_sat */
-   (an_opname_kind)onk_none,          /* tok_declspec */
+   onk_none,          /* tok_decltype_construct */
+   onk_none,          /* tok_pending_ifc_var_init */
+   onk_none,          /* tok_pending_ifc_expr  */
+   onk_none,          /* tok_ifc_entity_ref */
+   onk_none,          /* tok_ifc_decl_ref */
+   onk_none,          /* tok_ifc_decl */
+   onk_none,          /* tok_unimplemented */
+   onk_subscript,     /* operator[] starts with tok_lbracket */
+   onk_none,          /* tok_rbracket */
+   onk_function_call, /* operator() starts with tok_lparen */
+   onk_none,          /* tok_rparen */
+   onk_none,          /* tok_period */
+   onk_arrow,
+   onk_plus_plus,
+   onk_minus_minus,
+   onk_ampersand,
+   onk_star,
+   onk_plus,
+   onk_minus,
+   onk_compl,
+   onk_not,
+   onk_divide,
+   onk_remainder,
+   onk_shift_left,
+   onk_shift_right,
+   onk_lt,
+   onk_gt,
+   onk_le,
+   onk_ge,
+   onk_eq,
+   onk_ne,
+   onk_spaceship,
+   onk_excl_or,
+   onk_or,
+   onk_and_and,
+   onk_or_or,
+   onk_question,      /* Used only in front end. */
+   onk_none,          /* tok_colon */
+   onk_assign,
+   onk_times_assign,
+   onk_divide_assign,
+   onk_remainder_assign,
+   onk_plus_assign,
+   onk_minus_assign,
+   onk_shift_left_assign,
+   onk_shift_right_assign,
+   onk_and_assign,
+   onk_excl_or_assign,
+   onk_or_assign,
+   onk_comma,
+   onk_none,          /* tok_sharp */
+   onk_none,          /* tok_paste */
+   onk_gnu_min,       /* tok_gnu_min */
+   onk_gnu_max,       /* tok_gnu_max */
+   onk_none,          /* tok_lbrace */
+   onk_none,          /* tok_rbrace */
+   onk_none,          /* tok_semicolon */
+   onk_none,          /* tok_ellipsis */
+   onk_none,          /* tok_auto */
+   onk_none,          /* tok_break */
+   onk_none,          /* tok_case */
+   onk_none,          /* tok_char */
+   onk_none,          /* tok_const */
+   onk_none,          /* tok_continue */
+   onk_none,          /* tok_default */
+   onk_none,          /* tok_do */
+   onk_none,          /* tok_double */
+   onk_none,          /* tok_else */
+   onk_none,          /* tok_enum */
+   onk_none,          /* tok_extern */
+   onk_none,          /* tok_float */
+   onk_none,          /* tok_for */
+   onk_none,          /* tok_goto */
+   onk_none,          /* tok_if */
+   onk_none,          /* tok_int */
+   onk_none,          /* tok_long */
+   onk_none,          /* tok_register */
+   onk_none,          /* tok_return */
+   onk_none,          /* tok_short */
+   onk_none,          /* tok_signed */
+   onk_none,          /* tok_sizeof */
+   onk_none,          /* tok_static */
+   onk_none,          /* tok_struct */
+   onk_none,          /* tok_switch */
+   onk_none,          /* tok_typedef */
+   onk_none,          /* tok_union */
+   onk_none,          /* tok_unsigned */
+   onk_none,          /* tok_void */
+   onk_none,          /* tok_volatile */
+   onk_none,          /* tok_while */
+   onk_none,          /* tok_c99_generic */
+   onk_none,          /* tok_c99_genericfx */
+   onk_none,          /* tok_ext_alignof */
+   onk_none,          /* tok_intaddr */
+   onk_none,          /* tok_va_start */
+   onk_none,          /* tok_va_arg */
+   onk_none,          /* tok_va_end */
+   onk_none,          /* tok_va_copy */
+   onk_none,          /* tok_builtin_offsetof */
+   onk_none,          /* tok_restrict */
+   onk_none,          /* tok_gnu_restrict */
+   onk_none,          /* tok_c99_bool */
+   onk_none,          /* tok_c99_complex */
+   onk_none,          /* tok_c99_imaginary */
+   onk_none,          /* tok_imaginary_unit */
+   onk_none,          /* tok_nan */
+   onk_none,          /* tok_infinity */
+   onk_none,          /* tok_char16_t */
+   onk_none,          /* tok_char32_t */
+   onk_none,          /* tok_char8_t */
+   onk_none,          /* tok_fract */
+   onk_none,          /* tok_accum */
+   onk_none,          /* tok_sat */
+   onk_none,          /* tok_declspec */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-   (an_opname_kind)onk_none,          /* tok_abstract */
-   (an_opname_kind)onk_none,          /* tok_sealed */
-   (an_opname_kind)onk_none,          /* tok_cdecl */
-   (an_opname_kind)onk_none,          /* tok_fastcall */
-   (an_opname_kind)onk_none,          /* tok_stdcall */
-   (an_opname_kind)onk_none,          /* tok_thiscall */
-   (an_opname_kind)onk_none,          /* tok_vectorcall */
-   (an_opname_kind)onk_none,          /* tok_clrcall */
-   (an_opname_kind)onk_none,          /* tok_microsoft_inline */
-   (an_opname_kind)onk_none,          /* tok_forceinline */
-   (an_opname_kind)onk_none,          /* tok_unaligned */
-   (an_opname_kind)onk_none,          /* tok_microsoft_try */
-   (an_opname_kind)onk_none,          /* tok_finally */
-   (an_opname_kind)onk_none,          /* tok_leave */
-   (an_opname_kind)onk_none,          /* tok_except */
-   (an_opname_kind)onk_none,          /* tok_int8 */
-   (an_opname_kind)onk_none,          /* tok_int16 */
-   (an_opname_kind)onk_none,          /* tok_int32 */
-   (an_opname_kind)onk_none,          /* tok_int64 */
-   (an_opname_kind)onk_none,          /* tok_based */
-   (an_opname_kind)onk_none,          /* tok_uuidof */
-   (an_opname_kind)onk_none,          /* tok_assume */
-   (an_opname_kind)onk_none,          /* tok_charize */
-   (an_opname_kind)onk_none,          /* tok_if_exists */
-   (an_opname_kind)onk_none,          /* tok_if_not_exists */
-   (an_opname_kind)onk_none,          /* tok_end_of_if_exists */
-   (an_opname_kind)onk_none,          /* tok_super */
-   (an_opname_kind)onk_none,          /* tok_noop */
-   (an_opname_kind)onk_none,          /* tok_interface */
-   (an_opname_kind)onk_none,          /* tok_event */
-   (an_opname_kind)onk_none,          /* tok_microsoft_ptr32 */
-   (an_opname_kind)onk_none,          /* tok_microsoft_ptr64 */
-   (an_opname_kind)onk_none,          /* tok_microsoft_sptr */
-   (an_opname_kind)onk_none,          /* tok_microsoft_uptr */
-   (an_opname_kind)onk_none,          /* tok_microsoft_w64 */
-   (an_opname_kind)onk_none,          /* tok_microsoft_Lprefix */
-   (an_opname_kind)onk_none,          /* tok_microsoft_lprefix */
-   (an_opname_kind)onk_none,          /* tok_microsoft_Uprefix */
-   (an_opname_kind)onk_none,          /* tok_microsoft_uprefix */
-   (an_opname_kind)onk_none,          /* tok_microsoft_identifier */
-   (an_opname_kind)onk_none,          /* tok_uuid */
-   (an_opname_kind)onk_none,          /* tok_in */
-   (an_opname_kind)onk_none,          /* tok_gcnew */
-   (an_opname_kind)onk_none,          /* tok_safe_cast */
-   (an_opname_kind)onk_none,          /* tok_implements */
-   (an_opname_kind)onk_none,          /* tok_unresolved_type */
-   (an_opname_kind)onk_none,          /* tok_for_each */
-   (an_opname_kind)onk_none,          /* tok_ref_class */
-   (an_opname_kind)onk_none,          /* tok_ref_struct */
-   (an_opname_kind)onk_none,          /* tok_value_class */
-   (an_opname_kind)onk_none,          /* tok_value_struct */
-   (an_opname_kind)onk_none,          /* tok_enum_class */
-   (an_opname_kind)onk_none,          /* tok_enum_struct */
-   (an_opname_kind)onk_none,          /* tok_interface_class */
-   (an_opname_kind)onk_none,          /* tok_interface_struct */
-   (an_opname_kind)onk_none,          /* tok_ref_new */
-   (an_opname_kind)onk_none,          /* tok_partial_ref_class */
-   (an_opname_kind)onk_none,          /* tok_partial_ref_struct */
-   (an_opname_kind)onk_none,          /* tok_prefix_ref */
-   (an_opname_kind)onk_none,          /* tok_prefix_value */
-   (an_opname_kind)onk_none,          /* tok_prefix_interface */
-   (an_opname_kind)onk_none,          /* tok_prefix_for */
-   (an_opname_kind)onk_none,          /* tok_prefix_enum */
-   (an_opname_kind)onk_none,          /* tok_prefix_partial */
+   onk_none,          /* tok_abstract */
+   onk_none,          /* tok_sealed */
+   onk_none,          /* tok_cdecl */
+   onk_none,          /* tok_fastcall */
+   onk_none,          /* tok_stdcall */
+   onk_none,          /* tok_thiscall */
+   onk_none,          /* tok_vectorcall */
+   onk_none,          /* tok_clrcall */
+   onk_none,          /* tok_microsoft_inline */
+   onk_none,          /* tok_forceinline */
+   onk_none,          /* tok_unaligned */
+   onk_none,          /* tok_microsoft_try */
+   onk_none,          /* tok_finally */
+   onk_none,          /* tok_leave */
+   onk_none,          /* tok_except */
+   onk_none,          /* tok_int8 */
+   onk_none,          /* tok_int16 */
+   onk_none,          /* tok_int32 */
+   onk_none,          /* tok_int64 */
+   onk_none,          /* tok_based */
+   onk_none,          /* tok_uuidof */
+   onk_none,          /* tok_assume */
+   onk_none,          /* tok_charize */
+   onk_none,          /* tok_if_exists */
+   onk_none,          /* tok_if_not_exists */
+   onk_none,          /* tok_end_of_if_exists */
+   onk_none,          /* tok_super */
+   onk_none,          /* tok_noop */
+   onk_none,          /* tok_interface */
+   onk_none,          /* tok_event */
+   onk_none,          /* tok_microsoft_ptr32 */
+   onk_none,          /* tok_microsoft_ptr64 */
+   onk_none,          /* tok_microsoft_sptr */
+   onk_none,          /* tok_microsoft_uptr */
+   onk_none,          /* tok_microsoft_w64 */
+   onk_none,          /* tok_microsoft_Lprefix */
+   onk_none,          /* tok_microsoft_lprefix */
+   onk_none,          /* tok_microsoft_Uprefix */
+   onk_none,          /* tok_microsoft_uprefix */
+   onk_none,          /* tok_microsoft_identifier */
+   onk_none,          /* tok_uuid */
+   onk_none,          /* tok_in */
+   onk_none,          /* tok_gcnew */
+   onk_none,          /* tok_safe_cast */
+   onk_none,          /* tok_implements */
+   onk_none,          /* tok_unresolved_type */
+   onk_none,          /* tok_for_each */
+   onk_none,          /* tok_ref_class */
+   onk_none,          /* tok_ref_struct */
+   onk_none,          /* tok_value_class */
+   onk_none,          /* tok_value_struct */
+   onk_none,          /* tok_enum_class */
+   onk_none,          /* tok_enum_struct */
+   onk_none,          /* tok_interface_class */
+   onk_none,          /* tok_interface_struct */
+   onk_none,          /* tok_ref_new */
+   onk_none,          /* tok_partial_ref_class */
+   onk_none,          /* tok_partial_ref_struct */
+   onk_none,          /* tok_prefix_ref */
+   onk_none,          /* tok_prefix_value */
+   onk_none,          /* tok_prefix_interface */
+   onk_none,          /* tok_prefix_for */
+   onk_none,          /* tok_prefix_enum */
+   onk_none,          /* tok_prefix_partial */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-   (an_opname_kind)onk_none,          /* tok_microsoft_asm */
-   (an_opname_kind)onk_none,          /* tok_func_name */
-   (an_opname_kind)onk_none,          /* tok_function_name */
-   (an_opname_kind)onk_none,          /* tok_pretty_function_name */
-   (an_opname_kind)onk_none,          /* tok_decorated_function_name */
+   onk_none,          /* tok_microsoft_asm */
+   onk_none,          /* tok_func_name */
+   onk_none,          /* tok_function_name */
+   onk_none,          /* tok_pretty_function_name */
+   onk_none,          /* tok_decorated_function_name */
 #if NEAR_AND_FAR_ALLOWED
-   (an_opname_kind)onk_none,          /* tok_near */
-   (an_opname_kind)onk_none,          /* tok_far */
+   onk_none,          /* tok_near */
+   onk_none,          /* tok_far */
 #endif /* NEAR_AND_FAR_ALLOWED */
-   (an_opname_kind)onk_none,          /* tok_attribute */
+   onk_none,          /* tok_attribute */
 #if GNU_EXTENSIONS_ALLOWED
-   (an_opname_kind)onk_none,          /* tok_builtin_types_compatible */
-   (an_opname_kind)onk_none,          /* tok_gnu_real */
-   (an_opname_kind)onk_none,          /* tok_gnu_imag */
+   onk_none,          /* tok_builtin_types_compatible */
+   onk_none,          /* tok_gnu_real */
+   onk_none,          /* tok_gnu_imag */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-   (an_opname_kind)onk_none,          /* tok_colon_colon */
-   (an_opname_kind)onk_none,          /* tok_period_star */
-   (an_opname_kind)onk_arrow_star,
-   (an_opname_kind)onk_none,          /* tok_asm */
-   (an_opname_kind)onk_none,          /* tok_catch */
-   (an_opname_kind)onk_none,          /* tok_class */
-   (an_opname_kind)onk_delete,
-   (an_opname_kind)onk_none,          /* tok_friend */
-   (an_opname_kind)onk_none,          /* tok_inline */
-   (an_opname_kind)onk_new,
-   (an_opname_kind)onk_none,          /* tok_operator */
-   (an_opname_kind)onk_none,          /* tok_private */
-   (an_opname_kind)onk_none,          /* tok_protected */
-   (an_opname_kind)onk_none,          /* tok_public */
-   (an_opname_kind)onk_none,          /* tok_template */
-   (an_opname_kind)onk_none,          /* tok_this */
-   (an_opname_kind)onk_none,          /* tok_throw */
-   (an_opname_kind)onk_none,          /* tok_try */
-   (an_opname_kind)onk_none,          /* tok_virtual */
-   (an_opname_kind)onk_none,          /* tok_wchar_t */
-   (an_opname_kind)onk_none,          /* tok_const_cast */
-   (an_opname_kind)onk_none,          /* tok_dynamic_cast */
-   (an_opname_kind)onk_none,          /* tok_explicit */
-   (an_opname_kind)onk_none,          /* tok_cpp98_export */
-   (an_opname_kind)onk_none,          /* tok_export */
-   (an_opname_kind)onk_none,          /* tok_export_keyword */
-   (an_opname_kind)onk_none,          /* tok_import */
-   (an_opname_kind)onk_none,          /* tok_module */
-   (an_opname_kind)onk_none,          /* tok_mutable */
-   (an_opname_kind)onk_none,          /* tok_namespace */
-   (an_opname_kind)onk_none,          /* tok_reinterpret_cast */
-   (an_opname_kind)onk_none,          /* tok_static_cast */
-   (an_opname_kind)onk_none,          /* tok_typeid */
-   (an_opname_kind)onk_none,          /* tok_using */
-   (an_opname_kind)onk_none,          /* tok_bool */
-   (an_opname_kind)onk_none,          /* tok_false */
-   (an_opname_kind)onk_none,          /* tok_true */
-   (an_opname_kind)onk_none,          /* tok_typename */
-   (an_opname_kind)onk_none,          /* tok_static_assert */
-   (an_opname_kind)onk_none,          /* tok_decltype */
-   (an_opname_kind)onk_none,          /* tok_auto_type */
-   (an_opname_kind)onk_none,          /* tok_extension */
-   (an_opname_kind)onk_none,          /* tok_null */
-   (an_opname_kind)onk_none,          /* tok_typeof */
-   (an_opname_kind)onk_none,          /* tok_typeof_unqual */
-   (an_opname_kind)onk_none,          /* tok_overload */
+   onk_none,          /* tok_colon_colon */
+   onk_none,          /* tok_period_star */
+   onk_arrow_star,
+   onk_none,          /* tok_asm */
+   onk_none,          /* tok_catch */
+   onk_none,          /* tok_class */
+   onk_delete,
+   onk_none,          /* tok_friend */
+   onk_none,          /* tok_inline */
+   onk_new,
+   onk_none,          /* tok_operator */
+   onk_none,          /* tok_private */
+   onk_none,          /* tok_protected */
+   onk_none,          /* tok_public */
+   onk_none,          /* tok_template */
+   onk_none,          /* tok_this */
+   onk_none,          /* tok_throw */
+   onk_none,          /* tok_try */
+   onk_none,          /* tok_virtual */
+   onk_none,          /* tok_wchar_t */
+   onk_none,          /* tok_const_cast */
+   onk_none,          /* tok_dynamic_cast */
+   onk_none,          /* tok_explicit */
+   onk_none,          /* tok_cpp98_export */
+   onk_none,          /* tok_export */
+   onk_none,          /* tok_export_keyword */
+   onk_none,          /* tok_import */
+   onk_none,          /* tok_module */
+   onk_none,          /* tok_mutable */
+   onk_none,          /* tok_namespace */
+   onk_none,          /* tok_reinterpret_cast */
+   onk_none,          /* tok_static_cast */
+   onk_none,          /* tok_typeid */
+   onk_none,          /* tok_using */
+   onk_none,          /* tok_bool */
+   onk_none,          /* tok_false */
+   onk_none,          /* tok_true */
+   onk_none,          /* tok_typename */
+   onk_none,          /* tok_static_assert */
+   onk_none,          /* tok_decltype */
+   onk_none,          /* tok_auto_type */
+   onk_none,          /* tok_extension */
+   onk_none,          /* tok_null */
+   onk_none,          /* tok_typeof */
+   onk_none,          /* tok_typeof_unqual */
+   onk_none,          /* tok_overload */
 #if SUN_EXTENSIONS_ALLOWED
-   (an_opname_kind)onk_none,          /* tok_global_link_scope */
-   (an_opname_kind)onk_none,          /* tok_symbolic_link_scope */
-   (an_opname_kind)onk_none,          /* tok_hidden_link_scope */
+   onk_none,          /* tok_global_link_scope */
+   onk_none,          /* tok_symbolic_link_scope */
+   onk_none,          /* tok_hidden_link_scope */
 #endif /* SUN_EXTENSIONS_ALLOWED */
-   (an_opname_kind)onk_none,          /* tok_thread */
-   (an_opname_kind)onk_none,          /* tok_thread_local */
-   (an_opname_kind)onk_none,          /* tok_c11_thread_local */
+   onk_none,          /* tok_thread */
+   onk_none,          /* tok_thread_local */
+   onk_none,          /* tok_c11_thread_local */
 #if UPC_EXTENSIONS_ALLOWED
-   (an_opname_kind)onk_none,          /* tok_upc_strict */
-   (an_opname_kind)onk_none,          /* tok_upc_relaxed */
-   (an_opname_kind)onk_none,          /* tok_upc_shared */
-   (an_opname_kind)onk_none,          /* tok_upc_forall */
-   (an_opname_kind)onk_none,          /* tok_upc_barrier */
-   (an_opname_kind)onk_none,          /* tok_upc_notify */
-   (an_opname_kind)onk_none,          /* tok_upc_wait */
-   (an_opname_kind)onk_none,          /* tok_upc_fence */
-   (an_opname_kind)onk_none,          /* tok_upc_threads */
-   (an_opname_kind)onk_none,          /* tok_upc_mythread */
-   (an_opname_kind)onk_none,          /* tok_upc_blocksizeof */
-   (an_opname_kind)onk_none,          /* tok_upc_localsizeof */
-   (an_opname_kind)onk_none,          /* tok_upc_elemsizeof */
+   onk_none,          /* tok_upc_strict */
+   onk_none,          /* tok_upc_relaxed */
+   onk_none,          /* tok_upc_shared */
+   onk_none,          /* tok_upc_forall */
+   onk_none,          /* tok_upc_barrier */
+   onk_none,          /* tok_upc_notify */
+   onk_none,          /* tok_upc_wait */
+   onk_none,          /* tok_upc_fence */
+   onk_none,          /* tok_upc_threads */
+   onk_none,          /* tok_upc_mythread */
+   onk_none,          /* tok_upc_blocksizeof */
+   onk_none,          /* tok_upc_localsizeof */
+   onk_none,          /* tok_upc_elemsizeof */
 #endif /* UPC_EXTENSIONS_ALLOWED */
-   (an_opname_kind)onk_none,          /* tok_has_assign */
-   (an_opname_kind)onk_none,          /* tok_has_copy */
-   (an_opname_kind)onk_none,          /* tok_has_nothrow_assign */
-   (an_opname_kind)onk_none,          /* tok_has_nothrow_constructor */
-   (an_opname_kind)onk_none,          /* tok_has_nothrow_copy */
-   (an_opname_kind)onk_none,          /* tok_has_trivial_assign */
-   (an_opname_kind)onk_none,          /* tok_has_trivial_constructor */
-   (an_opname_kind)onk_none,          /* tok_has_trivial_copy */
-   (an_opname_kind)onk_none,          /* tok_has_trivial_destructor */
-   (an_opname_kind)onk_none,          /* tok_has_user_destructor */
-   (an_opname_kind)onk_none,          /* tok_has_virtual_destructor */
-   (an_opname_kind)onk_none,          /* tok_is_abstract */
-   (an_opname_kind)onk_none,          /* tok_is_base_of */
-   (an_opname_kind)onk_none,          /* tok_is_class */
-   (an_opname_kind)onk_none,          /* tok_is_convertible_to */
-   (an_opname_kind)onk_none,          /* tok_is_convertible */
-   (an_opname_kind)onk_none,          /* tok_is_nothrow_convertible */
-   (an_opname_kind)onk_none,          /* tok_is_empty */
-   (an_opname_kind)onk_none,          /* tok_is_enum */
-   (an_opname_kind)onk_none,          /* tok_is_pod */
-   (an_opname_kind)onk_none,          /* tok_is_polymorphic */
-   (an_opname_kind)onk_none,          /* tok_is_union */
-   (an_opname_kind)onk_none,          /* tok_is_trivial */
-   (an_opname_kind)onk_none,          /* tok_is_standard_layout */
-   (an_opname_kind)onk_none,          /* tok_is_trivially_copyable */
-   (an_opname_kind)onk_none,          /* tok_is_literal_type */
-   (an_opname_kind)onk_none,          /* tok_has_trivial_move_constructor */
-   (an_opname_kind)onk_none,          /* tok_has_trivial_move_assign */
-   (an_opname_kind)onk_none,          /* tok_has_nothrow_move_assign */
-   (an_opname_kind)onk_none,          /* tok_is_constructible */
-   (an_opname_kind)onk_none,          /* tok_is_nothrow_constructible */
-   (an_opname_kind)onk_none,          /* tok_is_trivially_constructible */
-   (an_opname_kind)onk_none,          /* tok_is_destructible */
-   (an_opname_kind)onk_none,          /* tok_is_nothrow_destructible */
-   (an_opname_kind)onk_none,          /* tok_is_trivially_destructible */
-   (an_opname_kind)onk_none,          /* tok_is_nothrow_assignable */
-   (an_opname_kind)onk_none,          /* tok_is_trivially_assignable */
-   (an_opname_kind)onk_none,          /* tok_is_valid_winrt_type */
-   (an_opname_kind)onk_none,          /* tok_underlying_type */
+   onk_none,          /* tok_has_assign */
+   onk_none,          /* tok_has_copy */
+   onk_none,          /* tok_has_nothrow_assign */
+   onk_none,          /* tok_has_nothrow_constructor */
+   onk_none,          /* tok_has_nothrow_copy */
+   onk_none,          /* tok_has_trivial_assign */
+   onk_none,          /* tok_has_trivial_constructor */
+   onk_none,          /* tok_has_trivial_copy */
+   onk_none,          /* tok_has_trivial_destructor */
+   onk_none,          /* tok_has_user_destructor */
+   onk_none,          /* tok_has_virtual_destructor */
+   onk_none,          /* tok_is_abstract */
+   onk_none,          /* tok_is_base_of */
+   onk_none,          /* tok_is_class */
+   onk_none,          /* tok_is_convertible_to */
+   onk_none,          /* tok_is_convertible */
+   onk_none,          /* tok_is_nothrow_convertible */
+   onk_none,          /* tok_is_empty */
+   onk_none,          /* tok_is_enum */
+   onk_none,          /* tok_is_pod */
+   onk_none,          /* tok_is_polymorphic */
+   onk_none,          /* tok_is_union */
+   onk_none,          /* tok_is_trivial */
+   onk_none,          /* tok_is_standard_layout */
+   onk_none,          /* tok_is_trivially_copyable */
+   onk_none,          /* tok_is_literal_type */
+   onk_none,          /* tok_has_trivial_move_constructor */
+   onk_none,          /* tok_has_trivial_move_assign */
+   onk_none,          /* tok_has_nothrow_move_assign */
+   onk_none,          /* tok_is_constructible */
+   onk_none,          /* tok_is_nothrow_constructible */
+   onk_none,          /* tok_is_trivially_constructible */
+   onk_none,          /* tok_is_destructible */
+   onk_none,          /* tok_is_nothrow_destructible */
+   onk_none,          /* tok_is_trivially_destructible */
+   onk_none,          /* tok_is_nothrow_assignable */
+   onk_none,          /* tok_is_trivially_assignable */
+   onk_none,          /* tok_is_valid_winrt_type */
+   onk_none,          /* tok_underlying_type */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-   (an_opname_kind)onk_none,          /* tok_has_finalizer */
-   (an_opname_kind)onk_none,          /* tok_is_delegate */
-   (an_opname_kind)onk_none,          /* tok_is_interface_class */
-   (an_opname_kind)onk_none,          /* tok_is_ref_array */
-   (an_opname_kind)onk_none,          /* tok_is_ref_class */
-   (an_opname_kind)onk_none,          /* tok_is_sealed */
-   (an_opname_kind)onk_none,          /* tok_is_simple_value_class */
-   (an_opname_kind)onk_none,          /* tok_is_value_class */
-   (an_opname_kind)onk_none,          /* tok_is_win_class */
-   (an_opname_kind)onk_none,          /* tok_is_win_interface */
+   onk_none,          /* tok_has_finalizer */
+   onk_none,          /* tok_is_delegate */
+   onk_none,          /* tok_is_interface_class */
+   onk_none,          /* tok_is_ref_array */
+   onk_none,          /* tok_is_ref_class */
+   onk_none,          /* tok_is_sealed */
+   onk_none,          /* tok_is_simple_value_class */
+   onk_none,          /* tok_is_value_class */
+   onk_none,          /* tok_is_win_class */
+   onk_none,          /* tok_is_win_interface */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED*/
-   (an_opname_kind)onk_none,          /* tok_nullptr */
+   onk_none,          /* tok_nullptr */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-   (an_opname_kind)onk_none,          /* tok_native_nullptr */
+   onk_none,          /* tok_native_nullptr */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-   (an_opname_kind)onk_none,          /* tok_internal_alias_decl */
+   onk_none,          /* tok_internal_alias_decl */
 #if INT128_EXTENSIONS_ALLOWED
-   (an_opname_kind)onk_none,          /* tok_int128 */
+   onk_none,          /* tok_int128 */
 #endif /* INT128_EXTENSIONS_ALLOWED */
-   (an_opname_kind)onk_none,          /* tok_override */
-   (an_opname_kind)onk_none,          /* tok_final */
-   (an_opname_kind)onk_none,          /* tok_is_final */
-   (an_opname_kind)onk_none,          /* tok_noexcept */
-   (an_opname_kind)onk_none,          /* tok_constexpr */
-   (an_opname_kind)onk_none,          /* tok_consteval */
-   (an_opname_kind)onk_none,          /* tok_constinit */
-   (an_opname_kind)onk_none,          /* tok_alignof */
-   (an_opname_kind)onk_none,          /* tok_alignas */
+   onk_none,          /* tok_override */
+   onk_none,          /* tok_final */
+   onk_none,          /* tok_is_final */
+   onk_none,          /* tok_noexcept */
+   onk_none,          /* tok_constexpr */
+   onk_none,          /* tok_consteval */
+   onk_none,          /* tok_constinit */
+   onk_none,          /* tok_alignof */
+   onk_none,          /* tok_alignas */
 #if GNU_EXTENSIONS_ALLOWED
-   (an_opname_kind)onk_none,          /* tok_bases */
-   (an_opname_kind)onk_none,          /* tok_direct_bases */
+   onk_none,          /* tok_bases */
+   onk_none,          /* tok_direct_bases */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_VECTOR_TYPES_ALLOWED
-   (an_opname_kind)onk_none,           /* tok_builtin_shuffle */
-   (an_opname_kind)onk_none,           /* tok_builtin_shufflevector */
-   (an_opname_kind)onk_none,           /* tok_builtin_convertvector */
+   onk_none,           /* tok_builtin_shuffle */
+   onk_none,           /* tok_builtin_shufflevector */
+   onk_none,           /* tok_builtin_convertvector */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-   (an_opname_kind)onk_none,          /* tok_noreturn */
-   (an_opname_kind)onk_none,          /* tok_builtin_complex */
-   (an_opname_kind)onk_none,          /* tok_c11_generic */
-   (an_opname_kind)onk_none,          /* tok_c11_atomic */
-   (an_opname_kind)onk_none,          /* tok_nullable */
-   (an_opname_kind)onk_none,          /* tok_nonnull */
-   (an_opname_kind)onk_none,          /* tok_null_unspecified */
-   (an_opname_kind)onk_none,          /* tok_coroutine_yield */
-   (an_opname_kind)onk_none,          /* tok_coroutine_return */
-   (an_opname_kind)onk_await,         /* tok_coroutine_await */
-   (an_opname_kind)onk_none,          /* tok_is_assignable */
+   onk_none,           /* tok_noreturn */
+   onk_none,           /* tok_builtin_complex */
+   onk_none,           /* tok_c11_generic */
+   onk_none,           /* tok_c11_atomic */
+   onk_none,           /* tok_nullable */
+   onk_none,           /* tok_nonnull */
+   onk_none,           /* tok_null_unspecified */
+   onk_none,           /* tok_coroutine_yield */
+   onk_none,           /* tok_coroutine_return */
+   onk_await,          /* tok_coroutine_await */
+   onk_none,           /* tok_is_assignable */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-   (an_opname_kind)onk_none,          /* tok_is_trivially_copy_assignable */
-   (an_opname_kind)onk_none,      /* tok_is_assignable_no_precondition_check */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-   (an_opname_kind)onk_none,          /* tok_builtin_addressof */
-   (an_opname_kind)onk_none,          /* tok_edg_internal_type */
-   (an_opname_kind)onk_none,          /* tok_edg_vector_type */
-   (an_opname_kind)onk_none,          /* tok_edg_size_type */
-   (an_opname_kind)onk_none,          /* tok_edg_ptrdiff_type */
-   (an_opname_kind)onk_none,          /* tok_edg_bool_type */
-   (an_opname_kind)onk_none,          /* tok_edg_wchar_type */
-   (an_opname_kind)onk_none,          /* tok_edg_throw */
-   (an_opname_kind)onk_none,          /* tok_edg_internal_opnd */
-   (an_opname_kind)onk_none,          /* tok_clang_version */
-   (an_opname_kind)onk_none,        /* tok_has_unique_object_representations */
-   (an_opname_kind)onk_none,          /* tok_is_aggregate */
-   (an_opname_kind)onk_none,          /* tok_integer_pack */
-   (an_opname_kind)onk_none,          /* tok_reference_binds_to_temporary */
-   (an_opname_kind)onk_none,        /* tok_reference_constructs_to_temporary */
-   (an_opname_kind)onk_none,          /* tok_reference_converts_to_temporary */
-   (an_opname_kind)onk_none,          /* tok_is_same */
-   (an_opname_kind)onk_none,          /* tok_is_same_as */
-   (an_opname_kind)onk_none,          /* tok_is_function */
-   (an_opname_kind)onk_none,          /* tok_requires */
-   (an_opname_kind)onk_none,          /* tok_concept */
-   (an_opname_kind)onk_none,          /* tok_builtin_has_attribute */
-   (an_opname_kind)onk_none,          /* tok_builtin_bit_cast */
-   (an_opname_kind)onk_none,          /* tok_is_layout_compatible */
-   (an_opname_kind)onk_none,      /* tok_is_pointer_interconvertible_base_of */
-   (an_opname_kind)onk_none,   /* tok_is_pointer_interconvertible_with_class */
-   (an_opname_kind)onk_none,
-                       /* tok_builtin_is_pointer_interconvertible_with_class */
-   (an_opname_kind)onk_none,          /* tok_is_corresponding_member */
-   (an_opname_kind)onk_none,          /* tok_builtin_is_corresponding_member */
-   (an_opname_kind)onk_none,          /* tok_is_deducible */
-   (an_opname_kind)onk_none,          /* tok_is_array */
-   (an_opname_kind)onk_none,          /* tok_array_rank */
-   (an_opname_kind)onk_none,          /* tok_array_extent */
-   (an_opname_kind)onk_none,          /* tok_is_arithmetic */
-   (an_opname_kind)onk_none,          /* tok_is_complete_type */
-   (an_opname_kind)onk_none,          /* tok_is_compound */
-   (an_opname_kind)onk_none,          /* tok_is_const */
-   (an_opname_kind)onk_none,          /* tok_is_floating_point */
-   (an_opname_kind)onk_none,          /* tok_is_fundamental */
-   (an_opname_kind)onk_none,          /* tok_is_integral */
-   (an_opname_kind)onk_none,          /* tok_is_lvalue_reference */
-   (an_opname_kind)onk_none,          /* tok_is_member_function_pointer */
-   (an_opname_kind)onk_none,          /* tok_is_member_object_pointer */
-   (an_opname_kind)onk_none,          /* tok_is_member_pointer */
-   (an_opname_kind)onk_none,          /* tok_is_object */
-   (an_opname_kind)onk_none,          /* tok_is_pointer */
-   (an_opname_kind)onk_none,          /* tok_is_reference */
-   (an_opname_kind)onk_none,          /* tok_is_rvalue_reference */
-   (an_opname_kind)onk_none,          /* tok_is_scalar */
-   (an_opname_kind)onk_none,          /* tok_is_signed */
-   (an_opname_kind)onk_none,          /* tok_is_unsigned */
-   (an_opname_kind)onk_none,          /* tok_is_void */
-   (an_opname_kind)onk_none,          /* tok_is_volatile */
-   (an_opname_kind)onk_none,          /* tok_float32 */
-   (an_opname_kind)onk_none,          /* tok_float32x */
-   (an_opname_kind)onk_none,          /* tok_float64 */
-   (an_opname_kind)onk_none,          /* tok_float64x */
-   (an_opname_kind)onk_none,          /* tok_float128 */
-   (an_opname_kind)onk_none,          /* tok_is_bounded_array */
-   (an_opname_kind)onk_none,          /* tok_is_unbounded_array */
-   (an_opname_kind)onk_none,          /* tok_is_referenceable */
-   (an_opname_kind)onk_none,          /* tok_add_lvalue_reference */
-   (an_opname_kind)onk_none,          /* tok_add_pointer */
-   (an_opname_kind)onk_none,          /* tok_add_rvalue_reference */
-   (an_opname_kind)onk_none,          /* tok_decay */
-   (an_opname_kind)onk_none,          /* tok_make_signed */
-   (an_opname_kind)onk_none,          /* tok_make_unsigned */
-   (an_opname_kind)onk_none,          /* tok_remove_all_extents */
-   (an_opname_kind)onk_none,          /* tok_remove_const */
-   (an_opname_kind)onk_none,          /* tok_remove_cv */
-   (an_opname_kind)onk_none,          /* tok_remove_cvref */
-   (an_opname_kind)onk_none,          /* tok_remove_extent */
-   (an_opname_kind)onk_none,          /* tok_remove_pointer */
-   (an_opname_kind)onk_none,          /* tok_remove_reference */
-   (an_opname_kind)onk_none,          /* tok_remove_reference_t */
-   (an_opname_kind)onk_none,          /* tok_remove_restrict */
-   (an_opname_kind)onk_none,          /* tok_remove_volatile */
-   (an_opname_kind)onk_last           /* tok_last */
+   onk_none,           /* tok_is_trivially_copy_assignable */
+   onk_none,           /* tok_is_assignable_no_precondition_check */
+#endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
+   onk_none,           /* tok_builtin_addressof */
+   onk_none,           /* tok_edg_internal_type */
+   onk_none,           /* tok_edg_vector_type */
+   onk_none,           /* tok_edg_size_type */
+   onk_none,           /* tok_edg_ptrdiff_type */
+   onk_none,           /* tok_edg_bool_type */
+   onk_none,           /* tok_edg_wchar_type */
+   onk_none,           /* tok_edg_throw */
+   onk_none,           /* tok_edg_internal_opnd */
+   onk_none,           /* tok_clang_version */
+   onk_none,           /* tok_has_unique_object_representations */
+   onk_none,           /* tok_is_aggregate */
+   onk_none,           /* tok_integer_pack */
+   onk_none,           /* tok_reference_binds_to_temporary */
+   onk_none,           /* tok_reference_constructs_to_temporary */
+   onk_none,           /* tok_reference_converts_to_temporary */
+   onk_none,           /* tok_is_same */
+   onk_none,           /* tok_is_same_as */
+   onk_none,           /* tok_is_function */
+   onk_none,           /* tok_requires */
+   onk_none,           /* tok_concept */
+   onk_none,           /* tok_builtin_has_attribute */
+   onk_none,           /* tok_builtin_bit_cast */
+   onk_none,           /* tok_is_layout_compatible */
+   onk_none,           /* tok_is_pointer_interconvertible_base_of */
+   onk_none,           /* tok_is_pointer_interconvertible_with_class */
+   onk_none,           /* tok_builtin_is_pointer_interconvertible_with_class */
+   onk_none,           /* tok_is_corresponding_member */
+   onk_none,           /* tok_builtin_is_corresponding_member */
+   onk_none,           /* tok_is_deducible */
+   onk_none,           /* tok_is_array */
+   onk_none,           /* tok_array_rank */
+   onk_none,           /* tok_array_extent */
+   onk_none,           /* tok_is_arithmetic */
+   onk_none,           /* tok_is_complete_type */
+   onk_none,           /* tok_is_compound */
+   onk_none,           /* tok_is_const */
+   onk_none,           /* tok_is_floating_point */
+   onk_none,           /* tok_is_fundamental */
+   onk_none,           /* tok_is_integral */
+   onk_none,           /* tok_is_lvalue_reference */
+   onk_none,           /* tok_is_member_function_pointer */
+   onk_none,           /* tok_is_member_object_pointer */
+   onk_none,           /* tok_is_member_pointer */
+   onk_none,           /* tok_is_object */
+   onk_none,           /* tok_is_pointer */
+   onk_none,           /* tok_is_reference */
+   onk_none,           /* tok_is_rvalue_reference */
+   onk_none,           /* tok_is_scalar */
+   onk_none,           /* tok_is_signed */
+   onk_none,           /* tok_is_unsigned */
+   onk_none,           /* tok_is_void */
+   onk_none,           /* tok_is_volatile */
+   onk_none,           /* tok_float32 */
+   onk_none,           /* tok_float32x */
+   onk_none,           /* tok_float64 */
+   onk_none,           /* tok_float64x */
+   onk_none,           /* tok_float128 */
+   onk_none,           /* tok_is_bounded_array */
+   onk_none,           /* tok_is_unbounded_array */
+   onk_none,           /* tok_is_referenceable */
+   onk_none,           /* tok_add_lvalue_reference */
+   onk_none,           /* tok_add_pointer */
+   onk_none,           /* tok_add_rvalue_reference */
+   onk_none,           /* tok_decay */
+   onk_none,           /* tok_make_signed */
+   onk_none,           /* tok_make_unsigned */
+   onk_none,           /* tok_remove_all_extents */
+   onk_none,           /* tok_remove_const */
+   onk_none,           /* tok_remove_cv */
+   onk_none,           /* tok_remove_cvref */
+   onk_none,           /* tok_remove_extent */
+   onk_none,           /* tok_remove_pointer */
+   onk_none,           /* tok_remove_reference */
+   onk_none,           /* tok_remove_reference_t */
+   onk_none,           /* tok_remove_restrict */
+   onk_none,           /* tok_remove_volatile */
+   onk_none,           /* tok_is_trivially_equality_comparable */
+   onk_last            /* tok_last */
   }
 #endif /* VAR_INITIALIZERS */
 ;

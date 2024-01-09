@@ -982,6 +982,10 @@ a_boolean compute_reference_binds_to_temporary(
                                             a_type_ptr               ref_type,
                                             a_type_ptr               init_type,
                                             a_builtin_operation_kind op);
+
+extern
+a_boolean class_has_default_equality_operator(a_type_ptr  type);
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 extern an_expr_node_ptr make_cli_array_length_nodes(

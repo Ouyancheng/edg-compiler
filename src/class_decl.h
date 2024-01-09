@@ -261,6 +261,8 @@ extern void check_member_decl_is_copy_constructor(
 				a_type_ptr		class_type,
 				a_boolean		compiler_generated);
 
+extern a_boolean class_has_default_equality_operator(a_type_ptr  type);
+
 extern void check_defaulted_or_deleted_function(a_decl_parse_state  *dps,
                                                 a_func_info_block   *func_info,
                                                 a_source_position   *diag_pos);

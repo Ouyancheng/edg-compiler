@@ -14874,6 +14874,10 @@ indication in *rcblock).
       case tok_is_bounded_array:        bok = bok_is_bounded_array; break;
       case tok_is_unbounded_array:      bok = bok_is_unbounded_array; break;
       case tok_is_referenceable:        bok = bok_is_referenceable; break;
+      case tok_is_trivially_equality_comparable:
+                                        bok =
+                                          bok_is_trivially_equality_comparable;
+                                        break;
       default:
         unexpected_condition();
     }  /* switch */
@@ -32316,6 +32320,7 @@ Return TRUE if the given token kind represents a "trait" name (like
     case tok_is_bounded_array:
     case tok_is_unbounded_array:
     case tok_is_referenceable:
+    case tok_is_trivially_equality_comparable:
       result = TRUE;
       break;
     default:
@@ -35126,6 +35131,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_is_bounded_array:
     case tok_is_unbounded_array:
     case tok_is_referenceable:
+    case tok_is_trivially_equality_comparable:
     case tok_coroutine_yield:
     case tok_coroutine_await:
       is_expr_start = TRUE;
@@ -41373,6 +41379,7 @@ handle_identifier:
     case tok_is_bounded_array:
     case tok_is_unbounded_array:
     case tok_is_referenceable:
+    case tok_is_trivially_equality_comparable:
       /* Various single-type unary traits helpers. */
       scan_unary_type_trait_helper((a_rescan_control_block *)NULL,
                                     &local_result);

@@ -1,5 +1,33 @@
 Version 6.7
 
+1/9/24   [EDGcpfe/26920]
+Clang C++ compatibility: __is_trivially_equality_comparable
+
+In Clang C++ mode with clang_version >= 170000 the front end now supports the
+type trait helper __is_trivially_equality_comparable.  It produces a true
+value if its type operand designates a type whose "==" semantics are known to
+match C's memcmp comparison function (i.e., byte-for-byte equality checking).
+In particular, it produces a true value for non-enum integer types and for
+class types with a defaulted operator==, no virtual function table pointers,
+no padding, and all subobjects that are themselves byte-for-byte comparable.
+For example:
+
+  struct S {
+    int i;
+    bool operator==(S const&) const = default;
+  };
+  static_assert(__is_trivially_equality_comparable(S));
+  struct E {
+    bool operator==(E const&) const = default;
+  };
+  static_assert(!__is_trivially_equality_comparable(E));
+
+In this example, E is empty but is padded to have a size of one byte: Since the
+content of padding bytes is not generally known, comparing the bytes of an E
+value using memcmp is not equivalent to invoking E::operator== (which would
+always return true).
+
+
 1/8/24   [EDGcpfe/26919]
 Implement __builtin_FILE_NAME() and changes to file name builtins
 

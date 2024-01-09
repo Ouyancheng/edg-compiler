@@ -702,157 +702,135 @@ modes.
 */
 {
   if (ms_extensions) {
-    enter_keyword((a_token_kind)tok_has_assign, "__has_assign");
-    enter_keyword((a_token_kind)tok_has_copy, "__has_copy");
-    enter_keyword((a_token_kind)tok_has_user_destructor,
-                  "__has_user_destructor");
+    enter_keyword(tok_has_assign, "__has_assign");
+    enter_keyword(tok_has_copy, "__has_copy");
+    enter_keyword(tok_has_user_destructor, "__has_user_destructor");
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    enter_keyword((a_token_kind)tok_has_finalizer, "__has_finalizer");
-    enter_keyword((a_token_kind)tok_is_delegate, "__is_delegate");
-    enter_keyword((a_token_kind)tok_is_interface_class,
-                  "__is_interface_class");
-    enter_keyword((a_token_kind)tok_is_ref_array, "__is_ref_array");
-    enter_keyword((a_token_kind)tok_is_ref_class, "__is_ref_class");
-    enter_keyword((a_token_kind)tok_is_sealed, "__is_sealed");
-    enter_keyword((a_token_kind)tok_is_simple_value_class,
-                  "__is_simple_value_class");
-    enter_keyword((a_token_kind)tok_is_value_class, "__is_value_class");
-    enter_keyword((a_token_kind)tok_is_win_class, "__is_win_class");
-    enter_keyword((a_token_kind)tok_is_win_interface, "__is_win_interface");
-    enter_keyword((a_token_kind)tok_is_valid_winrt_type,
-                  "__is_valid_winrt_type");
-    enter_keyword((a_token_kind)tok_is_trivially_copy_assignable,
+    enter_keyword(tok_has_finalizer, "__has_finalizer");
+    enter_keyword(tok_is_delegate, "__is_delegate");
+    enter_keyword(tok_is_interface_class, "__is_interface_class");
+    enter_keyword(tok_is_ref_array, "__is_ref_array");
+    enter_keyword(tok_is_ref_class, "__is_ref_class");
+    enter_keyword(tok_is_sealed, "__is_sealed");
+    enter_keyword(tok_is_simple_value_class, "__is_simple_value_class");
+    enter_keyword(tok_is_value_class, "__is_value_class");
+    enter_keyword(tok_is_win_class, "__is_win_class");
+    enter_keyword(tok_is_win_interface, "__is_win_interface");
+    enter_keyword(tok_is_valid_winrt_type, "__is_valid_winrt_type");
+    enter_keyword(tok_is_trivially_copy_assignable,
                   "__is_trivially_copy_assignable");
-    enter_keyword((a_token_kind)tok_is_assignable_no_precondition_check,
+    enter_keyword(tok_is_assignable_no_precondition_check,
                   "__is_assignable_no_precondition_check");
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   if (ms_extensions || gnu_version_is(>=120100)) {
     /* Enter keywords in support of P0466R5 ("Layout-compatibility and
        Pointer-interconvertibility Traits", part of C++20). */
-    enter_keyword((a_token_kind)tok_is_layout_compatible,
-                  "__is_layout_compatible");
-    enter_keyword((a_token_kind)tok_is_pointer_interconvertible_base_of,
+    enter_keyword(tok_is_layout_compatible, "__is_layout_compatible");
+    enter_keyword(tok_is_pointer_interconvertible_base_of,
                   "__is_pointer_interconvertible_base_of");
     /* GCC and Visual Studio have different names and signatures for these. */
     if (gnu_version_is(>=120100)) {
-      enter_keyword((a_token_kind)tok_builtin_is_corresponding_member,
+      enter_keyword(tok_builtin_is_corresponding_member,
                     "__builtin_is_corresponding_member");
-      enter_keyword((a_token_kind)
-                            tok_builtin_is_pointer_interconvertible_with_class,
+      enter_keyword(tok_builtin_is_pointer_interconvertible_with_class,
                     "__builtin_is_pointer_interconvertible_with_class");
     } else {
-      enter_keyword((a_token_kind)tok_is_corresponding_member,
-                    "__is_corresponding_member");
-      enter_keyword((a_token_kind)tok_is_pointer_interconvertible_with_class,
+      enter_keyword(tok_is_corresponding_member, "__is_corresponding_member");
+      enter_keyword(tok_is_pointer_interconvertible_with_class,
                     "__is_pointer_interconvertible_with_class");
     }  /* if */
   }  /* if */
-  enter_keyword((a_token_kind)tok_has_nothrow_assign,
-                "__has_nothrow_assign");
-  enter_keyword((a_token_kind)tok_has_nothrow_constructor,
-                "__has_nothrow_constructor");
-  enter_keyword((a_token_kind)tok_has_nothrow_copy, "__has_nothrow_copy");
-  enter_keyword((a_token_kind)tok_has_trivial_assign,
-                "__has_trivial_assign");
-  enter_keyword((a_token_kind)tok_has_trivial_constructor,
-                "__has_trivial_constructor");
-  enter_keyword((a_token_kind)tok_has_trivial_copy,
-                "__has_trivial_copy");
-  enter_keyword((a_token_kind)tok_has_trivial_destructor,
-                "__has_trivial_destructor");
-  enter_keyword((a_token_kind)tok_has_virtual_destructor,
-                "__has_virtual_destructor");
-  enter_keyword((a_token_kind)tok_is_abstract, "__is_abstract");
-  enter_keyword((a_token_kind)tok_is_base_of, "__is_base_of");
-  enter_keyword((a_token_kind)tok_is_class, "__is_class");
-  enter_keyword((a_token_kind)tok_is_convertible_to, "__is_convertible_to");
-  enter_keyword((a_token_kind)tok_is_empty, "__is_empty");
-  enter_keyword((a_token_kind)tok_is_enum, "__is_enum");
-  enter_keyword((a_token_kind)tok_is_function, "__is_function");
-  enter_keyword((a_token_kind)tok_is_pod, "__is_pod");
-  enter_keyword((a_token_kind)tok_is_polymorphic, "__is_polymorphic");
-  enter_keyword((a_token_kind)tok_is_union, "__is_union");
-  enter_keyword((a_token_kind)tok_is_trivial, "__is_trivial");
-  enter_keyword((a_token_kind)tok_is_standard_layout, "__is_standard_layout");
-  enter_keyword((a_token_kind)tok_is_trivially_copyable,
-                "__is_trivially_copyable");
-  enter_keyword((a_token_kind)tok_is_literal_type, "__is_literal_type");
+  enter_keyword(tok_has_nothrow_assign, "__has_nothrow_assign");
+  enter_keyword(tok_has_nothrow_constructor, "__has_nothrow_constructor");
+  enter_keyword(tok_has_nothrow_copy, "__has_nothrow_copy");
+  enter_keyword(tok_has_trivial_assign, "__has_trivial_assign");
+  enter_keyword(tok_has_trivial_constructor, "__has_trivial_constructor");
+  enter_keyword(tok_has_trivial_copy, "__has_trivial_copy");
+  enter_keyword(tok_has_trivial_destructor, "__has_trivial_destructor");
+  enter_keyword(tok_has_virtual_destructor, "__has_virtual_destructor");
+  enter_keyword(tok_is_abstract, "__is_abstract");
+  enter_keyword(tok_is_base_of, "__is_base_of");
+  enter_keyword(tok_is_class, "__is_class");
+  enter_keyword(tok_is_convertible_to, "__is_convertible_to");
+  enter_keyword(tok_is_empty, "__is_empty");
+  enter_keyword(tok_is_enum, "__is_enum");
+  enter_keyword(tok_is_function, "__is_function");
+  enter_keyword(tok_is_pod, "__is_pod");
+  enter_keyword(tok_is_polymorphic, "__is_polymorphic");
+  enter_keyword(tok_is_union, "__is_union");
+  enter_keyword(tok_is_trivial, "__is_trivial");
+  enter_keyword(tok_is_standard_layout, "__is_standard_layout");
+  enter_keyword(tok_is_trivially_copyable, "__is_trivially_copyable");
+  enter_keyword(tok_is_literal_type, "__is_literal_type");
   if (clang_mode) {
-    enter_keyword((a_token_kind)tok_is_array, "__is_array");
-    enter_keyword((a_token_kind)tok_array_rank, "__array_rank");
-    enter_keyword((a_token_kind)tok_array_extent, "__array_extent");
-    enter_keyword((a_token_kind)tok_is_arithmetic, "__is_arithmetic");
-    enter_keyword((a_token_kind)tok_is_complete_type, "__is_complete_type");
-    enter_keyword((a_token_kind)tok_is_compound, "__is_compound");
-    enter_keyword((a_token_kind)tok_is_const, "__is_const");
-    enter_keyword((a_token_kind)tok_is_floating_point, "__is_floating_point");
-    enter_keyword((a_token_kind)tok_is_fundamental, "__is_fundamental");
-    enter_keyword((a_token_kind)tok_is_integral, "__is_integral");
-    enter_keyword((a_token_kind)tok_is_lvalue_reference,
-                  "__is_lvalue_reference");
-    enter_keyword((a_token_kind)tok_is_member_function_pointer,
+    enter_keyword(tok_is_array, "__is_array");
+    enter_keyword(tok_array_rank, "__array_rank");
+    enter_keyword(tok_array_extent, "__array_extent");
+    enter_keyword(tok_is_arithmetic, "__is_arithmetic");
+    enter_keyword(tok_is_complete_type, "__is_complete_type");
+    enter_keyword(tok_is_compound, "__is_compound");
+    enter_keyword(tok_is_const, "__is_const");
+    enter_keyword(tok_is_floating_point, "__is_floating_point");
+    enter_keyword(tok_is_fundamental, "__is_fundamental");
+    enter_keyword(tok_is_integral, "__is_integral");
+    enter_keyword(tok_is_lvalue_reference, "__is_lvalue_reference");
+    enter_keyword(tok_is_member_function_pointer,
                   "__is_member_function_pointer");
-    enter_keyword((a_token_kind)tok_is_member_object_pointer,
-                  "__is_member_object_pointer");
-    enter_keyword((a_token_kind)tok_is_member_pointer, "__is_member_pointer");
-    enter_keyword((a_token_kind)tok_is_object, "__is_object");
-    enter_keyword((a_token_kind)tok_is_pointer, "__is_pointer");
-    enter_keyword((a_token_kind)tok_is_reference, "__is_reference");
-    enter_keyword((a_token_kind)tok_is_rvalue_reference,
-                  "__is_rvalue_reference");
-    enter_keyword((a_token_kind)tok_is_scalar, "__is_scalar");
-    enter_keyword((a_token_kind)tok_is_unsigned, "__is_unsigned");
+    enter_keyword(tok_is_member_object_pointer, "__is_member_object_pointer");
+    enter_keyword(tok_is_member_pointer, "__is_member_pointer");
+    enter_keyword(tok_is_object, "__is_object");
+    enter_keyword(tok_is_pointer, "__is_pointer");
+    enter_keyword(tok_is_reference, "__is_reference");
+    enter_keyword(tok_is_rvalue_reference, "__is_rvalue_reference");
+    enter_keyword(tok_is_scalar, "__is_scalar");
+    enter_keyword(tok_is_unsigned, "__is_unsigned");
     /* Note: tok_is_signed is handled in a context-sensitive way in expr.c
        because some GCC headers use it as an ordinary identifier. */
-    enter_keyword((a_token_kind)tok_is_void, "__is_void");
-    enter_keyword((a_token_kind)tok_is_volatile, "__is_volatile");
-    enter_keyword((a_token_kind)tok_is_same_as, "__is_same_as");
-    enter_keyword((a_token_kind)tok_reference_binds_to_temporary,
+    enter_keyword(tok_is_void, "__is_void");
+    enter_keyword(tok_is_volatile, "__is_volatile");
+    enter_keyword(tok_is_same_as, "__is_same_as");
+    enter_keyword(tok_reference_binds_to_temporary,
                   "__reference_binds_to_temporary");
     enter_keyword(tok_is_bounded_array, "__is_bounded_array");
     enter_keyword(tok_is_unbounded_array, "__is_unbounded_array");
     enter_keyword(tok_is_referenceable, "__is_referenceable");
     /* These next two are synonyms for existing intrinsics. */
-    enter_keyword((a_token_kind)tok_is_literal_type, "__is_literal");
-    enter_keyword((a_token_kind)tok_is_convertible, "__is_convertible");
+    enter_keyword(tok_is_literal_type, "__is_literal");
+    enter_keyword(tok_is_convertible, "__is_convertible");
+    if (clang_version >= 170000) {
+      enter_keyword(tok_is_trivially_equality_comparable,
+                    "__is_trivially_equality_comparable");
+    }  /* if */
   }  /* if */
   if (gnu_version_is(>=130000)) {
-    enter_keyword((a_token_kind)tok_is_convertible, "__is_convertible");
-    enter_keyword((a_token_kind)tok_is_nothrow_convertible,
-                  "__is_nothrow_convertible");
-    enter_keyword((a_token_kind)tok_reference_constructs_from_temporary,
+    enter_keyword(tok_is_convertible, "__is_convertible");
+    enter_keyword(tok_is_nothrow_convertible, "__is_nothrow_convertible");
+    enter_keyword(tok_reference_constructs_from_temporary,
                   "__reference_constructs_from_temporary");
-    enter_keyword((a_token_kind)tok_reference_converts_from_temporary,
+    enter_keyword(tok_reference_converts_from_temporary,
                   "__reference_converts_from_temporary");
   }  /* if */
-  enter_keyword((a_token_kind)tok_has_trivial_move_constructor,
+  enter_keyword(tok_has_trivial_move_constructor,
                 "__has_trivial_move_constructor");
-  enter_keyword((a_token_kind)tok_has_trivial_move_assign,
-                "__has_trivial_move_assign");
-  enter_keyword((a_token_kind)tok_has_nothrow_move_assign,
-                "__has_nothrow_move_assign");
-  enter_keyword((a_token_kind)tok_is_constructible, "__is_constructible");
-  enter_keyword((a_token_kind)tok_is_nothrow_constructible,
-                "__is_nothrow_constructible");
-  enter_keyword((a_token_kind)tok_is_trivially_constructible,
+  enter_keyword(tok_has_trivial_move_assign, "__has_trivial_move_assign");
+  enter_keyword(tok_has_nothrow_move_assign, "__has_nothrow_move_assign");
+  enter_keyword(tok_is_constructible, "__is_constructible");
+  enter_keyword(tok_is_nothrow_constructible, "__is_nothrow_constructible");
+  enter_keyword(tok_is_trivially_constructible,
                 "__is_trivially_constructible");
-  enter_keyword((a_token_kind)tok_is_destructible, "__is_destructible");
-  enter_keyword((a_token_kind)tok_is_nothrow_destructible,
-                "__is_nothrow_destructible");
-  enter_keyword((a_token_kind)tok_is_trivially_destructible,
-                "__is_trivially_destructible");
-  enter_keyword((a_token_kind)tok_is_assignable, "__is_assignable");
-  enter_keyword((a_token_kind)tok_is_nothrow_assignable,
-                "__is_nothrow_assignable");
-  enter_keyword((a_token_kind)tok_is_trivially_assignable,
-                "__is_trivially_assignable");
-  enter_keyword((a_token_kind)tok_underlying_type, "__underlying_type");
-  enter_keyword((a_token_kind)tok_is_final, "__is_final");
-  enter_keyword((a_token_kind)tok_has_unique_object_representations,
+  enter_keyword(tok_is_destructible, "__is_destructible");
+  enter_keyword(tok_is_nothrow_destructible, "__is_nothrow_destructible");
+  enter_keyword(tok_is_trivially_destructible, "__is_trivially_destructible");
+  enter_keyword(tok_is_assignable, "__is_assignable");
+  enter_keyword(tok_is_nothrow_assignable, "__is_nothrow_assignable");
+  enter_keyword(tok_is_trivially_assignable, "__is_trivially_assignable");
+  enter_keyword(tok_underlying_type, "__underlying_type");
+  enter_keyword(tok_is_final, "__is_final");
+  enter_keyword(tok_has_unique_object_representations,
                 "__has_unique_object_representations");
-  enter_keyword((a_token_kind)tok_is_aggregate, "__is_aggregate");
-  enter_keyword((a_token_kind)tok_edg_is_deducible, "__edg_is_deducible");
+  enter_keyword(tok_is_aggregate, "__is_aggregate");
+  enter_keyword(tok_edg_is_deducible, "__edg_is_deducible");
 }  /* enter_type_traits_helpers */
 
 

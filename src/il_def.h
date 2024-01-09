@@ -1484,6 +1484,7 @@ enum a_token_kind : unsigned short {
   tok_remove_reference_t,
   tok_remove_restrict,
   tok_remove_volatile,
+  tok_is_trivially_equality_comparable,
   /* Placeholder for last position in enumeration. */
   tok_last
 };
@@ -1736,6 +1737,7 @@ EXTERN a_const_char
    "__remove_reference_t",
    "__remove_restrict",
    "__remove_volatile",
+   "__is_trivially_equality_comparable",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -13803,6 +13805,9 @@ enum a_builtin_operation_kind : a_byte {
 			   operands. */
   bok_is_convertible,
 			/* __is_convertible.  Two operands, both types (GNU).*/
+  bok_is_trivially_equality_comparable,
+			/* __is_trivially_equality_comparable (Clang).  One
+			   type operands. */
   bok_last              /* Marks the end of the list. */
 };
 

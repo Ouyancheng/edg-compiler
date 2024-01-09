@@ -14203,6 +14203,7 @@ assignment operator needs to be defined as deleted.
   return result;
 }  /* assignment_operator_can_be_defaulted */
 
+
 static void check_defaulted_comparison(a_decl_parse_state  *dps,
                                        a_func_info_block   *func_info,
                                        a_source_position   *def_pos)
@@ -14345,6 +14346,40 @@ the position of the "= default" construct.
     rp->is_constexpr = TRUE;
   }  /* if */
 }  /* check_defaulted_comparison */
+
+
+a_boolean class_has_default_equality_operator(a_type_ptr  type)
+/*
+Return TRUE if the given class type has a defaulted operator== (either a member
+operator or a friend operator).
+*/
+{
+  a_boolean      result = FALSE;
+  a_type_ptr     utype = skip_typerefs(type);
+  a_class_type_supplement_ptr
+                 ctsp = class_type_supp(utype); 
+  a_routine_ptr  rp = ctsp->assoc_scope->routines;
+
+  for (; rp != NULL; rp = rp->next) {
+    if (rp->is_defaulted && special_kind_is(rp, sfk_operator) &&
+        opname_kind_is(rp, onk_eq)) {
+      result = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  if (!result) {
+    a_routine_list_entry_ptr  rlep;
+    for (rlep = ctsp->friend_routines; rlep != NULL; rlep = rlep->next) {
+      rp = rlep->routine;
+      if (rp->is_defaulted && special_kind_is(rp, sfk_operator) &&
+          opname_kind_is(rp, onk_eq)) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* class_has_default_equality_operator */
 
 
 void check_defaulted_or_deleted_function(a_decl_parse_state  *dps,
@@ -22327,8 +22362,7 @@ operators as deleted if appropriate.
     }  /* if */
   }  /* for */
   if (spaceship_enabled) {
-    a_routine_list_entry_ptr
-                      rlep;
+    a_routine_list_entry_ptr  rlep;
     for (rlep = ctsp->friend_routines; rlep != NULL; rlep = rlep->next) {
       rp = rlep->routine;
       if (rp->is_defaulted && special_kind_is(rp, sfk_operator)) {

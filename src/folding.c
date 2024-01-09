@@ -8456,15 +8456,16 @@ with cssp are trivial.
 
 
 static a_boolean type_has_unique_object_representations(
-                                             a_type_ptr    type,
-                                             a_targ_size_t *after_base_members)
+                                   a_type_ptr     type,
+                                   a_targ_size_t  *after_base_members,
+                                   a_boolean      require_trivial_copy = TRUE)
 /*
 Return TRUE if type satisfies the std::has_unique_object_representations
 trait as described in the C++17 Standard. If type is a class type, it must
-be complete and be trivially copyable. If after_base_members is non-NULL,
-type is a base class of a class type and tail padding is permitted; in that
-case, *after_base_members is set to the offset following the last
-non-static data member of the class.
+be complete and if require_trivial_copy is TRUE it must be trivially copyable. 
+If after_base_members is non-NULL, type is a base class of a class type and
+tail padding is permitted; in that case, *after_base_members is set to the
+offset following the last non-static data member of the class.
 
 The result of this predicate is largely left implementation-defined in the
 C++ Standard; the code below reflects the values for the Microsoft and g++
@@ -8487,7 +8488,7 @@ architectures for which these assumptions are not valid.
          Clang accepts the assertion if, e.g., "S<int> s;" precedes it. */
       complete_type_is_needed(type);
     }  /* if */
-    if (!is_trivially_copyable_type(type)) {
+    if (require_trivial_copy && !is_trivially_copyable_type(type)) {
       /* The result is false for a type that is not trivially copyable. */
       result = FALSE;
     } else {
@@ -8652,6 +8653,73 @@ architectures for which these assumptions are not valid.
   }  /* if */
   return result;
 }  /* type_has_unique_object_representations */
+
+
+static a_boolean type_is_trivially_equality_comparable(
+                                          a_type_ptr  type,
+                                          a_boolean   check_unique_rep = TRUE)
+/*
+Return TRUE if is it known that values of the given type can be compared
+using memcmp applied to their representation.  A necessary condition for this
+is that values of that type have a unique representation (e.g., no padding or
+floating-point components).  If the caller already has established that,
+check_unique_rep can be passed FALSE to skip checking that condition.
+*/
+{
+  a_boolean  result;
+  a_type_ptr  utype = skip_typerefs(type);
+
+  if (is_immediate_enum_type(utype)) {
+    /* Enum types are presumed not to be trivially comparable because a user-
+       defined operator== could be provided for them. */
+    result = FALSE;
+  } else if (type_is(utype, tk_array)) {
+    /* Arrays do not have equality operators. */
+    result = FALSE;
+  } else if (check_unique_rep &&
+             !type_has_unique_object_representations(
+                                            type, (a_targ_size_t*)NULL,
+                                            /*require_trivial_copy=*/FALSE)) {
+    /* If the byte representation for a given value can vary (due to padding,
+       NaN-like states, etc.) memcmp cannot be used for comparison.  (Note:
+       This also causes reference types not to be trivially comparable.) */
+    result = FALSE;
+  } else if (is_immediate_class_type(utype)) {
+    if (!class_has_default_equality_operator(utype) ||
+        is_polymorphic_class_type(utype) ||
+        utype->variant.class_struct_union.any_virtual_base_classes ||
+        !spaceship_enabled) {
+      result = FALSE;
+    } else {
+      /* Check whether all the subobjects are trivially comparable. */
+      a_field_ptr       fp = next_proper_initializable_field(fields_of(utype));
+      /* Assume the result will be TRUE, and clear it back to FALSE if any
+         subobject is not trivially comparable.  Since we already established
+         that the object type as a whole has unique representations, we need
+         not repeat that check for the subobject types. */
+      result = TRUE;
+      for (; fp != NULL; fp = next_proper_initializable_field(fp->next)) {
+        a_type_ptr  tp = skip_array_types(fp->type);
+        if (!type_is_trivially_equality_comparable(
+                                            tp, /*check_unique_rep=*/FALSE)) {
+          result = FALSE;
+        }  /* if */
+      }  /* for */
+      if (result) {
+        a_base_class_ptr  bcp = direct_base_classes_of(utype);
+        for (; bcp != NULL; bcp = bcp->next_direct) {
+          if (!type_is_trivially_equality_comparable(
+                                     bcp->type, /*check_unique_rep=*/FALSE)) {
+            result = FALSE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  } else {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* type_is_trivially_equality_comparable */
 
 
 static void fold_unary_type_trait_helper(
@@ -9022,6 +9090,9 @@ and, if pos is not NULL, an error will be reported.
         case bok_is_referenceable:
           result = is_referenceable_type(orig_type);
           break;
+        case bok_is_trivially_equality_comparable:
+          result = type_is_trivially_equality_comparable(orig_type);
+          break;
         default:
           unexpected_condition();
       }  /* switch */
@@ -9300,6 +9371,9 @@ and, if pos is not NULL, an error will be reported.
         break;
       case bok_is_referenceable:
         result = is_referenceable_type(orig_type);
+        break;
+      case bok_is_trivially_equality_comparable:
+        result = type_is_trivially_equality_comparable(orig_type);
         break;
       case bok_is_arithmetic:
       case bok_is_floating_point:
@@ -10094,6 +10168,7 @@ constant is set as well.
       case bok_is_bounded_array:
       case bok_is_unbounded_array:
       case bok_is_referenceable:
+      case bok_is_trivially_equality_comparable:
         /* Various type trait helpers that take a single argument. */
         fold_unary_type_trait_helper(expr, constant, maintain_expression, pos,
                                      /*complete_class_property=*/FALSE);

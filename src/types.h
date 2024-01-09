@@ -338,6 +338,7 @@ extern a_type_ptr apply_type_transforming_intrinsic(
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 extern a_boolean is_or_has_volatile_qualified_type(a_type_ptr tp);
 extern a_boolean is_referenceable_type(a_type_ptr tp);
+extern a_boolean is_trivially_equality_comparable_type(a_type_ptr tp);
 
 extern a_type_ptr array_element_type(a_type_ptr array_type);
 extern a_type_ptr underlying_array_element_type(a_type_ptr array_type);
