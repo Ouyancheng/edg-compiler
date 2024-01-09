@@ -9015,6 +9015,10 @@ problems are encountered, the pointee of p_result will be set to FALSE.
   (void)conv_seq_to_file_and_line(use_pos->seq, &file_name,
                                   &full_name, &line_number,
                                   &at_end_of_source);
+  /* In some cases there is no full name, so fallback to the file name. */
+  if (full_name == NULL) {
+    full_name = file_name;
+  }  /* if */
   do_constexpr_write_cstring(ips, full_name, result_storage, p_result);
 }  /* do_constexpr_write_source_file */
 
