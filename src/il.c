@@ -4649,16 +4649,16 @@ a_source_file_ptr conv_seq_to_file_and_line(a_seq_number  seq_number,
                                             a_line_number *line_number,
                                             a_boolean     *at_end_of_source)
 /*
-For the sequence number given by seq_number, find the corresponding
-file and line number.  Return the short and long forms of the file name
-in *file_name and *full_name, and the line number in *line_number.
-If the sequence number indicates the end-of-source line, the file names
-will be set to the primary source file, the line number to the last
-line in that file, and *at_end_of_source will be set TRUE (it is
-set to FALSE in all other cases).  If the sequence number indicates an
-unknown position, the file names will be set to zero-length strings, and 
-the line number to 0.  Return the source file pointer associated with
-seq_number.
+For the sequence number given by seq_number, find the corresponding file and
+line number.  Return the short and long forms of the file name in *file_name
+and *full_name, and the line number in *line_number.  In some cases *full_name
+can be NULL while *file_name is not (see a_source_file for more information
+about full vs file name).  If the sequence number indicates the end-of-source
+line, the file names will be set to the primary source file, the line number to
+the last line in that file, and *at_end_of_source will be set TRUE (it is set
+to FALSE in all other cases).  If the sequence number indicates an unknown
+position, the file names will be set to zero-length strings, and the line
+number to 0.  Return the source file pointer associated with seq_number.
 */
 {
   a_source_file_ptr proper_file;
