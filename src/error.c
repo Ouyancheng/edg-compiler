@@ -1178,38 +1178,6 @@ dfip into the message buffer.
   add_string_to_text_buffer(msg_buffer, ">\"");
 }  /* form_template_arg_list */
 
-
-char *format_type_string(a_type_ptr tp,
-                         sizeof_t   *len_ptr)
-/*
-A NULL terminated character string representation of the type pointed to by tp
-is formatted into the first segment of the error diagnostic segment list
-(pointed to by the static variable error_message_head).  The formatted type is
-always stripped of any type aliases.  The address of the string created is
-returned and the length of the string is passed to the caller by *len_ptr.
-Note that the string length does not include the terminating NULL character.
-The caller should make a copy of the string immediately into whichever memory
-region is appropriate.
-*/
-{
-  /* Set up for use of the il_to_str routines. */
-  set_up_output_control_block();
-
-  /* Form the type string. */
-  Value_saver<a_byte_boolean>
-                keep_template_typedefs_saved(&octl.keep_template_typedefs);
-  Value_saver<a_byte_boolean>
-                suppress_typedef_names_saved(&octl.suppress_typedef_names);
-  octl.suppress_typedef_names = TRUE;
-  octl.keep_template_typedefs = FALSE;
-  form_type(tp, &octl);
-  add_char_to_text_buffer(msg_buffer, '\0');
-  /* Provide the length of the string and the address of the string
-     buffer to the caller. */
-  *len_ptr = msg_buffer->size-1;
-  return msg_buffer->buffer;
-}  /* format_type_string */
-
 #if !STANDALONE_UTILITY_PROGRAM
 #if CHECKING
 

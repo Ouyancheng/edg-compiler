@@ -7518,6 +7518,34 @@ progenitor_sym is a member) if ambiguous is TRUE.
   return sym;
 }  /* make_projection_symbol */
 
+using a_type_name_string = Small_string<50>;
+                        /* The type of a buffer storing a type name represented
+                           as a string. */
+
+static a_type_name_string operator_type_name_str(a_type_ptr tp)
+/*
+Return a string containing the type pointed to by tp.  The formatted
+type is never stripped of any type aliases.
+*/
+{
+  a_type_name_string
+                result("");
+  an_il_to_str_output_control_block
+                local_octl;
+
+  /* Set up for use of the il_to_str routines. */
+  clear_il_to_str_output_control_block(&local_octl);
+
+  auto output_str_func = [](a_const_char                          *str,
+                            an_il_to_str_output_control_block_ptr octl_ptr) {
+    ((a_type_name_string*)octl_ptr->text_buffer)->append(str);
+  };
+  local_octl.output_str = output_str_func;
+  local_octl.text_buffer = (void*)&result;
+  form_type(tp, &local_octl);
+  return result;
+}  /* operator_type_name_str */
+
 
 static
 a_symbol_header_ptr symbol_header_for_conversion_function(a_type_ptr type)
@@ -7529,8 +7557,6 @@ is none, create a new one.
   a_conversion_header_ptr  conv_hdr;
   a_conversion_header_ptr  prev_conv_hdr;
   a_symbol_header_ptr      sym_hdr;
-  char                     *name;
-  sizeof_t                 name_length;
 
   /* Search the conversion header list for an entry of the required type.
      If one is found, it is moved to the front of the list. */
@@ -7560,18 +7586,21 @@ is none, create a new one.
     /* Set the type and symbol header. */
     conv_hdr->type = type;
     conv_hdr->symbol_header = sym_hdr = alloc_symbol_header();
+
     /* Conversion symbols have the name "operator <type-name>". */
-    name = format_type_string(type, &name_length);
+    a_type_name_string name = operator_type_name_str(type);
     sym_hdr->identifier_length =
-                     LENGTH_CANONICAL_CONVERSION_FUNCTION_INTRO + name_length;
+                    LENGTH_CANONICAL_CONVERSION_FUNCTION_INTRO + name.length();
     sym_hdr->identifier =
                   alloc_primary_file_scope_il(sym_hdr->identifier_length + 1);
     (void)memcpy((char *)sym_hdr->identifier,
                  CANONICAL_CONVERSION_FUNCTION_INTRO,
                  LENGTH_CANONICAL_CONVERSION_FUNCTION_INTRO);
-    (void)strcpy((char *)sym_hdr->identifier +
+    (void)memcpy((char *)sym_hdr->identifier +
                                    LENGTH_CANONICAL_CONVERSION_FUNCTION_INTRO,
-                 name);
+                 name.as_temp_characters(),
+                 name.length());
+    ((char*)sym_hdr->identifier)[sym_hdr->identifier_length] = '\0';
 #if DEBUG
     symbol_name_string_space += (unsigned long)(sym_hdr->identifier_length);
 #endif /* DEBUG */

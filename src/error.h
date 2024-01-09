@@ -425,8 +425,6 @@ struct a_source_file;
 struct a_pending_pragma;
 
 
-extern char *format_type_string(struct a_type *type,
-                                sizeof_t      *len_ptr);
 extern void error_early_init(void);
 extern void error_one_time_init(void);
 extern void error_init(void);

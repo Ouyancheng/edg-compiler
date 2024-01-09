@@ -1,5 +1,24 @@
 Version 6.7
 
+1/9/24   [EDGcpfe/26941]
+Preserve typedefs in symbol headers for conversion operators
+
+In 6.6 (EDGcpfe/26831) a change was made to how symbol headers are generated
+for type conversion operators.  Prior to this change the conversion operator
+type included in the operator's symbol header was dealiasing depending on
+configuration (DEFAULT_DISPLAY_TEMPLATE_TYPEDEFS_IN_DIAGNOSTICS) and its
+associated command line switches.
+
+The change attempted to make the operator symbol header name consistently use a
+dealiased type regardless of diagnostics settings (roughly equivalent to
+DEFAULT_DISPLAY_TEMPLATE_TYPEDEFS_IN_DIAGNOSTICS=FALSE).  However, this was
+never correctly performed for types in the standard namespace.
+
+Following customer feedback, this has been changed to always preserve typedefs
+in the conversion operator symbol header (roughly equivalent to
+DEFAULT_DISPLAY_TEMPLATE_TYPEDEFS_IN_DIAGNOSTICS=TRUE).
+
+
 1/9/24   [EDGcpfe/26939]
 Do not dealias typedefs inside of inline namespaces in std
 
