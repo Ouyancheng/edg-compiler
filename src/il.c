@@ -366,7 +366,7 @@ void put_str_into_text_buffer(a_const_char                          *str,
 Output a string into the db_name_str buffer.
 */
 {
-  add_string_to_text_buffer(octl->text_buffer, str);
+  add_string_to_text_buffer((a_text_buffer_ptr)octl->text_buffer, str);
 }  /* put_str_into_text_buffer */
 
 #if DEBUG

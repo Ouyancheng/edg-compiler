@@ -126,10 +126,11 @@ typedef struct an_il_to_str_output_control_block {
 			   the output_str routine is used (implying that
 			   for the kind of output being done token boundaries
 			   don't matter). */
-  a_text_buffer_ptr
-	text_buffer;
-			/* When output_str is put_str_into_text_buffer,
-			   this points to the text buffer to be used. */
+  void  *text_buffer;
+			/* A type erased pointer to the buffer output_str
+			   should write to.  Note the expected type of
+			   output_str must match the type of the type erased
+			   buffer. */
   an_output_name_function_ptr
 	output_name;
 			/* Function to output the name of an entity.  NULL
