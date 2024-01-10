@@ -127,9 +127,9 @@ typedef struct an_il_to_str_output_control_block {
 			   for the kind of output being done token boundaries
 			   don't matter). */
   void  *text_buffer;
-			/* A type erased pointer to the buffer output_str
+			/* A type-erased pointer to the buffer output_str
 			   should write to.  Note the expected type of
-			   output_str must match the type of the type erased
+			   output_str must match the type of the type-erased
 			   buffer. */
   an_output_name_function_ptr
 	output_name;
