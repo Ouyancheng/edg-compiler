@@ -3171,7 +3171,14 @@ is returned.
   this->backing_array.pop_back();
   /* Append the new characters. */
   auto reserve_func = [this](a_size total_size) {
-    this->backing_array.reserve(this->backing_array.length() + total_size);
+    auto min_new_size = this->backing_array.length() + total_size;
+
+    if (min_new_size > this->backing_array.capacity()) {
+      auto capacity = this->backing_array.capacity();
+      auto reserve_amount = max_val(capacity * 2, min_new_size);
+
+      this->backing_array.reserve(reserve_amount);
+    }  /* if */
     return &this->backing_array;
   };
   detail::append_with_custom_reserve(reserve_func, args...);
