@@ -36,7 +36,7 @@ Do not dealias typedefs inside of inline namespaces in std
 In 6.6 (EDGcpfe/26831) the front end added improved support for diagnostics
 including typedef types.  This improved support excludes typedefs inside of the
 std namespace from being dealiased.  However, inline namespaces within the std
-namespace were not included.  This is now fixed; standard libraries that use
+namespace were not included.  This is now fixed; standard libraries that use an
 inline namespace will no longer have their typedefs dealiased in diagnostics.
 
 
