@@ -50,7 +50,7 @@ type trait helper __is_trivially_equality_comparable.  It produces a true
 value if its type operand designates a type whose "==" semantics are known to
 match C's memcmp comparison function (i.e., byte-for-byte equality checking).
 In particular, it produces a true value for non-enum integer types and for
-class types with a defaulted operator==, no virtual function table pointers,
+class types with a defaulted operator==, no virtual functions or virtual bases,
 no padding, and all subobjects that are themselves byte-for-byte comparable.
 For example:
 
