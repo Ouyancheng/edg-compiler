@@ -22036,15 +22036,16 @@ skip_assignment_operators:
                          class_type, type);
     }  /* if */
   } else {
+    a_symbol_ptr  inaccessible_sym = NULL;
     src_qual = gsfd->copy_ctor_qualifiers | subobj_qual;
     /* Mutable subobjects of a const object are not const. */
     if (is_mutable) src_qual &= ~(a_type_qualifier_set)TQ_CONST;
     rout_sym = find_copy_constructor(type, src_qual,
                                      /*source_is_rvalue=*/FALSE,
                                      &type->source_corresp.decl_position,
-                                     &ambiguous, (a_symbol**)NULL,
+                                     &ambiguous, &inaccessible_sym,
                                      &bitwise_copy);
-    if (ambiguous ||
+    if (ambiguous || inaccessible_sym != NULL ||
         (rout_sym == NULL ? !bitwise_copy
                           : is_unusable_member_sym(rout_sym)) ||
         (variant_field && unrestricted_unions_enabled && !bitwise_copy &&
@@ -22077,12 +22078,13 @@ skip_assignment_operators:
        checking is needed for this case.  If move constructors aren't generated
        at all, nothing is needed either. */
   } else {
+    a_symbol_ptr  inaccessible_sym = NULL;
     rout_sym = find_copy_constructor(type, subobj_qual,
                                      /*source_is_rvalue=*/TRUE,
                                      &type->source_corresp.decl_position,
                                      &ambiguous, (a_symbol**)NULL,
                                      &bitwise_copy);
-    if (ambiguous ||
+    if (ambiguous || inaccessible_sym != NULL ||
         (rout_sym == NULL ? !bitwise_copy
                           : is_unusable_member_sym(rout_sym)) ||
         (variant_field && unrestricted_unions_enabled && !bitwise_copy &&

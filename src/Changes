@@ -1,5 +1,27 @@
 Version 6.7
 
+1/10/24  [EDGcpfe/26922]
+Generated copy constructor with inaccessible subobject constructor
+
+Consider:
+
+  class C {
+    C(C&) = default;  // Private copy constructor with trivial copy semantics.
+  };
+  struct S {
+    C c;
+  };
+  void f(S &p) {
+    S s(p);  // Failed to issue an error with version 6.6.  Now fixed.
+  }
+
+The generated copy constructor of S should be a deleted constructor because
+S does not have access to the copy constructor of C.  However, the changes for
+EDGcpfe/26518 introduced a regression in version 6.6 of the front end causing
+it to fail to mark the generated copy constructor of S as deleted.  That is
+now fixed.
+
+
 1/10/24  [EDGcpfe/26921]
 Clang/GCC compatibility: __is_trivial
 

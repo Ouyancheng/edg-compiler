@@ -28737,24 +28737,25 @@ a_symbol_ptr select_overloaded_copy_constructor(
                                    a_symbol_ptr          *inaccessible_match,
                                    a_boolean             *class_bitwise_copy)
 /*
-Find and return a pointer to a symbol representing a copy constructor for
-the class indicated by class_type and accepting a first parameter whose type
-is qualified as specified by source_cv_qualifiers, and an rvalue (including
-xvalue) if source_is_rvalue is TRUE.  pos is a source position, used
-if a template needs to be instantiated.  If no acceptable copy
-constructor is found, return NULL.  If more than one acceptable copy
-constructor is found and only one of them is the best match, return
-that one; otherwise set *ambiguous to TRUE and return NULL.  If no
-acceptable copy constructor is found but one would have been
-acceptable except that it's uncallable, return that one and set
-*uncallable to TRUE.  uncallable can be NULL if that feature is not
-wanted.  If inaccessible_match is non-NULL, in C++/CLI mode it will be
-set to a symbol that would have been chosen except that it was
-inaccessible because of hide-by-sig lookup.  If a bitwise copy is
-selected, return NULL and *class_bitwise_copy TRUE (this is also
-returned when the class_type is template-dependent in a prototype
-instantiation).  This routine is used only in C++ mode.  It does not
-do access checking on the copy constructor.
+Find and return a pointer to a symbol representing a copy constructor for the
+class indicated by class_type and accepting a first parameter whose type is
+qualified as specified by source_cv_qualifiers, and an rvalue (including
+xvalue) if source_is_rvalue is TRUE.  pos is a source position, used if a
+template needs to be instantiated.  If no acceptable copy constructor is
+found, return NULL.  If more than one acceptable copy constructor is found and
+only one of them is the best match, return that one; otherwise set *ambiguous
+to TRUE and return NULL.  If no acceptable copy constructor is found but one
+would have been acceptable except that it's uncallable, return that one and
+set *uncallable to TRUE.  uncallable can be NULL if that feature is not
+wanted.  If inaccessible_match is non-NULL, in C++/CLI mode it will be set to
+a symbol that would have been chosen except that it was inaccessible because
+of hide-by-sig lookup.  If a bitwise copy is selected, return NULL and
+*class_bitwise_copy TRUE (this is also returned when the class_type is
+template-dependent in a prototype instantiation).  If the bitwise copy is the
+result of an inaccessible (defaulted) constructor and inaccessible_match is
+non-NULL, *inaccessible_match is set to the symbol for that constructor.  This 
+routine is used only in C++ mode.  It does not do access checking on the copy
+constructor.
 */
 {
   a_symbol_ptr                    sym, cctor_sym = NULL, uncallable_sym = NULL;
@@ -28785,6 +28786,7 @@ do access checking on the copy constructor.
   class_type = skip_typerefs(class_type);
   instantiate_template_class(class_type);
   cssp = symbol_supplement_for_class(class_type);
+  overloaded_sym = cssp->constructor;
   if ((cssp->construction_by_bitwise_copy_allowed &&
        !cssp->has_deleted_copy_or_move_constructor) ||
       class_type->variant.class_struct_union.is_nonreal_class) {
@@ -28799,6 +28801,23 @@ do access checking on the copy constructor.
          copy a volatile-qualified object. */
     } else {
       *class_bitwise_copy = TRUE;
+      if (inaccessible_match != NULL && overloaded_sym != NULL) {
+        a_boolean  is_list = symbol_is(overloaded_sym, sk_overloaded_function);
+        sym = is_list ? overloaded_sym->variant.overloaded_function.symbols
+                      : overloaded_sym;
+        for (; sym != NULL; sym = is_list ? sym->next : NULL) {
+          if (symbol_is(sym, sk_member_function)) {
+            a_routine_ptr     rp = sym->variant.routine.ptr;
+            a_param_type_ptr  ptp = function_type_params(rp->type);
+            if (rp->is_trivial_copy_function &&
+                is_rvalue_reference_type(ptp->type) == source_is_rvalue) {
+              if (!have_access_to_symbol(sym)) {
+                *inaccessible_match = sym;
+              }  /* if */
+            }  /* if */
+          }  /* if */
+        }  /* for */
+      }  /* if */
     }  /* if */
   } else if (cssp->constructor == NULL) {
     /* This can currently only happen in some Microsoft modes, where generated
@@ -28816,7 +28835,6 @@ do access checking on the copy constructor.
     a_boolean  select_templates = FALSE, have_near_perfect_match = FALSE;
     a_type_qualifier_set
                near_perfect_match_added_tqs = ~TQ_NONE;
-    overloaded_sym = cssp->constructor;
     /* Examine each constructor for this class to find a copy constructor.
        There may be more than one.  For instance, there may be a copy
        constructor that can copy a const object and another that cannot. */
