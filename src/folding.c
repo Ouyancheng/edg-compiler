@@ -8659,7 +8659,7 @@ static a_boolean type_is_trivially_equality_comparable(
                                           a_type_ptr  type,
                                           a_boolean   check_unique_rep = TRUE)
 /*
-Return TRUE if is it known that values of the given type can be compared
+Return TRUE if it is known that values of the given type can be compared
 using memcmp applied to their representation.  A necessary condition for this
 is that values of that type have a unique representation (e.g., no padding or
 floating-point components).  If the caller already has established that,
@@ -8692,7 +8692,7 @@ check_unique_rep can be passed FALSE to skip checking that condition.
       result = FALSE;
     } else {
       /* Check whether all the subobjects are trivially comparable. */
-      a_field_ptr       fp = next_proper_initializable_field(fields_of(utype));
+      a_field_ptr  fp = next_proper_initializable_field(fields_of(utype));
       /* Assume the result will be TRUE, and clear it back to FALSE if any
          subobject is not trivially comparable.  Since we already established
          that the object type as a whole has unique representations, we need
