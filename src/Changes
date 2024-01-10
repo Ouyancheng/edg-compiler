@@ -1,5 +1,25 @@
 Version 6.7
 
+1/10/24  [EDGcpfe/26921]
+Clang/GCC compatibility: __is_trivial
+
+Consider:
+
+  struct S {
+    S() = delete; 
+    bool flag = false;
+  };
+  static_assert(!__is_trivial(S));  // Previously failed in some modes.
+                                    // Now okay.
+
+Type S is a nontrivial class type both because its default constructor is
+deleted.  Clang and GCC typically do not disqualify a class from being trivial
+if its default constructor is deleted and the front end already emulates that
+behavior in its respective emulation modes.  However, default member
+initializers to make the class nontrivial for GCC and Clang and the front end
+now emulates that as well.
+
+
 1/9/24   [EDGcpfe/26916]
 GNU C++14 compatibility: Incomplete variable template types
 

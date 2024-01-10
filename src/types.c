@@ -2384,8 +2384,10 @@ copyable class type with an eligible (non-deleted) default constructor.
   if (is_immediate_class_type(tp)) {
     a_class_symbol_supplement_ptr  cssp = class_symbol_supp(symbol_for(tp));
     a_symbol_ptr                   sym = cssp->trivial_default_constructor;
-    result = is_trivially_copyable_type(tp);
-    if (!is_trivially_copyable_type(tp)) {
+    result = is_trivially_copyable_type(tp) &&
+             !((gpp_mode || clang_mode) &&
+               class_type_supp(tp)->has_field_initializer);
+    if (!result) {
       /* Leave result set to FALSE. */
     } else if (sym != NULL || has_trivial_default_constructor(cssp)) {
       /* There is a trivial default constructor (and no nontrivial default
