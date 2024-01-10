@@ -1,5 +1,16 @@
 Version 6.7
 
+1/9/24   [EDGcpfe/26916]
+GNU C++14 compatibility: Incomplete variable template types
+
+In GNU C++14 mode, the front end now accepts variable templates declared with
+an incomplete class type.  For example:
+
+  struct S;
+  template<typename> S v;  // Ordinarily an error.  Now accepted in GNU C++14
+                           // mode.
+
+
 1/9/24   [EDGcpfe/26941]
 Preserve typedefs in symbol headers for conversion operators
 

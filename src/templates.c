@@ -6417,6 +6417,9 @@ declaration (which could be for an explicit specialization, etc.).
       /* Allow an incomplete array on an extern declaration and also in a
          prototype instantiation because it could be completed in an
          out-of-class definition. */
+    } else if (gnu_version_is(any_version) && is_class_struct_union_type(tp) &&
+               var->is_prototype_instantiation) {
+      /* GCC does not diagnose incomplete class types in this context. */
     } else {
       result = TRUE;
       error_code = ec_incomplete_var_type;
