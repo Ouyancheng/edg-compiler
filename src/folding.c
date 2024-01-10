@@ -8666,7 +8666,7 @@ floating-point components).  If the caller already has established that,
 check_unique_rep can be passed FALSE to skip checking that condition.
 */
 {
-  a_boolean  result;
+  a_boolean   result;
   a_type_ptr  utype = skip_typerefs(type);
 
   if (is_immediate_enum_type(utype)) {
