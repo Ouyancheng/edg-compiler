@@ -1518,7 +1518,9 @@ extern void free_decl_parse_state(a_decl_parse_state_ptr  dps);
 
 extern void begin_potential_abbr_func_templ_caching(a_decl_parse_state  *dps);
 
-extern void end_potential_abbr_func_templ_caching(a_decl_parse_state  *dps);
+extern void end_potential_abbr_func_templ_caching(
+                          a_decl_parse_state  *dps,
+                                   a_boolean  remove_pack_descriptors = FALSE);
 
 /*
 Macro to record in a parsing state that a type error was encountered.

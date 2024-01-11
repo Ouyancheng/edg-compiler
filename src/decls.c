@@ -386,7 +386,8 @@ void begin_potential_abbr_func_templ_caching(a_decl_parse_state  *dps)
 /*
 The current token is the start of a declaration in class or namespace scope.
 If that token does not exclude the possibility of an abbreviated function
-template declaration, begin background token caching.
+template declaration, begin background token caching and start a tentative pack
+expansion context.
 */
 {
   switch (curr_token) {
@@ -406,21 +407,27 @@ template declaration, begin background token caching.
       begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
       dps->decl_being_cached = TRUE;
       scope_stack_top().in_tentative_decl = TRUE;
+      begin_tentative_pack_expansion_context();
       break;
   }  /* if */
 }  /* begin_potential_abbr_func_templ_caching */
 
 
-void end_potential_abbr_func_templ_caching(a_decl_parse_state  *dps)
+void end_potential_abbr_func_templ_caching(
+                                   a_decl_parse_state  *dps,
+                 /* Defaulted: */  a_boolean           remove_pack_descriptors)
 /*
 If the current declaration is being cached because it could potentially be an
-abbreviated function template declaration, end that caching now.
+abbreviated function template declaration, end that caching and the tentative
+pack expansion context now.  If remove_pack_descriptors is TRUE, remove any
+tentative pack expansion descriptors.
 */
 {
   if (dps->decl_being_cached && !dps->is_abbr_func_template) {
     end_caching_fetched_tokens();
     dps->decl_being_cached = FALSE;
     scope_stack_top().in_tentative_decl = FALSE;
+    end_tentative_pack_expansion_context(remove_pack_descriptors);
   }  /* if */
 }  /* end_potential_abbr_func_templ_caching */
 
@@ -22044,6 +22051,8 @@ parameters are scanned by scan_a_template_parameter_declaration.
     if (is_function && dps->variant.auto_params != NULL) {
       /* We ran into "auto" parameters: Reparse the declaration as a template
          (i.e., this is an abbreviated function template). */
+      end_potential_abbr_func_templ_caching(dps,
+                                            /*remove_pack_descriptors=*/TRUE);
       reparse_abbr_func_template(dps, &final_token);
       goto advance_past_final_token;
     }  /* if */

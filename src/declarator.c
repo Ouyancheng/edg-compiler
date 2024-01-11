@@ -8606,7 +8606,6 @@ dps, func_info, templ_state, and decl_pos_block describe the lambda declarator
       begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
     } else if (generic_lambdas_enabled) {
       begin_potential_abbr_func_templ_caching(dps);
-      begin_tentative_pack_expansion_context();
     }  /* if */
   } else if ((scope_is(ssep, sck_template_declaration) &&
               scope_is(ssep-1, sck_class_struct_union)) ||
@@ -8618,7 +8617,6 @@ dps, func_info, templ_state, and decl_pos_block describe the lambda declarator
          We may still encounter additional "auto" parameters, which would
          require re-parsing the declarator. */
       begin_potential_abbr_func_templ_caching(dps);
-      begin_tentative_pack_expansion_context();
       already_template = TRUE;
     }  /* if */
     closure_class = (ssep-1)->assoc_type;
@@ -8652,7 +8650,8 @@ reparse_declarator:
       copy_tokens_from_cache(curr_lexical_state_cache(),
                              reparse_tsn, curr_token_sequence_number,
                              /*include_last_token=*/FALSE, &reparse_cache);
-      end_potential_abbr_func_templ_caching(dps);
+      end_potential_abbr_func_templ_caching(dps,
+                                            /*remove_pack_descriptors=*/TRUE);
       rescan_cached_tokens(&reparse_cache);
       set_up_generic_lambda_declarator_scan(dps, templ_state);
       /* Clear the declaration parse state associated with the declarator.
@@ -8681,11 +8680,9 @@ reparse_declarator:
       } else {
         free_auto_param_descriptions(dps);
       }  /* if */
-      end_tentative_pack_expansion_context(/*remove_descriptors=*/TRUE);
       goto reparse_declarator;
     } else {
       end_potential_abbr_func_templ_caching(dps);
-      end_tentative_pack_expansion_context(/*remove_descriptors=*/FALSE);
     }  /* if */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS

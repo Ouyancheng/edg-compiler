@@ -30159,6 +30159,8 @@ block of information that is provided if this is a member template declaration.
         free_routine_fixup(curr_routine_fixup);
         curr_routine_fixup = NULL;
       }  /* if */
+      end_potential_abbr_func_templ_caching(dps,
+                                            /*remove_pack_descriptors=*/TRUE);
       reparse_abbr_func_template(dps, &final_token);
       if (final_token == tok_rbrace) {
         (void)required_token(tok_rbrace, ec_exp_rbrace);
