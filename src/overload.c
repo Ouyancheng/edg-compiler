@@ -28751,11 +28751,11 @@ wanted.  If inaccessible_match is non-NULL, in C++/CLI mode it will be set to
 a symbol that would have been chosen except that it was inaccessible because
 of hide-by-sig lookup.  If a bitwise copy is selected, return NULL and
 *class_bitwise_copy TRUE (this is also returned when the class_type is
-template-dependent in a prototype instantiation).  If the bitwise copy is the
-result of an inaccessible (defaulted) constructor and inaccessible_match is
-non-NULL, *inaccessible_match is set to the symbol for that constructor.  This 
-routine is used only in C++ mode.  It does not do access checking on the copy
-constructor.
+template-dependent in a prototype instantiation); if the selected bitwise
+copy/move constructor is inaccessible in the current context (possibly with a
+defaulted constructor), *inaccessible_match is set to the symbol for that
+constructor if inaccessible_match is non-NULL.  This routine is used only in
+C++ mode.  It does not do access checking on the copy constructor.
 */
 {
   a_symbol_ptr                    sym, cctor_sym = NULL, uncallable_sym = NULL;
