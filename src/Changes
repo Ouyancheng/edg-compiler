@@ -50,11 +50,12 @@ Consider:
                                     // Now okay.
 
 Type S is a nontrivial class type both because its default constructor is
-deleted.  Clang and GCC typically do not disqualify a class from being trivial
-if its default constructor is deleted and the front end already emulates that
-behavior in its respective emulation modes.  However, default member
-initializers to make the class nontrivial for GCC and Clang and the front end
-now emulates that as well.
+deleted (which makes it ineligible) and because it has a default member
+initializer (which makes the default constructor nontrivial).  Clang and GCC
+typically do not disqualify a class from being trivial if its default
+constructor is deleted and the front end already emulates that behavior in its
+respective emulation modes.  However, default member initializers do make the
+class nontrivial for GCC and Clang and the front end now emulates that as well.
 
 
 1/9/24   [EDGcpfe/26916]
