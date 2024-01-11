@@ -10564,6 +10564,7 @@ Process the arguments on the command line that invoked the compiler.
       case optk_msvc_target_version:
         /* The Microsoft C/C++ compiler being targeted. */
         msvc_target_version_number = (int)scan_opt_arg_number(opt_arg);
+        msvc_is_generated_code_target = TRUE;
         break;
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
       case optk_create_pch:

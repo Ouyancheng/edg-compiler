@@ -17523,7 +17523,8 @@ done_with_operation_after_parens:
       }
       break;
     case enk_alignof:
-      if (msvc_is_generated_code_target || sun_is_generated_code_target) {
+      if (microsoft_dialect_is_generated_code_target ||
+          sun_is_generated_code_target) {
         write_tok_str("__alignof");
       } else if (gcc_or_clang_is_generated_code_target) {
         write_tok_str("__alignof__");

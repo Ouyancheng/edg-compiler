@@ -1,5 +1,30 @@
 Version 6.7
 
+1/11/24  [EDGcpfe/26943]
+C++-generating back end: issues with Microsoft-related target compilers
+
+There are two flags used by the C++-generating back end to control the
+generated code in Microsoft-mode compilations:
+microsoft_dialect_is_generated_code_target and
+msvc_is_generated_code_target.  The former allows the generated code to
+contain Microsoft-specific language features, while the latter causes the
+C++-generating back end to assume that the target compiler is actually some
+version of MSVC and to work around certain bugs and idiosyncrasies of that
+implementation.  Previously, when msvc_is_generated_code_target is FALSE but
+microsoft_dialect_is_generated_code_target is TRUE, the C++-generating back
+end incorrectly put out the __alignof keyword as __ALIGNOF__.  This is now
+fixed.  In addition, the front end accepts the --msvc_target_version
+command-line option, but it failed to make the reasonable inference that
+specifying that option should also result in setting
+msvc_is_generated_code_target to TRUE.  That omission has also been fixed.
+
+(Note that when CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT is set to TRUE,
+compiling in Microsoft mode results in
+microsoft_dialect_is_generated_code_target being set to TRUE, with the
+value of msvc_is_generated_code_target being taken from the value of the
+MSVC_IS_GENERATED_CODE_TARGET configuration macro.)
+
+
 1/11/24  [EDGcpfe/26879]
 C++-generating back end: type of argument for "auto" template parameter
 
