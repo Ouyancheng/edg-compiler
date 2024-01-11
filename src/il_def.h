@@ -13811,7 +13811,7 @@ enum a_builtin_operation_kind : a_byte {
 			/* __is_convertible.  Two operands, both types (GNU).*/
   bok_is_trivially_equality_comparable,
 			/* __is_trivially_equality_comparable (Clang).  One
-			   type operands. */
+			   type operand. */
   bok_last              /* Marks the end of the list. */
 };
 

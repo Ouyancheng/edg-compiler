@@ -14376,7 +14376,7 @@ operator or a friend operator).
         result = TRUE;
         break;
       }  /* if */
-    }  /* if */
+    }  /* for */
   }  /* if */
   return result;
 }  /* class_has_default_equality_operator */

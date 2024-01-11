@@ -8712,7 +8712,7 @@ check_unique_rep can be passed FALSE to skip checking that condition.
                                      bcp->type, /*check_unique_rep=*/FALSE)) {
             result = FALSE;
           }  /* if */
-        }  /* if */
+        }  /* for */
       }  /* if */
     }  /* if */
   } else {
