@@ -7524,8 +7524,10 @@ using a_type_name_string = Small_string<50>;
 
 static a_type_name_string operator_type_name_str(a_type_ptr tp)
 /*
-Return a string containing the type pointed to by tp.  The formatted
-type is never stripped of any type aliases.
+Return a string containing the type pointed to by tp.  The formatted type is
+stripped of some type alias information (see
+an_il_to_str_output_control_block::keep_template_typedefs for more
+information).
 */
 {
   a_type_name_string
@@ -7542,6 +7544,7 @@ type is never stripped of any type aliases.
   };
   local_octl.output_str = output_str_func;
   local_octl.text_buffer = (void*)&result;
+  local_octl.keep_template_typedefs = FALSE;
   form_type(tp, &local_octl);
   return result;
 }  /* operator_type_name_str */
