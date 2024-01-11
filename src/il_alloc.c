@@ -1372,6 +1372,7 @@ allocated.
   tap->type_is_injected_class_name = FALSE;
   tap->is_provisional_value = FALSE;
   tap->is_error = FALSE;
+  tap->param_is_auto = FALSE;
   tap->param_is_decltype_auto = FALSE;
   switch (kind) {
     case tak_type:

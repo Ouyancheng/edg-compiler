@@ -518,7 +518,8 @@ Output the indicated template argument in the way described by octl.
         form_unsigned_num((a_host_large_unsigned)tap->variant.integer_value,
                           octl);
       } else {
-        a_constant_ptr con = tap->variant.constant;
+        a_constant_ptr   con = tap->variant.constant;
+        an_expr_node_ptr compiler_generated_node = NULL;
         if (tap->arg_operand != NULL && con == NULL) {
           /* The template argument is given by an expression operand (front
              end only). */
@@ -542,6 +543,14 @@ Output the indicated template argument in the way described by octl.
                  constant_should_be_put_out_as_expr(node_constant(expr))) {
             expr = node_constant(expr)->expr;
           }  /* while */
+          if (expr != NULL && expr->compiler_generated &&
+              node_is_operator(expr, eok_cast) &&
+              (tap->param_is_auto || tap->param_is_decltype_auto)) {
+            /* Make the cast explicit to ensure that the generated argument
+               expression has the correct type for deduction. */
+            compiler_generated_node = expr;
+            expr->compiler_generated = FALSE;
+          }  /* if */
           if (expr != NULL && octl->expr_is_unusable != NULL &&
               octl->expr_is_unusable(expr)) {
             /* The expression uses an undefined, out-of-scope, or
@@ -601,6 +610,10 @@ Output the indicated template argument in the way described by octl.
           }  /* if */
           con->expr = saved_expr;
           con->local_expr_ref = saved_local_expr_ref;
+        }  /* if */
+        if (compiler_generated_node != NULL) {
+          /* Restore the compiler_generated flag that was reset above. */
+          compiler_generated_node->compiler_generated = TRUE;
         }  /* if */
       }
       octl->processing_nontype_template_argument = FALSE;
@@ -741,12 +754,18 @@ template arguments should be suppressed, nothing is put out.
         tap->parent_arg = parent_arg;
         octl->curr_template_arg = tap;
 #endif /* BACK_END_IS_CP_GEN_BE */
-        if (tap->kind == tak_nontype && tpp != NULL &&
-            is_decltype_auto_template_param_type(
-                                        tpp->variant.nontype.constant->type)) {
-          /* Mark the argument as matching a decltype(auto) template
-             parameter for possible special processing. */
-          tap->param_is_decltype_auto = TRUE;
+        if (tap->kind == tak_nontype && tpp != NULL) {
+          a_type_ptr param_type = tpp->variant.nontype.constant->type;
+          if (is_auto_template_param_type(param_type)) {
+            /* Mark the argument as matching an auto template parameter for
+               possible special processing. */
+            tap->param_is_auto = TRUE;
+          }  /* if */
+          if (is_decltype_auto_template_param_type(param_type)) {
+            /* Mark the argument as matching a decltype(auto) template
+               parameter for possible special processing. */
+            tap->param_is_decltype_auto = TRUE;
+          }  /* if */
         }  /* if */
         form_a_template_arg(tap, octl);
         next_template_arg_and_param(&tap, &tpp);

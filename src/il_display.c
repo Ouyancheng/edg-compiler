@@ -3498,6 +3498,9 @@ Display the indicated name and template arg list.
       if (ptr->is_error) {
         disp_boolean("  is_error", TRUE);
       }  /* if */
+      if (ptr->param_is_auto) {
+        disp_boolean("  param_is_auto", TRUE);
+      }  /* if */
       if (ptr->param_is_decltype_auto) {
         disp_boolean("  param_is_decltype_auto", TRUE);
       }  /* if */

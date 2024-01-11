@@ -7339,6 +7339,10 @@ typedef struct a_template_arg {
 			   is created for a reference to a missing pack
 			   element, and such a reference should cause
 			   substitution to fail. */
+  a_bit_field	param_is_auto:1;
+			/* TRUE if this is a nontype template argument for
+			   a parameter whose type is given by auto.  Set
+			   and used only by the C++-generating back end. */
   a_bit_field	param_is_decltype_auto:1;
 			/* TRUE if this is a nontype template argument for
 			   a parameter whose type is given by

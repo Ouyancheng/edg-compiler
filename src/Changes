@@ -1,5 +1,37 @@
 Version 6.7
 
+1/11/24  [EDGcpfe/26879]
+C++-generating back end: type of argument for "auto" template parameter
+
+In certain cases involving alias templates and nontype template parameters
+with a deduced type, the C++-generating back end could generate code with
+different semantics from the original source.  For example, with --c++20,
+
+  template<auto> struct A {
+    template<class...> using X = A;
+  };
+  template<int i> using B = A<i>;
+  template<class... Ts> using C =
+    typename B<sizeof...(Ts)>::template X<Ts...>;   // #1
+  void f() {
+    C<>() = A<0>();   // #2
+  }
+
+In the generated code, the C++-generating back end put out the type-id at
+#1 using the underlying type of B as the qualifier instead of B itself:
+
+  typename A<sizeof...(Ts)>::template X<Ts...>
+
+However, in  the original source, there is an implicit conversion from
+size_t to int for the argument of B, but the generated code omitted that
+conversion, resulting in different deduced types for the "auto" parameter
+of A, and the assignment at #2 failed because of incompatible types.  This
+is now fixed: the implicit conversion is represented in the generated code
+by an explicit cast:
+
+  typename A<(int)sizeof...(Ts)>::template X<Ts...>
+
+
 1/11/24  [EDGcpfe/26797]
 Enclosing pack expansion in abbreviated member function template declaration
 
