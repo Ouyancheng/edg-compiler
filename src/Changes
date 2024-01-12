@@ -173,10 +173,10 @@ command line switches.
 
 The change made in 6.6 attempted to make the operator symbol header name
 consistently use a dealiased type regardless of diagnostics settings.  However,
-this was never correctly performed for types in the standard namespace.
+this was never correctly performed for types in the std namespace.
 
 Following customer feedback, this has been reverted to the previous 6.5
-typedefs dealiasing rules (equivalent to
+typedef-dealiasing rules (equivalent to
 DEFAULT_DISPLAY_TEMPLATE_TYPEDEFS_IN_DIAGNOSTICS=FALSE).
 
 
