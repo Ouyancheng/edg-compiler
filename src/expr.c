@@ -14072,8 +14072,19 @@ rcblock->argument_list.
           make_type_operand_rescan_type(rcblock, &type, &start_position);
         } else {
           /* Scan the type from source. */
+          a_decl_parse_state  dps;
           start_position = pos_curr_token;
-          type_name(&type);
+          init_decl_parse_state(&dps)
+          if (!clang_mode) {
+            /* GCC and MSVC (but not Clang) appear to accept the same type-id
+               forms as would be accepted as a template argument.  In
+               particular, that includes types specific to member functions,
+               such as "int() &". */
+            dps.is_template_type_argument = TRUE;
+          }  /* if */
+          type_name_full(&dps);
+          check_type_definition_in_type_name(&dps);
+          type = dps.type;
         }  /* if */
         if (is_error_type(type)) {
           result = alloc_expr_node((an_expr_node_kind)enk_error);

@@ -1,5 +1,15 @@
 Version 6.7
 
+1/11/24  [EDGcpfe/26944]
+GCC and MSVC compatibility: Member function types in type trait helpers
+
+When parsing type trait helpers, the front end now accepts cv-qualifiers and
+ref-qualifiers on function type operands in non-Clang modes.  For example:
+
+  static_assert(!__is_trivially_copyable(int()&));
+    // Previously an error.  Now accepted in non-Clang modes.
+                                                    
+
 1/11/24  [EDGcpfe/26929]
 Abort on optimization of virtual call involving default arguments
 
