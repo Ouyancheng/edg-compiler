@@ -9775,10 +9775,15 @@ make_proxy_type_if_needed:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case sk_member_function:
           /* Member function (static or non-static). */
+          a_type_ptr  rtp;
+          rtp = routine_symbol_type(member_sym);
           if (force_indefinite_function ||
-              routine_type_is_nonstatic_member_function(
-                                            routine_symbol_type(member_sym))) {
+              routine_type_is_nonstatic_member_function(rtp)) {
             /* Nonstatic member function. */
+            if (!force_indefinite_function &&
+                has_uninstantiated_default_arg(rtp)) {
+              force_indefinite_function = TRUE;
+            }  /* if */
             /* Also continue here for an overloaded function or a member
                template. */
 nonstatic_member_function:

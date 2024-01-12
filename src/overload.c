@@ -11641,7 +11641,15 @@ or handle to a class ("->" or "->*" case, selector_is_object_pointer TRUE).
       check_assertion(is_routine_node(function_expr));
       function = function_expr->variant.routine.ptr;
       class_of_orig_function = parent_class_of(function);
-
+      /* If the statically-determine function involves default parameters
+         that haven't been instantiated yet, the optimization strategy
+         below does not work; skip the optimization in such cases. */
+      if (has_uninstantiated_default_arg(function->type)) {
+        /* If the statically-determine function involves default parameters
+           that haven't been instantiated yet, the optimization strategy
+           below does not work; skip the optimization in such cases. */
+        // FIXME goto skip_optimization;
+      }  /* if */
       if (identical_types(complete_object_type, class_of_orig_function)) {
         /* The function is a direct member of the class of the complete
            object.  Everything is already set up to call it directly, so
@@ -11715,6 +11723,7 @@ or handle to a class ("->" or "->*" case, selector_is_object_pointer TRUE).
            necessarily end up at the indicated routine. */
         if_evaluating_mark_routine_referenced(function);
       }  /* if */
+skip_optimization:;
     }  /* if */
   }  /* if */
 #endif /* OPTIMIZE_VIRTUAL_FUNCTION_CALLS */

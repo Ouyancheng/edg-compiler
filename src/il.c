@@ -25654,6 +25654,27 @@ Return TRUE if the given routine has one or more default arguments.
 }  /* routine_has_default_args */
 
 
+a_boolean has_uninstantiated_default_arg(a_type_ptr  rtp)
+/*
+Return TRUE if the given type is a function type with at least once parameter
+that has an uninstantiated default argument.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (type_is(rtp, tk_routine)) {
+    a_param_type_ptr  ptp = function_type_params(rtp);
+    for (; ptp != NULL; ptp = ptp->next) {
+      if (ptp->has_default_arg && ptp->default_arg_expr == NULL) {
+        result = TRUE;
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* has_uninstantiated_default_arg */
+
+
 void mark_routine_referenced_full(a_routine_ptr routine,
                                   a_boolean     instantiate,
                                   a_boolean     elided_reference)
