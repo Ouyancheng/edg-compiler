@@ -25656,7 +25656,7 @@ Return TRUE if the given routine has one or more default arguments.
 
 a_boolean has_uninstantiated_default_arg(a_type_ptr  rtp)
 /*
-Return TRUE if the given type is a function type with at least once parameter
+Return TRUE if the given type is a function type with at least one parameter
 that has an uninstantiated default argument.
 */
 {
