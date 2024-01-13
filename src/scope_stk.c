@@ -10910,7 +10910,8 @@ to it.
   pedp->is_function_declarator = FALSE;
   pedp->uses_only_enclosing_packs = FALSE;
   pedp->uses_any_enclosing_packs = FALSE;
-  pedp->tentative_pack_expansion_depth = depth_tentative_pack_expansions;
+  pedp->tentative_pack_expansion_depth = (scope_stack_top().in_tentative_decl ?
+                                          depth_tentative_pack_expansions : 0);
   return pedp;
 }  /* alloc_pack_expansion_descr */
 
