@@ -25669,7 +25669,7 @@ that has an uninstantiated default argument.
         result = TRUE;
         break;
       }  /* if */
-    }  /* if */
+    }  /* for */
   }  /* if */
   return result;
 }  /* has_uninstantiated_default_arg */
