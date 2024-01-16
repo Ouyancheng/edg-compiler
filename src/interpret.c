@@ -12289,11 +12289,11 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     if (is_immediate_class_type(parent_tp) && !parent_tp->incomplete) {
       /* Enumerate all the class members. */
       a_scope     *scope = class_type_supp(parent_tp)->assoc_scope;
-      a_field     *fp = fields_of(parent_tp);
+      a_field     *fp = next_proper_field(fields_of(parent_tp));
       a_routine   *rp;
       a_type      *tp;
       a_variable  *vp;
-      for (; fp != NULL; fp = fp->next) {
+      for (; fp != NULL; next_proper_field(fp = fp->next)) {
         a_reflection_value  mem_rvp;
         mem_rvp.entity.ptr = (char*)fp;
         mem_rvp.entity.kind = (an_il_entry_kind)iek_field;
@@ -12455,8 +12455,8 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     complete_type_is_needed(parent_tp);
     if (is_immediate_class_type(parent_tp) && !parent_tp->incomplete) {
       /* Enumerate all the nonstatic data members. */
-      a_field  *fp = fields_of(parent_tp);
-      for (; fp != NULL; fp = fp->next) {
+      a_field  *fp = next_proper_field(fields_of(parent_tp));
+      for (; fp != NULL; next_proper_field(fp = fp->next)) {
         a_reflection_value  mem_rvp;
         mem_rvp.entity.ptr = (char*)fp;
         mem_rvp.entity.kind = (an_il_entry_kind)iek_field;
@@ -12603,8 +12603,8 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
         result_reflections.push_back(mem_rvp);
       }  /* for */
       /* Enumerate all the nonstatic data members. */
-      a_field  *fp = fields_of(parent_tp);
-      for (; fp != NULL; fp = fp->next) {
+      a_field  *fp = next_proper_field(fields_of(parent_tp));
+      for (; fp != NULL; next_proper_field(fp = fp->next)) {
         a_reflection_value  mem_rvp;
         mem_rvp.entity.ptr = (char*)fp;
         mem_rvp.entity.kind = (an_il_entry_kind)iek_field;
