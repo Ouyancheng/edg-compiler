@@ -958,7 +958,8 @@ void overloaded_function_catch_up(a_symbol_ptr      function_symbol,
                                   a_boolean         result_is_lvalue,
                                   a_boolean         address_taken,
                                   an_operand        *operand,
-                                  a_boolean         *access_error_reported);
+                                  a_boolean         *access_error_reported,
+                                  a_boolean         operator_notation = FALSE);
 
 extern a_boolean is_dependent_static_selection(an_expr_node_ptr sel_expr);
 

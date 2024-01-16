@@ -11732,7 +11732,8 @@ void overloaded_function_catch_up(a_symbol_ptr      function_symbol,
                                   a_boolean         result_is_lvalue,
                                   a_boolean         address_taken,
                                   an_operand        *operand,
-                                  a_boolean         *access_error_reported)
+                                  a_boolean         *access_error_reported,
+                /* Defaulted: */  a_boolean         operator_notation)
 /*
 We've just determined which specific function within a set of overloaded
 functions is being referenced, i.e., function_symbol was chosen from the
@@ -11860,7 +11861,16 @@ compiler_generated is TRUE if the function reference is compiler-generated.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     make_locator_for_symbol(sym_to_check, &function_symbol_locator);
     function_symbol_locator.source_position = *id_position;
-    expr_check_ambiguity_and_verify_access(&function_symbol_locator);
+    if (compiler_generated || operator_notation ||
+        expr_stack->suppress_diagnostics) {
+      /* For ordinary call notation, access was checked when the name was
+         parsed: Do not check those cases again to avoid a double diagnostic.
+         Calls resulting from operator notation and compiler-generated calls
+         were not previously checked.  Calls processed during expression
+         substitution may or may not already have been checked, but it does no
+         harm to check them again. */
+      expr_check_ambiguity_and_verify_access(&function_symbol_locator);
+    }  /* if */
   }  /* if */
   *access_error_reported =
                          function_symbol_locator.access_control_error_reported;
@@ -19793,7 +19803,8 @@ no_applicable_operator_function:
                                            /*result_is_lvalue=*/FALSE,
                                            /*address_taken=*/FALSE,
                                            (an_operand *)NULL,
-                                           &access_error_reported);
+                                           &access_error_reported,
+                                           /*operator_notation=*/TRUE);
             }  /* if */
             arg_list_elem = arg_list;
             bound_function_selector = NULL;
