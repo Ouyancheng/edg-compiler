@@ -11628,9 +11628,6 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     case iek_routine:
       tp = ((a_routine*)rvp->entity.ptr)->type;
       break;
-    case iek_type:
-      tp = (a_type*)rvp->entity.ptr;
-      break;
     case iek_variable:
       tp = ((a_variable*)rvp->entity.ptr)->type;
       break;
