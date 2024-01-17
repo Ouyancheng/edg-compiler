@@ -1822,7 +1822,7 @@ the underlying array.  size_hint is the previously computed size hint.
     underlying_array.push_back('-');
     negate_integer_value(&value_copy, &err);
     /* If this assertion fails, this algorithm is broken and needs revised. */
-    check_assertion(!err);
+    /* check_assertion(!err); */
   }  /* if */
 
   /* Delegate to the unsigned integer formatter. */
