@@ -20206,9 +20206,10 @@ be updated on return.  Any diagnostics are issued at the given position.
         err = TRUE;
       } else if (bit_field_size > max_size_allowed) {
         /* A warning in C++ and GNU C modes (prior to GNU version 3.4). */
-        char  buffer[21];
-        sprintf(buffer, "%lu", max_size_allowed);
-        pos_st_warning(ec_extra_bits_ignored, &error_position, buffer);
+        a_number_buffer num_buff(max_size_allowed);
+
+        pos_warning(ec_extra_bits_ignored, &error_position,
+                    num_buff.as_temp_characters());
         if (gcc_mode) {
           /* In GNU C mode (but not in GNU C++ mode), oversized bitfields are
              turned into ordinary fields. */
@@ -26550,7 +26551,8 @@ In C++/CLI mode we also check for the extended forms of access specifiers:
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (ms_extensions) {
       if (in_managed_class) {
-        char  specifier_name[20];
+        Small_string<20> specifier_name;
+
 			/* Large enough for "protected protected". */
         /* For the C++/CLI extended form of access specifiers state->access
            and state->assembly_access are set in accordance with the
@@ -26597,20 +26599,23 @@ In C++/CLI mode we also check for the extended forms of access specifiers:
         } else if (curr_token == next_tok) {
           /* "public public", "private private", or "protected protected".
              Issue a warning that these are deprecated. */
-          sprintf(specifier_name, "%s %s",
-                  token_names[(int)curr_token], token_names[(int)curr_token]);
-          pos_st2_warning(ec_deprecated_access_specifier, &pos_access,
-                          specifier_name, token_names[(int)curr_token]);
+          specifier_name.reset_to(token_names[(int)curr_token],
+                                  " ",
+                                  token_names[(int)curr_token]);
+          pos_warning(ec_deprecated_access_specifier, &pos_access,
+                      specifier_name.as_temp_characters(),
+                      token_names[(int)curr_token]);
           (void)get_token();
         } else if ((curr_token == tok_private && next_tok == tok_public) ||
                    (curr_token == tok_public && next_tok == tok_private)) {
           /* "private public" or "public private".  Issue a warning that these
              are deprecated and correct the access state as if "internal" had
              appeared. */
-          sprintf(specifier_name, "%s %s",
-                  token_names[(int)curr_token], token_names[(int)next_tok]);
-          pos_st2_warning(ec_deprecated_access_specifier, &pos_access,
-                          specifier_name, "internal");
+          specifier_name.reset_to(token_names[(int)curr_token],
+                                  " ",
+                                  token_names[(int)next_tok]);
+          pos_warning(ec_deprecated_access_specifier, &pos_access,
+                      specifier_name.as_temp_characters(), "internal");
           state->access = (an_access_specifier)as_public;
           state->assembly_access = (an_access_specifier)as_private;
           (void)get_token();
@@ -34448,23 +34453,17 @@ calling conventions, a suffix is added (this only happens in Microsoft mode,
 where we don't attempt ABI emulation).
 */
 {
-  char      *name = (char*)"_FUN";
-#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
-  char      name_buf[sizeof("_FUN")+100];
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
-  sizeof_t  name_len = sizeof("_FUN")-1;
+  Small_string<50> name("_FUN");
 
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
   if (call_conv != (a_calling_convention)cc_default) {
     /* Create a calling-convention-specific suffix for the entry point name. */
     check_assertion(microsoft_mode);
-    sprintf(name_buf, "_FUN%s", calling_convention_names[(int)call_conv]);
-    name = name_buf;
-    name_len = strlen(name);
+    name.append(calling_convention_names[(int)call_conv]);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
   clear_locator(member_loc, pos);
-  (void)find_symbol(name, name_len, member_loc);
+  (void)find_symbol(name.as_temp_characters(), name.length(), member_loc);
 }  /* make_lambda_static_call_locator */
 
 

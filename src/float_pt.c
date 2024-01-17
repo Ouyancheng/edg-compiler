@@ -345,24 +345,23 @@ Note also that this works only for 128-bit floating-point values.
 
 #if USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE
 
-static void do_softfloat_hex_constant_string(
-                                          a_float_kind            kind,
-                                          an_internal_float_value *float_value,
-                                          char                    *str,
-                                          sizeof_t                size)
+template<typename a_Dyn_array>
+static void append_softfloat_hex_constant_string(
+                                     a_Dyn_array             &underlying_array,
+                                     a_float_kind            kind,
+                                     an_internal_float_value *float_value)
 /*
 Generate a hexadecimal floating-point representation of float_value and place
 it in str.  kind represents the kind of floating-point value (which must
 be an 80-bit or 128-bit floating type).  size is the size of str.
-Note that float and double are handled by the caller (though sprintf) as they
+Note that float and double are handled by the caller (through sprintf) as they
 are supported on all platforms.
 */
 {
-  char        *buf = str;
-  uint32_t    exponent, exponent_bias = 16383;
-  a_byte      *p;
-  int         i, offset, bytes, trailing_zeros = 0, left;
-  a_boolean   leading_zeros = TRUE, implied_hidden_bit;
+  uint32_t  exponent, exponent_bias = 16383;
+  a_byte    *p;
+  int       i, offset, bytes, trailing_zeros = 0, left;
+  a_boolean leading_zeros = TRUE, implied_hidden_bit;
 
   /* This routine only handles 80 and 128-bit float (everything else should
      be handled by the caller). */
@@ -392,10 +391,10 @@ are supported on all platforms.
     offset = 1;
   }  /* if */
   if (exponent & 0x8000) {
-    *buf++ = '-';
+    underlying_array.push_back('-');
   }  /* if */
-  *buf++ = '0';
-  *buf++ = 'x';
+  underlying_array.push_back('0');
+  underlying_array.push_back('x');
   exponent = exponent & 0x7fff;
   /* Only concerned with mantissa bytes now. */
   bytes -= 2;
@@ -418,31 +417,30 @@ are supported on all platforms.
   left = bytes*2;
   if (exponent == 0 && left == trailing_zeros) {
     /* Handle zero as a special case. */
-    *buf++ = '0';
-    *buf++ = 'p';
-    *buf++ = '0';
-    *buf++ = '\0';
+    underlying_array.push_back('0');
+    underlying_array.push_back('p');
+    underlying_array.push_back('0');
   } else {
     if (implied_hidden_bit) {
       /* The value of the implied hidden bit is determined by the exponent. */
       if (exponent == 0) {
-        *buf++ = '0';
+        underlying_array.push_back('0');
       } else {
-        *buf++ = '1';
+        underlying_array.push_back('1');
       }  /* if */
     } else {
-      *buf++ = '0';
+      underlying_array.push_back('0');
       exponent_bias--;
     }  /* if */
-    *buf++ = '.';
+    underlying_array.push_back('.');
     /* Use 16382 as the exponent for denormalized values. */
     if (exponent == 0) exponent_bias--;
     for (i = 0; i < bytes; i++) {
-      static const char hex_to_ascii[17] = "0123456789abcdef";
+      constexpr char hex_to_ascii[17] = "0123456789abcdef";
 #define write_nibble(n)                                                      \
   {                                                                          \
     if (i == 0 || (n) != 0 || !leading_zeros) {                              \
-      *buf++ = hex_to_ascii[(n)];                                            \
+      underlying_array.push_back(hex_to_ascii[(n)]);                         \
       leading_zeros = FALSE;                                                 \
     }  /* if */                                                              \
     if (--left <= trailing_zeros) break;                                     \
@@ -452,10 +450,15 @@ are supported on all platforms.
 #undef write_nibble
       p += offset;
     }  /* for */
-    *buf++ = 'p';
-    (void)sprintf(buf, "%d", (int)exponent - exponent_bias);
+    underlying_array.push_back('p');
+
+    int    appended_int = (int)exponent - exponent_bias;
+    size_t size_hint = detail::String_formatter<int>::size_hint_of(
+                                                                 appended_int);
+    detail::String_formatter<int>::append_into(underlying_array, appended_int,
+                                               size_hint);
   }  /* if */
-}  /* do_softfloat_hex_constant_string */
+}  /* append_softfloat_hex_constant_string */
 
 #endif /* USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE */
 
@@ -611,15 +614,17 @@ front end, the LC_NUMERIC portion of the locale must specify that "." is the
 radix point (set in host_envir_early_init).
 */
 {
-  long double	temp;
-  static char	buf[60];
-  a_boolean	err = FALSE;
-  a_const_char	*ptr;
+  long double   temp;
+  char          buf[60];
+  a_boolean     err = FALSE;
+  a_const_char  *ptr;
 
   (void)sscanf(str, "%Lf", &temp);
   /* Check for overflow or underflow by converting the number back to a
      string. */
-  (void)sprintf(buf, "%.*Le", LDBL_DIG, temp);
+  if (detail::snprintf_impl(buf, 60, "%.*Le", LDBL_DIG, temp) < 0) {
+    err = TRUE;
+  }  /* if */
   if (temp == 0.0L) {
     a_boolean	nonzero = FALSE;
     ptr = str;
@@ -907,12 +912,17 @@ underflow.  If the conversion can be done, return the result in "result".
            number and see if the first character is a digit.  Note that
            above we ruled out the case where the source double is a NaN
            or infinity. */
-        char float_string[15], *ptr;
-        (void)sprintf(float_string, "%.2e", float_temp);
-        ptr = float_string;
-        if (*ptr == '-') ptr++;
-        if (!isdigit((unsigned char)*ptr)) {
-          /* Probably overflow. */
+        char float_string[15];
+
+        if (detail::snprintf_impl(float_string, 15, "%.2e", float_temp) >= 0) {
+          char *ptr = float_string;
+
+          if (*ptr == '-') ptr++;
+          if (!isdigit((unsigned char)*ptr)) {
+            /* Probably overflow. */
+            *err = TRUE;
+          }  /* if */
+        } else {
           *err = TRUE;
         }  /* if */
       }  /* if */
@@ -1165,12 +1175,17 @@ underflow.  If the conversion can be done, return the result in "result".
            number and see if the first character is a digit.  Note that
            above we ruled out the case where the source long double is a NaN
            or infinity. */
-        char double_string[45], *ptr;
-        (void)sprintf(double_string, "%.2e", double_temp);
-        ptr = double_string;
-        if (*ptr == '-') ptr++;
-        if (!isdigit((unsigned char)*ptr)) {
-          /* Probably overflow. */
+        char dbl_string[45];
+
+        if (detail::snprintf_impl(dbl_string, 45, "%.2e", double_temp) >= 0) {
+          char *ptr = dbl_string;
+
+          if (*ptr == '-') ptr++;
+          if (!isdigit((unsigned char)*ptr)) {
+            /* Probably overflow. */
+            *err = TRUE;
+          }  /* if */
+        } else {
           *err = TRUE;
         }  /* if */
       }  /* if */
@@ -2841,14 +2856,15 @@ before setting it if there are unused bits.
 }  /* fp_string_to_float */
 
 
+template<typename a_Dyn_array>
 static a_boolean handle_fp_to_string_special_cases(
-                                         a_float_kind            kind,
-                                         an_internal_float_value *float_value,
-                                         a_boolean               *pos_infinity,
-                                         a_boolean               *neg_infinity,
-                                         a_boolean               *not_a_number,
-                                         ARG_UNUSED char         *str,
-                                         a_host_fp_value         *temp)
+                                      a_float_kind               kind,
+                                      an_internal_float_value    *float_value,
+                                      a_boolean                  *pos_infinity,
+                                      a_boolean                  *neg_infinity,
+                                      a_boolean                  *not_a_number,
+                                      ARG_UNUSED a_Dyn_array     *str,
+                                      a_host_fp_value            *temp)
 /*
 The float value in float_value (with precision as indicated by kind)
 is being converted by the caller into either a decimal or hexadecimal string;
@@ -2873,15 +2889,33 @@ space) will be unmodified if the routine returns FALSE.
 #if TARG_HAS_IEEE_FLOATING_POINT
   if (is_NaN(*temp)) {
     /* Not-a-number. */
-    (void)strcpy(str, "NaN");
+    str->push_back('N');
+    str->push_back('a');
+    str->push_back('N');
     if (not_a_number != NULL) *not_a_number = TRUE;
   } else if (!is_finite(*temp)) {
     /* infinity. */
     if (do_fp_lt_zero(*temp)) {
-      (void)strcpy(str, "-Infinity");
+      str->push_back('-');
+      str->push_back('I');
+      str->push_back('n');
+      str->push_back('f');
+      str->push_back('i');
+      str->push_back('n');
+      str->push_back('i');
+      str->push_back('t');
+      str->push_back('y');
       if (neg_infinity != NULL) *neg_infinity = TRUE;
     } else {
-      (void)strcpy(str, "+Infinity");
+      str->push_back('+');
+      str->push_back('I');
+      str->push_back('n');
+      str->push_back('f');
+      str->push_back('i');
+      str->push_back('n');
+      str->push_back('i');
+      str->push_back('t');
+      str->push_back('y');
       if (pos_infinity != NULL) *pos_infinity = TRUE;
     }  /* if */
   } else if (do_fp_eq_zero(*temp) &&
@@ -2890,7 +2924,10 @@ space) will be unmodified if the routine returns FALSE.
                     size_t_arg(data_size_of_host_fp_value)) != 0) {
     /* Special handling to ensure that -0.0 comes out with the leading "-";
        some sprintfs do not process that correctly. */
-    (void)strcpy(str, "-0.0");
+    str->push_back('-');
+    str->push_back('0');
+    str->push_back('.');
+    str->push_back('0');
   } else
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
   /* Do not insert code here. */
@@ -2901,12 +2938,534 @@ space) will be unmodified if the routine returns FALSE.
   return result;
 }  /* handle_fp_to_string_special_cases */
 
+#if USE_QUADMATH_LIBRARY
 
-char *fp_to_string(a_float_kind            kind,
-                   an_internal_float_value *float_value,
-                   a_boolean               *pos_infinity,
-                   a_boolean               *neg_infinity,
-                   a_boolean               *not_a_number)
+template<typename a_Dyn_array, typename ...a_Format_arg>
+static void append_using_quadmath_formatting(a_const_char *formatting_str,
+                                             a_Dyn_array  &underlying_array,
+                                             size_t       size_hint,
+                                             a_Format_arg ...args)
+/*
+Append the characters of the formatted string produced by the given formatting
+string and associated arguments arguments into the underlying array.  size_hint
+is an overestimate (i.e., maximum) number of characters this value might use
+(plus a temporary null character -- for use by quadmath_snprintf).
+*/
+{
+  size_t orig_size = underlying_array.length();
+
+  /* Create space in the underlying array to write the arguments. */
+  underlying_array.resize(orig_size + size_hint, '\0');
+
+  /* Write the formatted string. */
+  auto buff_ptr = &underlying_array[orig_size];
+  int  chars_written = quadmath_snprintf(buff_ptr, size_hint, formatting_str,
+                                         args...);
+  /* If this assertion fails, there was an error writing the string. */
+  check_assertion(chars_written > 0);
+  /* Remove any extra characters (including the terminating null character
+     added by quadmath_snprintf). */
+  underlying_array.resize(orig_size + chars_written, '\0');
+}  /* append_using_quadmath_formatting */
+
+#endif /* USE_QUADMATH_LIBRARY */
+
+namespace {
+
+/*
+A struct used for designating an IL floating point value.
+*/
+struct an_il_fp_value {
+  a_float_kind  kind;   /* The kind of front end floating point value
+                           represented by this struct. */
+  an_internal_float_value
+                *float_value;
+                        /* The front end floating point value. */
+  a_boolean     *pos_infinity;
+                        /* A pointer that if non-NULL will be set to TRUE if
+                           the floating point value is a positive infinity. */
+  a_boolean     *neg_infinity;
+                        /* A pointer that if non-NULL will be set to TRUE if
+                           the floating point value is a negative infinity. */
+  a_boolean     *not_a_number;
+                        /* A pointer that if non-NULL will be set to TRUE if
+                           the floating point value is not a number. */
+  an_il_fp_value(a_float_kind            kind_val,
+                 an_internal_float_value *float_value_val,
+                 a_boolean               *pos_infinity_val,
+                 a_boolean               *neg_infinity_val,
+                 a_boolean               *not_a_number_val)
+    : kind(kind_val), float_value(float_value_val),
+      pos_infinity(pos_infinity_val), neg_infinity(neg_infinity_val),
+      not_a_number(not_a_number_val)
+    {}
+};  /* an_il_fp_value */
+
+/*
+A struct used for designating an IL floating point constant hex value.
+*/
+struct an_il_hex_constant_fp_value {
+  a_float_kind  kind;   /* The kind of front end floating point value
+                           represented by this struct. */
+  an_internal_float_value
+                *float_value;
+                        /* The front end floating point value. */
+  a_boolean     *pos_infinity;
+                        /* A pointer that if non-NULL will be set to TRUE if
+                           the floating point value is a positive infinity. */
+  a_boolean     *neg_infinity;
+                        /* A pointer that if non-NULL will be set to TRUE if
+                           the floating point value is a negative infinity. */
+  a_boolean     *not_a_number;
+                        /* A pointer that if non-NULL will be set to TRUE if
+                           the floating point value is not a number. */
+  an_il_hex_constant_fp_value(a_float_kind            kind_val,
+                              an_internal_float_value *float_value_val,
+                              a_boolean               *pos_infinity_val,
+                              a_boolean               *neg_infinity_val,
+                              a_boolean               *not_a_number_val)
+    : kind(kind_val), float_value(float_value_val),
+      pos_infinity(pos_infinity_val), neg_infinity(neg_infinity_val),
+      not_a_number(not_a_number_val)
+    {}
+};  /* an_il_hex_constant_fp_value */
+
+/*
+A struct used for designating an IL floating point hex value.
+*/
+struct an_il_hex_fp_value {
+  a_float_kind  kind;   /* The kind of front end floating point value
+                           represented by this struct. */
+  an_internal_float_value
+                *float_value;
+                        /* The front end floating point value. */
+  an_il_hex_fp_value(a_float_kind            kind_val,
+                     an_internal_float_value *float_value_val)
+    : kind(kind_val), float_value(float_value_val)
+    {}
+};  /* an_il_hex_fp_value */
+
+} /* namespace */
+
+#if !USE_HOST_FP_CONVERSION_ROUTINES
+
+template<typename a_Dyn_array, typename ...a_Format_arg>
+static inline void append_float_using_software(
+                                        a_Dyn_array          &underlying_array,
+                                        size_t               size_hint,
+                                        const an_il_fp_value &value)
+/*
+Append the characters for the given floating point value to the underlying
+array.  size_hint is an overestimate (i.e., maximum) number of characters this
+value might use (plus a temporary null character).
+*/
+{
+  size_t orig_size = underlying_array.length();
+
+  /* Create space in the underlying array to write the arguments. */
+  underlying_array.resize(orig_size + size_hint, '\0');
+
+  /* Append the float. */
+  auto              buff_ptr = &underlying_array[orig_size];
+  an_fp_return_type res;
+  unsigned char     *float_as_char = (unsigned char *)value.float_value;
+  if (kind_is_16bit(value.kind)) {
+    res = write_float16(buff_ptr, size_hint, float_as_char);
+#if DEBUG
+    if (db_flag_is_set("fp")) {
+      fprintf(f_debug, "write_float16: res=%d\n  ", (int)res);
+      db_binary_float16(float_as_char);
+      fprintf(f_debug, "  %s\n", buff_ptr);
+    }  /* if */
+#endif /* DEBUG */
+  } else if (value.kind == fk_float || value.kind == fk_std_float32 ||
+             value.kind == fk_std_bfloat16) {
+    res = write_float(buff_ptr, size_hint, float_as_char);
+#if DEBUG
+    if (db_flag_is_set("fp")) {
+      fprintf(f_debug, "write_float: res=%d\n  ", (int)res);
+      db_binary_float(float_as_char);
+      fprintf(f_debug, "  %s\n", buff_ptr);
+    }  /* if */
+#endif /* DEBUG */
+  } else if (kind_is_binary64(value.kind)) {
+    /* Either "double" or "long double", where "double" and "long double" are
+       configured as binary64. */
+    res = write_double(buff_ptr, size_hint, float_as_char);
+#if DEBUG
+    if (db_flag_is_set("fp")) {
+      fprintf(f_debug, "write_double: res=%d\n  ", (int)res);
+      db_binary_double(float_as_char);
+      fprintf(f_debug, "  %s\n", buff_ptr);
+    }  /* if */
+#endif /* DEBUG */
+#if FLOAT80_ENABLING_POSSIBLE
+  } else if (value.kind == fk_float80) {
+    res = write_float80(buff_ptr, size_hint, float_as_char);
+#if DEBUG
+    if (db_flag_is_set("fp")) {
+      fprintf(f_debug, "write_float80: res=%d\n  ", (int)res);
+      db_binary_float80(float_as_char);
+      fprintf(f_debug, "  %s\n", buff_ptr);
+    }  /* if */
+#endif /* DEBUG */
+#endif /* FLOAT80_ENABLING_POSSIBLE */
+#if FLOAT128_ENABLING_POSSIBLE
+  } else if (value.kind == fk_float128 || value.kind == fk_std_float128) {
+    res = write_float128(buff_ptr, size_hint, float_as_char);
+#if DEBUG
+    if (db_flag_is_set("fp")) {
+      fprintf(f_debug, "write_float128: res=%d\n  ", (int)res);
+      db_binary_float128(float_as_char);
+      fprintf(f_debug, "  %s\n", buff_ptr);
+    }  /* if */
+#endif /* DEBUG */
+#endif /* FLOAT128_ENABLING_POSSIBLE */
+  } else {
+#if FP_HAS_LONG_DOUBLE
+    check_assertion(repr_is_long_double(value.kind));
+    res = write_long_double(buff_ptr, size_hint, float_as_char);
+#if DEBUG
+    if (db_flag_is_set("fp")) {
+      fprintf(f_debug, "write_long_double: res=%d\n  ", (int)res);
+      db_binary_long_double(float_as_char);
+      fprintf(f_debug, "  %s\n", buff_ptr);
+    }  /* if */
+#endif /* DEBUG */
+#else /* !FP_HAS_LONG_DOUBLE */
+    unexpected_condition();
+#endif /* FP_HAS_LONG_DOUBLE */
+  }  /* if */
+  switch (res) {
+    case fp_ret_nan:
+      underlying_array.push_back('N');
+      underlying_array.push_back('a');
+      underlying_array.push_back('N');
+      if (value.not_a_number != NULL) *value.not_a_number = TRUE;
+      break;
+    case fp_ret_pos_infinity:
+      underlying_array.push_back('+');
+      underlying_array.push_back('I');
+      underlying_array.push_back('n');
+      underlying_array.push_back('f');
+      underlying_array.push_back('i');
+      underlying_array.push_back('n');
+      underlying_array.push_back('i');
+      underlying_array.push_back('t');
+      underlying_array.push_back('y');
+      if (value.pos_infinity != NULL) *value.pos_infinity = TRUE;
+      break;
+    case fp_ret_neg_infinity:
+      underlying_array.push_back('-');
+      underlying_array.push_back('I');
+      underlying_array.push_back('n');
+      underlying_array.push_back('f');
+      underlying_array.push_back('i');
+      underlying_array.push_back('n');
+      underlying_array.push_back('i');
+      underlying_array.push_back('t');
+      underlying_array.push_back('y');
+      if (value.neg_infinity != NULL) *value.neg_infinity = TRUE;
+      break;
+    default:
+      check_assertion(res != fp_ret_too_small);
+      break;
+  }  /* switch */
+  /* Drop unused space. */
+  while (underlying_array.back_elem() == '\0') {
+    underlying_array.pop_back();
+  }  /* if */
+}  /* append_using_quadmath_formatting */
+
+#endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
+
+namespace detail {
+
+/*
+A string formatter for a_quadmath_fmt_value values.  Note this string formatter
+has side effects on the an_il_fp_value.
+*/
+template<>
+struct String_formatter<an_il_fp_value> {
+  static size_t size_hint_of(an_il_fp_value value)
+    { return 49; }
+  template<typename a_Dyn_array>
+  static inline void append_into(a_Dyn_array          &underlying_array,
+                                 const an_il_fp_value &value,
+                                 size_t               size_hint);
+};  /* String_formatter */
+
+
+template<typename a_Dyn_array>
+void String_formatter<an_il_fp_value>::append_into(
+                                        a_Dyn_array          &underlying_array,
+                                        const an_il_fp_value &value,
+                                        size_t               size_hint)
+/*
+Append the characters for the given floating point value to the underlying
+array.  size_hint is an overestimate (i.e., maximum) number of characters this
+value might use (plus a temporary null character).
+*/
+{
+  a_host_fp_value temp;
+
+  if (!handle_fp_to_string_special_cases(value.kind, value.float_value,
+                                         value.pos_infinity,
+                                         value.neg_infinity,
+                                         value.not_a_number, &underlying_array,
+                                         &temp)) {
+    /* The call to handle_fp_to_string_special_cases has loaded float_value
+       into temp. */
+#if USE_HOST_FP_CONVERSION_ROUTINES
+#if USE_FLOAT128_FOR_HOST_FP_VALUE && USE_QUADMATH_LIBRARY
+    if (kind_is_16bit(value.kind)) {
+      append_using_quadmath_formatting("%.8Qg", underlying_array,
+                                       size_hint, temp);
+    } else if (value.kind == fk_float || value.kind == fk_std_float32) {
+      append_using_quadmath_formatting("%.10Qg", underlying_array,
+                                       size_hint, temp);
+    } else if (repr_is_double(value.kind) || value.kind == fk_std_float64) {
+      append_using_quadmath_formatting("%.19Qg", underlying_array,
+                                       size_hint, temp);
+    } else if (value.kind == fk_float128 || value.kind == fk_std_float128) {
+      append_using_quadmath_formatting("%.34Qg", underlying_array,
+                                       size_hint, temp);
+    } else {
+      /* fk_long_double or fk_float80. */
+      /* In theory LDBL_DIG+1 digits should be enough as the precision,
+         but LDBL_DIG+2 seems to help on some systems.  However, on Solaris,
+         with 128-bit long doubles, LDBL_DIG+2 hits the conversion of
+         LDBL_MIN in a funny place with regard to rounding and the Sun CC
+         compiler doesn't accept that value converted in that way.  So on
+         systems with 128-bit long double, just stick with LDBL_DIG+1
+         when using the C++-generating back end. */
+      int ldbl_digits = LDBL_DIG + 2;
+#if BACK_END_IS_CP_GEN_BE
+      if (LDBL_DIG > 30) ldbl_digits = LDBL_DIG + 1;
+#endif /* BACK_END_IS_CP_GEN_BE */
+      append_using_quadmath_formatting("%.*Qg", underlying_array,
+                                       size_hint, ldbl_digits, temp);
+    }  /* if */
+#else /* !(USE_FLOAT128_FOR_HOST_FP_VALUE && USE_QUADMATH_LIBRARY) */
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || APPROXIMATE_QUADMATH
+    /* Make sure we have a long double value (temp can be a __float128). */
+    long double  fpval = (long double)temp;
+    if (kind_is_16bit(value.kind)) {
+      append_using_c_formatting("%.8Lg", underlying_array, size_hint, fpval);
+    } else if (value.kind == fk_float || value.kind == fk_std_float32) {
+      append_using_c_formatting("%.10Lg", underlying_array, size_hint, fpval);
+    } else if (repr_is_double(value.kind) || value.kind == fk_std_float64) {
+      append_using_c_formatting("%.19Lg", underlying_array, size_hint, fpval);
+    } else {
+      /* fk_long_double or fk_float80 or fk_std_float128. */
+      /* In theory LDBL_DIG+1 digits should be enough as the precision,
+         but LDBL_DIG+2 seems to help on some systems.  However, on Solaris,
+         with 128-bit long doubles, LDBL_DIG+2 hits the conversion of
+         LDBL_MIN in a funny place with regard to rounding and the Sun CC
+         compiler doesn't accept that value converted in that way.  So on
+         systems with 128-bit long double, just stick with LDBL_DIG+1
+         when using the C++-generating back end. */
+      int ldbl_digits = LDBL_DIG + 2;
+#if BACK_END_IS_CP_GEN_BE
+      if (LDBL_DIG > 30) ldbl_digits = LDBL_DIG + 1;
+#endif /* BACK_END_IS_CP_GEN_BE */
+      append_using_c_formatting("%.*Lg", underlying_array, size_hint,
+                                ldbl_digits, fpval);
+    }  /* if */
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || APPROXIMATE_QUADMATH */
+#if USE_DOUBLE_FOR_HOST_FP_VALUE
+    if (kind_is_16bit(value.kind)) {
+      append_using_c_formatting("%.8g", underlying_array, size_hint, temp);
+    } else if (value.kind == fk_float || value.kind == fk_std_float32) {
+      append_using_c_formatting("%.10g", underlying_array, size_hint, temp);
+    } else {
+      append_using_c_formatting("%.19g", underlying_array, size_hint, temp);
+    }  /* if */
+#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
+#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE && USE_QUADMATH_LIBRARY */
+    /* Add trailing ".0" if no decimal point was put out (meaning the
+       value is a whole number). */
+    if (strchr(underlying_array.begin(), '.') == NULL &&
+        strchr(underlying_array.begin(), 'e') == NULL) {
+      underlying_array.push_back('.');
+      underlying_array.push_back('0');
+    }  /* if */
+#else /* !USE_HOST_FP_CONVERSION_ROUTINES */
+    /* Use software-based routines for doing the binary to string
+       conversion. */
+    append_float_using_software(underlying_array, size_hint, value);
+#endif /* USE_HOST_FP_CONVERSION_ROUTINES */
+  }  /* if */
+}  /* append_into */
+
+/*
+A string formatter for an_il_hex_constant_fp_value values.
+*/
+template<>
+struct String_formatter<an_il_hex_constant_fp_value> {
+  static size_t size_hint_of(an_il_hex_constant_fp_value value)
+    { return 49; }
+  template<typename a_Dyn_array>
+  static inline void append_into(a_Dyn_array                 &underlying_array,
+                                 an_il_hex_constant_fp_value value,
+                                 size_t                      size_hint);
+};  /* String_formatter */
+
+
+template<typename a_Dyn_array>
+void String_formatter<an_il_hex_constant_fp_value>::append_into(
+                                 a_Dyn_array                 &underlying_array,
+                                 an_il_hex_constant_fp_value value,
+                                 size_t                      size_hint)
+/*
+Append the characters for the given floating point value to the underlying
+array.  size_hint is an overestimate (i.e., maximum) number of characters this
+value might use (plus a temporary null character).
+*/
+{
+  a_host_fp_value temp;
+
+  if (!handle_fp_to_string_special_cases(value.kind, value.float_value,
+                                         value.pos_infinity,
+                                         value.neg_infinity,
+                                         value.not_a_number, &underlying_array,
+                                         &temp)) {
+    /* Copy the value to a properly aligned floating-point type and
+       use C-formatting to generate the appropriate hexadecimal string. */
+    if (kind_is_binary16(value.kind)) {
+#if USE_SOFTFLOAT
+      float16_t     f16_temp;
+      softfloat32_t f32_temp;
+      (void)memcpy((char *)&f16_temp, (char *)value.float_value, 2);
+      f32_temp.soft = f16_to_f32(f16_temp);
+      append_using_c_formatting("%a", underlying_array, size_hint,
+                                f32_temp.hard);
+#else /* !USE_SOFTFLOAT */
+      EDG_float16_t float16_temp;
+      (void)memcpy((char *)&float16_temp, (char *)value.float_value,
+                   sizeof(EDG_float16_t));
+      append_using_c_formatting("%a", underlying_array, size_hint,
+                                (double)float16_temp);
+#endif /* USE_SOFTFLOAT */
+    } else if (value.kind == fk_float || value.kind == fk_std_float32 ||
+               value.kind == fk_std_bfloat16) {
+      float  float_temp;
+      (void)memcpy((char *)&float_temp, (char *)value.float_value,
+                   sizeof(float));
+      append_using_c_formatting("%a", underlying_array, size_hint,
+                                (double)float_temp);
+    } else if (kind_is_binary64(value.kind)) {
+      double  double_temp;
+      (void)memcpy((char *)&double_temp, (char *)value.float_value,
+                   sizeof(double));
+      append_using_c_formatting("%la", underlying_array, size_hint,
+                                double_temp);
+#if USE_FLOAT128_FOR_HOST_FP_VALUE
+    } else if (repr_is_long_double(value.kind) || value.kind == fk_float80 ||
+               value.kind == fk_std_float128) {
+      long double ld_temp;
+      (void)memcpy((char *)&ld_temp, (char *)value.float_value,
+                   sizeof(long double));
+      append_using_c_formatting("%La", underlying_array, size_hint,
+                                ld_temp);
+#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
+    } else {
+      (void)memcpy((char *)&temp, (char *)value.float_value,
+                   sizeof(a_host_fp_value));
+#if USE_SOFTFLOAT
+      append_softfloat_hex_constant_string(underlying_array, value.kind,
+                                           value.float);
+#else /* !USE_SOFTFLOAT */
+#if USE_DOUBLE_FOR_HOST_FP_VALUE
+      append_using_c_formatting("%la", underlying_array, size_hint, temp);
+#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
+      append_using_c_formatting("%La", underlying_array, size_hint, temp);
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
+#if USE_FLOAT128_FOR_HOST_FP_VALUE
+#if USE_QUADMATH_LIBRARY
+      append_using_quadmath_formatting("%Qa", underlying_array, size_hint,
+                                       temp);
+#else /* !USE_QUADMATH_LIBRARY */
+      append_using_c_formatting("%La", underlying_array, size_hint,
+                                (long double)temp);
+#endif /* USE_QUADMATH_LIBRARY */
+#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
+#endif /* USE_SOFTFLOAT */
+    }  /* if */
+  }  /* if */
+}  /* append_into */
+
+/*
+A string formatter for an_il_hex_fp_value values.
+*/
+template<>
+struct String_formatter<an_il_hex_fp_value> {
+  static size_t size_hint_of(an_il_hex_fp_value value)
+    { return 49; }
+  template<typename a_Dyn_array>
+  static inline void append_into(a_Dyn_array        &underlying_array,
+                                 an_il_hex_fp_value value,
+                                 size_t             size_hint);
+};  /* String_formatter */
+
+
+template<typename a_Dyn_array>
+void String_formatter<an_il_hex_fp_value>::append_into(
+                                          a_Dyn_array        &underlying_array,
+                                          an_il_hex_fp_value value,
+                                          size_t             size_hint)
+/*
+Append the characters representing in the given floating-point value into the
+underlying array using its associated formatting specification.  size_hint is
+an overestimate (i.e., maximum) number of characters this value might use.
+*/
+{
+  int data_size;
+
+  /* Determine the size of the data in the floating-point value. */
+  if (kind_is_16bit(value.kind)) {
+    data_size = 2;
+  } else if (value.kind == fk_float) {
+    data_size = sizeof(float);
+  } else if (repr_is_double(value.kind)) {
+    data_size = sizeof(double);
+  } else if (value.kind == fk_std_float32) {
+    data_size = 4;
+  } else if (value.kind == fk_std_float64) {
+    data_size = 8;
+  } else {
+    data_size = (int)data_size_of_host_fp_value;
+  }  /* if */
+#if ABI_COMPATIBILITY_VERSION >= 402
+  /* The long double format sometimes contains some unused bytes.
+     Put out zeros for the padding space. */
+  if (repr_is_long_double(value.kind)) {
+    int pad_size = (int)(sizeof(long double) - data_size);
+    underlying_array.resize(underlying_array.length() + (pad_size * 2), '0');
+  }  /* if */
+#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
+  /* The IA-64 ABI requires that the output be high-order bytes first,
+     and it must use lower-case characters. */
+  for (int j = 0; j < data_size; j++) {
+    unsigned char byte;
+    if (host_little_endian) {
+      byte = value.float_value->bytes[data_size-1-j];
+    } else {
+      byte = value.float_value->bytes[j];
+    }  /* if */
+    append_using_c_formatting("%02x", underlying_array, /*size_hint=*/3,
+                              (unsigned int)byte);
+  }  /* for */
+}  /* append_into */
+
+}  /* detail */
+
+a_number_buffer fp_to_string(a_float_kind            kind,
+                             an_internal_float_value *float_value,
+                             a_boolean               *pos_infinity,
+                             a_boolean               *neg_infinity,
+                             a_boolean               *not_a_number)
 /*
 Convert the float value float_value (with precision as indicated by kind)
 to a string in an internal static variable, and return a pointer to that
@@ -2918,184 +3477,20 @@ returned (e.g., "NaN").  pos_infinity, neg_infinity, and not_a_number can
 be NULL if the corresponding return value is not needed.
 */
 {
-  static char		str[60];
-  a_host_fp_value	temp;
+  a_number_buffer result(an_il_fp_value(kind, float_value, pos_infinity,
+                                        neg_infinity, not_a_number));
 
-  if (!handle_fp_to_string_special_cases(kind, float_value, pos_infinity,
-                                         neg_infinity, not_a_number, str,
-                                         &temp)) {
-    /* The call to handle_fp_to_string_special_cases has loaded float_value
-       into temp. */
-#if USE_HOST_FP_CONVERSION_ROUTINES
-#if USE_FLOAT128_FOR_HOST_FP_VALUE && USE_QUADMATH_LIBRARY
-    if (kind_is_16bit(kind)) {
-      (void)quadmath_snprintf(str, sizeof(str), "%.8Qg", temp);
-    } else if (kind == fk_float || kind == fk_std_float32) {
-      (void)quadmath_snprintf(str, sizeof(str), "%.10Qg", temp);
-    } else if (repr_is_double(kind) || kind == fk_std_float64) {
-      (void)quadmath_snprintf(str, sizeof(str), "%.19Qg", temp);
-    } else if (kind == fk_float128 || kind == fk_std_float128) {
-      (void)quadmath_snprintf(str, sizeof(str), "%.34Qg", temp);
-    } else {
-      /* fk_long_double or fk_float80. */
-      /* In theory LDBL_DIG+1 digits should be enough as the precision,
-         but LDBL_DIG+2 seems to help on some systems.  However, on Solaris,
-         with 128-bit long doubles, LDBL_DIG+2 hits the conversion of
-         LDBL_MIN in a funny place with regard to rounding and the Sun CC
-         compiler doesn't accept that value converted in that way.  So on
-         systems with 128-bit long double, just stick with LDBL_DIG+1
-         when using the C++-generating back end. */
-      int	ldbl_digits = LDBL_DIG + 2;
-#if BACK_END_IS_CP_GEN_BE
-      if (LDBL_DIG > 30) ldbl_digits = LDBL_DIG + 1;
-#endif /* BACK_END_IS_CP_GEN_BE */
-      (void)quadmath_snprintf(str, sizeof(str), "%.*Qg", ldbl_digits, temp);
-    }  /* if */
-#else /* !(USE_FLOAT128_FOR_HOST_FP_VALUE && USE_QUADMATH_LIBRARY) */
-#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || APPROXIMATE_QUADMATH
-    /* Make sure we have a long double value (temp can be a __float128). */
-    long double  fpval = (long double)temp;
-    if (kind_is_16bit(kind)) {
-      (void)sprintf(str, "%.8Lg", fpval);
-    } else if (kind == fk_float || kind == fk_std_float32) {
-      (void)sprintf(str, "%.10Lg", fpval);
-    } else if (repr_is_double(kind) || kind == fk_std_float64) {
-      (void)sprintf(str, "%.19Lg", fpval);
-    } else {
-      /* fk_long_double or fk_float80 or fk_std_float128. */
-      /* In theory LDBL_DIG+1 digits should be enough as the precision,
-         but LDBL_DIG+2 seems to help on some systems.  However, on Solaris,
-         with 128-bit long doubles, LDBL_DIG+2 hits the conversion of
-         LDBL_MIN in a funny place with regard to rounding and the Sun CC
-         compiler doesn't accept that value converted in that way.  So on
-         systems with 128-bit long double, just stick with LDBL_DIG+1
-         when using the C++-generating back end. */
-      int	ldbl_digits = LDBL_DIG + 2;
-#if BACK_END_IS_CP_GEN_BE
-      if (LDBL_DIG > 30) ldbl_digits = LDBL_DIG + 1;
-#endif /* BACK_END_IS_CP_GEN_BE */
-      (void)sprintf(str, "%.*Lg", ldbl_digits, fpval);
-    }  /* if */
-#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || APPROXIMATE_QUADMATH */
-#if USE_DOUBLE_FOR_HOST_FP_VALUE
-    if (kind_is_16bit(kind)) {
-      (void)sprintf(str, "%.8g", temp);
-    } else if (kind == fk_float || kind == fk_std_float32) {
-      (void)sprintf(str, "%.10g", temp);
-    } else {
-      (void)sprintf(str, "%.19g", temp);
-    }  /* if */
-#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
-#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE && USE_QUADMATH_LIBRARY */
-    /* Add trailing ".0" if no decimal point was put out (meaning the
-       value is a whole number). */
-    if (strchr(str, '.') == NULL &&
-        strchr(str, 'e') == NULL) {
-      char *p = str + strlen(str);
-      *p++ = '.';
-      *p++ = '0';
-      *p++ = '\0';
-    }  /* if */
-#else /* !USE_HOST_FP_CONVERSION_ROUTINES */
-    /* Use software-based routines for doing the binary to string
-       conversion. */
-    an_fp_return_type       res;
-    if (kind_is_16bit(kind)) {
-      res = write_float16(str, sizeof(str), (unsigned char *)float_value);
-#if DEBUG
-      if (db_flag_is_set("fp")) {
-        fprintf(f_debug, "write_float16: res=%d\n  ", (int)res);
-        db_binary_float16((unsigned char *)float_value);
-        fprintf(f_debug, "  %s\n", str);
-      }  /* if */
-#endif /* DEBUG */
-    } else if (kind == fk_float || kind == fk_std_float32 ||
-               kind == fk_std_bfloat16) {
-      res = write_float(str, sizeof(str), (unsigned char *)float_value);
-#if DEBUG
-      if (db_flag_is_set("fp")) {
-        fprintf(f_debug, "write_float: res=%d\n  ", (int)res);
-        db_binary_float((unsigned char *)float_value);
-        fprintf(f_debug, "  %s\n", str);
-      }  /* if */
-#endif /* DEBUG */
-    } else if (kind_is_binary64(kind)) {
-      /* Either "double" or "long double", where "double" and "long double"
-         are configured as binary64. */
-      res = write_double(str, sizeof(str), (unsigned char *)float_value);
-#if DEBUG
-      if (db_flag_is_set("fp")) {
-        fprintf(f_debug, "write_double: res=%d\n  ", (int)res);
-        db_binary_double((unsigned char *)float_value);
-        fprintf(f_debug, "  %s\n", str);
-      }  /* if */
-#endif /* DEBUG */
-#if FLOAT80_ENABLING_POSSIBLE
-    } else if (kind == (a_float_kind)fk_float80) {
-      res = write_float80(str, sizeof(str), (unsigned char *)float_value);
-#if DEBUG
-      if (db_flag_is_set("fp")) {
-        fprintf(f_debug, "write_float80: res=%d\n  ", (int)res);
-        db_binary_float80((unsigned char *)float_value);
-        fprintf(f_debug, "  %s\n", str);
-      }  /* if */
-#endif /* DEBUG */
-#endif /* FLOAT80_ENABLING_POSSIBLE */
-#if FLOAT128_ENABLING_POSSIBLE
-    } else if (kind == fk_float128 || kind == fk_std_float128) {
-      res = write_float128(str, sizeof(str), (unsigned char *)float_value);
-#if DEBUG
-      if (db_flag_is_set("fp")) {
-        fprintf(f_debug, "write_float128: res=%d\n  ", (int)res);
-        db_binary_float128((unsigned char *)float_value);
-        fprintf(f_debug, "  %s\n", str);
-      }  /* if */
-#endif /* DEBUG */
-#endif /* FLOAT128_ENABLING_POSSIBLE */
-    } else {
-#if FP_HAS_LONG_DOUBLE
-      check_assertion(repr_is_long_double(kind));
-      res = write_long_double(str, sizeof(str), (unsigned char *)float_value);
-#if DEBUG
-      if (db_flag_is_set("fp")) {
-        fprintf(f_debug, "write_long_double: res=%d\n  ", (int)res);
-        db_binary_long_double((unsigned char *)float_value);
-        fprintf(f_debug, "  %s\n", str);
-      }  /* if */
-#endif /* DEBUG */
-#else /* !FP_HAS_LONG_DOUBLE */
-      unexpected_condition();
-#endif /* FP_HAS_LONG_DOUBLE */
-    }  /* if */
-    switch (res) {
-      case fp_ret_nan:
-        (void)strcpy(str, "NaN");
-        if (not_a_number != NULL) *not_a_number = TRUE;
-        break;
-      case fp_ret_pos_infinity:
-        (void)strcpy(str, "+Infinity");
-        if (pos_infinity != NULL) *pos_infinity = TRUE;
-        break;
-      case fp_ret_neg_infinity:
-        (void)strcpy(str, "-Infinity");
-        if (neg_infinity != NULL) *neg_infinity = TRUE;
-        break;
-      default:
-        check_assertion(res != fp_ret_too_small);
-        break;
-    }  /* switch */
-#endif /* USE_HOST_FP_CONVERSION_ROUTINES */
-  }  /* if */
-  return str;
+  return result;
 }  /* fp_to_string */
 
 #if USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE
 
-char *fp_to_hex_constant_string(a_float_kind            kind,
-                                an_internal_float_value *float_value,
-                                a_boolean               *pos_infinity,
-                                a_boolean               *neg_infinity,
-                                a_boolean               *not_a_number)
+a_number_buffer fp_to_hex_constant_string(
+                                         a_float_kind            kind,
+                                         an_internal_float_value *float_value,
+                                         a_boolean               *pos_infinity,
+                                         a_boolean               *neg_infinity,
+                                         a_boolean               *not_a_number)
 /*
 Convert the float value float_value (with precision as indicated by kind)
 to a C99-style hexadecimal string in an internal static variable, and return a
@@ -3107,73 +3502,19 @@ TRUE.  In the above special cases, a display string is still returned (e.g.,
 corresponding return value is not needed.
 */
 {
-  static char           str[60];
-  a_host_fp_value       temp;
+  a_number_buffer result(an_il_hex_constant_fp_value(kind, float_value,
+                                                     pos_infinity,
+                                                     neg_infinity,
+                                                     not_a_number));
 
-  if (!handle_fp_to_string_special_cases(kind, float_value, pos_infinity,
-                                         neg_infinity, not_a_number, str,
-                                         &temp)) {
-    /* Copy the value to a properly aligned floating-point type and
-       use sprintf to generate the appropriate hexadecimal string. */
-    if (kind_is_binary16(kind)) {
-#if USE_SOFTFLOAT
-      float16_t     f16_temp;
-      softfloat32_t f32_temp;
-      (void)memcpy((char *)&f16_temp, (char *)float_value, 2);
-      f32_temp.soft = f16_to_f32(f16_temp);
-      (void)sprintf(str, "%a", f32_temp.hard);
-#else /* !USE_SOFTFLOAT */
-      EDG_float16_t float16_temp;
-      (void)memcpy((char *)&float16_temp, (char *)float_value,
-                   sizeof(EDG_float16_t));
-      (void)sprintf(str, "%a", (double)float16_temp);
-#endif /* USE_SOFTFLOAT */
-    } else if (kind == fk_float || kind == fk_std_float32 ||
-               kind == fk_std_bfloat16) {
-      float  float_temp;
-      (void)memcpy((char *)&float_temp, (char *)float_value, sizeof(float));
-      (void)sprintf(str, "%a", float_temp);
-    } else if (kind_is_binary64(kind)) {
-      double  double_temp;
-      (void)memcpy((char *)&double_temp, (char *)float_value, sizeof(double));
-      (void)sprintf(str, "%la", double_temp);
-#if USE_FLOAT128_FOR_HOST_FP_VALUE
-    } else if (repr_is_long_double(kind) || kind == fk_float80 ||
-               kind == fk_std_float128) {
-      long double ld_temp;
-      (void)memcpy((char *)&ld_temp, (char *)float_value, sizeof(long double));
-      (void)sprintf(str, "%La", ld_temp);
-#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
-    } else {
-      (void)memcpy((char *)&temp, (char *)float_value,
-                   sizeof(a_host_fp_value));
-#if USE_SOFTFLOAT
-      do_softfloat_hex_constant_string(kind, float_value, str, sizeof(str));
-#else /* !USE_SOFTFLOAT */
-#if USE_DOUBLE_FOR_HOST_FP_VALUE
-      (void)sprintf(str, "%la", temp);
-#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
-#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE
-      (void)sprintf(str, "%La", temp);
-#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
-#if USE_FLOAT128_FOR_HOST_FP_VALUE
-#if USE_QUADMATH_LIBRARY
-      (void)quadmath_snprintf(str, sizeof(str), "%Qa", temp);
-#else /* !USE_QUADMATH_LIBRARY */
-      (void)sprintf(str, "%La", (long double)temp);
-#endif /* USE_QUADMATH_LIBRARY */
-#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE */
-#endif /* USE_SOFTFLOAT */
-    }  /* if */
-  }  /* if */
-  return str;
+  return result;
 }  /* fp_to_hex_constant_string */
 
 #endif /* USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE */
 #if IA64_ABI
 
-char *fp_to_hex_string(a_float_kind            kind,
-                       an_internal_float_value *float_value)
+a_number_buffer fp_to_hex_string(a_float_kind            kind,
+                                 an_internal_float_value *float_value)
 /*
 Convert the float value float_value (with precision as indicated by kind)
 to a string of hex digits in an internal static variable, and return a
@@ -3181,49 +3522,9 @@ pointer to that null-terminated string.  This is used in the IA-64 ABI
 for the representation of floating-point values in mangled names.
 */
 {
-  static char str[60];
-  int         i = 0;
-  int         j;
-  int         data_size;
+  a_number_buffer result(an_il_hex_fp_value(kind, float_value));
 
-  /* Determine the size of the data in the floating-point value. */
-  if (kind_is_16bit(kind)) {
-    data_size = 2;
-  } else if (kind == fk_float) {
-    data_size = sizeof(float);
-  } else if (repr_is_double(kind)) {
-    data_size = sizeof(double);
-  } else if (kind == fk_std_float32) {
-    data_size = 4;
-  } else if (kind == fk_std_float64) {
-    data_size = 8;
-  } else {
-    data_size = (int)data_size_of_host_fp_value;
-  }  /* if */
-#if ABI_COMPATIBILITY_VERSION >= 402
-  /* The long double format sometimes contains some unused bytes.
-     Put out zeros for the padding space. */
-  if (repr_is_long_double(kind)) {
-    int	pad_size = (int)(sizeof(long double) - data_size);
-    for (j = 0; j < pad_size; j++, i++)  {
-      (void)sprintf(&str[i*2], "00");
-    }  /* for */
-  }  /* if */
-#endif /* ABI_COMPATIBILITY_VERSION >= 402 */
-  /* The IA-64 ABI requires that the output be high-order bytes first,
-     and it must use lower-case characters. */
-  for (j = 0; j < data_size; j++, i++) {
-    unsigned char byte;
-    if (host_little_endian) {
-      byte = float_value->bytes[data_size-1-j];
-    } else {
-      byte = float_value->bytes[j];
-    }  /* if */
-    (void)sprintf(&str[i*2], "%02x", (unsigned int)byte);
-  }  /* for */
-  /* Add the terminating null character. */
-  str[i*2] = '\0';
-  return str;
+  return result;
 }  /* fp_to_hex_string */
 
 #endif /* IA64_ABI */

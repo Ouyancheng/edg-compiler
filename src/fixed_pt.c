@@ -1076,8 +1076,8 @@ fp_scale.
 }  /* construct_fxp_scale_factor */
 
 
-char* fxp_to_string(a_fixed_point_type_descr  *fxp_descr,
-                    a_fixed_point_value       *value)
+a_number_buffer fxp_to_string(a_fixed_point_type_descr  *fxp_descr,
+                              a_fixed_point_value       *value)
 /*
 Convert the given value with the given fixed-point type description to a
 decimal (null-terminated) string representation in an internal static array.
@@ -1087,16 +1087,13 @@ Return a pointer to that array.  Suffixes are appended as needed.
 an_integer_value and may produce slightly inaccurate results.)
 */
 {
-#define BUF_LENGTH 100
-  static char  str[BUF_LENGTH];
-
+  a_number_buffer
+              result_str;
   an_internal_float_value
               fp_scale, fp_value, fp_scaled_value;
   a_boolean   depends_on_fp_mode;
   a_boolean   pos_infinity, neg_infinity, not_a_number;
   a_boolean   err = FALSE;
-  char        *result_str;
-  sizeof_t    length;
 
   construct_fxp_scale_factor(fxp_descr, &fp_scale);
   /* Treat the given fixed-point as an integer (not yet scaled) and convert
@@ -1111,21 +1108,21 @@ an_integer_value and may produce slightly inaccurate results.)
   result_str = fp_to_string((a_float_kind)fk_long_double, &fp_scaled_value,
                             &pos_infinity, &neg_infinity, &not_a_number);
   check_assertion(!(pos_infinity || neg_infinity || not_a_number));
-  length = strlen(result_str);
-  check_assertion(length < BUF_LENGTH - 4);
-  strcpy(str, result_str);
   /* Add all the needed suffixes. */
   if (fxp_descr->is_unsigned) {
-    str[length++] = 'u';
-  };
-  if (fxp_descr->precision == (a_fixed_point_precision)fpp_short) {
-    str[length++] = 'h';
-  } else if (fxp_descr->precision == (a_fixed_point_precision)fpp_long) {
-    str[length++] = 'l';
-  };
-  str[length++] = fxp_descr->is_fract_type ? 'r' : 'k';
-  str[length] = '\0';
-  return str;
+    result_str.append("u");
+  }  /* if */
+  if (fxp_descr->precision == fpp_short) {
+    result_str.append("h");
+  } else if (fxp_descr->precision == fpp_long) {
+    result_str.append("l");
+  }  /* if */
+  if (fxp_descr->is_fract_type) {
+    result_str.append("r");
+  } else {
+    result_str.append("k");
+  }  /* if */
+  return result_str;
 #undef BUF_LENGTH
 }  /* fxp_to_string */
 

@@ -4136,31 +4136,44 @@ Output the contents of the interpreted object of type tp stored at addr.
       }
       break;
     case tk_float:
-      (void)fprintf(f_debug, "%s\n",
-                    fp_to_string(tp->variant.float_kind, fp_value(addr),
-                                 /*pos_infinity=*/(a_boolean*)NULL,
-                                 /*neg_infinity=*/(a_boolean*)NULL,
-                                 /*not_a_number=*/(a_boolean*)NULL));
+      { a_number_buffer str = fp_to_string(tp->variant.float_kind,
+                                           fp_value(addr),
+                                           /*pos_infinity=*/(a_boolean*)NULL,
+                                           /*neg_infinity=*/(a_boolean*)NULL,
+                                           /*not_a_number=*/(a_boolean*)NULL);
+
+        (void)fprintf(f_debug, "%s\n", str.as_temp_characters());
+      }
       break;
 #if C99_IL_EXTENSIONS_SUPPORTED
     case tk_imaginary:
-      (void)fprintf(f_debug, "%si\n",
-                    fp_to_string(tp->variant.float_kind, fp_value(addr),
-                                 /*pos_infinity=*/(a_boolean*)NULL,
-                                 /*neg_infinity=*/(a_boolean*)NULL,
-                                 /*not_a_number=*/(a_boolean*)NULL));
+      { a_number_buffer str = fp_to_string(tp->variant.float_kind,
+                                           fp_value(addr),
+                                           /*pos_infinity=*/(a_boolean*)NULL,
+                                           /*neg_infinity=*/(a_boolean*)NULL,
+                                           /*not_a_number=*/(a_boolean*)NULL);
+
+        (void)fprintf(f_debug, "%si\n", str.as_temp_characters());
+      }
       break;
     case tk_complex:
-      (void)fprintf(f_debug, "%s + ",
-                    fp_to_string(tp->variant.float_kind, &cx_value(addr)->real,
-                                 /*pos_infinity=*/(a_boolean*)NULL,
-                                 /*neg_infinity=*/(a_boolean*)NULL,
-                                 /*not_a_number=*/(a_boolean*)NULL));
-      (void)fprintf(f_debug, "%si\n",
-                    fp_to_string(tp->variant.float_kind, &cx_value(addr)->imag,
-                                 /*pos_infinity=*/(a_boolean*)NULL,
-                                 /*neg_infinity=*/(a_boolean*)NULL,
-                                 /*not_a_number=*/(a_boolean*)NULL));
+      { a_number_buffer real_str = fp_to_string(
+                                            tp->variant.float_kind,
+                                            &cx_value(addr)->real,
+                                            /*pos_infinity=*/(a_boolean*)NULL,
+                                            /*neg_infinity=*/(a_boolean*)NULL,
+                                            /*not_a_number=*/(a_boolean*)NULL);
+
+        (void)fprintf(f_debug, "%s + ", real_str.as_temp_characters());
+
+        a_number_buffer imag_str = fp_to_string(
+                                            tp->variant.float_kind,
+                                            &cx_value(addr)->imag,
+                                            /*pos_infinity=*/(a_boolean*)NULL,
+                                            /*neg_infinity=*/(a_boolean*)NULL,
+                                            /*not_a_number=*/(a_boolean*)NULL);
+        (void)fprintf(f_debug, "%si\n", imag_str.as_temp_characters());
+      }
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tk_pointer:
@@ -10215,7 +10228,6 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     a_constant_ptr        init_cp;
     a_symbol_ptr          sym;
     a_symbol_locator      loc;
-    char                  name[100];
     static long           n = 0;
     get_array_pos(ips, cap, elem_type, &len, &pos, &elem_size,
                   &result);
@@ -10250,9 +10262,10 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
     vp->init_kind = (an_init_kind)initk_static;
     vp->initializer.constant = init_cp;
     vp->is_constexpr = TRUE;
-    (void)sprintf(name, "__ce_array_%ld", ++n);
+
+    Small_string<100> name("__ce_array_", ++n);
     clear_locator(&loc, &call_node->position);
-    (void)find_symbol(name, strlen(name), &loc);
+    (void)find_symbol(name.as_temp_characters(), name.length(), &loc);
     sym = make_symbol((a_symbol_kind)sk_variable, &loc);
     sym->variant.variable.ptr = vp;
     set_source_corresp(&vp->source_corresp, sym);
@@ -13087,10 +13100,10 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
         goto done;
       } else if (name_cap->complete_object == NULL) {
         /* Synthesize a field name if no name is given explicitly. */
-        char  field_name[100];
-        (void)sprintf(field_name, "__field_%u\n", k);
-        fd.name = alloc_text_of_string_literal(strlen(field_name)+1);
-        (void)strcpy(fd.name, field_name);
+        Small_string<100> field_name("__field_", k, "\n");
+
+        fd.name = alloc_text_of_string_literal(field_name.length() + 1);
+        (void)strcpy(fd.name, field_name.as_temp_characters());
       } else {
         if (!get_interpreter_string_length(
                               ips, (a_constexpr_address*)(subobj+name_offset),
@@ -25020,31 +25033,29 @@ Display memory use for entities in front end memory in this file (interpret.c).
   /* Report map tables: */
   for (k = 0; k < MAX_WIDTH_REUSABLE_TABLE; ++k) {
     if (free_map_tables[k] != NULL) {
-      char              name[40];
+      Small_string<40>  name("data map table width ", k);
       a_data_map_entry  *table = free_map_tables[k];
       unsigned long     cnt = 1, table_size;
       while (table->ptr != NULL) {
         cnt += 1;
         table = (a_data_map_entry*)table->ptr;
       }  /* if */
-      sprintf(name, "data map table width %d", k);
       table_size = sizeof(an_alloc_seq_number)*((sizeof_t)1<<k);
-      db_space_used_nontype(name, cnt, table_size);
+      db_space_used_nontype(name.as_temp_characters(), cnt, table_size);
     }  /* if */
   }  /* for */
   /* Report live set tables: */
   for (k = 0; k < MAX_WIDTH_REUSABLE_TABLE; ++k) {
     if (free_live_set_tables[k] != NULL) {
-      char                 name[40];
+      Small_string<40>     name("live set table width ", k);
       an_alloc_seq_number  *table = free_live_set_tables[k];
       unsigned long        cnt = 1, table_size;
       while (*(an_alloc_seq_number**)table != NULL) {
         cnt += 1;
         table = *(an_alloc_seq_number**)table;
       }  /* if */
-      sprintf(name, "live set table width %d", k);
       table_size = sizeof(an_alloc_seq_number)*((sizeof_t)1<<k);
-      db_space_used_nontype(name, cnt, table_size);
+      db_space_used_nontype(name.as_temp_characters(), cnt, table_size);
     }  /* if */
   }  /* for */
   return grand_total;

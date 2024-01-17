@@ -2373,34 +2373,34 @@ for the corresponding end_diagnostic call.
       sym_add_diag_info(dp, ec_surrogate_func_add_on,
                         cfp->surrogate_function_conv_sym);
     } else {
-      /* Built-in operator case. */
-      /* Put out something like
+      /* Built-in operator case.  Put out something like:
+
            built-in operator "pointer + integer"
-      */
-      char         buf[100]; /* Big enough for
-                              "pointer-to-member == pointer-to-member". */
-      a_const_char *pattern = cfp->operand_type_pattern;
-      a_const_char *opname = opname_names[(int)kind];
+
+         Big enough for "pointer-to-member == pointer-to-member". */
+      Small_string<100> buf;
+      a_const_char      *pattern = cfp->operand_type_pattern;
+      a_const_char      *opname = opname_names[(int)kind];
       if (pattern[1] == '\0' || pattern[1] == ';') {
         /* Unary operator. */
-        (void)sprintf(buf, "%s %s", opname, name_for_type_code(pattern[0]));
-      } else if (kind == (an_opname_kind)onk_subscript) {
+        buf.reset_to(opname, " ", name_for_type_code(pattern[0]));
+      } else if (kind == onk_subscript) {
         /* Subscript -- funny because the operator surrounds the second
            operand. */
-        (void)sprintf(buf, "%s[%s]", name_for_type_code(pattern[0]),
-                                     name_for_type_code(pattern[1]));
-      } else if (kind == (an_opname_kind)onk_question) {
+        buf.reset_to(name_for_type_code(pattern[0]), "[",
+                     name_for_type_code(pattern[1]), "]");
+      } else if (kind == onk_question) {
         /* ?: -- funny because the operands considered are the second and
            third. */
-        (void)sprintf(buf, "expression ? %s : %s",
-                                       name_for_type_code(pattern[0]),
-                                       name_for_type_code(pattern[1]));
+        buf.reset_to("expression ? ", name_for_type_code(pattern[0]), " : ",
+                     name_for_type_code(pattern[1]));
       } else {
         /* Binary operator. */
-        (void)sprintf(buf, "%s %s %s", name_for_type_code(pattern[0]), opname,
-                                       name_for_type_code(pattern[1]));
+        buf.reset_to(name_for_type_code(pattern[0]), " ", opname, " ",
+                     name_for_type_code(pattern[1]));
       }  /* if */
-      copy_str_add_diag_info(dp, ec_builtin_operator_add_on, buf);
+      copy_str_add_diag_info(dp, ec_builtin_operator_add_on,
+                             buf.as_temp_characters());
     }  /* if */
   }  /* for */
   if (arg_list != NULL) {

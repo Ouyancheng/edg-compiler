@@ -1179,24 +1179,6 @@ dfip into the message buffer.
 }  /* form_template_arg_list */
 
 #if !STANDALONE_UTILITY_PROGRAM
-#if CHECKING
-
-static sizeof_t digits_to_represent(unsigned long value)
-/*
-Return the number of digits needed for the decimal representation of value,
-e.g., 1297 --> 4.
-*/
-{
-  sizeof_t ndigits = 1;
-
-  while (value > 9) {
-    value /= 10;
-    ndigits++;
-  }  /* while */
-  return ndigits;
-}  /* digits_to_represent */
-
-#endif /* CHECKING */
 
 static void form_source_position(a_source_position   *pos,
                                  a_diagnostic_ptr    dp,
@@ -1218,13 +1200,12 @@ emitted as part of this declaration position.  dp is the diagnostic
 being formed and is used to eliminate redundant file names in a diagnostic.
 */
 {
-  a_const_char		*file_name, *full_name, *diag_file_name;
-  char			buffer[20];
-  a_line_number		line_number;
-  a_boolean		at_end_of_source;
-  a_diagnostic_ptr	primary_dp;
-  a_source_position_ptr	error_pos;
-  a_source_file_ptr	sfp;
+  a_const_char          *file_name, *full_name, *diag_file_name;
+  a_line_number         line_number;
+  a_boolean             at_end_of_source;
+  a_diagnostic_ptr      primary_dp;
+  a_source_position_ptr error_pos;
+  a_source_file_ptr     sfp;
 
   primary_dp = dp->primary_diag != NULL ? dp->primary_diag : dp;
   error_pos = &primary_dp->diag_header_pos;
@@ -1253,16 +1234,11 @@ being formed and is used to eliminate redundant file names in a diagnostic.
           f_add_string_to_text_buffer(msg_buffer, error_text(ec_in));
         }  /* if */
       } else {
+        Small_string<20> num_buffer(line_number);
+
         /* Emit the line number. */
         f_add_string_to_text_buffer(msg_buffer, error_text(ec_at_line));
-#if CHECKING
-        if (digits_to_represent((unsigned long)pos->seq)
-                            >= sizeof(buffer)) {
-          internal_error("form_source_position: buffer size too small");
-        }  /* if */
-#endif /* CHECKING */
-        (void)sprintf(buffer, "%lu", (unsigned long)line_number);
-        add_string_to_text_buffer(msg_buffer, &buffer[0]);
+        add_string_to_text_buffer(msg_buffer, num_buffer.as_temp_characters());
       }  /* if */
       /* Add the file name if needed. */
       if (file_name_needed) {
@@ -2844,20 +2820,20 @@ number -- when non-zero) to msg_buffer.  If column_number is not
 SP_COL_UNKNOWN, the column number is also added.
 */
 {
-  char              number_buffer[50];
-  a_const_char      *error_text_string;
-  a_line_number     line_number = sifpp->line_number;
+  a_const_char    *error_text_string;
+  a_line_number   line_number = sifpp->line_number;
+  a_number_buffer num_buffer;
 
   annotate_diagnostic(prefix_buffer, da_locus);
   /* Print the file and line number, with a column number if it is not
      SP_COL_UNKNOWN. */
   /* If the line is from stdin, do not display the file name. */
   if (strcmp(sifpp->file_name, FILE_NAME_FOR_STDIN) == 0) {
-    (void)sprintf(number_buffer, "%lu", (unsigned long)line_number);
     error_text_string = error_text(ec_Line);
     add_string_to_text_buffer(prefix_buffer, error_text_string);
     add_string_to_text_buffer(prefix_buffer, " ");
-    add_string_to_text_buffer(prefix_buffer, number_buffer);
+    num_buffer.reset_to(line_number);
+    add_string_to_text_buffer(prefix_buffer, num_buffer.as_temp_characters());
   } else {
     if (sifpp->source_file != NULL) {
       a_const_char *file_name;
@@ -2876,21 +2852,22 @@ SP_COL_UNKNOWN, the column number is also added.
       add_char_to_text_buffer(prefix_buffer, '"');
     }  /* if */
     if (line_number != SP_LINE_UNKNOWN) {
-      (void)sprintf(number_buffer, "%lu", (unsigned long)line_number);
       error_text_string = error_text(ec_line);
       add_string_to_text_buffer(prefix_buffer, ", ");
       add_string_to_text_buffer(prefix_buffer, error_text_string);
       add_string_to_text_buffer(prefix_buffer, " ");
-      add_string_to_text_buffer(prefix_buffer, number_buffer);
+      num_buffer.reset_to(line_number);
+      add_string_to_text_buffer(prefix_buffer,
+                                num_buffer.as_temp_characters());
     }  /* if */
   }  /* if */
   if (column_number != SP_COL_UNKNOWN) {
-    (void)sprintf(number_buffer, "%d", column_number);
     error_text_string = error_text(ec_col);
     add_string_to_text_buffer(prefix_buffer, " (");
     add_string_to_text_buffer(prefix_buffer, error_text_string);
     add_string_to_text_buffer(prefix_buffer, " ");
-    add_string_to_text_buffer(prefix_buffer, number_buffer);
+    num_buffer.reset_to(column_number);
+    add_string_to_text_buffer(prefix_buffer, num_buffer.as_temp_characters());
     add_string_to_text_buffer(prefix_buffer, ")");
   }  /* if */
   annotate_diagnostic(prefix_buffer, da_reset);
@@ -3141,15 +3118,15 @@ number is added into the output.
   if (local_display_error_number) {
     /* Display the error message number.  Append a -D suffix if the
        severity may be changed. */
-    a_boolean is_discretionary;
-    char      number_buffer[50];
-    (void)sprintf(number_buffer, "%d", (int)dp->error_code);
+    a_boolean       is_discretionary;
+    a_number_buffer num_buffer((size_t)dp->error_code);
+
     is_discretionary = ((int)dp->severity <= (int)es_discretionary_error);
     error_text_string = error_text(
                                is_discretionary ? ec_discretionary_suffix
                                                 : ec_non_discretionary_suffix);
     add_string_to_text_buffer(prefix_buffer, " #");
-    add_string_to_text_buffer(prefix_buffer, number_buffer);
+    add_string_to_text_buffer(prefix_buffer, num_buffer.as_temp_characters());
     add_string_to_text_buffer(prefix_buffer, error_text_string);
   }  /* if */
   add_string_to_text_buffer(prefix_buffer, ": ");
@@ -3291,15 +3268,15 @@ An assertion has failed.  Abort the compilation.
 */
 {
   a_text_buffer_ptr buffer;
-  char		    line_number_buffer[32];
+  a_number_buffer   line_number_buffer;
 
   /* Strip the directory name of the file (if any).  Use the text buffer
      facilities to ensure there are no buffer overruns. */
   filename = start_of_file_name(filename);
   if (suppress_assertion_line_number) {
-    (void)strcpy(line_number_buffer, "<suppressed>");
+    line_number_buffer.append("<suppressed>");
   } else {
-    sprintf(line_number_buffer, "%d", line_number);
+    line_number_buffer.append(line_number);
   }  /* if */
   buffer = alloc_text_buffer(1024);
   add_string_to_text_buffer(buffer, "assertion failed");
@@ -3323,7 +3300,7 @@ An assertion has failed.  Abort the compilation.
     add_string_to_text_buffer(buffer, filename);
   }  /* if */
   add_string_to_text_buffer(buffer, ", line ");
-  add_string_to_text_buffer(buffer, line_number_buffer);
+  add_string_to_text_buffer(buffer, line_number_buffer.as_temp_characters());
   add_string_to_text_buffer(buffer, " in ");
   add_string_to_text_buffer(buffer, function);
   if (string1 != NULL) {
@@ -4130,14 +4107,14 @@ null-terminated.
   switch (kind) {
     case dfk_number:
       /* A numeric fill-in.  Add it to the message buffer. */
-      { Small_string<50> number(dfip->variant.number);
+      { a_number_buffer number(dfip->variant.number);
 
         add_string_to_text_buffer(msg_buffer, number.as_temp_characters());
       }
       break;
     case dfk_unsigned_number:
       /* An unsigned numeric fill-in.  Add it to the message buffer. */
-      { Small_string<50> number(dfip->variant.unsigned_number);
+      { a_number_buffer number(dfip->variant.unsigned_number);
 
         add_string_to_text_buffer(msg_buffer, number.as_temp_characters());
       }
@@ -4591,11 +4568,11 @@ Write a SARIF "result object"."ruleId property" for the given diagnostic
 pointer to the write_diagnositic_buffer.
 */
 {
-  char num_buffer[20];
+  a_number_buffer num_buffer((size_t)dp->error_code);
 
   add_string_to_text_buffer(write_diagnostic_buffer, "\"EC");
-  (void)sprintf(num_buffer, "%lu", (unsigned long)dp->error_code);
-  add_string_to_text_buffer(write_diagnostic_buffer, &num_buffer[0]);
+  add_string_to_text_buffer(write_diagnostic_buffer,
+                            num_buffer.as_temp_characters());
   add_string_to_text_buffer(write_diagnostic_buffer, "\"");
 }  /* write_sarif_rule_id */
 
@@ -4697,18 +4674,20 @@ Write a SARIF "physicalLocation object"."region property" for the given line
 and column numbers to the write_diagnositic_buffer.
 */
 {
-  char num_buffer[20];
+  a_number_buffer num_buffer(line_number);
 
   add_string_to_text_buffer(write_diagnostic_buffer, "{\"startLine\":");
-  (void)sprintf(num_buffer, "%lu", (unsigned long)line_number);
-  add_string_to_text_buffer(write_diagnostic_buffer, num_buffer);
+  add_string_to_text_buffer(write_diagnostic_buffer,
+                            num_buffer.as_temp_characters());
   /* SARIF does not have a concept of "no column"; if no column information is
      present, omit the startColumn (though notably, this is interpreted in the
      specification as equivalent to a startColumn value of 1). */
   if (column_number != 0) {
+    num_buffer.reset_to(column_number);
+
     add_string_to_text_buffer(write_diagnostic_buffer, ",\"startColumn\":");
-    (void)sprintf(num_buffer, "%lu", (unsigned long)column_number);
-    add_string_to_text_buffer(write_diagnostic_buffer, num_buffer);
+    add_string_to_text_buffer(write_diagnostic_buffer,
+                              num_buffer.as_temp_characters());
   }  /* if */
   add_char_to_text_buffer(write_diagnostic_buffer, '}');
 }  /* write_sarif_artifact_location */

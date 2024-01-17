@@ -642,9 +642,11 @@ on the floating-point mode.  Otherwise, return FALSE.
   if (err) {
     /* Try again with larger precision by converting the float to a
        character string then converting the string to an integer value. */
-    a_boolean pos_infinity, neg_infinity, not_a_number;
-    char *str = fp_to_string(float_kind, float_value,
-                             &pos_infinity, &neg_infinity, &not_a_number);
+    a_boolean       pos_infinity, neg_infinity, not_a_number;
+    a_number_buffer str = fp_to_string(float_kind, float_value,
+                                       &pos_infinity, &neg_infinity,
+                                       &not_a_number);
+
     if (pos_infinity || neg_infinity || not_a_number) {
       err = TRUE;
     } else {
@@ -652,12 +654,14 @@ on the floating-point mode.  Otherwise, return FALSE.
         /* The source value is negative but the result value is unsigned.
            Do the conversion to a signed value because the resulting bit
            pattern may be used later in some modes. */
-        conv_float_string_to_integer_value(str, result_value,
+        conv_float_string_to_integer_value(str.as_temp_characters(),
+                                           result_value,
                                            /*is_signed=*/TRUE, &err);
         /* Always set the error flag in this case. */
         err = TRUE;
       } else {
-        conv_float_string_to_integer_value(str, result_value,
+        conv_float_string_to_integer_value(str.as_temp_characters(),
+                                           result_value,
                                            is_signed, &err);
       }  /* if */
     }  /* if */

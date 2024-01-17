@@ -1452,25 +1452,25 @@ caution when modifying this routine.
             } else {
 #if ABI_CHANGES_FOR_RTTI
               if (type_info_sym->decl_scope == NO_SCOPE_DEPTH) {
-                char buffer[50];
+                Small_string<50> buffer;
+
                 /* Not yet explicitly redeclared. */
                 /* Run-time support for RTTI declares type_info, so consider
                    the name to be reserved. */
 #if IA64_ABI
                 if (i != (int)tik_user) {
-                  sprintf(buffer, "__cxxabiv1::%s",
-                          type_info_sym->header->identifier);
+                  buffer.reset_to("__cxxabiv1::",
+                                  type_info_sym->header->identifier);
                 } else
 #endif /* IA64_ABI */
                 /* Do not insert code here. */
                 {
-                  sprintf(buffer, "%s%s", 
-                          type_info_in_namespace_std ? "std::" : "",
-                          "type_info");
+                  buffer.reset_to(type_info_in_namespace_std ? "std::" : "",
+                                  "type_info");
                 }  /* if */
-                pos_st_error(ec_conflicts_with_predeclared_type_info,
-                             &locator_for_curr_id.source_position,
-                             buffer);
+                pos_error(ec_conflicts_with_predeclared_type_info,
+                          &locator_for_curr_id.source_position,
+                          buffer.as_temp_characters());
               }  /* if */
               tag_sym = type_info_sym;
 #endif /* ABI_CHANGES_FOR_RTTI */

@@ -239,10 +239,9 @@ static void form_unsigned_hex(unsigned long                         num,
 Output an unsigned number in hexadecimal form, as indicated by octl.
 */
 {
-  char buffer[50];
+  a_number_buffer num_buff{hex_view_of(num)};
 
-  (void)sprintf(buffer, "%lx", num);
-  octl->output_str(buffer, octl);
+  octl->output_str(num_buff.as_temp_characters(), octl);
 }  /* form_unsigned_hex */
 
 #endif /* DEBUG */
@@ -2490,14 +2489,15 @@ by octl.
           if (octl->debug_output) {
             if (type->variant.template_param.kind ==
                                      (a_template_param_type_kind)tptk_param) {
-              char  buf[100];
-              (void)sprintf(
-                      buf, "#(%ld,%ld)",
-                      (long)type->variant.template_param.extra_info
-                                ->coordinates.depth,
-                      (long)type->variant.template_param.extra_info
-                                ->coordinates.position);
-              octl->output_str(buf, octl);
+              Small_string<100> buf("#(",
+                                    type->variant.template_param.extra_info
+                                        ->coordinates.depth,
+                                    ",",
+                                    type->variant.template_param.extra_info
+                                        ->coordinates.position,
+                                    ")");
+
+              octl->output_str(buf.as_temp_characters(), octl);
             }  /* if */
           }  /* if */
 #endif /* DEBUG */
@@ -3863,7 +3863,7 @@ precedence confusion.  Do the output in the way described by octl.
                                    (con_type->kind == (a_type_kind)tk_integer);
   an_integer_kind ikind = (an_integer_kind)ik_none;
   a_boolean       signed_constant = FALSE;
-  char            *literal_form;
+  a_number_buffer literal_form;
 
   /* See if the constant is signed. */
   if (integer_type_constant) {
@@ -3887,10 +3887,13 @@ precedence confusion.  Do the output in the way described by octl.
       if (cmp_integer_values(&val, signed_constant, &zero, signed_constant)
                                                                        != 0) {
         /* The upper 64 bits are nonzero. */
-        octl->output_str(str_for_integer_value(&val, signed_constant,
-                                               constant->non_arithmetic,
-                                               sizeof(an_integer_value)),
-                         octl);
+        a_number_buffer str_rep = str_for_integer_value(
+                                                     &val,
+                                                     signed_constant,
+                                                     constant->non_arithmetic,
+                                                     sizeof(an_integer_value));
+
+        octl->output_str(str_rep.as_temp_characters(), octl);
         octl->output_str("<<64 | ", octl);
         form_cast(constant->type, octl);
       }  /* if */
@@ -3900,10 +3903,13 @@ precedence confusion.  Do the output in the way described by octl.
       shift_left_integer_value(&mask, 64, &err);
       complement_integer_value(&mask);
       and_integer_values(&val, &mask);
-      octl->output_str(str_for_integer_value(&val, signed_constant,
-                                             constant->non_arithmetic,
-                                             sizeof(an_integer_value)),
-                       octl);
+
+      a_number_buffer str_rep = str_for_integer_value(
+                                                     &val,
+                                                     signed_constant,
+                                                     constant->non_arithmetic,
+                                                     sizeof(an_integer_value));
+      octl->output_str(str_rep.as_temp_characters(), octl);
       goto close_paren_if_needed;
     }  /* if */
 #endif /* INT128_EXTENSIONS_ALLOWED */
@@ -3982,7 +3988,7 @@ precedence confusion.  Do the output in the way described by octl.
     /* In diagnostics and debugging output, always use decimal. */
     literal_form = decimal_str_for_integer_constant(eff_constant);
   }  /* if */
-  output_partial_token_str(literal_form, octl);
+  output_partial_token_str(literal_form.as_temp_characters(), octl);
   if (!octl->part_of_ud_literal) {
     /* Put out a suffix if needed.  The suffix must be suppressed for the
        numeric part of a user-defined literal lest it be considered part of
@@ -4034,9 +4040,7 @@ output in the way described by octl.  Return the number of characters
 output.
 */
 {
-  char buffer[10];
-  char *bptr = buffer;
-  int  nchars = 1;
+  Small_string<10> buffer;
 
   if ((isprint((unsigned char)ch) &&
        /* Render extended characters as octal escapes in compilable code to
@@ -4053,11 +4057,11 @@ output.
     if (ch == '"' || ch == '\'' || ch == '\\' ||
         /* Avoid accidentally putting out trigraphs by escaping "?". */
         (ch == '?' && octl->gen_compilable_code && !octl->gen_pcc_code)) {
-      *bptr++ = '\\';
-      nchars++;
+      buffer.append("\\");
     }  /* if */
-    *bptr++ = ch;
-    *bptr = '\0';
+
+    a_string_view ch_value(&ch, 1);
+    buffer.append(ch_value);
   } else {
     char c = 0;
     /* Look for unprintable characters with specific escape codes. */
@@ -4078,20 +4082,21 @@ output.
     }  /* switch */
     if (c != 0) {
       /* Use a defined escape code. */
-      buffer[0] = '\\';
-      buffer[1] = c;
-      buffer[2] = '\0';
-      nchars = 2;
+      a_string_view escape_code(&c, 1);
+
+      buffer.reset_to("\\", escape_code);
     } else {
       /* Use the \nnn form for other unprintable characters. */
-      (void)sprintf(buffer, "\\%03o",
-                    (unsigned int)(ch&((1<<targ_host_string_char_bit)-1)));
-      nchars = 4;
+      unsigned long   octl_value(
+                       (unsigned long)(ch&((1<<targ_host_string_char_bit)-1)));
+      Small_string<3> octl_str(octl_view_of(octl_value));
+
+      buffer.reset_to("\\", left_pad(3, '0', octl_str));
     }  /* if */
   }  /* if */
   /* Output the character. */
-  output_partial_token_str(buffer, octl);
-  return nchars;
+  output_partial_token_str(buffer.as_temp_characters(), octl);
+  return buffer.length();
 }  /* form_char */
 
 
@@ -4105,16 +4110,13 @@ Do the output in the way described by octl.  Return the number of
 characters output.
 */
 {
-  int   result;
-  char  buffer[2*sizeof(unsigned long)+3];
-
   /* Use hex escapes always to avoid having to convert the wide character
      back to a multibyte character string. */
-  (void)sprintf(buffer, "\\x%lx", wc);
-  result = (int)strlen(buffer);
+  a_number_buffer buffer("\\x", hex_view_of(wc));
+
   /* Output the character. */
-  output_partial_token_str(buffer, octl);
-  return result;
+  output_partial_token_str(buffer.as_temp_characters(), octl);
+  return buffer.length();
 }  /* form_wide_char */
 
 
@@ -5615,9 +5617,9 @@ static void form_fixed_point_constant(
 Output the given fixed-point value with the proper suffix.
 */
 {
-  char  *str = fxp_to_string(fxp_descr, value);
+  a_number_buffer str = fxp_to_string(fxp_descr, value);
 
-  octl->output_str(str, octl);
+  octl->output_str(str.as_temp_characters(), octl);
 }  /* form_fixed_point_constant */
 
 #endif /* FIXED_POINT_ALLOWED */
@@ -5635,8 +5637,9 @@ generated (in configurations that support that).  When expr is non-NULL,
 it represents a backing expression for the floating-point constant value.
 */
 {
-  a_const_char  *str, *suffix = "";
-  char          buf[64];
+  a_const_char  *suffix = "";
+  Small_string<64>
+                buf;
   a_boolean pos_infinity, neg_infinity, not_a_number;
 #if (BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && \
     BUILTIN_FUNCTIONS_ENABLED
@@ -5731,7 +5734,7 @@ it represents a backing expression for the floating-point constant value.
        conversion (which may lose precision -- and requires the opposite
        conversion by the back end).  Instead, use a hexadecimal
        floating-point string (when the back end supports that). */
-    str = fp_to_hex_constant_string(fkind, float_value,
+    buf = fp_to_hex_constant_string(fkind, float_value,
                                     &pos_infinity, &neg_infinity,
                                     &not_a_number);
   } else
@@ -5740,7 +5743,7 @@ it represents a backing expression for the floating-point constant value.
   {
     /* Generate a decimal string that best represents the floating-point
        value. */
-    str = fp_to_string(fkind, float_value,
+    buf = fp_to_string(fkind, float_value,
                        &pos_infinity, &neg_infinity, &not_a_number);
   }  /* if */
   if (octl->gen_compilable_code &&
@@ -5790,40 +5793,38 @@ it represents a backing expression for the floating-point constant value.
       check_assertion(strlen(unmangled_or_fabricated_name_of(
                                                         &rp->source_corresp)) +
                       string_con->variant.string.length + 7 < sizeof(buf));
-      (void)sprintf(buf, "(%s(\"%s\"))",
-                    unmangled_or_fabricated_name_of(&rp->source_corresp),
-                    string_con->variant.string.value);
+      buf.reset_to("(", unmangled_or_fabricated_name_of(&rp->source_corresp),
+                   "(\"", string_con->variant.string.value, "\"))");
     } else if (msvc_is_generated_code_target) {
       /* MSVC++ gives an error on (x/0.0), so use a comma operator to
          fool it. */
-      (void)sprintf(buf, "(%s%s/(0,0.0%s))", dividend, suffix, suffix);
+      buf.reset_to("(", dividend, suffix, "/(0,0.0", suffix, "))");
     } else if (clang_is_generated_code_target ||
                (gcc_is_generated_code_target &&
                 gnu_targ_version >= 30300)) /*lint !e845*/ {
       /* Use the builtin function. */
       if (not_a_number) {
-        (void)sprintf(buf, "(__builtin_nan%s(\"\"))", gnu_builtin_suffix);
+        buf.reset_to("(__builtin_nan", gnu_builtin_suffix, "(\"\"))");
       } else {
-        (void)sprintf(buf, "(%s__builtin_huge_val%s())",
-                      (neg_infinity) ? "-" : "", gnu_builtin_suffix);
+        buf.reset_to("(", (neg_infinity ? "-" : ""),
+                     "__builtin_huge_val", gnu_builtin_suffix, "())");
       }  /* if */
     } else if (gcc_is_generated_code_target && gnu_targ_version >= 29600 &&
                !not_a_number) {
       /* Use a large hexadecimal floating-point constant. */
-      (void)sprintf(buf, "(%s(__extension__ 0x1.0p%d%s))",
-                    (neg_infinity) ? "-" : "", 2*max_exp-1, suffix);
+      buf.reset_to("(", (neg_infinity ? "-" : ""),
+                   "(__extension__ 0x1.0p", (2 * max_exp - 1), suffix, "))");
     } else
 #endif /* (BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && BUILTIN_... */
     {
-      (void)sprintf(buf, "(%s%s/0.0%s)", dividend, suffix, suffix);
+      buf.reset_to("(", dividend, suffix, "/", "0.0", suffix, ")");
     }  /* if */
-    str = buf;
     suffix = "";
   }  /* if */
   if (suffix[0] == '\0') {
-    octl->output_str(str, octl);
+    octl->output_str(buf.as_temp_characters(), octl);
   } else {
-    output_partial_token_str(str, octl);
+    output_partial_token_str(buf.as_temp_characters(), octl);
     output_partial_token_str(suffix, octl);
   }  /* if */
 }  /* form_float_constant */

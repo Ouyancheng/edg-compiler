@@ -47,12 +47,9 @@ BEGIN_EDG_NAMESPACE
 #define PCH_ID_STRING_LENGTH 128
 			/* Maximum length of the PCH id string. */
 
-static char	pch_id_string[PCH_ID_STRING_LENGTH];
-			/* Buffer used to store the PCH id string. */
-
-static sizeof_t	pch_id_string_length;
-			/* The actual length of the PCH id string (including
-                           the trailing null character). */
+static Small_string<PCH_ID_STRING_LENGTH>
+		pch_id_string;
+			/* The PCH id string. */
 
 static a_pch_event_ptr
 		pch_event_list_head;
@@ -438,15 +435,13 @@ Create the string that is used to identify a flag as a precompiled header
 associated with this compiler version.
 */
 {
-  a_const_char	*format_string = "EDG C/C++ version %s (%s %s)\n";
-  check_assertion_str2((sizeof_t)(strlen(format_string) +
-                       strlen(VERSION_NUMBER) +
-                       strlen(build_date) +
-                       strlen(build_time)) <= (sizeof_t)(PCH_ID_STRING_LENGTH),
-                       "initialize_pch_id_string:", "PCH ID string too long");
-  sprintf(pch_id_string, format_string, VERSION_NUMBER, build_date,
-          build_time);
-  pch_id_string_length = strlen(pch_id_string) + 1;
+  pch_id_string.reset_to("EDG C/C++ version ", VERSION_NUMBER,
+                         " (", build_date, " ", build_time, ")\n");
+
+  check_assertion_str2((size_t_arg(pch_id_string.length()) <
+                        size_t_arg(PCH_ID_STRING_LENGTH)),
+                       "initialize_pch_id_string:",
+                       "PCH ID string too long");
 }  /* initialize_pch_id_string */
 
 
@@ -1547,7 +1542,8 @@ current point.
 #endif /* DEBUG */
   /* Write the string that identifies this file as a precompiled header
      file. */
-  fwrite_with_check(pch_id_string, pch_id_string_length, f_pch_output);
+  fwrite_with_check(pch_id_string.as_temp_characters(),
+                    pch_id_string.length(), f_pch_output);
   /* Write a FALSE to the file, this will later be changed to TRUE after
      the file has been completely written.  This is done to prevent a
      partially written PCH file from being used. */
@@ -1616,15 +1612,17 @@ write out the precompiled header file.
     db_cannot_generate_reason("cannot_create_pch_file is set");
 #if !USE_MMAP_FOR_MEMORY_REGIONS
     if (exhausted_preallocated_memory) {
-      char	size_string[20];
-      sizeof_t	size_needed;
       /* Compute the amount of preallocated memory needed in K (1024) byte
          units. */
-      size_needed = HOST_ALLOCATION_INCREMENT * total_mem_blocks_allocated;
+      sizeof_t size_needed = (HOST_ALLOCATION_INCREMENT *
+                              total_mem_blocks_allocated);
+
       size_needed = (size_needed / 1024) + 1;
+
       /* Convert the size needed to a string. */
-      (void)sprintf(size_string, "%luK", (unsigned long)size_needed);
-      str_warning(ec_not_enough_preallocated_memory, size_string);
+      a_number_buffer size_string(size_needed, "K");
+      str_warning(ec_not_enough_preallocated_memory,
+                  size_string.as_temp_characters());
     } else if (large_mem_block_needed) {
       pos_warning(ec_program_entity_too_large_for_pch,
                      &large_mem_block_error_pos);
@@ -1726,13 +1724,15 @@ written.
   /* We don't use fread_with_check here because we want to handle
      read errors more gracefully.  After all, we don't yet know
      that is actually a PCH written by this compiler. */
-  ensure_pch_buffer_space(pch_id_string_length);
-  if (!fread_with_status(pch_buffer, size_t_arg(pch_id_string_length),
+  ensure_pch_buffer_space(pch_id_string.length() + 1);
+  if (!fread_with_status(pch_buffer, size_t_arg(pch_id_string.length()),
                          f_pch_input)) {
     /* The read failed -- the file must contain something unexpected. */
   } else {
-    /* The read succeeded, see if the ID string matches. */
-    if (strncmp(pch_buffer, pch_id_string, pch_id_string_length) == 0) {
+    /* The read succeeded, ensure the read string is null terminated, then
+       check to see if the ID string matches. */
+    pch_buffer[pch_id_string.length()] = '\0';
+    if (pch_id_string == pch_buffer) {
       match = TRUE;
     }  /* if */
   }  /* if */

@@ -7188,13 +7188,13 @@ can easily access them.
   a_statement_ptr return_stmt;
   a_storage_class storage_class;
 #if ONE_INSTANTIATION_PER_OBJECT
-  char            buffer[50];
+  a_number_buffer instant_buffer;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-  char            buffer2[50];
+  a_number_buffer gnu_init_buffer;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 #if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
-  char            buffer3[50];
+  a_number_buffer seperate_rt_buffer;
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
 
   if (do_thread_local) {
@@ -7214,13 +7214,14 @@ can easily access them.
     if (needed_bit_number != 0) {
       /* Add a suffix to distinguish initialization routines for
          specific instantiations. */
-      (void)sprintf(buffer, "__%lu", needed_bit_number);
+      instant_buffer.reset_to("__", needed_bit_number);
       prefix = name;
       prefix_len = strlen(prefix);
-      alloc_length = prefix_len + strlen(buffer) + 1;
+      alloc_length = prefix_len + instant_buffer.length() + 1;
       name = alloc_lowered_name_string(alloc_length);
       (void)memcpy(name, prefix, size_t_arg(prefix_len));
-      (void)strcpy(&name[prefix_len], buffer);
+      instant_buffer.write_to_buffer(&name[prefix_len],
+                                     alloc_length - prefix_len);
     }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #else /* !(USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES || !...) */
@@ -7238,7 +7239,6 @@ can easily access them.
     /* Combine the prefix and an identifier for the current module to make
        a name that is likely to be unique. */
     a_const_char *module_id;
-    char         *end;
     storage_class = (a_storage_class)sc_unspecified;
     module_id = get_module_id();
     check_assertion(module_id != NULL);
@@ -7248,47 +7248,49 @@ can easily access them.
     if (needed_bit_number != 0) {
       /* Add a suffix to distinguish initialization routines for
          specific instantiations. */
-      (void)sprintf(buffer, "__%lu", needed_bit_number);
-      alloc_length += strlen(buffer);
+      instant_buffer.reset_to("__", needed_bit_number);
+      alloc_length += instant_buffer.length();
     }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
     if (init_priority != 0) {
       /* Add a suffix to distinguish initialization routines for
          specific init_priority values. */
-      (void)sprintf(buffer2, "__prio%d", (int)init_priority);
-      alloc_length += strlen(buffer2);
+      gnu_init_buffer.reset_to("__prio", init_priority);
+      alloc_length += gnu_init_buffer.length();
     }  /* if */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 #if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
     if (unique_id != 0) {
       /* Add a suffix to distinguish initialization routines for
          specific init_priority values. */
-      (void)sprintf(buffer3, "__%lu", unique_id);
-      alloc_length += strlen(buffer3);
+      seperate_rt_buffer.reset_to("__", unique_id);
+      alloc_length += seperate_rt_buffer.length();
     }  /* if */
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
     name = alloc_lowered_name_string(alloc_length);
     (void)memcpy(name, prefix, size_t_arg(prefix_len));
-    end = name + prefix_len;
+
+    char *start = name;
+    char *end = start + prefix_len;
     (void)strcpy(end, module_id);
     end += strlen(module_id);
 #if ONE_INSTANTIATION_PER_OBJECT
     if (needed_bit_number != 0) {
-      (void)strcpy(end, buffer); /*lint !e645*/
-      end += strlen(buffer);
+      instant_buffer.write_to_buffer(end, alloc_length - (end - start));
+      end += instant_buffer.length();
     }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
     if (init_priority != 0) {
-      (void)strcpy(end, buffer2); /*lint !e645*/
-      end += strlen(buffer2);
+      gnu_init_buffer.write_to_buffer(end, alloc_length - (end - start));
+      end += gnu_init_buffer.length();
     }  /* if */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 #if SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS
     if (unique_id != 0) {
-      (void)strcpy(end, buffer3); /*lint !e645*/
-      end += strlen(buffer3);
+      seperate_rt_buffer.write_to_buffer(end, alloc_length - (end - start));
+      end += seperate_rt_buffer.length();
     }  /* if */
 #endif /* SEPARATE_ROUTINES_FOR_FILE_SCOPE_DYNAMIC_INITS */
   }  /* if */

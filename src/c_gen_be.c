@@ -1611,13 +1611,13 @@ Print the name of the indicated variable.
     uint32_t len = (uint32_t)strlen(variable->source_corresp.name) + 9 +
                              strlen(module_id);
 #if ONE_INSTANTIATION_PER_OBJECT
-    char buffer[50];
+    Small_string<50> buffer;
     if (needed_flag_bit_number != 0) {
       /* Add a suffix identifying the instantiation number to make this
          name distinct from the same static in another instantiation
          object file. */
-      (void)sprintf(buffer, "_%lu", needed_flag_bit_number);
-      len += strlen(buffer);
+      buffer.reset_to("_", needed_flag_bit_number);
+      len += buffer.length();
     }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
     
@@ -1631,7 +1631,7 @@ Print the name of the indicated variable.
     m_write_ch('_');
     m_write_str(module_id);
 #if ONE_INSTANTIATION_PER_OBJECT
-    if (needed_flag_bit_number != 0) write_str(buffer);
+    if (needed_flag_bit_number != 0) write_str(buffer.as_temp_characters());
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #endif /* !C_GEN_BE_GENERATES_ANSI_C */
   } else if (variable->is_pack_element) {
@@ -4006,13 +4006,14 @@ be NULL if promoting a type out of a prototype scope that is not associated
 with a routine.
 */
 {
-  sizeof_t     mangled_name_length, alloc_length, name_length;
-  sizeof_t     routine_name_length;
-  char         *mangled_name, *store_at;
-  a_const_char *routine_name = NULL;
-  char         buffer[50];
+  sizeof_t         mangled_name_length, alloc_length, name_length;
+  sizeof_t         routine_name_length;
+  char             *mangled_name, *store_at;
+  a_const_char     *routine_name = NULL;
+  Small_string<50> buffer;
 #if IA64_ABI
-  char         buffer2[50], buffer0[50];
+  Small_string<50> buffer0;
+  Small_string<50> buffer2;
 #endif /* IA64_ABI */
 
   /* Leave the name alone if the type is unnamed or if the name has
@@ -4029,9 +4030,9 @@ with a routine.
     /* Cfront-like ABI: The encoding is the original name, two
        underscores, the mangled name of the routine, and "__Lnn" where
        "nn" is the scope number. */
-    (void)sprintf(buffer, "__L%lu", (unsigned long)(long)scope_number);
+    buffer.reset_to("__L", scope_number);
     mangled_name_length = name_length + 2 + routine_name_length +
-                          strlen(buffer);
+                          buffer.length();
 #else /* IA64_ABI */
     /* IA-64 ABI encoding:
          _Z Z function-mangled-name E name-with-length _ discriminator
@@ -4042,7 +4043,7 @@ with a routine.
        added at the front of the routine name.  buffer will contain the
        "E" and the length for the entity name.  buffer2 will contain the
        "_" and the discriminator number. */
-    (void)strcpy(buffer0, "_ZZ");
+    buffer0.reset_to("_ZZ");
     if (routine_name == NULL) {
       /* For an unnamed routine, we put out no name.  That doesn't produce
          a valid mangled name but it may be the best we can do. */
@@ -4054,14 +4055,14 @@ with a routine.
     } else {
       /* Unmangled routine name (e.g., for an extern "C" routine).
          Add the length of the name as a prefix. */
-      (void)sprintf(buffer, "%lu", (unsigned long)routine_name_length);
-      (void)strcat(buffer0, buffer);
+      buffer.reset_to(routine_name_length);
+      buffer0.append(buffer);
     }  /* if */
-    (void)sprintf(buffer, "E%lu", (unsigned long)name_length);
-    (void)sprintf(buffer2, "_%lu", (unsigned long)(unsigned)scope_number);
-    mangled_name_length = strlen(buffer0) +
-                          routine_name_length + strlen(buffer) +
-                          name_length + strlen(buffer2);
+    buffer.append("E", name_length);
+    buffer2.reset_to("_", scope_number);
+    mangled_name_length = buffer0.length() +
+                          routine_name_length + buffer.length() +
+                          name_length + buffer2.length();
 #endif /* !IA64_ABI */
     /* Allocate space for the mangled name and build it. */
     alloc_length = mangled_name_length + 1;
@@ -4077,19 +4078,21 @@ with a routine.
       (void)strcpy(store_at, routine_name);
       store_at += routine_name_length;
     }  /* if */
-    (void)strcpy(store_at, buffer);
+    (void)strcpy(store_at, buffer.as_temp_characters());
 #else /* IA64_ABI */
-    (void)strcpy(mangled_name, buffer0);
-    store_at = mangled_name + strlen(buffer0);
+    (void)strcpy(mangled_name, buffer0.as_temp_characters());
+    store_at = mangled_name + buffer0.length();
     if (routine_name != NULL) {
       (void)strcpy(store_at, routine_name);
       store_at += routine_name_length;
     }  /* if */
-    (void)strcpy(store_at, buffer);  /* E plus name length. */
-    store_at += strlen(buffer);
+    /* E plus name length. */
+    (void)strcpy(store_at, buffer.as_temp_characters());
+    store_at += buffer.length();
     (void)strcpy(store_at, scp->name);
     store_at += name_length;
-    (void)strcpy(store_at, buffer2);  /* _ plus scope number. */
+    /* _ plus scope number. */
+    (void)strcpy(store_at, buffer2.as_temp_characters());
 #endif /* !IA64_ABI */
     /* Put the mangled name into the source correspondence entry. */
     /* The old name is just thrown away. */
@@ -10588,11 +10591,11 @@ needed_flag_bit_number == 1).
 
 #if ONE_INSTANTIATION_PER_OBJECT
   if (needed_flag_bit_number > 1) {
-    char buffer[50];
-    (void)sprintf(buffer, "__%lu", needed_flag_bit_number);
-    result = alloc_il_for_c_gen_be(strlen(name) + strlen(buffer) + 1);
+    Small_string<50> buffer("__", needed_flag_bit_number);
+
+    result = alloc_il_for_c_gen_be(strlen(name) + buffer.length() + 1);
     (void)memcpy(result, name, strlen(name));
-    (void)strcpy(&result[strlen(name)], buffer);
+    (void)strcpy(&result[strlen(name)], buffer.as_temp_characters());
   } else
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
   {
@@ -11338,11 +11341,11 @@ C compiler).
   sizeof_t                 alloc_length;
   unsigned long            init_priority = 0;
 #if ONE_INSTANTIATION_PER_OBJECT
-  char                     buffer[50];
+  Small_string<50>         buffer;
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   a_gnu_init_priority      last_priority = 0;
-  char                     buffer2[50];
+  Small_string<50>         buffer2;
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
 
   for (rlep = il_header.file_scope_dynamic_init_routines;
@@ -11355,8 +11358,8 @@ C compiler).
       if (emit_routine_in_slice(rlep->routine)) {
         /* Add a suffix to distinguish initialization routines for
            specific instantiations. */
-        (void)sprintf(buffer, "__%lu", needed_flag_bit_number);
-        alloc_length += strlen(buffer);
+        buffer.reset_to("__", needed_flag_bit_number);
+        alloc_length += buffer.length();
       } else {
         skip = TRUE;
       }  /* if */
@@ -11374,9 +11377,8 @@ C compiler).
         header_written = FALSE;
         if (rlep->routine->init_priority != 0) {
           /* Add a priority indicator to the routine name. */
-          (void)sprintf(buffer2, "__prio%d",
-                                 (int)rlep->routine->init_priority);
-          alloc_length += strlen(buffer2);
+          buffer2.reset_to("__prio", rlep->routine->init_priority);
+          alloc_length += buffer2.length();
         }  /* if */
         last_priority = rlep->routine->init_priority;
         init_priority = rlep->routine->init_priority;
@@ -11393,10 +11395,14 @@ C compiler).
         (void)strcpy(name, C_GEN_BE_COALESCE_INIT_ROUTINE_NAME_PREFIX);
         (void)strcat(name, module_init_id);
 #if ONE_INSTANTIATION_PER_OBJECT
-        if (needed_flag_bit_number != 0) (void)strcat(name, buffer);
+        if (needed_flag_bit_number != 0) {
+          (void)strcat(name, buffer.as_temp_characters());
+        }  /* if */
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
-        if (rlep->routine->init_priority != 0) (void)strcat(name, buffer2);
+        if (rlep->routine->init_priority != 0) {
+          (void)strcat(name, buffer2.as_temp_characters());
+        }  /* if */
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
         /* Generate the declaration of the routine. */
         end_output_line_if_begun();
@@ -11609,7 +11615,7 @@ name that must be changed to produce the canonical form of the
 name.
 */
 {
-  char *C_output_file_name;
+  a_const_char *C_output_file_name;
 #if IA64_ABI
   char orig_char = ' ';
 #endif /* IA64_ABI */

@@ -38470,9 +38470,8 @@ Write the instantiation file name for "name" to the template information
 file.
 */
 {
-  char			*file_name;
   /* Generate a file name based on the mangled name of the entity. */
-  file_name = generate_instantiation_output_file_name(name);
+  a_const_char *file_name = generate_instantiation_output_file_name(name);
   /* Write the generated file name to the template info file. */
   write_to_template_info_file(tilt_instantiation_file_name,
                               file_name_in_external_encoding(file_name),

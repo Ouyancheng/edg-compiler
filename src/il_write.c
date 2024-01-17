@@ -400,9 +400,9 @@ Write the initial information to the IL file, if there is one.
   if (f_il_output != NULL) {
     /* Write a string that identifies the file as an IL file.  The front
        end version number is inserted into the string. */
-    (void)fprintf(f_il_output, IL_FILE_MAGIC_STRING, IL_VERSION_NUMBER);
-    /* Write the null at the end of the magic string. */
-    putc('\0', f_il_output);
+    an_il_file_magic_string magic_string = current_il_magic_string();
+
+    print(magic_string, f_il_output, /*end=*/"");
     /* Leave space for the number of regions, the number of function definition
        entries, the offset to the file index, the offset to the file-scope
        region, and the il_header struct.  These will be filled in when the

@@ -388,9 +388,11 @@ As the braced-init-list must initialize something, the following expansion
 defines an array (unused and thus discarded by the optimizer), where each array
 element is initialized by a comma expression that evaluates the corresponding
 pack element and then has a constant zero-valued result.
+
+An additional 0u value is appended to gracefully handle empty packs.
 */
 #define PACK_EXPAND_VOID_EXPR(expr) \
-  { LOCAL_UNUSED unsigned _[] = { ( (expr), 0u)... }; }
+  { LOCAL_UNUSED unsigned _[] = { ( (expr), 0u)..., 0u }; }
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

@@ -54,7 +54,8 @@ value, a zero should be passed in.
 
 #if ONE_INSTANTIATION_PER_OBJECT
 
-char *generate_instantiation_output_file_name(a_const_char *mangled_name)
+a_const_char *generate_instantiation_output_file_name(
+                                                    a_const_char *mangled_name)
 /*
 Generate the name of an instantiation output file that is used in
 one instantiation per object mode.  A pointer to a static buffer
@@ -63,8 +64,9 @@ called again.
 */
 {
 #define MAX_INSTANTIATION_OUTPUT_FILE_LEN 31
-  static char	buffer[MAX_INSTANTIATION_OUTPUT_FILE_LEN+1];
-  int		max_len_without_suffix;
+  static Small_string<MAX_INSTANTIATION_OUTPUT_FILE_LEN+1>
+                buffer;
+  int           max_len_without_suffix;
 
   /* Determine the output file name.  Use the mangled name (or the beginning
      of it) plus an underscore plus the hexadecimal for the CRC-32 checksum
@@ -78,12 +80,13 @@ called again.
   max_len_without_suffix -= sizeof(OBJECT_FILE_SUFFIX);
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
   check_assertion(max_len_without_suffix > 0);
-  (void)strncpy(buffer, mangled_name, max_len_without_suffix); /*lint !e669*/
-  buffer[max_len_without_suffix] = '\0';
-  (void)sprintf(buffer+strlen(buffer), "_%08lx",
-                crc_32(mangled_name, (unsigned long)0));
+  buffer.reset_to(mangled_name);
+  buffer.truncate_to(max_len_without_suffix);
+
+  auto crc_value = crc_32(mangled_name, (unsigned long)0);
+  buffer.append("_", left_pad(8, '0', hex_view_of(crc_value)));
 #undef MAX_INSTANTIATION_OUTPUT_FILE_LEN
-  return buffer;
+  return buffer.as_temp_characters();
 }  /* generate_instantiation_output_file_name */
 
 #endif /* ONE_INSTANTIATION_PER_OBJECT */

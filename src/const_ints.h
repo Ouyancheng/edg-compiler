@@ -225,16 +225,16 @@ extern a_boolean is_max_value_for_integer_kind(a_constant      *con,
 
 extern int bits_required_to_represent_integer_constant(a_constant *cp);
 
-extern char *str_for_integer_value(an_integer_value *p_value,
-                                   a_boolean        is_signed,
-                                   a_boolean        non_arithmetic,
-                                   a_targ_size_t    size);
+extern a_number_buffer str_for_integer_value(an_integer_value *p_value,
+                                             a_boolean        is_signed,
+                                             a_boolean        non_arithmetic,
+                                             a_targ_size_t    size);
 
-extern char *str_for_integer_value(an_integer_value *value);
+extern a_number_buffer str_for_integer_value(an_integer_value *value);
 
-extern char *str_for_integer_constant(a_constant *cp);
+extern a_number_buffer str_for_integer_constant(a_constant *cp);
 
-extern char *decimal_str_for_integer_constant(a_constant *cp);
+extern a_number_buffer decimal_str_for_integer_constant(a_constant *cp);
 
 extern
 void conv_integer_value_to_float(an_integer_value		*int_value,
@@ -338,7 +338,7 @@ extern an_integer_kind int_kind_for_bit_size(unsigned int  number_of_bits,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED || IA64_ABI */
 
 #if DEBUG
-extern char* db_format_integer_value(an_integer_value  *value);
+extern a_number_buffer db_format_integer_value(an_integer_value  *value);
 
 extern void db_signed_integer_value(an_integer_value  *value);
 #endif /* DEBUG */

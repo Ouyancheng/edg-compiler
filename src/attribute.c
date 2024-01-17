@@ -1015,16 +1015,10 @@ in diagnostic messages that may be delayed).
   a_const_char *result = ap->name;
 
   if (ap->namespace_name != NULL) {
-    int ret;
-    static char buffer[MAX_ATTRIBUTE_NAME_LENGTH * 2 + 3];
-    check_assertion(strlen(ap->namespace_name) + strlen(ap->name) + 3 <=
-                    sizeof(buffer));
-    ret = sprintf(buffer, "%s::%s", ap->namespace_name, ap->name);
-    check_assertion(ret > 0);
-    result = (a_const_char*)copy_string_of_length_to_region(
-                                                       FRONT_END_REGION_NUMBER,
-                                                       buffer,
-                                                       (sizeof_t)(long)ret);
+    Small_string<MAX_ATTRIBUTE_NAME_LENGTH * 2 + 3>
+                buffer(ap->namespace_name, "::", ap->name);
+
+    result = buffer.to_allocated_storage(FE_allocator<char>());
   }  /* if */
   if (result == NULL) {
     /* The attribute has no name.  This routine is often used to display
@@ -1133,12 +1127,13 @@ and message.  Also indicate the name of the affected attribute.  This function
 is called through the macro check_attr_config.
 */
 {
-  char  attr_name[MAX_ATTRIBUTE_NAME_LENGTH+20];
-
   /* Create a parenthesized note, mentioning the attribute name, to be
      appended to the message. */
-  (void)sprintf(attr_name, "(for attribute %s)", attribute_display_name(ap));
-  assertion_failed(filename, line_number, function, msg, attr_name); 
+  Small_string<MAX_ATTRIBUTE_NAME_LENGTH + 20>
+                attr_name("(for attribute ", attribute_display_name(ap), ")");
+
+  assertion_failed(filename, line_number, function, msg,
+                   attr_name.as_temp_characters());
 }  /* abort_for_misconfigured_attribute */
 
 
@@ -2447,11 +2442,15 @@ that appeared in a previous "using" prefix.  Can return NULL on error.
         } else if (!is_ordinary_string_constant(&const_for_curr_token)) {
            pos_error(ec_wide_string_not_allowed, &pos_curr_token);
         } else {
+          a_string_view
+                const_str(const_for_curr_token.variant.string.value,
+                          const_for_curr_token.variant.string.length);
+          Small_string<MAX_ATTRIBUTE_NAME_LENGTH + 2>
+                name("\"", const_str, "\"");
+
           /* Create a name that includes the quotation characters. */
-          (*p_attribute)->name = alloc_il(
-                      (sizeof_t)const_for_curr_token.variant.string.length+2);
-          sprintf((char *)(*p_attribute)->name, "\"%s\"",
-                  const_for_curr_token.variant.string.value);
+          (*p_attribute)->name =
+                               name.to_allocated_storage(IL_allocator<char>());
         }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         (*p_attribute)->end_position = pos_curr_token;

@@ -71,8 +71,8 @@ void conv_float_to_fixed_point(a_constant_ptr		old_constant,
 			       an_error_code		*err_code,
 			       an_error_severity	*err_severity);
 
-extern char* fxp_to_string(a_fixed_point_type_descr  *fxp_descr,
-                           a_fixed_point_value       *value);
+extern a_number_buffer fxp_to_string(a_fixed_point_type_descr  *fxp_descr,
+                                     a_fixed_point_value       *value);
 
 extern
 void fxp_shift(a_constant		*constant,

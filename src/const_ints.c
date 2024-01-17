@@ -176,10 +176,10 @@ an error occurred during the conversion.
   if (*err) {
     /* Try again with larger precision by converting the integer to a
        character string then converting the string to a float value. */
-    char *str = str_for_integer_value(int_value, is_signed,
-                                      /*non_arithmetic=*/FALSE,
-                                      targ_sizeof_largest_integer);
-    fp_string_to_float(float_kind, str, float_value, err);
+    a_number_buffer str = str_for_integer_value(int_value, is_signed,
+                                                /*non_arithmetic=*/FALSE,
+                                                targ_sizeof_largest_integer);
+    fp_string_to_float(float_kind, str.as_temp_characters(), float_value, err);
   }  /* if */
 #endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 }  /* conv_integer_value_to_float */
@@ -1594,180 +1594,412 @@ The result is returned in the first operand (op_1 = op_1 % op_2).
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 }  /* remainder_integer_values */
 
+namespace {
 
-char *str_for_integer_value(an_integer_value *p_value,
-                            a_boolean        is_signed,
-                            a_boolean        non_arithmetic,
-                            a_targ_size_t    size)
 /*
-Return a pointer to the literal form of the integer value *p_value.
-is_signed indicates whether the value should be treated as signed.  A TRUE
-value for non_arithmetic indicates that the constant should be considered
-as a bit mask or the like instead of a number and thus should be
-represented as a hexadecimal literal.  size is the number of target bytes
-in the value's type.  The return value is a pointer to an internal static
-buffer.  If an arithmetic value is negative, it is preceded by a "-".
+A struct used for designating an IL value formatted as a hex.
+*/
+struct an_il_hex_integer {
+  an_integer_value
+                *value; /* The value to print as hex. */
+  a_targ_size_t size;   /* The number of target bytes in the value's type. */
+  an_il_hex_integer(an_integer_value *init_value, a_targ_size_t init_size)
+    : value(init_value), size(init_size)
+    {}
+};  /* an_il_hex_integer */
+
+/*
+A struct used for designating an IL signed integer value.
+*/
+struct an_il_signed_integer {
+  an_integer_value
+                *value; /* The value to print as hex. */
+  an_il_signed_integer(an_integer_value *init_value)
+    : value(init_value)
+    {}
+};  /* an_il_signed_integer */
+
+/*
+A struct used for designating an IL unsigned integer value.
+*/
+struct an_il_unsigned_integer {
+  an_integer_value
+                *value; /* The value to print as hex. */
+  an_il_unsigned_integer(an_integer_value *init_value)
+    : value(init_value)
+    {}
+};  /* an_il_unsigned_integer */
+
+}  /* namespace */
+
+namespace detail {
+
+/*
+A string formatter for an_il_hex_integer values.
+*/
+template<>
+struct String_formatter<an_il_hex_integer> {
+  static size_t size_hint_of(an_il_hex_integer value);
+  template<typename a_Dyn_array>
+  static inline void append_into(a_Dyn_array       &underlying_array,
+                                 an_il_hex_integer value,
+                                 size_t            size_hint);
+};  /* String_formatter */
+
+
+/*
+A string formatter for an_il_signed_integer values.
+*/
+template<>
+struct String_formatter<an_il_signed_integer> {
+  static inline size_t size_hint_of(an_il_signed_integer value);
+  template<typename a_Dyn_array>
+  static inline void append_into(a_Dyn_array          &underlying_array,
+                                 an_il_signed_integer value,
+                                 size_t               size_hint);
+};  /* String_formatter */
+
+
+/*
+A string formatter for an_il_unsigned_integer values.
+*/
+template<>
+struct String_formatter<an_il_unsigned_integer> {
+  static inline size_t size_hint_of(an_il_unsigned_integer value);
+  template<typename a_Dyn_array>
+  static inline void append_into(a_Dyn_array            &underlying_array,
+                                 an_il_unsigned_integer value,
+                                 size_t                 size_hint);
+};  /* String_formatter */
+
+
+size_t String_formatter<an_il_hex_integer>::size_hint_of(
+                                            ARG_UNUSED an_il_hex_integer value)
+/*
+Given a IL hex integer value, return the approximate character usage.
 */
 {
-  static char buffer[50];
-  char        *result = buffer;
-  int         num_hex_digits_in_repr = ((int)size * targ_char_bit) / 4;
-  int         num_hex_digits_printed = 0;
-
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
-  if (non_arithmetic && *p_value != 0) {
-    /* The constant is to be considered as a bit mask or the like, i.e.,
-       it was originally specified in hexadecimal or octal or it was folded
-       from bit-manipulation expressions.  Put it out in hexadecimal.  (A
-       plain 0 is considered to be an octal literal, but there is no need
-       to use hexadecimal for the value 0, regardless of how it was
-       originally specified.) */
-    num_hex_digits_printed = sprintf(buffer + 2,
-                                     PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE,
-                                     *p_value);
-    if (num_hex_digits_printed > num_hex_digits_in_repr) {
-      /* The hex string is longer than what is required to represent the
-         type of the integer, probably because it is a negative value and
-         thus padded with leading 'ff' bytes.  Advance the result pointer
-         to skip over the superfluous digits. */
-      /*lint -e{679}*/
-      result += num_hex_digits_printed - num_hex_digits_in_repr;
-    }  /* if */
-    /* Add the hexadecimal prefix. */
-    result[0] = '0';
-    result[1] = 'x';
-  } else {
-    if (is_signed) {
-      (void)signed_to_string_buf((a_host_large_integer)*p_value, buffer);
-    } else {
-      (void)unsigned_to_string_buf((a_host_large_unsigned)*p_value, buffer);
-    }  /* if */
-  }  /* if */
+  /* Approximate by delegating to the integer string formatter most closely
+     associated with the type backing an_integer_value. */
+  return 2 + String_formatter<an_integer_value>::size_hint_of(*value.value);
 #else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-  char        *ptr;
-  int         i;
+  return 3 + (4 * INT_VALUE_PARTS_PER_INTEGER_VALUE);
+#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+}  /* append_into */
 
-  if (non_arithmetic) {
-    /* Put out the value in hexadecimal. */
-    a_boolean nonzero_part_seen = FALSE;
-    /* The code below assumes four hex digits for each part. */
-    check_assertion(MAX_UINT_VALUE_PART == 0xffff);
-    for (i = 0; i < (int)INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
-      if (p_value->part[i] != 0 || nonzero_part_seen) {
-        if (!nonzero_part_seen) {
-          /* This is the first nonzero part, so do not pad with leading
-             zeroes. */
-          num_hex_digits_printed = sprintf(buffer + 2, "%x",
-                                           p_value->part[i]);
-          nonzero_part_seen = TRUE;
-        } else {
-          /* A previous nonzero part was seen, so we must pad with leading
-             zeroes to preserve the correct value. */
-          num_hex_digits_printed += sprintf(buffer+2 + num_hex_digits_printed,
-                                            "%.4x", p_value->part[i]);
-        }  /* if */
-      }  /* if */
-    }  /* for */
-    if (!nonzero_part_seen) {
-      /* All the parts were zero, so there's no need for a hexadecimal
-         literal; a simple "0" will do. */
-      result[0] = '0';
-      result[1] = '\0';
-    } else {
-      /* Make sure the resulting string isn't longer than what is
-         required to represent the type of the integer. */
-      if (num_hex_digits_printed > num_hex_digits_in_repr) {
-        /* Advance the result pointer to skip over the superfluous digits. */
-        result += num_hex_digits_printed - num_hex_digits_in_repr;
-      }  /* if */
-      /* Add the hexadecimal prefix. */
-      result[0] = '0';
-      result[1] = 'x';
-    }  /* if */
-  } else {
-    /* Put out the value in decimal. */
-    static a_boolean	initialized = FALSE;
-    static long		max_power_of_10;
-    static int		digits_in_max_power_of_10;
-    long			parts[INT_VALUE_PARTS_PER_INTEGER_VALUE];
-    an_integer_value	value;
-    an_integer_value	remainder;
-    an_integer_value	iv_max_power_of_10;
-    a_boolean		negative = FALSE, err;
-    /* Compute the maximum power of 10 that can be represented in a long.
-       Compute the number of digits in the maximum power of 10.
-       We will use sprintf to output groups of digits of this size. */
-    if (!initialized) {
-      initialized = TRUE;
-      max_power_of_10 = 10;
-      digits_in_max_power_of_10 = 1;
-      while (LONG_MAX / max_power_of_10 > 10) {
-        max_power_of_10 *= 10;
-        digits_in_max_power_of_10++;
-      }  /* while */
-    }  /* if */
-    value = *p_value;
-    /* If the number is negative, save the sign and convert the number
-       to be positive. */
-    if (sign_of(value) && is_signed) {
-      negative = TRUE;
-      negate_integer_value(&value, &err);
-    }  /* if */
-    /* Divide the number into pieces that are in the range of 0 to
-       max_power_of_10.  These are stored in the parts array. */
-    set_integer_value(&iv_max_power_of_10,
-                      (a_host_large_integer)max_power_of_10);
-    for (i = INT_VALUE_PARTS_PER_INTEGER_VALUE - 1;; --i) {
-      /* If the remaining value is less than the maximum power of
-         ten, then convert it to a long and we are done.  Otherwise
-         divide the value by the maximum power of 10, store the
-         remainder and continue looping. */
-      a_host_large_integer	tmp_result;
-      if (cmp_integer_values(&value, /*op_1_signed=*/FALSE,
-                             &iv_max_power_of_10,
-                             /*op_2_signed=*/FALSE) <= 0) {
-        conv_integer_value_to_host_large_integer(&value, /*is_signed=*/FALSE,
-                                                 &tmp_result, &err);
-        parts[i] = (long)tmp_result;
-        break;
+
+template<typename a_Dyn_array>
+void String_formatter<an_il_hex_integer>::append_into(
+                                           a_Dyn_array       &underlying_array,
+                                           an_il_hex_integer value,
+                                           size_t            size_hint)
+/*
+Append the characters representing in the given IL integer value in hex format
+into the underlying array.  size_hint is an overestimate (i.e., maximum) number
+of characters this value might use (plus a temporary null character -- for use
+by snprintf_impl).
+*/
+{
+  size_t num_hex_digits_in_repr = (value.size * targ_char_bit) / 4;
+
+  underlying_array.push_back('0');
+  underlying_array.push_back('x');
+  /* Remove two elements from the size hint to account for the "0x". */
+  size_hint -= 2;
+
+  size_t size_before_parts = underlying_array.length();
+  size_t num_hex_digits_printed = 0;
+  /* Create space in the underlying array to write the arguments. */
+  underlying_array.resize(size_before_parts + size_hint, '\0');
+
+  auto buff_ptr = &underlying_array[size_before_parts];
+#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+  /* Write the formatted string. */
+  num_hex_digits_printed = snprintf_impl(buff_ptr, size_hint,
+                                         PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE,
+                                         value.value);
+  check_assertion(num_hex_digits_printed > 0);
+#else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+  /* The code below assumes four hex digits for each part. */
+  check_assertion(MAX_UINT_VALUE_PART == 0xffff);
+
+  /* Append the parts. */
+  for (size_t i = 0; i < size_t_arg(INT_VALUE_PARTS_PER_INTEGER_VALUE); ++i) {
+    const an_int_value_part &part = value.value->part[i];
+
+    if (part != 0 || num_hex_digits_printed != 0) {
+      int chars_written;
+
+      if (num_hex_digits_printed == 0) {
+        /* This is the first nonzero part, so do not pad with leading
+           zeroes. */
+        chars_written = snprintf_impl(buff_ptr, size_hint, "%x", part);
+
       } else {
-        divide_and_remainder_integer_values(&value, &iv_max_power_of_10,
-                                            &value, &remainder,
-                                            /*is_signed=*/FALSE, &err);
-        conv_integer_value_to_host_large_integer(&remainder,
-                                                 /*is_signed=*/FALSE,
-                                                 &tmp_result, &err);
-        parts[i] = (long)tmp_result;
+        /* A previous nonzero part was seen, so we must pad with leading
+           zeroes to preserve the correct value. */
+        chars_written = snprintf_impl(buff_ptr + num_hex_digits_printed,
+                                      size_hint - num_hex_digits_printed,
+                                      "%.4x", part);
       }  /* if */
-    }  /* for */
-    /* Stringize the first part. The first part includes the sign and is
-       not padded with zeros. */
-    ptr = buffer;
-    if (negative) {
-      *ptr++ = '-';
+      /* If this assertion fails, there was an error writing the string. */
+      check_assertion(chars_written > 0);
+      num_hex_digits_printed += chars_written;
     }  /* if */
-    ptr += unsigned_to_string_buf((a_host_large_unsigned)parts[i], ptr);
-    for (++i ; i < (int)INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
-      /* Stringize subsequent parts.  These do not include the sign and
-         are padded on the left with zeros.  (Since these are fixed-length
-         parts, we can generate them right-to-left.) */
-      a_host_large_unsigned  p = (a_host_large_unsigned)parts[i];
-      int                    k;
-      for (k = digits_in_max_power_of_10; k != 0;) {
-        --k;
-        ptr[k] = '0'+p%10;
-        p = p/10;
-      }  /* for */
-      ptr = ptr+digits_in_max_power_of_10;
-    }  /* for */
-    *ptr = '\0';
+  }  /* for */
+  if (num_hex_digits_printed == 0) {
+    /* Nothing was seen, the result is 0x0. */
+    buff_ptr[0] = '0';
+    num_hex_digits_printed += 1;
   }  /* if */
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+
+  size_t digits_skipped = 0;
+  if (num_hex_digits_printed > num_hex_digits_in_repr) {
+    /* The hex string is longer than what is required to represent the type of
+       the integer, probably because it is a negative value and thus padded
+       with leading 'ff' bytes.  Advance the result pointer to skip over the
+       superfluous digits. */
+    digits_skipped = num_hex_digits_printed - num_hex_digits_in_repr;
+    underlying_array.remove_many(size_before_parts, digits_skipped);
+  }  /* if */
+
+  /* Remove any extra characters (including the terminating null character
+     added by snprintf_impl). */
+  size_t final_size = (size_before_parts + num_hex_digits_printed -
+                       digits_skipped);
+  underlying_array.resize(final_size, '\0');
+}  /* append_into */
+
+
+size_t String_formatter<an_il_signed_integer>::size_hint_of(
+                                                    an_il_signed_integer value)
+/*
+Given a IL signed integer value, return the approximate character usage.
+*/
+{
+#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+  return String_formatter<a_host_large_integer>::size_hint_of(*value.value);
+#else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+  /* Approximate using the maximum digits per part times the number of parts
+     composing the larger number. */
+  size_t result = (max_integral_digits<a_host_large_integer>() *
+                   INT_VALUE_PARTS_PER_INTEGER_VALUE);
+
+  if (sign_of(*value.value)) {
+    ++result;
+  }  /* if */
+  return result;
+#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+}  /* append_into */
+
+
+template<typename a_Dyn_array>
+void String_formatter<an_il_signed_integer>::append_into(
+                                        a_Dyn_array          &underlying_array,
+                                        an_il_signed_integer value,
+                                        ARG_UNUSED size_t    size_hint)
+/*
+Append the characters representing in the given IL signed integer value into
+the underlying array.  size_hint is the previously computed size hint.
+*/
+{
+#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+  String_formatter<a_host_large_integer>::append_into(
+                                            underlying_array,
+                                            (a_host_large_integer)*value.value,
+                                            size_hint);
+#else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+  /* Put out the value in decimal. */
+  an_integer_value value_copy = *value.value;
+
+  /* If the number is negative, save the sign and convert the number
+     to be positive. */
+  if (sign_of(value_copy)) {
+    a_boolean err;
+
+    underlying_array.push_back('-');
+    negate_integer_value(&value_copy, &err);
+    /* If this assertion fails, this algorithm is broken and needs revised. */
+    check_assertion(!err);
+  }  /* if */
+
+  /* Delegate to the unsigned integer formatter. */
+  an_il_unsigned_integer unsigned_int(&value_copy);
+  String_formatter<an_il_unsigned_integer>::append_into(underlying_array,
+                                                        unsigned_int,
+                                                        size_hint);
+#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+}  /* append_into */
+
+
+size_t String_formatter<an_il_unsigned_integer>::size_hint_of(
+                                                  an_il_unsigned_integer value)
+/*
+Given a IL signed integer value, return the approximate character usage.
+*/
+{
+#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+  return String_formatter<a_host_large_unsigned>::size_hint_of(
+                                          (a_host_large_unsigned)*value.value);
+#else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+  /* Approximate using the maximum digits per part times the number of parts
+     composing the larger number. */
+  return (max_integral_digits<a_host_large_integer>() *
+          INT_VALUE_PARTS_PER_INTEGER_VALUE);
+#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+}  /* append_into */
+
+
+static constexpr a_host_large_integer calculate_max_power_of_10(size_t digits)
+/*
+Given a number of digits, return the maximum power of 10 that can be
+represented.
+*/
+{
+  return (digits == 0 ? 0 : (digits == 1 ? 1 :
+                             calculate_max_power_of_10(digits - 1) * 10));
+}  /* calculate_max_power_of_10 */
+
+
+template<typename a_Dyn_array>
+void String_formatter<an_il_unsigned_integer>::append_into(
+                                      a_Dyn_array            &underlying_array,
+                                      an_il_unsigned_integer value,
+                                      ARG_UNUSED size_t      size_hint)
+/*
+Append the characters representing in the given IL unsigned integer value in
+into the underlying array.  size_hint is the previously computed size hint.
+*/
+{
+#if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
+  String_formatter<a_host_large_unsigned>::append_into(
+                                           underlying_array,
+                                           (a_host_large_unsigned)*value.value,
+                                           size_hint);
+#else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+  constexpr size_t
+                digits_in_max_power_of_10 =
+                                integral_digits(
+                                    max_integral_value<a_host_large_integer>(),
+                                    size_t_arg(10));
+  constexpr a_host_large_integer
+                max_power_of_10 =
+                          calculate_max_power_of_10(digits_in_max_power_of_10);
+  a_host_large_integer
+                parts[INT_VALUE_PARTS_PER_INTEGER_VALUE];
+  an_integer_value
+                value_copy = *value.value;
+  an_integer_value
+                iv_max_power_of_10;
+
+  /* Divide the number into pieces that are in the range of 0 to
+     max_power_of_10.  These are stored in the parts array. */
+  set_integer_value(&iv_max_power_of_10, max_power_of_10);
+
+  size_t i = INT_VALUE_PARTS_PER_INTEGER_VALUE - 1;
+  while (TRUE) {
+    /* If the remaining value is less than the maximum power of
+       ten, then convert it to a long and we are done.  Otherwise
+       divide the value by the maximum power of 10, store the
+       remainder and continue looping. */
+    a_host_large_integer tmp_result;
+
+    if (cmp_integer_values(&value_copy, /*op_1_signed=*/FALSE,
+                           &iv_max_power_of_10,
+                           /*op_2_signed=*/FALSE) <= 0) {
+      a_boolean err;
+
+      conv_integer_value_to_host_large_integer(&value_copy,
+                                               /*is_signed=*/FALSE,
+                                               &tmp_result, &err);
+      /* If this assertion fails, this algorithm is broken and needs
+         revised. */
+      check_assertion(!err);
+      parts[i] = tmp_result;
+      break;
+    } else {
+      an_integer_value remainder;
+      a_boolean        err;
+
+      divide_and_remainder_integer_values(&value_copy, &iv_max_power_of_10,
+                                          &value_copy, &remainder,
+                                          /*is_signed=*/FALSE, &err);
+      /* If this assertion fails, this algorithm is broken and needs
+         revised. */
+      check_assertion(!err);
+      conv_integer_value_to_host_large_integer(&remainder,
+                                               /*is_signed=*/FALSE,
+                                               &tmp_result, &err);
+      /* If this assertion fails, this algorithm is broken and needs
+         revised. */
+      check_assertion(!err);
+      parts[i] = tmp_result;
+    }  /* if */
+    --i;
+  }  /* for */
+
+  /* Stringize the first part. The first part includes is not padded with
+     zeros. */
+  String_formatter<a_host_large_integer>::append_into(underlying_array,
+                                                      parts[i],
+                                                      size_hint);
+  for (++i ; i < size_t_arg(INT_VALUE_PARTS_PER_INTEGER_VALUE); ++i) {
+    /* Stringize subsequent parts.  These do not include the sign and
+       are padded on the left with zeros.  (Since these are fixed-length
+       parts, we can generate them right-to-left.) */
+    size_t relative_start = underlying_array.length();
+    size_t num_chars_in_part = digits_in_max_power_of_10 - 1;
+    size_t new_buffer_length = underlying_array.length() + num_chars_in_part;
+
+    /* Expand the buffer to hold the new characters. */
+    underlying_array.resize(new_buffer_length, '0');
+
+    a_host_large_integer p = parts[i];
+    for (size_t k = num_chars_in_part; k > 0;) {
+      underlying_array[relative_start + --k] = '0' + (p % 10);
+      p = p / 10;
+    }  /* for */
+  }  /* if */
+#endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
+}  /* append_into */
+
+}  /* detail */
+
+a_number_buffer str_for_integer_value(an_integer_value *p_value,
+                                      a_boolean        is_signed,
+                                      a_boolean        non_arithmetic,
+                                      a_targ_size_t    size)
+/*
+Return the literal form of the integer value *p_value as a string.  is_signed
+indicates whether the value should be treated as signed.  A TRUE value for
+non_arithmetic indicates that the constant should be considered as a bit mask
+or the like instead of a number and thus should be represented as a hexadecimal
+literal.  size is the number of target bytes in the value's type.  If an
+arithmetic value is negative, it is preceded by a "-".
+*/
+{
+  a_number_buffer result;
+
+  if (non_arithmetic) {
+    /* The constant is to be considered as a bit mask or the like, i.e., it was
+       originally specified in hexadecimal or octal or it was folded from
+       bit-manipulation expressions.  Put it out in hexadecimal. */
+    result.reset_to(an_il_hex_integer(p_value, size));
+  } else {
+    /* Put out the value in decimal. */
+    if (is_signed) {
+      result.reset_to(an_il_signed_integer(p_value));
+    } else {
+      result.reset_to(an_il_unsigned_integer(p_value));
+    }  /* if */
+  }  /* if */
   return result;
 }  /* str_for_integer_value */
 
 
-char *str_for_integer_value(an_integer_value *value)
+a_number_buffer str_for_integer_value(an_integer_value *value)
 /*
 Interface to str_for_integer_value for integer values whose interpretation is
 wholly self-contained.
@@ -1779,39 +2011,31 @@ wholly self-contained.
 }  /* str_for_integer_value */
 
 
-char *str_for_integer_constant(a_constant *cp)
+a_number_buffer str_for_integer_constant(a_constant *cp)
 /*
 Interface to str_for_integer_value that extracts the value, signedness,
 size, and whether the value should be considered as numeric or as a bit
-mask from the constant pointed to by cp.  The pointer returned is to an
-internal static buffer.
+mask from the constant pointed to by cp.
 */
 {
-  char	*result;
-
-  result = str_for_integer_value(&cp->variant.integer_value,
-                                 int_constant_is_signed(cp),
-                                 cp->non_arithmetic,
-                                 skip_typerefs(cp->type)->size);
-  return result;
+  return str_for_integer_value(&cp->variant.integer_value,
+                               int_constant_is_signed(cp),
+                               cp->non_arithmetic,
+                               skip_typerefs(cp->type)->size);
 }  /* str_for_integer_constant */
 
 
-char *decimal_str_for_integer_constant(a_constant *cp)
+a_number_buffer decimal_str_for_integer_constant(a_constant *cp)
 /*
 Interface to str_for_integer_value that extracts the value, signedness, and
 size from the constant pointed to by cp, forcing a decimal representation.
-The pointer returned is to an internal static buffer.
 */
 {
-  char	*result;
-
-  result = str_for_integer_value(&cp->variant.integer_value,
-                                 int_constant_is_signed(cp),
-                                 /*non_arithmetic=*/FALSE,
-                                 skip_typerefs(cp->type)->size);
-  return result;
-}  /* str_for_integer_constant */
+  return str_for_integer_value(&cp->variant.integer_value,
+                               int_constant_is_signed(cp),
+                               /*non_arithmetic=*/FALSE,
+                               skip_typerefs(cp->type)->size);
+}  /* decimal_str_for_integer_constant */
 
 #if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER || FIXED_POINT_ALLOWED
 
@@ -1959,35 +2183,25 @@ final null character).
   return l+1;
 }  /* f_unsigned_to_string_buf */
 
-
 #if DEBUG
-char* db_format_integer_value(an_integer_value  *value)
+
+a_number_buffer db_format_integer_value(an_integer_value  *value)
 /*
-Formats an integer value.  Returns a pointer to a local static
-buffer containing the formatted string.  The local buffer has 5
-elements to allow multiple calls to this routine to be used in
-a single printf command in the caller.
+Formats an integer value as hexadecimal.  Returns a pointer to a local static
+buffer containing the formatted string.
 */
 {
-  static int		bufpos = 0;
-  static char		buffer[5][64];
-  int			old_bufpos = bufpos;
+  a_number_buffer buffer;
 
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
-  buffer[bufpos][0] = '\0';
-  sprintf(&buffer[bufpos][0], PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE,
-          *value);
+  buffer.reset_to(hex_view_of(*value));
 #else /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-  int			i;
-  buffer[bufpos][0] = '\0';
-  sprintf(&buffer[bufpos][0], "0x");
-  for (i = 0; i < (int)INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
-    sprintf(&buffer[bufpos][strlen(&buffer[bufpos][0])], "%04x",
-            (unsigned int)(value->part[i]));
+  buffer.reset_to("0x");
+  for (int i = 0; i < (int)INT_VALUE_PARTS_PER_INTEGER_VALUE; ++i) {
+    buffer.append(hex_view_of((unsigned int)value->part[i]));
   }  /* for */
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-  if (++bufpos == 5) bufpos = 0;
-  return &buffer[old_bufpos][0];
+  return buffer;
 }  /* db_format_integer_value */
 
 

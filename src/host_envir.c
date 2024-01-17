@@ -1670,8 +1670,7 @@ Open a temporary text file, and return a pointer to its file block.  The
 file should be a binary file if binary_file is TRUE.
 */
 {
-#define TEMP_NAME_BUFFER_SIZE 150
-  char        buffer[TEMP_NAME_BUFFER_SIZE];
+  Small_string<150> buffer;
 #if EDG_WIN32 && UNICODE_SOURCE_ENABLED
   wchar_t     *wide_temp_dir;
 #endif /* EDG_WIN32 && UNICODE_SOURCE_ENABLED */
@@ -1719,33 +1718,31 @@ file should be a binary file if binary_file is TRUE.
   do {
     /* Put together the name dir + "/edg" + seed + "_" + process id.  See if
        that will fit in the buffer. */
-    if (dir_len + need_slash + 24 > TEMP_NAME_BUFFER_SIZE) {
-      str_catastrophe(ec_temp_file_dir_name_too_long, temp_dir);
-    }  /* if */
-    (void)sprintf(buffer, "%s%sedg%lu_%ld", temp_dir, 
-                  need_slash ? DIRECTORY_SEPARATOR_STRING : "", temp_seed++,
-                  (long)getpid());
+    buffer.append(temp_dir, need_slash ? DIRECTORY_SEPARATOR_STRING : "",
+                  temp_seed++, (long)getpid());
 #if DEBUG
     if (debug_level >= 4) {
-      fprintf(f_debug, "Opening temporary file %s\n", buffer);
+      fprintf(f_debug, "Opening temporary file %s\n",
+              buffer.as_temp_characters());
     }  /* if */
 #endif /* DEBUG */
     /* Check to see if the file exists already.  If so, go on to the next
        seed value. */
-    if (stat(buffer, &buf) == 0) {
+    if (stat(buffer.as_temp_characters(), &buf) == 0) {
       /* The file exists already. */
     } else {
       /* The file does not exist.  Try opening it. */
       char *mode = (char *)(binary_file ? FOPEN_MODE_FOR_BINARY_UPDATE
                                         : FOPEN_MODE_FOR_UPDATE);
       /* coverity[toctou] */
-      temp_file = fopen_interface(buffer, mode);
+      temp_file = fopen_interface(buffer.as_temp_characters(), mode);
       if (temp_file != NULL) goto have_file;
     }  /* if */
     /* Retry with incremented file names a certain number of times.  After
        that, give up (the problem may be that the directory name is bad). */
   } while (retry_count-- > 0);
-  output_file_open_error(/*bad_name=*/FALSE, ec_temporary, buffer,
+  output_file_open_error(/*bad_name=*/FALSE, ec_temporary,
+                         buffer.as_temp_characters(),
                          es_catastrophe);
 have_file:;
 #if __MICROSOFT_OS__
@@ -1755,8 +1752,7 @@ have_file:;
      into a back end called in the same program as the front end. */
   { a_temp_file_name_ptr new_entry =
                  (a_temp_file_name_ptr)alloc_general(sizeof(a_temp_file_name));
-    new_entry->name = strcpy(alloc_general((sizeof_t)(strlen(buffer)+1)),
-                             buffer);
+    new_entry->name = buffer.to_allocated_storage(General_allocator<char>());
     new_entry->file = temp_file;
     new_entry->next = open_temp_files;
     open_temp_files = new_entry;
@@ -1764,7 +1760,7 @@ have_file:;
 #else /* !__MICROSOFT_OS__ */
   /* Delete the file now, so it will disappear when closed. */
   /* coverity[toctou] */
-  (void)unlink(buffer);
+  (void)unlink(buffer.as_temp_characters());
 #endif /* __MICROSOFT_OS__ */
   return(temp_file);
 }  /* open_temp_file */
@@ -2781,10 +2777,10 @@ char *get_file_name_from_dir(a_boolean	  first,
 			     a_const_char *suffix,
 			     a_const_char *curr_dir_name)
 {
-  static intptr_t		handle;
-  static struct _tfinddata_t	fileinfo;
-  char				*result;
-  static char			pattern[10];
+  static intptr_t            handle;
+  static struct _tfinddata_t fileinfo;
+  char                       *result;
+  static Small_string<10>    pattern;
 
   if (dir_name != NULL) {
     chdir_with_check(dir_name);
@@ -2793,12 +2789,12 @@ char *get_file_name_from_dir(a_boolean	  first,
     /* Convert the suffix (e.g., ".xxx" into a pattern for use by the
        Windows-NT routine (e.g., "*.xxx"). */
     check_assertion(strlen(suffix) <= 8);
-    sprintf(pattern, "*%s", suffix);
+    pattern.reset_to("*", suffix);
     /* On the first call, use the _findfirst call that specifies which
        files are to be returned.  "handle" is saved in a static variable
        that is used on subsequent calls to get the remaining directory
        entries. */
-    handle = _tfindfirst(pattern, &fileinfo);
+    handle = _tfindfirst(pattern.as_temp_characters(), &fileinfo);
     if (handle < 0) {
       /* Directory could not be opened, or is empty. */
       result = NULL;
@@ -2840,9 +2836,9 @@ char *get_file_name_from_dir(a_boolean	first,
 See comment above.
 */
 {
-  static struct _find_t	fileinfo;
-  char			*result;
-  static char		pattern[10];
+  static struct _find_t   fileinfo;
+  char                    *result;
+  static Small_string<10> pattern;
 
   if (dir_name != NULL) {
     chdir_with_check(dir_name);
@@ -2851,7 +2847,7 @@ See comment above.
     /* Convert the suffix (e.g., ".xxx" into a pattern for use by the
        find-first routine (e.g., "*.xxx"). */
     check_assertion(strlen(suffix) <= 8);
-    sprintf(pattern, "*%s", suffix);
+    pattern.reset_to("*", suffix);
     /* On the first call, use the _dos_findfirst call that specifies which
        files are to be returned.  The _A_RDONLY attribute causes
        both normal and read-only files to be returned. */
@@ -3079,11 +3075,11 @@ defined in this translation unit (or NULL if no such definition exists).
 Set module_id to the string and return it.
 */
 {
-  a_const_char		*file_name;
-  sizeof_t		file_name_len;
-  a_const_char		*str1;
-  a_const_char		*str2;
-  char			crc_buf[9];
+  a_const_char    *file_name;
+  sizeof_t        file_name_len;
+  a_const_char    *str1;
+  a_const_char    *str2;
+  Small_string<9> crc_buf;
 
   /* Only generate the module id the first time that this routine is called
      for a given translation unit. */
@@ -3125,21 +3121,20 @@ Set module_id to the string and return it.
          longer than 8 characters, a CRC of the string is used in place
          of the string.  Non-identifier characters are replaced with
          underscores. */
-      char len_buf[50];
-      int  len1;
-      int  len2;
-      char *mod_id;     
-      len1 = (int)strlen(str1);
-      len2 = str2 == NULL ? 0 : (int)strlen(str2);
+      int len1 = (int)strlen(str1);
+      int len2 = str2 == NULL ? 0 : (int)strlen(str2);
+
       if ((len1 + len2 + (int)(len2 != 0)) > 8) {
         /* The string (not including the file name) is longer than 8
            characters.  Use a CRC of the string instead. */
-        unsigned long	crc;
-        crc = crc_32(str1, (unsigned long)0);
-        if (len2 != 0) crc = crc_32(str2, crc);
-        sprintf(crc_buf, "%08lx", crc);
-        str1 = crc_buf;
-        len1 = 8;
+        unsigned long crc = crc_32(str1, (unsigned long)0);
+
+        if (len2 != 0) {
+          crc = crc_32(str2, crc);
+        }  /* if */
+        crc_buf.reset_to(left_pad(8, '0', hex_view_of(crc)));
+        str1 = crc_buf.as_temp_characters();
+        len1 = crc_buf.length();
         str2 = NULL;
         len2 = 0;
       }  /* if */
@@ -3149,11 +3144,13 @@ Set module_id to the string and return it.
         if (end_of_dir != NULL) file_name = end_of_dir+1;
       }
       file_name_len = strlen(file_name);
+
       /* The file name is preceded by its length enclosed in underscores. */
-      (void)sprintf(len_buf, "_%lu_", (unsigned long)file_name_len);
-      mod_id = alloc_general(strlen(len_buf) + file_name_len + 1 +
-                                len1 + len2 + (int)(len2 != 0) + 1);
-      (void)strcpy(mod_id, len_buf);
+      a_number_buffer
+                len_buf("_", file_name_len, "_");
+      char      *mod_id = alloc_general(len_buf.length() + file_name_len + 1 +
+                                        len1 + len2 + (int)(len2 != 0) + 1);
+      (void)strcpy(mod_id, len_buf.as_temp_characters());
       (void)strcat(mod_id, file_name);
       (void)strcat(mod_id, "_");
       (void)strcat(mod_id, str1);
@@ -5111,11 +5108,12 @@ null-terminated.
       /* Put out newline as \n. */
       add_string_to_text_buffer(buffer, "\\n");
     } else {
-      char sprintf_buffer[20];
       /* Unprintable characters: put out as \ooo. */
-      (void)sprintf(sprintf_buffer, "\\%03o",
-                    (unsigned int)(ch&((1<<targ_host_string_char_bit)-1)));
-      add_string_to_text_buffer(buffer, sprintf_buffer);
+      unsigned int     encoded =
+                         (unsigned int)(ch&((1<<targ_host_string_char_bit)-1));
+      Small_string<20> char_buffer(left_pad(3, '0', octl_view_of(encoded)));
+
+      add_string_to_text_buffer(buffer, char_buffer.as_temp_characters());
     }  /* if */
   }  /* for */
 #if EDG_WIN32 && NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE

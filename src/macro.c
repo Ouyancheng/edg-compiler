@@ -1941,15 +1941,26 @@ have_space:
 }  /* expand_arg_raw_text */
 
 
+static inline size_t remaining_raw_text_space(a_macro_arg *macro_arg)
 /*
-Ensure that at least "needed" bytes of space remain in the raw_text of
-the given macro argument entry.  If not, expand raw_text by reallocating it.
+Ensure that at least "needed" bytes of space remain in the raw_text of the
+given macro argument entry.  If not, expand raw_text by reallocating it.
 */
-#define ensure_arg_raw_text_space(needed, map)                        \
-{ sizeof_t temp_needed = (needed);                                    \
-  if (temp_needed > (map->raw_alloc_len - map->raw_len)) {            \
-    expand_arg_raw_text(temp_needed, map);                            \
-  }  /* if */                                                         \
+{
+  return macro_arg->raw_alloc_len - macro_arg->raw_len;
+}  /* ensure_arg_raw_text_space */
+
+
+static inline void ensure_arg_raw_text_space(size_t      needed_space,
+                                             a_macro_arg *macro_arg)
+/*
+Ensure that at least "needed" bytes of space remain in the raw_text of the
+given macro argument entry.  If not, expand raw_text by reallocating it.
+*/
+{
+  if (needed_space > remaining_raw_text_space(macro_arg)) {
+    expand_arg_raw_text(needed_space, macro_arg);
+  }  /* if */
 }  /* ensure_arg_raw_text_space */
 
 
@@ -6053,8 +6064,11 @@ make_inert_macro:
         (void)conv_seq_to_file_and_line(curr_seq_number, &file_name,
                                         &full_name, &line_number,
                                         &at_end_of_source);
-        /* We assume we don't need to call ensure_arg_raw_text_space. */
-        (void)sprintf(repl_text, "%lu", (unsigned long)line_number);
+
+        a_number_buffer line_num_buff(line_number);
+        line_num_buff.write_to_buffer(
+                                  repl_text,
+                                  remaining_raw_text_space(special_macro_arg));
       } else if (macro_symbol == file_macro_symbol ||
                  macro_symbol == base_file_macro_symbol) {
         /* __FILE__.  Make and return a string for a string literal 
@@ -6097,11 +6111,13 @@ make_inert_macro:
            we have a token to return and do not need to rescan. */
         /* If the substitution was not done, go return the current token. */
         if (ctoken != tok_int_constant) goto return_point;
+
         /* Otherwise, replace the defined operator and its operand with
            an integer constant. */
         /* We assume we don't need to call ensure_arg_raw_text_space. */
-        (void)strcpy(repl_text,
-                     decimal_str_for_integer_constant(&const_for_curr_token));
+        a_number_buffer const_as_str =
+                       decimal_str_for_integer_constant(&const_for_curr_token);
+        (void)strcpy(repl_text, const_as_str.as_temp_characters());
         (void)strcat(repl_text, "L");
       } else if (macro_symbol == stdc_macro_symbol) {
         /* This macro symbol is only non-NULL when stdc_zero_in_system_headers
@@ -6159,19 +6175,22 @@ make_inert_macro:
       } else if (macro_symbol == timestamp_macro_symbol) {
         /* The Microsoft/GNU __TIMESTAMP__ macro.  This returns the
            modification time of the current input file. */
-        a_const_char *time_str;
-        size_t	     length;
-        time_str = get_file_modification_time_string(curr_ise->full_name,
-                                                     /*strip_newline=*/TRUE);
+        a_const_char *time_str = get_file_modification_time_string(
+                                                       curr_ise->full_name,
+                                                       /*strip_newline=*/TRUE);
+
         /* The time string should only be NULL if the file was removed
            after it was opened, or if the input is coming from standard
            input. */
-        if (time_str == NULL) time_str = "<unknown>";
-        check_assertion(time_str != NULL);
-        length = strlen(time_str);
-        /* "+3" in the following is for the two quotes and the null. */
-        ensure_arg_raw_text_space(length+3, special_macro_arg);
-        sprintf(repl_text, "\"%s\"", time_str);
+        if (time_str == NULL) {
+          time_str = "<unknown>";
+        }  /* if */
+
+        /* "+1" in the following is for the the null. */
+        Small_string<40> timestamp("\"", time_str, "\"");
+        ensure_arg_raw_text_space(timestamp.length() + 1, special_macro_arg);
+        timestamp.write_to_buffer(repl_text,
+                                  remaining_raw_text_space(special_macro_arg));
       } else if (macro_symbol == include_level_symbol) {
         /* The GNU __INCLUDE_LEVEL__ macro.  This returns the current
            include nesting depth. */
@@ -10956,8 +10975,9 @@ Enter symbols for the predefined macros in C99 and later revisions.
 }  /* init_new_c_predefined_macros */
 
 
-static char* expanded_version_string(unsigned long version,
-                                     a_const_char  *version_string_pattern)
+static a_const_char* expanded_version_string(
+                                         unsigned long version,
+                                         a_const_char  *version_string_pattern)
 /*
 Allocate and return a buffer containing a copy of version_string_pattern with
 "%m" expanded to "gcc" or "g++" (depending on the current mode) and "%v"
@@ -10965,21 +10985,18 @@ expanded to the specified version of the compiler being emulated.  The caller
 is responsible to deallocate the buffer using free_general.
 */
 {
+  Small_string<75>
+                 buffer;
   unsigned long  major_num = (unsigned long)(version/10000);
   unsigned long  minor_num = (unsigned long)((version%10000)/100);
   unsigned long  patch_num = (unsigned long)(version%100);
-  a_const_char   *src;
-  char           *version_string, *dst;
+  a_const_char  *src = version_string_pattern;
 #if CHECKING
   a_boolean      percent_m_seen = FALSE, percent_v_seen = FALSE;
 #endif /* CHECKING */
 
   check_assertion_str(gnu_mode && major_num < 100, "invalid version number");
-  version_string = (char*)alloc_general(
-                             (sizeof_t)(strlen(version_string_pattern) + 50));
-  src = version_string_pattern;
-  dst = version_string;
-  for (; *src != '\0'; ++src, ++dst) {
+  for (; *src != '\0'; ++src) {
     if (*src == '%') {
       if (*(src+1) == 'm') {
 #if CHECKING
@@ -10988,8 +11005,7 @@ is responsible to deallocate the buffer using free_general.
         percent_m_seen = TRUE;
 #endif /* CHECKING */
         ++src;
-        (void)strcpy(dst, gcc_mode ? "gcc" : "g++");
-        dst += 2;
+        buffer.append(gcc_mode ? "gcc" : "g++");
       } else if (*(src+1) == 'v') {
 #if CHECKING
         check_assertion_str(!percent_v_seen,
@@ -10997,24 +11013,25 @@ is responsible to deallocate the buffer using free_general.
         percent_v_seen = TRUE;
 #endif /* CHECKING */
         ++src;
-        (void)sprintf(dst, "%lu.%lu", major_num, minor_num);
-        while (*dst != '\0') ++dst;
         if (patch_num != 0) {
-          (void)sprintf(dst, ".%lu", patch_num);
-          while (*dst != '\0') ++dst;
+          buffer.append(major_num, ".", minor_num, ".", patch_num);
+        } else {
+          buffer.append(major_num, ".", minor_num);
         }  /* if */
-        --dst;
       } else {
-        *dst = *src;
+        a_string_view src_char(src, 1);
+
+        buffer.append(src_char);
       }  /* if */
     } else {
-      *dst = *src;
+      a_string_view src_char(src, 1);
+
+      buffer.append(src_char);
     }  /* if */
   }  /* for */
-  *dst = '\0';
-  check_assertion_str(version_string[0] == '"' && dst[-1] == '"',
+  check_assertion_str(buffer[0] == '"' && buffer[buffer.length() - 1] == '"',
                       "version_string_pattern must be quote-delimited string");
-  return version_string;
+  return buffer.to_allocated_storage(General_allocator<char>());
 }  /* expanded_version_string */
 
 
@@ -12071,18 +12088,20 @@ command line -D options.
                              /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
   if (overaligned_allocation_enabled || (ms_extensions && !C_mode())) {
-    char         val[64];
     a_const_char *suffix;
-    if (targ_size_t_int_kind == (an_integer_kind)ik_unsigned_int) {
+
+    if (targ_size_t_int_kind == ik_unsigned_int) {
       suffix = "u";
-    } else if (targ_size_t_int_kind == (an_integer_kind)ik_unsigned_long) {
+    } else if (targ_size_t_int_kind == ik_unsigned_long) {
       suffix = "ul";
     } else {
       suffix = "ull";
     }  /* if */
-    (void)sprintf(val, "%lu%s", (unsigned long)targ_default_new_alignment,
-                  suffix);
-    (void)enter_predef_macro(val, "__STDCPP_DEFAULT_NEW_ALIGNMENT__",
+
+    a_number_buffer val((unsigned long long)targ_default_new_alignment,
+                        suffix);
+    (void)enter_predef_macro(val.as_temp_characters(),
+                             "__STDCPP_DEFAULT_NEW_ALIGNMENT__",
                              /*cannot_be_redefined=*/TRUE,
                              /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */

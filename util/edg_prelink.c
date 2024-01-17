@@ -600,6 +600,12 @@ Print an error message when an assertion fails.
 #endif /* CHECKING */
 
 /*
+Include fe_util.h to bootstrap host_util.h and expose front end utility
+functions for use in this program.
+*/
+#include "fe_util.h"
+
+/*
 The host_util.h file is used to define functions that are used by both
 the front end, and utility programs such as the prelinker.  Include the
 file here to define these functions for the prelinker.

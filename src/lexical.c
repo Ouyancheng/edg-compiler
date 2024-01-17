@@ -5620,10 +5620,11 @@ is TRUE.
                 if (err) {
                   /* The code point could not be converted to a suitable
                      representation above. Issue a diagnostic. */
-                  char buf[30];
-                  (void)sprintf(buf, "%lx", wc);
+                  a_number_buffer num_buff{hex_view_of(wc)};
+
                   conv_line_loc_to_source_pos(loc_in_line, &error_position);
-                  str_warning(ec_bad_unicode_char_in_pp_output, buf);
+                  pos_warning(ec_bad_unicode_char_in_pp_output,
+                              &error_position, num_buff.as_temp_characters());
                 }  /* if */
               }  /* if */
               loc_in_line += remaining_mbc_len;

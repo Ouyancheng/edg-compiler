@@ -517,16 +517,6 @@ typedef int     a_ptrdiff;
 END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 #include <stdio.h>
 BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
-#if __BSD__
-/* Some stdio.h's do not define sprintf.  This declaration will be included
-   if NEED_SPRINTF_DECL is TRUE. */
-#ifndef NEED_SPRINTF_DECL
-#define NEED_SPRINTF_DECL FALSE
-#endif /* defined(NEED_SPRINTF_DECL) */
-#if NEED_SPRINTF_DECL
-extern "C" char *sprintf(char *, const char *, ...);
-#endif /* NEED_SPRINTF_DECL */
-#endif /* __BSD__ */
 /* Some stdio.h's do not define SEEK_SET. */
 #ifndef SEEK_SET
 /* For fseek (etc.) parameters: */

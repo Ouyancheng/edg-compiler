@@ -6030,20 +6030,17 @@ indicated type.
         /* For __sync_* and __atomic_* builtins, construct the concrete
            routine's name by appending the proper suffix and then look for that
            builtin function. */
-        char              name[100];
-        sizeof_t          name_len =
-                strlen(unmangled_or_fabricated_name_of(&rout->source_corresp));
-        check_assertion(name_len < 90 && is_sync_or_atomic);
-        strcpy(name, unmangled_or_fabricated_name_of(&rout->source_corresp));
+        Small_string<100> name(
+                       unmangled_or_fabricated_name_of(&rout->source_corresp));
+
         if (bcap->has_trailing_n) {
           /* Remove the trailing "_n" suffix. */
-          name_len -= 2;
-          name[name_len] = '\0';
+          name.truncate_to(name.length() - 2);
         }  /* if */
         /* Append _1, _2, _4, _8, or _16. */
-        (void)sprintf(name+name_len, "_%u", (unsigned)dispatch_type->size);
+        name.append("_", dispatch_type->size);
         /* Look up the resulting concrete routine name: */
-        sym = gnu_builtin_func_by_name(name);
+        sym = gnu_builtin_func_by_name(name.as_temp_characters());
       }  /* if */
       check_assertion(sym != NULL);
       /* Update the operand: */
@@ -35800,10 +35797,10 @@ is an lvalue.
       *p_icp = scan_expr_into_new_init_component(EOPT_NO_OPTIONS);
       remove_stop_token(tok_semicolon);
       if (expr_stack->any_suppressed_error) {
-        char  num_str[100];
-        (void)sprintf(num_str, "%lu", (unsigned long)elem_idx);
-        pos_stty_error(ec_failed_tuple_container_member_get, diag_pos, num_str,
-                       container->type);
+        a_number_buffer num_buff(elem_idx);
+
+        pos_error(ec_failed_tuple_container_member_get, diag_pos,
+                  num_buff.as_temp_characters(), container->type);
         err = TRUE;
       }  /* if */
       internal_opnd_array = saved_internal_opnd_array;
@@ -38577,9 +38574,10 @@ octl describes the output method.
 {
   begin_template_arg_list_traversal(tpp, tap, &tpp, &tap);
   for (; tap != NULL; advance_to_next_template_arg(&tpp, &tap)) {
-    a_type_ptr    param_constant_type = NULL;
-    a_const_char  *param_name = tpp->param_symbol->header->identifier;
-    char          buf[100];
+    a_type_ptr        param_constant_type = NULL;
+    a_const_char      *param_name = tpp->param_symbol->header->identifier;
+    Small_string<100> buff;
+
     if (gpp_mode && strcmp(param_name, "<unnamed>") == 0) {
       /* Clang skips unnamed template parameters.  GCC renders them as
          "<anonymous>". */
@@ -38589,9 +38587,9 @@ octl describes the output method.
       } else {
         a_template_param_coordinate_ptr  coord;
         coord = coordinates_of_template_param(tpp);
-        sprintf(buf, "<template-parameter-%d-%d>",
-                (int)coord->depth, (int)coord->position);
-        param_name = buf;
+        buff.reset_to("<template-parameter-", coord->depth, "-",
+                      coord->position, ">");
+        param_name = buff.as_temp_characters();
       }  /* if */
     }  /* if */
     if (*first) {

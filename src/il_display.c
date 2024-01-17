@@ -553,24 +553,25 @@ Display the indicated source position, preceding it with the specified
 string.  Note that nothing is printed out when *pos is null_source_position.
 */
 {
-  char buffer[40];
-
   check_assertion(str != NULL);
   if (pos->seq != 0 || pos->column != 0) {
-    (void)sprintf(buffer, "%s.seq", str);
-    disp_unsigned_long(buffer, (unsigned long)pos->seq);
-    (void)sprintf(buffer, "%s.column", str);
-    disp_unsigned_long(buffer, (unsigned long)pos->column);
+    Small_string<40> buff(str, ".seq");
+
+    disp_unsigned_long(buff.as_temp_characters(), (unsigned long)pos->seq);
+    buff.reset_to(str, ".column");
+    disp_unsigned_long(buff.as_temp_characters(), (unsigned long)pos->column);
 #if FULLY_RESOLVED_MACRO_POSITIONS
     if (pos->orig_seq != pos->seq || pos->orig_column != pos->column) {
       /* If the orig_seq/orig_column are different from seq/column, they
          represent the location from which the text was copied into a macro
          expansion (from a macro definition or macro argument) and should be
          printed. */
-      (void)sprintf(buffer, "%s.orig_seq", str);
-      disp_unsigned_long(buffer, (unsigned long)pos->orig_seq);
-      (void)sprintf(buffer, "%s.orig_column", str);
-      disp_unsigned_long(buffer, (unsigned long)pos->orig_column);
+      buff.reset_to(str, ".orig_seq");
+      disp_unsigned_long(buff.as_temp_characters(),
+                         (unsigned long)pos->orig_seq);
+      buff.reset_to(str, ".orig_column");
+      disp_unsigned_long(buff.as_temp_characters(),
+                         (unsigned long)pos->orig_column);
     }  /* if */
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
 #if RECORD_MACRO_INVOCATIONS
@@ -578,8 +579,8 @@ string.  Note that nothing is printed out when *pos is null_source_position.
       /* Values other than NO_PARENT_MACRO_INVOCATION indicate that the
          position is in the expansion of the macro invocation whose record is
          indexed by macro_context: print it. */
-      (void)sprintf(buffer, "%s.macro_context", str);
-      disp_long(buffer, (long)pos->macro_context);
+      buff.reset_to(str, ".macro_context");
+      disp_long(buff.as_temp_characters(), (long)pos->macro_context);
     }  /* if */
 #endif /* RECORD_MACRO_INVOCATIONS */
   }  /* if */
@@ -594,23 +595,25 @@ Display the indicated source position range, preceding it with the specified
 string.
 */
 {
-  char       buffer[12], *pbuf;
-
   check_assertion(str != NULL);
   /* Don't put out "null" source-range information. */
   if (range->start.seq != 0 || range->end.seq != 0) {
     (void)printf("%s\n", str);
+
     /* Default indentation is 2, but add any indentation implied by the
        string that is passed in. */
-    buffer[0] = ' ';
-    buffer[1] = ' ';
-    pbuf = &buffer[2];
-    for (; *str == ' '; ++str) *(pbuf++) = ' ';
+    Small_string<12> buff("  ");
+    for (; *str == ' '; ++str) {
+      buff.append(" ");
+    }  /* for */
+
     /* Put out start and end positions separately. */
-    (void)sprintf(pbuf, "start");
-    disp_source_position(buffer, &range->start);
-    (void)sprintf(pbuf, "end");
-    disp_source_position(buffer, &range->end);
+    size_t orig_len = buff.length();
+    buff.append("start");
+    disp_source_position(buff.as_temp_characters(), &range->start);
+    buff.truncate_to(orig_len);
+    buff.append("end");
+    disp_source_position(buff.as_temp_characters(), &range->end);
   }  /* if */
 }  /* disp_source_range */
 
@@ -6357,42 +6360,42 @@ Display the indicated Microsoft attribute entry.
     }  /* for */
   } else {
     an_ms_attribute_arg_ptr arg;
-#define ATTR_BUFFER_SIZE 80
-    char                    buffer[ATTR_BUFFER_SIZE];
+    Small_string<80>        buffer;
+
     disp_string_ptr("name", ptr->variant.info.name, iek_other_text,
                     (sizeof_t)0);
     disp_string_ptr("string", ptr->variant.info.string, iek_other_text,
                     (sizeof_t)0);
     for (arg = ptr->variant.info.arg_list; arg != NULL; arg = arg->next) {
-      sprintf(buffer, "  argument %d (", arg_number++);
-      (void)strncat(buffer, arg->param_name,
-                    ATTR_BUFFER_SIZE - strlen(buffer) - 3);
-      (void)strcat(buffer, ")");
-#undef ATTR_BUFFER_SIZE
+      buffer.reset_to("  argument ", arg_number++, " (", arg->param_name, ")");
       switch (arg->kind) {
         case msaak_integer:
           disp_host_large_integer(
-                            buffer,
+                            buffer.as_temp_characters(),
                             (a_host_large_integer)arg->variant.integer_value);
           break;
         case msaak_boolean:
-          disp_boolean(buffer, (a_boolean)arg->variant.bool_value);
+          disp_boolean(buffer.as_temp_characters(),
+                       (a_boolean)arg->variant.bool_value);
           break;
         case msaak_string:
-          disp_ptr(buffer, (char *)arg->variant.string_constant,
+          disp_ptr(buffer.as_temp_characters(),
+                   (char *)arg->variant.string_constant,
                    iek_constant);
           break;
         case msaak_other:
-          disp_string_ptr(buffer, arg->variant.other_string, iek_other_text,
+          disp_string_ptr(buffer.as_temp_characters(),
+                          arg->variant.other_string, iek_other_text,
                           (sizeof_t)0);
           break;
         case msaak_uuid:
-          disp_string_ptr(buffer, arg->variant.uuid_string, iek_other_text,
+          disp_string_ptr(buffer.as_temp_characters(),
+                          arg->variant.uuid_string, iek_other_text,
                           (sizeof_t)0);
           break;
         case msaak_enumeration:
           disp_host_large_integer(
-                               buffer,
+                               buffer.as_temp_characters(),
                                (a_host_large_integer)arg->variant.enum_value);
           break;
         default:
@@ -6544,14 +6547,14 @@ string.  Note that nothing is printed out when *pos is (the
 simple-source-position portion of) null_source_position.
 */
 {
-  char buffer[40];
 
   check_assertion(str != NULL);
   if (pos->seq != 0 || pos->column != 0) {
-    (void)sprintf(buffer, "%s.seq", str);
-    disp_unsigned_long(buffer, (unsigned long)pos->seq);
-    (void)sprintf(buffer, "%s.column", str);
-    disp_unsigned_long(buffer, (unsigned long)pos->column);
+    Small_string<50> buff(str, ".seq");
+
+    disp_unsigned_long(buff.as_temp_characters(), (unsigned long)pos->seq);
+    buffer.reset_to(str, ".column");
+    disp_unsigned_long(buff.as_temp_characters(), (unsigned long)pos->column);
   }  /* if */
 }  /* disp_simple_source_position */
 

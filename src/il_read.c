@@ -923,8 +923,6 @@ build the in-memory version.
 */
 {
   a_file_position         index_pos, file_scope_pos;
-  char                    check_string[LEN_IL_FILE_MAGIC_STRING],
-                          magic_string[LEN_IL_FILE_MAGIC_STRING];
   a_memory_region_number  new_size_of_mem_region_table;
   a_scope_ptr             *old_il_header_region_scope_entry;
   a_function_def_descr_ptr
@@ -956,10 +954,16 @@ build the in-memory version.
   if (set_file_position(f_il_input, 0L, SEEK_SET) != 0) {
     catastrophe(ec_bad_il_file);
   }  /* if */
+
   /* Read and check the magic string. */
-  (void)sprintf(magic_string, IL_FILE_MAGIC_STRING, IL_VERSION_NUMBER);
-  fread_with_check(check_string, sizeof(check_string));
-  if (memcmp(check_string, magic_string, sizeof(check_string)) != 0) {
+  an_il_file_magic_string magic_string = current_il_magic_string();
+  char                    check_string[LEN_IL_FILE_MAGIC_STRING + 1] = {};
+  /* If this assertion fails the magic string's actual length and
+     LEN_IL_FILE_MAGIC_STRING are out of sync.  Presumably,
+     LEN_IL_FILE_MAGIC_STRING needs adjusted.*/
+  check_assertion(magic_string.length() == LEN_IL_FILE_MAGIC_STRING);
+  fread_with_check(check_string, magic_string.length());
+  if (magic_string != check_string) {
     catastrophe(ec_bad_il_file);
   }  /* if */
   /* Read the number of regions. */

@@ -2560,7 +2560,7 @@ Returns: fp_ret_valid if successful, fp_ret_too_small if size is too small.
 
 
 static char     zeros[] = "00000000";
-                        /* Used for formatting in sprintf below. */
+                        /* Used for formatting below. */
 
 
 STATIC an_fp_return_type format(char          *tgt,
@@ -2575,18 +2575,20 @@ buffer is too small.
 */
 {
   an_fp_return_type res = fp_ret_valid;
-  size_t            nchars;
 
   if (dec->exponent <= 0 && -3 < dec->exponent) {
     /* 0.xxx */
-    nchars = 2 - dec->exponent + dec->ndigits + 1;
-    if (size < nchars) {
-      res = fp_ret_too_small;
+    a_number_buffer tmp_buff;
+
+    tmp_buff.reset_to("0.", &zeros[8 + dec->exponent], dec->digits);
+    if (tmp_buff.length() + 1 < size) {
+      tmp_buff.write_to_buffer(tgt, size);
     } else {
-      sprintf(tgt, "0.%s%s", &zeros[8 + dec->exponent], dec->digits);
+      res = fp_ret_too_small;
     }  /* if */
   } else if (0 < dec->exponent && dec->exponent < 8) {
     /* xxxxxxx.xx */
+    size_t nchars;
     if (dec->ndigits <= dec->exponent) {
       /* Need room for max(dec->ndigits, dec->exponent) characters
          plus decimal point plus 0 digit after decimal point
@@ -2619,21 +2621,20 @@ buffer is too small.
     }  /* if */
   } else {
     /* x.xxxxEyy */
-    char exp_buf[32];
-    nchars = sprintf(exp_buf, "%d", dec->exponent - 1);
-    /* Decimal point plus 'E' plus digits plus terminating null. */
-    nchars += 3 + dec->ndigits;
+    a_number_buffer tmp_buff;
+
     if (dec->ndigits == 1) {
-      if (size <= nchars) {
-        res = fp_ret_too_small;
-      }  /* if */
-      sprintf(tgt, "%c.0E%d",
-              dec->digits[0], dec->exponent - 1);
-    } else if (size < nchars) {
-      res = fp_ret_too_small;
+      tmp_buff.reset_to(a_string_view(dec->digits, 1), ".0E",
+                        dec->exponent - 1);
     } else {
-      sprintf(tgt, "%c.%sE%d",
-              dec->digits[0], &dec->digits[1], dec->exponent - 1);
+      tmp_buff.reset_to(a_string_view(dec->digits, 1),
+                        ".", &dec->digits[1], "E",
+                        dec->exponent - 1);
+    }  /* if */
+    if (tmp_buff.length() + 1 < size) {
+      tmp_buff.write_to_buffer(tgt, size);
+    } else {
+      res = fp_ret_too_small;
     }  /* if */
   }  /* if */
   return res;

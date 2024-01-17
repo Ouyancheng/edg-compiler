@@ -3997,7 +3997,7 @@ extern unsigned long crc_32(a_const_char  *str,
                             unsigned long prev_crc);
 
 #if ONE_INSTANTIATION_PER_OBJECT
-extern char *generate_instantiation_output_file_name(
+extern a_const_char *generate_instantiation_output_file_name(
                                                    a_const_char *mangled_name);
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
 

@@ -18682,9 +18682,8 @@ any entity on which a standard alignment attribute may have been specified
       /* A previous declaration specified an explicit alignment that is
          inconsistent with the current declaration.  Issue a diagnostic. */
       an_error_severity severity = es_error;
-      char  orig_align_str[100], new_align_str[100];
-      (void)sprintf(orig_align_str, "%d", *entity_alignment);
-      (void)sprintf(new_align_str, "%d", dps->alignment);
+      a_number_buffer   orig_align_str((unsigned long long)*entity_alignment);
+      a_number_buffer   new_align_str((unsigned long long)dps->alignment);
       if (!is_definition) {
         /* The standard isn't clear on a case like:
              struct alignas(8) A;
@@ -18699,9 +18698,10 @@ any entity on which a standard alignment attribute may have been specified
           severity = es_discretionary_error;
         }  /* if */
       }  /* if */
-      pos_st2_diagnostic(severity, ec_inconsistent_alignment,
-                         &dps->strongest_alignment->group->position,
-                         new_align_str, orig_align_str);
+      pos_diagnostic(severity, ec_inconsistent_alignment,
+                     &dps->strongest_alignment->group->position,
+                     new_align_str.as_temp_characters(),
+                     orig_align_str.as_temp_characters());
     }  /* if */
     /* Clear the alignment so that additional callbacks on this declaration
        will have no effect. */
@@ -18935,10 +18935,10 @@ argument-dependent lookup only.
   if (te_inst_sym == NULL ||
       !symbol_is(te_inst_sym, sk_class_or_struct_tag)) {
     if (!for_decltype) {
-      char  num_str[100];
-      (void)sprintf(num_str, "%lu", (unsigned long)elem_idx);
-      pos_stty_error(ec_missing_std_tuple_element_instance, diag_pos, num_str,
-                     tp);
+      a_number_buffer num_str(elem_idx);
+
+      pos_error(ec_missing_std_tuple_element_instance, diag_pos,
+                num_str.as_temp_characters(), tp);
     }  /* if */
     e_type = error_type();
     goto done;
@@ -18947,10 +18947,10 @@ argument-dependent lookup only.
   complete_type_is_needed(te_inst);
   if (te_inst->incomplete) {
     if (!for_decltype) {
-      char  num_str[100];
-      (void)sprintf(num_str, "%lu", (unsigned long)elem_idx);
-      pos_stty_error(ec_missing_std_tuple_element_instance, diag_pos, num_str,
-                     tp);
+      a_number_buffer num_str(elem_idx);
+
+      pos_error(ec_missing_std_tuple_element_instance, diag_pos,
+                num_str.as_temp_characters(), tp);
     }  /* if */
     e_type = error_type();
     goto done;

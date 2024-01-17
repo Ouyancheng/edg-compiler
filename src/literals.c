@@ -1002,10 +1002,11 @@ to a Latin-1 byte.
     if (err) {
       /* The code point could not be converted to a suitable
          representation.  Issue a diagnostic. */
-      char buf[30];
-      (void)sprintf(buf, "%lx", unicode_char);
+      a_number_buffer num_buff(unicode_char);
+
       conv_line_loc_to_source_pos(*state->next_token_char, &error_position);
-      str_warning(ec_bad_unicode_char_in_string, buf);
+      pos_warning(ec_bad_unicode_char_in_string, &error_position,
+                  num_buf.as_temp_characters());
     }  /* if */
   } else
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */

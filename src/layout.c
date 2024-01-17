@@ -461,14 +461,16 @@ curr_max_member_alignment.
     } else if (locator_for_curr_id.symbol_header->identifier_length == 4 &&
                strncmp(locator_for_curr_id.symbol_header->identifier,
                        "show", size_t_arg(4)) == 0) {
-      char  val_str[20];
+      a_number_buffer val_str;
+
       is_show = TRUE;
       if (curr_max_member_alignment != 0) {
-        (void)sprintf(val_str, "%d", curr_max_member_alignment);
+        val_str.reset_to((unsigned long long)curr_max_member_alignment);
       } else {
-        (void)sprintf(val_str, "not set");
+        val_str.reset_to("not set");
       }  /* if */
-      str_warning(ec_value_of_pragma_pack_show, val_str);
+      pos_warning(ec_value_of_pragma_pack_show, &error_position,
+                  val_str.as_temp_characters());
       /* Advance past "show". */
       (void)get_token();
     }  /* if */

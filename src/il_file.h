@@ -29,16 +29,28 @@ il_file.h -- Definitions related to the intermediate language file.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
-/* String written at the start of an il file.  This is checked on the
-   reading end.  The current IL version number is inserted in place of the
-   "%s". */
-#define IL_FILE_MAGIC_STRING "EDG IL file (v%s)\f\f"
-/* The length of the filled-in magic string (with a terminating null) is
-   the length of the string here minus two for "%s", plus the length of
-   the version number, minus one for its terminating null. */
+/* The customizable IL file magic string identifier written at the start of an
+   il file.  This is checked on the reading end. */
+#define IL_FILE_MAGIC_STRING_IDENTIFIER "EDG IL file"
+/* The length of the filled-in magic string (with a terminating null) is the
+   length of the string here plus 6 for " (v" and ")\f\f", plus the length of
+   the version number minus two for the terminating null characters. */
 #define LEN_IL_FILE_MAGIC_STRING \
-  (sizeof(IL_FILE_MAGIC_STRING) - 2 + sizeof(IL_VERSION_NUMBER) - 1)
-                                
+  (sizeof(IL_FILE_MAGIC_STRING_IDENTIFIER) + 6 + sizeof(IL_VERSION_NUMBER) - 2)
+
+using an_il_file_magic_string = Small_string<LEN_IL_FILE_MAGIC_STRING + 1>;
+                        /* The type of an IL file magic string. */
+
+inline an_il_file_magic_string current_il_magic_string()
+/*
+Return the expected IL magic string.
+*/
+{
+  return an_il_file_magic_string(IL_FILE_MAGIC_STRING_IDENTIFIER,
+                                 " (v", IL_VERSION_NUMBER, ")\f\f");
+}  /* current_il_magic_string */
+
+
 /*
 Definitions for file positioning.  The POSIX ftell and fseek functions
 typically limit IL files to 2 GB (32-bit offsets).  If larger IL files are

@@ -30013,9 +30013,9 @@ return FALSE.
   a_boolean  result = FALSE;
 
   if (block_size > (a_host_large_unsigned)max_upc_block_size) /*lint !e571*/ {
-    char  size_buf[20];
-    (void)sprintf(size_buf, "%ld", max_upc_block_size);
-    str_error(ec_shared_block_size_too_large, size_buf);
+    a_number_buffer size_buf(max_upc_block_size);
+
+    error(ec_shared_block_size_too_large, size_buf.as_temp_characters());
     result = TRUE;
   }  /* if */
   return result;

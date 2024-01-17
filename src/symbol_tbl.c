@@ -369,14 +369,23 @@ is done according to the output control block octl.
   col += (uint32_t)strlen((local_str));                         \
 }  /* put_string */
 
+#define put_buffer_string(buf_str)                              \
+{ put_separator(",", (buf_str).length());                       \
+  print((buf_str), f_debug, /*end=*/"");                        \
+  col += (buf_str).length();                                    \
+}  /* put_buffer_string */
+
 
 /* Determines whether the current line has a certain amount of room left. */
 #define space_left(size)  (DEBUG_LINE_LENGTH - (size) + 1 >= col)
 
+using a_symbol_buffer = Small_string<1000>;
+                        /* The type of the db_symbol buffer. */
 
 /*
 Current output buffer pointer for put_str_into_db_symbol_buffer. */
-static char *db_symbol_buffer_pointer;
+static a_symbol_buffer *db_symbol_buffer_pointer;
+
 
 static void put_str_into_db_symbol_buffer(
                          a_const_char                                     *str,
@@ -387,11 +396,8 @@ set_up_for_output_to_buffer has been called to set the buffer address.
 Note: There is no overflow check on this.
 */
 {
-  /* Copy the string including the terminating null. */
-  while ((*db_symbol_buffer_pointer++ = *str++) != '\0') {}
-  /* Back up onto the null character so it will be rewritten if something
-     else is added to the output. */
-  db_symbol_buffer_pointer--;
+  /* Copy the string. */
+  db_symbol_buffer_pointer->append(str);
 }  /* put_str_into_db_symbol_buffer */
 
 
@@ -401,7 +407,7 @@ Output control block used to interface to the il_to_str routines.
 static an_il_to_str_output_control_block octl;
 
 
-static void set_up_for_output_to_buffer(char *buffer)
+static void set_up_for_output_to_buffer(a_symbol_buffer *buffer)
 /*
 Set octl so that it can be passed into the il_to_str routines to tell them
 to output to the indicated buffer.
@@ -415,14 +421,13 @@ to output to the indicated buffer.
 }  /* set_up_for_output_to_buffer */
 
 
-static char *str_access(char                *buffer,
-                        an_access_specifier access)
+static a_const_char *str_access(an_access_specifier access)
 /*
-Construct a string in buffer that represents an access specifier -- called
-from db_symbol.
+Return the string corresponding to the given access specifier.
 */
 {
   a_const_char *s;
+
   switch (access) {
     case as_public:       s = "public";       break;
     case as_protected:    s = "protected";    break;
@@ -430,20 +435,19 @@ from db_symbol.
     case as_inaccessible: s = "inaccessible"; break;
     default:              s = "<bad access>"; break;
   }  /* switch */
-  (void)sprintf(buffer, "%s", s);
-  return buffer;
+  return s;
 }  /* str_access */
 
 
 /* Display an access specifier. */
-#define put_access(access)                                      \
-{									\
-  (void)str_access(buffer, (an_access_specifier)(access)); put_string(buffer);\
+#define put_access(access)                               \
+{                                                        \
+  put_string(str_access((an_access_specifier)(access))); \
 }
 
 
-static void str_type(char        buffer[],
-                     a_type_ptr  tp)
+static void str_type(a_symbol_buffer *buffer,
+                     a_type_ptr      tp)
 /*
 Construct a string in buffer that represents a type.
 */
@@ -453,8 +457,8 @@ Construct a string in buffer that represents a type.
 }  /* str_type */
 
 
-static char *str_qualified_name(char         buffer[],
-                                a_symbol_ptr sym)
+static void str_qualified_name(a_symbol_buffer *buffer,
+                               a_symbol_ptr    sym)
 /*
 Construct a string in buffer that represents a qualified name -- called
 from db_symbol.
@@ -462,12 +466,11 @@ from db_symbol.
 {
   set_up_for_output_to_buffer(buffer);
   form_symbol_name(sym, &octl);
-  return buffer;
 }  /* str_qualified_name */
 
 
-static char *str_function_name_and_param_list(char          buffer[],
-                                              a_symbol_ptr  sym)
+static void str_function_name_and_param_list(a_symbol_buffer *buffer,
+                                             a_symbol_ptr    sym)
 /*
 Construct a string the buffer that represents a qualified name plus
 function param list -- called from db_symbol.
@@ -483,14 +486,13 @@ function param list -- called from db_symbol.
     tp = skip_typerefs(tp);
     form_function_declarator(tp, &octl);
   }  /* if */
-  return buffer;
 }  /* str_function_name_and_param_list */
 
 
-static char *str_path(char               buffer[],
-                      a_derivation_path  path,
-                      a_const_char       *initial_string,
-                      a_const_char       *separator)
+static void str_path(a_symbol_buffer    *buffer,
+                     a_derivation_path  path,
+                     a_const_char       *initial_string,
+                     a_const_char       *separator)
 /*
 Construct a string in buffer that represents a derivation path -- called
 from db_symbol.
@@ -501,24 +503,19 @@ from db_symbol.
   a_type             *tp;
   a_const_char       *sep = initial_string;
 
-  buffer[0] = '\0';
   for (dsp = path.head; dsp != path.tail->next; dsp = dsp->next) {
     bcp = dsp->base_class;
-    (void)sprintf(&buffer[strlen(buffer)],
-                  "%s%s",
-                  sep,
-                  (bcp == NULL) ?
-                      "<null bcp>" :
-                      ((tp = bcp->type) == NULL) ?
-                          "<null tp>" : tp->source_corresp.name);
+    buffer->append(sep, ((bcp == NULL) ?
+                          "<null bcp>" :
+                        ((tp = bcp->type) == NULL) ?
+                                       "<null tp>" : tp->source_corresp.name));
     sep = separator;
   }  /* for */
-  return buffer;
 }  /* str_path */
 
 
-static char *str_name_linkage(char                     *buffer,
-                              a_source_correspondence  *source_corresp)
+static void str_name_linkage(a_symbol_buffer         *buffer,
+                             a_source_correspondence *source_corresp)
 /*
 Construct a string in buffer that represents a name linkage kind -- called
 from db_symbol.
@@ -526,8 +523,8 @@ from db_symbol.
 {
   a_const_char *str =
                     name_linkage_kind_names[(int)source_corresp->name_linkage];
-  (void)sprintf(buffer, "%s linkage", str);
-  return buffer;
+
+  buffer->reset_to(str, " linkage");
 }  /* str_name_linkage */
 
 
@@ -568,10 +565,11 @@ Write out the name (including function parameters if there are any) of the
 specified symbol.
 */
 {
-  char  *str, buffer[1000];
+  fputs("\"", f_debug);
 
-  str = str_qualified_name(buffer, sym);
-  fprintf(f_debug, "\"%s", str);
+  a_symbol_buffer buffer;
+  str_qualified_name(&buffer, sym);
+  print(buffer, f_debug, /*end=*/"");
   if (sym->kind == (a_symbol_kind)sk_routine ||
       sym->kind == (a_symbol_kind)sk_member_function) {
     a_type_ptr  tp = routine_symbol_type(sym);
@@ -587,7 +585,7 @@ specified symbol.
     }  /* if */
     db_property_or_event_suffix(sym);
   }  /* if */
-  fprintf(f_debug, "\"");
+  fputs("\"", f_debug);
 }  /* db_symbol_name */
 
 
@@ -627,9 +625,9 @@ the translation unit, if not the primary translation unit.
 }  /* db_symbol_name_trans_unit */
 
 
-void db_symbol(a_symbol_ptr	sym,
-	       a_const_char	*string,
-	       int		indentation)
+void db_symbol(a_symbol_ptr sym,
+               a_const_char *string,
+               int          indentation)
 /*
 Write out information on a symbol, for debugging purposes.  sym points to
 the symbol; string is an optional identifying string ("" or NULL if omitted);
@@ -637,7 +635,7 @@ and indentation is the indentation desired.
 */
 {
   a_const_char			*str;
-  char				buffer[1000];
+  a_symbol_buffer		buffer;
   int				col = indentation;
   a_type_ptr			type = NULL, temp_type;
   a_variable_ptr		var = NULL;
@@ -647,7 +645,7 @@ and indentation is the indentation desired.
 
   if (string != NULL && strlen(string) > 0) {
     fputs(string, f_debug);
-    col += (int)strlen(string);
+    col += strlen(string);
   }  /* if */
 
   if (sym == NULL) {
@@ -663,47 +661,51 @@ and indentation is the indentation desired.
   fprintf(f_debug, "<%s>", str);
   col += (int)(strlen(str) + 2);
 
-  str = str_qualified_name(buffer, sym);
-  put_separator("", strlen(str) + 2);
-  fprintf(f_debug, "\"%s\"", str);
-  col += (int)(strlen(str) + 2);
+  str_qualified_name(&buffer, sym);
+  put_separator("", buffer.length() + 2);
+  fprintf(f_debug, "\"%s\"", buffer.as_temp_characters());
+  col += (int)(buffer.length() + 2);
 
   db_property_or_event_suffix(sym);
-  if (sym->kind == (a_symbol_kind)sk_projection) {
+  if (sym->kind == sk_projection) {
     a_symbol_ptr fsym = sym->variant.projection.extra_info->fundamental_symbol;
-    if (fsym != NULL) str = str_qualified_name(buffer, fsym);
-    put_separator("", strlen(str) + 6);
-    fprintf(f_debug, "(= \"%s\")", str);
-    col += (int)(strlen(str) + 6);
-  } else if (sym->kind == (a_symbol_kind)sk_namespace_projection) {
+    if (fsym != NULL) {
+      buffer.reset_to();
+      str_qualified_name(&buffer, fsym);
+    }  /* if */
+    put_separator("", buffer.length() + 6);
+    fprintf(f_debug, "(= \"%s\")", buffer.as_temp_characters());
+    col += (int)(buffer.length() + 6);
+  } else if (sym->kind == sk_namespace_projection) {
     a_symbol_ptr fsym = sym->variant.namespace_projection.fundamental_symbol;
     if (fsym != NULL) {
-      str = str_qualified_name(buffer, fsym);
-      put_separator("", strlen(str) + 6);
-      fprintf(f_debug, "(= \"%s\")", str);
-      col += (int)(strlen(str) + 6);
+      buffer.reset_to();
+      str_qualified_name(&buffer, fsym);
+      put_separator("", buffer.length() + 6);
+      fprintf(f_debug, "(= \"%s\")", buffer.as_temp_characters());
+      col += (int)(buffer.length() + 6);
     }  /* if */
   }  /* if */
 
   if (sym->decl_seq > 0) {
-    (void)sprintf(buffer, "#%lu", (unsigned long)sym->decl_seq);
-    put_separator("", strlen(buffer));
-    fputs(buffer, f_debug);
-    col += (int)strlen(buffer);
+    buffer.reset_to("#", sym->decl_seq);
+    put_separator("", buffer.length());
+    print(buffer, f_debug, /*end=*/"");
+    col += buffer.length();
   }  /* if */
 
-  (void)sprintf(buffer, "(%lu/%d)", (unsigned long)sym->decl_position.seq,
-		sym->decl_position.column);
-  put_separator("", strlen(buffer));
-  fputs(buffer, f_debug);
-  col += (int)strlen(buffer);
+  buffer.reset_to("(", sym->decl_position.seq, "/",
+                  sym->decl_position.column, ")");
+  put_separator("", buffer.length());
+  print(buffer, f_debug, /*end=*/"");
+  col += buffer.length();
 
   /* If this symbol is for a secondary translation unit, display the
      translation unit. */
   str = db_symbol_trans_unit(sym);
   if (str != NULL) {
-    (void)sprintf(buffer, "trans unit %s", str);
-    put_string(buffer);
+    buffer.reset_to("trans unit ", str);
+    put_buffer_string(buffer);
   }  /* if */
 
   /* Display information about the module entity (if relevant). */
@@ -713,8 +715,9 @@ and indentation is the indentation desired.
 
     if (src_corresp != NULL && src_corresp->module_entity != NULL) {
       a_module_entity_ptr m_entity = src_corresp->module_entity;
+      a_string            mep_debug = s_basic_db_mep(m_entity);
 
-      put_string(s_basic_db_mep(m_entity).as_temp_characters());
+      put_buffer_string(mep_debug);
     }  /* if */
   }
 
@@ -724,26 +727,26 @@ and indentation is the indentation desired.
     a_const_char  *file_name;
     a_const_char  *full_name;
     a_line_number line_number;
-    a_boolean	  at_end_of_source;
+    a_boolean     at_end_of_source;
     if (sym->decl_position.seq > 0) {
       (void)conv_seq_to_file_and_line(sym->decl_position.seq, &file_name,
                                       &full_name, &line_number,
                                       &at_end_of_source);
       if (seq_is_in_include_file(sym->decl_position.seq)) {
-        (void)sprintf(buffer, "file %s", file_name);
-        put_string(buffer);
+        buffer.reset_to("file ", file_name);
+        put_buffer_string(buffer);
       }  /* if */
       if (at_end_of_source) {
-        (void)sprintf(buffer, "line <end of source>");
+        buffer.reset_to("line <end of source>");
       } else {
-        (void)sprintf(buffer, "line %lu", (unsigned long)line_number);
+        buffer.reset_to("line ", line_number);
       }  /* if */
-      put_string(buffer);
+      put_buffer_string(buffer);
     }  /* if */
   }
 
-  (void)sprintf(buffer, "scope %ld", (long)sym->decl_scope);
-  put_string(buffer);
+  buffer.reset_to("scope ", sym->decl_scope);
+  put_buffer_string(buffer);
 
   if (sym->referenced) put_string("ref'd");
   if (sym->defined) put_string("def'd");
@@ -792,8 +795,8 @@ and indentation is the indentation desired.
         put_string("needed");
       }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
-      (void)str_name_linkage(buffer, &(temp_type->source_corresp));
-      put_string(buffer);
+      str_name_linkage(&buffer, &(temp_type->source_corresp));
+      put_buffer_string(buffer);
       {
         a_class_symbol_supplement_ptr  cssp;
         cssp = sym->variant.class_struct_union.extra_info;
@@ -868,10 +871,10 @@ and indentation is the indentation desired.
           put_string("in func prototype");
         }  /* if */
         if (temp_type->variant.class_struct_union.is_specialized) {
-          (void)sprintf(buffer, "%sspecialization",
-                        temp_type->variant.class_struct_union.
-                             specialized_with_old_syntax ? "old-style " : "");
-          put_string(buffer);
+          buffer.reset_to(temp_type->variant.class_struct_union.
+                             specialized_with_old_syntax ? "old-style " : "",
+                          "specialization");
+          put_buffer_string(buffer);
         }  /* if */
         if (cssp->friend_functions != NULL) {
           a_symbol_ptr  friend_sym, overload_sym, fund_sym;
@@ -879,7 +882,7 @@ and indentation is the indentation desired.
 
           friend_sym = cssp->friend_functions;
           put_string("invisible friends =");
-          (void)sprintf(buffer, "[ ");
+          buffer.reset_to("[ ");
           sep = "";
           friend_sym = cssp->friend_functions;
           overload_sym = NULL;
@@ -890,10 +893,9 @@ and indentation is the indentation desired.
             }  /* if */
             fund_sym = fundamental_symbol_of(friend_sym);
             if (fund_sym->overload_set_member || overload_sym != NULL) {
-              (void)str_function_name_and_param_list(&buffer[strlen(buffer)],
-                                                     fund_sym);
+              str_function_name_and_param_list(&buffer, fund_sym);
             } else {
-              (void)str_qualified_name(&buffer[strlen(buffer)], fund_sym);
+              str_qualified_name(&buffer, fund_sym);
             }  /* if */
             friend_sym = friend_sym->next;
             if (overload_sym != NULL && friend_sym == NULL) {
@@ -901,13 +903,13 @@ and indentation is the indentation desired.
               overload_sym = NULL;
             }  /* if */
             if (friend_sym == NULL) {
-              (void)sprintf(&buffer[strlen(buffer)], " ]");
+              buffer.append(" ]");
             }  /* if */
-            put_separator(sep, strlen(buffer));
-            fprintf(f_debug, "%s", buffer);
-            col += (int)strlen(buffer);
+            put_separator(sep, buffer.length());
+            print(buffer, f_debug);
+            col += buffer.length();
             sep = ",";
-            buffer[0] = '\0';
+            buffer.reset_to();
           } while (friend_sym != NULL);
         }  /* if */
       }
@@ -928,22 +930,19 @@ and indentation is the indentation desired.
           put_string("initonly");
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        (void)sprintf(buffer, "offset");
+        buffer.reset_to("offset");
         apo_sym = sym->variant.field.anonymous_parent_object;
         if (apo_sym != NULL) {
-          (void)sprintf(&buffer[strlen(buffer)],
-                        " (relative to anon parent obj)");
+          buffer.append(" (relative to anon parent obj)");
         }  /* if */
-        (void)sprintf(&buffer[strlen(buffer)], " = %lu",
-                      (unsigned long)fp->offset);
+        buffer.append(" = ", fp->offset);
         if (fp->is_bit_field) {
-          (void)sprintf(&buffer[strlen(buffer)], "+%d",
-                        (int)fp->offset_bit_remainder);
-          put_string(buffer);
-          (void)sprintf(buffer, "size = %d bit%s", (int)fp->bit_size,
-                        fp->bit_size == 1 ? "" : "s");
+          buffer.append("+", (unsigned)fp->offset_bit_remainder);
+          put_buffer_string(buffer);
+          buffer.reset_to("size = ", (unsigned)fp->bit_size, "bit",
+                          fp->bit_size == 1 ? "" : "s");
         }  /* if */
-        put_string(buffer);
+        put_buffer_string(buffer);
         if (fp->is_anonymous_parent_object) {
           put_string("is anon parent object");
         }  /* if */
@@ -973,19 +972,20 @@ do_variable:
         if (sym->kind == (a_symbol_kind)sk_static_data_member) {
           put_access(var->source_corresp.access);
         }  /* if */
-        (void)sprintf(buffer, "sc_%s",
-	              db_storage_class_names[(int)var->storage_class]);
-        put_string(buffer);
-        (void)str_name_linkage(buffer, &(var->source_corresp));
-        put_string(buffer);
+        buffer.reset_to("sc_",
+                        db_storage_class_names[(int)var->storage_class]);
+        put_buffer_string(buffer);
+        buffer.reset_to();
+        str_name_linkage(&buffer, &(var->source_corresp));
+        put_buffer_string(buffer);
         if (sym->value_has_been_set) put_string("set");
         if (sym->kind == (a_symbol_kind)sk_static_data_member) {
           if (var->is_template_variable) put_string("is instance");
           if (var->is_specialized) {
-            (void)sprintf(buffer, "%sspecialization",
-                          var->specialized_with_old_syntax ?
-                                 "old-style " : "");
-            put_string(buffer);
+            buffer.reset_to(var->specialized_with_old_syntax ?
+                                                "old-style " : "",
+                            "specialization");
+            put_buffer_string(buffer);
           }  /* if */
         } else {
 #if MAINTAIN_NEEDED_FLAGS
@@ -1014,8 +1014,8 @@ do_variable:
         if (sym->kind == (a_symbol_kind)sk_member_function) {
           put_access(rp->source_corresp.access);
           if (rp->is_virtual) {
-            (void)sprintf(buffer, "virtual (%d)", rp->number.virtual_function);
-            put_string(buffer);
+            buffer.reset_to("virtual (", rp->number.virtual_function, ")");
+            put_buffer_string(buffer);
           }  /* if */
           if (rp->special_kind != (a_special_function_kind)sfk_none) {
             put_string(db_special_function_kinds[rp->special_kind]);
@@ -1041,16 +1041,16 @@ do_variable:
         if (rp->is_trivial_copy_function) {
           put_string("trivial copy function");
         }  /* if */
-        (void)sprintf(buffer, "sc_%s",
-                      db_storage_class_names[(int)rp->storage_class]);
-        put_string(buffer);
-        (void)str_name_linkage(buffer, &(rp->source_corresp));
-        put_string(buffer);
+        buffer.reset_to("sc_", db_storage_class_names[(int)rp->storage_class]);
+        put_buffer_string(buffer);
+        buffer.reset_to();
+        str_name_linkage(&buffer, &(rp->source_corresp));
+        put_buffer_string(buffer);
         if (rp->is_template_function) put_string("is instance");
         if (rp->is_specialized) {
-          (void)sprintf(buffer, "%sspecialization",
-                        rp->specialized_with_old_syntax ? "old-style " : "");
-          put_string(buffer);
+          buffer.reset_to(rp->specialized_with_old_syntax ? "old-style " : "",
+                          "specialization");
+          put_buffer_string(buffer);
         }  /* if */
 #if MAINTAIN_NEEDED_FLAGS
         if (rp->source_corresp.needed) put_string("needed");
@@ -1072,15 +1072,15 @@ do_variable:
             put_string("throws none");
           } else {
             estp = esp->variant.exception_specification_type_list;
-            (void)sprintf(buffer, "throws (");
-            str_type(&buffer[strlen(buffer)], estp->type);
+            buffer.reset_to("throws (");
+            str_type(&buffer, estp->type);
             for (estp = estp->next; estp != NULL; estp = estp->next) {
-              put_string(buffer);
-              buffer[0] = 0;
-              str_type(buffer, estp->type);
+              put_buffer_string(buffer);
+              buffer.reset_to();
+              str_type(&buffer, estp->type);
             }  /* for */
-            (void)sprintf(&buffer[strlen(buffer)], ")");
-            put_string(buffer);
+            buffer.append(")");
+            put_buffer_string(buffer);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -1096,10 +1096,12 @@ do_variable:
       { a_projection_descr_ptr pdp = sym->variant.projection.extra_info;
         a_base_class_ptr       bcp = pdp->fundamental_base_class;
         if (bcp != NULL && bcp->derivation != NULL) {
-          put_string(str_path(buffer,
-                              { cast_derivation_path_of(bcp),
-                                bcp->derivation->path_tail },
-                              "path = ==>", "==>"));
+          buffer.reset_to();
+          str_path(&buffer,
+                   { cast_derivation_path_of(bcp),
+                     bcp->derivation->path_tail },
+                   "path = ==>", "==>");
+          put_buffer_string(buffer);
         }  /* if */
       }
       break;
@@ -1387,8 +1389,8 @@ do_variable:
   if (apo_sym != NULL) {
     if (!suppress_newline) (void)fputc('\n', f_debug);
     fprintf(f_debug, "%*s", indentation, "");
-    (void)sprintf(buffer, "- anon parent object [%p]: ", (void *)apo_sym);
-    db_symbol(apo_sym, buffer, indentation + 2);
+    buffer.reset_to("- anon parent object [", (void *)apo_sym, "]: ");
+    db_symbol(apo_sym, buffer.as_temp_characters(), indentation + 2);
     suppress_newline = TRUE;
   }  /* if */
 done:
@@ -7531,7 +7533,7 @@ information).
 */
 {
   a_type_name_string
-                result("");
+                result;
   an_il_to_str_output_control_block
                 local_octl;
 
@@ -11200,25 +11202,11 @@ void make_struct_binding_container_locator(a_symbol_locator  *locator,
 Make a unique locator in *locator for a structured binding container variable.
 */
 {
-  unsigned long        sb_num, n_digits = 0;
-  char                 *str;
-  sizeof_t             len;
   a_symbol_header_ptr  sym_hdr = alloc_symbol_header();
+  Small_string<50>     buffer("<struct binding ", ++sb_counter, ">");
 
-  sb_counter += 1;
-  /* Count the number of decimal digits in the binding number. */
-  sb_num = sb_counter;
-  do {
-    n_digits += 1;
-    sb_num /= 10;
-  } while (sb_num != 0);
-#define SB_NAME_PATTERN "<struct binding %lu>"
-  len = sizeof(SB_NAME_PATTERN)+n_digits-(sizeof("%lu")-1);
-  str = alloc_primary_file_scope_il((sizeof_t)len);
-  sprintf(str, SB_NAME_PATTERN, sb_counter);
-#undef SB_NAME_PATTERN
-  sym_hdr->identifier = str;
-  sym_hdr->identifier_length = len-1;
+  sym_hdr->identifier = buffer.to_allocated_storage(IL_allocator<char>());
+  sym_hdr->identifier_length = buffer.length();
   clear_locator(locator, pos);
   locator->symbol_header = sym_hdr;
 }  /* make_struct_binding_container_locator */

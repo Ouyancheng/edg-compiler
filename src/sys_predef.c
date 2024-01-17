@@ -952,7 +952,7 @@ static void enter_upc_predefined_macros(void)
 Enter macros as requires by the UPC specification.  Called in UPC modes only.
 */
 {
-  char  num_as_str[100];
+  a_number_buffer num_buff;
 
   (void)enter_predef_macro("1", "__UPC__",
                            /*cannot_be_redefined=*/FALSE,
@@ -968,13 +968,14 @@ Enter macros as requires by the UPC specification.  Called in UPC modes only.
     (void)enter_predef_macro("1", "__UPC_STATIC_THREADS__",
                              /*cannot_be_redefined=*/FALSE,
                              /*ref_suppresses_pch_file=*/FALSE);
-    (void)sprintf(num_as_str, "%lu", (unsigned long)upc_num_threads);
-    (void)enter_predef_macro(num_as_str, "THREADS",
+
+    num_buff.reset_to(upc_num_threads);
+    (void)enter_predef_macro(num_buff.as_temp_characters(), "THREADS",
                              /*cannot_be_redefined=*/TRUE,
                              /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
-  (void)sprintf(num_as_str, "%ld", max_upc_block_size);
-  (void)enter_predef_macro(num_as_str, "UPC_MAX_BLOCK_SIZE", 
+  num_buff.reset_to(max_upc_block_size);
+  (void)enter_predef_macro(num_buff.as_temp_characters(), "UPC_MAX_BLOCK_SIZE",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
 }  /* enter_upc_predefined_macros */

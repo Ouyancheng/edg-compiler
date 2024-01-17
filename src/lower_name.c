@@ -2180,26 +2180,22 @@ call of reserve_space_for_length.  *length_reservation contains the
 information returned from that call.
 */
 {
-  sizeof_t length, length_length;
-  char     *length_pos;
-  char     buffer[20];
-
   /* Determine the length, and the number of digits needed to
      represent the length. */
-  length = mctl->length - length_reservation->start_length;
-  (void)sprintf(buffer, "%lu", (unsigned long)length);
-  length_length = strlen(buffer);
-  if (length_length > NUM_CHARS_RESERVED_FOR_LENGTH) {
+  sizeof_t        length = mctl->length - length_reservation->start_length;
+  a_number_buffer buffer(length);
+  if (buffer.length() > NUM_CHARS_RESERVED_FOR_LENGTH) {
     catastrophe(ec_mangled_name_too_long);
   }  /* if */
+
   /* Determine the position of the start of the length in the buffer. */
-  length_pos = mangling_text_buffer->buffer +
-               length_reservation->start_position;
+  char *length_pos = mangling_text_buffer->buffer +
+                     length_reservation->start_position;
   /* Copy the length. */
-  (void)memcpy(length_pos, buffer, size_t_arg(length_length));
+  (void)memcpy(length_pos, buffer.as_temp_characters(), buffer.length());
   /* The characters overwritten are no longer leftover spaces. */
-  mctl->length += length_length;
-  mctl->num_leftover_spaces -= length_length;
+  mctl->length += buffer.length();
+  mctl->num_leftover_spaces -= buffer.length();
 }  /* fill_in_length */
 
 #endif /* !IA64_ABI */
@@ -3141,8 +3137,8 @@ for specifying the length (which can be ambiguous in some cases).
 */
 {
 #if !IA64_ABI
-  char     *str;
-  sizeof_t str_length, added = 0, subtracted = 0;
+  a_number_buffer str;
+  sizeof_t        added = 0, subtracted = 0;
 
   /* The Cfront-like ABI encoding for a floating point value is:
        4n1p5 <-- encoding for "-1.5"
@@ -3152,51 +3148,79 @@ for specifying the length (which can be ambiguous in some cases).
      cfront 3.0.1 does not implement this, so we made it up. */
   str = fp_to_string(float_kind, value, (a_boolean *)NULL, (a_boolean *)NULL,
                      (a_boolean *)NULL);
-  str_length = strlen(str);  /* Includes "-" sign if any. */
   /* Remove unnecessary trailing zeroes, e.g., change
      "1.50000e+10" to "1.5    e+10".  The blanks are then dropped
      in the copy below. */
-  { char *p = strchr(str, '.'), *last_signif;
-    if (p != NULL) {
+  { Opt<size_t>  opt_last_signif;
+    Opt<size_t>  opt_last_digit;
+    Opt<size_t>  opt_dot_pos;
+
+    for (size_t i = 0; i < str.length(); ++i) {
+      if (!opt_dot_pos.has_value()) {
+        if (str[i] == '.') {
+          opt_dot_pos = i;
+        }  /* if */
+        continue;
+      }  /* if */
       /* There is a decimal point.  Find the last significant digit
          following the decimal point. */
       /* The first digit after the decimal is considered significant even
          if it is a zero. */
-#if !USE_HOST_FP_CONVERSION_ROUTINES
-      char *dot = p;
-#endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
-      for (last_signif = ++p; isdigit((unsigned char)*p); p++) /*lint !e443*/ {
-        if (*p != '0') last_signif = p;
-      }  /* for */
-      /* Change any insignificant zeroes to blanks. */
-      while (last_signif < --p) {
-        *p = ' ';
-        subtracted++;
-      }  /* while */
-#if !USE_HOST_FP_CONVERSION_ROUTINES
-      p = strchr(str, 'E');
-      if (p != NULL && isdigit((unsigned char)p[1])) {
-        /* A "p" will be added below, so adjust the length of the constant. */
-        added = 1;
+      if (isdigit(str[i])) {
+        if (str[i] != '0') {
+          opt_last_signif = i;
+        }  /* if */
+        opt_last_digit = i;
       }  /* if */
+    }  /* for */
+    /* Change any insignificant zeroes to blanks. */
+    if (opt_last_digit.has_value()) {
+      check_assertion(opt_last_signif.has_value());
+      size_t last_signif = *opt_last_signif;
+      size_t last_digit = *opt_last_digit;
+
+      while (last_signif < --last_digit) {
+        str[last_digit] = ' ';
+        ++subtracted;
+      }  /* if */
+    }  /* if */
+#if !USE_HOST_FP_CONVERSION_ROUTINES
+    if (opt_dot_pos.has_value()) {
+      Opt<size_t> opt_e_pos;
+
+      for (size_t i = 0; i < str.length(); ++i) {
+        if (str[i] == 'E') {
+          if (isdigit(str[i + 1])) {
+            /* A "p" will be added below, so adjust the length of the
+               constant. */
+            added = 1;
+          }  /* if */
+          opt_e_pos = i;
+          break;
+        }  /* if */
+      }  /* for */
+
       /* For cases like "1.0E20", the native conversion routines don't emit the
-         ".0" but the internal conversion routines do, so remove the ".0"
-         (by overwriting with spaces) to keep the mangled names the same. */
-      if (p != NULL && last_signif == dot+1 && dot[1] == '0') {
-        dot[0] = ' ';
-        dot[1] = ' ';
+         ".0" but the internal conversion routines do, so remove the ".0" (by
+         overwriting with spaces) to keep the mangled names the same. */
+      size_t dot_pos = *opt_dot_pos;
+      if (opt_e_pos.has_value() && opt_last_signif.has_value() &&
+          *opt_last_signif == dot_pos + 1 && str[dot_pos + 1] == '0') {
+        str[dot_pos]     = ' ';
+        str[dot_pos + 1] = ' ';
         subtracted += 2;
       }  /* if */
-#endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
     }  /* if */
+#endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
   }
   /* Put out the length of the string (taking into account characters that
      have been either removed or added). */
-  store_digits_and_underscore((unsigned long)(str_length + added - subtracted),
-                              old_form, mctl);
-  while (str_length > 0) {
+  store_digits_and_underscore(
+                            (unsigned long)(str.length() + added - subtracted),
+                            old_form, mctl);
+  for (size_t i = 0; i < str.length(); ++i) {
     /* Move the string and recode non-alphanumeric characters. */
-    char c = *str++;
+    char c = str[i++];
     if (c == ' ') {
       /* A blank is an insignificant digit removed above. */
     } else {
@@ -3225,13 +3249,13 @@ for specifying the length (which can be ambiguous in some cases).
       }  /* if */
 #endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
     }  /* if */
-    str_length--;
-  }  /* while */
+  }  /* for */
 #else /* IA64_ABI */
   /* The IA-64 ABI specifies that a floating point value be encoded as a
      hexadecimal string for the constant value, high-order bytes first,
      using lower-case hexadecimal letters. */
-  add_str_to_mangled_name(fp_to_hex_string(float_kind, value), mctl);
+  a_number_buffer hex_str = fp_to_hex_string(float_kind, value);
+  add_str_to_mangled_name(hex_str.as_temp_characters(), mctl);
 #endif /* !IA64_ABI */
 }  /* add_float_value_to_mangled_name */
 
@@ -3381,20 +3405,18 @@ string, i.e., "0").
 }  /* mangled_name_with_length */
 
 
-static void mangled_encoding_for_integer(char                     *str,
+static void mangled_encoding_for_integer(a_number_buffer          &buffer,
                                          ARG_UNUSED a_type_ptr    type,
                                          ARG_UNUSED a_boolean     old_form,
                                          a_mangling_control_block *mctl)
 /*
 Emit a mangled encoding for the integer whose value is represented by the
-"str" string and whose type is specified by "type".  If old_form is TRUE use
+number buffered and whose type is specified by "type".  If old_form is TRUE use
 the old form for encoding literals.  The type is unused in the Cfront ABI and
 old_form is unused in the IA-64 ABI.
 */
 {
 #if !IA64_ABI
-  sizeof_t            str_length;
-
   /* Integer: the encoding is like
        L3n12  <-- encoding for "-12"
           ^^----- Literal value.
@@ -3403,11 +3425,10 @@ old_form is unused in the IA-64 ABI.
        ^--------- "L" indicates a number.
      This is compatible with cfront 3.0.1. */
   /* Use "n" to represent a minus sign. */
-  if (str[0] == '-') str[0] = 'n';
-  str_length = strlen(str);  /* Includes "-" sign if any. */
+  if (buffer[0] == '-') buffer[0] = 'n';
   add_to_mangled_name('L', mctl);
-  store_digits_and_underscore((unsigned long)str_length, old_form, mctl);
-  add_str_to_mangled_name(str, mctl);
+  store_digits_and_underscore((unsigned long)buffer.length(), old_form, mctl);
+  add_str_to_mangled_name(buffer.as_temp_characters(), mctl);
 #else /* IA64_ABI */
   /* Integer: the encoding is
        L <type> <value number> E
@@ -3416,11 +3437,11 @@ old_form is unused in the IA-64 ABI.
   add_to_mangled_name('L', mctl);
   mangled_encoding_for_type(type, mctl);
   /* Use "n" to represent a minus sign. */
-  if (str[0] == '-') str[0] = 'n';
+  if (buffer[0] == '-') buffer[0] = 'n';
   if (!is_or_was_nullptr_type(type)) {
-    /* As a special case, nullptr is mangled without the value 
+    /* As a special case, nullptr is mangled without the value
        (i.e., "L Dn E"). */
-    add_str_to_mangled_name(str, mctl);
+    add_str_to_mangled_name(buffer.as_temp_characters(), mctl);
   }  /* if */
   add_to_mangled_name('E', mctl);
 #endif /* IA64_ABI */
@@ -3619,8 +3640,7 @@ to the mangled name as such:
       add_to_mangled_name('C', mctl);
       mangled_encoding_for_type(integer_type(targ_ptrdiff_t_int_kind), mctl);
 #endif /* !IA64_ABI */
-      char buffer[50];
-      (void)sprintf(buffer, "%ld", (long)path->variant.ptr_offset);
+      a_number_buffer buffer(path->variant.ptr_offset);
       mangled_encoding_for_integer(buffer,
                                    integer_type(targ_ptrdiff_t_int_kind),
                                    /*old_form=*/FALSE,
@@ -4249,9 +4269,7 @@ specification in the mangling for lengths of literals.
 */
 {
 #if !IA64_ABI
-  sizeof_t     str_length;
-  a_const_char *str;
-  char         buffer[50];
+  a_number_buffer buffer;
 
   /* Pointer to member:
      For pointers to data members, the offset value encoded as an integer:
@@ -4276,14 +4294,13 @@ specification in the mangling for lengths of literals.
     /* Pointer to data member. */
     a_targ_ptrdiff_t delta;
     repr_for_ptr_to_data_member_constant(con, &delta);
-    (void)sprintf(buffer, "%ld", (long)delta);
-    str = buffer;
+    buffer.reset_to(delta);
     /* Use "n" to represent a minus sign. */
-    if (str[0] == '-') ((char *)str)[0] = 'n';
-    str_length = strlen(str);  /* Includes "-" sign if any. */
+    if (buffer[0] == '-') buffer[0] = 'n';
     add_to_mangled_name('L', mctl);
-    store_digits_and_underscore((unsigned long)str_length, old_form, mctl);
-    add_str_to_mangled_name(str, mctl);
+    store_digits_and_underscore((unsigned long)buffer.length(), old_form,
+                                mctl);
+    add_str_to_mangled_name(buffer.as_temp_characters(), mctl);
   } else {
     /* Pointer to member function. */
     a_targ_ptrdiff_t delta, idx, offset;
@@ -4293,21 +4310,18 @@ specification in the mangling for lengths of literals.
                                              &offset);
     add_str_to_mangled_name("LM", mctl);
     /* Delta value. */
-    (void)sprintf(buffer, "%ld", (long)delta);
-    str = buffer;
+    buffer.reset_to(delta);
     /* Use "n" to represent a minus sign. */
-    if (str[0] == '-') ((char *)str)[0] = 'n';
-    str_length = strlen(str);  /* Includes "-" sign if any. */
-    add_str_to_mangled_name(str, mctl);
+    if (buffer[0] == '-') buffer[0] = 'n';
+    add_str_to_mangled_name(buffer.as_temp_characters(), mctl);
     /* Index value. */
-    (void)sprintf(buffer, "%ld", (long)idx);
-    str = buffer;
+    buffer.reset_to(idx);
     /* Use "n" to represent a minus sign. */
-    if (str[0] == '-') ((char *)str)[0] = 'n';
-    str_length = strlen(str);  /* Includes "-" sign if any. */
+    if (buffer[0] == '-') buffer[0] = 'n';
     add_str_to_mangled_name("_L", mctl);
-    store_digits_and_underscore((unsigned long)str_length, old_form, mctl);
-    add_str_to_mangled_name(str, mctl);
+    store_digits_and_underscore((unsigned long)buffer.length(), old_form,
+                                mctl);
+    add_str_to_mangled_name(buffer.as_temp_characters(), mctl);
     add_to_mangled_name('_', mctl);
     if (func != NULL) {
       a_length_reservation length_reservation;
@@ -4336,10 +4350,12 @@ specification in the mangling for lengths of literals.
                               mctl);
       } else {
         /* Use a simple name (no class or namespace information). */
-        str = unmangled_or_fabricated_name_of(&func->source_corresp);
+        a_const_char *str =
+                        unmangled_or_fabricated_name_of(&func->source_corresp);
+
         check_assertion(str != NULL);
         /* Output the name.  Stop on two underscores. */
-        for (str_length = 0;
+        for (size_t str_length = 0;
              str[str_length] != '\0' &&
                (str[str_length] != '_' || str[str_length+1] != '_');
              str_length++) {
@@ -4526,15 +4542,9 @@ operator on some template constants when suppress_address_of is TRUE
         break;
       }  /* if */
 #endif /* IA64_ABI */
-      { Small_string<50> value(decimal_str_for_integer_constant(con));
-        /* Note that the string for the integer constant is copied here
-           (because in some cases the buffer that
-           decimal_str_for_integer_constant uses can be reused and
-           overwritten).  Note also that the "const" is cast away here because
-           mangled_encoding_for_integer might overwrite the buffer (though
-           the number of characters remains the same). */
-        mangled_encoding_for_integer((char *)value.as_temp_characters(),
-                                     con->type, old_form, mctl);
+      { a_number_buffer value = decimal_str_for_integer_constant(con);
+
+        mangled_encoding_for_integer(value, con->type, old_form, mctl);
       }
       break;
     case ck_float:
@@ -4842,7 +4852,7 @@ operation that is part of certain template constants is suppressed
 
 #if IA64_ABI && ABI_COMPATIBILITY_VERSION < 402
 
-static char *bad_mangled_expr_operator_name(an_expr_node_ptr expr)
+static Small_string<50> bad_mangled_expr_operator_name(an_expr_node_ptr expr)
 /*
 expr has an expression operator that is not ordinarily valid in an IA-64
 mangled name but is allowed under a sizeof expression.  Return the
@@ -4850,8 +4860,7 @@ operator name mangling.  This is only used in versions prior to 4.2
 (in 4.2 and later, all operators should have mangled encodings).
 */
 {
-  unsigned long    num_operands;
-  static char      buffer[50];
+  unsigned long num_operands;
 
   /* We expect these names only in nonreal class types and prototype
      instantiations when MANGLE_ALL_NAMES and PROTOTYPE_INSTANTIATIONS_IN_IL
@@ -4866,8 +4875,7 @@ operator name mangling.  This is only used in versions prior to 4.2
      operands will not demangle correctly. */
   if (num_operands > 9) num_operands = 9;
   /* Use the IA-64 ABI form for a vendor extended operator of "unknown". */
-  (void)sprintf(buffer, "v%lu7unknown", num_operands);
-  return buffer;
+  return Small_string<50>("v", num_operands, "7unknown");
 }  /* bad_mangled_expr_operator_name */
 
 #endif /* IA64_ABI && ABI_COMPATIBILITY_VERSION < 402 */
@@ -6904,10 +6912,12 @@ is TRUE.
           }  /* if */
 #endif /* CHECKING */
 #if IA64_ABI && ABI_COMPATIBILITY_VERSION < 402
-          operation_name = bad_mangled_expr_operator_name(expr);
+          Small_string<50> bad_name = bad_mangled_expr_operator_name(expr);
+          add_str_to_mangled_name(bad_name.as_temp_characters(), mctl);
 #endif /* IA64_ABI && ABI_COMPATIBILITY_VERSION < 402 */
+        } else {
+          add_str_to_mangled_name(operation_name, mctl);
         }  /* if */
-        add_str_to_mangled_name(operation_name, mctl);
 #if !IA64_ABI
         /* The Cfront mangling has different mangled names to distinguish
            prefix and postfix unary operators. */
@@ -7715,8 +7725,8 @@ returned (so mangling can proceed), but mctl->lacking_module_id is set so the
 mangled name will eventually be discarded.  
 */
 {
-  a_const_char    *name;
-  char            buffer[50];
+  a_const_char     *name;
+  Small_string<50> buffer;
 
   check_assertion(is_immediate_class_type(type) ||
                   is_immediate_enum_type(type));
@@ -7735,12 +7745,16 @@ mangled name will eventually be discarded.
          */
       type->source_corresp.name_has_been_mangled = TRUE;
       type->source_corresp.unnamed_entity_given_fabricated_name = TRUE;
-      (void)sprintf(buffer,
-                    is_immediate_class_type(type) ? "__C%lu" : "__E%lu",
-                    (unsigned long)num);
-      name = alloc_lowered_name_string(strlen(buffer) + 1);
-      (void)strcpy((char *)name, buffer);
-      type->source_corresp.name = name;
+      if (is_immediate_class_type(type)) {
+        buffer.reset_to("__C", num);
+      } else {
+        buffer.reset_to("__E", num);
+      }  /* if */
+
+      char *allocated_name = alloc_lowered_name_string(buffer.length() + 1);
+      buffer.write_to_buffer(allocated_name, buffer.length() + 1);
+      type->source_corresp.name = allocated_name;
+      name = allocated_name;
 #if !IA64_ABI
     } else {
       /* In the Cfront ABI, all unnamed types are assigned generated names
@@ -7920,20 +7934,15 @@ static void give_unnamed_member_variable_a_name(a_variable_ptr var)
 If the indicated member variable is unnamed, give it a name.
 */
 {
-  char     *name;
-  sizeof_t name_len;
-  char     buffer[50];
-
   if (var->source_corresp.name == NULL) {
     /* The member variable is unnamed, so make up a name. */
     /* The name is __Vnn, where nn is a unique number for the
        member variable.  This is not from the ARM or cfront. */
     unnamed_member_variable_name_seed++;
-    (void)sprintf(buffer, "__V%lu",
-                  (unsigned long)unnamed_member_variable_name_seed);
-    name_len = strlen(buffer) + 1;
-    name = alloc_lowered_name_string(name_len);
-    (void)strcpy(name, buffer);
+
+    Small_string<50> buffer("__V", unnamed_member_variable_name_seed);
+    char             *name = alloc_lowered_name_string(buffer.length() + 1);
+    buffer.write_to_buffer(name, buffer.length() + 1);
     var->source_corresp.name = name;
     var->source_corresp.unmangled_name_or_mangled_encoding = name;
     var->source_corresp.name_has_been_mangled = TRUE;
@@ -11488,12 +11497,42 @@ returned string to an appropriate buffer before this routine is invoked again.
       { /* The mangling for this operation uses the IA-64 ABI vendor extended
            operator mangling which imposes a limit that the number of operands
            must fit in a single digit (i.e., be no greater than 9). */
-        static char buffer[50];
         num_operands = (unsigned int)number_of_operands_in_list(
                                              expr->variant.operation.operands);
         if (num_operands > 9) num_operands = 9;
-        (void)sprintf(buffer, "v%u12clisubscript", num_operands);
-        name = buffer;
+        switch (num_operands) {
+          case 0:
+            name = "v012clisubscript";
+            break;
+          case 1:
+            name = "v112clisubscript";
+            break;
+          case 2:
+            name = "v212clisubscript";
+            break;
+          case 3:
+            name = "v312clisubscript";
+            break;
+          case 4:
+            name = "v412clisubscript";
+            break;
+          case 5:
+            name = "v512clisubscript";
+            break;
+          case 6:
+            name = "v612clisubscript";
+            break;
+          case 7:
+            name = "v712clisubscript";
+            break;
+          case 8:
+            name = "v812clisubscript";
+            break;
+          case 9:
+            name = "v912clisubscript";
+            break;
+          default_is_unexpected();
+        }  /* switch */
       }
 #else /* !IA64_ABI */
       name = MANGLING_STRING_FOR_OPERATOR_CLI_SUBSCRIPT;
@@ -15259,7 +15298,8 @@ correspondence entry for the entity whose name this is.
     sizeof_t size_of_mangled_name = mctl->length; /* Including final null. */
     sizeof_t size_of_compressed_name, prefix_length;
     sizeof_t i;
-    char     buffer[64];
+    Small_string<64>
+             buffer;
 #define NUM_BUCKETS_IN_COMPRESSION_HASH_TABLE 64
     a_compressible_string_pos_ptr
              hash_table[NUM_BUCKETS_IN_COMPRESSION_HASH_TABLE];
@@ -15334,8 +15374,9 @@ correspondence entry for the entity whose name this is.
         if (compressed) {
           /* Replace the string by "JnnnJ", where "nnn" is the position of
              the previous identical string. */
-          (void)sprintf(buffer, "J%luJ", (unsigned long)cspp->str_pos);
-          add_string_to_text_buffer(mangling_text_buffer, buffer);
+          buffer.reset_to("J", cspp->str_pos, "J");
+          add_string_to_text_buffer(mangling_text_buffer,
+                                    buffer.as_temp_characters());
           /* Continue scanning the original string after the full string
              that was compressed away. */
           src_pos += length;
@@ -15371,8 +15412,8 @@ correspondence entry for the entity whose name this is.
     }  /* for */
     /* The prefix on the compressed form is "__CPR" followed by the size
        of the original (uncompressed) name, not counting the final null. */
-    (void)sprintf(buffer, "__CPR%lu__", (unsigned long)size_of_mangled_name-1);
-    prefix_length = strlen(buffer);
+    buffer.reset_to("__CPR", size_of_mangled_name-1, "__");
+    prefix_length = buffer.length();
 #if EXPENSIVE_CHECKING
     /* Make sure the name does not already have the compression prefix in
        it.  If it does, we've used a previously compressed name in building
@@ -15399,12 +15440,14 @@ correspondence entry for the entity whose name this is.
         check_assertion(start_of_compressed_name >= prefix_length);
         compr_name = mangling_text_buffer->buffer+start_of_compressed_name -
                      prefix_length;
-        (void)memcpy(compr_name, buffer, size_t_arg(prefix_length));
+        (void)memcpy(compr_name, buffer.as_temp_characters(),
+                     size_t_arg(prefix_length));
       } else {
         /* The mangled name is not in mangling_text_buffer.  Allocate new IL
            memory for the compressed name, including the prefix. */
         compr_name = alloc_lowered_name_string(size_of_compressed_name);
-        (void)memcpy(compr_name, buffer, size_t_arg(prefix_length));
+        (void)memcpy(compr_name, buffer.as_temp_characters(),
+                     size_t_arg(prefix_length));
         (void)strcpy(compr_name+prefix_length,
                      mangling_text_buffer->buffer+start_of_compressed_name);
       }  /* if */
@@ -15458,8 +15501,13 @@ correspondence entry for the entity whose name this is.
       ctor_dtor_char = mctl->ctor_dtor_char;
     }  /* if */
 #endif /* IA64_ABI && ABI_COMPATIBILITY_VERSION >= 520 */
-    (void)sprintf(mangled_name+max_allowed_length, "_%c%08lx",
-                  ctor_dtor_char, crc_32(mangled_name, (unsigned long)0));
+
+    auto        hex_view = hex_view_of(crc_32(mangled_name, (unsigned long)0));
+    Small_string<SIZE_OF_TRUNCATED_SUFFIX + 1>
+                buffer("_", a_string_view(&ctor_dtor_char, 1),
+                       left_pad(8, '0', hex_view));
+    buffer.write_to_buffer(mangled_name + max_allowed_length,
+                           SIZE_OF_TRUNCATED_SUFFIX + 1);
     mctl->length = max_mangled_name_length+1;
     if (scp != NULL) {
       /* A truncated name cannot be used as part of another mangled name. */
