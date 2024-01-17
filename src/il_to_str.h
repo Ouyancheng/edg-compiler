@@ -625,8 +625,8 @@ extern void form_sun_link_scope_specifiers(
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 
 using a_temp_var_name_buffer = Small_string<50>;
-                        /* The type used for a the name of a temporary variable
-                           created for used in the C or C++-generating back
+                        /* The type used for the name of a temporary variable
+                           created for use in the C or C++-generating back
                            ends. */
 
 extern a_temp_var_name_buffer form_temporary_name_for_back_end(void *ptr);

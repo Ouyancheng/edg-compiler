@@ -8047,8 +8047,8 @@ is properly maintained.  Do the output as indicated by octl.
 }  /* form_param_ref */
 
 #endif /* BACK_END_IS_C_GEN_BE */
-#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 #if DEBUG
 
 static uintptr_t
@@ -8071,7 +8071,7 @@ static a_ptr_unique_id_map
 
 static uintptr_t generate_unique_id_for_temporary(void *ptr)
 /*
-Return a identifier unique to the current translation unit for the given IL
+Return an identifier unique to the current translation unit for the given IL
 pointer.
 */
 {
