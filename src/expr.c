@@ -8017,18 +8017,18 @@ Return NULL if the name is not found.
 
 
 static a_boolean check_valid_qualified_member_in_selection(
-                                  a_symbol_locator  *locator,
-                                  a_source_position *qualified_member_position,
-                                  a_type_ptr        class_struct_union_type,
-                                  a_boolean         is_splice = FALSE)
+                                   a_symbol_locator   *locator,
+                                   a_source_position  *diag_pos,
+                                   a_type_ptr         class_struct_union_type,
+                                   a_boolean          is_splice = FALSE)
 /*
-locator describes the right-hand operand of a selection operator, and is
-a qualified name.  Check to see that it is a member of class_struct_union_type,
-which is the class type of the left-hand operand, or of an appropriate
-base class thereof.  Issue an error if not, at qualified_member_position
-(for a case like "A::x", qualified_member_position gives the position
-of the "A", whereas the position in the locator gives the position of
-the "x").
+locator describes the right-hand operand of a selection operator, and is either
+a qualified name (when is_splice is FALSE) or the result of a splice construct
+(when is_splice is TRUE).  Check to see that it is a member of
+class_struct_union_type, which is the class type of the left-hand operand, or
+of an appropriate base class thereof.  Issue an error if not, at diag_pos (for
+a case like "A::x", diag_pos gives the position of the "A", whereas the
+position in the locator gives the position of the "x").
 */
 {
   a_boolean err = FALSE;
@@ -8046,9 +8046,7 @@ the "x").
       /* The qualified name is not the name of a class member (i.e., it's
          the name of a namespace member). */
       if (expr_error_should_be_issued()) {
-        pos_sy_error(ec_not_class_member,
-                     qualified_member_position,
-                     projection_member_sym);
+        pos_sy_error(ec_not_class_member, diag_pos, projection_member_sym);
       }  /* if */
       err = TRUE;
     } else if (class_struct_union_type->
@@ -8065,12 +8063,11 @@ the "x").
         if (expr_error_should_be_issued()) {
           if (is_splice) {
             pos_syty_error(ec_splice_is_not_a_member_of_class,
-                           qualified_member_position, projection_member_sym,
+                           diag_pos, projection_member_sym,
                            class_struct_union_type);
           } else {
             pos_ty_error(ec_name_not_member_of_class_or_base_classes,
-                         qualified_member_position,
-                         class_struct_union_type);
+                         diag_pos, class_struct_union_type);
           }  /* if */
         }  /* if */
         err = TRUE;
