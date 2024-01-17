@@ -4388,11 +4388,11 @@ combinations of fixed-point and integer values.
 
 
 static void do_fxdivide(a_constant        *constant_1,
-                          a_constant        *constant_2,
-                          a_constant        *result,
-		          a_boolean	    *did_not_fold,
-                          an_error_code     *err_code,
-                          an_error_severity *err_severity)
+                        a_constant        *constant_2,
+                        a_constant        *result,
+                        a_boolean         *did_not_fold,
+                        an_error_code     *err_code,
+                        an_error_severity *err_severity)
 /*
 Do the division operation on all types of fixed-point values, and
 combinations of fixed-point and integer values.
@@ -5587,6 +5587,31 @@ and *result is set to an integer 0 or 1 for the result.
 #endif /* DEBUG */
 }  /* do_pmcompare */
 
+
+static void do_reflection_compare(a_constant            *constant_1,
+                                  an_expr_operator_kind op,
+                                  a_constant            *constant_2,
+                                  a_constant            *result)
+/*
+Fold an equality operation on two pointer-to-member constants.  constant_1 and
+constant_2 are compared according to the indicated operator (which must be
+eok_eq or eok_ne) and *result is set to an integer 0 or 1 for the result.
+*/
+{
+  a_boolean  result_value;
+
+  check_assertion(is_reflection_type(constant_1->type) &&
+                  is_reflection_type(constant_2->type));
+  check_assertion(op == eok_eq || op == eok_ne);
+  result_value = eq_constants(constant_1, constant_2);
+  /* result_value is now set for the "==" case.  Complement it for the "!="
+     case. */
+  if (op == (an_expr_operator_kind)eok_ne) result_value = !result_value;
+  set_constant_kind(result, (a_constant_repr_kind)ck_integer);
+  set_integer_value(&result->variant.integer_value,
+                    (a_host_large_integer)result_value);
+}  /* do_reflection_compare */
+
 #if UPC_EXTENSIONS_ALLOWED
 
 static void set_integer_constant_to_upc_threads(a_constant  *ic)
@@ -6187,6 +6212,9 @@ error.  *err_pos is used as the position for any diagnostics issued.
               /* This is handled as an integer comparison, like an old-style
                  null pointer constant. */
               do_icompare(constant_1, op, constant_2, result);
+              break;
+            case tk_reflection:
+              do_reflection_compare(constant_1, op, constant_2, result);
               break;
             default:
               unexpected_condition();
