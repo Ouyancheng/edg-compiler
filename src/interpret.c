@@ -12226,6 +12226,9 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
   strip_template_arg(rvp);
   if (rvp->entity.kind == iek_param_type) {
     name = ((a_param_type*)rvp->entity.ptr)->name;
+  } else if (rvp->entity.kind == iek_base_class) {
+    name = unmangled_name_of(
+                     &((a_base_class*)rvp->entity.ptr)->type->source_corresp);
   } else {
     scp = source_corresp_for_reflection(rvp);
     if (scp == NULL) {

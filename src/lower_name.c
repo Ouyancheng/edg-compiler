@@ -4768,6 +4768,12 @@ do_unknown_function:
                             (an_expr_node*)con->variant.reflection.entity.ptr,
                             /*in_dependent_expr=*/FALSE, mctl);
             break;
+          case iek_base_class:
+            { a_base_class  *bcp = (a_base_class*)iep->ptr;
+              mangled_encoding_for_type(bcp->type, mctl);
+              mangled_encoding_for_type(bcp->derived_class, mctl);
+            }
+            break;
           // FIXME: Other cases?
           default:
             unexpected_condition_str(
