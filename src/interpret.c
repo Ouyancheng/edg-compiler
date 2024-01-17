@@ -10108,12 +10108,6 @@ length of the sequence, respectively.
       /* We found the pointer field of the infovec object: Set it to point to
          a dynamically-allocated array of length std::meta::info elements. */
       cap = (a_constexpr_address*)(result_storage+offset);
-      if (!is_initialized(cap)) {
-        more_info_diagnostic(ec_infovec_not_initialized, diag_pos,
-                             &ips->diag_list);
-        do_constexpr_fail(result);
-        goto done;
-      }  /* if */
       n_ptr_fields += 1;
     } else if (type_is(ftp, tk_integer) && n_integral_fields < 2) {
       /* The length and/or the capacity field.  Retain the shorter one as the
@@ -10143,7 +10137,12 @@ length of the sequence, respectively.
   }  /* if */
   /* Load the infovec contents. */
   check_assertion(cap != NULL);
-  if (!is_array_element(cap)) {
+  if (length != 0 && !is_initialized(cap)) {
+    more_info_diagnostic(ec_infovec_not_initialized, diag_pos,
+                         &ips->diag_list);
+    do_constexpr_fail(result);
+    goto done;
+  } else if (!is_array_element(cap)) {
     more_info_diagnostic(ec_infovec_not_initialized, diag_pos,
                          &ips->diag_list);
     do_constexpr_fail(result);
