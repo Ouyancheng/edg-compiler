@@ -2653,7 +2653,7 @@ check_label_decl_seq:
       mark_static_data_member_value_set(sym_ptr);
     }  /* if */
   }  /* if */
-  if ((gnu_mode || ms_extensions || cpp14_mode) &&
+  if ((gnu_mode || ms_extensions || cpp14_mode || c23_mode) &&
       scptr != NULL &&
       !(sym_kind == (a_symbol_kind)sk_type || is_tag_symbol_kind(sym_kind))) {
     check_use_of_deprecated_or_unavailable_entity(scptr, source_position);
