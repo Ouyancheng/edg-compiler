@@ -14830,7 +14830,7 @@ If there is an error in the copying, set *copy_error to TRUE.
        the template template parameter has a template parameter that is a
        pack. */
     if ((tpp != NULL && tpp->is_pack) ||
-        /* For explicitly specified template arguments, Clang, MSVC, and older
+        /* For explicitly-specified template arguments, Clang, MSVC, and older
            GCC versions never consider a template template argument containing
            a parameter pack to match a template template parameter with
            non-pack parameters. */
