@@ -18,7 +18,24 @@ util.h -- General utility components (mostly templates).
 
 #include <new>
 
-#include "mem_manage.h"
+/* Predeclare some functions normally declared by mem_manage.h so that util.h
+   can be used in utility programs. */
+
+/* Conditionally open the "edg" namespace. */
+BEGIN_EDG_NAMESPACE
+
+extern char *alloc_fe(sizeof_t     size);
+
+extern void free_fe(a_void_ptr   ptr,
+                    sizeof_t     size);
+
+extern char *alloc_general(sizeof_t size);
+
+extern void free_general(a_void_ptr ptr,
+                         sizeof_t   size);
+
+/* Conditionally close the "edg" namespace. */
+END_EDG_NAMESPACE
 
 #ifndef EDG_HEADER_UTIL_H
 #include "header_util.h"
@@ -799,6 +816,8 @@ struct Buffered_allocator {
                          a_size        n_to_move) -> an_allocation;
   inline void dealloc(an_allocation allocation);
 private:
+  inline auto local_alloc(a_size n) -> an_allocation;
+  inline auto fallback_alloc(a_size n) -> an_allocation;
   a_fallback_allocator
                 fallback_allocator;
                         /* The fallback allocator used when the local buffer is
@@ -826,6 +845,50 @@ template<unsigned a_Capacity,
          template<typename> class a_Fallback_allocator,
          typename an_Elem>
 inline auto
+Buffered_allocator<a_Capacity, a_Fallback_allocator, an_Elem>::local_alloc(
+                                                                   a_size n) ->
+                                                                  an_allocation
+/*
+Allocate at least n elements of type an_Elem using space reserved in this
+allocator object and return the resulting allocation (which reflects the actual
+number of allocated elements).
+*/
+{
+  check_assertion(!this->local_used && n <= a_Capacity);
+  an_elem   *start = this->local;
+  a_ptrdiff num_allocated = n;
+
+  this->local_used = TRUE;
+  return an_allocation{start, num_allocated};
+}  /* Buffered_allocator::local_alloc */
+
+
+template<unsigned a_Capacity,
+         template<typename> class a_Fallback_allocator,
+         typename an_Elem>
+inline auto
+Buffered_allocator<a_Capacity, a_Fallback_allocator, an_Elem>::fallback_alloc(
+                                                                   a_size n) ->
+                                                                  an_allocation
+/*
+Allocate at least n elements of type an_Elem using the fallback allocator and
+return the resulting allocation (which reflects the actual number of allocated
+elements).
+*/
+{
+
+  an_allocation alloced = this->fallback_allocator.alloc(n);
+  an_elem       *start = alloced.start;
+  a_ptrdiff     num_allocated = alloced.n_allocated;
+
+  return an_allocation{start, num_allocated};
+}  /* Buffered_allocator::fallback_alloc */
+
+
+template<unsigned a_Capacity,
+         template<typename> class a_Fallback_allocator,
+         typename an_Elem>
+inline auto
 Buffered_allocator<a_Capacity, a_Fallback_allocator, an_Elem>::alloc(
                                                                    a_size n) ->
                                                                   an_allocation
@@ -834,20 +897,11 @@ Allocate at least n elements of type an_Elem and return the resulting
 allocation (which reflects the actual number of allocated elements).
 */
 {
-  an_elem   *start;
-  a_ptrdiff num_allocated;
-
   if (!this->local_used && n <= a_Capacity) {
-    this->local_used = TRUE;
-    start = this->local;
-    num_allocated = n;
+    return this->local_alloc(n);
   } else {
-    an_allocation alloced = this->fallback_allocator.alloc(n);
-
-    start = alloced.start;
-    num_allocated = alloced.n_allocated;
+    return this->fallback_alloc(n);
   }  /* if */
-  return an_allocation{start, num_allocated};
 }  /* Buffered_allocator::alloc */
 
 
@@ -1039,7 +1093,9 @@ struct Dyn_array: private Allocator<an_Elem> {
   inline void insert(an_index          i,
                      an_Input_iterator begin,
                      size_t            len);
+  inline void insert_many(an_index i, a_size num_copies, const an_elem &value);
   inline void remove(an_index i);
+  inline void remove_many(an_index i, a_size num_elements);
   inline void clear();
   void resize(a_size new_n, const an_elem  &value);
   void resize(a_size new_n, an_elem  &&value);
@@ -1397,6 +1453,37 @@ i through the end of the array are first moved len positions back.
 
 
 template<typename an_Elem, template<typename> class Allocator>
+inline void Dyn_array<an_Elem, Allocator>::insert_many(
+                                                      an_index      i,
+                                                      a_size        num_copies,
+                                                      const an_elem &value)
+/*
+Copy-insert the given number of copies of the value starting at the given
+index.  All subsequent values (if any) are first moved by the number of copies
+back.
+*/
+{
+  check_assertion(0 <= i && i <= this->n_elems);
+  a_size  orig_count = this->n_elems;
+
+  /* Ensure adequate capacity for the bulk insert operation. */
+  this->reserve(orig_count + num_copies);
+
+  an_elem  *arr_elems = this->elems;
+  /* Move the existing elements past the inserted copies. */
+  for (an_index k = orig_count - 1; k >= i; --k) {
+    construct(arr_elems + k + num_copies, move_from(arr_elems + k));
+    destroy(arr_elems + k);
+  }  /* for */
+  /* Construct the new elements. */
+  for (an_index k = 0; k < num_copies; ++k) {
+    construct(arr_elems + i + k, value);
+  }  /* for */
+  this->n_elems += num_copies;
+}  /* Dyn_array::insert_many */
+
+
+template<typename an_Elem, template<typename> class Allocator>
 inline void Dyn_array<an_Elem, Allocator>::remove(an_index  i)
 /*
 Destroy the entry at the given index.  All subsequent values (if any) are moved
@@ -1413,6 +1500,31 @@ one position down.
     destroy(arr_elems+k+1);
   }  /* for */
 }  /* Dyn_array::remove */
+
+
+template<typename an_Elem, template<typename> class Allocator>
+inline void Dyn_array<an_Elem, Allocator>::remove_many(an_index i,
+                                                       a_size   num_elements)
+/*
+Remove the given number of elements starting at the given index.  All
+subsequent values (if any) are first moved by the number of copies back.
+*/
+{
+  check_assertion(0 <= i && i + num_elements <= this->n_elems);
+  a_size  orig_count = this->n_elems;
+  an_elem *arr_elems = this->elems;
+
+  /* Destroy the elements. */
+  for (an_index k = 0; k < num_elements; ++k) {
+    destroy(arr_elems + i + k);
+  }  /* for */
+  /* Move any elements past the point of removal back. */
+  for (an_index k = i + num_elements; k < orig_count; ++k) {
+    construct(arr_elems + k - num_elements, move_from(arr_elems + k));
+    destroy(arr_elems + k);
+  }  /* for */
+  this->n_elems -= num_elements;
+}  /* Dyn_array::remove_many */
 
 
 template<typename an_Elem, template<typename> class Allocator>
@@ -2773,6 +2885,10 @@ such element is found.
 }  /* array_bin_search */
 
 
+template<template<typename> class Allocator>
+struct Allocated_string;
+
+
 /*
 A struct representing a char*-based string of a given length.
 */
@@ -2786,11 +2902,235 @@ struct a_string_view {
     {}
 };  /* a_string_view */
 
+namespace detail {
 
-template<template<typename> class Allocator>
-struct Allocated_string;
+/*
+A struct used for formatting the given value in a hexadecimal representation.
+This type should not be named outside of util.h.
+*/
+template<typename a_Type>
+struct Hex_view {
+  a_Type        value;  /* The value to be formatted in hex. */
+  Hex_view(a_Type value_to_format)
+    : value(value_to_format)
+    {}
+};  /* Hex_view */
+
+
+/*
+A struct used for formatting a given value as a octl value.
+This type should not be named outside of util.h.
+*/
+struct an_octl_view {
+  unsigned long long
+                value;  /* The value to be formatted in octl. */
+  an_octl_view(unsigned long long value_to_format)
+    : value(value_to_format)
+    {}
+};  /* Octl_view */
+
+
+/*
+Used to represent textual alignment for a padded string.a
+This type should not be named outside of util.h.
+*/
+enum a_text_alignment {
+  ta_left,  /* The text shall be on the left. */
+  ta_right  /* The text shall be on the right. */
+};
+
+
+/*
+A struct used for aligning the formatting inner text as a string.
+This type should not be named outside of util.h.
+*/
+template<typename a_Value_type>
+struct Padded_string {
+  a_text_alignment
+                alignment;
+                        /* The alignment of the given string. */
+  size_t        width;  /* The desired width of the string. */
+  char          padding_char;
+                        /* The character used for padding. */
+  a_Value_type  value;  /* The value to convert to text and then align. */
+  Padded_string(a_text_alignment   text_alignment,
+                size_t             text_width,
+                char               text_padding_char,
+                const a_Value_type &value_to_format)
+    : alignment(text_alignment), width(text_width),
+      padding_char(text_padding_char), value(value_to_format)
+    {}
+};  /* Padded_string */
+
+}  /* detail */
+
+template<typename a_Type>
+inline detail::Hex_view<a_Type> hex_view_of(a_Type value)
+/*
+*/
+{
+  return detail::Hex_view<a_Type>(value);
+}  /* hex_view_of */
+
+
+inline detail::an_octl_view octl_view_of(unsigned long long value)
+/*
+*/
+{
+  return detail::an_octl_view(value);
+}  /* octl_view_of */
+
+
+template<typename a_Value_type>
+inline detail::Padded_string<a_Value_type>
+left_pad(size_t             width,
+         char               padding_char,
+         const a_Value_type &value)
+/*
+Return a Padded_string configured to align the given string text to be the
+given width.  If the given string text is not at least width characters long
+padding of the given character will be added on the left side until it is the
+appropriate size.
+*/
+{
+  return detail::Padded_string<a_Value_type>(detail::ta_right, width,
+                                             padding_char, value);
+}  /* left_pad */
+
+
+template<typename a_Value_type>
+inline detail::Padded_string<a_Value_type>
+right_pad(size_t             width,
+          char               padding_char,
+          const a_Value_type &value)
+/*
+Return a Padded_string configured to align the given string text to be the
+given width.  If the given string text is not at least width characters long
+padding of the given character will be added on the right side until it is the
+appropriate size.
+*/
+{
+  return detail::Padded_string<a_Value_type>(detail::ta_left, width,
+                                             padding_char, value);
+}  /* right_pad */
+
+
+template<typename an_Integral_type>
+inline constexpr
+Enable_if<sizeof(an_Integral_type) == sizeof(uint32_t) &&
+          an_Integral_type(-1) < an_Integral_type(0), int32_t>
+max_integral_value()
+/*
+Return the maximum value of a 32-bit signed integer.
+*/
+{
+  return INT32_MAX;
+}  /* max_integral_value */
+
+
+template<typename an_Integral_type>
+inline constexpr
+Enable_if<sizeof(an_Integral_type) == sizeof(uint64_t) &&
+          an_Integral_type(-1) < an_Integral_type(0), int64_t>
+max_integral_value()
+/*
+Return the maximum value of a 64-bit signed integer.
+*/
+{
+  return INT64_MAX;
+}  /* max_integral_value */
+
+
+template<typename an_Integral_type>
+inline constexpr
+Enable_if<sizeof(an_Integral_type) == sizeof(uint32_t) &&
+          !(an_Integral_type(-1) < an_Integral_type(0)), uint32_t>
+max_integral_value()
+/*
+Return the maximum value of a 32-bit unsigned integer.
+*/
+{
+  static_assert(!(an_Integral_type(-1) < an_Integral_type(0)),
+                "integer type must be unsigned");
+  return UINT32_MAX;
+}  /* max_integral_value */
+
+
+template<typename an_Integral_type>
+inline constexpr
+Enable_if<sizeof(an_Integral_type) == sizeof(uint64_t) &&
+          !(an_Integral_type(-1) < an_Integral_type(0)), uint64_t>
+max_integral_value()
+/*
+Return the maximum value of a 64-bit unsigned integer.
+*/
+{
+  return UINT64_MAX;
+}  /* max_integral_value */
+
+
+template<typename an_Integral_type>
+inline constexpr size_t integral_digits(an_Integral_type value,
+                                        size_t           base)
+/*
+Given a value, return the number of digits required to represent for a
+numbering system with the given base.  Note this function does not count the
+negative sign as a digit (i.e., 3 and -3 are both considered 1 digit).
+*/
+{
+  return value != 0 && (value / base) != 0 ?
+    (1 + integral_digits(an_Integral_type(value / base), base)) :
+    1;
+}  /* integral_digits */
+
+
+template<typename an_Integral_type>
+inline size_t max_integral_digits()
+/*
+Compute the maximum number of digits a given unsigned integral type can hold.
+Note this function does not count the negative sign as a digit (i.e., 3 and -3
+are both considered 1 digit).
+*/
+{
+  constexpr size_t result = integral_digits(
+                                        max_integral_value<an_Integral_type>(),
+                                        size_t_arg(10));
+
+  return result;
+}  /* max_integral_digits */
 
 namespace detail {
+
+template<typename ...a_Format_arg>
+inline int snprintf_impl(char         *dest_buff,
+                         size_t       dest_buff_size,
+                         a_const_char *format_str,
+                         a_Format_arg ...args)
+/*
+Given the buffer to write to, the size of the buffer, the formatting string,
+and the formatting string arguments, write the desired formatted string to
+dest_buff with a terminating null character.  The number of characters written
+(not including the terminating null character) is returned upon success.  If an
+error occurs or the buffer was not sufficiently large an unspecified negative
+value will be returned.
+*/
+{
+  check_assertion(dest_buff != NULL && dest_buff_size > 0);
+#if EDG_WIN32
+  return sprintf_s(dest_buff, dest_buff_size, format_str, args...);
+#else /* !EDG_WIN32 */
+  int result = snprintf(dest_buff, dest_buff_size, format_str, args...);
+
+  if (result >= 0 && size_t_arg(result) >= dest_buff_size) {
+    /* If this occurs, the number of characters required exceeds the size of
+       the buffer.  To match the Windows sprintf_s behavior, return -1 in place
+       of the number of characters that would have been written.  */
+    result = -1;
+  }  /* if */
+  return result;
+#endif /* EDG_WIN32 */
+}  /* snprintf_impl */
+
 
 /*
 A forward declaration of a type specialized to handle converting different
@@ -2807,6 +3147,46 @@ Each specialization should implement two functions:
 */
 template<typename a_Type>
 struct String_formatter;
+
+
+/*
+Delegate the given type to the delegate_type string formatter.  This macro
+is undefined at the end of the namespace.
+*/
+#define DELEGATE_FORMATTER(type, delegate_type) \
+  template<> \
+  struct String_formatter<type> : String_formatter<delegate_type> { \
+  };  /* String_formatter */
+
+
+template<typename a_Dyn_array, typename ...a_Format_arg>
+inline void append_using_c_formatting(a_const_char *formatting_str,
+                                      a_Dyn_array  &underlying_array,
+                                      size_t       size_hint,
+                                      a_Format_arg ...args)
+/*
+Append the characters of the formatted string produced by the given formatting
+string and associated arguments arguments into the underlying array.  size_hint
+is an overestimate (i.e., maximum) number of characters this value might use
+(plus a temporary null character -- for use by snprintf_impl).
+*/
+{
+  size_t orig_size = underlying_array.length();
+
+  /* Create space in the underlying array to write the arguments. */
+  underlying_array.resize(orig_size + size_hint, '\0');
+
+  /* Write the formatted string. */
+  auto buff_ptr = &underlying_array[orig_size];
+  int  chars_written = snprintf_impl(buff_ptr, size_hint, formatting_str,
+                                     args...);
+  /* If this assertion fails, there was an error writing the string. */
+  check_assertion(chars_written > 0);
+  /* Remove any extra characters (including the terminating null character
+     added by snprintf_impl). */
+  underlying_array.resize(orig_size + chars_written, '\0');
+}  /* append_using_c_formatting */
+
 
 /*
 A string formatter for char* (C-string) values.
@@ -2926,13 +3306,222 @@ underlying array.  size_hint is unused.
 
 
 /*
-A string formatter (and associated recursive specializations) for unsigned long
-long, unsigned long, and unsigned values.
+A string formatter for Padded_string values.
+*/
+template<typename a_Value_type>
+struct String_formatter<Padded_string<a_Value_type>> {
+  static size_t size_hint_of(const Padded_string<a_Value_type> &value)
+    { return value.width; }
+  template<typename a_Dyn_array>
+  static inline void append_into(
+                           a_Dyn_array                       &underlying_array,
+                           const Padded_string<a_Value_type> &value,
+                           size_t                            size_hint);
+};  /* String_formatter */
+
+
+template<typename a_Value_type>
+template<typename a_Dyn_array>
+void String_formatter<Padded_string<a_Value_type>>::append_into(
+                           a_Dyn_array                       &underlying_array,
+                           const Padded_string<a_Value_type> &value,
+                           ARG_UNUSED size_t                 size_hint)
+/*
+Append the characters representing in the given padded string value into the
+underlying array.  size_hint is unused.
+*/
+{
+  size_t original_size = underlying_array.length();
+  size_t delegate_estimate =
+                     String_formatter<a_Value_type>::size_hint_of(value.value);
+
+  String_formatter<a_Value_type>::append_into(underlying_array, value.value,
+                                              delegate_estimate);
+
+  size_t num_chars_added = underlying_array.length() - original_size;
+  size_t num_chars = 0;
+  /* If this assertion fails, the delegate value is larger than the width of
+     the padded string.  The width should be increased to accomidate the larger
+     size or the logic bug resulting in the the overflow should be
+     corrected. */
+  check_assertion(num_chars_added <= value.width);
+  if (value.width > num_chars_added) {
+    num_chars = value.width - num_chars_added;
+  }  /* if */
+  if (value.alignment == ta_right) {
+    /* The text needs to be on the right, so add characters before adding the
+       text. */
+    underlying_array.insert_many(original_size, num_chars, value.padding_char);
+  } else if (value.alignment == ta_left) {
+    /* The text needs to be on the left, so add characters after adding the
+       text. */
+    underlying_array.insert_many(underlying_array.length(), num_chars,
+                                 value.padding_char);
+  }  /* if */
+}  /* append_into */
+
+
+/*
+A string formatter (and associated delegates) Hex_view<unsigned long long>,
+Hex_view<unsigned long>, Hex_view<unsigned>, and Hex_view<unsigned short>
+values.
+*/
+template<>
+struct String_formatter<Hex_view<unsigned long long>> {
+  template<typename a_Type>
+  static size_t size_hint_of(Hex_view<a_Type> value)
+    { return integral_digits(value.value, size_t_arg(16)) + 1; }
+  template<typename a_Dyn_array, typename a_Type>
+  static inline void append_into(a_Dyn_array          &underlying_array,
+                                 Hex_view<a_Type>     value,
+                                 size_t               size_hint);
+};  /* String_formatter */
+
+
+DELEGATE_FORMATTER(Hex_view<unsigned long>,  Hex_view<unsigned long long>)
+DELEGATE_FORMATTER(Hex_view<unsigned>,       Hex_view<unsigned long long>)
+DELEGATE_FORMATTER(Hex_view<unsigned short>, Hex_view<unsigned long long>)
+
+
+template<typename a_Dyn_array, typename a_Type>
+void String_formatter<Hex_view<unsigned long long>>::append_into(
+                                        a_Dyn_array          &underlying_array,
+                                        Hex_view<a_Type>     value,
+                                        size_t               size_hint)
+/*
+Append the characters representing in the given integral value into the
+underlying array in hex format.  size_hint is an overestimate (i.e., maximum)
+number of characters this value might use.
+*/
+{
+  append_using_c_formatting("%llx", underlying_array, size_hint,
+                            (unsigned long long)value.value);
+}  /* append_into */
+
+
+/*
+A string formatter for Hex_view<double> values.
+*/
+template<>
+struct String_formatter<Hex_view<double>> {
+  static size_t size_hint_of(ARG_UNUSED Hex_view<double> value)
+    { return 49; }
+  template<typename a_Dyn_array>
+  static inline void append_into(a_Dyn_array      &underlying_array,
+                                 Hex_view<double> value,
+                                 size_t           size_hint);
+};  /* String_formatter */
+
+
+template<typename a_Dyn_array>
+void String_formatter<Hex_view<double>>::append_into(
+                                            a_Dyn_array      &underlying_array,
+                                            Hex_view<double> value,
+                                            size_t           size_hint)
+/*
+Append the characters representing in the given double value into the
+underlying array in exponential hex format.  size_hint is an overestimate
+(i.e., maximum) number of characters this value might use.
+*/
+{
+  append_using_c_formatting("%a", underlying_array, size_hint, value.value);
+}  /* append_into */
+
+
+/*
+A string formatter for Hex_view<long double> values.
+*/
+template<>
+struct String_formatter<Hex_view<long double>> {
+  static size_t size_hint_of(ARG_UNUSED Hex_view<long double> value)
+    { return 49; }
+  template<typename a_Dyn_array>
+  static inline void append_into(a_Dyn_array           &underlying_array,
+                                 Hex_view<long double> value,
+                                 size_t                size_hint);
+};  /* String_formatter */
+
+
+template<typename a_Dyn_array>
+void String_formatter<Hex_view<long double>>::append_into(
+                                      a_Dyn_array            &underlying_array,
+                                      Hex_view<long double>  value,
+                                      size_t                 size_hint)
+/*
+Append the characters representing in the given double value into the
+underlying array in exponential hex format.  size_hint is an overestimate
+(i.e., maximum) number of characters this value might use.
+*/
+{
+  append_using_c_formatting("%aL", underlying_array, size_hint, value.value);
+}  /* append_into */
+
+
+/*
+A string formatter for an_octl_view values.
+*/
+template<>
+struct String_formatter<an_octl_view> {
+  static size_t size_hint_of(an_octl_view value)
+    { return integral_digits(value.value, size_t_arg(8)) + 1; }
+  template<typename a_Dyn_array>
+  static inline void append_into(a_Dyn_array  &underlying_array,
+                                 an_octl_view value,
+                                 size_t       size_hint);
+};  /* String_formatter */
+
+
+template<typename a_Dyn_array>
+void String_formatter<an_octl_view>::append_into(
+                                                a_Dyn_array  &underlying_array,
+                                                an_octl_view value,
+                                                size_t       size_hint)
+/*
+Append the characters representing in the given integral value into the
+underlying array in octl format.  size_hint is an overestimate (i.e., maximum)
+number of characters this value might use.
+*/
+{
+  append_using_c_formatting("%llo", underlying_array, size_hint, value.value);
+}  /* append_into */
+
+
+/*
+A string formatter for void* values.
+*/
+template<>
+struct String_formatter<void*> {
+  static size_t size_hint_of(ARG_UNUSED void *value)
+    { return 30; }
+  template<typename a_Dyn_array>
+  static inline void append_into(a_Dyn_array &underlying_array,
+                                 void        *value,
+                                 size_t      size_hint);
+};  /* String_formatter */
+
+
+template<typename a_Dyn_array>
+void String_formatter<void*>::append_into(a_Dyn_array       &underlying_array,
+                                          void              *value,
+                                          ARG_UNUSED size_t size_hint)
+/*
+Convert the given unsigned integer value into its character representation, and
+append the characters representing the value into the underlying array.
+size_hint is unused.
+*/
+{
+  append_using_c_formatting("%p", underlying_array, size_hint, value);
+}  /* append_into */
+
+
+/*
+A string formatter (and associated delegates) unsigned long long, unsigned
+long, unsigned, and unsigned short values.
 */
 template<>
 struct String_formatter<unsigned long long> {
-  constexpr static size_t size_hint_of(unsigned long long value)
-    { return 21; }
+  static size_t size_hint_of(unsigned long long value)
+    { return integral_digits(value, size_t_arg(10)) + 1; }
   template<typename a_Dyn_array>
   static inline void append_into(a_Dyn_array        &underlying_array,
                                  unsigned long long value,
@@ -2940,45 +3529,34 @@ struct String_formatter<unsigned long long> {
 };  /* String_formatter */
 
 
-template<>
-struct String_formatter<unsigned long> : String_formatter<unsigned long long> {
-};  /* String_formatter */
-
-
-template<>
-struct String_formatter<unsigned> : String_formatter<unsigned long long> {
-};  /* String_formatter */
+DELEGATE_FORMATTER(unsigned long,  unsigned long long)
+DELEGATE_FORMATTER(unsigned,       unsigned long long)
+DELEGATE_FORMATTER(unsigned short, unsigned long long)
 
 
 template<typename a_Dyn_array>
 void String_formatter<unsigned long long>::append_into(
                                           a_Dyn_array        &underlying_array,
                                           unsigned long long value,
-                                          ARG_UNUSED size_t  size_hint)
+                                          size_t             size_hint)
 /*
 Convert the given unsigned integer value into its character representation, and
 append the characters representing the value into the underlying array.
-size_hint is unused.
+size_hint is the number of digits to represent the given value as a string
+(plus 1 for a temporary null terminator).
 */
 {
-  constexpr size_t buff_size =
-                      String_formatter<unsigned long long>::size_hint_of(0ull);
-  char             string_buffer[buff_size] = {};
-
-  snprintf(string_buffer, buff_size, "%llu", value);
-  String_formatter<a_const_char*>::append_into(underlying_array, string_buffer,
-                                               strlen(string_buffer));
+  append_using_c_formatting("%llu", underlying_array, size_hint, value);
 }  /* append_into */
 
 
 /*
-A string formatter (and associated recursive specializations) for long long,
-long, and int values.
+A string formatter (and associated delegates) for long long, long, int, and
+short values.
 */
 template<>
 struct String_formatter<long long> {
-  constexpr static size_t size_hint_of(long long value)
-    { return 20; }
+  static inline size_t size_hint_of(long long value);
   template<typename a_Dyn_array>
   static inline void append_into(a_Dyn_array &underlying_array,
                                  long long   value,
@@ -2986,33 +3564,38 @@ struct String_formatter<long long> {
 };  /* String_formatter */
 
 
-template<>
-struct String_formatter<long> : String_formatter<long long> {
-};  /* String_formatter */
+DELEGATE_FORMATTER(long,  long long)
+DELEGATE_FORMATTER(int,   long long)
+DELEGATE_FORMATTER(short, long long)
 
 
-template<>
-struct String_formatter<int> : String_formatter<long long> {
-};  /* String_formatter */
+size_t String_formatter<long long>::size_hint_of(long long value)
+/*
+Given a value, return the number of characters required to format the string.
+*/
+{
+  size_t result = integral_digits(value, size_t_arg(10)) + 1;
+
+  /* Add one for a negative sign. */
+  if (value < 0) {
+    ++result;
+  }  /* if */
+  return result;
+}  /* size_hint_of */
 
 
 template<typename a_Dyn_array>
-void String_formatter<long long>::append_into(
-                                           a_Dyn_array       &underlying_array,
-                                           long long         value,
-                                           ARG_UNUSED size_t size_hint)
+void String_formatter<long long>::append_into(a_Dyn_array &underlying_array,
+                                              long long   value,
+                                              size_t      size_hint)
 /*
 Convert the given signed integer value into its character representation, and
 append the characters representing the value into the underlying array.
-size_hint is unused.
+size_hint is the approximate number of digits to represent the given value as a
+string (plus 1 for a temporary null terminator).
 */
 {
-  constexpr size_t buff_size = String_formatter<long long>::size_hint_of(0ll);
-  char             string_buffer[buff_size] = {};
-
-  snprintf(string_buffer, buff_size, "%lli", value);
-  String_formatter<a_const_char*>::append_into(underlying_array, string_buffer,
-                                               strlen(string_buffer));
+  append_using_c_formatting("%lli", underlying_array, size_hint, value);
 }  /* append_into */
 
 
@@ -3034,7 +3617,9 @@ formatter::append_into functions.
 {
   /* Gather size estimates of each pack element. */
   size_t element_sizes [] = {
-    detail::String_formatter<a_Text_convertible_type>::size_hint_of(args)...
+    detail::String_formatter<a_Text_convertible_type>::size_hint_of(args)...,
+    /* An additional 0u value is appended to gracefully handle empty packs. */
+    size_t_arg(0)
   };
   /* Start at an initial size of 1 to account for the null terminator. */
   size_t total_size = 1;
@@ -3066,11 +3651,11 @@ formatter::append_into functions.
                                                      *backing_array,
                                                      args,
                                                      element_sizes[counter++]))
-  /* Ensure the underlying array is always null-terminated.  To support strings
-     that may contain interior nulls, ensure a null character is always
-     added. */
-  backing_array->insert(backing_array->length(), '\0');
+  /* Ensure the underlying array is always null-terminated. */
+  backing_array->push_back('\0');
 }  /* append_with_custom_reserve */
+
+#undef DELEGATE_FORMATTER
 
 }  /* detail */
 
@@ -3101,6 +3686,11 @@ struct Allocated_string {
   inline a_const_char*
   to_allocated_storage(Char_allocator<char>  allocator) const;
 
+  inline void write_to_buffer(char *buffer, size_t buffer_len) const;
+
+  inline void clear()
+    { this->backing_array.clear(); }
+
   inline auto operator[](an_index i) -> char&
     { return this->backing_array[i]; }
   inline auto operator[](an_index i) const -> const char&
@@ -3111,8 +3701,13 @@ struct Allocated_string {
   a_boolean is_empty() const
     { return this->length() == 0; }
 
+  inline void truncate_to(size_t length);
+
   template<typename... a_Text_convertible_type>
   inline Allocated_string<Allocator>& append(a_Text_convertible_type... args);
+  template<typename... a_Text_convertible_type>
+  inline Allocated_string<Allocator>& reset_to(
+                                              a_Text_convertible_type... args);
 private:
   Dyn_array<char, Allocator>
                 backing_array;
@@ -3157,13 +3752,48 @@ Given an allocator, allocate and return a new character string.
 
 
 template<template<typename> class Allocator>
+void Allocated_string<Allocator>::write_to_buffer(char              *buffer,
+                                                  ARG_UNUSED size_t buffer_len)
+                                                                          const
+/*
+Write this string to the given buffer of the given length.
+*/
+{
+  check_assertion(this->backing_array.back_elem() == '\0');
+  check_assertion(size_t_arg(this->backing_array.length()) <= buffer_len);
+  /* Copy the contents of the string (+1 for the null-character) to the given
+     buffer. */
+  memcpy(buffer, this->backing_array.begin(),
+         this->backing_array.length() + 1);
+}  /* Allocated_string::to_allocated_storage */
+
+
+template<template<typename> class Allocator>
+void Allocated_string<Allocator>::truncate_to(size_t length)
+/*
+Truncate the string to be at most the given number of characters.
+*/
+{
+  /* Remove the null terminator. */
+  check_assertion(this->backing_array.back_elem() == '\0');
+  this->backing_array.pop_back();
+  /* Remove any extra characters. */
+  while (size_t_arg(this->backing_array.length()) > length) {
+    this->backing_array.pop_back();
+  }  /* while */
+  /* Ensure the underlying array is always null-terminated. */
+  this->backing_array.push_back('\0');
+}  /* Allocated_string::truncate_to */
+
+
+template<template<typename> class Allocator>
 template<typename... a_Text_convertible_type>
 inline Allocated_string<Allocator>&
 Allocated_string<Allocator>::append(a_Text_convertible_type... args)
 /*
 The passed arguments are appended in the fashion described in
-detail::append_with_custom_reserve, and a reference to this Allocated_string
-is returned.
+detail::append_with_custom_reserve.  A reference to this Allocated_string is
+returned.
 */
 {
   /* Remove the null terminator. */
@@ -3184,6 +3814,29 @@ is returned.
   detail::append_with_custom_reserve(reserve_func, args...);
   return *this;
 }  /* Allocated_string::append */
+
+
+template<template<typename> class Allocator>
+template<typename... a_Text_convertible_type>
+inline Allocated_string<Allocator>&
+Allocated_string<Allocator>::reset_to(a_Text_convertible_type... args)
+/*
+The string is reset to an empty state and the passed arguments are appended in
+the fashion described in detail::append_with_custom_reserve.  A reference to
+this Allocated_string is returned.
+*/
+{
+  /* Remove the null terminator. */
+  check_assertion(this->backing_array.back_elem() == '\0');
+  this->backing_array.clear();
+  /* Append the new characters. */
+  auto reserve_func = [this](a_size total_size) {
+    this->backing_array.reserve(total_size);
+    return &this->backing_array;
+  };
+  detail::append_with_custom_reserve(reserve_func, args...);
+  return *this;
+}  /* Allocated_string::reset_to */
 
 
 template<template<typename> class Allocator_a,
@@ -3233,7 +3886,7 @@ represented by str2.  If both strings are empty, the strings are considered the
 same.
 */
 {
-  a_boolean result = TRUE;;
+  a_boolean result = TRUE;
   size_t    str2_len = strlen(str2);
 
   if (str1.length() != str2_len) {
@@ -3290,7 +3943,7 @@ the same.
 An alias for the "normal" usage of Allocated_string (i.e., with a dynamically
 allocating fe_alloc-backed allocator).
 */
-typedef Allocated_string<FE_allocator> a_string;
+typedef Allocated_string<General_allocator> a_string;
 
 /*
 A template alias used to form "small" Allocated_strings that have an initial
@@ -3298,10 +3951,12 @@ pre-allocated storage capacity before then falling back to a secondary
 allocator (typically for dynamically allocated storage).
 */
 template<unsigned a_Capacity,
-         template<typename> class a_Fallback_allocator = FE_allocator>
+         template<typename> class a_Fallback_allocator = General_allocator>
 using Small_string = Allocated_string<Delegate_buffered_allocator<
                                          a_Capacity,
                                          a_Fallback_allocator>::template Meta>;
+
+typedef Small_string<50> a_number_buffer;
 
 
 template<template<typename> class Allocator>
@@ -4598,45 +5253,19 @@ otherwise, use linked_list_to_ptr_array.
 }  /* linked_list_to_array */
 
 
-template<typename an_Integer_type>
-inline constexpr
-Enable_if<sizeof(an_Integer_type) == sizeof(uint32_t), uint32_t>
-max_uint_value_of()
-/*
-Return the maximum value of a 32-bit unsigned integer.
-*/
-{
-  static_assert(!(an_Integer_type(-1) < an_Integer_type(0)),
-                "integer type must be unsigned");
-  return UINT32_MAX;
-}  /* max_uint_value_of */
-
-
-template<typename an_Integer_type>
-inline constexpr
-Enable_if<sizeof(an_Integer_type) == sizeof(uint64_t), uint64_t>
-max_uint_value_of()
-/*
-Return the maximum value of a 64-bit unsigned integer.
-*/
-{
-  static_assert(!(an_Integer_type(-1) < an_Integer_type(0)),
-                "integer type must be unsigned");
-  return UINT64_MAX;
-}  /* max_uint_value_of */
-
-
-template<typename an_Integer_type>
-inline a_boolean checked_addition(an_Integer_type *output,
-                                  uint64_t        a,
-                                  uint64_t        b)
+template<typename an_Integral_type>
+inline a_boolean checked_addition(an_Integral_type *output,
+                                  uint64_t         a,
+                                  uint64_t         b)
 /*
 Perform a checked addition, *output = a + b.  Return TRUE if *output has
 been set and overflow did not occur; otherwise, return FALSE.
 */
 {
+  static_assert(!(an_Integral_type(-1) < an_Integral_type(0)),
+                "integer type must be unsigned");
   a_boolean      result;
-  constexpr auto max_value = max_uint_value_of<an_Integer_type>();
+  constexpr auto max_value = max_integral_value<an_Integral_type>();
   uint64_t       diff = max_value - a;
 
   /* This exploits that "a + b > c" if and only if "b > c - a".  Thus, by using
@@ -4645,23 +5274,25 @@ been set and overflow did not occur; otherwise, return FALSE.
     result = FALSE;
   } else {
     result = TRUE;
-    *output = (an_Integer_type)(a + b);
+    *output = (an_Integral_type)(a + b);
   }  /* if */
   return result;
 }  /* checked_addition */
 
 
-template<typename an_Integer_type>
-inline a_boolean checked_multiplication(an_Integer_type *output,
-                                        uint64_t        a,
-                                        uint64_t        b)
+template<typename an_Integral_type>
+inline a_boolean checked_multiplication(an_Integral_type *output,
+                                        uint64_t         a,
+                                        uint64_t         b)
 /*
 Perform a checked multiplication, *output = a * b.  Return TRUE if *output
 has been set and overflow did not occur; otherwise, return FALSE.
 */
 {
+  static_assert(!(an_Integral_type(-1) < an_Integral_type(0)),
+                "integer type must be unsigned");
   a_boolean      result;
-  constexpr auto max_value = max_uint_value_of<an_Integer_type>();
+  constexpr auto max_value = max_integral_value<an_Integral_type>();
 
   /* This exploits that "a * b > c" if and only if "a > c / b".  Thus, by using
      c = UINTX_MAX, overflow of a * b can be detected.  b != 0 is additionally
@@ -4670,7 +5301,7 @@ has been set and overflow did not occur; otherwise, return FALSE.
     result = FALSE;
   } else {
     result = TRUE;
-    *output = (an_Integer_type)(a * b);
+    *output = (an_Integral_type)(a * b);
   }  /* if */
   return result;
 }  /* checked_multiplication */
