@@ -8047,6 +8047,85 @@ is properly maintained.  Do the output as indicated by octl.
 }  /* form_param_ref */
 
 #endif /* BACK_END_IS_C_GEN_BE */
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+
+#if DEBUG
+
+static uintptr_t
+                unique_id_counter;
+                        /* A ticket counter used by
+                           generate_unique_id_for_il_pointer to generate stable
+                           unique identifiers for a given pointer. */
+
+using a_ptr_unique_id_map = Ptr_map<void*, uintptr_t, General_allocator>;
+                        /* The type of ptr_to_unique_id used to map an
+                           arbitrary pointer to a unique identifier from the
+                           unique_id_counter. */
+
+static a_ptr_unique_id_map
+                *ptr_to_unique_id;
+                        /* A map of a given pointer to its unique identifiers
+                           from the unique_id_counter used by
+                           generate_unique_id_for_il_pointer. */
+
+
+static uintptr_t generate_unique_id_for_temporary(void *ptr)
+/*
+Return a identifier unique to the current translation unit for the given IL
+pointer.
+*/
+{
+  uintptr_t result;
+
+  if (ptr == NULL) {
+    result = 0;
+  } else if (ptr_to_unique_id->get(ptr) == 0) {
+    result = ++unique_id_counter;
+    ptr_to_unique_id->map(ptr, result);
+  } else {
+    result = ptr_to_unique_id->get(ptr);
+  }  /* if */
+  return result;
+}  /* generate_unique_id_for_il_pointer */
+
+#endif /* DEBUG */
+
+a_temp_var_name_buffer form_temporary_name_for_back_end(void *ptr)
+/*
+Return a temporary name generated for the given IL pointer.
+*/
+{
+  uintptr_t unique_id;
+
+#if DEBUG
+  if (db_active) {
+    unique_id = generate_unique_id_for_temporary(ptr);
+  } else
+#endif /* DEBUG */
+  /* Do not add code here. */
+  {
+    unique_id = unique_id_for_il_pointer(ptr);
+  }  /* if */
+
+  a_temp_var_name_buffer result("__T", unique_id);
+  return result;
+}  /* form_temporary_name_for_back_end */
+
+
+void il_to_str_back_end_file_init()
+/*
+Initialize the common logic for a C-like language generating back end.  These
+are initializations that must be redone for each generated file.
+*/
+{
+#if DEBUG
+  unique_id_counter = 0;
+  ptr_to_unique_id = alloc_general_of_type(a_ptr_unique_id_map);
+  construct(ptr_to_unique_id, /*mask_width=*/10);
+#endif /* DEBUG */
+}  /* il_to_str_back_end_file_init */
+
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
 
 void il_to_str_one_time_init(void)
 /*

@@ -1,5 +1,13 @@
 Version 6.7
 
+1/16/24  [EDGcpfe/26954]
+Stable C and C++ unique identifiers for debug modes
+
+The front end will now generate stable identifiers for temporary variables when
+-d0 is used for C and C++ generating back ends as an additional troubleshooting
+aid.
+
+
 1/15/24  [EDGcpfe/18976,EDGcpfe/21888,EDGcpfe/24613,EDGcpfe/26723,
           EDGcpfe/26774]
 Matching of template template parameters containing parameter packs

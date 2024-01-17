@@ -1412,12 +1412,9 @@ Write a temporary name generated from the given IL pointer as a separate
 token.
 */
 {
-  char                   buffer[50] = "__T";
-  a_host_large_unsigned  id;
+  a_temp_var_name_buffer buffer = form_temporary_name_for_back_end((void*)ptr);
 
-  id = (a_host_large_unsigned)unique_id_for_il_pointer(ptr);
-  (void)unsigned_to_string_buf(id, buffer+3);
-  m_write_tok_str(buffer);
+  m_write_tok_str(buffer.as_temp_characters());
 }  /* dump_temp_name */
 
 
@@ -1427,11 +1424,9 @@ Write a temporary name generated from the given IL pointer as part of a
 longer string (i.e., not as a separate token).
 */
 {
-  char buffer[50];
+  a_temp_var_name_buffer buffer = form_temporary_name_for_back_end((void*)ptr);
 
-  (void)snprintf(buffer, sizeof(buffer), "__T%llu",
-                 (unsigned long long)unique_id_for_il_pointer(ptr));
-  m_write_str(buffer);
+  m_write_str(buffer.as_temp_characters());
 }  /* add_temp_name */
 
 
@@ -11551,6 +11546,7 @@ Initialize for the C-generating back end.  These are initializations that
 must be redone for each generated C file.
 */
 {
+  il_to_str_back_end_file_init();
   line_wrapping_disabled = 0;
   f_C_output = NULL;
   /* Set the position for errors to "unknown". */

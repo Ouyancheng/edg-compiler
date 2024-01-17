@@ -622,6 +622,19 @@ extern void form_sun_link_scope_specifiers(
 #endif /* (BACK_END_IS_C_GEN_BE && C_GEN_BE_GENERATES_ANSI_C) || ... */
 #endif /* SUN_EXTENSIONS_ALLOWED */
 
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
+
+using a_temp_var_name_buffer = Small_string<50>;
+                        /* The type used for a the name of a temporary variable
+                           created for used in the C or C++-generating back
+                           ends. */
+
+extern a_temp_var_name_buffer form_temporary_name_for_back_end(void *ptr);
+
+extern void il_to_str_back_end_file_init();
+
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+
 #if DEBUG
 void db_abbr_expr(an_expr_node_ptr                       expr,
                   an_il_to_str_output_control_block_ptr  octl);

@@ -3736,12 +3736,9 @@ static void gen_temp_name(char *ptr)
 Write a temporary name generated from the given IL pointer.
 */
 {
-  char                   buffer[50] = "__T";
-  a_host_large_unsigned  id;
+  a_temp_var_name_buffer buffer = form_temporary_name_for_back_end((void*)ptr);
 
-  id = (a_host_large_unsigned)unique_id_for_il_pointer(ptr);
-  (void)unsigned_to_string_buf(id, buffer+3);
-  m_write_tok_str(buffer);
+  m_write_tok_str(buffer.as_temp_characters());
 }  /* gen_temp_name */
 
 
@@ -24149,6 +24146,7 @@ Initialize for the C++/C-generating back end.
                                                       ((sizeof_t)onk_last + 1),
               "init_cp_gen_be: size of overloadable_operator_precedence table "
                                                              "is not correct");
+  il_to_str_back_end_file_init();
   line_wrapping_disabled = 0;
   disable_line_wrapping_until_column = 0;
   f_C_output = NULL;
