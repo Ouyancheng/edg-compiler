@@ -22082,7 +22082,7 @@ skip_assignment_operators:
     rout_sym = find_copy_constructor(type, subobj_qual,
                                      /*source_is_rvalue=*/TRUE,
                                      &type->source_corresp.decl_position,
-                                     &ambiguous, (a_symbol**)NULL,
+                                     &ambiguous, &inaccessible_sym, 
                                      &bitwise_copy);
     if (ambiguous || inaccessible_sym != NULL ||
         (rout_sym == NULL ? !bitwise_copy

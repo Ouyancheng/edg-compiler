@@ -28814,22 +28814,42 @@ C++ mode.  It does not do access checking on the copy constructor.
          copy a volatile-qualified object. */
     } else {
       *class_bitwise_copy = TRUE;
-      if (inaccessible_match != NULL && overloaded_sym != NULL) {
-        a_boolean  is_list = symbol_is(overloaded_sym, sk_overloaded_function);
+      if ((inaccessible_match != NULL || source_is_rvalue) &&
+          overloaded_sym != NULL &&
+          !class_type->variant.class_struct_union.is_nonreal_class &&
+          is_immediate_standard_class_type(class_type)) {
+        /* Verify that the bitwise copy is applicable.  In particular, beware
+           of two cases:
+             1) cases where the copy/move constructor is inaccessible, and
+             2) cases where the copy constructor does not permit rvalues
+                (i.e., of the form "X(X&) = default;"). */
+        a_boolean  is_list = symbol_is(overloaded_sym, sk_overloaded_function),
+                   have_exact_match = FALSE, have_match = FALSE;
         sym = is_list ? overloaded_sym->variant.overloaded_function.symbols
                       : overloaded_sym;
         for (; sym != NULL; sym = is_list ? sym->next : NULL) {
           if (symbol_is(sym, sk_member_function)) {
             a_routine_ptr     rp = sym->variant.routine.ptr;
             a_param_type_ptr  ptp = function_type_params(rp->type);
-            if (rp->is_trivial_copy_function &&
-                is_rvalue_reference_type(ptp->type) == source_is_rvalue) {
-              if (!have_access_to_symbol(sym)) {
-                *inaccessible_match = sym;
+            if (rp->is_trivial_copy_function) {
+              a_boolean  exact_match = is_rvalue_reference_type(ptp->type) ==
+                                                              source_is_rvalue;
+              if (exact_match) have_exact_match = TRUE;
+              if (exact_match ||
+                  (source_is_rvalue && !have_exact_match &&
+                   is_reference_that_can_bind_to_rvalue(ptp->type))) {
+                have_match = TRUE;
+                if (inaccessible_match != NULL &&
+                    !have_access_to_symbol(sym)) {
+                  *inaccessible_match = sym;
+                }  /* if */
               }  /* if */
             }  /* if */
           }  /* if */
         }  /* for */
+        if (!have_match) {
+          *class_bitwise_copy = FALSE;
+        }  /* if */
       }  /* if */
     }  /* if */
   } else if (cssp->constructor == NULL) {

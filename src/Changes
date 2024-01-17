@@ -133,7 +133,7 @@ find_placeholder_arg_for_pack (scope_stk.c).  For example, with --c++20:
                                    // Now okay.
 
 
-1/10/24  [EDGcpfe/26922]
+1/10/24  [EDGcpfe/26922,EDGcpfe/26955]
 Generated copy constructor with inaccessible subobject constructor
 
 Consider:
@@ -152,7 +152,8 @@ The generated copy constructor of S should be a deleted constructor because
 S does not have access to the copy constructor of C.  However, the changes for
 EDGcpfe/26518 introduced a regression in version 6.6 of the front end causing
 it to fail to mark the generated copy constructor of S as deleted.  That is
-now fixed.
+now fixed.  A similar issue occurred with the move constructor of S and that
+is now also fixed.
 
 
 1/10/24  [EDGcpfe/26921]
