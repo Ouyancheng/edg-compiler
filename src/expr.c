@@ -8019,7 +8019,8 @@ Return NULL if the name is not found.
 static a_boolean check_valid_qualified_member_in_selection(
                                   a_symbol_locator  *locator,
                                   a_source_position *qualified_member_position,
-                                  a_type_ptr        class_struct_union_type)
+                                  a_type_ptr        class_struct_union_type,
+                                  a_boolean         is_splice = FALSE)
 /*
 locator describes the right-hand operand of a selection operator, and is
 a qualified name.  Check to see that it is a member of class_struct_union_type,
@@ -8062,9 +8063,15 @@ the "x").
                                                sym_parent_class(
                                                      projection_member_sym))) {
         if (expr_error_should_be_issued()) {
-          pos_ty_error(ec_name_not_member_of_class_or_base_classes,
-                       qualified_member_position,
-                       class_struct_union_type);
+          if (is_splice) {
+            pos_syty_error(ec_splice_is_not_a_member_of_class,
+                           qualified_member_position, projection_member_sym,
+                           class_struct_union_type);
+          } else {
+            pos_ty_error(ec_name_not_member_of_class_or_base_classes,
+                         qualified_member_position,
+                         class_struct_union_type);
+          }  /* if */
         }  /* if */
         err = TRUE;
       }  /* if */
@@ -8443,6 +8450,10 @@ qualified_name_check:
       } else {
         expr_pos_error(ec_bad_reflection_kind_for_expression_splice,
                        &opnd2.position, *rvp);
+        *err = TRUE;
+      }  /* if */
+      if (!check_valid_qualified_member_in_selection(
+                      locator, &opnd2.position, type_1, /*is_splice=*/TRUE)) {
         *err = TRUE;
       }  /* if */
     } else if (is_expression_operand(&opnd2)) {
