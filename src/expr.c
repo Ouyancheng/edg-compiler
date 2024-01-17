@@ -23605,7 +23605,8 @@ expression, and return the result in *result (or an error indication in
                                  /*result_is_lvalue=*/FALSE,
                                  /*address_taken=*/FALSE,
                                  (an_operand *)NULL,
-                                 &access_error_reported);
+                                 &access_error_reported,
+                                 /*operator_notation=*/TRUE);
   }  /* if */
   if (!nps.err && 
       (nps.proj_function_symbol != NULL || nps.unknown_dependent_new)) {
