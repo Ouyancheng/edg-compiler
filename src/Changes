@@ -249,10 +249,10 @@ type place holder is substituted for the following simplified libc++ code:
   } }
 
   int x = std::string(); // previously error: no suitable conversion function
-                            from "std::v1::string"
-                            (aka "std::v1::basic_string<char>") to "int" exists
+                         // from "std::v1::string"
+                         // (aka "std::v1::basic_string<char>") to "int" exists
                          // now error: no suitable conversion function
-                            from "std::v1::string" to "int" exists
+                         // from "std::v1::string" to "int" exists
 
 
 1/9/24   [EDGcpfe/26920]
