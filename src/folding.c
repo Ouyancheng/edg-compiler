@@ -5606,7 +5606,7 @@ eok_eq or eok_ne) and *result is set to an integer 0 or 1 for the result.
   result_value = eq_constants(constant_1, constant_2);
   /* result_value is now set for the "==" case.  Complement it for the "!="
      case. */
-  if (op == (an_expr_operator_kind)eok_ne) result_value = !result_value;
+  if (op == eok_ne) result_value = !result_value;
   set_constant_kind(result, (a_constant_repr_kind)ck_integer);
   set_integer_value(&result->variant.integer_value,
                     (a_host_large_integer)result_value);
