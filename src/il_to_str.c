@@ -8086,7 +8086,7 @@ pointer.
     result = ptr_to_unique_id->get(ptr);
   }  /* if */
   return result;
-}  /* generate_unique_id_for_il_pointer */
+}  /* generate_unique_id_for_temporary */
 
 #endif /* DEBUG */
 
