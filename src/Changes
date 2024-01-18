@@ -225,10 +225,10 @@ in the following source:
   struct src_ty {
     template<int>
     operator dest_typedef() { return nullptr; }
-    // previously warning: constant "<unnamed>" is not used in declaring the
-    // parameter types of function template "src_ty::operator dest_ty**"
-    // now warning: constant "<unnamed>" is not used in declaring the
-    // parameter types of function template "src_ty::operator dest_typedef"
+    // previously: constant "<unnamed>" is not used in declaring the parameter
+    // types of function template "src_ty::operator dest_ty**"
+    // now: constant "<unnamed>" is not used in declaring the parameter types
+    // of function template "src_ty::operator dest_typedef"
   };
 
 
