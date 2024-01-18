@@ -216,7 +216,20 @@ this was never correctly performed for types in the std namespace.
 
 Following customer feedback, this has been reverted to the previous 6.5
 typedef-dealiasing rules (equivalent to
-DEFAULT_DISPLAY_TEMPLATE_TYPEDEFS_IN_DIAGNOSTICS=FALSE).
+DEFAULT_DISPLAY_TEMPLATE_TYPEDEFS_IN_DIAGNOSTICS=FALSE).  This can be observed
+in the following source:
+
+  struct dest_ty {};
+  using dest_typedef = dest_ty**;
+
+  struct src_ty {
+    template<int>
+    operator dest_typedef() { return nullptr; }
+    // previously warning: constant "<unnamed>" is not used in declaring the
+    // parameter types of function template "src_ty::operator dest_ty**"
+    // now warning: constant "<unnamed>" is not used in declaring the
+    // parameter types of function template "src_ty::operator dest_typedef"
+  };
 
 
 1/9/24   [EDGcpfe/26939]
