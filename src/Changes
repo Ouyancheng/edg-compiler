@@ -1,14 +1,5 @@
 Version 6.7
 
-1/17/24  [EDGcpfe/26960]
-Assertion failure due to lowering of nonreal variable template instances
-
-In some complex situations the front end lowered variable template instances
-that should not have been lowered at all (e.g., because their names cannot be
-correctly mangled) and in some cases that process could result in internal
-errors (e.g., failing an assertion in lower_name.c).  That is now fixed.
-
-
 1/17/24  [EDGcpfe/25870]
 C23: Use of deprecated attribute on enumerator
 

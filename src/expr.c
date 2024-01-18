@@ -16644,6 +16644,8 @@ We do not advance to the token after the typename operator in this case.
     tp->variant.typeref.type = result;
     tp->variant.typeref.is_spliced = TRUE;
     tp->variant.typeref.is_dependent_type_operator = dependent_arg;
+    tp->variant.typeref.is_nonreal = dependent_arg;
+    tp->variant.typeref.is_dependent = dependent_arg;
     if (dependent_arg) {
       prep_generic_operand(&operand);
     }  /* if */

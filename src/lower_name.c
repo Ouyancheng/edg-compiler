@@ -14073,16 +14073,12 @@ also does type name mangling.
     for (variable = scope->variables;
          variable != NULL;
          variable = variable->next) {
-      if (!ignore_variable_in_back_end(variable)) {
-        mangle_variable_name(variable);
-      }  /* if */
+      mangle_variable_name(variable);
     }  /* for */
     /* Look for member constants (an extension in classes) and mangle their
        names. */
     for (con = scope->constants; con != NULL; con = con->next) {
-      if (!ignore_constant_in_back_end(con)) {
-        mangle_member_constant_name(con);
-      }  /* if */
+      mangle_member_constant_name(con);
     }  /* for */
   }  /* if */
 }  /* do_scope_other_name_mangling */
