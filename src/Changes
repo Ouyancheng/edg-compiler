@@ -217,18 +217,15 @@ this was never correctly performed for types in the std namespace.
 Following customer feedback, this has been reverted to the previous 6.5
 typedef-dealiasing rules (equivalent to
 DEFAULT_DISPLAY_TEMPLATE_TYPEDEFS_IN_DIAGNOSTICS=FALSE).  This can be observed
-in the following source:
+in the following example where a diagnostic had referred to the conversion
+operator as "src_ty::operator dest_typedef" in 6.5 and "src_ty::operator
+dest_ty**" in 6.6:
 
   struct dest_ty {};
   using dest_typedef = dest_ty**;
-
   struct src_ty {
     template<int>
     operator dest_typedef() { return nullptr; }
-    // previously: constant "<unnamed>" is not used in declaring the parameter
-    // types of function template "src_ty::operator dest_ty**"
-    // now: constant "<unnamed>" is not used in declaring the parameter types
-    // of function template "src_ty::operator dest_typedef"
   };
 
 
