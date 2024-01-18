@@ -223,11 +223,23 @@ DEFAULT_DISPLAY_TEMPLATE_TYPEDEFS_IN_DIAGNOSTICS=FALSE).
 Do not dealias typedefs inside of inline namespaces in std
 
 In version 6.6 (EDGcpfe/26831) the front end added improved support for
-diagnostics including typedef types.  This improved support excludes
-typedefs inside of the std namespace from being dealiased.  However, inline
-namespaces within the std namespace were not included.  This is now fixed;
-standard libraries that use an inline namespace will no longer have their
-typedefs dealiased in diagnostics.
+diagnostics including typedef types.  This improved support excludes typedefs
+inside of the std namespace from being dealiased.  However, inline namespaces
+within the std namespace were not included. Consider how the diagnostic message
+type place holder is substituted for the following simplified libc++ code:
+
+  namespace std { inline namespace v1 {
+    template <class _CharT>
+    class basic_string;
+
+    using string = basic_string<char>;
+  } }
+
+  int x = std::string(); // previously error: no suitable conversion function
+                            from "std::v1::string"
+                            (aka "std::v1::basic_string<char>") to "int" exists
+                         // now error: no suitable conversion function
+                            from "std::v1::string" to "int" exists
 
 
 1/9/24   [EDGcpfe/26920]
