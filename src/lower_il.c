@@ -20242,7 +20242,8 @@ Promote the static variables on the variables list of the indicated scope
     add_to_variables_list(variable, DEPTH_OF_FILE_SCOPE);
 #if IA64_ABI
     if (variable->is_template_variable && 
-        variable->storage_class == (a_storage_class)sc_unspecified) {
+        variable->storage_class == (a_storage_class)sc_unspecified &&
+        !ignore_variable_in_back_end(variable)) {
       put_variable_into_comdat_group(variable);
     }  /* if */
 #endif /* IA64_ABI */
