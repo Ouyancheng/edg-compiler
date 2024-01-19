@@ -1,5 +1,12 @@
 Version 6.7
 
+1/19/24  [EDGcpfe/26965]
+Rewrite Front End General Memory Management
+
+The general memory management facility of the front end has been rewritten to
+improve performance and reduced maximum memory usage.
+
+
 1/19/23  [EDGcpfe/26783]
 Microsoft compatibility: commas in variadic macro arguments
 

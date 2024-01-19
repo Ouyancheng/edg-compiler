@@ -340,11 +340,6 @@ are added.  The string may or may not be null-terminated, but if it is
 null-terminated, the null-terminator will be included in "size".
 */
 typedef struct a_text_buffer {
-  a_text_buffer_ptr
-		next;
-			/* Pointer to the next entry on a list of all buffers.
-			   Used to free the buffer memory at the end of
-			   compilation. */
   sizeof_t	allocated_size;
 			/* The size in bytes of the memory allocated for the
 			   buffer. */

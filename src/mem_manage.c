@@ -36,60 +36,131 @@ mem_manage.c -- Memory management routines.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
+namespace {
+
 /*
-Structure used to maintain a list of memory allocations.  This is used
-to free the memory when the front end is reset.  An initial set of
-memory allocation entries is statically allocated, because some memory
-allocations occur very early in front end processing, and to avoid
-interactions with precompiled header memory allocations.  If additional
-entries are needed, they are allocated out of general memory.
+An allocator that directly interfaces with the C malloc, realloc, and free
+functions.
 */
-typedef struct a_memory_allocation *a_memory_allocation_ptr;
-typedef struct a_memory_allocation {
-  a_memory_allocation_ptr
-		next;
-			/* Pointer to the next entry on the list of
-			   allocations. */
-  a_void_ptr	buffer;
-			/* Pointer to the memory allocated. */
-  sizeof_t	size;
-			/* Size of the memory allocated. */
-} a_memory_allocation;
+template<typename an_Elem>
+struct Direct_allocator {
+  typedef an_Elem an_elem;
+  typedef a_ptrdiff a_size;
+  typedef Allocation<an_elem> an_allocation;
+  typedef Direct_allocator<an_elem> an_allocator;
+  typedef Direct_allocator<an_elem> a_deallocator;
+  inline static auto alloc(a_size n) -> an_allocation;
+  inline static auto realloc(an_allocation  a,
+                             a_size         new_capacity,
+                             a_size         n_to_move)
+                     -> an_allocation;
+  static auto move_alloc(ARG_UNUSED an_allocator  &src,
+                         an_allocation            src_alloc,
+                         ARG_UNUSED a_size        n_to_move) -> an_allocation
+    { return src_alloc; }
+  inline static void dealloc(an_allocation allocation);
+};  /* Direct_allocator */
 
-#define SIZE_MEMORY_ALLOCATION_TABLE 1024
-			/* The size of the array of preallocated memory
-			   allocation entries. */
 
-static a_memory_allocation
-		memory_allocation_table
-                                         [SIZE_MEMORY_ALLOCATION_TABLE];
-			/* The array of statically allocated memory allocation
-			   entries. */
+template<typename an_Elem>
+inline auto Direct_allocator<an_Elem>::alloc(a_size n) -> an_allocation
+/*
+Allocate at least n elements of type an_Elem and return the resulting
+allocation (which reflects the actual number of allocated elements).
+*/
+{
+  return an_allocation{ (an_elem*)malloc(n*sizeof(an_elem)),
+                        (a_ptrdiff)n };
+}  /* Direct_allocator::alloc */
 
-static int	next_memory_allocation_table_entry;
-			/* The number of the next preallocated memory
-			   allocation table entry to be used. */
 
-static a_memory_allocation_ptr
-		memory_allocation_list;
+template<typename an_Elem>
+inline auto Direct_allocator<an_Elem>::realloc(an_allocation a,
+                                               a_size        new_capacity,
+                                               a_size        n_to_move)
+            -> an_allocation
+/*
+Replace the given allocation -- which was allocated by the same allocator -- by
+a new one with at least new_capacity elements.  The first n_to_move elements in
+the original allocation are initialized and should therefore be moved to the
+new allocation.
+*/
+{
+  an_elem  *old_start = a.start,
+           *new_start = (an_elem*)malloc(new_capacity * sizeof(an_elem));
+  for (a_size k = 0; k < n_to_move; ++k) {
+    construct(new_start + k, move_from(old_start + k));
+    destroy(old_start + k);
+  }  /* for */
+  free(old_start);
+  return an_allocation{ new_start, (a_ptrdiff)new_capacity };
+}  /* Direct_allocator::realloc */
+
+
+template<typename an_Elem>
+inline void Direct_allocator<an_Elem>::dealloc(an_allocation a)
+/*
+Release the given allocation -- which was allocated by the same allocator.
+The caller is responsible for ensuring the allocation contains no live
+objects.
+*/
+{
+  /* Note that free will correctly handle a null allocation. */
+  free((void*)a.start);
+}  /* Direct_allocator::dealloc */
+
+}  /* namespace */
+
+template<typename an_Object, typename ...an_Arg_pack>
+static inline an_Object *new_direct(an_Arg_pack ...args)
+/*
+Allocate via malloc and construct an object of type an_Object with the
+constructor arguments specified by args.  Return a pointer to the object.
+*/
+{
+  an_Object *p = Direct_allocator<an_Object>::alloc(1).start;
+  construct(p, fwd<an_Arg_pack>(args)...);
+  return p;
+}  /* new_fe */
+
+
+template<typename an_Object>
+static inline void delete_direct(an_Object *p)
+/*
+Destroy and delete an object of type an_Object that was allocated directly via
+malloc.
+*/
+{
+  if (p != NULL) {
+    destroy(p);
+    Direct_allocator<an_Object>::dealloc(Allocation<an_Object>{p, 1});
+  }  /* if */
+}  /* delete_direct */
+
+using a_memory_allocation_map = Ptr_map<void*, sizeof_t, Direct_allocator>;
+                        /* The type for a memory allocation map used for
+                           internal tracking of allocated memory. */
+
+static a_memory_allocation_map
+		*memory_allocation_map;
 			/* A list of memory blocks allocated in general
 			   memory.  Used to free the blocks at the end
 			   of compilation. */
 
-static a_memory_allocation_ptr
-		resizable_memory_allocation_list;
-			/* A list of resizable memory blocks allocated in
-			   general memory.  Used to free the blocks at the end
-			   of compilation.  This list is separate from the
-			   memory_allocation_list so that entries on the
-			   list can be found quickly when a block must be
+#if CHECKING
+
+using a_memory_allocation_set = Ptr_set<void*, Direct_allocator>;
+                        /* The type for a memory allocation set used for
+                           internal tracking of allocated memory. */
+
+static a_memory_allocation_set
+		*resizable_memory_allocations;
+			/* A set of pointers in the memory allocation map that
+			   are allowed to be resized.  This is used to make
+			   sure only blocks that were marked resizable can be
 			   resized. */
 
-static a_text_buffer_ptr
-		text_buffer_list;
-			/* Pointer to a list of all allocated text buffers.
-			   Used to free the buffer memory at the end of
-			   compilation. */
+#endif /* CHECKING */
 
 #ifdef USING_PURIFY
 #include "purify.h"
@@ -1147,42 +1218,7 @@ memory is allocated in the memory region specified by "region".
 }  /* alloc_general_or_in_region */
 
 
-static void add_memory_allocation(a_void_ptr	buffer,
-				  sizeof_t	size,
-				  a_boolean	resizable)
-/*
-Allocate a memory allocation entry, initialize its fields, and add it
-to the appropriate memory allocations list based on whether or not it
-is resizable.  In most cases, the entry will be element of the
-memory_allocation_table array, but if that array is exhausted, an entry
-in general memory will be allocated.
-*/
-{
-  a_memory_allocation_ptr	map;
-
-  if (next_memory_allocation_table_entry < SIZE_MEMORY_ALLOCATION_TABLE) {
-    map = &memory_allocation_table[next_memory_allocation_table_entry++];
-  } else {
-    map = (a_memory_allocation_ptr)malloc_with_check(
-                                                  sizeof(a_memory_allocation));
-  }  /* if */
-  map->next = NULL;
-  map->buffer = buffer;
-  map->size = size;
-  /* Add this entry to either the resizable memory allocations list or the
-     normal list. */
-  if (resizable) {
-    map->next = resizable_memory_allocation_list;
-    resizable_memory_allocation_list = map;
-  } else {
-    map->next = memory_allocation_list;
-    memory_allocation_list = map;
-  }  /* if */
-}  /* add_memory_allocation */
-
-
-static char *alloc_general_record_allocation(sizeof_t	size,
-					     a_boolean	record_allocation)
+static char *alloc_general_record_allocation(sizeof_t size)
 /*
 Allocate and return "size" bytes of general storage.  This differs from
 alloc_fe in that the storage will last through execution of the back end
@@ -1193,54 +1229,31 @@ is responsible for seeing that the memory is freed.
 */
 {
   char *ptr = malloc_with_check(size);
+
+  memory_allocation_map->map(ptr, size);
 #if DEBUG
   total_general_mem_allocated += (unsigned long)size;
 #endif /* DEBUG */
-  if (record_allocation) {
-    add_memory_allocation((a_void_ptr)ptr, size, /*is_resizable=*/FALSE);
-  }  /* if */
   return ptr;
 }  /* alloc_general_record_allocation */
 
 
 char *alloc_general(sizeof_t size)
 /*
-Interface to alloc_general_record_allocation that causes a memory allocation
-entry to be created.
+Interface to alloc_general_record_allocation that creates a tracked memory
+allocation.
 */
 {
-  char *ptr;
+  char *ptr = alloc_general_record_allocation(size);
 
-  ptr = alloc_general_record_allocation(size, /*record_allocation=*/TRUE);
   return ptr;
 }  /* alloc_general */
-
-
-static a_memory_allocation_ptr find_memory_allocation(
-					a_void_ptr	ptr,
-					a_boolean	resizable)
-/*
-Find the memory allocation entry for "ptr" and return it.  If resizable
-is TRUE, look on the resizable allocations list, otherwise look on the
-normal allocations list.
-*/
-{
-  a_memory_allocation_ptr	map;
-  for (map = resizable ? resizable_memory_allocation_list
-                       : memory_allocation_list;
-       map != NULL; map = map->next) {
-    if (map->buffer == ptr) break;
-  }  /* for */
-  check_assertion_str2(map != NULL, "find_memory_allocation:",
-                       "no previous allocation");
-  return map;
-}  /* find_memory_allocation */
 
 
 void free_general(a_void_ptr          ptr,
                   ARG_UNUSED sizeof_t size)
 /*
-Free a block of memory to general storage.
+Free a tracked block of memory to general storage.
 */
 {
   if (ptr == NULL) {
@@ -1249,16 +1262,21 @@ Free a block of memory to general storage.
        the size wrong. */
     check_assertion(size == 0);
   } else {
-    /* Find the memory allocation entry for this memory and clear the pointer
-       so that it won't be freed again, or found by a subsequent search. */
-    a_memory_allocation_ptr map = find_memory_allocation(ptr,
-                                                         /*resizable=*/FALSE);
-    map->buffer = NULL;
-    map->size = 0;
-    free((char*)ptr);
+    /* Check to ensure the specified amount to free matches the allocated
+       amount. */
+    check_assertion(memory_allocation_map->get(ptr) == size);
+    /* Update internal memory tracking. */
 #if DEBUG
     total_general_mem_allocated -= (unsigned long)size;
 #endif /* DEBUG */
+    memory_allocation_map->unmap(ptr);
+#if CHECKING
+    if (resizable_memory_allocations->contains(ptr)) {
+      resizable_memory_allocations->remove(ptr);
+    }  /* if */
+#endif /* CHECKING */
+    /* Release the memory. */
+    free(ptr);
   }  /* if */
 }  /* free_general */
 
@@ -1271,48 +1289,13 @@ allocated in a memory region.  A list of these allocations is maintained so
 that the memory can be freed when the front end is reset.
 */
 {
-  char	*ptr;
+  char *ptr = alloc_general_record_allocation(size);
 
-  ptr = (char*)malloc_with_check(size);
-  add_memory_allocation((a_void_ptr)ptr, size, /*is_resizable=*/TRUE);
-#if DEBUG
-  total_general_mem_allocated += (unsigned long)size;
-#endif /* DEBUG */
+#if CHECKING
+  resizable_memory_allocations->add(ptr);
+#endif /* CHECKING */
   return ptr;
 }  /* alloc_resizable_buffer */
-
-
-static char *realloc_general(char     *old_ptr,
-                             sizeof_t old_size,
-                             sizeof_t new_size)
-/*
-Reallocate the area pointed to by old_ptr, which currently has size old_size,
-so that it will have size new_size.  Return a pointer to the new area.
-The old space must have been allocated in general storage by
-alloc_general_record_allocation (with record_allocation=FALSE) or
-realloc_general.  If old_ptr == NULL, this routine acts like
-alloc_general_record_allocation (with record_allocation=FALSE).
-
-In most cases, realloc_buffer should be used instead of realloc_general
-as realloc_buffer makes sure that the memory is freed at the end of
-compilation.  This routine should be used if the memory is freed in
-some other way.
-*/
-{
-  char *ptr;
-
-  if (old_ptr == NULL) {
-    ptr = alloc_general_record_allocation(new_size,
-                                          /*record_allocation=*/FALSE);
-  } else {
-    ptr = realloc_with_check(old_ptr, old_size, new_size);
-  }  /* if */
-#if DEBUG
-  total_general_mem_allocated -= (unsigned long)old_size;
-  total_general_mem_allocated += (unsigned long)new_size;
-#endif /* DEBUG */
-  return ptr;
-}  /* realloc_general */
 
 
 char *realloc_buffer(char     *old_ptr,
@@ -1331,17 +1314,22 @@ acts like alloc_resizable_buffer.
   if (old_ptr == NULL) {
     ptr = alloc_resizable_buffer(new_size);
   } else {
-    a_memory_allocation_ptr	map;
-    /* Find the memory allocation entry for the original allocation so
-       that it can be updated with the new pointer and size. */
-    map = find_memory_allocation(old_ptr, /*resizable=*/TRUE);
-    check_assertion_str2(map->size == old_size, "realloc_general:",
-                         "old size incorrect");
-    ptr = realloc_general(old_ptr, old_size, new_size);
-    /* Update the memory allocation entry to reflect the resized memory. */
-    map->buffer = ptr;
-    map->size = new_size;
+    /* If this assertion fails, the given pointer was not allocated as a
+       resizable buffer. */
+    check_assertion(resizable_memory_allocations->contains(old_ptr));
+    ptr = realloc_with_check(old_ptr, old_size, new_size);
+    /* Update the internal book keeping */
+    memory_allocation_map->unmap(old_ptr);
+    memory_allocation_map->map(ptr, new_size);
+#if CHECKING
+    resizable_memory_allocations->remove(old_ptr);
+    resizable_memory_allocations->add(ptr);
+#endif /* CHECKING */
   }  /* if */
+#if DEBUG
+  total_general_mem_allocated -= (unsigned long)old_size;
+  total_general_mem_allocated += (unsigned long)new_size;
+#endif /* DEBUG */
   return ptr;
 }  /* realloc_buffer */
 
@@ -1822,17 +1810,12 @@ Note that text buffers are allocated in general memory, because the buffers
 they point to are allocated there.
 */
 {
-  a_text_buffer_ptr	tbp;
+  a_text_buffer_ptr tbp = alloc_general_of_type(a_text_buffer);
 
-  tbp = alloc_general_of_type(a_text_buffer);
   tbp->allocated_size = allocation_increment;
   tbp->allocation_increment = allocation_increment;
   tbp->size = 0;
-  tbp->buffer = (char *)alloc_general_record_allocation(
-                            allocation_increment, /*record_allocation=*/FALSE);
-  /* Add this to the list of all text buffers allocated. */
-  tbp->next = text_buffer_list;
-  text_buffer_list = tbp;
+  tbp->buffer = alloc_resizable_buffer(allocation_increment);
 #if DEBUG
   num_text_buffers_allocated++;
 #endif /* DEBUG */
@@ -1863,9 +1846,9 @@ Expand the specified text buffer so that it is large enough to hold
     /* Compute a new size that is a multiple of the allocation increment. */
     new_size = ((length + buffer->allocation_increment - 1) /
                 buffer->allocation_increment) * buffer->allocation_increment;
-    buffer->buffer = (char *)realloc_general(buffer->buffer,
-                                             buffer->allocated_size,
-                                             new_size);
+    buffer->buffer = (char *)realloc_buffer(buffer->buffer,
+                                            buffer->allocated_size,
+                                            new_size);
     /* Each time the buffer is reallocated, double the allocation increment. */
     buffer->allocation_increment *= 2;
     buffer->allocated_size = new_size;
@@ -2197,10 +2180,13 @@ This is done before command line processing.
   size_of_mem_alloc_history = 0;
   mem_alloc_history_entries_used = 0;
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-  next_memory_allocation_table_entry = 0;
-  memory_allocation_list = NULL;
-  resizable_memory_allocation_list = NULL;
-  text_buffer_list = NULL;
+  /* Initialize the general allocator. */
+  memory_allocation_map = new_direct<a_memory_allocation_map>(
+                                                            /*mask_width=*/10);
+#if CHECKING
+  resizable_memory_allocations = new_direct<a_memory_allocation_set>(
+                                                            /*mask_width=*/10);
+#endif /* CHECKING */
   mem_region_table = NULL;
   size_of_mem_region_table = 0;
   size_of_function_def_table = 0;
@@ -2254,43 +2240,21 @@ must be initialized for each compilation.
 
 #if MAKE_FRONT_END_CALLABLE
 
-static void free_text_buffers(void)
+static void free_general_memory(a_memory_allocation_map **map)
 /*
-Free the buffer memory used for all of the text that were allocated.  The
-actual text buffer entries will be freed by the normal mechanism to
-free general storage.
+Free the general memory specified by *map.
 */
 {
-  a_text_buffer_ptr	tbp;
-  for (tbp = text_buffer_list; tbp != NULL; tbp = tbp->next) {
-    /* Free the memory pointed to by the buffer. */
-    free(tbp->buffer);
-    tbp->buffer = NULL;
-  }  /* for */
-  text_buffer_list = NULL;
-}  /* free_text_buffers */
-
-
-static void free_general_memory(a_memory_allocation_ptr	*list)
-/*
-Free the general memory specified by *list.
-*/
-{
-  a_memory_allocation_ptr	map;
-  a_memory_allocation_ptr	next_map;
-
-  for (map = *list; map != NULL; map = next_map) {
-    next_map = map->next;
-    free((a_void_ptr)map->buffer);
-    if (map < &memory_allocation_table[0] ||
-        map >= &memory_allocation_table[SIZE_MEMORY_ALLOCATION_TABLE]) {
-      /* This memory allocation entry is not part of the static memory
-         allocation table.  Free it now. */
-      free((a_void_ptr)map);
+  /* Free the allocated memory. */
+  for (a_memory_allocation_map::an_entry &entry : **map) {
+    if (!entry.has_value()) {
+      continue;
     }  /* if */
+    free((void*)entry.key());
   }  /* for */
-  /* Reset the list pointer. */
-  *list = NULL;
+  /* Free the map itself and remove the reference to it. */
+  free_direct(*map);
+  *map = NULL;
 }  /* free_general_memory */
 
 
@@ -2313,9 +2277,11 @@ very end of processing.
   free_mapped_mem_blocks();
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-  free_text_buffers();
-  free_general_memory(&memory_allocation_list);
-  free_general_memory(&resizable_memory_allocation_list);
+#if CHECKING
+  free_direct(resizable_memory_allocations);
+  resizable_memory_allocations = NULL;
+#endif /* CHECKING */
+  free_general_memory(&memory_allocation_map);
 }  /* mem_manage_wrapup */
 
 #endif /* MAKE_FRONT_END_CALLABLE */
