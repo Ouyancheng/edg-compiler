@@ -1,5 +1,14 @@
 Version 6.7
 
+1/19/24  [EDGcpfe/26962]
+Microsoft compatibility: Ambiguous member access and using-declarations
+
+The changes for EDGcpfe/16204,EDGcpfe/26719 (with the additional fix of
+EDGcpfe/26854) have been generalized to handle disambiguation via using-
+declarations in multiple classes along the derivation path of an ambiguous
+base class.
+
+
 1/19/24  [EDGcpfe/26965]
 Rewrite Front End General Memory Management
 

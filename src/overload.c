@@ -12190,7 +12190,7 @@ corresponding base class of the type of X.
 
   /* We only attempt to emulate cases that do not involve multiple
      derivations (i.e., intermediate virtual base classes). */
-  if (bcp->derivation->next == NULL) {
+  while (bcp->ambiguous && bcp->derivation->next == NULL) {
     /* Search projection symbols for the same name as proj for an entry such
        that
          (a) it represents a using-declaration,
@@ -12199,13 +12199,16 @@ corresponding base class of the type of X.
          (c) where X is a derivation of a bcp->type. */
     a_symbol_ptr  sym = proj->header->inactive_symbols;
     for (; sym != NULL; sym = sym->next) {
-      if (symbol_is(sym, sk_projection) &&
-          sym->variant.projection.is_using_decl &&
-          /* Make sure this projection is actually on a derivation associated
-             with bcp. */
-          (bcp->derived_class == sym_parent_class(sym) ||
-           find_base_class_of(bcp->derived_class,
-                              sym_parent_class(sym)) != NULL)) {
+      /* Skip symbols that do not represent a using-declaration. */
+      if (!symbol_is(sym, sk_projection) ||
+          !sym->variant.projection.is_using_decl) {
+        continue;
+      }  /* if */
+      /* Make sure this projection is actually on a derivation associated
+         with bcp. */
+      if (bcp->derived_class == sym_parent_class(sym) ||
+          find_base_class_of(bcp->derived_class,
+                             sym_parent_class(sym)) != NULL) {
         /* A using-declaration for the same name as proj. */
         a_type  *qualifier = sym->variant.projection.extra_info->naming_type;
         a_base_class
@@ -12222,12 +12225,17 @@ corresponding base class of the type of X.
                                   /*is_implicit_cast=*/TRUE,
                                   /*implicit_in_naming=*/TRUE,
                                   /*is_object_pointer=*/TRUE);
-          *p_bcp = reframed;
+          bcp = reframed;
           break;
         }  /* if */
       }  /* if */
     }  /* for */
-  }  /* if */
+    if (sym == NULL) {
+      /* No disambiguating using-declaration was found. */
+      break;
+    }  /* if */
+  }  /* while */
+  *p_bcp = bcp;
 }  /* cast_operand_via_disambiguating_using_decl */
 
 
