@@ -1,5 +1,22 @@
 Version 6.7
 
+1/19/23  [EDGcpfe/26783]
+Microsoft compatibility: commas in variadic macro arguments
+
+The changes for EDGcpfe/25674 (in version 6.5) introduced a regression that
+caused incorrect expansion of some macros involving commas in variadic
+macro arguments when emulating the traditional Microsoft preprocessor.
+This is now fixed.  For example, with --microsoft --no_ms_std_preprocessor:
+
+  #define A(x)         B x
+  #define B(x, y)      C y
+  #define C(...)       D(__VA_ARGS__, 1)
+  #define D(x, y, ...) y
+  #define E(x)         A x
+  #define M            ((5, (((6 , 7), ()), 8, 9)))
+  int i = E(M);   // Previously expanded to 8, now 1
+
+
 1/17/24  [EDGcpfe/25870]
 C23: Use of deprecated attribute on enumerator
 

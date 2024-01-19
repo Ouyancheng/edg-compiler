@@ -7690,7 +7690,23 @@ end_arg_expansion:;
             }  /* if */
             if (map->first_token_is_lparen) {
               *src_loc++ = LE_ESCAPE;
-              *src_loc++ = LE_LPAREN_FROM_ARGUMENT;
+              if (is_va_arg_substitution) {
+                /* Commas in a __VA_ARGS__ argument do not delimit macro
+                   arguments regardless of how the macro name was created.
+                   Turn the LE_LPAREN_FROM_ARGUMENT escape into an
+                   innocuous LE_END_OF_TOKEN and do not mark the source
+                   line modification as containing a left parenthesis from
+                   an argument. */
+                *src_loc++ = LE_END_OF_TOKEN;
+                invocation_lparen_from_argument = FALSE;
+                for (slmp2 = invocation_slmp;
+                     slmp2 != top_microsoft_slmp && slmp2 != NULL;
+                     slmp2 = parent_source_line_modif(slmp2)) {
+                  slmp2->has_lparen_from_arg = FALSE;
+                }  /* for */
+              } else {
+                *src_loc++ = LE_LPAREN_FROM_ARGUMENT;
+              }  /* if */
             }  /* if */
             sect_len = map->raw_len;
             text_loc = map->raw_text;
@@ -7827,7 +7843,23 @@ insert_stringized_arg:
             }  /* if */
             if (map->first_token_is_lparen) {
               *src_loc++ = LE_ESCAPE;
-              *src_loc++ = LE_LPAREN_FROM_ARGUMENT;
+              if (is_va_arg_substitution) {
+                /* Commas in a __VA_ARGS__ argument do not delimit macro
+                   arguments regardless of how the macro name was created.
+                   Turn the LE_LPAREN_FROM_ARGUMENT escape into an
+                   innocuous LE_END_OF_TOKEN and do not mark the source
+                   line modification as containing a left parenthesis from
+                   an argument. */
+                *src_loc++ = LE_END_OF_TOKEN;
+                invocation_lparen_from_argument = FALSE;
+                for (slmp2 = invocation_slmp;
+                     slmp2 != top_microsoft_slmp && slmp2 != NULL;
+                     slmp2 = parent_source_line_modif(slmp2)) {
+                  slmp2->has_lparen_from_arg = FALSE;
+                }  /* for */
+              } else {
+                *src_loc++ = LE_LPAREN_FROM_ARGUMENT;
+              }  /* if */
             }  /* if */
             sect_len = map->expanded_len;
             text_loc = map->expanded_text;
