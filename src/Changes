@@ -10,10 +10,10 @@ base class.
 
 
 1/19/24  [EDGcpfe/26965]
-Rewrite Front End General Memory Management
+Rewrite front end general memory management
 
 The general memory management facility of the front end has been rewritten to
-improve performance and reduced maximum memory usage.
+improve performance and reduce maximum memory usage.
 
 
 1/19/24  [EDGcpfe/26783]
