@@ -1218,14 +1218,12 @@ memory is allocated in the memory region specified by "region".
 }  /* alloc_general_or_in_region */
 
 
-static char *alloc_general_record_allocation(sizeof_t size)
+char *alloc_general(sizeof_t size)
 /*
 Allocate and return "size" bytes of general storage.  This differs from
-alloc_fe in that the storage will last through execution of the back end
-if the back end is executed in the same program.  If record_allocation is
-TRUE, a memory allocation entry is created so that the memory will be
-freed at the end of compilation.  If record_allocation is FALSE, the caller
-is responsible for seeing that the memory is freed.
+alloc_fe in that the storage will last through execution of the back end if the
+back end is executed in the same program.  Any memory that is not freed via
+free_general will be reclaimed upon mem_manage_wrapup.
 */
 {
   char *ptr = malloc_with_check(size);
@@ -1234,18 +1232,6 @@ is responsible for seeing that the memory is freed.
 #if DEBUG
   total_general_mem_allocated += (unsigned long)size;
 #endif /* DEBUG */
-  return ptr;
-}  /* alloc_general_record_allocation */
-
-
-char *alloc_general(sizeof_t size)
-/*
-Interface to alloc_general_record_allocation that creates a tracked memory
-allocation.
-*/
-{
-  char *ptr = alloc_general_record_allocation(size);
-
   return ptr;
 }  /* alloc_general */
 
@@ -1289,7 +1275,7 @@ allocated in a memory region.  A list of these allocations is maintained so
 that the memory can be freed when the front end is reset.
 */
 {
-  char *ptr = alloc_general_record_allocation(size);
+  char *ptr = alloc_general(size);
 
 #if CHECKING
   resizable_memory_allocations->add(ptr);
@@ -1318,7 +1304,7 @@ acts like alloc_resizable_buffer.
        resizable buffer. */
     check_assertion(resizable_memory_allocations->contains(old_ptr));
     ptr = realloc_with_check(old_ptr, old_size, new_size);
-    /* Update the internal book keeping */
+    /* Update the internal bookkeeping. */
     memory_allocation_map->unmap(old_ptr);
     memory_allocation_map->map(ptr, new_size);
 #if CHECKING
