@@ -16,7 +16,7 @@ The general memory management facility of the front end has been rewritten to
 improve performance and reduced maximum memory usage.
 
 
-1/19/23  [EDGcpfe/26783]
+1/19/24  [EDGcpfe/26783]
 Microsoft compatibility: commas in variadic macro arguments
 
 The changes for EDGcpfe/25674 (in version 6.5) introduced a regression that
