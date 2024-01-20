@@ -100,7 +100,7 @@ new allocation.
 template<typename an_Elem>
 inline void Direct_allocator<an_Elem>::dealloc(an_allocation a)
 /*
-Release the given allocation -- which was allocated by the same allocator.
+Release the given allocation, which was allocated by the same allocator.
 The caller is responsible for ensuring the allocation contains no live
 objects.
 */
