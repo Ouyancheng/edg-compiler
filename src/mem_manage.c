@@ -2168,10 +2168,10 @@ This is done before command line processing.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
   /* Initialize the general allocator. */
   memory_allocation_map = new_direct<a_memory_allocation_map>(
-                                                            /*mask_width=*/10);
+                                                           /*mask_width=*/150);
 #if CHECKING
   resizable_memory_allocations = new_direct<a_memory_allocation_set>(
-                                                            /*mask_width=*/10);
+                                                            /*mask_width=*/25);
 #endif /* CHECKING */
   mem_region_table = NULL;
   size_of_mem_region_table = 0;
