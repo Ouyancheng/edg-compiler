@@ -121,7 +121,7 @@ constructor arguments specified by args.  Return a pointer to the object.
   an_Object *p = Direct_allocator<an_Object>::alloc(1).start;
   construct(p, fwd<an_Arg_pack>(args)...);
   return p;
-}  /* new_fe */
+}  /* new_direct */
 
 
 template<typename an_Object>
