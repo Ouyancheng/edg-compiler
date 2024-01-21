@@ -23726,10 +23726,13 @@ handle_as_definition:
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
-    if (rout->pure_virtual && !abstract_generated) {
-      /* For a pure virtual function, add "= 0".  (If the "abstract" function
-         modifier has been generated already do not output the "= 0" since it
-         would be redundant.) */
+    if (rout->pure_virtual && decl_within_class && !abstract_generated) {
+      /* For an in-class declaration of a pure virtual function, add "= 0".
+         (An explicit specialization of a pure virtual member function of a
+         class template declared outside the body of the class template
+         should not have "= 0" appended, and similarly if the "abstract"
+         function modifier has been generated already, as that would be
+         redundant.) */
       write_tok_str(" = 0");
     }  /* if */
     /* See if there are comma-separated declarations attached to this one. */

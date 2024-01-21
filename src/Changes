@@ -1,5 +1,18 @@
 Version 6.7
 
+1/21/24  [EDGcpfe/26946]
+C++-generating back end: explicit specialization of pure virtual function
+
+The C++-generating back end previously erroneously added "= 0" to the
+declaration of an explicit specialization of a pure virtual member function
+of a class template.  This is now fixed.  For example:
+
+  template<typename T> struct S {
+    virtual void f() = 0; 
+  };
+  template<> void S<int>::f();   // Previously generated as "f() = 0;"
+
+
 1/19/24  [EDGcpfe/26962]
 Microsoft compatibility: Ambiguous member access and using-declarations
 
