@@ -47,9 +47,12 @@ BEGIN_EDG_NAMESPACE
 #define PCH_ID_STRING_LENGTH 128
 			/* Maximum length of the PCH id string. */
 
-static Small_string<PCH_ID_STRING_LENGTH>
-		pch_id_string;
-			/* The PCH id string. */
+static char	pch_id_string[PCH_ID_STRING_LENGTH];
+			/* Buffer used to store the PCH id string. */
+
+static sizeof_t	pch_id_string_length;
+			/* The actual length of the PCH id string (including
+			   the trailing null character). */
 
 static a_pch_event_ptr
 		pch_event_list_head;
@@ -435,13 +438,16 @@ Create the string that is used to identify a flag as a precompiled header
 associated with this compiler version.
 */
 {
-  pch_id_string.reset_to("EDG C/C++ version ", VERSION_NUMBER,
-                         " (", build_date, " ", build_time, ")\n");
+  Small_string<PCH_ID_STRING_LENGTH>
+                temp_pch_str("EDG C/C++ version ",VERSION_NUMBER,
+                             " (", build_date, " ", build_time, ")\n");
 
-  check_assertion_str2((size_t_arg(pch_id_string.length()) <
+  check_assertion_str2((size_t_arg(temp_pch_str.length()) <
                         size_t_arg(PCH_ID_STRING_LENGTH)),
                        "initialize_pch_id_string:",
                        "PCH ID string too long");
+  temp_pch_str.write_to_buffer(pch_id_string, PCH_ID_STRING_LENGTH);
+  pch_id_string_length = temp_pch_str.length() + 1;
 }  /* initialize_pch_id_string */
 
 
@@ -1542,8 +1548,7 @@ current point.
 #endif /* DEBUG */
   /* Write the string that identifies this file as a precompiled header
      file. */
-  fwrite_with_check(pch_id_string.as_temp_characters(),
-                    pch_id_string.length(), f_pch_output);
+  fwrite_with_check(pch_id_string, pch_id_string_length, f_pch_output);
   /* Write a FALSE to the file, this will later be changed to TRUE after
      the file has been completely written.  This is done to prevent a
      partially written PCH file from being used. */
@@ -1724,15 +1729,15 @@ written.
   /* We don't use fread_with_check here because we want to handle
      read errors more gracefully.  After all, we don't yet know
      that is actually a PCH written by this compiler. */
-  ensure_pch_buffer_space(pch_id_string.length() + 1);
-  if (!fread_with_status(pch_buffer, size_t_arg(pch_id_string.length()),
+  ensure_pch_buffer_space(pch_id_string_length + 1);
+  if (!fread_with_status(pch_buffer, size_t_arg(pch_id_string_length),
                          f_pch_input)) {
     /* The read failed -- the file must contain something unexpected. */
   } else {
     /* The read succeeded, ensure the read string is null terminated, then
        check to see if the ID string matches. */
-    pch_buffer[pch_id_string.length()] = '\0';
-    if (pch_id_string == pch_buffer) {
+    pch_buffer[pch_id_string_length] = '\0';
+    if (strncmp(pch_buffer, pch_id_string, pch_id_string_length) == 0) {
       match = TRUE;
     }  /* if */
   }  /* if */
