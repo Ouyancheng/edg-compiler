@@ -3698,7 +3698,7 @@ struct Allocated_string {
   a_boolean is_empty() const
     { return this->length() == 0; }
 
-  inline void truncate_to(size_t length);
+  inline void truncate_to(size_t new_length);
 
   template<typename... a_Text_convertible_type>
   inline Allocated_string<Allocator>& append(a_Text_convertible_type... args);
@@ -3766,7 +3766,7 @@ Write this string to the given buffer of the given length.
 
 
 template<template<typename> class Allocator>
-void Allocated_string<Allocator>::truncate_to(size_t length)
+void Allocated_string<Allocator>::truncate_to(size_t new_length)
 /*
 Truncate the string to be at most the given number of characters.
 */
@@ -3775,7 +3775,7 @@ Truncate the string to be at most the given number of characters.
   check_assertion(this->backing_array.back_elem() == '\0');
   this->backing_array.pop_back();
   /* Remove any extra characters. */
-  while (size_t_arg(this->backing_array.length()) > length) {
+  while (size_t_arg(this->backing_array.length()) > new_length) {
     this->backing_array.pop_back();
   }  /* while */
   /* Ensure the underlying array is always null-terminated. */
