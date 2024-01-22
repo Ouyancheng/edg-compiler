@@ -9555,7 +9555,9 @@ return NULL.
 }  /* find_template_instantiation */
 
 
-static a_boolean matches_partial_spec_requires_clause(a_symbol_ptr ps_sym);
+static a_boolean matches_template_decl_requires_clause(
+                                                     a_symbol_ptr  ps_sym,
+                                                     a_boolean     is_primary);
 
 
 static inline a_symbol_ptr
@@ -9627,7 +9629,8 @@ respected when the symbol being traversed is a class template.
         a_symbol_ptr ps_prototype_sym = ps_sym->variant.template_info->
                                 variant.class_template.prototype_instantiation;
 
-        if (!matches_partial_spec_requires_clause(ps_prototype_sym)) {
+        if (!matches_template_decl_requires_clause(ps_prototype_sym,
+                                                   /*is_primary=*/FALSE)) {
           continue;
         }
       }  /* if */
@@ -11124,32 +11127,56 @@ is dependent.
 }  /* determine_templ_arg_lists_to_use */
 
 
-static a_boolean matches_partial_spec_requires_clause(a_symbol_ptr ps_sym)
+static a_boolean matches_template_decl_requires_clause(a_symbol_ptr ps_sym,
+                                                       a_boolean    is_primary)
 /*
 Determine whether the current template declaration (if any) has a requires
-clause that matches that of the partial specialization specified by ps_sym.
+clause that matches that of the template declaration specified by ps_sym.
 The current template declaration information is obtained from the template
 declaration state information from the scope stack entry for the innermost
-template declaration scope (if any).
+template declaration scope (if any).  If is_primary is TRUE, a template
+declaration without a requires clause is considered to match any template
+declaration.
 */
 {
   a_boolean  result = TRUE;
   if (is_template_declaration_context()) {
-    a_template_decl_info_ptr templ_decl_info =
-              scope_stack[depth_template_declaration_scope].template_decl_info;
-    check_assertion(templ_decl_info != NULL &&
-                    templ_decl_info->template_decl != NULL);
-    a_requires_clause     *rcp =
-                    templ_decl_info->template_decl->constraint.requires_clause;
+    a_scope_stack_entry_ptr
+                         ssep = &scope_stack[depth_template_declaration_scope];
+    a_template_decl_info_ptr
+                         tdip = ssep->template_decl_info;
     a_template_symbol_supplement_ptr
-                          tssp = template_supplement_for_symbol(ps_sym);
-    a_template_ptr        prev_tmpl = tssp->il_template_entry;
-    a_requires_clause     *prev_rcp = prev_tmpl->template_decl
-                                                  ->constraint.requires_clause;
-    result = equiv_requires_clauses(prev_rcp, rcp);
+                         tssp = template_supplement_for_symbol(ps_sym);
+    a_template_ptr       prev_tmpl = tssp->il_template_entry;
+    a_template_decl_ptr  prev_tdp, tdp;
+    a_requires_clause    *prev_rcp, *rcp;
+    unsigned             prev_depth, depth;
+
+    prev_tdp = prev_tmpl->template_decl,
+    prev_rcp = if_microsoft_extensions(prev_tdp->is_generic ? NULL : )
+                                          prev_tdp->constraint.requires_clause;
+    /* Determine the depths of the template declarations. */
+    for (prev_depth = 0; prev_tdp != NULL; prev_tdp = prev_tdp->parent) {
+      if (prev_tdp->param_list != NULL) ++prev_depth;
+    }  /* for */
+    for (depth = 0; tdip != NULL; tdip = tdip->enclosing_template_decl) {
+      ++depth;
+    }  /* for */
+    /* Find the template declaration corresponding to ps_sym in the current
+       declaration. */
+    tdip = ssep->template_decl_info;
+    check_assertion(depth >= prev_depth);
+    for (; depth != prev_depth; --depth) {
+      tdip = tdip->enclosing_template_decl;
+    }  /* for */
+    tdp = tdip->template_decl;
+    rcp = if_microsoft_extensions(tdp->is_generic ? NULL : )
+                                               tdp->constraint.requires_clause;
+    result = (is_primary && rcp == NULL) ||
+             equiv_requires_clauses(prev_rcp, rcp);
   }  /* if */
   return result;
-}  /* matches_partial_spec_requires_clause */
+}  /* matches_template_decl_requires_clause */
 
 
 a_symbol_ptr find_template_class(
@@ -11351,8 +11378,12 @@ use the current global value of the template template parameter.
 
       if (equiv_template_arg_lists(old_list, list_for_instantiation,
                                    eta_options | ETA_IS_PROTOTYPE)) {
-        /* A match.  Set sym which will suppress any further search. */
-        sym = prototype_sym;
+        if (is_alias_template ||
+            matches_template_decl_requires_clause(prototype_sym,
+                                                  /*is_primary=*/TRUE)) {
+          /* A match.  Set sym which will suppress any further search. */
+          sym = prototype_sym;
+        }  /* if */
       }  /* if */
     }  /* if */
     if (sym == NULL && !is_alias_template) {
