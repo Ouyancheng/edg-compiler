@@ -3953,6 +3953,9 @@ using Small_string = Allocated_string<Delegate_buffered_allocator<
                                          a_Capacity,
                                          a_Fallback_allocator>::template Meta>;
 
+/*
+A typedef used for converting various types of numbers to strings on the stack.
+*/
 typedef Small_string<50> a_number_buffer;
 
 
