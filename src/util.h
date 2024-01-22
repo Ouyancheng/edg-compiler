@@ -3688,9 +3688,6 @@ struct Allocated_string {
 
   inline void write_to_buffer(char *buffer, size_t buffer_len) const;
 
-  inline void clear()
-    { this->backing_array.clear(); }
-
   inline auto operator[](an_index i) -> char&
     { return this->backing_array[i]; }
   inline auto operator[](an_index i) const -> const char&
