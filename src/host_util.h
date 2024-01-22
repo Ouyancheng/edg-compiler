@@ -64,9 +64,8 @@ called again.
 */
 {
 #define MAX_INSTANTIATION_OUTPUT_FILE_LEN 31
-  static Small_string<MAX_INSTANTIATION_OUTPUT_FILE_LEN+1>
-                buffer;
-  int           max_len_without_suffix;
+  static char buffer[MAX_INSTANTIATION_OUTPUT_FILE_LEN+1];
+  int         max_len_without_suffix;
 
   /* Determine the output file name.  Use the mangled name (or the beginning
      of it) plus an underscore plus the hexadecimal for the CRC-32 checksum
@@ -80,13 +79,22 @@ called again.
   max_len_without_suffix -= sizeof(OBJECT_FILE_SUFFIX);
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
   check_assertion(max_len_without_suffix > 0);
-  buffer.reset_to(mangled_name);
-  buffer.truncate_to(max_len_without_suffix);
+  (void)strncpy(buffer, mangled_name, max_len_without_suffix); /*lint !e669*/
+  buffer[max_len_without_suffix] = '\0';
 
-  auto crc_value = crc_32(mangled_name, (unsigned long)0);
-  buffer.append("_", left_pad(8, '0', hex_view_of(crc_value)));
+  unsigned long crc_value = crc_32(mangled_name, (unsigned long)0);
+  size_t        used_buffer_len = strlen(buffer);
+  size_t        remaining_buffer_len =
+                   ((MAX_INSTANTIATION_OUTPUT_FILE_LEN + 1) - used_buffer_len);
+  LOCAL_UNUSED int
+                chars_written = detail::snprintf_impl(
+                                                      buffer + used_buffer_len,
+                                                      remaining_buffer_len,
+                                                      "_%08lx", crc_value);
+  /* If this assertion fails, there was an error writing the string. */
+  check_assertion(chars_written > 0);
 #undef MAX_INSTANTIATION_OUTPUT_FILE_LEN
-  return buffer.as_temp_characters();
+  return buffer;
 }  /* generate_instantiation_output_file_name */
 
 #endif /* ONE_INSTANTIATION_PER_OBJECT */
