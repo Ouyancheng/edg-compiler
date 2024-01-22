@@ -2780,7 +2780,7 @@ char *get_file_name_from_dir(a_boolean	  first,
   static intptr_t            handle;
   static struct _tfinddata_t fileinfo;
   char                       *result;
-  static Small_string<10>    pattern;
+  static char                pattern[10];
 
   if (dir_name != NULL) {
     chdir_with_check(dir_name);
@@ -2789,12 +2789,14 @@ char *get_file_name_from_dir(a_boolean	  first,
     /* Convert the suffix (e.g., ".xxx" into a pattern for use by the
        Windows-NT routine (e.g., "*.xxx"). */
     check_assertion(strlen(suffix) <= 8);
-    pattern.reset_to("*", suffix);
+
     /* On the first call, use the _findfirst call that specifies which
        files are to be returned.  "handle" is saved in a static variable
        that is used on subsequent calls to get the remaining directory
        entries. */
-    handle = _tfindfirst(pattern.as_temp_characters(), &fileinfo);
+    Small_string<10> tmp_pattern("*", suffix);
+    tmp_pattern.write_to_buffer(pattern, /*buffer_len=*/10);
+    handle = _tfindfirst(pattern, &fileinfo);
     if (handle < 0) {
       /* Directory could not be opened, or is empty. */
       result = NULL;
@@ -2838,7 +2840,7 @@ See comment above.
 {
   static struct _find_t   fileinfo;
   char                    *result;
-  static Small_string<10> pattern;
+  static char             pattern[10];
 
   if (dir_name != NULL) {
     chdir_with_check(dir_name);
@@ -2847,10 +2849,12 @@ See comment above.
     /* Convert the suffix (e.g., ".xxx" into a pattern for use by the
        find-first routine (e.g., "*.xxx"). */
     check_assertion(strlen(suffix) <= 8);
-    pattern.reset_to("*", suffix);
+
     /* On the first call, use the _dos_findfirst call that specifies which
        files are to be returned.  The _A_RDONLY attribute causes
        both normal and read-only files to be returned. */
+    Small_string<10> tmp_pattern("*", suffix);
+    tmp_pattern.write_to_buffer(pattern, /*buffer_len=*/10);
     if (_dos_findfirst(pattern, _A_RDONLY, &fileinfo) != 0) {
       /* Directory could not be opened, or is empty. */
       result = NULL;
