@@ -3454,7 +3454,7 @@ an overestimate (i.e., maximum) number of characters this value might use.
     } else {
       byte = value.float_value->bytes[j];
     }  /* if */
-    append_using_c_formatting("%02x", underlying_array, /*size_hint=*/3,
+    append_using_c_formatting("%02x", underlying_array, /*size_hint=*/2,
                               (unsigned int)byte);
   }  /* for */
 }  /* append_into */
