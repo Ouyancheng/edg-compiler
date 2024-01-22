@@ -3168,17 +3168,18 @@ inline void append_using_c_formatting(a_const_char *formatting_str,
 Append the characters of the formatted string produced by the given formatting
 string and associated arguments arguments into the underlying array.  size_hint
 is an overestimate (i.e., maximum) number of characters this value might use
-(plus a temporary null character -- for use by snprintf_impl).
+(modulo a temporary null character -- for use by snprintf_impl).
 */
 {
   size_t orig_size = underlying_array.length();
+  size_t extra_space = size_hint + 1;
 
   /* Create space in the underlying array to write the arguments. */
-  underlying_array.resize(orig_size + size_hint, '\0');
+  underlying_array.resize(orig_size + extra_space, '\0');
 
   /* Write the formatted string. */
   auto buff_ptr = &underlying_array[orig_size];
-  int  chars_written = snprintf_impl(buff_ptr, size_hint, formatting_str,
+  int  chars_written = snprintf_impl(buff_ptr, extra_space, formatting_str,
                                      args...);
   /* If this assertion fails, there was an error writing the string. */
   check_assertion(chars_written > 0);
@@ -3370,7 +3371,7 @@ template<>
 struct String_formatter<Hex_view<unsigned long long>> {
   template<typename a_Type>
   static size_t size_hint_of(Hex_view<a_Type> value)
-    { return integral_digits(value.value, size_t_arg(16)) + 1; }
+    { return integral_digits(value.value, size_t_arg(16)); }
   template<typename a_Dyn_array, typename a_Type>
   static inline void append_into(a_Dyn_array          &underlying_array,
                                  Hex_view<a_Type>     value,
@@ -3463,7 +3464,7 @@ A string formatter for an_octl_view values.
 template<>
 struct String_formatter<an_octl_view> {
   static size_t size_hint_of(an_octl_view value)
-    { return integral_digits(value.value, size_t_arg(8)) + 1; }
+    { return integral_digits(value.value, size_t_arg(8)); }
   template<typename a_Dyn_array>
   static inline void append_into(a_Dyn_array  &underlying_array,
                                  an_octl_view value,
@@ -3521,7 +3522,7 @@ long, unsigned, and unsigned short values.
 template<>
 struct String_formatter<unsigned long long> {
   static size_t size_hint_of(unsigned long long value)
-    { return integral_digits(value, size_t_arg(10)) + 1; }
+    { return integral_digits(value, size_t_arg(10)); }
   template<typename a_Dyn_array>
   static inline void append_into(a_Dyn_array        &underlying_array,
                                  unsigned long long value,
@@ -3574,7 +3575,7 @@ size_t String_formatter<long long>::size_hint_of(long long value)
 Given a value, return the number of characters required to format the string.
 */
 {
-  size_t result = integral_digits(value, size_t_arg(10)) + 1;
+  size_t result = integral_digits(value, size_t_arg(10));
 
   /* Add one for a negative sign. */
   if (value < 0) {
