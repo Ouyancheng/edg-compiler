@@ -9081,8 +9081,8 @@ interpreter) and if so mark it as such.
             tag = cit_std_meta_is_class_template;
           } else if (strcmp(name, "is_alias_template") == 0) {
             tag = cit_std_meta_is_alias_template;
-          } else if (strcmp(name, "is_concept_template") == 0) {
-            tag = cit_std_meta_is_concept_template;
+          } else if (strcmp(name, "is_concept") == 0) {
+            tag = cit_std_meta_is_concept;
           } else if (strcmp(name, "is_constant") == 0) {
             tag = cit_std_meta_is_constant;
           } else if (strcmp(name, "is_variable") == 0) {

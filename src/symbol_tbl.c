@@ -18351,7 +18351,7 @@ static a_const_char* intrinsic_names[] = {
   "is_variable_template",
   "is_class_template",
   "is_alias_template",
-  "is_concept_template",
+  "is_concept",
   "is_constant",
   "is_variable",
   "is_function",

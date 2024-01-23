@@ -10730,7 +10730,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
 }  /* do_constexpr_std_meta_is_alias_template */
 
 
-static a_boolean do_constexpr_std_meta_is_concept_template(
+static a_boolean do_constexpr_std_meta_is_concept(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
                                         an_expr_node_ptr      call_node,
@@ -10738,7 +10738,7 @@ static a_boolean do_constexpr_std_meta_is_concept_template(
                                         a_byte                *result_storage,
                                         a_byte                *complete_obj)
 /*
-Implement std::meta::is_concept_template(info).
+Implement std::meta::is_concept(info).
 
 See do_constexpr_intrinsic_call for the meaning of the parameters.
 */
@@ -10751,7 +10751,7 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
             ((a_template*)rvp->entity.ptr)->kind == templk_concept);
   set_bool_value(answer, result_storage);
   return result;
-}  /* do_constexpr_std_meta_is_concept_template */
+}  /* do_constexpr_std_meta_is_concept */
 
 
 static a_boolean do_constexpr_std_meta_is_constant(
@@ -13928,8 +13928,8 @@ frame when the call has completed.
     case cit_std_meta_is_alias_template:
       evaluator = do_constexpr_std_meta_is_alias_template;
       break;
-    case cit_std_meta_is_concept_template:
-      evaluator = do_constexpr_std_meta_is_concept_template;
+    case cit_std_meta_is_concept:
+      evaluator = do_constexpr_std_meta_is_concept;
       break;
     case cit_std_meta_is_constant:
       evaluator = do_constexpr_std_meta_is_constant;

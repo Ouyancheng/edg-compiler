@@ -97,7 +97,7 @@ enum a_constexpr_intrinsic {
   cit_std_meta_is_variable_template,
   cit_std_meta_is_class_template,
   cit_std_meta_is_alias_template,
-  cit_std_meta_is_concept_template,
+  cit_std_meta_is_concept,
   cit_std_meta_is_constant,
   cit_std_meta_is_variable,
   cit_std_meta_is_function,
