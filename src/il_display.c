@@ -6553,7 +6553,7 @@ simple-source-position portion of) null_source_position.
     Small_string<50> buff(str, ".seq");
 
     disp_unsigned_long(buff.as_temp_characters(), (unsigned long)pos->seq);
-    buffer.reset_to(str, ".column");
+    buff.reset_to(str, ".column");
     disp_unsigned_long(buff.as_temp_characters(), (unsigned long)pos->column);
   }  /* if */
 }  /* disp_simple_source_position */

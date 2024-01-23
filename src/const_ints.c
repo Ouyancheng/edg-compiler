@@ -1851,6 +1851,7 @@ Given a IL signed integer value, return the approximate character usage.
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 }  /* append_into */
 
+#if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
 
 static constexpr a_host_large_integer calculate_max_power_of_10(size_t digits)
 /*
@@ -1862,6 +1863,7 @@ represented.
                              calculate_max_power_of_10(digits - 1) * 10));
 }  /* calculate_max_power_of_10 */
 
+#endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 
 template<typename a_Dyn_array>
 void String_formatter<an_il_unsigned_integer>::append_into(

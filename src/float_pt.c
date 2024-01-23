@@ -3001,6 +3001,8 @@ struct an_il_fp_value {
     {}
 };  /* an_il_fp_value */
 
+#if USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE
+
 /*
 A struct used for designating an IL floating point constant hex value.
 */
@@ -3029,6 +3031,8 @@ struct an_il_hex_constant_fp_value {
       not_a_number(not_a_number_val)
     {}
 };  /* an_il_hex_constant_fp_value */
+
+#endif /* USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE */
 
 /*
 A struct used for designating an IL floating point hex value.
@@ -3298,6 +3302,8 @@ value might use (plus a temporary null character).
   }  /* if */
 }  /* append_into */
 
+#if USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE
+
 /*
 A string formatter for an_il_hex_constant_fp_value values.
 */
@@ -3374,7 +3380,7 @@ value might use (plus a temporary null character).
                    sizeof(a_host_fp_value));
 #if USE_SOFTFLOAT
       append_softfloat_hex_constant_string(underlying_array, value.kind,
-                                           value.float);
+                                           value.float_value);
 #else /* !USE_SOFTFLOAT */
 #if USE_DOUBLE_FOR_HOST_FP_VALUE
       append_using_c_formatting("%la", underlying_array, size_hint, temp);
@@ -3395,6 +3401,8 @@ value might use (plus a temporary null character).
     }  /* if */
   }  /* if */
 }  /* append_into */
+
+#endif /* USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE */
 
 /*
 A string formatter for an_il_hex_fp_value values.
