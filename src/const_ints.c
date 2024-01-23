@@ -1680,9 +1680,8 @@ Given a IL hex integer value, return the approximate character usage.
 */
 {
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
-  /* Approximate by delegating to the integer string formatter most closely
-     associated with the type backing an_integer_value. */
-  return 2 + String_formatter<an_integer_value>::size_hint_of(*value.value);
+  /* 2 for the "0x" plus the number of hex digits required. */
+  return 2 + integral_digits(*value.value, size_t_arg(16));
 #else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
   return 3 + (4 * INT_VALUE_PARTS_PER_INTEGER_VALUE);
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
@@ -1701,7 +1700,7 @@ of characters this value might use (plus a temporary null character -- for use
 by snprintf_impl).
 */
 {
-  size_t num_hex_digits_in_repr = (value.size * targ_char_bit) / 4;
+  int num_hex_digits_in_repr = (value.size * targ_char_bit) / 4;
 
   underlying_array.push_back('0');
   underlying_array.push_back('x');
@@ -1709,16 +1708,17 @@ by snprintf_impl).
   size_hint -= 2;
 
   size_t size_before_parts = underlying_array.length();
-  size_t num_hex_digits_printed = 0;
+  int    num_hex_digits_printed = 0;
+  size_t extra_space = size_hint + 1;
   /* Create space in the underlying array to write the arguments. */
-  underlying_array.resize(size_before_parts + size_hint, '\0');
+  underlying_array.resize(size_before_parts + extra_space, '\0');
 
   auto buff_ptr = &underlying_array[size_before_parts];
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
   /* Write the formatted string. */
-  num_hex_digits_printed = snprintf_impl(buff_ptr, size_hint,
+  num_hex_digits_printed = snprintf_impl(buff_ptr, extra_space,
                                          PRINTF_FORMAT_FOR_HEX_INTEGER_VALUE,
-                                         value.value);
+                                         *value.value);
   check_assertion(num_hex_digits_printed > 0);
 #else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
   /* The code below assumes four hex digits for each part. */
@@ -1734,13 +1734,13 @@ by snprintf_impl).
       if (num_hex_digits_printed == 0) {
         /* This is the first nonzero part, so do not pad with leading
            zeroes. */
-        chars_written = snprintf_impl(buff_ptr, size_hint, "%x", part);
+        chars_written = snprintf_impl(buff_ptr, extra_space, "%x", part);
 
       } else {
         /* A previous nonzero part was seen, so we must pad with leading
            zeroes to preserve the correct value. */
         chars_written = snprintf_impl(buff_ptr + num_hex_digits_printed,
-                                      size_hint - num_hex_digits_printed,
+                                      extra_space - num_hex_digits_printed,
                                       "%.4x", part);
       }  /* if */
       /* If this assertion fails, there was an error writing the string. */
