@@ -1665,12 +1665,8 @@ the given base class contains no flexible array.
 {
   a_targ_size_t  next_byte = offset_after_base(bcp);
 
-  if (next_byte > lob->curr_base_extent+1) {
-    lob->curr_base_extent = next_byte-1;
-  }  /* if */
-  if (next_byte > lob->curr_extent+1) {
-    lob->curr_extent = next_byte-1;
-  }  /* if */
+  lob->curr_base_extent = max_val(lob->curr_base_extent, next_byte-1);
+  lob->curr_extent = max_val(lob->curr_extent, next_byte-1);
 }  /* update_curr_base_extent */
 
 
@@ -2618,8 +2614,10 @@ there's no overflow TRUE is returned.
   a_type_ptr                  field_type;
   a_targ_alignment            field_alignment = 0;
   a_boolean                   overflow = FALSE;
-  a_targ_size_t               save_byte_offset;
-  an_unnormalized_bit_offset  save_bit_offset;
+  a_targ_size_t               save_byte_offset,
+                              orig_byte_offset = lob->byte_offset;
+  an_unnormalized_bit_offset  save_bit_offset,
+                              orig_bit_offset = lob->bit_offset;
   a_type_ptr                  class_type;
 #if IA64_ABI
   a_boolean                   is_potentially_overlapping_data_member;
@@ -2763,7 +2761,7 @@ there's no overflow TRUE is returned.
             }  /* if */
           }  /* if */
           if (!offset_determined &&
-              (save_byte_offset <= lob->curr_base_extent ||
+              (save_byte_offset <= lob->curr_extent ||
                is_empty_field_for_layout_purposes(field))) {
             /* When laying out base subobjects or fields with
                [[no_unique_address]], make sure a unique address is given. */
@@ -2827,10 +2825,8 @@ there's no overflow TRUE is returned.
         if (is_potentially_overlapping_data_member) {
           /* Record a minimum size for this class (this is used during the
              "finalization" step). */
-          a_targ_size_t min_class_size = field->offset + field_type->size;
-          if (lob->min_final_class_size < min_class_size) {
-            lob->min_final_class_size = min_class_size;
-          }  /* if */
+          lob->min_final_class_size = max_val(field->offset + field_type->size,
+                                              lob->min_final_class_size);
         }  /* if */
 #endif /* IA64_ABI */
       }  /* if */
@@ -2842,11 +2838,15 @@ there's no overflow TRUE is returned.
   }  /* if */
 #if IA64_ABI
   field->offset_is_set = TRUE;
-  lob->curr_extent = field->offset+field_type->size; 
+  lob->curr_extent = max_val(lob->curr_extent, field->offset+field_type->size);
   if (warn_about_tail_padding_use &&
       class_type->variant.class_struct_union.field_list == field) {
     /* First field.  See if it reuses tail padding. */
     warn_if_offset_in_tail_padding(field, (a_base_class_ptr)NULL, lob);
+  }  /* if */
+  if (field->is_optimized_empty_class) {
+    lob->byte_offset = orig_byte_offset;
+    lob->bit_offset = orig_bit_offset;
   }  /* if */
 #endif /* IA64_ABI */
   db_exit();
@@ -3172,9 +3172,7 @@ the layout of lob->class_type (which is also proximate_derivation->type).
         a_targ_size_t  end = bcp->offset
                            + class_type_supp(bcp->type)
                                           ->size_without_virtual_base_classes;
-        if (end > lob->curr_extent+1) {
-          lob->curr_extent = end-1;
-        }  /* if */
+        lob->curr_extent = max_val(lob->curr_extent, end-1);
 #endif /* IA64_ABI */
         /* Make a recursive call to apply this processing to the next level of
            base classes. */
@@ -4517,9 +4515,7 @@ Set bcp->offset.  The base class bcp must be a virtual base.
   { a_targ_size_t  end = bcp->offset
                        + class_type_supp(bcp->type)
                                           ->size_without_virtual_base_classes;
-    if (end > lob->curr_extent+1) {
-      lob->curr_extent = end-1;
-    }  /* if */
+    lob->curr_extent = max_val(lob->curr_extent, end-1);
   }
   if (warn_about_tail_padding_use) {
     /* Examine if this base class was allocated in the tail padding of
