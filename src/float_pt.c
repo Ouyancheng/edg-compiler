@@ -3031,6 +3031,7 @@ struct an_il_hex_constant_fp_value {
 };  /* an_il_hex_constant_fp_value */
 
 #endif /* USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE */
+#if IA64_ABI
 
 /*
 A struct used for designating an IL floating point hex value.
@@ -3046,6 +3047,8 @@ struct an_il_hex_fp_value {
     : kind(kind_val), float_value(float_value_val)
     {}
 };  /* an_il_hex_fp_value */
+
+#endif /* IA64_ABI */
 
 } /* namespace */
 
@@ -3401,6 +3404,7 @@ value might use (plus a temporary null character).
 }  /* append_into */
 
 #endif /* USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE */
+#if IA64_ABI
 
 /*
 A string formatter for an_il_hex_fp_value values.
@@ -3464,6 +3468,8 @@ an overestimate (i.e., maximum) number of characters this value might use.
                               (unsigned int)byte);
   }  /* for */
 }  /* append_into */
+
+#endif /* IA64_ABI */
 
 }  /* detail */
 

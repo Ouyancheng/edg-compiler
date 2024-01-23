@@ -1299,8 +1299,10 @@ inline auto Dyn_array<an_Elem, Allocator>::operator[](an_index i) -> an_elem&
 Subscript operator to access the element at the given index.
 */
 {
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
   check_assertion(0 <= i && i < this->n_elems);
   return this->elems[i];
+END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 }  /* Dyn_array::operator[] */
 
 
@@ -1311,8 +1313,10 @@ inline auto Dyn_array<an_Elem, Allocator>::operator[](an_index i) const ->
 Subscript operator to access a const version of the element at the given index.
 */
 {
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
   check_assertion(0 <= i && i < this->n_elems);
   return this->elems[i];
+END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 }  /* Dyn_array::operator[] */
 
 

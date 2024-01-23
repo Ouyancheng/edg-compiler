@@ -3137,6 +3137,7 @@ for specifying the length (which can be ambiguous in some cases).
 */
 {
 #if !IA64_ABI
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
   a_number_buffer str;
   sizeof_t        added = 0, subtracted = 0;
 
@@ -3252,6 +3253,7 @@ for specifying the length (which can be ambiguous in some cases).
 #endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
     }  /* if */
   }  /* for */
+END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 #else /* IA64_ABI */
   /* The IA-64 ABI specifies that a floating point value be encoded as a
      hexadecimal string for the constant value, high-order bytes first,
