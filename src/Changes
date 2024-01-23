@@ -1,5 +1,13 @@
 Version 6.7
 
+1/23/24  [EDGcpfe/26972]
+End position of expression nodes resulting from template substitution
+
+In some configurations with EXTRA_SOURCE_POSITIONS_IN_IL, the end position for
+nodes corresponding to id-expressions (e.g., expressions that name a variable)
+could be erroneous.  That is now fixed.
+
+
 1/22/24  [EDGcpfe/26598,EDGcpfe/26866]
 Matching of constrained out-of-class member template declarations
 

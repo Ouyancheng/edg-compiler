@@ -38247,7 +38247,7 @@ after_advance_past_id:
 
   error_position = result->position = start_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  result->end_position = curr_construct_end_position;
+  result->end_position = end_position;
   /* If the operand has kind ok_expression, set the position in the
      expression too. */
   set_operand_expr_position_if_expr(result, (a_source_position *)NULL);
