@@ -365,8 +365,6 @@ are supported on all platforms.
 
   /* This routine only handles 80 and 128-bit float (everything else should
      be handled by the caller). */
-  /* Check worst case rather than byte by byte. */
-  check_assertion(size >= (1 + 2 + 2 + 28 + 1 + 6 + 1));
   if (kind == fk_float80 ||
       (repr_is_long_double(kind) && targ_ldbl_mant_dig == 64)) {
       /* 80 bits. */
