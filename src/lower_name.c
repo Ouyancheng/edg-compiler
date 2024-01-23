@@ -3175,10 +3175,12 @@ for specifying the length (which can be ambiguous in some cases).
     }  /* for */
     /* Change any insignificant zeroes to blanks. */
     if (opt_last_digit.has_value()) {
-      check_assertion(opt_last_signif.has_value());
-      size_t last_signif = *opt_last_signif;
       size_t last_digit = *opt_last_digit;
+      size_t last_signif = last_digit;
 
+      if (opt_last_signif.has_value()) {
+        last_signif = *opt_last_signif;
+      }  /* if */
       while (last_signif < --last_digit) {
         str[last_digit] = ' ';
         ++subtracted;
