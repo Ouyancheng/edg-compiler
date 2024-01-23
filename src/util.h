@@ -3628,7 +3628,7 @@ formatter::append_into functions.
   /* Calculate the total size estimate off of the element sizes, and get a
      backing Dyn_array instance (with the appropriate space reserved based on
      the estimate). */
-  for (size_t i = 0; i < sizeof...(args); ++i) {
+  for (size_t i = 0; i != sizeof...(args); ++i) {
     total_size += element_sizes[i];
   }  /* for */
 
