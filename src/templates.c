@@ -15003,6 +15003,7 @@ If there is an error in the copying, set *copy_error to TRUE.
       new_tap = alloc_template_arg(tap->kind);
       new_tap->is_pack_element = have_params && tpp->is_pack;
       new_tap->is_pack = tap->is_pack;
+      new_tap->explicitly_specified = tap->explicitly_specified;
       /* Copy the unsubstituted value to the new argument. */
       switch (tap->kind) {
         case tak_type:

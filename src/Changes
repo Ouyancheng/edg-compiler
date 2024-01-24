@@ -1,5 +1,30 @@
 Version 6.7
 
+1/23/24  [EDGcpfe/26674]
+C++-generating back end: incorrectly-omitted explicit template argument
+
+In some cases, the C++-generating back end could omit a required explicit
+template argument in a function call, resulting in code that could not be
+compiled.  This is now fixed.  For example, with --c++17:
+
+  template<typename T> constexpr int f() {
+    return 0;
+  }
+  template <typename T, int I> class A {
+  public:
+    template <typename U> A(const U&) { }
+    using TP = T;
+  };
+  template <typename T> A(const T&) -> A<float, f<T>()>;
+  void g() {
+    A a{0};
+    using X = decltype(a);
+    typename X::TP t = 0.0F;   // Previously incorrectly generated as
+                               // A<float,f<>()>::TP", now as
+                               // A<float,f<int>()::TP"
+  }
+
+
 1/23/24  [EDGcpfe/26971]
 IA-64 ABI: Layout of [[no_unique_address]] fields
 
