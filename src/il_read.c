@@ -963,6 +963,8 @@ build the in-memory version.
      LEN_IL_FILE_MAGIC_STRING needs adjusted.*/
   check_assertion(magic_string.length() == LEN_IL_FILE_MAGIC_STRING);
   fread_with_check(check_string, magic_string.length());
+  /* Ensure the read string is null-terminated before comparison. */
+  check_string[LEN_IL_FILE_MAGIC_STRING] = '\0';
   if (magic_string != check_string) {
     catastrophe(ec_bad_il_file);
   }  /* if */
