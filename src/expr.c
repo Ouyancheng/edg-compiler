@@ -38012,6 +38012,9 @@ type_identifier_case:
                                                   &start_position,
                                                   result,
                                                   local_options);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+            end_position = result->end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
             okay_for_integral_const_expr = TRUE;
             goto after_advance_past_id;
           } else {
