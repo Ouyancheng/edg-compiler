@@ -3965,9 +3965,9 @@ typedef Small_string<50> a_number_buffer;
 
 
 template<template<typename> class Allocator>
-void print(Allocated_string<Allocator> string,
-           FILE                        *stream,
-           a_const_char                *end = "\n")
+void print(const Allocated_string<Allocator> &string,
+           FILE                              *stream,
+           a_const_char                      *end = "\n")
 /*
 Print the given allocated string into the given stream.  The given end
 character sequence terminates the printed string.
