@@ -3223,7 +3223,7 @@ BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
                             old_form, mctl);
   for (size_t i = 0; i < str.length(); ++i) {
     /* Move the string and recode non-alphanumeric characters. */
-    char c = str[i++];
+    char c = str[i];
     if (c == ' ') {
       /* A blank is an insignificant digit removed above. */
     } else {
