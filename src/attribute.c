@@ -2444,7 +2444,7 @@ that appeared in a previous "using" prefix.  Can return NULL on error.
         } else {
           a_string_view
                 const_str(const_for_curr_token.variant.string.value,
-                          const_for_curr_token.variant.string.length);
+                          const_for_curr_token.variant.string.length - 1);
           Small_string<MAX_ATTRIBUTE_NAME_LENGTH + 2>
                 name("\"", const_str, "\"");
 
