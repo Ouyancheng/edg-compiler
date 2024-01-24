@@ -4006,33 +4006,20 @@ be NULL if promoting a type out of a prototype scope that is not associated
 with a routine.
 */
 {
-  sizeof_t         mangled_name_length, alloc_length, name_length;
-  sizeof_t         routine_name_length;
-  char             *mangled_name, *store_at;
-  a_const_char     *routine_name = NULL;
-  Small_string<50> buffer;
-#if IA64_ABI
-  Small_string<50> buffer0;
-  Small_string<50> buffer2;
-#endif /* IA64_ABI */
-
   /* Leave the name alone if the type is unnamed or if the name has
      already been mangled (e.g., for a local nested class). */
   if (scp->name != NULL && !scp->name_has_been_mangled) {
-    name_length = strlen(scp->name);
+    Small_string<50> buffer;
+    a_const_char     *routine_name = NULL;
+
     if (rout != NULL && has_name(rout)) {
       routine_name = rout->source_corresp.name;
-      routine_name_length = strlen(routine_name);
-    } else {
-      routine_name_length = 0;
     }  /* if */
 #if !IA64_ABI
     /* Cfront-like ABI: The encoding is the original name, two
        underscores, the mangled name of the routine, and "__Lnn" where
        "nn" is the scope number. */
-    buffer.reset_to("__L", scope_number);
-    mangled_name_length = name_length + 2 + routine_name_length +
-                          buffer.length();
+    buffer.reset_to(scp->name, "__", routine_name, "__L", scope_number);
 #else /* IA64_ABI */
     /* IA-64 ABI encoding:
          _Z Z function-mangled-name E name-with-length _ discriminator
@@ -4043,63 +4030,33 @@ with a routine.
        added at the front of the routine name.  buffer will contain the
        "E" and the length for the entity name.  buffer2 will contain the
        "_" and the discriminator number. */
-    buffer0.reset_to("_ZZ");
+    buffer.append("_ZZ");
     if (routine_name == NULL) {
       /* For an unnamed routine, we put out no name.  That doesn't produce
          a valid mangled name but it may be the best we can do. */
     } else if (routine_name[0] == '_' && routine_name[1] == 'Z') {
       /* Usual case: the routine name is mangled.  Remove "_Z". */
-      check_assertion(routine_name_length >= 5);
-      routine_name += 2;
-      routine_name_length -= 2;
+      check_assertion(strlen(routine_name) >= 5);
+      buffer.append(routine_name + 2);
     } else {
       /* Unmangled routine name (e.g., for an extern "C" routine).
          Add the length of the name as a prefix. */
-      buffer.reset_to(routine_name_length);
-      buffer0.append(buffer);
+      buffer.append(strlen(routine_name), routine_name);
     }  /* if */
-    buffer.append("E", name_length);
-    buffer2.reset_to("_", scope_number);
-    mangled_name_length = buffer0.length() +
-                          routine_name_length + buffer.length() +
-                          name_length + buffer2.length();
+    buffer.append("E", strlen(scp->name), scp->name, "_", scope_number);
 #endif /* !IA64_ABI */
+
     /* Allocate space for the mangled name and build it. */
-    alloc_length = mangled_name_length + 1;
+    sizeof_t alloc_length = buffer.length() + 1;
     /* This space is not counted under any debug output.  There shouldn't
        be too much of it. */
-    mangled_name = alloc_il_for_c_gen_be(alloc_length);
-#if !IA64_ABI
-    (void)strcpy(mangled_name, scp->name);
-    store_at = mangled_name + name_length;
-    *store_at++ = '_';
-    *store_at++ = '_';
-    if (routine_name != NULL) {
-      (void)strcpy(store_at, routine_name);
-      store_at += routine_name_length;
-    }  /* if */
-    (void)strcpy(store_at, buffer.as_temp_characters());
-#else /* IA64_ABI */
-    (void)strcpy(mangled_name, buffer0.as_temp_characters());
-    store_at = mangled_name + buffer0.length();
-    if (routine_name != NULL) {
-      (void)strcpy(store_at, routine_name);
-      store_at += routine_name_length;
-    }  /* if */
-    /* E plus name length. */
-    (void)strcpy(store_at, buffer.as_temp_characters());
-    store_at += buffer.length();
-    (void)strcpy(store_at, scp->name);
-    store_at += name_length;
-    /* _ plus scope number. */
-    (void)strcpy(store_at, buffer2.as_temp_characters());
-#endif /* !IA64_ABI */
+    char     *mangled_name = alloc_il_for_c_gen_be(alloc_length);
+    buffer.write_to_buffer(mangled_name, alloc_length);
     /* Put the mangled name into the source correspondence entry. */
     /* The old name is just thrown away. */
     scp->name = mangled_name;
     scp->name_has_been_mangled = TRUE;
     scp->is_local_to_function = FALSE;
-    check_assertion(mangled_name_length == strlen(mangled_name));
   }  /* if */
 }  /* mangle_promoted_name */
 
