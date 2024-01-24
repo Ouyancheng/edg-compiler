@@ -2614,13 +2614,13 @@ there's no overflow TRUE is returned.
   a_type_ptr                  field_type;
   a_targ_alignment            field_alignment = 0;
   a_boolean                   overflow = FALSE;
-  a_targ_size_t               save_byte_offset,
-                              orig_byte_offset = lob->byte_offset;
-  an_unnormalized_bit_offset  save_bit_offset,
-                              orig_bit_offset = lob->bit_offset;
+  a_targ_size_t               save_byte_offset;
+  an_unnormalized_bit_offset  save_bit_offset;
   a_type_ptr                  class_type;
 #if IA64_ABI
   a_boolean                   is_potentially_overlapping_data_member;
+  a_targ_size_t               orig_byte_offset = lob->byte_offset;
+  an_unnormalized_bit_offset  orig_bit_offset = lob->bit_offset;
 #endif /* IA64_ABI */
 
   db_enter(4, "set_field_size_and_offset");
