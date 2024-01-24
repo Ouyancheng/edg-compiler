@@ -1338,7 +1338,9 @@ Return a string containing debug information about the given module.
     a_module_interface_ptr m_iface = mod->module_interface;
 
     if (m_iface != NULL) {
+#if !USE_VIRTUAL_FUNCTIONS
       m_kind = m_iface->mod_kind;
+#endif /* !USE_VIRTUAL_FUNCTIONS */
     }  /* if */
   }  /* if */
   result.append("module name: ");
@@ -1401,7 +1403,9 @@ This string does not contain extensive information about the module.
   if (mep->module_info != NULL) {
     m_iface = mep->module_info->module_interface;
     if (m_iface != NULL) {
+#if !USE_VIRTUAL_FUNCTIONS
       m_kind = m_iface->mod_kind;
+#endif /* !USE_VIRTUAL_FUNCTIONS */
     }  /* if */
   }  /* if */
   result.append(", entity id: ");

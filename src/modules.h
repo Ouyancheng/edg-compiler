@@ -258,14 +258,6 @@ struct an_edg_module : public a_module_interface {
     { unexpected_condition_str("Unimplemented"); }
   NORETURN void pch_reset(ARG_UNUSED a_module_import_decl_ptr midp) OVERRIDE
     { unexpected_condition_str("Unimplemented"); }
-
-#if DEBUG
-  NORETURN void debug() const OVERRIDE
-    { unexpected_condition_str("Unimplemented"); }
-  NORETURN void db_module_entity(ARG_UNUSED a_module_entity_ptr mep)
-                                                                 const OVERRIDE
-    { unexpected_condition_str("Unimplemented"); }
-#endif /* DEBUG */
 };  /* an_edg_module */
 /*lint -restore*/
 

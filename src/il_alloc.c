@@ -3565,7 +3565,6 @@ fields to default values.
 #if DEBUG
       num_new_delete_supplements_allocated++;
 #endif /* DEBUG */
-#endif /* STANDALONE_UTILITY_PROGRAM */
       ndsp->is_new                          = TRUE;
       ndsp->placement_new                   = FALSE;
       ndsp->aligned_version                 = FALSE;
@@ -3582,6 +3581,7 @@ fields to default values.
       ndsp->dynamic_init                    = NULL;
       ndsp->freeing_of_storage_on_exception = NULL;
       ndsp->number_of_elements              = NULL;
+#endif /* STANDALONE_UTILITY_PROGRAM */
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case enk_gcnew:
@@ -3595,12 +3595,12 @@ fields to default values.
 #if DEBUG
       num_gcnew_supplements_allocated++;
 #endif /* DEBUG */
-#endif /* STANDALONE_UTILITY_PROGRAM */
       gnsp->has_new_initializer         = FALSE;
       gnsp->is_cli_array                = FALSE;
       gnsp->type                        = NULL;
       gnsp->cli_array_dimension_lengths = NULL;
       gnsp->dynamic_init                = NULL;
+#endif /* STANDALONE_UTILITY_PROGRAM */
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case enk_throw:
@@ -3615,7 +3615,6 @@ fields to default values.
 #if DEBUG
       num_throw_supplements_allocated++;
 #endif /* DEBUG */
-#endif /* STANDALONE_UTILITY_PROGRAM */
       tsp->type         = NULL;
       tsp->dynamic_init = NULL;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
@@ -3625,6 +3624,7 @@ fields to default values.
       tsp->accessible_base_classes = NULL;
 #endif /* !ABI_CHANGES_FOR_RTTI */
       tsp->destructor   = NULL;
+#endif /* STANDALONE_UTILITY_PROGRAM */
       break;
     case enk_condition:
 #if STANDALONE_UTILITY_PROGRAM
@@ -3638,11 +3638,11 @@ fields to default values.
 #if DEBUG
       num_condition_supplements_allocated++;
 #endif /* DEBUG */
-#endif /* STANDALONE_UTILITY_PROGRAM */
       csp->scope          = NULL;
       csp->dynamic_init   = NULL;
       csp->expr           = NULL;
       csp->initialization = NULL;
+#endif /* STANDALONE_UTILITY_PROGRAM */
       break;
     case enk_object_lifetime:
       node->variant.object_lifetime.expr = NULL;

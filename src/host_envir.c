@@ -67,6 +67,13 @@ This version for UNIX, MS-DOS, VAX/VMS, and Windows NT.
 #define NOCRYPT
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#if !defined(ENABLE_VIRTUAL_TERMINAL_PROCESSING)
+/*
+If ENABLE_VIRTUAL_TERMINAL_PROCESSING was not defined (as is the case with
+some older Microsoft SDKs), define it here.
+*/
+#define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
+#endif /* !defined(ENABLE_VIRTUAL_TERMINAL_PROCESSING) */
 #if CPPCLI_ENABLING_POSSIBLE
 #include <metahost.h>
 #endif /* CPPCLI_ENABLING_POSSIBLE */

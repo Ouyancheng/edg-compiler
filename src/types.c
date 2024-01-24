@@ -3885,7 +3885,7 @@ size and alignment requirement.
 */
 {
   if (size <= targ_sizeof_largest_atomic && alignment < size) {
-    alignment = size;
+    alignment = (a_targ_alignment)size;
   }  /* if */
   return alignment;
 }  /* alignment_of_clang_atomic */

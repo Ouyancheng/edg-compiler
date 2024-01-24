@@ -1,5 +1,12 @@
 Version 6.7
 
+1/24/24  [EDGcpfe/26968]
+Miscellaneous build/configuration issues
+
+A number of build issues in certain configurations or with certain host
+compilers have been addressed.
+
+
 1/23/24  [EDGcpfe/26674]
 C++-generating back end: incorrectly-omitted explicit template argument
 
