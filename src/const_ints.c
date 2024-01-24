@@ -1861,11 +1861,11 @@ the underlying array.  size_hint is the previously computed size hint.
       /* Append all but one digit. */
       String_formatter<an_il_unsigned_integer>::append_into(underlying_array,
                                                             first_part,
-                                                            size_hint);
+                                                            size_hint - 1);
       /* Append the remaining digit. */
       String_formatter<an_il_unsigned_integer>::append_into(underlying_array,
                                                             second_part,
-                                                            size_hint);
+                                                            /*size_hint=*/1);
     }  /* if */
   } else {
     /* Delegate to the unsigned integer formatter. */
