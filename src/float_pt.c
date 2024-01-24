@@ -622,8 +622,7 @@ radix point (set in host_envir_early_init).
      string. */
   if (detail::snprintf_impl(buf, 60, "%.*Le", LDBL_DIG, temp) < 0) {
     err = TRUE;
-  }  /* if */
-  if (temp == 0.0L) {
+  } else if (temp == 0.0L) {
     a_boolean	nonzero = FALSE;
     ptr = str;
     if (*ptr == '-') ptr++;
