@@ -11,16 +11,16 @@ compiled.  This is now fixed.  For example, with --c++17:
     return 0;
   }
   template<typename T, int I> struct A {
-    template <typename U> A(const U&) { }
+    template<typename U> A(const U&) { }
     using TP = T;
   };
-  template <typename T> A(const T&) -> A<float, f<T>()>;
+  template<typename T> A(const T&) -> A<float, f<T>()>;
   void g() {
     A a{0};
     using X = decltype(a);
     typename X::TP t = 0.0F;   // Previously incorrectly generated as
                                // A<float,f<>()>::TP", now as
-                               // A<float,f<int>()::TP"
+                               // A<float,f<int>()>::TP"
   }
 
 
