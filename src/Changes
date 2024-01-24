@@ -27,11 +27,11 @@ compiled.  This is now fixed.  For example, with --c++17:
 1/23/24  [EDGcpfe/26971]
 IA-64 ABI: Layout of [[no_unique_address]] fields
 
-For some fairly complex cases, the front end did not correctly the layout of
-fields in the presence of [[no_unique_address]] fields.  Some of these mistakes
-were due to a regression introduced by the changes for EDGcpfe/26693 in version
-6.6 of the front end (but some other issues were preexisting).  All known
-layout errors due to [[no_unique_address]] fields are now fixed.
+For some fairly complex cases, the front end did not correctly lay out fields
+in the presence of [[no_unique_address]] fields.  Some of these mistakes were
+due to a regression introduced by the changes for EDGcpfe/26693 in version 6.6
+of the front end (but some other issues were preexisting).  All known layout
+errors due to [[no_unique_address]] fields are now fixed.
 
 
 1/23/24  [EDGcpfe/26972]
