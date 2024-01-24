@@ -1814,22 +1814,68 @@ the underlying array.  size_hint is the previously computed size hint.
   /* Put out the value in decimal. */
   an_integer_value value_copy = *value.value;
 
-  /* If the number is negative, save the sign and convert the number
-     to be positive. */
+  /* If the number is negative, save the sign and convert the number to be
+     positive. */
   if (sign_of(value_copy)) {
-    a_boolean err;
-
+    /* Attempt to take the happy path of just negating the integer and
+       appending the digits "as if" this were an unsigned integer.  If that
+       fails, break the larger integer value into two smaller negative numbers,
+       negate them, and then finally append the combined digits. */
     underlying_array.push_back('-');
-    negate_integer_value(&value_copy, &err);
-    /* If this assertion fails, this algorithm is broken and needs revised. */
-    /* check_assertion(!err); */
-  }  /* if */
 
-  /* Delegate to the unsigned integer formatter. */
-  an_il_unsigned_integer unsigned_int(&value_copy);
-  String_formatter<an_il_unsigned_integer>::append_into(underlying_array,
-                                                        unsigned_int,
-                                                        size_hint);
+    a_boolean err;
+    negate_integer_value(&value_copy, &err);
+    if (!err) {
+      /* Delegate to the unsigned integer formatter. */
+      an_il_unsigned_integer unsigned_int(&value_copy);
+
+      String_formatter<an_il_unsigned_integer>::append_into(underlying_array,
+                                                            unsigned_int,
+                                                            size_hint);
+    } else {
+      /* There was overflow, reset the value, break the number into two smaller
+         numbers and then append each of them as pieces of the larger
+         number. */
+      value_copy = *value.value;
+
+      an_integer_value remainder;
+      an_integer_value divisor;
+      set_integer_value(&divisor, (a_host_large_integer)10);
+      divide_and_remainder_integer_values(&value_copy, &divisor,
+                                          &value_copy, &remainder,
+                                          /*is_signed=*/TRUE, &err);
+      /* If this assertion fails, there's a problem with division. */
+      check_assertion(!err);
+      /* Negate the result. */
+      negate_integer_value(&value_copy, &err);
+      /* If this assertion fails, there's a problem with negation. */
+      check_assertion(!err);
+      /* Negate the remainder. */
+      negate_integer_value(&remainder, &err);
+      /* If this assertion fails, there's a problem with negation. */
+      check_assertion(!err);
+
+      /* Delegate to the unsigned integer formatter. */
+      an_il_unsigned_integer first_part(&value_copy);
+      an_il_unsigned_integer second_part(&remainder);
+      /* Append all but one digit. */
+      String_formatter<an_il_unsigned_integer>::append_into(underlying_array,
+                                                            first_part,
+                                                            size_hint);
+      /* Append the remaining digit. */
+      String_formatter<an_il_unsigned_integer>::append_into(underlying_array,
+                                                            second_part,
+                                                            size_hint);
+    }  /* if */
+  } else {
+    /* Delegate to the unsigned integer formatter. */
+    an_il_unsigned_integer unsigned_int(&value_copy);
+
+    String_formatter<an_il_unsigned_integer>::append_into(underlying_array,
+                                                          unsigned_int,
+                                                          size_hint);
+
+  }  /* if */
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
 }  /* append_into */
 
