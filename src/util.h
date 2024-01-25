@@ -157,6 +157,79 @@ struct Is_trivially_copyable_helper {
 #endif /* (defined(__clang__) || (defined(__GNUC__) && __GNUC__ > 5) && ... */
 };  /* Is_trivially_copyable_helper */
 
+#if defined(__clang__)
+
+/*
+An implementation of Is_trivially_destructible that relies on the host compiler
+having the builtin __is_trivially_destructible.
+
+Note: bool is used in place of a_boolean to match the standard library
+implementations that use this builtin.  Thus, this provides maximum
+compatibility with the __is_trivially_destructible builtin (i.e., to avoid
+possible warnings about a conversion from bool).
+*/
+template<typename a_Type>
+struct Is_trivially_destructible_builtin_impl :
+          public Integral_constant<bool, __is_trivially_destructible(a_Type)> {
+};  /* Is_trivially_destructible_builtin_impl */
+
+#endif /* defined(__clang__) */
+
+/*
+An implementation of Is_trivially_destructible that relies on specializations
+to remain independent of any underlying compiler or standard library
+implementation.
+
+Note: bool, true, and false are used in place of a_boolean, TRUE, and FALSE for
+maximum compatibility when comparing with the __is_trivially_destructible
+builtin implementation (i.e., Is_trivially_destructible_builtin_impl).
+*/
+template<typename a_Type>
+struct Is_trivially_destructible_edg_impl : Integral_constant<bool, false> {
+};  /* Is_trivially_destructible_edg_impl */
+
+template<typename a_Type>
+struct Is_trivially_destructible_edg_impl<a_Type*> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_destructible_edg_impl */
+
+template<>
+struct Is_trivially_destructible_edg_impl<char> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_destructible_edg_impl */
+
+template<>
+struct Is_trivially_destructible_edg_impl<int> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_destructible_edg_impl */
+
+/*
+This is an implementation of Is_trivially_destructible that uses the EDG
+specialization-based trivial destruction implementation.  However, it
+additionally checks against the host compiler's builtin implementation as a
+safety check on the EDG based specializations.
+
+This compromise allows the front end to work on any platform while maintaining
+maximum performance and safety.
+
+Note this implementation uses bool to match the builtin semantics regardless of
+the definition of a_boolean in the front end configuration.
+*/
+template<typename a_Type>
+struct Is_trivially_destructible_helper {
+  static constexpr a_boolean value =
+                  (a_boolean)Is_trivially_destructible_edg_impl<a_Type>::value;
+#if defined(__clang__)
+  /* This check ensures that for GCC and Clang implementations (which provide
+     the __is_trivially_copyable builtin), the front end's specializations
+     match the compiler's expectations for Is_trivially_destructible. */
+  static_assert(Is_trivially_destructible_edg_impl<a_Type>::value ==
+                Is_trivially_destructible_builtin_impl<a_Type>::value,
+                "the EDG and builtin Is_trivially_destructible "
+                "implementations have diverged");
+#endif /* defined(__clang__) */
+};  /* Is_trivially_destructible_helper */
+
 }  /* detail */
 
 /*
@@ -166,6 +239,13 @@ copyable; otherwise, it's FALSE.
 template<typename a_Type>
 using Is_trivially_copyable = detail::Is_trivially_copyable_helper<a_Type>;
 
+/*
+Is_trivially_destructible<a_Type>::value is TRUE when the given type is
+trivially destructible; otherwise, it's FALSE.
+*/
+template<typename a_Type>
+using Is_trivially_destructible =
+                              detail::Is_trivially_destructible_helper<a_Type>;
 
 /*
 Overload_priority is a helper type for controlling overload priority by using
@@ -438,6 +518,38 @@ a pointer to the last such "next" field (or p_list itself if there are none).
 }  /* get_last_simple_list_link */
 
 
+template<typename an_Object_type, typename an_Array>
+inline void copy_element(an_Array             &dest_array,
+                         const an_Object_type &elem,
+                         size_t               num_copies)
+/*
+Create the given number of copies of the element at the destination.
+
+Note: an_Array must represent all elements to be created as a contiguous memory
+block to use this interface.
+*/
+{
+  for (size_t i = 0; i < num_copies; ++i) {
+    dest_array[i] = elem;
+  }  /* for */
+}  /* copy_element */
+
+
+template<typename, typename an_Array>
+inline void copy_element(an_Array &dest_array,
+                         char     elem,
+                         size_t   num_copies)
+/*
+Create the given number of copies of the given character at the destination.
+
+Note: an_Array must represent all elements to be created as a contiguous memory
+block to use this interface.
+*/
+{
+  memset(&(dest_array[0]), elem, num_copies);
+}  /* copy_element */
+
+
 template<typename an_Object_type, typename an_Array_A, typename an_Array_B>
 inline Enable_if<!Is_trivially_copyable<an_Object_type>::value, void>
 copy_elements(an_Array_A       &dest_array,
@@ -476,6 +588,88 @@ as contiguous memory blocks to use this interface.
 }  /* copy_elements */
 
 
+template<typename an_Object_type, typename an_Array>
+inline Enable_if<!Is_trivially_destructible<an_Object_type>::value, void>
+destroy_elements(an_Array &array,
+                 size_t   num_to_destroy)
+/*
+Destroy the given number of non-trivially destructible element at the given
+array starting position.
+
+Note: an_Array must represent all elements to be created as a contiguous memory
+block to use this interface.
+*/
+{
+  for (size_t i = 0; i < num_to_destroy; ++i) {
+    destroy(&array[i]);
+  }  /* for */
+}  /* destroy_elements */
+
+
+template<typename an_Object_type, typename an_Array>
+inline Enable_if<Is_trivially_destructible<an_Object_type>::value, void>
+destroy_elements(ARG_UNUSED an_Array &array,
+                 ARG_UNUSED size_t   num_to_destroy)
+/*
+Destroy the given number of trivially destructible elements at the given array
+starting position.
+
+Note: an_Array must represent all elements to be created as a contiguous memory
+block to use this interface.
+*/
+{
+  /* No op */
+}  /* destroy_elements */
+
+
+template<typename an_Object_type, typename an_Array_A, typename an_Array_B>
+inline Enable_if<!Is_trivially_copyable<an_Object_type>::value, void>
+move_elements(an_Array_A &dest_array,
+              an_Array_B &src_array,
+              size_t     num_to_move)
+/*
+Move the given number of non-trivially copyable elements from the source
+array-like type to the destination array-like type.
+
+Note: both an_Array_A and an_Array_B must represent all elements to be copied
+as contiguous memory blocks to use this interface.
+*/
+{
+  a_boolean move_left = (&dest_array[0]) < (&src_array[0]);
+
+  if (move_left) {
+    for (size_t i = 0; i < num_to_move; ++i) {
+      construct(&dest_array[i], move_from(&src_array[i]));
+      destroy(&src_array[i]);
+    }  /* for */
+  } else {
+    for (size_t i = num_to_move - 1; i >= 0; --i) {
+      construct(&dest_array[i], move_from(&src_array[i]));
+      destroy(&src_array[i]);
+    }  /* for */
+  }  /* if */
+}  /* move_elements */
+
+
+template<typename an_Object_type, typename an_Array_A, typename an_Array_B>
+inline Enable_if<Is_trivially_copyable<an_Object_type>::value, void>
+move_elements(an_Array_A &dest_array,
+              an_Array_B &src_array,
+              size_t     num_to_move)
+/*
+Move the given number of trivially copyable elements from the source array-like
+type to the destination array-like type.
+
+Note: both an_Array_A and an_Array_B must represent all elements to be copied
+as contiguous memory blocks to use this interface.
+*/
+{
+  size_t num_bytes = num_to_move * sizeof(an_Object_type);
+
+  (void)memmove(&(dest_array[0]), &(src_array[0]), num_bytes);
+}  /* move_elements */
+
+
 /*lint -e{1537}*/
 template<typename a_Ptr>
 struct Ptr_with_flag {
@@ -502,6 +696,20 @@ struct Ptr_with_flag {
   a_boolean	flag_value;
 			/* Embedded flag. */
 };  /* Ptr_with_flag */
+
+namespace detail {
+
+template<typename a_Ptr>
+struct Is_trivially_copyable_edg_impl<Ptr_with_flag<a_Ptr>> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_copyable_edg_impl */
+
+template<typename a_Ptr>
+struct Is_trivially_destructible_edg_impl<Ptr_with_flag<a_Ptr>> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_destructible_edg_impl */
+
+}  /* detail */
 
 template<typename a_Ptr>
 inline Ptr_with_flag<a_Ptr> ptr_with_flag(a_Ptr      ptr,
@@ -1098,7 +1306,6 @@ struct Dyn_array: private Allocator<an_Elem> {
   inline void remove_many(an_index i, a_size num_elements);
   inline void clear();
   void resize(a_size new_n, const an_elem  &value);
-  void resize(a_size new_n, an_elem  &&value);
   void reserve(a_size);
   void shrink_wrap();
   /* Interfaces to allow range-based for loop. */
@@ -1170,9 +1377,10 @@ managed by the given allocator.  Initialize the first cap elements to v.
   an_allocation  allocation = this->alloc(cap);
   this->elems = allocation.start;
   this->n_allocated = (a_size)allocation.n_allocated;
-  for (a_size k = 0; k<cap; ++k) {
-    construct(this->elems+k, v);
-  }  /* for */
+
+  /* Copy-construct the element into newly-allocated storage. */
+  an_elem *dst_elems = this->elems;
+  copy_element<an_elem>(dst_elems, v, cap);
 }  /* Dyn_array::Dyn_array */
 
 
@@ -1190,14 +1398,13 @@ Copy constructor.
   an_allocation  allocation = this->alloc(src.n_allocated);
   this->elems = allocation.start;
   this->n_allocated = (a_size)allocation.n_allocated;
+
   /* Copy-construct the elements from the source into the newly-allocated
      storage. */
-  an_elem  *src_elems = src.elems;
-  a_size   n = this->n_elems;
-
-  for (a_size k = 0; k < n; ++k) {
-    construct(elems+k, src_elems[k]);
-  }  /* for */
+  an_elem *dst_elems = this->elems;
+  an_elem *src_elems = src.elems;
+  a_size  new_n = this->n_elems;
+  copy_elements<an_elem>(dst_elems, src_elems, new_n);
 }  /* Dyn_array::Dyn_array */
 
 
@@ -1231,9 +1438,7 @@ Destructor.
   an_elem  *arr_elems = this->elems;
   a_size   n = this->n_elems;
 
-  for (a_size k = 0; k < n; ++k) {
-    destroy(arr_elems+k);
-  }  /* for */
+  destroy_elements<an_elem>(arr_elems, n);
   this->dealloc(an_allocation{ arr_elems, this->n_allocated });
   this->elems = NULL;
 }  /* Dyn_array::~Dyn_array */
@@ -1244,34 +1449,30 @@ template<typename an_Elem, template<typename> class Allocator>
 inline auto Dyn_array<an_Elem, Allocator>::operator=(const Dyn_array &b)
             -> Dyn_array&
 /*
-Copy assignment operator.  
+Copy assignment operator.
 */
 {
-  a_size  n = this->n_elems;
+  a_size n = this->n_elems;
+  a_size new_n = b.n_elems;
 
-  if (b.n_elems == n) {
+  if (new_n == n) {
     /* Straightforward element-to-element assignment.  Note that this covers
        self-assignment. */
-    an_elem  *dst_elems = this->elems, *src_elems = b.elems;
-    for (a_size k = 0; k < n; ++k) {
-      dst_elems[k] = src_elems[k];
-    }  /* for */
+    an_elem *dst_elems = this->elems;
+    an_elem *src_elems = b.elems;
+
+    copy_elements<an_elem>(dst_elems, src_elems, new_n);
   } else {
     /* A change in size (and possibly capacity) is needed.  Destroy the
        original elements, and then construct the new ones. */
-    an_elem  *dst_elems = this->elems, *src_elems = b.elems;
-    for (a_size k = 0; k < n; ++k) {
-      destroy(dst_elems+k);
-    }  /* for */
-    a_size   new_n = b.n_elems;
+    this->clear();
     if (this->n_allocated < new_n) {
-      this->n_elems = 0;
       this->reserve(new_n);
-      dst_elems = this->elems;
     }  /* if */
-    for (a_size k = 0; k < new_n; ++k) {
-      construct(dst_elems+k, src_elems[k]);
-    }  /* for */
+
+    an_elem *dst_elems = this->elems;
+    an_elem *src_elems = b.elems;
+    copy_elements<an_elem>(dst_elems, src_elems, new_n);
     this->n_elems = new_n;
   }  /* if */
   return *this;
@@ -1383,18 +1584,21 @@ are first moved one position up.
 */
 {
   check_assertion(0 <= i && i <= this->n_elems);
-  a_size  n = this->n_elems;
+  a_size orig_count = this->n_elems;
 
-  if (n_elems == this->n_allocated) {
+  if (orig_count == this->n_allocated) {
     this->grow();
   }  /* if */
+
+  /* Move the existing elements past the insertion point. */
   an_elem  *arr_elems = this->elems;
-  for (an_index k = n; k>i; --k) {
-    construct(arr_elems+k, move_from(arr_elems+k-1));
-    destroy(arr_elems+k-1);
-  }  /* for */
+  an_elem  *move_src = arr_elems + i;
+  an_elem  *move_dest = move_src + 1;
+  a_size   num_to_move = orig_count - i;
+  move_elements<an_elem>(move_dest, move_src, num_to_move);
+  /* Insert the new element. */
   construct(arr_elems+i, value);
-  this->n_elems = n+1;
+  ++this->n_elems;
 }  /* Dyn_array::insert */
 
 
@@ -1407,18 +1611,21 @@ are first moved one position up.
 */
 {
   check_assertion(0 <= i && i <= this->n_elems);
-  a_size  n = this->n_elems;
+  a_size orig_count = this->n_elems;
 
-  if (n == this->n_allocated) {
+  if (orig_count == this->n_allocated) {
     this->grow();
   }  /* if */
+
+  /* Move the existing elements past the insertion point. */
   an_elem  *arr_elems = this->elems;
-  for (an_index k = n; k>i; --k) {
-    construct(arr_elems+k, move_from(arr_elems+k-1));
-    destroy(arr_elems+k-1);
-  }  /* for */
+  an_elem  *move_src = arr_elems + i;
+  an_elem  *move_dest = move_src + 1;
+  a_size   num_to_move = orig_count - i;
+  move_elements<an_elem>(move_dest, move_src, num_to_move);
+  /* Insert the new element. */
   construct(arr_elems+i, move_from(&value));
-  this->n_elems = n+1;
+  ++this->n_elems;
 }  /* Dyn_array::insert */
 
 
@@ -1441,10 +1648,10 @@ i through the end of the array are first moved len positions back.
 
   an_elem  *arr_elems = this->elems;
   /* Move the existing elements past the inserted sequence. */
-  for (an_index k = orig_count; k > i; --k) {
-    construct(arr_elems + k + len - 1, move_from(arr_elems + k - 1));
-    destroy(arr_elems + k - 1);
-  }  /* for */
+  an_elem  *move_src = arr_elems + i;
+  an_elem  *move_dest = move_src + len;
+  a_size   num_to_move = orig_count - i;
+  move_elements<an_elem>(move_dest, move_src, num_to_move);
 
   /* Insert the sequence of elements. */
   an_Input_iterator curr = start;
@@ -1475,14 +1682,14 @@ back.
 
   an_elem  *arr_elems = this->elems;
   /* Move the existing elements past the inserted copies. */
-  for (an_index k = orig_count - 1; k >= i; --k) {
-    construct(arr_elems + k + num_copies, move_from(arr_elems + k));
-    destroy(arr_elems + k);
-  }  /* for */
+  an_elem  *move_src = arr_elems + i;
+  an_elem  *move_dest = move_src + num_copies;
+  a_size   num_to_move = orig_count - i;
+  move_elements<an_elem>(move_dest, move_src, num_to_move);
+
   /* Construct the new elements. */
-  for (an_index k = 0; k < num_copies; ++k) {
-    construct(arr_elems + i + k, value);
-  }  /* for */
+  an_elem *insert_start = arr_elems + i;
+  copy_element<an_elem>(insert_start, value, num_copies);
   this->n_elems += num_copies;
 }  /* Dyn_array::insert_many */
 
@@ -1495,14 +1702,16 @@ one position down.
 */
 {
   check_assertion(0 <= i && i < this->n_elems);
+  a_size   orig_count = this->n_elems;
   an_elem  *arr_elems = this->elems;
 
-  destroy(arr_elems+i);
-  a_size  n = --this->n_elems;
-  for (an_index k = i; k<n; ++k) {
-    construct(arr_elems+k, move_from(arr_elems+k+1));
-    destroy(arr_elems+k+1);
-  }  /* for */
+  destroy(arr_elems + i);
+
+  an_elem *move_dest = arr_elems + i;
+  an_elem *move_src = move_dest + 1;
+  a_size   num_to_move = orig_count - (i + 1);
+  move_elements<an_elem>(move_dest, move_src, num_to_move);
+  --this->n_elems;
 }  /* Dyn_array::remove */
 
 
@@ -1517,16 +1726,16 @@ subsequent values (if any) are first moved by the number of copies back.
   check_assertion(0 <= i && i + num_elements <= this->n_elems);
   a_size  orig_count = this->n_elems;
   an_elem *arr_elems = this->elems;
+  an_elem *removal_start = this->elems + i;
 
   /* Destroy the elements. */
-  for (an_index k = 0; k < num_elements; ++k) {
-    destroy(arr_elems + i + k);
-  }  /* for */
+  destroy_elements<an_elem>(removal_start, num_elements);
+
   /* Move any elements past the point of removal back. */
-  for (an_index k = i + num_elements; k < orig_count; ++k) {
-    construct(arr_elems + k - num_elements, move_from(arr_elems + k));
-    destroy(arr_elems + k);
-  }  /* for */
+  an_elem *move_dest = arr_elems + i;
+  an_elem *move_src = move_dest + num_elements;
+  a_size   num_to_move = orig_count - (i + num_elements);
+  move_elements<an_elem>(move_dest, move_src, num_to_move);
   this->n_elems -= num_elements;
 }  /* Dyn_array::remove_many */
 
@@ -1537,11 +1746,8 @@ inline void Dyn_array<an_Elem, Allocator>::clear()
 Remove all the elements in the array.
 */
 {
-  a_size   n = this->n_elems;
-
-  for (an_index k = 0; k<n; ++k) {
-    this->pop_back();
-  }  /* for */
+  destroy_elements<an_elem>(this->elems, this->n_elems);
+  this->n_elems = 0;
 }  /* Dyn_array::clear */
 
 
@@ -1557,40 +1763,17 @@ the given value.
 
   if (new_n > old_n) {
     this->reserve(new_n);
-    an_elem  *arr_elems = this->elems;
-    for (an_index k = old_n; k<new_n; ++k) {
-      construct(arr_elems+k, value);
-      ++this->n_elems;
-    }  /* for */
+
+    a_size  num_copies = new_n - old_n;
+    an_elem *insert_start = this->elems + old_n;
+    copy_element<an_elem>(insert_start, value, num_copies);
+    this->n_elems += num_copies;
   } else if (new_n < old_n) {
-    for (an_index k = old_n; k>new_n; --k) {
-      this->pop_back();
-    }  /* for */
-  }  /* if */
-}  /* Dyn_array::resize */
+    a_size  num_to_destroy = old_n - new_n;
+    an_elem *removal_start = this->elems + old_n - num_to_destroy;
 
-
-template<typename an_Elem, template<typename> class Allocator>
-void Dyn_array<an_Elem, Allocator>::resize(a_size   new_n,
-                                           an_elem  &&value)
-/*
-Resize the array to the given length.  Any new elements are move-inserted from
-the given value.
-*/
-{
-  a_size  old_n = this->n_elems;
-
-  if (new_n > old_n) {
-    this->reserve(new_n);
-    an_elem  *arr_elems = this->elems;
-    for (an_index k = old_n; k<new_n; ++k) {
-      construct(arr_elems+k, move_from(&value));
-      ++this->n_elems;
-    }  /* for */
-  } else if (new_n < old_n) {
-    for (an_index k = old_n; k>new_n; --k) {
-      this->pop_back();
-    }  /* for */
+    destroy_elements<an_elem>(removal_start, num_to_destroy);
+    this->n_elems -= num_to_destroy;
   }  /* if */
 }  /* Dyn_array::resize */
 
@@ -5215,7 +5398,7 @@ Given the head of a linked list, traverse the list and return the number of
 elements in the list.
 */
 {
-  auto always_true = [](const a_Linked_list_type &el) -> a_boolean {
+  auto always_true = [](ARG_UNUSED const a_Linked_list_type &el) -> a_boolean {
     return TRUE;
   };
 

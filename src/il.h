@@ -4161,6 +4161,35 @@ When called a second time it restores the list to its original state.
     (list) = reverse_simple_list((list));                                     \
   }  /* if */
 
+namespace detail {
+
+/*
+The following specializations provide Is_trivially_copyable and
+Is_trivially_destructible support for il.h and il_def.h types.
+*/
+
+template<>
+struct Is_trivially_copyable_edg_impl<a_reflection_value> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_copyable_edg_impl */
+
+template<>
+struct Is_trivially_destructible_edg_impl<a_reflection_value> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_destructible_edg_impl */
+
+template<>
+struct Is_trivially_copyable_edg_impl<a_subst_pairs_descr> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_copyable_edg_impl */
+
+template<>
+struct Is_trivially_destructible_edg_impl<a_subst_pairs_descr> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_destructible_edg_impl */
+
+}  /* detail */
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 

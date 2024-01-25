@@ -81,6 +81,33 @@ struct an_ifc_partition_metadata {
 namespace detail {
 
 /*
+The following specializations provide Is_trivially_copyable and
+Is_trivially_destructible support for ifc_map.h types.
+*/
+
+template<>
+struct Is_trivially_copyable_edg_impl<an_ifc_attr_index> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_copyable_edg_impl */
+
+template<>
+struct Is_trivially_copyable_edg_impl<an_ifc_decl_index> :
+                                                Integral_constant<bool, true> {
+
+};  /* Is_trivially_copyable_edg_impl */
+
+template<>
+struct Is_trivially_destructible_edg_impl<an_ifc_attr_index> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_destructible_edg_impl */
+
+template<>
+struct Is_trivially_destructible_edg_impl<an_ifc_decl_index> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_destructible_edg_impl */
+
+
+/*
 The internal bit representation of an_ifc_cache_info.  This type is extracted
 to allow easy zeroing via aggregate initialization.  This type should not be
 used directly.
@@ -124,7 +151,7 @@ struct an_ifc_cache_info_zero_bits {
                         /* TRUE if access specifiers should not be cached . */
 };  /* an_ifc_cache_info_bits */
 
-}  /* namespace detail */
+}  /* detail */
 
 /*
 A structure to contain flags and other information needed to properly cache

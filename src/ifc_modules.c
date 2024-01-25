@@ -10467,6 +10467,19 @@ struct a_class_member_descriptor {
 };  /* a_class_member_descriptor */
 
 }  /* namespace */
+namespace detail {
+
+template<>
+struct Is_trivially_copyable_edg_impl<a_class_member_descriptor> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_copyable_edg_impl */
+
+template<>
+struct Is_trivially_destructible_edg_impl<a_class_member_descriptor> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_destructible_edg_impl */
+
+}  /* namespace detail */
 
 static void cache_class_member(a_module_token_cache_ptr        cache,
                                an_ifc_decl_index               class_idx,

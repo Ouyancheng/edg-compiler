@@ -647,6 +647,19 @@ struct a_pragma_diag_elem {
   } variant;
 };
 
+namespace detail {
+
+template<>
+struct Is_trivially_copyable_edg_impl<a_pragma_diag_elem> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_copyable_edg_impl */
+
+template<>
+struct Is_trivially_destructible_edg_impl<a_pragma_diag_elem> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_destructible_edg_impl */
+
+}  /* detail */
 
 inline a_pragma_diag_elem::a_pragma_diag_elem(a_pragma_kind     _kind,
                                               a_source_position *pos)

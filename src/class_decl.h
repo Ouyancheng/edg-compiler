@@ -426,6 +426,19 @@ struct a_meta_field_descr {
 			   Zero if it should not be a bit field. */
 };
 
+namespace detail {
+
+template<>
+struct Is_trivially_copyable_edg_impl<a_meta_field_descr> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_copyable_edg_impl */
+
+template<>
+struct Is_trivially_destructible_edg_impl<a_meta_field_descr> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_destructible_edg_impl */
+
+}  /* detail */
 
 extern
 void synth_class_definition(a_type_ptr                     class_type,
