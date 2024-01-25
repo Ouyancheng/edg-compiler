@@ -1,5 +1,23 @@
 Version 6.7
 
+1/25/24  [EDGcpfe/26781]
+Backing expressions for conversions of constant values
+
+Consider:
+
+  unsigned short x;
+  void g() {
+    x = 10000*10000;
+  }
+
+The front end constant-folds the multiplication 10000*10000 and truncates its
+value to fit in x (with a warning).  Previously, the backing expression for
+that constant represented the multiplication, but not its result prior to the
+type change (i.e., the backing expression did not include the value 100000000).
+Now, the intermediate constant result (prior to the cast) is represented in the
+backing expression.
+
+
 1/25/24  [EDGcpfe/26158]
 Abort on _Generic construct with GNU statement expression
 

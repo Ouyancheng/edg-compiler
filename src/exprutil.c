@@ -10208,11 +10208,11 @@ user-defined conversions.
           /* Mark the constant as the result of a reinterpret_cast if it
              is.  Don't clear the flag once it gets set (an implicit cast
              after a reinterpret_cast still counts as a reinterpret_cast). */
-          a_boolean  need_backing_expr = FALSE;
+          a_boolean  need_backing_expr = FALSE,
+                     same_type = cast_identical_types(operand->type, new_type);
           local_con->is_reinterpret_cast |= is_reinterpret_cast;
           /* Record the original type if it materially changed. */
-          if (local_con->orig_type == NULL &&
-              !cast_identical_types(operand->type, new_type)) {
+          if (local_con->orig_type == NULL && !same_type) {
             if (!prototype_instantiations_in_il &&
                 is_template_dependent_context()) {
               /* Don't record the original type since it may be dependent.
@@ -10240,8 +10240,7 @@ user-defined conversions.
                  recorded above.  (Note that in many other contexts -- e.g., in
                  function template signatures -- this approach is not viable
                  because the original source form must be recorded.) */
-            } else if (!is_implicit_cast ||
-                       !cast_identical_types(operand->type, new_type)) {
+            } else if (!is_implicit_cast || !same_type) {
               /* Record a cast expression for the constant (inhibit normal
                  diagnostics during that process, since they were already
                  issued). */
@@ -10249,11 +10248,17 @@ user-defined conversions.
               a_boolean saved_any_error = expr_stack->any_suppressed_error;
               expr_stack->suppress_diagnostics = TRUE;
               if (local_con->expr == NULL ||
+                  (operand->variant.constant.expr != NULL &&
+                   !same_type && !is_constant_node(local_con->expr)) ||
                   /* Ignore the expression attached to a named constant. */
                   operand->variant.constant.is_named_constant_definition) {
-                /* The cast is applied to a simple constant that contains no
-                   expression.  Create an expression node to which the cast
-                   history can be attached. */
+                /* Create an expression node to which the cast history can be
+                   attached. */
+                /* If the original operand contains an expression and the new
+                   type is different, make sure the recorded cast expression
+                   includes the constant being cast.  E.g., for
+                   (short)(10000*10000) it is useful to some consumers to know
+                   that a large value was truncated. */
                 local_con->expr = make_node_from_operand(operand);
               }  /* if */
               /* We're going to represent the conversion in the backing
