@@ -856,7 +856,7 @@ number of allocated elements).
 {
   check_assertion(!this->local_used && n <= a_Capacity);
   an_elem   *start = this->local;
-  a_ptrdiff num_allocated = n;
+  a_ptrdiff num_allocated = a_Capacity;
 
   this->local_used = TRUE;
   return an_allocation{start, num_allocated};
@@ -4224,7 +4224,7 @@ private:
   inline void construct_entry_at(an_index      idx,
                                  const a_key   &new_key,
                                  const a_value &new_value);
-  inline auto create_table(unsigned n_slots) -> an_entry*;
+  inline void create_table(unsigned n_slots);
   inline void expand_table();
   inline void check_deleted_slot(an_index  idx0);
 };  /* Ptr_map */
@@ -4242,8 +4242,7 @@ Initialize the given pointer map with a capacity for 1<<mask_width slots.
 {
   unsigned n_slots = (1<<mask_width);
 
-  this->table = create_table(n_slots);
-  this->hash_mask = n_slots-1;
+  create_table(n_slots);
   this->n_elements = 0;
 }  /* Ptr_map::Ptr_map */
 
@@ -4531,19 +4530,25 @@ Construct a new entry with the given key and value at the given index.
 
 template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
-auto Ptr_map<a_Ptr_key, a_Value, Allocator>::create_table(unsigned n_slots)
-                                                                   -> an_entry*
+void Ptr_map<a_Ptr_key, a_Value, Allocator>::create_table(unsigned n_slots)
 /*
-Create a new table with the given number of slots.
+Create new table with at least the given number of slots (if the underlying
+allocator hands more memory, the slot count will be updated appropriately).
+This function replaces the state of table and hash_mask.  The caller is
+responsible for deallocating the previous table.
 */
 {
   an_allocation  allocation = this->alloc(n_slots);
 
-  check_assertion(allocation.n_allocated == (a_ptrdiff)n_slots);
+  this->table = allocation.start;
+  /* Update the slot count based on the allocation.  The allocated space should
+     be at least what's been requested. */
+  check_assertion(n_slots <= allocation.n_allocated);
+  n_slots = allocation.n_allocated;
+  this->hash_mask = n_slots - 1;
   for (unsigned i = 0; i < n_slots; ++i) {
-    construct(&allocation.start[i]);
+    construct(&this->table[i]);
   }  /* for */
-  return allocation.start;
 }  /* Ptr_map::create_table */
 
 
@@ -4554,12 +4559,14 @@ void Ptr_map<a_Ptr_key, a_Value, Allocator>::expand_table()
 Double the size of the hash table (and rehash entries as needed).
 */
 {
-  an_index n_slots = this->hash_mask+1;
-  an_index new_mask = (this->hash_mask * 2) + 1;
-  an_entry *new_table = this->create_table(2*n_slots);
+  an_index old_n_slots = this->hash_mask + 1;
   an_entry *old_table = this->table;
 
-  for (an_index k = 0; k<n_slots; ++k) {
+  this->create_table(2 * (this->hash_mask + 1));
+
+  an_index new_mask = this->hash_mask;
+  an_entry *new_table = this->table;
+  for (an_index k = 0; k < old_n_slots; ++k) {
     an_entry &entry = old_table[k];
 
     if (entry.has_value()) {
@@ -4573,7 +4580,7 @@ Double the size of the hash table (and rehash entries as needed).
   }  /* for */
   this->table = new_table;
   this->hash_mask = new_mask;
-  this->dealloc(an_allocation{ old_table, (a_ptrdiff)n_slots });
+  this->dealloc(an_allocation{ old_table, (a_ptrdiff)old_n_slots });
 }  /* Ptr_map::expand_table */
 
 
