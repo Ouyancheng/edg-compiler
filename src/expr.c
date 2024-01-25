@@ -17861,6 +17861,7 @@ where <typename-or-default> is either a type name or the keyword "default".
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
+  expr_stack->unevaluated_expr_will_be_kept_in_il = TRUE;
   /* Scan the selector expression (not evaluated). */
   scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   if (c18_mode || gcc_version_is(any_version) ||

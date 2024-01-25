@@ -1,5 +1,20 @@
 Version 6.7
 
+1/25/24  [EDGcpfe/26158]
+Abort on _Generic construct with GNU statement expression
+
+Consider, in GNU C11 mode:
+
+  void g(void) {
+    _Generic(0, int : 0, default : sizeof({}));
+  }
+
+This previously aborted in configurations involving the C++-generating back end
+with IL_SHOULD_BE_WRITTEN_TO_FILE set to 1 (or TRUE).  The abort was due to an
+inconsistent representation of the source sequence entries for the statement
+expression within the _Generic construct.  That is now fixed.
+
+
 1/24/24  [EDGcpfe/26968]
 Miscellaneous build/configuration issues
 
