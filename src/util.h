@@ -157,7 +157,7 @@ struct Is_trivially_copyable_helper {
 #endif /* (defined(__clang__) || (defined(__GNUC__) && __GNUC__ > 5) && ... */
 };  /* Is_trivially_copyable_helper */
 
-#if defined(__clang__)
+#if (defined(__clang__) && __clang_major__ >= 5) && !defined(__EDG__)
 
 /*
 An implementation of Is_trivially_destructible that relies on the host compiler
@@ -173,7 +173,7 @@ struct Is_trivially_destructible_builtin_impl :
           public Integral_constant<bool, __is_trivially_destructible(a_Type)> {
 };  /* Is_trivially_destructible_builtin_impl */
 
-#endif /* defined(__clang__) */
+#endif /* (defined(__clang__) && __clang_major__ >= 5) && !defined(__EDG__) */
 
 /*
 An implementation of Is_trivially_destructible that relies on specializations
@@ -219,7 +219,7 @@ template<typename a_Type>
 struct Is_trivially_destructible_helper {
   static constexpr a_boolean value =
                   (a_boolean)Is_trivially_destructible_edg_impl<a_Type>::value;
-#if defined(__clang__)
+#if (defined(__clang__) && __clang_major__ >= 5) && !defined(__EDG__)
   /* This check ensures that for GCC and Clang implementations (which provide
      the __is_trivially_copyable builtin), the front end's specializations
      match the compiler's expectations for Is_trivially_destructible. */
@@ -227,7 +227,7 @@ struct Is_trivially_destructible_helper {
                 Is_trivially_destructible_builtin_impl<a_Type>::value,
                 "the EDG and builtin Is_trivially_destructible "
                 "implementations have diverged");
-#endif /* defined(__clang__) */
+#endif /* (defined(__clang__) && __clang_major__ >= 5) && !defined(__EDG__) */
 };  /* Is_trivially_destructible_helper */
 
 }  /* detail */
@@ -643,9 +643,9 @@ as contiguous memory blocks to use this interface.
       destroy(&src_array[i]);
     }  /* for */
   } else {
-    for (size_t i = num_to_move - 1; i >= 0; --i) {
-      construct(&dest_array[i], move_from(&src_array[i]));
-      destroy(&src_array[i]);
+    for (size_t i = num_to_move; i > 0; --i) {
+      construct(&dest_array[i - 1], move_from(&src_array[i - 1]));
+      destroy(&src_array[i - 1]);
     }  /* for */
   }  /* if */
 }  /* move_elements */
