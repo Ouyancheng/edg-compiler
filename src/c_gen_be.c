@@ -4019,7 +4019,11 @@ with a routine.
     /* Cfront-like ABI: The encoding is the original name, two
        underscores, the mangled name of the routine, and "__Lnn" where
        "nn" is the scope number. */
-    buffer.reset_to(scp->name, "__", routine_name, "__L", scope_number);
+    buffer.append(scp->name, "__");
+    if (routine_name != NULL) {
+      buffer.append(routine_name);
+    }  /* if */
+    buffer.append("__L", scope_number);
 #else /* IA64_ABI */
     /* IA-64 ABI encoding:
          _Z Z function-mangled-name E name-with-length _ discriminator
