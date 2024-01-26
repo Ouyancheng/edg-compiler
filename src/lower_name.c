@@ -3146,150 +3146,104 @@ BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
      cfront 3.0.1 does not implement this, so we made it up. */
   a_number_buffer str = fp_to_string(float_kind, value, (a_boolean *)NULL,
                                      (a_boolean *)NULL, (a_boolean *)NULL);
-  sizeof_t        added = 0, subtracted = 0;
+  size_t          chars_removed = 0;
+  /* This is TRUE between the '.' and any 'E' or 'e'. */
+  a_boolean       drop_insignificant_zeros = FALSE;
 
-  /* Remove unnecessary trailing zeroes.  In other words, change:
-
-       "1.50000e+10" to "1.5    e+10"
-
-     cases like the following occur from internal floating point routines:
-
-       "1.0E10"      to "1.0E10"
-
-     These will be handled by the correction logic that follows.  In both
-     cases, scan and map the following values:
-
-       1.50000e+10
-        ^--------- dot pos
-         ^-------- last signif
-             ^---- last digit
-
-       1.0E10
-        ^--------- dot pos
-         ^-------- last signif
-         ^-------- last digit
-
-     The blanks are then dropped in the copy below. */
-  { Opt<size_t>  opt_last_signif;
-    Opt<size_t>  opt_last_digit;
-    Opt<size_t>  opt_dot_pos;
-
-    for (size_t i = 0; i < str.length(); ++i) {
-      if (!opt_dot_pos.has_value()) {
-        if (str[i] == '.') {
-          opt_dot_pos = i;
-        }  /* if */
-        continue;
-      }  /* if */
-      /* There is a decimal point.  Find the last significant digit
-         following the decimal point. */
-      /* The first digit after the decimal is considered significant even
-         if it is a zero. */
-      if (!isdigit(str[i])) {
-        break;
-      }  /* if */
-      if (str[i] != '0') {
-        opt_last_signif = i;
-      }  /* if */
-      opt_last_digit = i;
-    }  /* for */
-    /* Change any insignificant zeroes to blanks. */
-    if (opt_last_digit.has_value()) {
-      size_t last_digit = *opt_last_digit;
-
-      if (!opt_last_signif.has_value()) {
-        opt_last_signif = last_digit;
-      }  /* if */
-
-      size_t last_signif = *opt_last_signif;
-      while (last_signif < --last_digit) {
-        str[last_digit] = ' ';
-        ++subtracted;
-      }  /* if */
-    }  /* if */
+  for (size_t i = 0; i < str.length(); ++i) {
+    char curr_char = str[i];
+    switch (curr_char) {
+      case '.':
+        /* Use "d" to represent a decimal point. */
+        str[i - chars_removed] = 'd';
+        drop_insignificant_zeros = TRUE;
 #if !USE_HOST_FP_CONVERSION_ROUTINES
-    if (opt_dot_pos.has_value()) {
-      /* Remove inconsistencies between the internal and host routines.  In
-         other words, change:
-
-           "1.0E10" to "1  E10"
-
-         The following values are already mapped:
-
-           1.0E10
-            ^---- dot pos
-             ^--- last signif
-             ^--- last digit
-
-         additionally map:
-
-           1.0E10
-              ^-- e pos */
-      Opt<size_t> opt_e_pos;
-
-      for (size_t i = 0; i < str.length(); ++i) {
-        if (str[i] == 'E') {
-          if (isdigit(str[i + 1])) {
-            /* A "p" will be added below, so adjust the length of the
-               constant. */
-            added = 1;
+        /* Check for ".0E" and if found, drop the ".0". */
+        if (i + 2 < str.length()) {
+          if (str[i + 1] == '0' &&
+              str[i + 2] == 'E') {
+            /* Do not reprocess 0. */
+            ++i;
+            /* Drop two characters ('.' and '0') from the output. */
+            chars_removed += 2;
           }  /* if */
-          opt_e_pos = i;
-          break;
         }  /* if */
-      }  /* for */
-
-      /* For cases like "1.0E20", the native conversion routines don't emit the
-         ".0" but the internal conversion routines do, so remove the ".0" (by
-         overwriting with spaces) to keep the mangled names the same. */
-      size_t dot_pos = *opt_dot_pos;
-      if (opt_e_pos.has_value() && opt_last_signif.has_value() &&
-          *opt_last_signif == dot_pos + 1 && str[dot_pos + 1] == '0') {
-        str[dot_pos]     = ' ';
-        str[dot_pos + 1] = ' ';
-        subtracted += 2;
-      }  /* if */
-    }  /* if */
 #endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
-  }
+        break;
+      case '0':
+        { /* Check for and drop unnecessary 0s, e.g. change "1.50000e+10" to
+             "1.5e+10". */
+          size_t k = 0;
+
+          for (; i + k < str.length(); ++k) {
+            char lookahead_char = str[i + k];
+
+            if (lookahead_char != '0') {
+              break;
+            }  /* if */
+            str[i + k - chars_removed] = '0';
+          }  /* for */
+          /* If the character that stopped lookahead is not a digit and we're
+             dropping trailing zeros, these zeros are insignificant, drop
+             them. */
+          if (drop_insignificant_zeros && !isdigit(str[i + k])) {
+            /* If the character preceding the zeros is a '.' (at this point
+               represented as 'd') allow one '0' to remain. */
+            if (str[i - chars_removed - 1] == 'd') {
+              chars_removed += k - 1;
+            } else {
+              chars_removed += k;
+            }  /* if */
+          }  /* if */
+          /* Subtract 1 as there's always going to be at least one '0' (the
+             initial '0' that entered this case label). */
+          i += k - 1;
+        }
+        break;
+      case 'e':
+      case 'E':
+        drop_insignificant_zeros = FALSE;
+        str[i - chars_removed] = 'e';
+#if !USE_HOST_FP_CONVERSION_ROUTINES
+        /* Check for and replace "E2" with "ep2". */
+        if (i + 1 < str.length() && isdigit(str[i + 1])) {
+          /* Insert a p. */
+          if (chars_removed == 0) {
+            a_string_view char_view("p", 1);
+
+            /* There are no characters removed, create a new character and
+               advance the iterator so the next character seen is still the
+               digit. */
+            ++i;
+            str.insert(i - chars_removed, char_view);
+          } else {
+            /* There is at least one character that's been removed.  As an
+               optimization, use the extra space that exists from the removed
+               character for the new 'p' character. */
+            --chars_removed;
+            str[i - chars_removed] = 'p';
+          }  /* if */
+        }  /* if */
+#endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
+        break;
+      case '-':
+        /* Use "n" to represent a minus sign. */
+        str[i - chars_removed] = 'n';
+        break;
+      case '+':
+        /* Use "p" to represent a plus sign. */
+        str[i - chars_removed] = 'p';
+        break;
+      default:
+        str[i - chars_removed] = str[i];
+        break;
+    }  /* switch */
+  }  /* for */
+  str.truncate_to(str.length() - chars_removed);
   /* Put out the length of the string (taking into account characters that
      have been either removed or added). */
-  store_digits_and_underscore(
-                            (unsigned long)(str.length() + added - subtracted),
-                            old_form, mctl);
-  for (size_t i = 0; i < str.length(); ++i) {
-    /* Move the string and recode non-alphanumeric characters. */
-    char c = str[i];
-    if (c == ' ') {
-      /* A blank is an insignificant digit removed above. */
-    } else {
-      if (c == '-') {
-        /* Use "n" to represent a minus sign. */
-        c = 'n';
-      } else if (c == '.') {
-        /* Use "d" to represent a decimal point. */
-        c = 'd';
-      } else if (c == '+') {
-        /* Use "p" to represent a plus sign. */
-        c = 'p';
-#if !USE_HOST_FP_CONVERSION_ROUTINES
-      } else if (c == 'E') {
-        /* Use "e" (or "ep") rather than "E" for an exponent. */
-        c = 'e';
-        /* See also case below where a "p" may be appended. */
-#endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
-      }  /* if */
-      add_to_mangled_name(c, mctl);
-#if !USE_HOST_FP_CONVERSION_ROUTINES
-      if (c == 'e' && added) {
-        /* Add an explicit "p" (for plus) to match host floating-point
-           routine mangling. */
-        add_to_mangled_name('p', mctl);
-      }  /* if */
-#endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
-    }  /* if */
-  }  /* for */
-END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
+  store_digits_and_underscore((unsigned long)str.length(), old_form, mctl);
+  add_str_to_mangled_name(str.as_temp_characters(), mctl);
 #else /* IA64_ABI */
   /* The IA-64 ABI specifies that a floating point value be encoded as a
      hexadecimal string for the constant value, high-order bytes first,
