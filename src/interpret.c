@@ -2082,12 +2082,26 @@ addressed by the a_constexpr_address addr.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 
+inline a_source_position* constant_pos(a_constant            *cp,
+                                       an_interpreter_state  *ips)
 /*
-Convenience macro to get the position of a constant.
- */
-#define constant_pos(cp, ips) ((cp)->source_corresp.decl_position.seq != 0 ?  \
-                               &(cp)->source_corresp.decl_position :          \
-                               &(ips)->position)
+Helper function to produce a position for the given constant.  If no position
+information is available for the constant or its backing expression (if any),
+return &ips->position.
+*/
+{
+  a_source_position  *pos = &cp->source_corresp.decl_position;
+
+  if (pos->seq == 0) {
+    if (cp->expr != NULL) {
+      pos = &cp->expr->position;
+    }  /* if */
+    if (pos->seq == 0) {
+      pos = &ips->position;
+    }  /* if */
+  }  /* if */
+  return pos;
+}  /* constant_pos */
 
 /*
 Convenience macro to get the position of a type.

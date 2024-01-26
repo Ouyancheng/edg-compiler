@@ -5763,10 +5763,20 @@ it represents a backing expression for the floating-point constant value.
     if (not_a_number && expr != NULL) {
       /* Strip any compiler-generated casts from the backing expression before
          testing it below. */
-      while (is_operation_node(expr) && expr->compiler_generated &&
-             is_cast_operation_node(expr)) {
-        expr = expr->variant.operation.operands;
-      }  /* while */
+      for (;;) {
+        if (is_operation_node(expr) && expr->compiler_generated &&
+           is_cast_operation_node(expr)) {
+          /* A compiler generated cast. */
+          expr = expr->variant.operation.operands;
+        } else if (is_constant_node(expr) &&
+                   node_constant(expr)->expr != NULL) {
+          /* A constant with a backing expression (presumably introduced by
+             an intervening constant-folding operation). */
+          expr = node_constant(expr)->expr;
+        } else {
+          break;
+        }  /* if */
+      }  /* for */
     }  /* if */
     if (not_a_number &&
         (clang_is_generated_code_target ||
