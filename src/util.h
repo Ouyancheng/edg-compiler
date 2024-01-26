@@ -2886,6 +2886,39 @@ Sort the elements of the given sequence.
   sort(p_seq->begin(), p_seq->end(), cmp);
 }  /* sort */
 
+
+template<typename a_Forward_iterator>
+a_Forward_iterator rotate(a_Forward_iterator first,
+                          a_Forward_iterator middle,
+                          a_Forward_iterator last)
+/*
+Swap the elements in the range [first, last) in such a way that the elements in
+[first, middle) are placed after the elements in [middle, last) while the
+orders of the elements in both ranges are preserved.
+
+If first == middle return the iterator last.  If middle == last return the
+iterator first.  Otherwise, return the iterator first + (last - middle).
+*/
+{
+  if (first == middle) {
+    return last;
+  }  /* if */
+  if (middle == last) {
+    return first;
+  }  /* if */
+
+  a_Forward_iterator write = first;
+  a_Forward_iterator next_read = first;
+  for (a_Forward_iterator read = middle; read != last; ++write, ++read) {
+    if (write == next_read) {
+      next_read = read;
+    }  /* if */
+    swap_at(write, read);
+  }  /* for */
+  (void)rotate(write, next_read, last);
+  return write;
+}  /* rotate */
+
 #if DEBUG
 
 template<typename T>
@@ -3891,10 +3924,11 @@ struct Allocated_string {
   inline void truncate_to(size_t new_length);
 
   template<typename... a_Text_convertible_type>
-  inline Allocated_string<Allocator>& append(a_Text_convertible_type... args);
+  inline void insert(an_index position, a_Text_convertible_type... args);
   template<typename... a_Text_convertible_type>
-  inline Allocated_string<Allocator>& reset_to(
-                                              a_Text_convertible_type... args);
+  inline void append(a_Text_convertible_type... args);
+  template<typename... a_Text_convertible_type>
+  inline void reset_to(a_Text_convertible_type... args);
 private:
   Dyn_array<char, Allocator>
                 backing_array;
@@ -3975,12 +4009,48 @@ Truncate the string to be at most the given number of characters.
 
 template<template<typename> class Allocator>
 template<typename... a_Text_convertible_type>
-inline Allocated_string<Allocator>&
-Allocated_string<Allocator>::append(a_Text_convertible_type... args)
+void Allocated_string<Allocator>::insert(an_index                   position,
+                                         a_Text_convertible_type... args)
+/*
+The passed arguments are inserted at the given position.
+
+This function works by appending the characters in the fashion described in
+detail::append_with_custom_reserve.  It then uses rotate to move these
+characters to the insertion point and the characters previously between
+[position, end) to the end of the underlying array.
+*/
+{
+  /* Remove the null terminator. */
+  check_assertion(this->backing_array.back_elem() == '\0');
+  this->backing_array.pop_back();
+  /* Append the new characters. */
+  auto     reserve_func = [this](a_size total_size) {
+    auto min_new_size = this->backing_array.length() + total_size;
+
+    if (min_new_size > this->backing_array.capacity()) {
+      auto capacity = this->backing_array.capacity();
+      auto reserve_amount = max_val(capacity * 2, min_new_size);
+
+      this->backing_array.reserve(reserve_amount);
+    }  /* if */
+    return &this->backing_array;
+  };
+  an_index original_len = this->backing_array.length();
+  detail::append_with_custom_reserve(reserve_func, args...);
+  /* Rotate the characters moving the appended elements into the correct
+     insertion position. */
+  (void)rotate(this->backing_array.begin() + position,
+               this->backing_array.begin() + original_len,
+               this->backing_array.end() - 1);
+}  /* Allocated_string::insert */
+
+
+template<template<typename> class Allocator>
+template<typename... a_Text_convertible_type>
+void Allocated_string<Allocator>::append(a_Text_convertible_type... args)
 /*
 The passed arguments are appended in the fashion described in
-detail::append_with_custom_reserve.  A reference to this Allocated_string is
-returned.
+detail::append_with_custom_reserve.
 */
 {
   /* Remove the null terminator. */
@@ -3999,18 +4069,15 @@ returned.
     return &this->backing_array;
   };
   detail::append_with_custom_reserve(reserve_func, args...);
-  return *this;
 }  /* Allocated_string::append */
 
 
 template<template<typename> class Allocator>
 template<typename... a_Text_convertible_type>
-inline Allocated_string<Allocator>&
-Allocated_string<Allocator>::reset_to(a_Text_convertible_type... args)
+void Allocated_string<Allocator>::reset_to(a_Text_convertible_type... args)
 /*
 The string is reset to an empty state and the passed arguments are appended in
-the fashion described in detail::append_with_custom_reserve.  A reference to
-this Allocated_string is returned.
+the fashion described in detail::append_with_custom_reserve.
 */
 {
   /* Remove the null terminator. */
@@ -4022,7 +4089,6 @@ this Allocated_string is returned.
     return &this->backing_array;
   };
   detail::append_with_custom_reserve(reserve_func, args...);
-  return *this;
 }  /* Allocated_string::reset_to */
 
 
