@@ -3472,12 +3472,9 @@ Set the kind of the indicated expression node.  Also set associated variant
 fields to default values.
 */
 {
-  a_new_delete_supplement_ptr ndsp;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_gcnew_supplement_ptr      gnsp;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_throw_supplement_ptr      tsp;
-  a_condition_supplement_ptr  csp;
 
   node->kind = kind;
   node->orig_lvalue_type = NULL;
@@ -3559,28 +3556,30 @@ fields to default values.
       node->variant.new_delete = NULL;
 #else /* !STANDALONE_UTILITY_PROGRAM */
       /* Allocate the supplement for new/delete. */
-      ndsp = (a_new_delete_supplement_ptr)
-                                    alloc_cil(sizeof(a_new_delete_supplement));
-      node->variant.new_delete = ndsp;
+      { a_new_delete_supplement_ptr ndsp =
+         (a_new_delete_supplement_ptr)alloc_cil(
+                                              sizeof(a_new_delete_supplement));
+        node->variant.new_delete = ndsp;
 #if DEBUG
-      num_new_delete_supplements_allocated++;
+        num_new_delete_supplements_allocated++;
 #endif /* DEBUG */
-      ndsp->is_new                          = TRUE;
-      ndsp->placement_new                   = FALSE;
-      ndsp->aligned_version                 = FALSE;
-      ndsp->array_delete                    = FALSE;
-      ndsp->global_new_or_delete            = FALSE;
-      ndsp->has_new_initializer             = FALSE;
-      ndsp->new_initializer_is_brace_enclosed = FALSE;
-      ndsp->new_initializer_is_paren_aggr_init = FALSE;
-      ndsp->deducible_type                  = FALSE;
-      ndsp->parenthesized_type_id           = FALSE;
-      ndsp->type                            = NULL;
-      ndsp->routine                         = NULL;
-      ndsp->arg                             = NULL;
-      ndsp->dynamic_init                    = NULL;
-      ndsp->freeing_of_storage_on_exception = NULL;
-      ndsp->number_of_elements              = NULL;
+        ndsp->is_new                          = TRUE;
+        ndsp->placement_new                   = FALSE;
+        ndsp->aligned_version                 = FALSE;
+        ndsp->array_delete                    = FALSE;
+        ndsp->global_new_or_delete            = FALSE;
+        ndsp->has_new_initializer             = FALSE;
+        ndsp->new_initializer_is_brace_enclosed = FALSE;
+        ndsp->new_initializer_is_paren_aggr_init = FALSE;
+        ndsp->deducible_type                  = FALSE;
+        ndsp->parenthesized_type_id           = FALSE;
+        ndsp->type                            = NULL;
+        ndsp->routine                         = NULL;
+        ndsp->arg                             = NULL;
+        ndsp->dynamic_init                    = NULL;
+        ndsp->freeing_of_storage_on_exception = NULL;
+        ndsp->number_of_elements              = NULL;
+      }
 #endif /* STANDALONE_UTILITY_PROGRAM */
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3610,20 +3609,22 @@ fields to default values.
       node->variant.throw_info = NULL;
 #else /* !STANDALONE_UTILITY_PROGRAM */
       /* Allocate the supplement for a throw. */
-      tsp = (a_throw_supplement_ptr)alloc_cil(sizeof(a_throw_supplement));
-      node->variant.throw_info = tsp;
+      {  a_throw_supplement_ptr tsp =
+                 (a_throw_supplement_ptr)alloc_cil(sizeof(a_throw_supplement));
+        node->variant.throw_info = tsp;
 #if DEBUG
-      num_throw_supplements_allocated++;
+        num_throw_supplements_allocated++;
 #endif /* DEBUG */
-      tsp->type         = NULL;
-      tsp->dynamic_init = NULL;
+        tsp->type         = NULL;
+        tsp->dynamic_init = NULL;
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
-      tsp->expr         = NULL;
+        tsp->expr         = NULL;
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 #if !ABI_CHANGES_FOR_RTTI
-      tsp->accessible_base_classes = NULL;
+        tsp->accessible_base_classes = NULL;
 #endif /* !ABI_CHANGES_FOR_RTTI */
-      tsp->destructor   = NULL;
+        tsp->destructor   = NULL;
+      }
 #endif /* STANDALONE_UTILITY_PROGRAM */
       break;
     case enk_condition:
@@ -3632,16 +3633,17 @@ fields to default values.
          programs. */
       node->variant.condition = NULL;
 #else /* !STANDALONE_UTILITY_PROGRAM */
-      csp = (a_condition_supplement_ptr)
-                                 alloc_cil(sizeof(a_condition_supplement));
-      node->variant.condition = csp;
+      { a_condition_supplement_ptr csp =
+         (a_condition_supplement_ptr)alloc_cil(sizeof(a_condition_supplement));
+        node->variant.condition = csp;
 #if DEBUG
-      num_condition_supplements_allocated++;
+        num_condition_supplements_allocated++;
 #endif /* DEBUG */
-      csp->scope          = NULL;
-      csp->dynamic_init   = NULL;
-      csp->expr           = NULL;
-      csp->initialization = NULL;
+        csp->scope          = NULL;
+        csp->dynamic_init   = NULL;
+        csp->expr           = NULL;
+        csp->initialization = NULL;
+      }
 #endif /* STANDALONE_UTILITY_PROGRAM */
       break;
     case enk_object_lifetime:
