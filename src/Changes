@@ -18,7 +18,7 @@ Now, the intermediate constant result (prior to the cast) is represented in the
 backing expression.
 
 
-1/25/24  [EDGcpfe/26158]
+1/25/24  [EDGcpfe/25224,EDGcpfe/26158]
 Abort on _Generic construct with GNU statement expression
 
 Consider, in GNU C11 mode:
