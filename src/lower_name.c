@@ -3138,20 +3138,38 @@ for specifying the length (which can be ambiguous in some cases).
 {
 #if !IA64_ABI
 BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
-  a_number_buffer str;
-  sizeof_t        added = 0, subtracted = 0;
-
   /* The Cfront-like ABI encoding for a floating point value is:
        4n1p5 <-- encoding for "-1.5"
          ^^^---- Literal value ("p" for decimal point).
         ^------- "n" indicates negative.
        ^-------- Length of the float.
      cfront 3.0.1 does not implement this, so we made it up. */
-  str = fp_to_string(float_kind, value, (a_boolean *)NULL, (a_boolean *)NULL,
-                     (a_boolean *)NULL);
-  /* Remove unnecessary trailing zeroes, e.g., change
-     "1.50000e+10" to "1.5    e+10".  The blanks are then dropped
-     in the copy below. */
+  a_number_buffer str = fp_to_string(float_kind, value, (a_boolean *)NULL,
+                                     (a_boolean *)NULL, (a_boolean *)NULL);
+  sizeof_t        added = 0, subtracted = 0;
+
+  /* Remove unnecessary trailing zeroes.  In other words, change:
+
+       "1.50000e+10" to "1.5    e+10"
+
+     cases like the following occur from internal floating point routines:
+
+       "1.0E10"      to "1.0E10"
+
+     These will be handled by the correction logic that follows.  In both
+     cases, scan and map the following values:
+
+       1.50000e+10
+        ^--------- dot pos
+         ^-------- last signif
+             ^---- last digit
+
+       1.0E10
+        ^--------- dot pos
+         ^-------- last signif
+         ^-------- last digit
+
+     The blanks are then dropped in the copy below. */
   { Opt<size_t>  opt_last_signif;
     Opt<size_t>  opt_last_digit;
     Opt<size_t>  opt_dot_pos;
@@ -3167,21 +3185,23 @@ BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
          following the decimal point. */
       /* The first digit after the decimal is considered significant even
          if it is a zero. */
-      if (isdigit(str[i])) {
-        if (str[i] != '0') {
-          opt_last_signif = i;
-        }  /* if */
-        opt_last_digit = i;
+      if (!isdigit(str[i])) {
+        break;
       }  /* if */
+      if (str[i] != '0') {
+        opt_last_signif = i;
+      }  /* if */
+      opt_last_digit = i;
     }  /* for */
     /* Change any insignificant zeroes to blanks. */
     if (opt_last_digit.has_value()) {
       size_t last_digit = *opt_last_digit;
-      size_t last_signif = last_digit;
 
-      if (opt_last_signif.has_value()) {
-        last_signif = *opt_last_signif;
+      if (!opt_last_signif.has_value()) {
+        opt_last_signif = last_digit;
       }  /* if */
+
+      size_t last_signif = *opt_last_signif;
       while (last_signif < --last_digit) {
         str[last_digit] = ' ';
         ++subtracted;
@@ -3189,6 +3209,22 @@ BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
     }  /* if */
 #if !USE_HOST_FP_CONVERSION_ROUTINES
     if (opt_dot_pos.has_value()) {
+      /* Remove inconsistencies between the internal and host routines.  In
+         other words, change:
+
+           "1.0E10" to "1  E10"
+
+         The following values are already mapped:
+
+           1.0E10
+            ^---- dot pos
+             ^--- last signif
+             ^--- last digit
+
+         additionally map:
+
+           1.0E10
+              ^-- e pos */
       Opt<size_t> opt_e_pos;
 
       for (size_t i = 0; i < str.length(); ++i) {
