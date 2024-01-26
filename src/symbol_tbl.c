@@ -1899,6 +1899,7 @@ Return TRUE if sym is a template parameter pack or function parameter pack.
          of an alias template. */
       if (!is_template_alias_instance_symbol(sym)) {
         a_type_ptr	tp = sym->variant.type.ptr;
+        check_assertion(tp != NULL);
         tp = skip_typerefs(tp);
         result = type_is_pack(tp);
       }  /* if */

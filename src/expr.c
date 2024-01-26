@@ -8238,6 +8238,7 @@ qualified_name_check:
              preceding must be the class pointed to by p or a base class
              thereof, i.e., "A::x" must be a member of the class of the
              first operand or of one of its base classes. */
+          check_assertion(type_1 != NULL);
           if (check_valid_qualified_member_in_selection(
                                                    &locator_for_curr_id,
                                                    &qualified_member_position,
