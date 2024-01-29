@@ -25057,9 +25057,13 @@ the conversion.
              (e.g., when initializing a parameter for a call). */
           err_severity = es_warning;
         }  /* if */
-      } else if (allow_nonconst_ref_anachronism) {
+      } else if (allow_nonconst_ref_anachronism &&
+                 ((conv_context & CCO_TYPE_TRAITS_CHECK) == 0 ||
+                  !ms_version_is(>=1900))) {
         /* Because this shows up in a lot of code, there's a separate
-           anachronism to allow this. */
+           anachronism to allow this.  MSVC, starting with version 19.00, does
+           no longer take this anachronism into account in type traits
+           checks. */
         err_severity = es_warning;
       }  /* if */
       expr_pos_diagnostic(err_severity,
