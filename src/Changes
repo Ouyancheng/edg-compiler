@@ -1,5 +1,17 @@
 Version 6.7
 
+1/29/24  [EDGcpfe/26704,EDGcpfe/11866,EDGcpfe/26355]
+Replace sprintf calls with memory safe C++ code and associated fixes
+
+The front end no longer uses sprintf calls.  All prior sprintf calls have been
+replaced by either an instance of EDG's Allocated_string or a call to snprintf
+(sprintf_s for Windows host systems) where appropriate.
+
+Additionally, as part of this work, db_symbol now uses a dynamically buffer.
+Thus, db_symbol now works for symbols names that require more than 1000
+characters and in more situations with low stack space.
+
+
 1/29/24  [EDGcpfe/21278,EDGcpfe/25457]
 Microsoft compatibility: __is_convertible_to
 
