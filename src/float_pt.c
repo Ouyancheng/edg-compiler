@@ -3142,12 +3142,14 @@ value might use (plus a temporary null character).
   }  /* if */
   switch (res) {
     case fp_ret_nan:
+      underlying_array.resize(orig_size, '\0');
       underlying_array.push_back('N');
       underlying_array.push_back('a');
       underlying_array.push_back('N');
       if (value.not_a_number != NULL) *value.not_a_number = TRUE;
       break;
     case fp_ret_pos_infinity:
+      underlying_array.resize(orig_size, '\0');
       underlying_array.push_back('+');
       underlying_array.push_back('I');
       underlying_array.push_back('n');
@@ -3160,6 +3162,7 @@ value might use (plus a temporary null character).
       if (value.pos_infinity != NULL) *value.pos_infinity = TRUE;
       break;
     case fp_ret_neg_infinity:
+      underlying_array.resize(orig_size, '\0');
       underlying_array.push_back('-');
       underlying_array.push_back('I');
       underlying_array.push_back('n');
@@ -3173,12 +3176,12 @@ value might use (plus a temporary null character).
       break;
     default:
       check_assertion(res != fp_ret_too_small);
+      /* Drop unused space. */
+      while (underlying_array.back_elem() == '\0') {
+        underlying_array.pop_back();
+      }  /* if */
       break;
   }  /* switch */
-  /* Drop unused space. */
-  while (underlying_array.back_elem() == '\0') {
-    underlying_array.pop_back();
-  }  /* if */
 }  /* append_using_quadmath_formatting */
 
 #endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
