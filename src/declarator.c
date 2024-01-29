@@ -2711,13 +2711,13 @@ this is a helper function.
          it's sometimes okay (depending on the return type!) so just put out a
          warning in cfront mode. */
       err_code = ec_function_qualifier_on_static_member;
-      if (any_cfront_mode() && parent_type != NULL && !is_nonstatic_member) {
+      if (any_cfront_mode() && parent_type != NULL) {
         pos_warning(err_code, &qualifier_pos);
       } else {
         qualifier_err = TRUE;
       }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cppcli_enabled && is_nonstatic_member &&
+    } else if (cppcli_enabled && is_nonstatic_member && parent_type != NULL &&
                is_managed_class_type(parent_type)) {
       err_code = ec_qualifier_not_allowed_on_managed_member_function;
       qualifier_err = TRUE;

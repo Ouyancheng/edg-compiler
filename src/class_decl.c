@@ -21117,6 +21117,7 @@ be entered.
   }  /* if */
   if (decl_info->is_anonymous_union) {
     /* Do checking, promote symbols to the current class. */
+    check_assertion(member_sym != NULL);
     check_anonymous_union_symbols(member_sym,
                                   decl_info->is_nonstd_anonymous_union);
   }  /* if */
@@ -23703,11 +23704,13 @@ should be implemented.  The results are stored in the class symbol supplement.
   }  /* if */
   /* Store the results of the search for the dispose pattern in the class
      symbol supplement. */
-  if (is_idisposable_dispose) {
-    cssp->idisposable_dispose = symbol_for(dispose_void_routine);
-  }  /* if */
-  if (dispose_bool_routine != NULL && dispose_bool_routine->is_virtual) {
-    cssp->dispose_bool = symbol_for(dispose_bool_routine);
+  if (dispose_bool_routine != NULL) {
+    if (is_idisposable_dispose) {
+      cssp->idisposable_dispose = symbol_for(dispose_void_routine);
+    }  /* if */
+    if (dispose_bool_routine->is_virtual) {
+      cssp->dispose_bool = symbol_for(dispose_bool_routine);
+    }  /* if */
   }  /* if */
   if (object_finalize_routine != NULL) {
     cssp->object_finalize = symbol_for(object_finalize_routine);

@@ -14746,13 +14746,16 @@ a normal try.
              another default handler. */
         } else if (is_immediate_error_type(prev_handler->parameter->type)) {
           /* No need to check for masking in this case. */
-        } else if (type_masks_handler_param_type(prev_handler->parameter->type,
-                                                 type_ptr)) {
-          /* The type of prev_handler assures that handler will never be
-             called, because it masks current handler's type.  See ARM 15.4. */
-          pos_ty_warning(ec_masked_by_handler, &decl_pos,
-                         prev_handler->parameter->type);
-          masked = TRUE;
+        } else {
+          check_assertion(type_ptr != NULL);
+          if (type_masks_handler_param_type(prev_handler->parameter->type,
+                                            type_ptr)) {
+            /* The type of prev_handler assures that handler will never be
+               called, because it masks current handler's type. */
+            pos_ty_warning(ec_masked_by_handler, &decl_pos,
+                           prev_handler->parameter->type);
+            masked = TRUE;
+          }  /* if */
         }  /* if */
         if (prev_handler->next == NULL) {
           /* End of the list.  Append the new handler. */
