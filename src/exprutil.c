@@ -10249,7 +10249,8 @@ user-defined conversions.
               expr_stack->suppress_diagnostics = TRUE;
               if (local_con->expr == NULL ||
                   (operand->variant.constant.expr != NULL &&
-                   !same_type && !is_constant_node(local_con->expr)) ||
+                   !same_type && !is_constant_node(local_con->expr) &&
+                   is_arithmetic_or_unscoped_enum_type(new_type)) ||
                   /* Ignore the expression attached to a named constant. */
                   operand->variant.constant.is_named_constant_definition) {
                 /* Create an expression node to which the cast history can be
