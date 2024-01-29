@@ -2035,10 +2035,6 @@ arithmetic value is negative, it is preceded by a "-".
        originally specified in hexadecimal or octal or it was folded from
        bit-manipulation expressions.  Put it out in hexadecimal. */
     result.reset_to(an_il_hex_integer(p_value, size));
-    /* Catch 0x0 and reword it as 0 to match historic EDG behavior. */
-    if (result == "0x0") {
-      result.reset_to("0");
-    }  /* if */
   } else {
     /* Put out the value in decimal. */
     if (is_signed) {
