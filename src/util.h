@@ -1307,7 +1307,6 @@ struct Dyn_array: private Allocator<an_Elem> {
   inline void clear();
   void resize(a_size new_n, const an_elem  &value);
   void reserve(a_size);
-  void shrink_wrap();
   /* Interfaces to allow range-based for loop. */
   /*lint -e{1535}*/
   inline auto begin() -> an_elem*
@@ -3982,11 +3981,9 @@ Write this string to the given buffer of the given length.
 {
   check_assertion(this->backing_array.back_elem() == '\0');
   check_assertion(size_t_arg(this->backing_array.length()) <= buffer_len);
-  /* Copy the contents of the string (+1 for the null-character) to the given
-     buffer. */
-  memcpy(buffer, this->backing_array.begin(),
-         this->backing_array.length() + 1);
-}  /* Allocated_string::to_allocated_storage */
+  /* Copy the contents of the string to the given buffer. */
+  memcpy(buffer, this->backing_array.begin(), this->backing_array.length());
+}  /* Allocated_string::write_to_buffer */
 
 
 template<template<typename> class Allocator>
