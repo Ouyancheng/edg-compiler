@@ -379,45 +379,28 @@ is done according to the output control block octl.
 /* Determines whether the current line has a certain amount of room left. */
 #define space_left(size)  (DEBUG_LINE_LENGTH - (size) + 1 >= col)
 
-using a_symbol_buffer = Small_string<1000>;
+using a_symbol_buffer = a_string;
                         /* The type of the db_symbol buffer. */
 
-/*
-Current output buffer pointer for put_str_into_db_symbol_buffer. */
-static a_symbol_buffer *db_symbol_buffer_pointer;
-
-
-static void put_str_into_db_symbol_buffer(
-                         a_const_char                                     *str,
-                         ARG_UNUSED an_il_to_str_output_control_block_ptr octl)
-/*
-Output a string into the db_symbol buffer.  Used once
-set_up_for_output_to_buffer has been called to set the buffer address.
-Note: There is no overflow check on this.
-*/
-{
-  /* Copy the string. */
-  db_symbol_buffer_pointer->append(str);
-}  /* put_str_into_db_symbol_buffer */
-
-
-/*
-Output control block used to interface to the il_to_str routines.
-*/
-static an_il_to_str_output_control_block octl;
-
-
-static void set_up_for_output_to_buffer(a_symbol_buffer *buffer)
+static an_il_to_str_output_control_block
+set_up_il_to_str_octl(a_symbol_buffer *buffer)
 /*
 Set octl so that it can be passed into the il_to_str routines to tell them
 to output to the indicated buffer.
 */
 {
+  an_il_to_str_output_control_block octl;
+
   clear_il_to_str_output_control_block(&octl);
-  octl.output_str = put_str_into_db_symbol_buffer;
+  auto output_str_func = [](a_const_char                          *str,
+                            an_il_to_str_output_control_block_ptr octl_ptr) {
+    ((a_symbol_buffer*)octl_ptr->text_buffer)->append(str);
+  };
+  octl.output_str = output_str_func;
+  octl.text_buffer = (void*)buffer;
   octl.gen_pcc_code = (C_dialect == C_dialect_pcc);
   octl.debug_output = TRUE;
-  db_symbol_buffer_pointer = buffer;
+  return octl;
 }  /* set_up_for_output_to_buffer */
 
 
@@ -452,7 +435,8 @@ static void str_type(a_symbol_buffer *buffer,
 Construct a string in buffer that represents a type.
 */
 {
-  set_up_for_output_to_buffer(buffer);
+  an_il_to_str_output_control_block octl = set_up_il_to_str_octl(buffer);
+
   form_type(tp, &octl);
 }  /* str_type */
 
@@ -464,7 +448,8 @@ Construct a string in buffer that represents a qualified name -- called
 from db_symbol.
 */
 {
-  set_up_for_output_to_buffer(buffer);
+  an_il_to_str_output_control_block octl = set_up_il_to_str_octl(buffer);
+
   form_symbol_name(sym, &octl);
 }  /* str_qualified_name */
 
@@ -476,13 +461,13 @@ Construct a string the buffer that represents a qualified name plus
 function param list -- called from db_symbol.
 */
 {
-  a_type_ptr  tp;
+  an_il_to_str_output_control_block octl = set_up_il_to_str_octl(buffer);
 
-  set_up_for_output_to_buffer(buffer);
   form_symbol_name(sym, &octl);
   if (sym->kind == (a_symbol_kind)sk_routine ||
       sym->kind == (a_symbol_kind)sk_member_function) {
-    tp = sym->variant.routine.ptr->type;
+    a_type_ptr tp = sym->variant.routine.ptr->type;
+
     tp = skip_typerefs(tp);
     form_function_declarator(tp, &octl);
   }  /* if */
@@ -499,16 +484,26 @@ from db_symbol.
 */
 {
   a_derivation_step  *dsp;
-  a_base_class       *bcp;
-  a_type             *tp;
   a_const_char       *sep = initial_string;
 
   for (dsp = path.head; dsp != path.tail->next; dsp = dsp->next) {
-    bcp = dsp->base_class;
-    buffer->append(sep, ((bcp == NULL) ?
-                          "<null bcp>" :
-                        ((tp = bcp->type) == NULL) ?
-                                       "<null tp>" : tp->source_corresp.name));
+    a_base_class *bcp = dsp->base_class;
+    a_const_char *path_part_name;
+
+    if (bcp == NULL) {
+      path_part_name = "<null bcp>";
+    } else {
+      a_type_ptr tp = bcp->type;
+
+      if (tp == NULL) {
+        path_part_name = "<null tp>";
+      } else if (tp->source_corresp.name == NULL) {
+        path_part_name = "<unnamed type>";
+      } else {
+        path_part_name = tp->source_corresp.name;
+      }  /* if */
+    }  /* if */
+    buffer->append(sep, path_part_name);
     sep = separator;
   }  /* for */
 }  /* str_path */
@@ -634,14 +629,13 @@ the symbol; string is an optional identifying string ("" or NULL if omitted);
 and indentation is the indentation desired.
 */
 {
-  a_const_char			*str;
-  a_symbol_buffer		buffer;
-  int				col = indentation;
-  a_type_ptr			type = NULL, temp_type;
-  a_variable_ptr		var = NULL;
-  a_routine_ptr                 rp;
-  a_boolean                     suppress_newline = FALSE;
-  a_symbol_ptr                  apo_sym = NULL;
+  a_const_char    *str;
+  a_symbol_buffer buffer;
+  int             col = indentation;
+  a_type_ptr      type = NULL;
+  a_variable_ptr  var = NULL;
+  a_boolean       suppress_newline = FALSE;
+  a_symbol_ptr    apo_sym = NULL;
 
   if (string != NULL && strlen(string) > 0) {
     fputs(string, f_debug);
@@ -783,23 +777,24 @@ and indentation is the indentation desired.
       break;
     case sk_class_or_struct_tag:
     case sk_union_tag:
-      type = sym->variant.class_struct_union.type;
-      if (type == NULL) break;
-      /* The result of skip_typerefs() is copied to a temporary variable to
-         work around a problem with Borland C++. */
-      temp_type = skip_typerefs(type);
+      { type = sym->variant.class_struct_union.type;
+        if (type == NULL) break;
+
+        /* The result of skip_typerefs() is copied to a temporary variable to
+           work around a problem with Borland C++. */
+        a_type_ptr temp_type = skip_typerefs(type);
 #if MAINTAIN_NEEDED_FLAGS
-      if (temp_type->variant.class_struct_union.definition_needed) {
-        put_string("def needed");
-      } else if (temp_type->source_corresp.needed) {
-        put_string("needed");
-      }  /* if */
+        if (temp_type->variant.class_struct_union.definition_needed) {
+          put_string("def needed");
+        } else if (temp_type->source_corresp.needed) {
+          put_string("needed");
+        }  /* if */
 #endif /* MAINTAIN_NEEDED_FLAGS */
-      str_name_linkage(&buffer, &(temp_type->source_corresp));
-      put_buffer_string(buffer);
-      {
-        a_class_symbol_supplement_ptr  cssp;
-        cssp = sym->variant.class_struct_union.extra_info;
+        str_name_linkage(&buffer, &(temp_type->source_corresp));
+        put_buffer_string(buffer);
+
+        a_class_symbol_supplement_ptr  cssp =
+                                    sym->variant.class_struct_union.extra_info;
         if (cssp->is_cpp03_POD) {
           put_string("C++03 POD");
         } else if (cssp->is_class_aggregate) {
@@ -939,7 +934,7 @@ and indentation is the indentation desired.
         if (fp->is_bit_field) {
           buffer.append("+", (unsigned)fp->offset_bit_remainder);
           put_buffer_string(buffer);
-          buffer.reset_to("size = ", (unsigned)fp->bit_size, "bit",
+          buffer.reset_to("size = ", (unsigned)fp->bit_size, " bit",
                           fp->bit_size == 1 ? "" : "s");
         }  /* if */
         put_buffer_string(buffer);
@@ -975,7 +970,6 @@ do_variable:
         buffer.reset_to("sc_",
                         db_storage_class_names[(int)var->storage_class]);
         put_buffer_string(buffer);
-        buffer.reset_to();
         str_name_linkage(&buffer, &(var->source_corresp));
         put_buffer_string(buffer);
         if (sym->value_has_been_set) put_string("set");
@@ -1007,83 +1001,87 @@ do_variable:
       break;
     case sk_member_function:
     case sk_routine:
-      rp = sym->variant.routine.ptr;
-      if (rp == NULL) {
-        put_string("<null>");
-      } else {
-        if (sym->kind == (a_symbol_kind)sk_member_function) {
-          put_access(rp->source_corresp.access);
-          if (rp->is_virtual) {
-            buffer.reset_to("virtual (", rp->number.virtual_function, ")");
-            put_buffer_string(buffer);
-          }  /* if */
-          if (rp->special_kind != (a_special_function_kind)sfk_none) {
-            put_string(db_special_function_kinds[rp->special_kind]);
-          }  /* if */
-        }  /* if */
-        if (rp->is_consteval) {
-          put_string("consteval");
-        } else if (rp->is_constexpr) {
-          put_string("constexpr");
-        }  /* if */
-        if (rp->is_inline) put_string("inline");
-        if (rp->is_deleted) put_string("=delete");
-        if (rp->is_inheriting_ctor) put_string("inheriting");
-        if (rp->definition_for_inlining_only) {
-          put_string("def. for inlining only");
-        } else if (rp->suppress_inline_body) {
-          put_string("suppress inline body");
-        }  /* if */
-        if (rp->compiler_generated) put_string("compiler generated");
-        if (rp->is_trivial_default_constructor) {
-          put_string("trivial default-ctor");
-        }  /* if */
-        if (rp->is_trivial_copy_function) {
-          put_string("trivial copy function");
-        }  /* if */
-        buffer.reset_to("sc_", db_storage_class_names[(int)rp->storage_class]);
-        put_buffer_string(buffer);
-        buffer.reset_to();
-        str_name_linkage(&buffer, &(rp->source_corresp));
-        put_buffer_string(buffer);
-        if (rp->is_template_function) put_string("is instance");
-        if (rp->is_specialized) {
-          buffer.reset_to(rp->specialized_with_old_syntax ? "old-style " : "",
-                          "specialization");
-          put_buffer_string(buffer);
-        }  /* if */
-#if MAINTAIN_NEEDED_FLAGS
-        if (rp->source_corresp.needed) put_string("needed");
-#endif /* MAINTAIN_NEEDED_FLAGS */
-        type = rp->type;
-        if (C_dialect == C_dialect_cplusplus) {
-          an_exception_specification_ptr       esp;
-          an_exception_specification_type_ptr  estp;
+      { a_routine_ptr rp = sym->variant.routine.ptr;
 
-          esp = (skip_typerefs(type))->variant.routine.extra_info->
-                                                      exception_specification;
-          if (esp == NULL || esp->throw_any) {
-            if (exceptions_enabled) put_string("throws any");
-          } else if (esp->indeterminate) {
-            put_string("<indeterminate exn spec>");
-          } else if (esp->is_noexcept) {
-            put_string("noexcept");
-          } else if (esp->variant.exception_specification_type_list == NULL) {
-            put_string("throws none");
-          } else {
-            estp = esp->variant.exception_specification_type_list;
-            buffer.reset_to("throws (");
-            str_type(&buffer, estp->type);
-            for (estp = estp->next; estp != NULL; estp = estp->next) {
+        if (rp == NULL) {
+          put_string("<null>");
+        } else {
+          if (sym->kind == (a_symbol_kind)sk_member_function) {
+            put_access(rp->source_corresp.access);
+            if (rp->is_virtual) {
+              buffer.reset_to("virtual (", rp->number.virtual_function, ")");
               put_buffer_string(buffer);
-              buffer.reset_to();
-              str_type(&buffer, estp->type);
-            }  /* for */
-            buffer.append(")");
+            }  /* if */
+            if (rp->special_kind != (a_special_function_kind)sfk_none) {
+              put_string(db_special_function_kinds[rp->special_kind]);
+            }  /* if */
+          }  /* if */
+          if (rp->is_consteval) {
+            put_string("consteval");
+          } else if (rp->is_constexpr) {
+            put_string("constexpr");
+          }  /* if */
+          if (rp->is_inline) put_string("inline");
+          if (rp->is_deleted) put_string("=delete");
+          if (rp->is_inheriting_ctor) put_string("inheriting");
+          if (rp->definition_for_inlining_only) {
+            put_string("def. for inlining only");
+          } else if (rp->suppress_inline_body) {
+            put_string("suppress inline body");
+          }  /* if */
+          if (rp->compiler_generated) put_string("compiler generated");
+          if (rp->is_trivial_default_constructor) {
+            put_string("trivial default-ctor");
+          }  /* if */
+          if (rp->is_trivial_copy_function) {
+            put_string("trivial copy function");
+          }  /* if */
+          buffer.reset_to("sc_",
+                          db_storage_class_names[(int)rp->storage_class]);
+          put_buffer_string(buffer);
+          str_name_linkage(&buffer, &(rp->source_corresp));
+          put_buffer_string(buffer);
+          if (rp->is_template_function) put_string("is instance");
+          if (rp->is_specialized) {
+            buffer.reset_to(rp->specialized_with_old_syntax ?
+                                               "old-style " : "",
+                            "specialization");
             put_buffer_string(buffer);
           }  /* if */
+#if MAINTAIN_NEEDED_FLAGS
+          if (rp->source_corresp.needed) put_string("needed");
+#endif /* MAINTAIN_NEEDED_FLAGS */
+          type = rp->type;
+          if (C_dialect == C_dialect_cplusplus) {
+            an_exception_specification_ptr       esp;
+            an_exception_specification_type_ptr  estp;
+
+            esp = (skip_typerefs(type))->variant.routine.extra_info->
+                                                       exception_specification;
+            if (esp == NULL || esp->throw_any) {
+              if (exceptions_enabled) put_string("throws any");
+            } else if (esp->indeterminate) {
+              put_string("<indeterminate exn spec>");
+            } else if (esp->is_noexcept) {
+              put_string("noexcept");
+            } else if (esp->variant.exception_specification_type_list ==
+                       NULL) {
+              put_string("throws none");
+            } else {
+              estp = esp->variant.exception_specification_type_list;
+              buffer.reset_to("throws (");
+              str_type(&buffer, estp->type);
+              for (estp = estp->next; estp != NULL; estp = estp->next) {
+                put_buffer_string(buffer);
+                buffer.reset_to();
+                str_type(&buffer, estp->type);
+              }  /* for */
+              buffer.append(")");
+              put_buffer_string(buffer);
+            }  /* if */
+          }  /* if */
         }  /* if */
-      }  /* if */
+      }
       break;
     case sk_projection:
       put_access(sym->variant.projection.access);
@@ -18769,7 +18767,6 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(next_named_register_id),
 #endif /* NAMED_REGISTERS_ALLOWED */
 #if DEBUG
-      pch_saved_var_array_elem(db_symbol_buffer_pointer),
       pch_saved_var_array_elem(num_access_error_descrs_allocated),
       pch_saved_var_array_elem(num_active_using_directives_allocated),
       pch_saved_var_array_elem(num_generated_entity_blocks_allocated),
