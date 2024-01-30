@@ -3122,7 +3122,8 @@ to the character position following what was demangled.
             s = "__int64";
             break;
           case 'f':
-            if ((ch = get_char(p++, dctl) == '1')) {
+            ch = get_char(p++, dctl);
+            if (ch == '1') {
               switch (get_char(p++, dctl)) {
                 case '0':
                   s = "__float80";
