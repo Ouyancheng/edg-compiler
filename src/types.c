@@ -2080,7 +2080,7 @@ Return TRUE if the given type is trivially copyable.
           a_boolean         one_param;
           if (symbol_is(sym, sk_function_template)) continue;
           check_assertion(symbol_is(sym, sk_member_function));
-          if (is_ineligible(sym)) continue;
+          if (in_front_end && is_ineligible(sym)) continue;
           rp = sym->variant.routine.ptr;
           if (rp->is_trivial_copy_function) {
             /* Having a trivial copy function is necessary (but not sufficient)

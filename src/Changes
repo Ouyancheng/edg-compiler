@@ -1,5 +1,13 @@
 Version 6.7
 
+1/30/24  [EDGcpfe/26983]
+Unbounded loop in class type property queries from outside the front end
+
+Attempting to call certain class type query functions (like is_pod_class) from
+outside the front end could result in executing an unbounded loop in function
+set_active_using_list_scope_depths (in scope_stk.c).  That is now fixed.
+
+
 1/30/24  [EDGcpfe/25868]
 Propagation of consteval
 

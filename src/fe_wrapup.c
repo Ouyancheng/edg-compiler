@@ -790,6 +790,9 @@ and before the back end (if any) is executed.
   /* Lower the file scope, remove unneeded entities, etc. */
   wrap_up_file_scopes();
 
+  in_front_end = FALSE;
+  curr_translation_unit = NULL;
+
 #if NEED_IL_DISPLAY
   if (il_display && !is_at_least_one_error()) {
     /* Display the IL. */
@@ -848,9 +851,6 @@ and before the back end (if any) is executed.
   /* Clear the file index list maintained by the error routines (it was
      allocated in front-end storage). */
   clear_file_index_list();
-
-  in_front_end = FALSE;
-  curr_translation_unit = NULL;
 
   db_exit();
 }  /* fe_wrapup */
