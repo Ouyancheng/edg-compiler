@@ -3614,7 +3614,8 @@ underlying array in hex format.  size_hint is an overestimate (i.e., maximum)
 number of characters this value might use.
 */
 {
-  append_using_c_formatting("%llx", underlying_array, size_hint, value.value);
+  append_using_c_formatting("%llx", underlying_array, size_hint,
+                            (unsigned long long)value.value);
 }  /* append_into */
 
 
