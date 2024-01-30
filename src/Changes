@@ -1,5 +1,18 @@
 Version 6.7
 
+1/29/24  [EDGcpfe/26982]
+GNU C compatibility: gcc version support for _Float* types
+
+In some configurations, the changes for EDGcpfe/26982 (in version 6.6) only
+enabled use of the _Float* types for gcc mode but resulted in an assertion
+failure when a literal uses one of the floating-point suffixes
+corresponding to _Float* types.  This is now fixed.  For example, with
+--gcc --gnu_version=70000:
+
+  _Float32 f32 = 0.0f32;   // Previously an assertion failure in some
+                           // configurations, now handled correctly
+
+
 1/29/24  [EDGcpfe/26704,EDGcpfe/11866,EDGcpfe/26355]
 Replace sprintf calls with memory safe C++ code and associated fixes
 
