@@ -7210,6 +7210,12 @@ supplement.
    a routine definition). */
 #define current_routine_entry() (innermost_function_scope->variant.routine.ptr)
 
+/* Return a pointer to the current routine entry or NULL if there is no
+   current routine. */
+#define curr_routine_or_null()                                               \
+  (innermost_function_scope != NULL ?                                        \
+          innermost_function_scope->variant.routine.ptr : NULL)
+
 
 inline a_template_symbol_supplement_ptr
 template_supplement_for_symbol(a_symbol_ptr sym)

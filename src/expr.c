@@ -500,6 +500,7 @@ static a_boolean deduce_placeholder_type(
                                       a_boolean         is_class_template,
                                       a_boolean         is_direct_init,
                                       a_boolean         parenthesized_init,
+                                      a_boolean         for_template_arg,
                                       a_type_ptr        orig_type,
                                       a_type_ptr        auto_type,
                                       a_boolean         keep_placeholder,
@@ -516,6 +517,7 @@ call is for a "decltype(auto)" construct, the flag is_decltype_auto is TRUE.
 If the call is for deduction of class template arguments, is_class_template
 is TRUE.  If this deduction is from a direct initializer, is_direct_init is
 TRUE (and is_parenthesized_init is TRUE if the initializer is parenthesized).
+for_template_arg is TRUE for a placeholder for a nontype template argument.
 orig_type is the type of the declared entity, with "auto" embedded in it.
 auto_type is the "auto" type that's embedded (a template parameter type); it
 can be NULL, in which case this routine will find it inside orig_type.
@@ -542,6 +544,7 @@ TRUE and FALSE is returned.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.is_template_arg_expression = TRUE;
+  expr_stack_entry.consteval_call_need_not_fold = for_template_arg;
   if (scope_stack_top().is_rescan || source_pos == NULL ||
       (is_prototype_instantiation_context() &&
        (microsoft_mode || gpp_version_is(any_version)))) {
@@ -611,6 +614,22 @@ TRUE and FALSE is returned.
     } else {
       *still_dependent = FALSE;
     }  /* if */
+  }  /* if */
+  if (expr_stack->consteval_function_designator_seen &&
+      !expr_stack->consteval_call_need_not_fold &&
+      !is_template_dependent_context()) {
+    /* If a consteval function designator was recorded, make sure it hasn't
+       "leaked". */
+    an_operand    *p_operand;
+    an_expr_node  *node;
+    if (initializer_alep != NULL) {
+      check_assertion(is_expression_component(initializer_alep));
+      p_operand = operand_of_arg_list_elem(initializer_alep);
+    } else {
+      p_operand = initializer_operand;
+    }  /* if */
+    node = make_node_from_operand(p_operand);
+    diag_invalid_consteval_func_in_expr(node);
   }  /* if */
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
@@ -684,6 +703,7 @@ processed so far.  arg_list and param_list are NULL by default.
                          is_class_template,
                          /*is_direct_init=*/TRUE,
                          /*parenthesized_init=*/FALSE,
+                         /*for_template_arg=*/TRUE,
                          param_type, bottom_type,
                          /*keep_placeholder=*/FALSE,
                          p_operand, (an_arg_list_elem_ptr)NULL,
@@ -992,6 +1012,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
                                         (dps->has_direct_initializer ||
                                          dps->init_state.direct_init),
                                         parenthesized_init,
+                                        /*for_template_arg=*/FALSE,
                                         undeduced_type,
                                         dps->auto_type,
                                         dps->is_new_expr_type,
@@ -44368,6 +44389,7 @@ the type of element_operand and sets the variable type to the deduced type.
                            iterator->declared_with_class_template_placeholder,
                            /*is_direct_init=*/FALSE,
                            /*parenthesized_init=*/FALSE,
+                           /*for_template_arg=*/FALSE,
                            iterator->type, auto_type,
                            /*keep_placeholder=*/FALSE,
                            element_operand, (an_arg_list_elem_ptr)NULL,
@@ -47762,6 +47784,7 @@ type with the type of return_op.
                                      /*is_class_template=*/FALSE,
                                      /*is_direct_init=*/FALSE,
                                      /*parenthesized_init=*/FALSE,
+                                     /*for_template_arg=*/FALSE,
                                      orig_type, auto_type,
                                      keep_placeholder, return_op,
                                      /*initializer_alep=*/NULL,

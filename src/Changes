@@ -1,5 +1,24 @@
 Version 6.7
 
+1/30/24  [EDGcpfe/25868]
+Propagation of consteval
+
+The standardization committee's paper P2564R3 clarifies that some constexpr
+functions calling consteval functions that cannot be immediately constant-
+evaluated should themselves become consteval.  For example:
+
+  consteval int g(int x) { return 2*x; }
+  template<typename T> constexpr T f(T p) {
+    return g(p);  // Previously an error.  Now okay.
+  }
+  static_assert(f(1) == 2);
+
+Previously, this was an error because g(p) cannot be immediately evaluated
+(because p is unknown).  Now, f<int>(int) becomes implicitly consteval and the
+example is accepted (because a consteval call within a consteval function need
+not be immediately evaluated).
+
+
 1/29/24  [EDGcpfe/26982]
 GNU C compatibility: gcc version support for _Float* types
 

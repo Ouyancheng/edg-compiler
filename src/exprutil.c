@@ -3126,6 +3126,33 @@ more temp inits in the whole expression.
 }  /* curr_expr_may_contain_unordered_temp_inits */
 
 
+static a_boolean consteval_escalation()
+/*
+Return TRUE if the current context is a consteval function definition.  This
+includes the case of "consteval escalation" as specified in P2564R3: The caller
+has checked that an potential escalation event (like the failure to fold a call
+to a consteval function) has occurred.
+*/
+{
+  a_routine  *curr_rp = curr_routine_or_null();
+  a_boolean  result = FALSE;
+
+  if (curr_rp != NULL &&
+      (curr_rp->is_consteval ||
+       (rout_is_real_template_instance(curr_rp) &&
+        curr_rp->is_declared_constexpr) ||
+       curr_rp->is_defaulted ||
+       curr_rp->is_lambda_body)) {
+    /* This is either already a consteval function, or a constexpr function
+       with a synthesized definition (e.g., through template instantiation) and
+       in the latter case "constexpr" implicitly reduces to "consteval". */
+    curr_rp->is_consteval = TRUE;
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* consteval_escalation */
+
+
 static void diagnose_consteval_routine_node(
                                    an_expr_node_ptr                    node,
                                    an_expr_or_stmt_traversal_block_ptr tblock)
@@ -3148,7 +3175,7 @@ that context.
           /* We know this evaluation failed before.  It should not succeed
              now. */
           unexpected_condition();
-        } else {
+        } else if (!consteval_escalation()) {
           a_diagnostic_ptr  dp;
           dp = pos_sy_start_error(ec_consteval_call_nonconstant,
                                   &node->position, symbol_for(rp));
@@ -3175,7 +3202,7 @@ that context.
         rp = cp->variant.ptr_to_member.variant.routine;
       }  /* if */
     }  /* if */
-    if (rp != NULL && rp->is_consteval) {
+    if (rp != NULL && rp->is_consteval && !consteval_escalation()) {
       if (!rp->is_deleted) {
         expr_pos_error(ec_address_of_consteval_function_leaked,
                        &node->position);
@@ -3186,7 +3213,7 @@ that context.
 }  /* diagnose_consteval_routine_node */
 
 
-static void diag_invalid_consteval_func_in_expr(an_expr_node_ptr  expr)
+void diag_invalid_consteval_func_in_expr(an_expr_node_ptr  expr)
 /*
 Traverse the given expression tree to find invalid references to consteval
 functions (i.e., references that don't appear under a call to a consteval
@@ -3227,7 +3254,8 @@ the expr_stack).
 
   if (expr_stack->prev == NULL) {
     /* Full expression. */
-    if (expr_stack->consteval_function_designator_seen) {
+    if (expr_stack->consteval_function_designator_seen &&
+        !is_template_dependent_context()) {
       /* If a consteval function designator was recorded, make sure it hasn't
          "leaked". */
       diag_invalid_consteval_func_in_expr(expr);
@@ -3289,7 +3317,9 @@ a previous error.
       free_seq_pt_var_entry_list(tblock.seq_pt_var_list);
 #endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
     }  /* if */
-    if (expr_stack->consteval_function_designator_seen) {
+    if (expr_stack->consteval_function_designator_seen &&
+        !scope_stack_top().in_field_initializer &&
+        !is_template_dependent_context()) {
       diag_invalid_consteval_func_in_dyn_init(dip);
     }  /* if */
   }  /* if */
@@ -6809,8 +6839,8 @@ diagnostic if appropriate.
   if (!(expr_stack != NULL &&
         (expr_stack->is_default_arg_expression ||
          expr_stack->consteval_call_need_not_fold)) &&
-      (innermost_function_scope == NULL ||
-       !current_routine_entry()->is_consteval)) {
+      !scope_stack_top().in_field_initializer &&
+      !consteval_escalation()) {
     if (expr_stack != NULL && expr_stack->in_call_argument) {
       /* Record a pending consteval failure, unless there already is one. */
       if (pending_consteval_failure.routine == NULL) {
@@ -6845,6 +6875,8 @@ diagnostic if appropriate.
     }  /* if */
   } else {
     result = FALSE;
+  }  /* if */
+  if (!result) {
     /* Although the call need not be evaluated at this time, we are still going
        to record it in the IL.  Ensure that it is marked as needed. */
 #if MAINTAIN_NEEDED_FLAGS
@@ -17554,8 +17586,8 @@ if end positions are being maintained).  rep points to an associated
 reference entry, or is NULL if none is needed.
 */
 {
-  a_routine_ptr    routine;
-  an_expr_node_ptr node;
+  a_routine_ptr     routine;
+  an_expr_node_ptr  node;
 
   reduce_projection_symbol_to_fundamental_symbol(routine_sym);
 #if CHECKING
@@ -17565,9 +17597,6 @@ reference entry, or is NULL if none is needed.
   }  /* if */
 #endif /* CHECKING */
   routine = routine_sym->variant.routine.ptr;
-  if (routine->is_consteval) {
-    check_address_of_consteval_function(routine);
-  }  /* if */
   if (C_dialect == C_dialect_cplusplus &&
       curr_expr_is_potentially_evaluated()) {
     if (routine == il_header.main_routine) {
@@ -17648,6 +17677,12 @@ reference entry, or is NULL if none is needed.
        statically-named virtual function even though it might not be the
        actual routine that will be called by the virtual call. */
     set_instance_required(routine_sym, TRUE, SIR_NONE);
+  }  /* if */
+  if (routine->is_consteval) {
+    /* This must wait until this point since the act of synthesizing the
+       function might have turned a constexpr function into a consteval
+       function. */
+    check_address_of_consteval_function(routine);
   }  /* if */
 #if USE_X86_FUNCTION_MULTIVERSIONING
   if (gpp_mode && is_multiversion_representative(routine)) {
