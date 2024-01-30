@@ -1128,15 +1128,11 @@ to the character position following what was demangled.
     } else if (get_char(p+1, dctl) == 'S') {
       /* String literal constant. */
       p+=2;
-      if (type == NULL) {
-        bad_mangled_name(dctl);
-      } else {
-        /* The type is the type of the string.  Emit "..." cast to the
-           proper type. */
-        write_id_ch('(', dctl);
-        (void)demangle_type(type+1, dctl);
-        write_id_str(")\"...\"", dctl);
-      }  /* if */
+      /* The type is the type of the string.  Emit "..." cast to the
+         proper type. */
+      write_id_ch('(', dctl);
+      (void)demangle_type(type+1, dctl);
+      write_id_str(")\"...\"", dctl);
     } else {
       /* Normal literal constant.  Form is something like
            L3n12     encoding for -12
@@ -3693,7 +3689,6 @@ information.
     /* Advance past __STF__. */
     ptr += 7;
     if (nchars != 0) nchars -= 7;
-    p = ptr;
   }  /* if */
   /* Scan through the name (the first part of the mangled name) without
      generating output, to see what's beyond it.  Special processing is
