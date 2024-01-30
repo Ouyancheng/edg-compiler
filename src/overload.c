@@ -25061,8 +25061,8 @@ the conversion.
                  ((conv_context & CCO_TYPE_TRAITS_CHECK) == 0 ||
                   !ms_version_is(>=1900))) {
         /* Because this shows up in a lot of code, there's a separate
-           anachronism to allow this.  MSVC, starting with version 19.00, does
-           no longer take this anachronism into account in type traits
+           anachronism to allow this.  MSVC, starting with version 19.00,
+           no longer takes this anachronism into account in type traits
            checks. */
         err_severity = es_warning;
       }  /* if */
