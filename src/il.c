@@ -24525,7 +24525,8 @@ node allocated in function-scope memory.
 */
 {
   if (expr != NULL &&
-      ((is_variable_node(expr) && !in_file_scope(node_variable(expr))) ||
+      ((is_variable_node(expr) &&
+        node_variable(expr)->source_corresp.enclosing_routine != NULL) ||
        (expr->kind == enk_statement &&
         !in_file_scope(expr->variant.statement)))) {
     tblock->result = TRUE;
