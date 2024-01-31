@@ -3,11 +3,11 @@ Version 6.7
 1/31/24  [EDGcpfe/26975]
 C++-generating back end: sizeof expression with local static variable
 
-When a sizeof expression refers to a local static variable, the
-C++-generating back end replaced the expression operand with a type operand
-whose name was an undeclared temporary variable (of the form __T12345678),
-resulting in generated code that could not be compiled.  This is now fixed.
-For example:
+When a sizeof expression refers to a local static variable whose type is an
+unnamed class or enumeration, the C++-generating back end replaced the
+expression operand with a type operand whose name was an undeclared
+temporary variable (of the form __T12345678), resulting in generated code
+that could not be compiled.  This is now fixed.  For example:
 
   void f() {
     static const struct {
