@@ -3130,7 +3130,7 @@ static a_boolean consteval_escalation()
 /*
 Return TRUE if the current context is a consteval function definition.  This
 includes the case of "consteval escalation" as specified in P2564R3: The caller
-has checked that an potential escalation event (like the failure to fold a call
+has checked that a potential escalation event (like the failure to fold a call
 to a consteval function) has occurred.
 */
 {
@@ -3143,9 +3143,9 @@ to a consteval function) has occurred.
         curr_rp->is_declared_constexpr) ||
        curr_rp->is_defaulted ||
        curr_rp->is_lambda_body)) {
-    /* This is either already a consteval function, or a constexpr function
-       with a synthesized definition (e.g., through template instantiation) and
-       in the latter case "constexpr" implicitly reduces to "consteval". */
+    /* This is either already a consteval function or a constexpr function
+       with a synthesized definition (e.g., through template instantiation),
+       and in the latter case "constexpr" implicitly reduces to "consteval". */
     curr_rp->is_consteval = TRUE;
     result = TRUE;
   }  /* if */
