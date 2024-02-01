@@ -1604,7 +1604,7 @@ way described by octl.
                         || (octl->gen_compilable_code &&
                             gcc_is_generated_code_target &&
                             (gcc_version_is(>= 70000) ||
-                             gpp_version_is(>= 13000)))
+                             gpp_version_is(>= 130000)))
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
                                                                 );
 #if CHECKING
