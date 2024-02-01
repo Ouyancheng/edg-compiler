@@ -15384,7 +15384,11 @@ in C++ mode.  arg_list is not freed by this routine.
                          (a_conv_descr *)NULL,
                          /*force_copy_to_temp=*/FALSE);
     /* See whether the conversion function returns a reference type. */
-    if (arg_match_list->conversion.result_is_a_glvalue) {
+    if (is_error_operand(function_operand)) {
+      /* Something went wrong. */
+      expr_expect_error();
+      goto done;
+    } else if (arg_match_list->conversion.result_is_a_glvalue) {
       routine_type = conversion_type;
       if (is_pointer_type(routine_type)) {
         /* Deal with the case of a conversion function returning a
@@ -22161,6 +22165,9 @@ the temporary.
 
   orig_operand = *operand;
   conversion_routine = conversion->routine;
+  if (conversion_routine != NULL && conversion_routine->is_consteval) {
+    expr_stack->consteval_function_designator_seen = TRUE;
+  }  /* if */
 #if CHECKING
   if (conversion->unusable) {
     /* The conversion was unusable.  That should have been figured out
@@ -22216,8 +22223,7 @@ the temporary.
       temp_init_from_operand_full(operand, dest_type,
                                   /*result_is_lvalue=*/FALSE);
     }  /* if */
-  } else if (conversion_routine->special_kind ==
-                                     (a_special_function_kind)sfk_conversion) {
+  } else if (conversion_routine->special_kind == sfk_conversion) {
     /* Conversion function. */
     an_expr_node_ptr conv_function_call_node;
 

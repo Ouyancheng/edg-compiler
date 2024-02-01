@@ -43909,10 +43909,13 @@ empty pack expansion, this routine returns NULL.
                                  dps, /*bundle=*/TRUE, parenthesized,
                                  (allow_empty_expansion ? &expr_not_present :
                                                           NULL));
-  if (icp != NULL && !parenthesized) check_arg_list_elem_is_expression(icp);
-  if (icp != NULL && is_expression_component(icp)) {
-    if (expr_stack->constant_expr_ruled_out) {
-      icp->constant_expr_ruled_out = TRUE;
+  if (icp != NULL) {
+    if (is_expression_component(icp)) {
+      if (expr_stack->constant_expr_ruled_out) {
+        icp->constant_expr_ruled_out = TRUE;
+      }  /* if */
+    } else if (!parenthesized) {
+      check_arg_list_elem_is_expression(icp);
     }  /* if */
   }  /* if */
   pop_expr_stack_for_initializer(saved_expr_stack,

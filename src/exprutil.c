@@ -3228,7 +3228,7 @@ function, which would be folded by now).
 }  /* diag_invalid_consteval_func_in_expr */
 
 
-static void diag_invalid_consteval_func_in_dyn_init(a_dynamic_init_ptr  dip)
+void diag_invalid_consteval_func_in_dyn_init(a_dynamic_init_ptr  dip)
 /*
 Traverse the given dynamic initializer entry find invalid references to
 consteval functions (i.e., references that don't appear under a call to a

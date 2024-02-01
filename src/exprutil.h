@@ -1331,6 +1331,8 @@ extern a_boolean consteval_failure(a_routine_ptr      rp,
 
 extern void diag_invalid_consteval_func_in_expr(an_expr_node_ptr  expr);
 
+extern void diag_invalid_consteval_func_in_dyn_init(a_dynamic_init_ptr  dip);
+
 /*
 Variable that controls whether an attempt should be made to fold all
 initializers to constant expressions or only initializers for variables

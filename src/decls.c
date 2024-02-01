@@ -145,6 +145,7 @@ Clear the fields of *is.
   is->paren_as_aggregate_init = FALSE;
   is->implicit_aggr_initializer = FALSE;
   is->return_expression = FALSE;
+  is->check_consteval_functions = FALSE;
 }  /* clear_init_state_fields */
 
 #endif /* !NULL_POINTER_IS_ZERO */

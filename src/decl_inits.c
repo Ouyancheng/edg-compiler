@@ -1493,6 +1493,9 @@ Issue any diagnostics at the given position.
     } else {
       dip = fp->initializer;
     }  /* if */
+    /* A field initializer might contain calls to consteval functions that
+       still need to be checked. */
+    is->check_consteval_functions = TRUE;
   } else {
     check_assertion(fp->is_init_capture);
   }  /* if */
@@ -5851,11 +5854,15 @@ returned set to TRUE.
       a_constant_ptr  folded_con = local_constant();
       a_boolean       is_consteval_init = FALSE;
       a_boolean       is_constant_evaluated = FALSE;
-      if (init_dip->kind == (a_dynamic_init_kind)dik_constructor &&
-          !scope_stack_top().in_consteval_context) {
-        a_routine_ptr  ctor = init_dip->variant.constructor.ptr;
-        if (ctor != NULL && ctor->is_consteval) {
-          is_consteval_init = TRUE;
+      if (!scope_stack_top().in_consteval_context) {
+        if (dps->init_state.check_consteval_functions) {
+          diag_invalid_consteval_func_in_dyn_init(init_dip);
+        }  /* if */
+        if (dyn_init_is(init_dip, dik_constructor)) {
+          a_routine_ptr  ctor = init_dip->variant.constructor.ptr;
+          if (ctor != NULL && ctor->is_consteval) {
+            is_consteval_init = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
       if (!vp->source_corresp.is_local_to_function ||
@@ -6203,6 +6210,7 @@ expressions.  For the latter, see init_capture_initializer below.)
   a_discriminator    last_discriminator_for_prev_field_initializer =
                                 last_discriminator_for_curr_field_initializer;
 #endif /* NEED_NAME_MANGLING */
+  a_decl_parse_state *saved_dps = scope_stack_top().decl_parse_state;
 
   check_assertion(scope_is(&scope_stack_top(), sck_class_struct_union) ||
                   scope_is(&scope_stack_top(), sck_class_reactivation));
@@ -6212,6 +6220,7 @@ expressions.  For the latter, see init_capture_initializer below.)
      meaningful.)  Also temporarily set the current object lifetime to file
      scope life time. */
   scope_stack_top().in_field_initializer = TRUE;
+  scope_stack_top().decl_parse_state = dps;
 #if NEED_NAME_MANGLING
   last_discriminator_for_curr_field_initializer = 0;
 #endif /* NEED_NAME_MANGLING */
@@ -6330,6 +6339,10 @@ expressions.  For the latter, see init_capture_initializer below.)
        properties may have been delayed until now. */
     update_class_for_last_parsed_field_initializer(class_type);
   }  /* if */
+  /* Restore the declaration parsing state in the scope stack.  Note that we
+     cannot use the Value_saver idiom here because the stack may be
+     reallocated. */
+  scope_stack_top().decl_parse_state = saved_dps;
 }  /* field_initializer */
 
 
