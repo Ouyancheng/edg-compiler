@@ -1,9 +1,10 @@
 Version 6.7
 
 1/30/24  [EDGcpfe/26984]
-Cfront: Demangling of _Float16, _Float32x, _Float64x types
+Cfront ABI: Demangling of _Float16, _Float32x, _Float64x types
 
-Demangling of _Float16, _Float32x, _Float64x types was broken and is now fixed.
+The demangler had failed to demangle names that contain _Float16, _Float32x,
+or _Float64x types and is now fixed.
 
 
 -------------------------------------------------------------------------------
