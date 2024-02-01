@@ -6756,6 +6756,12 @@ do_assoc_type:
   if (ptr->is_stmt_expr_block) {
     disp_boolean("is_stmt_expr_block", TRUE);
   }  /* if */
+  if (ptr->is_placeholder_scope) {
+    disp_boolean("is_placeholder_scope", TRUE);
+  }  /* if */
+  if (ptr->needed_walk_done) {
+    disp_boolean("needed_walk_done", TRUE);
+  }  /* if */
   disp_ptr("assoc_block", (char *)ptr->assoc_block, iek_statement);
   disp_ptr("lifetime", (char *)ptr->lifetime, iek_object_lifetime);
   disp_ptr("constants", (char *)ptr->constants, iek_constant);

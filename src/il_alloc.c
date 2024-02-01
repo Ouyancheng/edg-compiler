@@ -4801,6 +4801,7 @@ points to the associated routine if the kind is sck_function.
   sp->is_constexpr_routine = FALSE;
   sp->is_stmt_expr_block = FALSE;
   sp->is_placeholder_scope = FALSE;
+  sp->needed_walk_done = FALSE;
   set_scope_kind(sp, kind, assoc_routine);
   sp->assoc_block                 = NULL;
   sp->lifetime                    = NULL;

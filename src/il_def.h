@@ -17547,6 +17547,10 @@ typedef struct a_scope {
 			   be filled in at a future point.  FALSE if this is
 			   either not a placeholder scope, or a placeholder
 			   scope that has since been filled in. */
+  a_bit_field
+		needed_walk_done:1;
+			/* TRUE if the "needed flag il walk" has visited this
+			   entry.  Only used for block scopes. */
   union {
     /* When kind == sck_file, no variant fields. */
     /* When kind == sck_template_declaration, no variant fields. */

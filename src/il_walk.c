@@ -1106,6 +1106,16 @@ as needed.
       }  /* while */
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  } else if (entry_kind == iek_scope) {
+    a_scope  *scope = (a_scope*)entry_ptr;
+    if (scope_is(scope, sck_block)) {
+      /* Avoid multiple passes over block scopes. */
+      if (scope->needed_walk_done) {
+        prune = TRUE;
+      } else {
+        scope->needed_walk_done = TRUE;
+      }  /* if */
+    }  /* if */
   }  /* if */
   return prune;
 }  /* prune_needed_flag_il_walk */
