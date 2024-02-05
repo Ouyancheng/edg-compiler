@@ -2300,8 +2300,14 @@ whether or not a symbol is acceptable.
   } else if (lookup_state->must_be_namespace &&
              !is_namespace_symbol(fund_sym)) {
     result = FALSE;
-  } else if ((lookup_state->is_linkage_lookup ||
-              lookup_state->is_friend_lookup) &&
+  } else if (lookup_state->is_friend_lookup &&
+             lookup_state->treat_as_template_id &&
+             !symbol_is(fund_sym, sk_class_template) &&
+             /* Lookup for template friends is normally a type-only lookup, but
+                MSVC only considers class templates. */
+             (microsoft_mode || !is_type_symbol(fund_sym))) {
+    result = FALSE;
+  } else if (lookup_state->is_linkage_lookup &&
              lookup_state->treat_as_template_id &&
              !symbol_is(fund_sym, sk_class_template)) {
     result = FALSE;

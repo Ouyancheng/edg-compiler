@@ -25331,13 +25331,9 @@ declaration of a partial specialization declared outside of its class.
         locator_for_curr_id.is_qualified_name ||
         locator_for_curr_id.is_template_id) {
       a_boolean	err = FALSE;
-      /* The Microsoft compiler finds names outside of the nearest namespace
-         when looking for template friends.  The ilm_template_friend flag
-         is used for that case. */
       sym = coalesce_and_lookup_generalized_identifier
                              (GID_CLASS_TEMPLATE_REQUIRED,
-                              microsoft_mode &&
-                                decl_state->is_template_friend
+                              decl_state->is_template_friend
                                                  ? ilm_template_friend
                                                  : ilm_template_linkage,
                               &err);
@@ -25348,6 +25344,13 @@ declaration of a partial specialization declared outside of its class.
       } else if (decl_state->is_template_friend && sym != NULL &&
                  should_cancel_friend_class_template_lookup(sym, decl_state)) {
         sym = NULL;
+        suppress_redecl_error = TRUE;
+        make_new_symbol_invisible = TRUE;
+      } else if (decl_state->is_template_friend && sym == NULL &&
+                 !friend_class_injection_enabled &&
+                 enclosing_scope_is_prototype_instantiation_context()) {
+        /* In prototype instantiation contexts, template friends are only added
+           as invisible symbols. */
         suppress_redecl_error = TRUE;
         make_new_symbol_invisible = TRUE;
       } else {
