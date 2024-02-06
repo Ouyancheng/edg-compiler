@@ -1,5 +1,26 @@
 Version 6.7
 
+2/6/24   [EDGcpfe/24190,EDGcpfe/24576,EDGcpfe/26799]
+Spurious redeclaration error with template friends
+
+An unqualified friend declaration usually declares the name in the innermost
+enclosing namespace scope as a hidden member.  In cases where the friend
+declaration depends on template parameters of an enclosing class template, this
+could result in redeclaration errors when the friend is instantiated.  For
+prototype instantiations, the front end therefore declares these template
+friends in the class scope.  This, however, can result in redeclaration errors
+with other class members.  In modes where friend name injection is disabled,
+the friend declaration now gets suppressed in the prototype instantiation.  For
+example, with --c++11:
+
+  template<typename>
+  struct C {
+    template<typename> friend struct A;
+    struct A;  // Previously a spurious error.  Now okay in modes where friend
+               // name injection is disabled.
+  };
+
+
 2/1/24   [EDGcpfe/26980]
 Excessive time walking deeply nested local scopes
 
