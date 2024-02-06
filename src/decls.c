@@ -2596,8 +2596,8 @@ specified scope.
 }  /* make_routine */
 
 
-static void check_var_in_constexpr_function(a_variable_ptr     vp,
-                                            a_source_position  *pos)
+void check_var_in_constexpr_function(a_variable_ptr     vp,
+                                     a_source_position  *pos)
 /*
 The given variable is being defined in a constexpr function.  Issue a
 diagnostic if it doesn't meet the constraints for such a variable (and make

@@ -45002,20 +45002,6 @@ FALSE otherwise.
       a_variable_ptr  iter_var = rbflp->iterator;
       if (iter_var != NULL) {
         deduce_auto_type_in_enhanced_for_if_needed(iter_var, &operand);
-        /* Now that we are sure that we know the iterator variable type, check
-           any remaining constraints. */
-        if (relaxed_constexpr_enabled && innermost_function_scope != NULL) {
-          a_routine_ptr  rp = innermost_function_scope->variant.routine.ptr;
-          a_type_ptr     itp = iter_var->type;
-          if (rp->is_constexpr && !is_literal_type(itp)) {
-            if (rp->is_declared_constexpr) {
-              pos_ty_error(ec_nonliteral_var_in_constexpr_function,
-                           &iter_var->source_corresp.decl_position, itp);
-              iter_var->type = error_type();
-            }  /* if */
-            rp->is_constexpr = FALSE;
-          }  /* if */
-        }  /* if */
         /* Record the initializer for the iterator variable.  In most cases,
            we can just call set_variable_initializer here, but the case of
            array structured bindings must be handled separately. There may be
@@ -45045,6 +45031,13 @@ FALSE otherwise.
           iter_var->initializer.dynamic = dps.init_state.init_dip;
         } else {
           set_variable_initializer(iter_var, &operand);
+        }  /* if */
+        /* Now that we are sure that we know the iterator variable type, check
+           any remaining constraints. */
+        if (relaxed_constexpr_enabled && innermost_function_scope != NULL &&
+            innermost_function_scope->variant.routine.ptr->is_constexpr) {
+          check_var_in_constexpr_function(
+                           iter_var, &iter_var->source_corresp.decl_position);
         }  /* if */
       }  /* if */
     }  /* if */

@@ -1,5 +1,39 @@
 Version 6.7
 
+2/6/24   [EDGcpfe/26994]
+Range-based for-loops in constexpr functions
+
+A range-based for-loop causes the synthesis of an iterator variable.  When that
+variable appears in a constexpr function, it is subject to the same rules as
+ordinary user-defined variables.  Prior to C++23, the variable has to have a
+literal type, but the front end previously failed to lift that restriction in
+C++23 modes.  Furthermore, in constexpr function template instances, violating
+the rule in pre-C++23 modes should have silently made the instance behave like
+an ordinary non-constexpr function, but the front end erroneously issued a
+diagnostic in such cases.  Both those issues are now fixed.
+
+
+2/6/24   [EDGcpfe/26961]
+Incorrect handling of subsumption with OR-ed constraints
+
+Consider, in GNU C++20 mode:
+
+  template<typename T, typename U> concept Same = __is_same_as(T, U);
+  template<typename T> concept A = Same<T, float>;
+  template<typename T> concept B = Same<T, double>;
+   
+  template<typename T> struct S {};
+  template<typename T> requires A<T> || B<T> struct S<T> {};
+  template<typename T> requires A<T> struct S<T> {};
+   
+  S<float> s;
+
+In this example, the last partial specialization S<T> is more specialized than
+the prior partial specialization (which ORs two constraints) and should thus
+be selected for S<float>.  However, the front end previously failed to
+correctly order the two partial specializations.  That is now fixed.
+
+
 2/6/24   [EDGcpfe/26995]
 Incorrect lowering of some ternary operators could lead to undefined behavior
 
@@ -23,27 +57,6 @@ incorrect code and likely undefined behavior at run time.  For example (with
   int main() {
     return (f(A{}).value != 42);
   }
-
-
-2/6/24   [EDGcpfe/26961]
-Incorrect handling of subsumption with OR-ed constraints
-
-Consider, in GNU C++20 mode:
-
-  template<typename T, typename U> concept Same = __is_same_as(T, U);
-  template<typename T> concept A = Same<T, float>;
-  template<typename T> concept B = Same<T, double>;
-   
-  template<typename T> struct S {};
-  template<typename T> requires A<T> || B<T> struct S<T> {};
-  template<typename T> requires A<T> struct S<T> {};
-   
-  S<float> s;
-
-In this example, the last partial specialization S<T> is more specialized than
-the prior partial specialization (which ORs two constraints) and should thus
-be selected for S<float>.  However, the front end previously failed to
-correctly order the two partial specializations.  That is now fixed.
 
 
 2/6/24   [EDGcpfe/24190,EDGcpfe/24576,EDGcpfe/26799]
