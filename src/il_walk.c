@@ -1112,7 +1112,7 @@ as needed.
       /* Avoid multiple passes over block scopes. */
       if (scope->needed_walk_done) {
         prune = TRUE;
-      } else {
+      } else if (!in_secondary_trans_unit(entry_ptr)) {
         scope->needed_walk_done = TRUE;
       }  /* if */
     }  /* if */
