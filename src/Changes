@@ -1,5 +1,26 @@
 Version 6.7
 
+2/6/24   [EDGcpfe/26961]
+Incorrect handling of subsumption with OR-ed constraints
+
+Consider, in GNU C++20 mode:
+
+  template<typename T, typename U> concept Same = __is_same_as(T, U);
+  template<typename T> concept A = Same<T, float>;
+  template<typename T> concept B = Same<T, double>;
+   
+  template<typename T> struct S {};
+  template<typename T> requires A<T> || B<T> struct S<T> {};
+  template<typename T> requires A<T> struct S<T> {};
+   
+  S<float> s;
+
+In this example, the last partial specialization S<T> is more specialized than
+the prior partial specialization (which ORs two constraints) and should thus
+be selected for S<float>.  However, the front end previously failed to
+correctly order the two partial specializations.  That is now fixed.
+
+
 2/6/24   [EDGcpfe/24190,EDGcpfe/24576,EDGcpfe/26799]
 Spurious redeclaration error with template friends
 

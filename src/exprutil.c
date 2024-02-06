@@ -24838,10 +24838,10 @@ not subsume", then clearly for all constraints X, Y, and Z the following hold:
 	(X OR Y) !SS X
 
 To determine subsumption we therefore need special rules to handle AND on the
-left hand side and OR on the right hand side.  These rules are:
+right hand side and OR on the left hand side.  These rules are:
 
-	(X SS (Y AND Z)) <=> (X SS Y) AND (X SS Z)
-	((X OR Y) SS Z) <=> (X SS Z) AND (Y SS Z)
+	(X SS (Y AND Z)) <=> (X SS Y) AND (X SS Z)             // Rule 1
+	((X OR Y) SS Z) <=> (X SS Z) AND (Y SS Z)              // Rule 2
 
 The first rule expresses that a constraint X is at least as constrained as the
 conjunction of two constraints X and Y, if it is at least as constrained as
@@ -24864,7 +24864,8 @@ then we produce
 	E1[3] = Y AND Y
 	E1[4] = Y AND Z
 
-E1 subsumes E2 if and only if each of the E1[k] subsumes E2.
+Note that E1 is equivalent to E1[1] OR E1[2] OR E1[3] OR ... and thus by Rule 2
+above E1 subsumes E2 if and only if each of the E1[k] subsumes E2.
 
 Let E2[k] be the set of all constraints obtained by considering all
 combinations of conjunctions (AND) in E2.  E.g., if
@@ -24878,7 +24879,8 @@ we produce
 	E2[3] = Q OR P
 	E2[4] = Q OR R
 
-E1 subsumes E2 if it subsumes every E2[k].
+E2 is then equivalent to E2[1] AND E2[2] AND E2[3] AND ... and thus by Rule 1 
+E1 subsumes E2 if E1 subsumes every E2[k].
 
 This leads to the following algorithm for "E1 SS E2":
 
@@ -25047,6 +25049,73 @@ Output a description of the given constraint chart.
     }  /* for */
   }  /* if */
 }  /* db_constraint_chart */
+
+
+/*lint -esym(714,*db_active_E1_constraint)*/
+void db_active_E1_constraint(a_constraint_chart  *chart,
+                             int                 k = 0)
+/*
+Output a description of the currently-active E1[k] elements (ANDed atomic
+constraints).
+*/
+{
+  if (chart == UNCONSTRAINED_CHART) {
+    fprintf(f_debug, "<UNCONSTRAINED>\n");
+  } else if (chart == NULL) {
+    fprintf(f_debug, "<NULL>\n");
+  } else {
+    Dyn_array<a_charted_constraint>
+                  &array = chart->constraints_array;
+    while (array[k].kind == CK_CONCEPT) ++k;
+    if (array[k].kind == CK_AND) {
+      db_active_E1_constraint(chart, k+1);
+      fprintf(f_debug, "AND &&\n");
+      db_active_E1_constraint(chart, array[k].link);
+    } else if (array[k].kind == CK_OR) {
+      if (array[k].flag) {
+        db_active_E1_constraint(chart, array[k].link);
+      } else {
+        db_active_E1_constraint(chart, k+1);
+      }  /* if */
+    } else {
+      db_expr_node(array[k].expr, 2);
+    }  /* if */
+  }  /* if */
+}  /* db_active_E1_constraint */
+
+
+/*lint -esym(714,*db_active_E2_constraint)*/
+void db_active_E2_constraint(a_constraint_chart  *chart,
+                             int                 k = 0)
+/*
+Output a description of the currently-active E2[k] elements (ORed atomic
+constraints).
+*/
+{
+  if (chart == UNCONSTRAINED_CHART) {
+    fprintf(f_debug, "<UNCONSTRAINED>\n");
+  } else if (chart == NULL) {
+    fprintf(f_debug, "<NULL>\n");
+  } else {
+    Dyn_array<a_charted_constraint>
+                  &array = chart->constraints_array;
+    while (array[k].kind == CK_CONCEPT) ++k;
+    if (array[k].kind == CK_OR) {
+      db_active_E2_constraint(chart, k+1);
+      fprintf(f_debug, "OR ||\n");
+      db_active_E2_constraint(chart, array[k].link);
+    } else if (array[k].kind == CK_AND) {
+      if (array[k].flag) {
+        db_active_E2_constraint(chart, array[k].link);
+      } else {
+        db_active_E2_constraint(chart, k+1);
+      }  /* if */
+    } else {
+      db_expr_node(array[k].expr, 2);
+    }  /* if */
+  }  /* if */
+}  /* db_active_E2_constraint */
+
 #endif /* DEBUG */
 
 using a_constraint_charts_map = Ptr_map<a_symbol_ptr, a_constraint_chart*>;
@@ -25533,7 +25602,7 @@ e2 such that none of the corresponding entries in chart1 has an equivalent
 parameter mapping.
 */
 {
-  a_boolean                        result = FALSE;
+  a_boolean                        result = TRUE;
   Dyn_array<a_charted_constraint>  &array1 = chart1->constraints_array,
                                    &array2 = chart2->constraints_array;
 
@@ -25541,7 +25610,6 @@ parameter mapping.
   for (a_map_check_pair &p: *map_checks) {
     int32_t             idx1 = p.idx1, idx2 = p.idx2, orig_idx1 = idx1;
     a_template_arg_ptr  args1, args2;
-    a_boolean           incompatible = TRUE;
     args2 = get_remapped_args(chart2, array2[idx2].link);
     /* Loop through the linked list of identical chart1 atomic constraint
        expressions. */
@@ -25551,16 +25619,13 @@ parameter mapping.
          constraints, but for now we check them all. */
       if (equiv_template_arg_lists(args1, args2,
                                    ETA_ALLOW_EQUIV_NESTING_DEPTHS)) {
-        incompatible = FALSE;
-        break;
+        result = FALSE;
+        goto done;
       }  /* if */
       idx1 = array1[idx1].next;
     } while (idx1 != orig_idx1);
-    if (incompatible) {
-      result = TRUE;
-      break;
-    }  /* if */
   }  /* for */
+done:
   pop_instantiation_scope_for_rescan();
   return result;
 }  /* incompatible_mappings */
