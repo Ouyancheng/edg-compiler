@@ -16540,14 +16540,28 @@ cast.  See lower_expr for typical invocation.
                         temp_init_node->is_lvalue);
         /* Convert enk_temp_init node to an rvalue. */
         an_expr_node_ptr new_expr = rvalue_expr_for_lvalue(temp_init_node);
-        if (temp_init_node->variant.init.dynamic_init->master_entry != NULL) {
+        a_dynamic_init *master_dip =
+                       temp_init_node->variant.init.dynamic_init->master_entry;
+        if (master_dip != NULL) {
           /* Watch out for the case where we have an optimizable class prvalue
              "?" operation -- in that case the master_entry contains the
              variable that is being initialized so add that assignment here. */
-          a_variable_ptr master_vp =
-            temp_init_node->variant.init.dynamic_init->master_entry->variable;
+          a_variable_ptr master_vp = master_dip->variable;
           if (master_vp != NULL) {
             new_expr = make_var_assignment_expr(master_vp, new_expr);
+          } else {
+            check_assertion(master_dip->init_destination != NULL &&
+                            master_dip->init_destination->variable != NULL);
+            /* The result of the initialization may be being returned as the
+               value of a class whose value_returned_as_parameter is TRUE;
+               create an expression to initialize the return value. */
+            check_assertion(master_dip->init_destination != NULL &&
+                            master_dip->init_destination->variable != NULL);
+            an_expr_node_ptr dest_node =
+                            make_init_entity_node(master_dip->init_destination,
+                                                  /*result_is_lvalue=*/TRUE,
+                                                  /*using_as_dest=*/TRUE);
+            new_expr = make_assignment_expr(dest_node, eok_assign, new_expr);
           }  /* if */
         }  /* if */
         overwrite_node(expr, new_expr);

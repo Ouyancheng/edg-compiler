@@ -1,5 +1,30 @@
 Version 6.7
 
+2/6/24   [EDGcpfe/26995]
+Incorrect lowering of some ternary operators could lead to undefined behavior
+
+In cases where a return statement returns the value of a "?" operation and that
+expression qualifies for two optimizations (namely the copy elision
+optimization for a class prvalue "?" operation and the expression is within a
+function that returns its value via a copy constructor) the resulting lowered
+code had inadvertently discarded the value of the expression, resulting in
+incorrect code and likely undefined behavior at run time.  For example (with
+--c++11):
+
+  struct A {
+    int value = 42;
+    A() = default;
+    A(const A &) = default;
+    A(A &&);
+  };
+  A f(const A a) {
+    return true ? a : A{};    // Previously the returned value was undefined.
+  }
+  int main() {
+    return (f(A{}).value != 42);
+  }
+
+
 2/6/24   [EDGcpfe/26961]
 Incorrect handling of subsumption with OR-ed constraints
 

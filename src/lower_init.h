@@ -413,6 +413,11 @@ extern a_routine_ptr helper_routine_to_loop_through_array_elements(
                                    a_variable_ptr     *element_ptr,
                                    an_insert_location *caller_insert_location);
 
+extern an_expr_node_ptr make_init_entity_node(
+                                       an_init_pos_descr_ptr ipdp,
+                                       a_boolean             result_is_lvalue,
+                                       a_boolean             using_as_dest);
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 

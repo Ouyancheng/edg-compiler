@@ -4189,7 +4189,7 @@ typedef struct a_dynamic_init {
 			   associated with the initialization entry pointed to.
 			   The master entry handles destruction, etc.  This is
 			   used for the optimization of a "?" or "," operator
-			   returning a class rvalue. master_entry->
+			   returning a class rvalue.  master_entry->
 			   class_rvalue_initialized_through_master_entry will
 			   be TRUE in such cases. */
   an_expr_rescan_info_entry_ptr
