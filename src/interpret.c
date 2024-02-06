@@ -13114,9 +13114,8 @@ See do_constexpr_intrinsic_call for the meaning of the parameters.
         goto done;
       } else if (name_cap->complete_object == NULL) {
         /* Synthesize a field name if no name is given explicitly. */
-        Small_string<100> field_name("__field_", k, "\n");
-
-        fd.name = alloc_text_of_string_literal(field_name.length() + 1);
+        Small_string<20> field_name("__field_", k);
+        fd.name = alloc_text_of_string_literal(field_name.length()+1);
         (void)strcpy(fd.name, field_name.as_temp_characters());
       } else {
         if (!get_interpreter_string_length(
