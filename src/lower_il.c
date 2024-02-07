@@ -16550,8 +16550,6 @@ cast.  See lower_expr for typical invocation.
           if (master_vp != NULL) {
             new_expr = make_var_assignment_expr(master_vp, new_expr);
           } else {
-            check_assertion(master_dip->init_destination != NULL &&
-                            master_dip->init_destination->variable != NULL);
             /* The result of the initialization may be being returned as the
                value of a class whose value_returned_as_parameter is TRUE;
                create an expression to initialize the return value. */
