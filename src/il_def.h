@@ -17549,7 +17549,7 @@ typedef struct a_scope {
 			   scope that has since been filled in. */
   a_bit_field
 		needed_walk_done:1;
-			/* TRUE if the "needed flag il walk" has visited this
+			/* TRUE if the "needed flag IL walk" has visited this
 			   entry.  Only used for block scopes. */
   union {
     /* When kind == sck_file, no variant fields. */
