@@ -45033,7 +45033,7 @@ FALSE otherwise.
           set_variable_initializer(iter_var, &operand);
         }  /* if */
         /* Now that we are sure that we know the iterator variable type, check
-           any remaining constraints. */
+           any remaining requirements. */
         if (relaxed_constexpr_enabled && innermost_function_scope != NULL &&
             innermost_function_scope->variant.routine.ptr->is_constexpr) {
           check_var_in_constexpr_function(
