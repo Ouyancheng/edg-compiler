@@ -1,6 +1,6 @@
 Version 6.7
 
-2/7/24   [EDGcpfe/26885]
+2/7/24   [EDGcpfe/24956,EDGcpfe/26885]
 GNU compatibility: Comparison of integer vector types
 
 Consider, in GNU C++ mode:
