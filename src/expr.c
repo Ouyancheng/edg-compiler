@@ -30230,7 +30230,16 @@ operator_position describe the location of the operator in the token stream.
   if (is_vector_type(operation_type)) {
     /* The result of a vector comparison is a vector of integers with the
        same number of elements as the operands. */
-    result_type = make_integer_vector_result_type(operation_type);
+    a_type_ptr  elem_type = skip_typerefs(operation_type);
+    elem_type = skip_typerefs(elem_type->variant.vector.element_type);
+    /* When comparing integer vectors, it appears the result type is the same
+       as those of the operands.  When comparing floating-point vectors, the
+       result type is an int vector type. */
+    if (type_is(elem_type, tk_integer)) {
+      result_type = operation_type;
+    } else {
+      result_type = make_integer_vector_result_type(operation_type);
+    }  /* if */
     op = which_binary_operator(operator_token, operation_type);
   } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
