@@ -19094,7 +19094,9 @@ ck_reflection) of a special built-in type (of kind tk_reflection).
       }  /* if */
     }  /* if */ 
     if (!handled) {
-      if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED)) {
+      if (is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                           DFS_SINGLE_TYPE_REQUIRED |
+                           DFS_IS_REFLECTION_OPND)) {
         a_decl_parse_state  dps;
         init_decl_parse_state(&dps);
         type_name_full(&dps);

@@ -1742,9 +1742,14 @@ types separated by commas (when single_type_required is FALSE).
        that they can be restored for the actual scan. */
     prescan_declaration(&state, flags, /*is_top_level=*/TRUE);
     if (terminate_disambiguation(&state)) goto restore_token_sequence;
-    /* We should now be at either a comma separating two declarators or at
-       the semicolon at the end of the declaration.  If not, assume that this
-       is really an expression. */
+    /* We are now usually at a point where only a few possible tokens are next.
+       (E.g., if this is a declaration we should be at either a comma
+       separating two declarators or at the semicolon at the end of the
+       declaration.)  An exception occurs with the operand of a reflection
+       operator, which might have all kinds of tokens following it (e.g.,
+       "constexpr auto r = ^void(*)() | process;").  For the other cases,
+       assume that this is really an expression if the tokens that follow
+       would be invalid otherwise. */
     if (real_declarator_allowed(flags)) {
       if (abstract_declarator_allowed(flags)) {
         /* We are scanning a parameter list, we should be at the closing
@@ -1775,6 +1780,8 @@ types separated by commas (when single_type_required is FALSE).
            curr_token != tok_shift_right)) {
         state.may_be_decl = FALSE;
       }  /* if */
+    } else if (flags & DFS_IS_REFLECTION_OPND) {
+      /* Do not consider tokens that follow. */
     } else {
       /* Otherwise, if we are scanning one or more types.  We should be
          at a right delimiter. */

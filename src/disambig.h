@@ -63,6 +63,9 @@ typedef uint16_t a_disambig_flag_set;
 			/* TRUE if this is a context (e.g., in C++20) where
 			   certain dependent qualified names are considered
 			   to be types. */
+#define DFS_IS_REFLECTION_OPND		0x1000
+			/* TRUE if called to disambiguate the operand of the
+			   reflection operator. */
 
 extern a_boolean is_decl_not_expr(a_disambig_flag_set flags);
 
