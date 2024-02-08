@@ -16746,7 +16746,7 @@ id_scan:
                 if (curr_char_loc == saved_curr_char_loc) {
                   ++curr_char_loc;
                 }  /* if */
-                goto set_locator;
+                goto end_of_id;
               }  /* if */
             } else {
               (void)scan_universal_character(&curr_char_loc,
@@ -16770,11 +16770,10 @@ id_scan:
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
         }  /* if */
       } while (continue_scan);
-end_of_id:
       end_of_curr_token = curr_char_loc - 1;
       /* Clear the symbol locator for the current identifier.  This is done 
          even if the identifier is not looked up in the symbol table. */
-set_locator:
+end_of_id:
       clear_locator(&locator_for_curr_id, &pos_curr_token);
       id_length = end_of_curr_token - start_of_curr_token + 1;
       id_ptr = start_of_curr_token;
