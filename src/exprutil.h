@@ -1121,10 +1121,6 @@ typedef struct an_expr_stack_entry {
 			/* TRUE if an unevaluated lambda should be accepted 
 			   but its presence recorded for a potential later
 			   diagnostic. */
-  a_bit_field	gnu_vector_compare_seen:1;
-			/* TRUE if a built-in comparison involving vector
-			   types was seen.  GCC appears to weaken type checking
-			   for such expressions. */
   a_const_eval_reattempt_state
 		const_eval_reattempt_state;
 			/* The current constant evaluation reattempt state

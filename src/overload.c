@@ -21668,30 +21668,14 @@ conversion.
       conversion->class_identity_or_bitwise_copy = TRUE;
       okay = TRUE;
 #if GNU_VECTOR_TYPES_ALLOWED
-    } else if (((conv_context & CCO_BITWISE_ASSIGNMENT_PARAM) != 0 ||
-                (gnu_version_is(any_version) && expr_stack != NULL &&
-                 expr_stack->gnu_vector_compare_seen)) &&
+    } else if ((conv_context & CCO_BITWISE_ASSIGNMENT_PARAM) != 0 &&
                is_vector_type(source_type) && is_vector_type(dest_type)) {
-      /* Under some circumstances, additional vector type conversions are
-         permitted.  Strangely, for GCC that appears to include expressions
-         that contain a vector comparison.  For example:
-             typedef float VF __attribute__((vector_size(8)));
-             typedef int VI __attribute__((vector_size(8)));
-             VF x, y, z;
-             VI i;
-             void g() {
-               x = p;            // Error in GCC.
-               x = (y == z), p;  // Okay in GCC.
-             }
-      */
       a_type_ptr  src_tp = skip_typerefs(source_type),
                   dst_tp = skip_typerefs(dest_type),
                   src_etp = skip_typerefs(src_tp->variant.vector.element_type),
                   dst_etp = skip_typerefs(dst_tp->variant.vector.element_type);
       if (src_tp->size != dst_tp->size ||
-          (!clang_mode && src_etp->kind != dst_etp->kind &&
-           !(gnu_version_is(any_version) && expr_stack != NULL &&
-             expr_stack->gnu_vector_compare_seen))) {
+          (!clang_mode && src_etp->kind != dst_etp->kind)) {
         if (expr_error_should_be_issued()) {
           /* The "opt_ty2" routine puts in the types if the specific error
              message has fill-ins for them, and otherwise ignores the types. */

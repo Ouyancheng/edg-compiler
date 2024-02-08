@@ -30232,19 +30232,14 @@ operator_position describe the location of the operator in the token stream.
        same number of elements as the operands. */
     a_type_ptr  elem_type = skip_typerefs(operation_type);
     elem_type = skip_typerefs(elem_type->variant.vector.element_type);
-    /* Expressions containing a vector comparison appear to undergo weaker
-       type checking in GCC.  For example:
-           typedef float VF __attribute__((vector_size(8)));
-           typedef int VI __attribute__((vector_size(8)));
-            VF x, y, z;
-           VI i;
-           void g() {
-             x = p;            // Error in GCC.
-             x = (y == z), p;  // Okay in GCC.
-           }
-    */
-    expr_stack->gnu_vector_compare_seen = TRUE;
-    result_type = make_integer_vector_result_type(operation_type);
+    /* When comparing integer vectors, it appears the result type is the same
+       as those of the operands.  When comparing floating-point vectors, the
+       result type is an int vector type. */
+    if (type_is(elem_type, tk_integer)) {
+      result_type = operation_type;
+    } else {
+      result_type = make_integer_vector_result_type(operation_type);
+    }  /* if */
     op = which_binary_operator(operator_token, operation_type);
   } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */

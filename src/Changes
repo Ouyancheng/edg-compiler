@@ -11,7 +11,7 @@ clang_version is at least 150000.  For example, with --c++23:
   const char *p = "0\N{DIGIT ONE}2";   // Equivalent to "012"
 
 
-2/7/24   [EDGcpfe/24956,EDGcpfe/26885]
+2/7/24   [EDGcpfe/26885]
 GNU compatibility: Comparison of integer vector types
 
 Consider, in GNU C++ mode:
