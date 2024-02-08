@@ -2548,6 +2548,9 @@ Display the indicated type entry.
       if (ptr->variant.typeref.decltype_expr_not_parenthesized) {
         disp_boolean("decltype_expr_not_parenthesized", TRUE);
       }  /* if */
+      if (ptr->variant.typeref.is_spliced) {
+        disp_boolean("is_spliced", TRUE);
+      }  /* if */
       if (ptr->variant.typeref.is_dependent_type_operator) {
         disp_boolean("is_dependent_type_operator", TRUE);
       }  /* if */
