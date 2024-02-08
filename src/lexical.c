@@ -9620,17 +9620,33 @@ only within the lexical input routines.
   a_boolean is_id;
   int       llen = 1;
 
-  if (*ptr == '\\' && (ptr[1] == 'u' || ptr[1] == 'U') &&
-      universal_character_names_allowed) {
-    /* This is a universal character name.  Decode it and see if it is an
-       identifier or identifier-start character.  Note that we pass FALSE
-       to the identifier flag parameters of scan_universal_character; it is
+  if (*ptr == '\\' &&
+      (((ptr[1] == 'u' || ptr[1] == 'U') &&
+        universal_character_names_allowed) ||
+       (ptr[1] == 'N' && ptr[2] == '{' && named_unicode_chars_allowed))) {
+    /* This is a universal character name or a named Unicode character.
+       Determine the associated code point and see if it is an identifier
+       or identifier-start character.  Note that we pass FALSE to the
+       identifier flag parameters of the relevant scanning routine; it is
        not an error in this routine for the character to fail those tests,
        and we will do them here directly. */
     a_const_char  *p = ptr;
-    unsigned long ucn = scan_universal_character(&p, /*is_identifier=*/FALSE,
-                                                 /*is_identifier_start=*/FALSE,
-                                                 /*issue_diagnostics=*/TRUE);
+    unsigned long ucn;
+    if (ptr[1] == 'N') {
+      ucn = scan_named_unicode_char(&p, /*is_identifier=*/FALSE,
+                                    /*is_identifier_start=*/FALSE,
+                                    /*issue_diagnostics=*/TRUE);
+      if (ucn == (unsigned long)-1) {
+        /* An error occurred in the named unicode character escape, so it
+           cannot be an identifier character. */
+        is_id = FALSE;
+        goto end;
+      }  /* if */
+    } else {
+      ucn = scan_universal_character(&p, /*is_identifier=*/FALSE,
+                                     /*is_identifier_start=*/FALSE,
+                                     /*issue_diagnostics=*/TRUE);
+    }  /* if */
     is_id = (is_valid_UCN_identifier_char(ucn, is_identifier_start) ==
                                                                   ec_no_error);
     llen = (int)(p - ptr);
@@ -9742,6 +9758,7 @@ is_id_known:;
 #endif /* !MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   }  /* if */
   if (len != NULL) *len = llen;
+end:
   return is_id;
 }  /* f_is_identifier_char */
   
@@ -12045,15 +12062,15 @@ unsigned long scan_universal_character(a_const_char	**start_pos,
 				       a_boolean	is_identifier_start,
 				       a_boolean	issue_diagnostics)
 /*
-Scan the universal character name starting at start_pos.  The
-character specified by the universal character name is returned.  If
-is_identifier is TRUE, an error is issued if the character is not one
-of those designated as a valid identifier character.  If is_identifier_start
-is TRUE, it must be one of those characters that is not designated as a
-digit.  If issue_diagnostics is TRUE, diagnostic messages are
-produced if the universal character is improperly formed, or if it
-names an invalid character.  start_pos is updated by this routine to
-point to the character after the universal character name.
+Scan the universal character name starting at start_pos.  The character
+specified by the universal character name is returned.  If is_identifier is
+TRUE, an error is issued if the character is not one of those designated as
+a valid identifier character.  If is_identifier_start is TRUE, it must be
+one of those characters that can appear as the first character in an
+identifier.  If issue_diagnostics is TRUE, diagnostic messages are produced
+if the universal character is improperly formed, or if it names an invalid
+character.  start_pos is updated by this routine to point to the character
+after the universal character name.
 */
 {
   a_const_char	*pos = *start_pos;
@@ -12109,6 +12126,161 @@ point to the character after the universal character name.
   return result;
 }  /* scan_universal_character */
 
+
+unsigned long scan_named_unicode_char(a_const_char **start_pos,
+                                      a_boolean    is_identifier,
+                                      a_boolean    is_identifier_start,
+                                      a_boolean    issue_diagnostics)
+/*
+Scan a C++23 named Unicode character, i.e., \N{...}, and return the code
+point corresponding to the name.  *start_pos points to the '\'.  If a
+Unicode character is successfully recognized, or if the name is well-formed
+but does not match any Unicode character name, *start_pos is updated to
+point to the character following the '}' (the return value in the latter
+case will be '?'). In other error cases, the returned value will be
+(unsigned long)-1 and *start_pos will be unchanged.  If issue_diagnostics
+is TRUE, an error will be reported if the construct does not name a Unicode
+character or, if is_identifier or is_identifier_start are TRUE, if the
+named character is not valid within or starting an identifier,
+respectively.
+*/
+{
+  a_const_char  *pos = *start_pos + 3;
+  unsigned long result = (unsigned long)-1;
+  unsigned long state = 0;
+  a_const_char  *rbrace_pos = NULL;
+
+  /* Suppress diagnostics if we are skipping over this construct because of
+     some kind of preprocessor "if" directive, or when doing the initial
+     PCH prefix scan of a file. */
+  if (currently_in_pp_if_skip || building_pch_prefix) {
+    issue_diagnostics = FALSE;
+  }  /* if */
+  /* Walk through the characters of the Unicode character name and the
+     corresponding states until a name is recognized or an error occurs. */
+  while (state < size_of_unicode_name_fsm) {
+    /* Iterate through the transitions from this state, looking for a
+       character that matches the current character in the putative Unicode
+       character name. */
+    int           transition;
+    int           num_transitions = unicode_name_fsm[state];
+    unsigned char name_char = *pos++;
+    for (transition = 0; transition < num_transitions; ++transition) {
+      unsigned long trans_offset = state + 1 + 4 * transition;
+      unsigned char trans_char = unicode_name_fsm[trans_offset];
+      unsigned long val = (unicode_name_fsm[trans_offset + 1] << 16) +
+                          (unicode_name_fsm[trans_offset + 2] << 8) +
+                          (unicode_name_fsm[trans_offset + 3]);
+      bool          terminal_transition;
+      if ((trans_char & 0x80) != 0) {
+        /* This is a direct-value transition, i.e., instead of a transition
+           to another state that would contain only the terminating
+           character and the code point value, if the current character
+           matches this transition and the next name character is the
+           terminating '}', the value in this transition is the code point
+           itself. */
+        terminal_transition = true;
+        trans_char &= 0x7f;
+      } else {
+        terminal_transition = false;
+      }  /* if */
+      if (trans_char == name_char) {
+        /* This transition matches the current character of the Unicode
+           character name. */
+        if (terminal_transition && *pos == '}') {
+          /* We've matched the name, and the transition's value is the code
+             point. */
+          result = val;
+          rbrace_pos = pos;
+          state = (unsigned long)-1;
+        } else if (trans_char == '}') {
+          /* The transition's value is the code point; pos points after the
+             '}'. */
+          result = val;
+          rbrace_pos = pos - 1;
+          state = (unsigned long)-1;
+        } else {
+          /* This is a normal transition; the value gives the offset of
+             the next state. */
+          state = val;
+        }  /* if */
+        /* Having matched the character in the current transition, we're
+           done with this state's transitions. */
+        break;
+      }  /* if */
+    }  /* for */
+    if (transition >= num_transitions) {
+      /* The current Unicode name character does not match any transition
+         in this state, so the name is not a valid Unicode character
+         name. */
+      state = (unsigned long)-1;
+    }  /* if */
+  }  /* while */
+  if (rbrace_pos != NULL && issue_diagnostics) {
+    /* Check whether the named character is valid. */
+    check_for_invalid_cplusplus_ucn(result, start_pos, is_identifier,
+                                    is_identifier_start);
+  }  /* if */
+  if (rbrace_pos == NULL) {
+    /* We encountered an error.  g++ distinguishes between cases where the
+       name is well-formed, consisting only of characters A-Z, -, and
+       space, and other error cases in which an invalid character or the
+       end of the line is found before the closing '}', with the former
+       eliciting an error and the latter, only a warning.  clang treats all
+       those cases as errors.  Scan for the closing '}' and issue the
+       appropriate diagnostic. */
+    --pos;
+    for (;;) {
+      if (*pos == '}') {
+        /* We made it all the way to the end of the name with no invalid
+           characters. */
+        if (issue_diagnostics) {
+          conv_line_loc_to_source_pos(*start_pos + 3, &error_position);
+          if (pos == *start_pos + 3) {
+            /* Both g++ and clang issue a warning for an empty name. */
+            pos_diagnostic((gnu_version_is(any_version) ||
+                            clang_version_is(any_version)
+                                                     ? es_warning
+                                                     : es_discretionary_error),
+                           ec_empty_unicode_name, &error_position);
+          } else {
+            /* A well-formed name was supplied but not found. */
+            pos_diagnostic(es_discretionary_error, ec_unicode_name_not_found,
+                           &error_position);
+          }  /* if */
+        }  /* if */
+        *start_pos = pos + 1;
+        break;
+      } else if (strchr(" -0123456789ABCEFGHIJKLMNOPQRSTUVWXYZ", *pos) ==
+                                                                        NULL) {
+        /* This character cannot appear in a well-formed Unicode character
+           name.  In these cases, *start_pos is left unchanged and the
+           result (already set) is (unsigned int)-1. */
+        if (issue_diagnostics) {
+          if (*pos == LE_ESCAPE) {
+            conv_line_loc_to_source_pos(*start_pos, &error_position);
+            pos_diagnostic((gnu_version_is(any_version)
+                                                     ? es_warning
+                                                     : es_discretionary_error),
+                           ec_unterminated_unicode_name, &error_position);
+          } else {
+            conv_line_loc_to_source_pos(pos, &error_position);
+            pos_diagnostic((gnu_version_is(any_version)
+                                                     ? es_warning
+                                                     : es_discretionary_error),
+                           ec_invalid_char_in_unicode_name, &error_position);
+          }  /* if */
+        }  /* if */
+        break;
+      }  /* if */
+      ++pos;
+    }  /* for */
+  } else {
+    *start_pos = rbrace_pos + 1;
+  }  /* if */
+  return result;
+}  /* scan_named_unicode_char */
+
 #if ABI_COMPATIBILITY_VERSION >= 302
 
 static void output_ucn_value(unsigned long ucn_value,
@@ -12163,13 +12335,25 @@ IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS and UNICODE_SOURCE_SUPPORTED.
   if (ucn_buffer == NULL) ucn_buffer = alloc_text_buffer(128);
   reset_text_buffer(ucn_buffer);
   for (src = identifier; src <= end_pos;) {
-    if (*src == '\\' && (*(src+1) == 'u' || *(src+1) == 'U')) {
-      /* Scan the universal character.  We pass in FALSE for is_identifier,
-         etc., because those are only used when diagnosing errors. */
+    if (*src == '\\' && (*(src+1) == 'u' || *(src+1) == 'U' ||
+                         (*(src+1) == 'N' && *(src+2) == '{'))) {
+      /* Scan the universal character or named Unicode character.  We pass
+         in FALSE for is_identifier, etc., because those are only used when
+         diagnosing errors. */
       unsigned long ucn_value;
-      ucn_value = scan_universal_character(&src, /*is_identifier=*/FALSE,
-                                           /*is_identifier_start=*/FALSE,
-                                           /*issue_diagnostics=*/FALSE);
+      if (src[1] == 'N') {
+        /* An erroneous named Unicode character escape should have been
+           detected during the initial identifier scan and shouldn't reach
+           here, so we assume the return value is a valid identifier
+           character. */
+        ucn_value = scan_named_unicode_char(&src, /*is_identifier=*/FALSE,
+                                            /*is_identifier_start=*/FALSE,
+                                            /*issue_diagnostics=*/FALSE);
+      } else {
+        ucn_value = scan_universal_character(&src, /*is_identifier=*/FALSE,
+                                             /*is_identifier_start=*/FALSE,
+                                             /*issue_diagnostics=*/FALSE);
+      }  /* if */
 #if UNICODE_SOURCE_SUPPORTED && IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS
       if (!force_ucn) {
         /* We can put the UTF-8 for the character directly into the
@@ -12512,19 +12696,35 @@ messages.
            not terribly gracefully. */
         unterminated = TRUE;
         goto return_point;
-      } else if ((ch == 'u' || ch == 'U') &&
-                 universal_character_names_allowed) {
-        /* A universal character name escape sequence.  Skip past the
-           characters that make up the universal character.  Ignore any
-           errors at this point -- they will be issued when the escape
-           is converted to a character. */
-        /* Back up one character because the routine expects the opening
+      } else if (((ch == 'u' || ch == 'U') &&
+                  universal_character_names_allowed) ||
+                 (ch == 'N' && curr_char_loc[1] == '{' &&
+                   named_unicode_chars_allowed)) {
+        /* A universal character name or Unicode named character escape
+           sequence.  Skip past the characters that make up the construct.
+           Ignore any errors at this point -- they will be issued when the
+           escape is converted to a character. */
+        /* Back up one character because the routines expect the opening
            backslash to be the current character. */
         curr_char_loc--;
-        (void)scan_universal_character(&curr_char_loc,
-                                       /*is_identifier=*/FALSE,
-				       /*is_identifier_start=*/FALSE,
-                                       /*issue_diagnostics=*/FALSE);
+        if (ch == 'N') {
+          if (scan_named_unicode_char(&curr_char_loc,
+                                      /*is_identifier=*/FALSE,
+                                      /*is_identifier_start=*/FALSE,
+                                      /*issue_diagnostics=*/FALSE) ==
+                                                           (unsigned long)-1) {
+            /* An error occurred and curr_char_loc was not updated.  Treat
+               the '\' as an individual character, not part of an escape
+               sequence. */
+            ch = '\\';
+            goto normal_char;
+          }  /* if */
+        } else {
+          (void)scan_universal_character(&curr_char_loc,
+                                         /*is_identifier=*/FALSE,
+                                         /*is_identifier_start=*/FALSE,
+                                         /*issue_diagnostics=*/FALSE);
+        }  /* if */
         if (ch == 'U' && is_string_literal &&
             (literal_kind == SCLK_CHAR16_T_LITERAL ||
              literal_kind == SCLK_WIDE_LITERAL)) {
@@ -12640,6 +12840,7 @@ messages.
         goto return_point;
       }  /* if */
     } else {
+normal_char:
       /* Normal character. */
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
       if (multibyte_chars_in_source_enabled) {
@@ -16366,11 +16567,14 @@ return_end_of_source_token:
       }  /* if */
       /* This can't fall through into the next case. */
     case '\\':
-      /* Either the start of a universal character name or an invalid
-         token.  If the next character is "U" or "u", this is a universal
-         character name. */
+      /* Either the start of a universal character name or named Unicode
+         character or an invalid token.  If the next character is "U" or
+         "u", this is a universal character name; if it's "N" and the
+         character after that is '{', it's a named Unicode character. */
       ch = *(curr_char_loc+1);
-      if ((ch == 'U' || ch == 'u') && universal_character_names_allowed) {
+      if (((ch == 'U' || ch == 'u') && universal_character_names_allowed) ||
+          (ch == 'N' && curr_char_loc[2] == '{' &&
+           named_unicode_chars_allowed)) {
         goto id_scan;
       } else {
         goto bad_token;
@@ -16516,18 +16720,40 @@ id_scan:
            identifier characters. */
         if ((ch = *curr_char_loc) == '\\') {
           ch = *(curr_char_loc + 1);
-          if ((ch == 'u' || ch == 'U') &&
-              universal_character_names_allowed) {
+          if (((ch == 'u' || ch == 'U') &&
+               universal_character_names_allowed) ||
+              (ch == 'N' && curr_char_loc[2] == '{' &&
+                named_unicode_chars_allowed)) {
+            a_boolean is_identifier_start =
+                                          curr_char_loc == start_of_curr_token;
             continue_scan = TRUE;
             id_contains_ucn_or_multibyte_char = TRUE;
 #if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
             id_contains_ucn = TRUE;
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
-            (void)scan_universal_character(&curr_char_loc,
-			                   /*is_identifier=*/TRUE,
-					   /*is_identifier_start=*/
-                                            curr_char_loc==start_of_curr_token,
-                                           /*issue_diagnostics=*/TRUE);
+            if (ch == 'N') {
+              a_const_char *saved_curr_char_loc = curr_char_loc;
+              if (scan_named_unicode_char(&curr_char_loc,
+                                          /*is_identifier=*/TRUE,
+                                          is_identifier_start,
+                                          /*issue_diagnostics=*/TRUE) ==
+                                                           (unsigned long)-1) {
+                /* An error occurred.  Set the end of the token to the
+                   character before the '\'.  If curr_char_loc was not
+                   updated, skip over the '\' to prevent it being processed
+                   again. */
+                end_of_curr_token = saved_curr_char_loc - 1;
+                if (curr_char_loc == saved_curr_char_loc) {
+                  ++curr_char_loc;
+                }  /* if */
+                goto set_locator;
+              }  /* if */
+            } else {
+              (void)scan_universal_character(&curr_char_loc,
+                                             /*is_identifier=*/TRUE,
+                                             is_identifier_start,
+                                             /*issue_diagnostics=*/TRUE);
+            }  /* if */
           }  /* if */
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
         } else if (is_identifier_char(curr_char_loc, &numch,
@@ -16544,9 +16770,11 @@ id_scan:
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
         }  /* if */
       } while (continue_scan);
+end_of_id:
       end_of_curr_token = curr_char_loc - 1;
       /* Clear the symbol locator for the current identifier.  This is done 
          even if the identifier is not looked up in the symbol table. */
+set_locator:
       clear_locator(&locator_for_curr_id, &pos_curr_token);
       id_length = end_of_curr_token - start_of_curr_token + 1;
       id_ptr = start_of_curr_token;

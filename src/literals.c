@@ -1324,6 +1324,34 @@ get_another:
           targ_ch = conv_unicode_literal_char(state, targ_ch, utf8_literal);
         }  /* if */
         break;
+      case 'N':
+        /* A named Unicode character.  Advance the pointer to the first
+           character of the name, i.e., following "\N{". */
+        if (!named_unicode_chars_allowed) goto other_chars;
+        lptr -= 2;
+        targ_ch = scan_named_unicode_char(&lptr,
+                                          /*is_identifier=*/FALSE,
+                                          /*is_identifier_start=*/FALSE,
+                                          /*issue_diagnostics=*/TRUE);
+        if (targ_ch == (unsigned long)-1) {
+          /* An error occurred and lptr was not updated.  Treat the 'N' and
+             following as ordinary characters. */
+          ++lptr;
+          goto other_chars;
+        }  /* if */
+        if (!narrow_literal) {
+          /* This is for a wide character or wide string literal.  Return
+             the value directly, subject to the range constraints implied
+             by centity_mask. */
+          goto range_check;
+        } else {
+          /* Convert the named Unicode character to either UTF-8 or the
+             system default multibyte character set as appropriate and set
+             up the conversion state to return subsequent bytes of the
+             resulting character. */
+          targ_ch = conv_unicode_literal_char(state, targ_ch, utf8_literal);
+        }  /* if */
+        break;
       case 'x':
         /* Hexadecimal escape.  There can be many digits, but there must be
            at least one.  If not, treat as just "x". */

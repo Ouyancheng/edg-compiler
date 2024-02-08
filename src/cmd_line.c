@@ -4116,6 +4116,7 @@ default mode (e.g., exception handling).
           extended_float_types = TRUE;
           elifdef_enabled = TRUE;
           size_suffix_enabled = TRUE;
+          named_unicode_chars_allowed = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */
@@ -5106,6 +5107,11 @@ This function is also called in clang mode.
          14.0.0. */
       old_id_chars = TRUE;
     }  /* if */
+    if (clang_version >= 150000) {
+      /* As of version 15, clang accepts named Unicode characters in all
+         language versions. */
+      named_unicode_chars_allowed = TRUE;
+    }  /* if */
   } else {
 #if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
     /* GNU produces wrappers only for dynamically-initialized thread_local
@@ -5131,6 +5137,11 @@ This function is also called in clang mode.
       /* gcc has not (as of version 12.2) implemented Unicode-based
          identifier characters. */
       old_id_chars = TRUE;
+    }  /* if */
+    if (gnu_version >= 130000 && cpp23_mode) {
+      /* As of version 13.1, g++ accepts named Unicode characters, but only
+         with -std=c++23. */
+      named_unicode_chars_allowed = TRUE;
     }  /* if */
   }  /* if */
 }  /* check_and_set_gnu_mode_options */
@@ -13184,6 +13195,7 @@ variables declared in cmd_line.h.
   attributes_on_using_declarations = FALSE;
   elifdef_enabled = FALSE;
   size_suffix_enabled = FALSE;
+  named_unicode_chars_allowed = FALSE;
 }  /* cmd_line_static_var_init */
 
 

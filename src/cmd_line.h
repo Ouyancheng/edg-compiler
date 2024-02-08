@@ -2349,6 +2349,11 @@ EXTERN a_boolean
 			   accepted.  Permitted in C++ and C99 modes. */
 
 EXTERN a_boolean
+		named_unicode_chars_allowed;
+			/* TRUE if the C++23 named Unicode character
+			   construct \N{...} should be accepted. */
+
+EXTERN a_boolean
 		va_copy_macro_allowed;
 			/* TRUE if the va_copy macro should be accepted.
 			   It is permitted in C99 mode.  This is only
