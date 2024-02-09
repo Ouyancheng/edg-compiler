@@ -12223,12 +12223,14 @@ respectively.
   }  /* if */
   if (rbrace_pos == NULL) {
     /* We encountered an error.  g++ distinguishes between cases where the
-       name is well-formed, consisting only of characters A-Z, -, and
-       space, and other error cases in which an invalid character or the
-       end of the line is found before the closing '}', with the former
-       eliciting an error and the latter, only a warning.  clang treats all
-       those cases as errors.  Scan for the closing '}' and issue the
-       appropriate diagnostic. */
+       name is more-or-less well-formed, consisting only of alphabetic and
+       numeric characters, underscore, hyphen, and space, and other error
+       cases in which an invalid character or the end of the line is found
+       before the closing '}', with the former eliciting an error and the
+       latter, only a warning.  clang treats all those cases as errors.
+       Scan for the closing '}' and issue the appropriate diagnostic. */
+    a_const_char *name_chars =
+           " -0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
     --pos;
     for (;;) {
       if (*pos == '}') {
@@ -12244,18 +12246,23 @@ respectively.
                                                      : es_discretionary_error),
                            ec_empty_unicode_name, &error_position);
           } else {
-            /* A well-formed name was supplied but not found. */
-            pos_diagnostic(es_discretionary_error, ec_unicode_name_not_found,
-                           &error_position);
+            /* A more-or-less well-formed name was supplied but not
+               found. */
+            pos_in_temp_text_buffer = 0;
+            *(char *)pos = '\0';
+            put_str_to_temp_text_buffer(*start_pos + 3);
+            *(char *)pos = '}';
+            pos_st_diagnostic(es_discretionary_error,
+                              ec_unicode_name_not_found, &error_position,
+                              temp_text_buffer);
           }  /* if */
         }  /* if */
         *start_pos = pos + 1;
         break;
-      } else if (strchr(" -0123456789ABCEFGHIJKLMNOPQRSTUVWXYZ", *pos) ==
-                                                                        NULL) {
-        /* This character cannot appear in a well-formed Unicode character
-           name.  In these cases, *start_pos is left unchanged and the
-           result (already set) is (unsigned int)-1. */
+      } else if (strchr(name_chars, *pos) == NULL) {
+        /* This character cannot appear in a Unicode character name.  In
+           these cases, *start_pos is left unchanged and the result
+           (already set) is (unsigned int)-1. */
         if (issue_diagnostics) {
           if (*pos == LE_ESCAPE) {
             conv_line_loc_to_source_pos(*start_pos, &error_position);

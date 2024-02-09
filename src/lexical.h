@@ -9899,7 +9899,12 @@ The following table represents a finite state machine for recognizing
 Unicode character names and providing their associated code points.  The
 current values reflect Unicode 15.1.0, dated 2023-08-28.  The character
 names are those found in UnicodeData.txt and the control, correction, and
-alternate categories in NameAliases.txt.
+alternate categories in NameAliases.txt.  A finite state machine
+implementation provides a good compromise between a brute-force approach
+(e.g., bsearch on a table containing all the Unicode character names),
+which would require more data, and a more complex approach that would be
+more data efficient but would add significant complexity and likely worse
+performance.
 
 The table contains states and transitions.  A state consists of one byte
 specifying the number of transitions, N, from that state, followed by N
@@ -9955,6 +9960,9 @@ offset  value       meaning
 EXTERN unsigned char unicode_name_fsm[]
 #if VAR_INITIALIZERS
  = {
+/* The following data is created by a tool that processes the Unicode
+   data files and is not intended to be edited manually. */
+
   /* 000000: */	0x1a, 0x53, 0x00, 0x00, 0x69, 0x45, 0x01, 0x64,
 		0x34, 0x51, 0x01, 0xb8, 0x38, 0x4e, 0x01, 0xbd,
 		0x34, 0x44, 0x02, 0x1e, 0x04, 0x50, 0x02, 0x91,
