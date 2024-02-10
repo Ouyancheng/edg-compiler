@@ -12126,6 +12126,14 @@ after the universal character name.
   return result;
 }  /* scan_universal_character */
 
+/*
+The following variables declare a finite state machine giving the names
+and code points of the characters in the Unicode character set.  See the
+file unicode_name_fsm.c for the definition and description of the data.
+*/
+extern unsigned char unicode_name_fsm[];
+extern sizeof_t size_of_unicode_name_fsm;
+
 
 unsigned long scan_named_unicode_char(a_const_char **start_pos,
                                       a_boolean    is_identifier,
@@ -12133,16 +12141,15 @@ unsigned long scan_named_unicode_char(a_const_char **start_pos,
                                       a_boolean    issue_diagnostics)
 /*
 Scan a C++23 named Unicode character, i.e., \N{...}, and return the code
-point corresponding to the name.  *start_pos points to the '\'.  If a
-Unicode character is successfully recognized, or if the name is well-formed
-but does not match any Unicode character name, *start_pos is updated to
-point to the character following the '}' (the return value in the latter
-case will be '?'). In other error cases, the returned value will be
-(unsigned long)-1 and *start_pos will be unchanged.  If issue_diagnostics
-is TRUE, an error will be reported if the construct does not name a Unicode
-character or, if is_identifier or is_identifier_start are TRUE, if the
-named character is not valid within or starting an identifier,
-respectively.
+point corresponding to the name or (unsigned long)-1 if a Unicode character
+is not found.  *start_pos points to the '\'.  If a Unicode character is
+successfully recognized, or if the name is well-formed but does not match
+any Unicode character name, *start_pos is updated to point to the character
+following the '}'. In other error cases, *start_pos will be unchanged.  If
+issue_diagnostics is TRUE, an error will be reported if the construct does
+not name a Unicode character or, if is_identifier or is_identifier_start
+are TRUE, if the named character is not valid within or starting an
+identifier, respectively.
 */
 {
   a_const_char  *pos = *start_pos + 3;
