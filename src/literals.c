@@ -1002,7 +1002,7 @@ to a Latin-1 byte.
     if (err) {
       /* The code point could not be converted to a suitable
          representation.  Issue a diagnostic. */
-      a_number_buffer num_buff(unicode_char);
+      a_number_buffer num_buf(unicode_char);
 
       conv_line_loc_to_source_pos(*state->next_token_char, &error_position);
       pos_warning(ec_bad_unicode_char_in_string, &error_position,

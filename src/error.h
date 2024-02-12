@@ -1090,6 +1090,16 @@ struct Fill_in<a_const_char*> {
 };  /* Fill_in */
 
 /*
+A diagnostic fill-in for char* (C-string) values.
+*/
+template<>
+struct Fill_in<char*> {
+  static void add(a_diagnostic_ptr diag,
+                  a_const_char     *value)
+    { Fill_in<a_const_char*>::add(diag, value); }
+};  /* Fill_in */
+
+/*
 A diagnostic fill-in for symbols.
 */
 template<>
