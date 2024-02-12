@@ -12145,7 +12145,7 @@ point corresponding to the name or (unsigned long)-1 if a Unicode character
 is not found.  *start_pos points to the '\'.  If a Unicode character is
 successfully recognized, or if the name is well-formed but does not match
 any Unicode character name, *start_pos is updated to point to the character
-following the '}'. In other error cases, *start_pos will be unchanged.  If
+following the '}'.  In other error cases, *start_pos will be unchanged.  If
 issue_diagnostics is TRUE, an error will be reported if the construct does
 not name a Unicode character or, if is_identifier or is_identifier_start
 are TRUE, if the named character is not valid within or starting an
