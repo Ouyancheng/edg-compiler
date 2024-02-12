@@ -1325,8 +1325,8 @@ get_another:
         }  /* if */
         break;
       case 'N':
-        /* A named Unicode character.  Advance the pointer to the first
-           character of the name, i.e., following "\N{". */
+        /* A named Unicode character.  Move the pointer back to the start
+           of the construct, i.e., to the '\' in "\N{". */
         if (!named_unicode_chars_allowed) goto other_chars;
         lptr -= 2;
         targ_ch = scan_named_unicode_char(&lptr,
