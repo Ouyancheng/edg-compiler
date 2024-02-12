@@ -3547,6 +3547,10 @@ typedef struct a_namespace {
 			   proxy class if one has been created.  NULL
 			   otherwise. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_hash_value
+		hash_value;
+			/* A hash value computed for this namespace, or
+			   zero if a hash has not yet been computed. */
   a_bit_field	is_namespace_alias:1;
 			/* TRUE when the name is a namespace alias. */
   a_bit_field	is_inline:1;
@@ -11620,6 +11624,10 @@ typedef struct a_routine {
                         /* If not NULL_region_number, this indicates the
                            memory region containing the function definition.
                            This is non-NULL only if the routine has a body. */
+  a_hash_value
+                hash_value;
+                        /* A hash value computed for this routine, or
+                           zero if a hash has not yet been computed. */
   a_storage_class
                 storage_class;
                         /* Storage class.  The storage class is not necessarily

@@ -3010,6 +3010,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->type                        = NULL;
   rp->function_def_number         = NULL_function_def_number;
   rp->memory_region               = NULL_region_number;
+  rp->hash_value                  = 0;
   rp->storage_class               = (a_storage_class)sc_unspecified;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   rp->declared_storage_class      = (a_storage_class)sc_unspecified;
@@ -4649,6 +4650,7 @@ is_alias is TRUE.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   nsp->proxy_class = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  nsp->hash_value = 0;
   nsp->is_namespace_alias = is_alias;
   nsp->is_inline = FALSE;
   nsp->has_internal_linkage = FALSE;

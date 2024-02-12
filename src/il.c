@@ -6980,19 +6980,47 @@ Return a hash value developed from the string pointed to by ptr.
 }  /* hash_string */
 
 
-static a_hash_value hash_name(a_source_correspondence *scp)
+/* Forward declarations. */
+static a_hash_value hash_type(a_type_ptr type);
+static a_hash_value hash_class_type(a_type_ptr type);
+static a_hash_value hash_routine(a_routine_ptr rp);
+
+
+static a_hash_value hash_name(a_source_correspondence_ptr scp)
 /*
-Return a hash value developed from the name in the indicated source
-correspondence entry.
+Return a hash value developed from the name (including enclosing scopes) in the
+indicated source correspondence entry.
 */
 {
   a_hash_value hash_value = 0;
-  a_const_char *cptr = scp->name;
 
-  if (cptr != NULL) {
-    for (; *cptr != '\0'; cptr++) {
-      hash_value = (hash_value << 5) + hash_value + *cptr;
-    }  /* for */
+  if (scp->name != NULL) {
+    hash_value = hash_string(scp->name);
+  }  /* if */
+  if (scp->parent_scope != NULL) {
+    a_scope_ptr  scope = scp->parent_scope;
+    switch (scope->kind) {
+      case sck_class_struct_union:
+        hash_value += hash_class_type(scope->variant.assoc_type);
+        break;
+      case sck_namespace:
+        { a_namespace_ptr  nsp = scope->variant.assoc_namespace;
+          if (nsp->hash_value == 0) {
+            nsp->hash_value = hash_name(&nsp->source_corresp);
+            if (nsp->hash_value == 0) nsp->hash_value++;
+          }  /* if */
+          hash_value += nsp->hash_value;
+        }
+        break;
+      case sck_enum:
+        hash_value += hash_name(&scope->variant.assoc_type->source_corresp);
+        break;
+      default:
+        /* Nothing to be done. */
+        break;
+    }  /* switch */
+  } else if (scp->enclosing_routine != NULL) {
+    hash_value =+ hash_routine(scp->enclosing_routine);
   }  /* if */
   return hash_value;
 }  /* hash_name */
@@ -7009,10 +7037,6 @@ Return a hash value for the indicated template.
   hash_value = hash_name(&templ->source_corresp);
   return hash_value;
 }  /* hash_template */
-
-
-/* Forward declarations. */
-static a_hash_value hash_type(a_type_ptr type);
 
 
 a_hash_value hash_template_arg_list(a_template_arg_ptr	tap)
@@ -7063,46 +7087,78 @@ Return a hash value for the indicated template argument list.
 }  /* hash_template_arg_list */
 
 
-static a_text_buffer_ptr
-		hash_text_buffer;
-			/* A text buffer used by hash_class_type */
+static a_hash_value hash_routine(a_routine_ptr rp)
+/*
+Return a hash value for the indicated routine.  Store the hash value in the
+routine so that it does not have to be recomputed again.
+*/
+{
+  a_hash_value  hash_value;
+  if (rp->hash_value != 0) {
+    hash_value = rp->hash_value;
+    goto done;
+  }  /* if */
+  hash_value = hash_name(&rp->source_corresp);
+  /* Include the template arguments if there are any. */
+  if (rp->template_arg_list != NULL) {
+    hash_value += hash_template_arg_list(rp->template_arg_list);
+  }  /* if */
+  /* A zero value is used to indicate that the hash has not been computed
+     yet, so make sure the value is not zero. */
+  if (hash_value == 0) hash_value++;
+  /* Save the computed hash value. */
+  rp->hash_value = hash_value;
+done:
+  return hash_value;
+}  /* hash_routine */
+
+
+static a_hash_value hash_variable(a_variable_ptr vp)
+/*
+Return a hash value for the indicated variable.
+*/
+{
+  a_hash_value  hash_value;
+  hash_value = hash_name(&vp->source_corresp);
+  /* Include the template arguments if there are any. */
+  if (vp->template_info != NULL) {
+    hash_value += hash_template_arg_list(vp->template_info->template_arg_list);
+  }  /* if */
+  return hash_value;
+}  /* hash_variable */
 
 
 static a_hash_value hash_class_type(a_type_ptr	type)
 /*
 Return a hash value for the indicated class type.   Store the hash value in
 the class type supplement so that it does not have to be recomputed
-again.  The hash is computed by generating the full name of the class
-and hashing the resulting string.
+again.
 */
 {
   a_class_type_supplement_ptr		ctsp;
-  an_il_to_str_output_control_block	octl;
-  a_hash_value				hash_value = 0;
+  a_hash_value				hash_value;
 
-  /* Set up for use of form_name. */
-  clear_il_to_str_output_control_block(&octl);
-  octl.output_str = put_str_into_text_buffer;
-  if (hash_text_buffer == NULL) {
-    hash_text_buffer = alloc_text_buffer(256);
-  }  /* if */
-  reset_text_buffer(hash_text_buffer);
-  octl.text_buffer = hash_text_buffer;
-  octl.suppress_template_args = TRUE;
-  /* Generate the name of this entity. */
-  form_name(&type->source_corresp, iek_type, &octl);
-  add_char_to_text_buffer(hash_text_buffer, '\0');
-  hash_value = hash_string(hash_text_buffer->buffer);
   ctsp = type->variant.class_struct_union.extra_info;
+  if (ctsp->hash_value != 0) {
+    hash_value = ctsp->hash_value;
+    goto done;
+  }  /* if */
+  hash_value = hash_name(&type->source_corresp);
   /* Include the template arguments if there are any. */
   if (ctsp->template_arg_list != NULL) {
     hash_value += hash_template_arg_list(ctsp->template_arg_list);
   }  /* if */
+#if NEED_NAME_MANGLING
+  if (symbol_for(type) != NULL) {
+    hash_value += class_symbol_supp(symbol_for(type))->discriminator;
+  }  /* if */
+#endif /* NEED_NAME_MANGLING */
   /* A zero value is used to indicate that the hash has not been computed
      yet, so make sure the value is not zero. */
   if (hash_value == 0) hash_value++;
   /* Save the computed hash value. */
   ctsp->hash_value = hash_value;
+done:
   return hash_value;
 }  /* hash_class_type */
 
@@ -7144,6 +7200,72 @@ done:
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
 
+
+/*
+Variable set by the following traverse_expr processing routine.
+*/
+static a_hash_value expr_hash_value = 0;
+
+
+static void hash_expr_node(an_expr_node_ptr expr,
+                           an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+This routine is called by traverse_expr in a top-down traversal of an
+expression tree.  It updates the hash value in expr_hash_value with the hash
+value for the indicated expression node.
+*/
+{
+  expr_hash_value = 31*expr_hash_value + (a_hash_value)expr->kind;
+  switch (expr->kind) {
+    case enk_constant:
+      expr_hash_value += hash_constant(expr->variant.constant.ptr);
+      break;
+    case enk_routine:
+      expr_hash_value += hash_routine(expr->variant.routine.ptr);
+      break;
+    case enk_variable:
+      expr_hash_value += hash_variable(expr->variant.variable.ptr);
+      break;
+    case enk_field:
+      expr_hash_value += hash_name(&expr->variant.field.ptr->source_corresp);
+      break;
+    case enk_lambda:
+    case enk_temp_init:
+      expr_hash_value += hash_type(expr->type);
+      break;
+    case enk_type_operand:
+      if (expr->variant.type_operand.type != NULL) {
+        expr_hash_value += hash_type(expr->variant.type_operand.type);
+      }  /* if */
+      break;
+    case enk_param_ref:
+      expr_hash_value += 7*expr->variant.param_ref.param_num +
+                         expr->variant.param_ref.levels_up;
+      break;
+    default:
+      /* Nothing to be done. */
+      break;
+  }  /* switch */
+}  /* hash_expr_node */
+
+
+static a_hash_value hash_expr(an_expr_node_ptr expr)
+/*
+Return a hash value for the indicated expression.  This is used in cases where
+a dependent type operator (like a dependent decltype) resolves to an unknown
+template parameter type.
+*/
+{
+  Value_saver<a_hash_value>  saved_expr_hash_value(&expr_hash_value, 0);
+  an_expr_or_stmt_traversal_block
+                             tblock;
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = hash_expr_node;
+  traverse_expr(expr, &tblock);
+  return expr_hash_value;
+}  /* hash_expr */
+
+
 static a_hash_value hash_type(a_type_ptr type)
 /*
 Return a hash value for the indicated type.  This is used in some cases
@@ -7151,11 +7273,21 @@ to refine the hash value developed in hash_constant.
 */
 {
   a_hash_value       hash_value = 0;
+  an_expr_node_ptr   dpdt_type_operator_expr = NULL;
 
   /* Only pointers to class types are particularly important here. */
   /* Note that the address of the type or its subtypes should not be
      used in determining the hash value (see comment in hash_constant). */
-  type = skip_typerefs(type);
+  /* Skip typerefs, but keep any expression associated with a dependent type
+     operator (which we will use later if the type refers to a template
+     parameter). */
+  while (type->kind == tk_typeref) {
+    if (type->variant.typeref.is_dependent_type_operator) {
+      a_typeref_type_supplement_ptr  ttsp = type->variant.typeref.extra_info;
+      dpdt_type_operator_expr = ttsp->expr;
+    }  /* if */
+    type = type->variant.typeref.type;
+  }  /* while */
   switch (type->kind) {
     case tk_integer:
       hash_value = type->variant.integer.int_kind + 53;
@@ -7197,14 +7329,7 @@ to refine the hash value developed in hash_constant.
     case tk_struct:
     case tk_class:
     case tk_union:
-      {
-        a_class_type_supplement_ptr ctsp = class_type_supp(type);
-        if (ctsp->hash_value == 0) {
-          hash_value = hash_class_type(type);
-        } else {
-          hash_value = ctsp->hash_value;
-        }  /* if */
-      }
+      hash_value = hash_class_type(type);
       break;
     case tk_routine:
       {
@@ -7269,6 +7394,9 @@ to refine the hash value developed in hash_constant.
                                       (a_template_param_type_kind)tptk_param) {
           hash_value += (tpts->coordinates.depth << 8) +
                                                     tpts->coordinates.position;
+        }  /* if */
+        if (dpdt_type_operator_expr != NULL) {
+          hash_value += hash_expr(dpdt_type_operator_expr);
         }  /* if */
       }
       break;
@@ -7350,12 +7478,10 @@ Return the hash value for the indicated constant.
          to. */
       switch (cp->variant.address.kind) {
         case abk_routine:
-          hash_value =
-               hash_name(&cp->variant.address.variant.routine->source_corresp);
+          hash_value = hash_routine(cp->variant.address.variant.routine);
           break;
         case abk_variable:
-          hash_value =
-              hash_name(&cp->variant.address.variant.variable->source_corresp);
+          hash_value = hash_variable(cp->variant.address.variant.variable);
           break;
         case abk_constant:
           /* Hash the name if the constant has a name; otherwise, hash the
@@ -7415,7 +7541,7 @@ Return the hash value for the indicated constant.
       hash_value = 0;
       if (cp->variant.ptr_to_member.is_function_ptr) {
         a_routine_ptr rp = cp->variant.ptr_to_member.variant.routine;
-        if (rp != NULL) hash_value = hash_name(&rp->source_corresp);
+        if (rp != NULL) hash_value = hash_routine(rp);
       } else {
         a_field_ptr fp = cp->variant.ptr_to_member.variant.field;
         if (fp != NULL) hash_value = hash_name(&fp->source_corresp);
@@ -7449,9 +7575,8 @@ Return the hash value for the indicated constant.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING && GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
     case ck_stack_offset:
-      hash_value =
-                hash_name(&cp->variant.stack_offset.variable->source_corresp) +
-                cp->variant.stack_offset.offset + 350;
+      hash_value = hash_variable(cp->variant.stack_offset.variable) +
+                   cp->variant.stack_offset.offset + 350;
       break;
 #endif /* DO_IL_LOWERING && ... */
     default:
@@ -31731,7 +31856,7 @@ in il_init.)
   seq_number_lookup_table_size = 0;
   seq_number_lookup_table = NULL;
   okay_to_use_seq_number_lookup_table = TRUE;
-  hash_text_buffer = NULL;
+  expr_hash_value = 0;
 
   /* Initialize certain global variables declared in il.h. */
 #if DEBUG
