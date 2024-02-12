@@ -1333,7 +1333,7 @@ get_another:
                                           /*is_identifier=*/FALSE,
                                           /*is_identifier_start=*/FALSE,
                                           /*issue_diagnostics=*/TRUE);
-        if (targ_ch == (unsigned long)-1) {
+        if (targ_ch > MAX_UNICODE_VAL) {
           /* An error occurred and lptr was not updated.  Treat the 'N' and
              following as ordinary characters. */
           ++lptr;

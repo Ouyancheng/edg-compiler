@@ -2760,6 +2760,11 @@ extern unsigned long scan_named_unicode_char(
 				        a_boolean	is_identifier_start,
 					a_boolean	issue_diagnostics);
 
+/*
+Unicode values occupy at most 21 bits.
+*/
+#define MAX_UNICODE_VAL 0x1ffffful
+
 #if ABI_COMPATIBILITY_VERSION >= 302
 extern char *make_canonical_identifier(a_const_char *identifier,
                                        sizeof_t     *length,

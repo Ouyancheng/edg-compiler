@@ -9636,7 +9636,7 @@ only within the lexical input routines.
       ucn = scan_named_unicode_char(&p, /*is_identifier=*/FALSE,
                                     /*is_identifier_start=*/FALSE,
                                     /*issue_diagnostics=*/TRUE);
-      if (ucn == (unsigned long)-1) {
+      if (ucn > MAX_UNICODE_VAL) {
         /* An error occurred in the named unicode character escape, so it
            cannot be an identifier character. */
         is_id = FALSE;
@@ -12725,8 +12725,8 @@ messages.
           if (scan_named_unicode_char(&curr_char_loc,
                                       /*is_identifier=*/FALSE,
                                       /*is_identifier_start=*/FALSE,
-                                      /*issue_diagnostics=*/FALSE) ==
-                                                           (unsigned long)-1) {
+                                      /*issue_diagnostics=*/FALSE) >
+                                                             MAX_UNICODE_VAL) {
             /* An error occurred and curr_char_loc was not updated.  Treat
                the '\' as an individual character, not part of an escape
                sequence. */
@@ -16750,8 +16750,8 @@ id_scan:
               if (scan_named_unicode_char(&curr_char_loc,
                                           /*is_identifier=*/TRUE,
                                           is_identifier_start,
-                                          /*issue_diagnostics=*/TRUE) ==
-                                                           (unsigned long)-1) {
+                                          /*issue_diagnostics=*/TRUE) >
+                                                             MAX_UNICODE_VAL) {
                 /* An error occurred.  Set the end of the token to the
                    character before the '\'.  If curr_char_loc was not
                    updated, skip over the '\' to prevent it being processed
