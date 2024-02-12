@@ -30235,7 +30235,7 @@ operator_position describe the location of the operator in the token stream.
     a_type_ptr  elem_type = skip_typerefs(operation_type);
     elem_type = skip_typerefs(elem_type->variant.vector.element_type);
     /* When comparing integer vectors, it appears the result type is the same
-       as those of the operands.  When comparing floating-point vectors, the
+       as the operation type.  When comparing floating-point vectors, the
        result type is an int vector type. */
     if (type_is(elem_type, tk_integer)) {
       result_type = operation_type;
