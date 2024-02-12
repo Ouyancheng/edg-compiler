@@ -24867,12 +24867,18 @@ redeclaration) and any redeclaration error should be suppressed.
           default_allowed = TRUE;
         }  /* if */
       }  /* if */
-      if (gpp_version_is(any_version) && decl_state->is_template_friend) {
+      if (gpp_mode && decl_state->is_template_friend) {
         a_scope_depth  d = scope_stack_top().previous_scope;
         for (; d > DEPTH_OF_FILE_SCOPE; d = scope_stack[d].previous_scope) {
           if (scope_is(&scope_stack[d], sck_template_instantiation) &&
               scope_stack[d].template_sym == sym) {
-            check_requires_clause = FALSE;
+            /* Clang and GCC don't check the requires clause if a template
+               friend declaration names an enclosing template in a prototype
+               instantiation context.  GCC versions prior to 13.0 never check
+               the requires clause of such template friend declarations. */
+            check_requires_clause = !gpp_version_is(<130000) &&
+                         !enclosing_scope_is_prototype_instantiation_context();
+            break;
           }  /* if */
         }  /* for */
       }  /* if */
