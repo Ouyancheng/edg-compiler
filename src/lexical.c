@@ -12269,7 +12269,7 @@ identifier, respectively.
       } else if (strchr(name_chars, *pos) == NULL) {
         /* This character cannot appear in a Unicode character name.  In
            these cases, *start_pos is left unchanged and the result
-           (already set) is (unsigned int)-1. */
+           (already set) is (unsigned long)-1. */
         if (issue_diagnostics) {
           if (*pos == LE_ESCAPE) {
             conv_line_loc_to_source_pos(*start_pos, &error_position);
