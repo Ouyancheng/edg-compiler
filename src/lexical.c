@@ -12231,9 +12231,9 @@ identifier, respectively.
   if (rbrace_pos == NULL) {
     /* We encountered an error.  g++ distinguishes between cases where the
        name is more-or-less well-formed, consisting only of alphabetic and
-       numeric characters, underscore, hyphen, and space, and other error
+       numeric characters, underscore, hyphen, and space, versus other error
        cases in which an invalid character or the end of the line is found
-       before the closing '}', with the former eliciting an error and the
+       before the closing '}'.  The former case elicits an error and the
        latter, only a warning.  clang treats all those cases as errors.
        Scan for the closing '}' and issue the appropriate diagnostic. */
     a_const_char *name_chars =
