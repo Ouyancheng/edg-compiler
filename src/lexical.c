@@ -16728,10 +16728,10 @@ id_scan:
           curr_char_loc++;
         }  /* while */
 #endif /* EXPLICITLY_UNROLL_CRITICAL_LOOPS */
-        /* We have just scanned a sequence of "normal" identifier characters.
-           Check whether we are now at a universal character name.  If so,
-           scan the universal character and check for additional "normal"
-           identifier characters. */
+        /* We have just scanned a sequence of "normal" identifier
+           characters.  Check whether we are now at a universal character
+           name or named Unicode character.  If so, scan the character and
+           check for additional "normal" identifier characters. */
         if ((ch = *curr_char_loc) == '\\') {
           ch = *(curr_char_loc + 1);
           if (((ch == 'u' || ch == 'U') &&
