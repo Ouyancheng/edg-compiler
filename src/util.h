@@ -3905,8 +3905,7 @@ struct Allocated_string {
   a_const_char *as_temp_characters() const
     { return this->backing_array.begin(); }
   template<template<typename> class Char_allocator>
-  inline a_const_char*
-  to_allocated_storage(Char_allocator<char>  allocator) const;
+  inline char* to_allocated_storage(Char_allocator<char>  allocator) const;
 
   inline void write_to_buffer(char *buffer, size_t buffer_len) const;
 
@@ -3958,7 +3957,7 @@ appended in the fashion described in detail::append_with_custom_reserve.
 
 template<template<typename> class Allocator>
 template<template<typename> class Char_allocator>
-a_const_char*
+char*
 Allocated_string<Allocator>::to_allocated_storage(
                                                Char_allocator<char>  allocator)
                                                                           const
@@ -4789,7 +4788,7 @@ responsible for deallocating the previous table.
   this->table = allocation.start;
   /* Update the slot count based on the allocation.  The allocated space should
      be at least what's been requested. */
-  check_assertion(n_slots <= allocation.n_allocated);
+  check_assertion(n_slots <= size_t_arg(allocation.n_allocated));
   n_slots = allocation.n_allocated;
   this->hash_mask = n_slots - 1;
   for (unsigned i = 0; i < n_slots; ++i) {
