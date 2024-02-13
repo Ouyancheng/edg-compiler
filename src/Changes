@@ -1,5 +1,15 @@
 Version 6.7
 
+2/13/24  [EDGcpfe/26691]
+Performance issue with hashing of class types and dependent decltypes
+
+The front end previously only used the fully-qualified names (excluding
+enclosing functions or template arguments of enclosing class templates) for
+computing the hash value of class types.  It also ignored any dependent
+decltype operands.  This could lead to a significant number of hash collisions
+for template argument lists and thus result in poor performance.
+
+
 2/8/23   [EDGcpfe/25513,EDGcpfe/25845]
 C++23: Named Unicode character escapes
 
