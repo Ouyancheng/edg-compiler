@@ -4049,7 +4049,6 @@ with a routine.
     }  /* if */
     buffer.append("E", strlen(scp->name), scp->name, "_", scope_number);
 #endif /* !IA64_ABI */
-
     /* Allocate space for the mangled name and build it. */
     sizeof_t alloc_length = buffer.length() + 1;
     /* This space is not counted under any debug output.  There shouldn't
