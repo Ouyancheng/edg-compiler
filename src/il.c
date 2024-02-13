@@ -6993,9 +6993,10 @@ indicated source correspondence entry.
 */
 {
   a_hash_value hash_value = 0;
+  a_const_char *name = unmangled_name_of(scp);
 
-  if (scp->name != NULL) {
-    hash_value = hash_string(scp->name);
+  if (name != NULL) {
+    hash_value = hash_string(name);
   }  /* if */
   if (scp->parent_scope != NULL) {
     a_scope_ptr  scope = scp->parent_scope;
