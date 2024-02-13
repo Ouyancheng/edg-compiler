@@ -1993,7 +1993,7 @@ into the underlying array.  size_hint is the previously computed size hint.
   String_formatter<a_host_large_integer>::append_into(underlying_array,
                                                       parts[i],
                                                       size_hint);
-  for (++i ; i < size_t_arg(INT_VALUE_PARTS_PER_INTEGER_VALUE); ++i) `{
+  for (++i ; i < size_t_arg(INT_VALUE_PARTS_PER_INTEGER_VALUE); ++i) {
     /* Stringize subsequent parts.  These do not include the sign and
        are padded on the left with zeros.  (Since these are fixed-length
        parts, we can generate them right-to-left.) */
