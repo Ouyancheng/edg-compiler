@@ -1,6 +1,6 @@
 Version 6.7
 
-2/13/24  [EDGcpfe/26691]
+2/13/24  [EDGcpfe/26048,EDGcpfe/26691]
 Performance issue with hashing of class types and dependent decltypes
 
 The front end previously only used the fully-qualified names (excluding
