@@ -7259,6 +7259,7 @@ template parameter type.
   Value_saver<a_hash_value>  saved_expr_hash_value(&expr_hash_value, 0);
   an_expr_or_stmt_traversal_block
                              tblock;
+
   clear_expr_or_stmt_traversal_block(&tblock);
   tblock.process_expr = hash_expr_node;
   traverse_expr(expr, &tblock);
