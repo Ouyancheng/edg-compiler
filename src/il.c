@@ -7020,7 +7020,7 @@ indicated source correspondence entry.
         break;
     }  /* switch */
   } else if (scp->enclosing_routine != NULL) {
-    hash_value =+ hash_routine(scp->enclosing_routine);
+    hash_value += hash_routine(scp->enclosing_routine);
   }  /* if */
   return hash_value;
 }  /* hash_name */
