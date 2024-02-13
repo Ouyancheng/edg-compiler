@@ -1,4 +1,12 @@
-/* Edison Design Group, 2000-2023. */
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++ Header Files                       - | \^/ | -      *
+*                                                               \   /         *
+*                                                             /  | |  \       *
+* Copyright 1995-2023 Edison Design Group Inc.                   [_]          *
+*                                                                             *
+******************************************************************************/
 /*
 The typeinfo header should be included as "#include <typeinfo>".
 This file is provided for compatibility with older programs that use
@@ -10,3 +18,13 @@ This file is provided for compatibility with older programs that use
 #include <typeinfo>
 
 #endif /* _TYPEINFO_H */
+
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++ Header Files                       - | \^/ | -      *
+*                                                               \   /         *
+*                                                             /  | |  \       *
+* Copyright 1995-2023 Edison Design Group Inc.                   [_]          *
+*                                                                             *
+******************************************************************************/

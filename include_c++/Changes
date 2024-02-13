@@ -1,3 +1,15 @@
+Version 6.7
+
+2/13/24  [EDGcpfe/27005]
+
+Copyright notice in prototype header files
+
+The prototype header files have been updated to include a copyright notice
+to make it explicit that those files can be distributed provided the copyright
+notice is preserved.
+
+
+-------------------------------------------------------------------------------
 Version 6.6, December 18, 2023
 
 12/5/23  [EDGcpfe/26698]
