@@ -1962,7 +1962,7 @@ into the underlying array.  size_hint is the previously computed size hint.
       conv_integer_value_to_host_large_integer(&value_copy,
                                                /*is_signed=*/FALSE,
                                                &tmp_result, &err);
-      /* If this assertion fails, this algorithm is broken and needs
+      /* If this assertion fails, this algorithm is broken and needs to be
          revised. */
       check_assertion(!err);
       parts[i] = tmp_result;
@@ -1974,13 +1974,13 @@ into the underlying array.  size_hint is the previously computed size hint.
       divide_and_remainder_integer_values(&value_copy, &iv_max_power_of_10,
                                           &value_copy, &remainder,
                                           /*is_signed=*/FALSE, &err);
-      /* If this assertion fails, this algorithm is broken and needs
+      /* If this assertion fails, this algorithm is broken and needs to be
          revised. */
       check_assertion(!err);
       conv_integer_value_to_host_large_integer(&remainder,
                                                /*is_signed=*/FALSE,
                                                &tmp_result, &err);
-      /* If this assertion fails, this algorithm is broken and needs
+      /* If this assertion fails, this algorithm is broken and needs to be
          revised. */
       check_assertion(!err);
       parts[i] = tmp_result;
