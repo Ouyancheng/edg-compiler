@@ -7207,7 +7207,7 @@ Variable set by the following traverse_expr processing routine.
 static a_hash_value expr_hash_value = 0;
 
 
-static void hash_expr_node(an_expr_node_ptr expr,
+static void hash_expr_node(an_expr_node_ptr                    expr,
                            an_expr_or_stmt_traversal_block_ptr tblock)
 /*
 This routine is called by traverse_expr in a top-down traversal of an
