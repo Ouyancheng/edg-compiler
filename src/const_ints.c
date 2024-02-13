@@ -1986,7 +1986,7 @@ into the underlying array.  size_hint is the previously computed size hint.
       parts[i] = tmp_result;
     }  /* if */
     --i;
-  }  /* for */
+  }  /* while */
 
   /* Stringize the first part. The first part includes is not padded with
      zeros. */
