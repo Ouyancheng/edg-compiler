@@ -16550,7 +16550,7 @@ We do not advance to the token after the typename operator in this case.
     if (curr_token == tok_typename) {
       (void)get_token();
     }  /* if */
-    check_assertion(curr_token = tok_lsplice);
+    check_assertion(curr_token == tok_lsplice);
     /* Check for and pass over the left delimiter. */
     add_stop_token(tok_rsplice);
     (void)required_token(tok_lsplice, ec_exp_lsplice);
