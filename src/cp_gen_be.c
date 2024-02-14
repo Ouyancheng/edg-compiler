@@ -18144,6 +18144,7 @@ exception-handling "try" block.
       if (has_name(handler_var)) {
         scp = &handler_var->source_corresp;
         /* Advance past the source sequence entry. */
+        advance_past_preprocessing_directives();
         check_for_and_take_source_seq_entry(scp->source_sequence_entry);
       }  /* if */
       gen_declaration_using_type(handler_var->type, scp, iek_variable);

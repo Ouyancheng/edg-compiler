@@ -1,5 +1,19 @@
 Version 6.7
 
+2/14/24  [EDGcpfe/27010]
+C++-generating back end: internal error with macro definition before catch
+
+In some C++-generating back end configurations, a macro definition
+appearing before a catch clause could result in an internal error (in
+check_for_and_take_source_seq_entry).  This is now fixed.  For example:
+
+  void f() {
+    try { }
+  #define M
+    catch(int y) { }   // Previously resulted in an internal error
+  }
+
+
 2/13/24  [EDGcpfe/26048,EDGcpfe/26691]
 Performance issue with hashing of class types and dependent decltypes
 
