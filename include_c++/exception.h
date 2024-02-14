@@ -4,7 +4,7 @@
 * Edison Design Group C++ Header Files                       - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 2000-2023 Edison Design Group Inc.                   [_]          *
+* Copyright 2000-2024 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -36,6 +36,6 @@ use "#include <exception.h>".
 * Edison Design Group C++ Header Files                       - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 2000-2023 Edison Design Group Inc.                   [_]          *
+* Copyright 2000-2024 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
