@@ -3562,7 +3562,7 @@ A standard attribute has the form:
 
   [[ ... ]]
 
-The contents of the attribute can contain (...), [...], {...}, and [:...:]
+The contents of the attribute can contain (...), [...], {...}, and [:...:],
 including nested versions of each of those.  It is important to avoid caching
 past the end of the attribute in error cases.  In valid programs all of the
 delimiters will be balanced, so for better error recovery, parentheses and
