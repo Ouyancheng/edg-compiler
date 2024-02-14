@@ -17,7 +17,6 @@ THIS SOFTWARE IS PROVIDED "AS IS" AND WITHOUT ANY EXPRESS OR
 IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
 WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
 Any use of this software is at the user's own risk.
-compare -- Include file for three-way comparison support
 */
 /*
 coroutine -- Include file for coroutines (N4810 17.12)
