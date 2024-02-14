@@ -3562,9 +3562,9 @@ A standard attribute has the form:
 
   [[ ... ]]
 
-The contents of the attribute can contain (...), [...], and {...}, including
-nested versions of each of those.  It is important to avoid caching past
-the end of the attribute in error cases.  In valid programs all of the
+The contents of the attribute can contain (...), [...], {...}, and [:...:]
+including nested versions of each of those.  It is important to avoid caching
+past the end of the attribute in error cases.  In valid programs all of the
 delimiters will be balanced, so for better error recovery, parentheses and
 braces are mostly ignored.  Only zero-level brackets (those not inside
 parentheses of braces) are tracked.
@@ -3577,6 +3577,7 @@ which has not yet been cached.
   int		paren_count = 0;
   int		bracket_count = 0;
   int		brace_count = 0;
+  int		splice_count = 0;
   a_token_kind	prev_token = tok_error;
 
   /* Cache the opening bracket. */
@@ -3598,15 +3599,19 @@ which has not yet been cached.
       case tok_rparen:    if (paren_count > 0)   paren_count--;   break;
       case tok_lbracket:
         /* Only zero-level brackets are counted. */
-        if (paren_count == 0 && brace_count == 0) bracket_count++;
+        if (paren_count == 0 && brace_count == 0 && splice_count == 0) {
+          bracket_count++;
+        }  /* if */
         break;
       case tok_rbracket:
-        if (paren_count == 0 && brace_count == 0) {
+        if (paren_count == 0 && brace_count == 0 && splice_count == 0) {
           if (bracket_count > 0) bracket_count--;
         }  /* if */
         break;
       case tok_lbrace:                           brace_count++;   break;
       case tok_rbrace:    if (brace_count > 0)   brace_count--;   break;
+      case tok_lsplice:                          splice_count++;   break;
+      case tok_rsplice:   if (splice_count > 0)  splice_count--;   break;
       default:;
     }  /* switch */
     /* None of the conditions was satisfied, so keep going. */
@@ -3643,7 +3648,8 @@ not NULL, any fetched tokens will be added to cache.
 */
 {
   a_token_kind  closing_token = tok_error;
-  int           paren_count = 0, bracket_count = 0, brace_count = 0;
+  int           paren_count = 0, bracket_count = 0, brace_count = 0,
+                splice_count = 0;
   a_boolean	done = FALSE;
   a_boolean	err = FALSE;
   a_boolean	coalesce_ids = (options & CTS_COALESCE_IDS) != 0;
@@ -3667,6 +3673,7 @@ not NULL, any fetched tokens will be added to cache.
     case tok_lparen:    closing_token = tok_rparen;   break;
     case tok_lbracket:  closing_token = tok_rbracket; break;
     case tok_lbrace:    closing_token = tok_rbrace;   break;
+    case tok_lsplice:   closing_token = tok_rsplice;  break;
     default:
       unexpected_condition_str2("cache_token_stream_until_matching_token:",
                                 "bad token");
@@ -3685,7 +3692,7 @@ not NULL, any fetched tokens will be added to cache.
   }  /* if */
   while (!done && (curr_token != closing_token ||
                    paren_count != 0 || bracket_count != 0 ||
-		   brace_count != 0)) {
+		   brace_count != 0 || splice_count != 0)) {
     /* Never scan past a zero level right brace.  This prevents
        caching past the end of a class or function in the event of
        a mismatched paren or bracket. */
@@ -3731,6 +3738,8 @@ not NULL, any fetched tokens will be added to cache.
         case tok_rbracket:  if (bracket_count > 0) bracket_count--; break;
         case tok_lbrace:                           brace_count++;   break;
         case tok_rbrace:    if (brace_count > 0)   brace_count--;   break;
+        case tok_lsplice:                          splice_count++;  break;
+        case tok_rsplice:   if (splice_count > 0)  splice_count--;  break;
         default:;
       }  /* switch */
     }  /* if */
@@ -3743,7 +3752,8 @@ not NULL, any fetched tokens will be added to cache.
         right_shift_can_be_angle_brackets) {
       /* A right shift token may need to be treated as two closing angle
          brackets. */
-      if (paren_count == 0 && bracket_count == 0 && brace_count == 0) {
+      if (paren_count == 0 && bracket_count == 0 && brace_count == 0 &&
+          splice_count == 0) {
         replace_right_shift_by_two_closing_angle_brackets();
       }  /* if */
     }  /* if */
@@ -3841,7 +3851,7 @@ a template argument list or is just a less-than sign.
         /* The start of a standard attribute. */
         cache_std_attribute(cache, add_tokens_to_cache);
       } else if (curr_token == tok_lparen || curr_token == tok_lbracket ||
-                 curr_token == tok_lbrace ||
+                 curr_token == tok_lbrace || curr_token == tok_lsplice ||
           (curr_token == tok_lt && prev_token_precedes_angle_bracket_list)) {
         a_boolean	err;
         err = cache_token_stream_until_matching_token(cache, options);
@@ -16237,7 +16247,19 @@ return_end_of_source_token:
       }  /* if */
       goto start_of_token_scan;
     case '[':
-      ctoken = tok_lbracket;
+      if (curr_char_loc[1] != ':' || !reflection_enabled) {
+        ctoken = tok_lbracket;
+      } else {
+        /* "[:" starts a splice token unless it is followed by exactly one
+           colon.  Thus, "[::x" is a bracket followed by "::", but "[:::x"
+           starts a splice of an expression that starts with ":: x". */
+        if (curr_char_loc[2] == ':' && curr_char_loc[3] != ':') {
+          ctoken = tok_lbracket;
+        } else {
+          ctoken = tok_lsplice;
+          goto two_char_token;
+        }  /* if */
+      }  /* if */
       break;
     case ']':
       ctoken = tok_rbracket;
@@ -16269,14 +16291,18 @@ return_end_of_source_token:
       ctoken = tok_compl;
       break;
     case ':':
-      /* In C++, may be "::" or ":>".  Beginning with C23, "::" is a
-         separator (used for attribute namespaces). */
+      /* In C++, may be "::" or ":>".  Beginning with C23, "::" is a separator
+         (used for attribute namespaces).  When reflection is enabled, this
+         could also be a splice terminator (":]"). */
       if ((ch = *(curr_char_loc+1)) == ':' &&
           (!C_mode() || c23_mode)) {
         ctoken = tok_colon_colon;
         goto two_char_token;
       } else if (ch == '>' && digraphs_allowed()) {
         ctoken = tok_rbracket;
+	goto two_char_token;
+      } else if (ch == ']' && reflection_enabled) {
+        ctoken = tok_rsplice;
 	goto two_char_token;
       }  /* if */
       ctoken = tok_colon;
@@ -22708,6 +22734,27 @@ destructor), or, in C++/CLI mode, "!" (which may introduce a finalizer).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
+a_boolean spliced_name_qualifier_next(void)
+/*
+The current token is "[:".  Return TRUE if the matching ":]" is followed by
+"::".
+*/
+{
+  a_boolean      result = FALSE;
+  a_token_cache  cache;
+  
+  clear_token_cache(&cache, /*reusable=*/FALSE);
+  if (!cache_token_stream_until_matching_token(&cache, CTS_NO_OPTIONS)) {
+    check_assertion(curr_token == tok_rsplice);
+    cache_curr_token(&cache);
+    (void)get_token();
+    result = curr_token == tok_colon_colon;
+  }  /* if */
+  rescan_cached_tokens(&cache);
+  return result;
+}  /* spliced_name_qualifier_next */
+
+
 a_boolean f_is_generalized_identifier_start(
 			an_identifier_options_set	options,
 			a_type_ptr			field_sel_type)
@@ -22974,13 +23021,11 @@ selection operator, in which case it points to the type of the left operand.
     }  /* if */
   } else if (!is_global_qualified_name &&
              ((curr_token == tok_decltype && !decltype_auto_tokens_next()) ||
-              (curr_token == tok_typename &&
-               ((next_tok = next_token()) == tok_lparen ||
-                next_tok == tok_lbracket)))) {
+              (curr_token == tok_lsplice && spliced_name_qualifier_next()))) {
     /* This is most likely just a decltype specifier (e.g., "decltype(expr)")
-       or typename splicer (e.g., "typename[:^int:]"), but could also be a
-       qualifier in a qualified name (e.g., "decltype(expr)::something").
-       The former is not treated as an identifier, while the latter is. */
+       or a splicer (e.g., "[:^int:]"), but could also be a qualifier in a
+       qualified name (e.g., "decltype(expr)::something").  The former is not
+       treated as an identifier, while the latter is. */
     a_type_ptr	tp;
     if (curr_token == tok_decltype) {
       tp = scan_decltype_operator((a_rescan_control_block *)NULL,

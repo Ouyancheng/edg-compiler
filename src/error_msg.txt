@@ -3474,6 +3474,8 @@ ec_unicode_name_not_found;;"the name %sq does not designate a known Unicode char
 ec_unterminated_unicode_name;;"unterminated named Unicode character escape"
 ec_invalid_char_in_unicode_name;;"character cannot appear in a Unicode name"
 ec_empty_unicode_name;;"empty named Unicode character escape"
+ec_exp_lsplice;;"expected a \"[:\""
+ec_exp_rsplice;;"expected a \":]\""
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

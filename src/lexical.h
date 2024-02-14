@@ -373,6 +373,8 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    onk_gnu_max,       /* tok_gnu_max */
    onk_none,          /* tok_lbrace */
    onk_none,          /* tok_rbrace */
+   onk_none,          /* tok_lsplice */
+   onk_none,          /* tok_rsplice */
    onk_none,          /* tok_semicolon */
    onk_none,          /* tok_ellipsis */
    onk_none,          /* tok_auto */
@@ -2734,7 +2736,9 @@ extern a_symbol_ptr coalesce_template_class_reference
 
 extern void begin_rescan_of_pragma_tokens(struct a_pending_pragma *ppp);
 
-extern void wrapup_rescan_of_pragma_tokens(a_boolean          error_in_pragma);
+extern void wrapup_rescan_of_pragma_tokens(a_boolean  error_in_pragma);
+
+extern a_boolean spliced_name_qualifier_next(void);
 
 extern a_boolean f_is_generalized_identifier_start
                      (an_identifier_options_set options,

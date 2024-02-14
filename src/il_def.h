@@ -1072,12 +1072,14 @@ enum a_token_kind : unsigned short {
   /* The min and max operators are only recognized in GNU C++ mode. */
   tok_gnu_min               /* <? */,
   tok_gnu_max               /* >? */,
-  /* Punctuators (standard, 3.1.6) that are not also operators: */
+  /* Punctuators that are not also operators: */
   tok_lbrace                /* { */,
   tok_rbrace                /* } */,
+  tok_lsplice               /* [: */,
+  tok_rsplice               /* :] */,
   tok_semicolon             /* ; */,
   tok_ellipsis              /* ... */,
-  /* Keywords (standard, 3.1.1): */
+  /* Keywords: */
   tok_auto,
   tok_break,
   tok_case,
@@ -1510,7 +1512,8 @@ EXTERN a_const_char
    "~", "!", "/", "%", "<<", ">>", "<", ">", "<=", ">=", "==", "!=", "<=>",
    "^", "|", "&&", "||", "?", ":", "=", "*=", "/=", "%=",
    "+=", "-=", "<<=", ">>=", "&=", "^=", "|=", ",", "#", "##", "<?", ">?",
-   "{", "}", ";", "...", "auto", "break", "case", "char", "const",
+   "{", "}", "[:", ":]", ";", "...",
+   "auto", "break", "case", "char", "const",
    "continue", "default", "do", "double", "else", "enum", "extern",
    "float", "for", "goto", "if", "int", "long", "register",
    "return", "short", "signed", "sizeof", "static", "struct",

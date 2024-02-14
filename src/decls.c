@@ -1187,14 +1187,27 @@ and associated routines.
 {
   a_boolean  is_start = FALSE;
 
-  if (curr_token == tok_decltype ||
-      (curr_token == tok_typename && next_token() == tok_lbracket &&
-       reflection_enabled)) {
+  if (curr_token == tok_decltype) {
     /* A decltype could be decltype(x) or decltype(x)::something.  In the
        latter case we need to coalesce it before deciding what it is.
        When reflection is enabled, typename[:expr:] behaves syntactically
        much like decltype(x).  */
     (void)is_generalized_identifier_start(GID_NO_OPTIONS);
+  } else if (curr_token == tok_typename) {
+    is_start = TRUE;
+    goto done;
+  } else if (curr_token == tok_lsplice) {
+    /* A splicer. */
+    if (ids_options & IDS_IMPLICIT_TYPENAME_CONTEXT) {
+      /* In an implicit typename context, a splicer can be assumed to splice
+         a type. */
+      is_start = TRUE;
+      goto done;
+    } else if (spliced_name_qualifier_next()) {
+      /* The splicer is followed by a "::": Coalesce the resulting qualified
+         name much as in the "decltype(...)::" case described above. */
+      (void)is_generalized_identifier_start(GID_NO_OPTIONS);
+    }  /* if */
   }  /* if */
   if ((is_type_specifier() &&
        !(is_expr_context && list_init_enabled &&
@@ -1280,7 +1293,8 @@ and associated routines.
       is_start = TRUE;
     }  /* if */
   }  /* if */
-  return(is_start);
+done:
+  return is_start;
 }  /* is_type_start_full */
 
 
@@ -21017,7 +21031,9 @@ processing should proceed after the call.
          function declaration -- something like "asm void f(void) { ... }". */
       state->is_asm_function = TRUE;
     }  /* if */
-  } else if (!is_decl_start(IDS_REAL_DECLARATOR_ALLOWED)) {
+  } else if (!is_decl_start(IDS_REAL_DECLARATOR_ALLOWED |
+                            (state->is_implicit_type_context ?
+                                 IDS_IMPLICIT_TYPENAME_CONTEXT : 0))) {
     /* Consider potential error cases. */
     if ((state->function_definition_allowed || state->range_based_for) &&
         is_declarator_start()) {

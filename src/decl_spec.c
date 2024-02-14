@@ -10627,21 +10627,27 @@ storage_class_specifier:
                                          &state->decl_modifiers, &err);
         break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      case tok_lsplice:
+        if (state->is_implicit_type_context) {
+          if (spliced_name_qualifier_next()) {
+            /* The splice is a name qualifier. */
+            goto general_identifier_case;
+          } else {
+            *type_ptr = scan_typename_operator((a_rescan_control_block *)NULL,
+                                               /*might_be_id_start=*/FALSE);
+            basic_type = bt_typedef;
+            decl_specifiers_seen |= DS_TYPE;
+            goto no_get_token;
+          }  /* if */
+        } else {
+          goto something_unexpected;
+        }  /* if */
       case tok_lbracket:
-        /* A Microsoft or C++11 attribute (presumably), or a splicer. */
+        /* A Microsoft or C++11 attribute (presumably). */
         { a_token_kind  next_tok = next_token();
           if (next_tok == tok_lbracket) {
             /* A C++11 standard attribute. */
             if (!std_attributes_enabled) goto something_unexpected;
-          } else if (next_tok == tok_colon && reflection_enabled &&
-                     state->is_implicit_type_context) {
-            /* A splicer that can be assumed to be implicitly preceded by
-               "typename". */
-            a_token_cache  typename_cache;
-            clear_token_cache(&typename_cache, /*is_reusable=*/FALSE);
-            cache_token(&typename_cache, tok_typename, &pos_curr_token);
-            rescan_cached_tokens(&typename_cache);
-            goto general_identifier_case;
           } else if (!ms_extensions ||
                      (microsoft_version < 1700 ?
                               any_decl_specifiers_seen :
@@ -11701,10 +11707,21 @@ process_enum_specifier:
         if (!type_specifier_allowed) {
           pos_error(ec_type_specifier_not_allowed, &error_position);
           err = TRUE;
-        } else if (reflection_enabled && next_token() == tok_lbracket) {
+        } else if (reflection_enabled && next_token() == tok_lsplice) {
           /* When reflection features are enabled typename[:expr:] is a
              valid simple-type-specifier. */
-          goto general_identifier_case;
+          (void)get_token();
+          if (spliced_name_qualifier_next()) {
+            /* The splice is a name qualifier (the "typename" keyword refers
+               to the qualified name in that case). */
+            goto general_identifier_case;
+          } else {
+            *type_ptr = scan_typename_operator((a_rescan_control_block *)NULL,
+                                               /*might_be_id_start=*/FALSE);
+            basic_type = bt_typedef;
+            decl_specifiers_seen |= DS_TYPE;
+            goto no_get_token;
+          }  /* if */
         } else if (sun_mode && use_implicit_typename()) {
           /* typename is ignored in Sun mode.  Simply discard the token
              unless the user has disabled implicit typename mode. */

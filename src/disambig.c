@@ -838,14 +838,26 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         break;
       case tok_typename:
-        if (next_token() == tok_lbracket && reflection_enabled) {
-          /* Presumably "typename [: <expr> :]". */
+        if (next_token() == tok_lsplice && reflection_enabled) {
+          /* Presumably "typename [: <expr> :]" or
+             "typename [: <expr> :]::id". */
           is_decl_specifier_token = TRUE;
           type_specifier_seen = TRUE;
           /* Bypass "typename". */
           (void)get_token();
-          get_token_and_coalesce_if_identifier(flags);
-          cache_tokens_until(tok_rbracket, /*coalesce=*/TRUE);
+          if (!cache_token_stream_until_matching_token((a_token_cache_ptr)NULL,
+                                                       CTS_NO_OPTIONS)) {
+            /* We found a matching ":]". */
+            if (next_token() == tok_colon_colon) {
+              /* The splice is a name-qualifier.  Move to the identifier that
+                 should follow. */
+              (void)get_token();
+              get_token_and_coalesce_if_identifier(flags);
+            }  /* if */
+          } else {
+            /* No matching ":]" was found.  Abort the prescan. */
+            state->terminate = TRUE;
+          }  /*if */
           break;
         }  /* if */
         goto elaborated_type_case;

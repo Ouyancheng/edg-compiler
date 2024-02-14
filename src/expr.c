@@ -8443,8 +8443,7 @@ qualified_name_check:
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     /* Advance past the identifier. */
     (void)get_token();
-  } else if (reflection_enabled && curr_token == tok_lbracket &&
-             next_token() == tok_colon) {
+  } else if (reflection_enabled && curr_token == tok_lsplice) {
     an_operand  opnd2;
     clear_operand(ok_error, &opnd2);
     scan_expr_splicer((a_rescan_control_block*)NULL, &opnd2);
@@ -16508,12 +16507,13 @@ Scan the typename operator.
 Syntax:
         typename [: reflection-value :]
 
-where "reflection-value" is a constant-expression of type "std::meta::info".
-If rcblock is non-NULL, redo semantic analysis on a previously-scanned
-typename operator, and return the result type (or an error indication in
-*rcblock).  This routine is intended to be called from outside of the
-expression-processing routines.  might_be_id_start is TRUE if we are in a
-context where the typename operator could be the start of a qualified name.
+where "reflection-value" is a constant-expression of type "std::meta::info"
+and the "typename" prefix is optional (the caller will diagnose if it wasn't
+optional).  If rcblock is non-NULL, redo semantic analysis on a
+previously-scanned typename operator, and return the result type (or an error
+indication in *rcblock).  This routine is intended to be called from outside
+of the expression-processing routines.  might_be_id_start is TRUE if we are in
+a context where the typename operator could be the start of a qualified name.
 We do not advance to the token after the typename operator in this case.
 */
 {
@@ -16547,15 +16547,14 @@ We do not advance to the token after the typename operator in this case.
   } else {
     /* Normal, non-rescan, processing. */
     /* Skip the "typename" token. */
-    check_assertion(curr_token == tok_typename);
-    (void)get_token();
+    if (curr_token == tok_typename) {
+      (void)get_token();
+    }  /* if */
+    check_assertion(curr_token = tok_lsplice);
     /* Check for and pass over the left delimiter. */
-    add_stop_token(tok_colon);
-    add_stop_token(tok_rbracket);
-    (void)required_token(tok_lbracket, ec_exp_rbracket);
-    (void)required_token(tok_colon, ec_exp_colon);
-    remove_stop_token(tok_colon);
-    remove_stop_token(tok_rbracket);
+    add_stop_token(tok_rsplice);
+    (void)required_token(tok_lsplice, ec_exp_lsplice);
+    remove_stop_token(tok_rsplice);
   }  /* if */
   /* If we're in the file-scope memory region instead of a function-scope
      memory region because we're scanning something like a template argument,
@@ -16597,7 +16596,7 @@ We do not advance to the token after the typename operator in this case.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     /* This call is done late because we need the expression stack to be pushed
        already. */
-    add_matching_stop_token(tok_rbracket);
+    add_matching_stop_token(tok_rsplice);
     /* Scan the argument expression. */
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
   }  /* if */
@@ -16712,9 +16711,8 @@ We do not advance to the token after the typename operator in this case.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (rcblock == NULL) {
     /* Check for and pass over the right delimiter. */
-    (void)required_token(tok_colon, ec_exp_colon);
-    remove_matching_stop_token(tok_rbracket);
-    if (required_token_no_advance(tok_rbracket, ec_exp_rbracket) &&
+    remove_matching_stop_token(tok_rsplice);
+    if (required_token_no_advance(tok_rsplice, ec_exp_rsplice) &&
         !might_be_id_start) {
       (void)get_token();
     }  /* if */
@@ -35193,6 +35191,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_is_trivially_equality_comparable:
     case tok_coroutine_yield:
     case tok_coroutine_await:
+    case tok_lsplice:
       is_expr_start = TRUE;
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -38396,15 +38395,12 @@ FIXME: This is currently incomplete.
   } else {
     /* Normal, non-rescan, processing. */
     /* Skip the left bracket and the colon. */
-    check_assertion(curr_token == tok_lbracket);
+    check_assertion(curr_token == tok_lsplice);
     start_pos = pos_curr_token;
     (void)get_token();
-    add_stop_token(tok_rbracket);
-    check_assertion(curr_token == tok_colon);
-    (void)get_token();
+    add_stop_token(tok_rsplice);
     scan_expr(&opnd, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
-    (void)required_token(tok_colon, ec_exp_colon);
-    remove_stop_token(tok_rbracket);
+    remove_stop_token(tok_rsplice);
     consume_right_bracket = TRUE;
   }  /* if */
   do_operand_transformations(&opnd, TOPT_NO_OPTIONS);
@@ -38495,7 +38491,7 @@ routine_case:
     }  /* if */
   }  /* if */
   if (consume_right_bracket) {
-    (void)required_token(tok_rbracket, ec_exp_rbracket);
+    (void)required_token(tok_rsplice, ec_exp_rbracket);
   }  /* if */
 }  /* scan_expr_splicer */
 
@@ -41836,7 +41832,7 @@ type_start:
         a_type_ptr cast_type;
 
         if (curr_token == tok_typename) {
-          if (reflection_enabled && next_token() == tok_lbracket) {
+          if (reflection_enabled && next_token() == tok_lsplice) {
             cast_type = scan_typename_operator((a_rescan_control_block *)NULL,
                                                /*might_be_id_start=*/FALSE);
           } else {
@@ -41917,14 +41913,16 @@ type_start:
       break;
      
     case tok_lbracket:
-      if (reflection_enabled && next_token() == tok_colon) {
-        /* An expression splicer of the form [: ... :]. */
-        scan_expr_splicer( (a_rescan_control_block *)NULL, &local_result);
-      } else if (lambdas_enabled) {
+      if (lambdas_enabled) {
         scan_lambda_expression(&local_result);
       } else {
         goto bad_start_of_primary;
       }  /* if */
+      break;
+
+    case tok_lsplice:
+      /* An expression splicer of the form [: ... :]. */
+      scan_expr_splicer( (a_rescan_control_block *)NULL, &local_result);
       break;
 
     case tok_ud_literal:

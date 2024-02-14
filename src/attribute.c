@@ -1854,9 +1854,10 @@ The standard defines the non-terminal "balanced-token" as follows:
          any token other than a parenthesis, a bracket, or a brace
 Scan such a construct and return a list of aak_raw_token attribute argument
 entries for the corresponding tokens.  If the balanced token is a "(", "[", or
-"{" that has no matching closing delimiter, set *unmatched_aap to point to
-the entry for the opening delimiter, unless *unmatched_aap already points to
-an entry.
+"{" that has no matching closing delimiter, set *unmatched_aap to point to the
+entry for the opening delimiter, unless *unmatched_aap already points to an
+entry.  When reflection is enabled, the splice delimiters "[:" and ":]" are
+also considered.
 */
 {
   an_attribute_arg_ptr  aap = NULL;
@@ -1875,9 +1876,13 @@ an entry.
     case tok_lbrace:
       closing_token = tok_rbrace;
       break;
+    case tok_lsplice:
+      closing_token = tok_rsplice;
+      break;
     case tok_rparen:
     case tok_rbracket:
     case tok_rbrace:
+    case tok_rsplice:
       goto done;
     default:
       closing_token = tok_last;
@@ -1885,7 +1890,7 @@ an entry.
   }  /* switch */
   aap = get_raw_token();
   if (closing_token != tok_last) {
-    /* The balanced-token started with a "(", "[", or "}": Scan and record
+    /* The balanced-token started with a left delimiter: Scan and record
        tokens until the matching closing delimiter (or tok_end_of_source). */
     an_attribute_arg_ptr  *p_aap = &aap->next;
     for (;;) {
@@ -2586,19 +2591,27 @@ location in which the group appears.
       record_attribute_name(using_ns_ap);
       check_for_unrecognized_attribute_namespace(using_ns_ap);
       (void)get_token();
-      (void)required_token(tok_colon, ec_exp_colon);
+      if (curr_token == tok_rsplice) {
+        /* Something like [ [using edg:] ].  Consume the ":]" token and skip
+           to the final bracket. */
+        (void)get_token();
+        goto final_closing_bracket;
+      } else {
+        (void)required_token(tok_colon, ec_exp_colon);
+      }  /* if */
     }  /* if */
   }  /* if */
   attributes = scan_attributes_list(loc, af_std, tok_rbracket, using_ns_ap);
+  (void)required_token(tok_rbracket, ec_exp_rbracket);
+final_closing_bracket:
+  (void)required_token(tok_rbracket, ec_exp_rbracket);
+  remove_stop_token(tok_rbracket);
   if (using_ns_ap != NULL) {
     /* Add the "using" prefix attribute to the beginning of the list. */
     using_ns_ap->next = attributes;
     attributes = using_ns_ap;
   }  /* if */
-  (void)required_token(tok_rbracket, ec_exp_rbracket);
   make_attribute_group(attributes, &group_pos);
-  (void)required_token(tok_rbracket, ec_exp_rbracket);
-  remove_stop_token(tok_rbracket);
   return attributes;
 }  /* scan_std_attribute_group */
 
