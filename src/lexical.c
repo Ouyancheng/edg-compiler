@@ -3692,7 +3692,7 @@ not NULL, any fetched tokens will be added to cache.
   }  /* if */
   while (!done && (curr_token != closing_token ||
                    paren_count != 0 || bracket_count != 0 ||
-		   brace_count != 0 || splice_count != 0)) {
+                   brace_count != 0 || splice_count != 0)) {
     /* Never scan past a zero level right brace.  This prevents
        caching past the end of a class or function in the event of
        a mismatched paren or bracket. */
