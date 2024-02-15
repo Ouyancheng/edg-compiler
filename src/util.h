@@ -4778,7 +4778,7 @@ template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
 void Ptr_map<a_Ptr_key, a_Value, Allocator>::create_table(unsigned n_slots)
 /*
-Create new table with at least the given number of slots (if the underlying
+Create a new table with at least the given number of slots (if the underlying
 allocator hands more memory, the slot count will be updated appropriately).
 This function replaces the state of table and hash_mask.  The caller is
 responsible for deallocating the previous table.
