@@ -6186,7 +6186,7 @@ make_inert_macro:
           time_str = "<unknown>";
         }  /* if */
 
-        /* "+1" in the following is for the the null. */
+        /* "+1" in the following is for the null. */
         Small_string<40> timestamp("\"", time_str, "\"");
         ensure_arg_raw_text_space(timestamp.length() + 1, special_macro_arg);
         timestamp.write_to_buffer(repl_text,
