@@ -1079,9 +1079,8 @@ fp_scale.
 a_number_buffer fxp_to_string(a_fixed_point_type_descr  *fxp_descr,
                               a_fixed_point_value       *value)
 /*
-Convert the given value with the given fixed-point type description to a
-decimal (null-terminated) string representation in an internal static array.
-Return a pointer to that array.  Suffixes are appended as needed.
+Return a string representation of the given value as informed by the given
+accompanying fixed-point type description.  Suffixes are appended as needed.
 
 (This implementation assumes a_fixed_point_value is a synonym for
 an_integer_value and may produce slightly inaccurate results.)

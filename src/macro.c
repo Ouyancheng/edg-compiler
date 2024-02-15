@@ -1943,12 +1943,11 @@ have_space:
 
 static inline size_t remaining_raw_text_space(a_macro_arg *macro_arg)
 /*
-Ensure that at least "needed" bytes of space remain in the raw_text of the
-given macro argument entry.  If not, expand raw_text by reallocating it.
+Return the remaining space in the given macro argument entry's raw_text.
 */
 {
   return macro_arg->raw_alloc_len - macro_arg->raw_len;
-}  /* ensure_arg_raw_text_space */
+}  /* remaining_raw_text_space */
 
 
 static inline void ensure_arg_raw_text_space(size_t      needed_space,
@@ -10990,7 +10989,7 @@ is responsible to deallocate the buffer using free_general.
   unsigned long  major_num = (unsigned long)(version/10000);
   unsigned long  minor_num = (unsigned long)((version%10000)/100);
   unsigned long  patch_num = (unsigned long)(version%100);
-  a_const_char  *src = version_string_pattern;
+  a_const_char   *src = version_string_pattern;
 #if CHECKING
   a_boolean      percent_m_seen = FALSE, percent_v_seen = FALSE;
 #endif /* CHECKING */

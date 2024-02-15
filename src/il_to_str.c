@@ -4088,11 +4088,11 @@ output.
       buffer.reset_to("\\", escape_code);
     } else {
       /* Use the \nnn form for other unprintable characters. */
-      unsigned long   octl_value(
+      unsigned long   octal_value(
                        (unsigned long)(ch&((1<<targ_host_string_char_bit)-1)));
-      Small_string<3> octl_str(octl_view_of(octl_value));
+      Small_string<4> octal_str(octal_view_of(octal_value));
 
-      buffer.reset_to("\\", left_pad(3, '0', octl_str));
+      buffer.reset_to("\\", left_pad(3, '0', octal_str));
     }  /* if */
   }  /* if */
   /* Output the character. */

@@ -9,7 +9,7 @@
 ******************************************************************************/
 /*
 
-fe_proxy.h -- General utility components (mostly templates) from the front end.
+fe_util.h -- General utility components (mostly templates) from the front end.
 
 */
 
@@ -77,3 +77,13 @@ END_EDG_NAMESPACE
 
 /* Include the actual util.h file. */
 #include "util.h"
+
+/******************************************************************************
+*                                                             \  ___  /       *
+*                                                               /   \         *
+* Edison Design Group C++/C Front End                        - | \^/ | -      *
+*                                                               \   /         *
+* Proprietary information of Edison Design Group Inc.         /  | |  \       *
+* Copyright 2024 Edison Design Group Inc.                        [_]          *
+*                                                                             *
+******************************************************************************/

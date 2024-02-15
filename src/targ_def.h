@@ -2267,15 +2267,14 @@ unnecessary truncation may occur.
 /*
 This macro controls whether the front end uses the floating-point conversion
 routines provided by the host compiler's standard library (e.g., strtod and
-sprintf) or whether the front end's internal routines should be used.  The
-internal routines provide correctly-rounded decimal-to-binary and
-binary-to-decimal conversions.  Using the internal routines is typically
-slower as the conversion process is performed in software with integer
-arithmetic (but see FP_USE_EMULATION in floating.h).  Setting
-USE_HOST_FP_CONVERSION_ROUTINES to TRUE uses the host library routines; a
-setting of FALSE uses the internal routines.  When setting this macro to FALSE,
-make sure the configuration macros for FP_LONG_DOUBLE_IS_* are set
-properly (see floating.h).
+snprintf/sprintf_s) or whether the front end's internal routines should be
+used.  The internal routines provide correctly-rounded decimal-to-binary and
+binary-to-decimal conversions.  Using the internal routines is typically slower
+as the conversion process is performed in software with integer arithmetic (but
+see FP_USE_EMULATION in floating.h).  Setting USE_HOST_FP_CONVERSION_ROUTINES
+to TRUE uses the host library routines; a setting of FALSE uses the internal
+routines.  When setting this macro to FALSE, make sure the configuration macros
+for FP_LONG_DOUBLE_IS_* are set properly (see floating.h).
 */
 #ifndef USE_HOST_FP_CONVERSION_ROUTINES
 #if USE_SOFTFLOAT
@@ -4048,14 +4047,14 @@ the initial value of old_specializations_for_generated_instances.
 /*
 When generating floating-point constants in generated code, if
 USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE is TRUE, hexadecimal floating-point
-constants (e.g., 0x1.6666666666666p+2) will be emitted in the generated
-code rather than the traditional decimal floating-point constants.
-This has the advantage of requiring one less floating-point to decimal
-conversion in the front end and one less decimal to floating-point
-conversion in the back end.  Hexadecimal floating-point constants are
-standard in C99 and are also supported in some C++ compilers (e.g., g++).
-The compiler that is used to compile the front end must support the "%a"
-sprintf format directive when USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE is TRUE.
+constants (e.g., 0x1.6666666666666p+2) will be emitted in the generated code
+rather than the traditional decimal floating-point constants.  This has the
+advantage of requiring one less floating-point to decimal conversion in the
+front end and one less decimal to floating-point conversion in the back end.
+Hexadecimal floating-point constants are standard in C99 and are also supported
+in some C++ compilers (e.g., g++).  The compiler that is used to compile the
+front end must support the "%a" C formatting directive when
+USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE is TRUE.
 */
 #ifndef USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE
 #define USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE FALSE

@@ -351,11 +351,12 @@ static void append_softfloat_hex_constant_string(
                                      a_float_kind            kind,
                                      an_internal_float_value *float_value)
 /*
-Generate a hexadecimal floating-point representation of float_value and place
-it in str.  kind represents the kind of floating-point value (which must
-be an 80-bit or 128-bit floating type).  size is the size of str.
-Note that float and double are handled by the caller (through sprintf) as they
-are supported on all platforms.
+Append the characters forming the hexadecimal floating-point representation of
+float_value to underlying_array.  kind represents the kind of floating-point
+value (which must be an 80-bit or 128-bit floating type).
+
+Note that float and double are handled by the caller (through
+append_using_c_formatting) as they are supported on all platforms.
 */
 {
   uint32_t  exponent, exponent_bias = 16383;
@@ -606,10 +607,10 @@ Display a long double, for debugging purposes.
 static long double str_to_long_double(a_const_char * str)
 /*
 Convert a string to a long double.  Note that this routine uses host routines
-sscanf/sprintf to do the floating-point conversion and these library routines
-typically can be configured to use different "locales".  For their use in the
-front end, the LC_NUMERIC portion of the locale must specify that "." is the
-radix point (set in host_envir_early_init).
+sscanf/snprintf/sprintf_s to do the floating-point conversion and these library
+routines typically can be configured to use different "locales".  For their use
+in the front end, the LC_NUMERIC portion of the locale must specify that "." is
+the radix point (set in host_envir_early_init).
 */
 {
   long double   temp;
@@ -2863,21 +2864,20 @@ static a_boolean handle_fp_to_string_special_cases(
                                       ARG_UNUSED a_Dyn_array     *str,
                                       a_host_fp_value            *temp)
 /*
-The float value in float_value (with precision as indicated by kind)
-is being converted by the caller into either a decimal or hexadecimal string;
-this routine handles special cases which are common and returns TRUE if
-the conversion is indeed a special case.  If the floating-point value is
-positive infinity or negative infinity, return *pos_infinity or *neg_infinity
-set to TRUE.  If the floating-point value is a NaN, return *not_a_number set to
-TRUE.  In these cases, an appropriate display string is returned in str
-(e.g., "NaN") and TRUE is returned.  pos_infinity, neg_infinity, and
-not_a_number can be NULL if the corresponding return value is not needed.
-*temp is set to the value of the floating-point value in internal host
-representation form.  The contents of str (for which the caller has allocated
-space) will be unmodified if the routine returns FALSE.
+The float value in float_value (with precision as indicated by kind) is being
+converted by the caller into either a decimal or hexadecimal string; this
+routine handles special cases which are common and returns TRUE if the
+conversion is indeed a special case.  If the floating-point value is positive
+infinity or negative infinity, return *pos_infinity or *neg_infinity set to
+TRUE.  If the floating-point value is a NaN, return *not_a_number set to TRUE.
+In these cases, an appropriate display string is returned in str (e.g., "NaN")
+and TRUE is returned.  pos_infinity, neg_infinity, and not_a_number can be NULL
+if the corresponding return value is not needed.  *temp is set to the value of
+the floating-point value in internal host representation form.  The contents of
+str will be unmodified if the routine returns FALSE.
 */
 {
-  a_boolean             result = TRUE;
+  a_boolean result = TRUE;
 
   if (pos_infinity != NULL) *pos_infinity = FALSE;
   if (neg_infinity != NULL) *neg_infinity = FALSE;
@@ -2920,7 +2920,8 @@ space) will be unmodified if the routine returns FALSE.
              memcmp((char *)temp, (char *)&fp_zero,
                     size_t_arg(data_size_of_host_fp_value)) != 0) {
     /* Special handling to ensure that -0.0 comes out with the leading "-";
-       some sprintfs do not process that correctly. */
+       some snprintf/sprintf_s implementations do not process that
+       correctly. */
     str->push_back('-');
     str->push_back('0');
     str->push_back('.');
@@ -2944,9 +2945,9 @@ static void append_using_quadmath_formatting(a_const_char *formatting_str,
                                              a_Format_arg ...args)
 /*
 Append the characters of the formatted string produced by the given formatting
-string and associated arguments arguments into the underlying array.  size_hint
-is an overestimate (i.e., maximum) number of characters this value might use
-(plus a temporary null character -- for use by quadmath_snprintf).
+string and associated arguments into the underlying array.  size_hint is an
+overestimate (i.e., maximum) number of characters this value might use (plus a
+temporary null character -- for use by quadmath_snprintf).
 */
 {
   size_t orig_size = underlying_array.length();
@@ -3030,6 +3031,7 @@ struct an_il_hex_constant_fp_value {
 };  /* an_il_hex_constant_fp_value */
 
 #endif /* USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE */
+
 #if IA64_ABI
 
 /*
@@ -3182,15 +3184,16 @@ value might use (plus a temporary null character).
       }  /* if */
       break;
   }  /* switch */
-}  /* append_using_quadmath_formatting */
+}  /* append_float_using_software */
 
 #endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
 
 namespace detail {
 
 /*
-A string formatter for a_quadmath_fmt_value values.  Note this string formatter
-has side effects on the an_il_fp_value.
+A string formatter for an_il_fp_value values.  Note this string formatter has
+side effects passed through an_il_fp_value (the pointees of the pos_infinity,
+neg_infinity, and not_a_number data members will all bet updated if not-NULL).
 */
 template<>
 struct String_formatter<an_il_fp_value> {
@@ -3406,6 +3409,7 @@ value might use (plus a temporary null character).
 }  /* append_into */
 
 #endif /* USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE */
+
 #if IA64_ABI
 
 /*
@@ -3481,14 +3485,13 @@ a_number_buffer fp_to_string(a_float_kind            kind,
                              a_boolean               *neg_infinity,
                              a_boolean               *not_a_number)
 /*
-Convert the float value float_value (with precision as indicated by kind)
-to a string in an internal static variable, and return a pointer to that
-null-terminated string.  If the floating-point value is positive
-infinity or negative infinity, return *pos_infinity or *neg_infinity
-set to TRUE.  If the floating-point value is a NaN, return *not_a_number
-set to TRUE.  In the above special cases, a display string is still
-returned (e.g., "NaN").  pos_infinity, neg_infinity, and not_a_number can
-be NULL if the corresponding return value is not needed.
+Return a string representation of the float value float_value (with precision
+as indicated by kind).  If the floating-point value is positive infinity or
+negative infinity, set *pos_infinity or *neg_infinity to TRUE.  If the
+floating-point value is a NaN, set *not_a_number to TRUE.  In the above special
+cases, a display string is still returned (e.g., "NaN").  pos_infinity,
+neg_infinity, and not_a_number can be NULL if the corresponding return value is
+not needed.
 */
 {
   a_number_buffer result(an_il_fp_value(kind, float_value, pos_infinity,
@@ -3506,14 +3509,13 @@ a_number_buffer fp_to_hex_constant_string(
                                          a_boolean               *neg_infinity,
                                          a_boolean               *not_a_number)
 /*
-Convert the float value float_value (with precision as indicated by kind)
-to a C99-style hexadecimal string in an internal static variable, and return a
-pointer to that null-terminated string.  If the floating-point value is
-positive infinity or negative infinity, return *pos_infinity or *neg_infinity
-set to TRUE.  If the floating-point value is a NaN, return *not_a_number set to
-TRUE.  In the above special cases, a display string is still returned (e.g.,
-"NaN").  pos_infinity, neg_infinity, and not_a_number can be NULL if the
-corresponding return value is not needed.
+Return a C99-style hexadecimal string representation of the float value
+float_value (with precision as indicated by kind).  If the floating-point value
+is positive infinity or negative infinity, set *pos_infinity or *neg_infinity
+to TRUE.  If the floating-point value is a NaN, set *not_a_number to TRUE.  In
+the above special cases, a display string is still returned (e.g., "NaN").
+pos_infinity, neg_infinity, and not_a_number can be NULL if the corresponding
+return value is not needed.
 */
 {
   a_number_buffer result(an_il_hex_constant_fp_value(kind, float_value,
@@ -3525,15 +3527,15 @@ corresponding return value is not needed.
 }  /* fp_to_hex_constant_string */
 
 #endif /* USE_HEX_FP_CONSTANTS_IN_GENERATED_CODE */
+
 #if IA64_ABI
 
 a_number_buffer fp_to_hex_string(a_float_kind            kind,
                                  an_internal_float_value *float_value)
 /*
-Convert the float value float_value (with precision as indicated by kind)
-to a string of hex digits in an internal static variable, and return a
-pointer to that null-terminated string.  This is used in the IA-64 ABI
-for the representation of floating-point values in mangled names.
+Return a string of hex digits representation of the float value float_value
+(with precision as indicated by kind).  This is used in the IA-64 ABI for the
+representation of floating-point values in mangled names.
 */
 {
   a_number_buffer result(an_il_hex_fp_value(kind, float_value));

@@ -5122,7 +5122,7 @@ null-terminated.
       /* Unprintable characters: put out as \ooo. */
       unsigned int     encoded =
                          (unsigned int)(ch&((1<<targ_host_string_char_bit)-1));
-      Small_string<20> char_buffer(left_pad(3, '0', octl_view_of(encoded)));
+      Small_string<20> char_buffer(left_pad(3, '0', octal_view_of(encoded)));
 
       add_string_to_text_buffer(buffer, char_buffer.as_temp_characters());
     }  /* if */

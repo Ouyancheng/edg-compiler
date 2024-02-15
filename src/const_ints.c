@@ -1613,7 +1613,7 @@ A struct used for designating an IL signed integer value.
 */
 struct an_il_signed_integer {
   an_integer_value
-                *value; /* The value to print as hex. */
+                *value; /* The value to print as a signed integer. */
   an_il_signed_integer(an_integer_value *init_value)
     : value(init_value)
     {}
@@ -1624,7 +1624,7 @@ A struct used for designating an IL unsigned integer value.
 */
 struct an_il_unsigned_integer {
   an_integer_value
-                *value; /* The value to print as hex. */
+                *value; /* The value to print as an unsigned integer. */
   an_il_unsigned_integer(an_integer_value *init_value)
     : value(init_value)
     {}
@@ -1685,7 +1685,7 @@ Given a IL hex integer value, return the approximate character usage.
 #else /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
   return 3 + (4 * INT_VALUE_PARTS_PER_INTEGER_VALUE);
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-}  /* append_into */
+}  /* size_hint_of */
 
 
 template<typename a_Dyn_array>
@@ -1792,7 +1792,7 @@ Given a IL signed integer value, return the approximate character usage.
   }  /* if */
   return result;
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-}  /* append_into */
+}  /* size_hint_of */
 
 
 template<typename a_Dyn_array>
@@ -1883,7 +1883,7 @@ the underlying array.  size_hint is the previously computed size hint.
 size_t String_formatter<an_il_unsigned_integer>::size_hint_of(
                                                   an_il_unsigned_integer value)
 /*
-Given a IL signed integer value, return the approximate character usage.
+Given a IL unsigned integer value, return the approximate character usage.
 */
 {
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
@@ -1895,7 +1895,7 @@ Given a IL signed integer value, return the approximate character usage.
   return (max_integral_digits<a_host_large_integer>() *
           INT_VALUE_PARTS_PER_INTEGER_VALUE);
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-}  /* append_into */
+}  /* size_hint_of */
 
 #if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
 
