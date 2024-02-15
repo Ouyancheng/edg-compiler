@@ -960,7 +960,7 @@ build the in-memory version.
   char                    check_string[LEN_IL_FILE_MAGIC_STRING + 1] = {};
   /* If this assertion fails the magic string's actual length and
      LEN_IL_FILE_MAGIC_STRING are out of sync.  Presumably,
-     LEN_IL_FILE_MAGIC_STRING needs adjusted.*/
+     LEN_IL_FILE_MAGIC_STRING needs to be adjusted.*/
   check_assertion(magic_string.length() == LEN_IL_FILE_MAGIC_STRING);
   fread_with_check(check_string, magic_string.length());
   /* Ensure the read string is null-terminated before comparison. */
