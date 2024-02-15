@@ -3612,7 +3612,8 @@ which has not yet been cached.
       case tok_rbrace:    if (brace_count > 0)   brace_count--;   break;
       case tok_lsplice:                          splice_count++;  break;
       case tok_rsplice:   if (splice_count > 0)  splice_count--;  break;
-      default:;
+      default:
+        break;
     }  /* switch */
     /* None of the conditions was satisfied, so keep going. */
     if (add_tokens_to_cache) cache_curr_token(cache);

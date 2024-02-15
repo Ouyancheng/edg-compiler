@@ -41922,7 +41922,7 @@ type_start:
 
     case tok_lsplice:
       /* An expression splicer of the form [: ... :]. */
-      scan_expr_splicer( (a_rescan_control_block *)NULL, &local_result);
+      scan_expr_splicer((a_rescan_control_block *)NULL, &local_result);
       break;
 
     case tok_ud_literal:

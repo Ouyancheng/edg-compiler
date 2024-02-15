@@ -857,7 +857,7 @@ Scan and cache the tokens that comprise a list of decl_specifiers.
           } else {
             /* No matching ":]" was found.  Abort the prescan. */
             state->terminate = TRUE;
-          }  /*if */
+          }  /* if */
           break;
         }  /* if */
         goto elaborated_type_case;
