@@ -3405,7 +3405,7 @@ static void mangled_encoding_for_integer(a_number_buffer          &buffer,
                                          a_mangling_control_block *mctl)
 /*
 Emit a mangled encoding for the integer whose value is represented by the
-number buffered and whose type is specified by "type".  If old_form is TRUE use
+number buffer and whose type is specified by "type".  If old_form is TRUE use
 the old form for encoding literals.  The type is unused in the Cfront ABI and
 old_form is unused in the IA-64 ABI.
 */
