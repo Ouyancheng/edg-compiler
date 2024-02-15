@@ -38378,7 +38378,10 @@ FIXME: This is currently incomplete.
 */
 {
   an_operand           opnd;
-  a_source_position    start_pos, end_pos = null_source_position;
+  a_source_position    start_pos;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position    end_pos = null_source_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   a_token_sequence_number
                        operator_tok_seq_number;
   a_boolean            consume_right_bracket = FALSE;
@@ -38395,6 +38398,9 @@ FIXME: This is currently incomplete.
                          (an_operand *)NULL, (an_operand *)NULL,
                          &start_pos, &operator_tok_seq_number,
                          (a_source_position *)NULL);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  end_pos = rcblock->expr->expr_range.end;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else {
     /* Normal, non-rescan, processing. */
     /* Skip the left bracket and the colon. */
