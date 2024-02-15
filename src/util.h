@@ -3583,7 +3583,7 @@ underlying array.  size_hint is unused.
 
 
 /*
-A string formatter (and associated delegates) Hex_view<unsigned long long>,
+A string formatter (and associated delegates) for Hex_view<unsigned long long>,
 Hex_view<unsigned long>, Hex_view<unsigned>, and Hex_view<unsigned short>
 values.
 */
@@ -3736,7 +3736,7 @@ size_hint is unused.
 
 
 /*
-A string formatter (and associated delegates) unsigned long long, unsigned
+A string formatter (and associated delegates) for unsigned long long, unsigned
 long, unsigned, and unsigned short values.
 */
 template<>
