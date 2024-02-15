@@ -40,7 +40,7 @@ fe_proxy.h -- General utility components (mostly templates) from the front end.
 #define unexpected_condition_str2(string1, string2) /* Nothing */
 #endif /* unexpected_condition_str2 */
 
-/* Setup alternative allocation functions for the general allocator so that
+/* Set up alternative allocation functions for the general allocator so that
    it can be used in utility programs. */
 
 /* Conditionally open the "edg" namespace. */
