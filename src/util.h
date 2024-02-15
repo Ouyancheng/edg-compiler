@@ -596,8 +596,8 @@ destroy_elements(an_Array &array,
 Destroy the given number of non-trivially destructible elements at the given
 array starting position.
 
-Note: an_Array must represent all elements to be created as a contiguous memory
-block to use this interface.
+Note: an_Array must represent all elements to be destroyed as a contiguous
+memory block to use this interface.
 */
 {
   for (size_t i = 0; i < num_to_destroy; ++i) {
@@ -614,8 +614,8 @@ destroy_elements(ARG_UNUSED an_Array &array,
 Destroy the given number of trivially destructible elements at the given array
 starting position.
 
-Note: an_Array must represent all elements to be created as a contiguous memory
-block to use this interface.
+Note: an_Array must represent all elements to be destroyed as a contiguous
+memory block to use this interface.
 */
 {
   /* No op */
@@ -3137,16 +3137,16 @@ struct Hex_view {
 
 
 /*
-A struct used for formatting a given value as an octl value.
+A struct used for formatting a given value as an octal value.
 This type should not be named outside of util.h.
 */
-struct an_octl_view {
+struct an_octal_view {
   unsigned long long
-                value;  /* The value to be formatted in octl. */
-  an_octl_view(unsigned long long value_to_format)
+                value;  /* The value to be formatted in octal. */
+  an_octal_view(unsigned long long value_to_format)
     : value(value_to_format)
     {}
-};  /* Octl_view */
+};  /* an_octal_view */
 
 
 /*
@@ -3160,7 +3160,12 @@ enum a_text_alignment {
 
 
 /*
-A struct used for aligning the formatting inner text as a string.
+A struct used for aligning the a value (converted to a string via
+String_formatter<a_Value_type>) within a larger string of width characters.
+
+As an example, a value_to_format of the integer value 10, with right alignment,
+a padding character of X, and a width of 5, would result in the string "XXX10".
+
 This type should not be named outside of util.h.
 */
 template<typename a_Value_type>
@@ -3192,12 +3197,12 @@ inline detail::Hex_view<a_Type> hex_view_of(a_Type value)
 }  /* hex_view_of */
 
 
-inline detail::an_octl_view octl_view_of(unsigned long long value)
+inline detail::an_octal_view octal_view_of(unsigned long long value)
 /*
 */
 {
-  return detail::an_octl_view(value);
-}  /* octl_view_of */
+  return detail::an_octal_view(value);
+}  /* octal_view_of */
 
 
 template<typename a_Value_type>
@@ -3517,8 +3522,8 @@ void String_formatter<a_string_view>::append_into(
                                           a_string_view      value,
                                           ARG_UNUSED size_t  size_hint)
 /*
-Append the characters representing in the given string view value into the
-underlying array.  size_hint is unused.
+Append the characters in the given string view value into the underlying array.
+size_hint is unused.
 */
 {
   underlying_array.insert(underlying_array.length(), value.start,
@@ -3548,8 +3553,8 @@ void String_formatter<Padded_string<a_Value_type>>::append_into(
                            const Padded_string<a_Value_type> &value,
                            ARG_UNUSED size_t                 size_hint)
 /*
-Append the characters representing in the given padded string value into the
-underlying array.  size_hint is unused.
+Append the characters for the given padded string value into the underlying
+array (see Padded_string for more information).  size_hint is unused.
 */
 {
   size_t original_size = underlying_array.length();
@@ -3610,9 +3615,9 @@ void String_formatter<Hex_view<unsigned long long>>::append_into(
                                         Hex_view<a_Type>     value,
                                         size_t               size_hint)
 /*
-Append the characters representing in the given integral value into the
-underlying array in hex format.  size_hint is an overestimate (i.e., maximum)
-number of characters this value might use.
+Append the characters representing the given integral value into the underlying
+array in hex format.  size_hint is an overestimate (i.e., maximum) number of
+characters this value might use.
 */
 {
   append_using_c_formatting("%llx", underlying_array, size_hint,
@@ -3640,9 +3645,9 @@ void String_formatter<Hex_view<double>>::append_into(
                                             Hex_view<double> value,
                                             size_t           size_hint)
 /*
-Append the characters representing in the given double value into the
-underlying array in exponential hex format.  size_hint is an overestimate
-(i.e., maximum) number of characters this value might use.
+Append the characters representing the given double value into the underlying
+array in exponential hex format.  size_hint is an overestimate (i.e., maximum)
+number of characters this value might use.
 */
 {
   append_using_c_formatting("%a", underlying_array, size_hint, value.value);
@@ -3669,7 +3674,7 @@ void String_formatter<Hex_view<long double>>::append_into(
                                       Hex_view<long double>  value,
                                       size_t                 size_hint)
 /*
-Append the characters representing in the given double value into the
+Append the characters representing the given long double value into the
 underlying array in exponential hex format.  size_hint is an overestimate
 (i.e., maximum) number of characters this value might use.
 */
@@ -3679,27 +3684,27 @@ underlying array in exponential hex format.  size_hint is an overestimate
 
 
 /*
-A string formatter for an_octl_view values.
+A string formatter for an_octal_view values.
 */
 template<>
-struct String_formatter<an_octl_view> {
-  static size_t size_hint_of(an_octl_view value)
+struct String_formatter<an_octal_view> {
+  static size_t size_hint_of(an_octal_view value)
     { return integral_digits(value.value, size_t_arg(8)); }
   template<typename a_Dyn_array>
-  static inline void append_into(a_Dyn_array  &underlying_array,
-                                 an_octl_view value,
-                                 size_t       size_hint);
+  static inline void append_into(a_Dyn_array   &underlying_array,
+                                 an_octal_view value,
+                                 size_t        size_hint);
 };  /* String_formatter */
 
 
 template<typename a_Dyn_array>
-void String_formatter<an_octl_view>::append_into(
-                                                a_Dyn_array  &underlying_array,
-                                                an_octl_view value,
-                                                size_t       size_hint)
+void String_formatter<an_octal_view>::append_into(
+                                               a_Dyn_array   &underlying_array,
+                                               an_octal_view value,
+                                               size_t        size_hint)
 /*
 Append the characters representing in the given integral value into the
-underlying array in octl format.  size_hint is an overestimate (i.e., maximum)
+underlying array in octal format.  size_hint is an overestimate (i.e., maximum)
 number of characters this value might use.
 */
 {
@@ -3726,9 +3731,8 @@ void String_formatter<void*>::append_into(a_Dyn_array       &underlying_array,
                                           void              *value,
                                           ARG_UNUSED size_t size_hint)
 /*
-Convert the given unsigned integer value into its character representation, and
-append the characters representing the value into the underlying array.
-size_hint is unused.
+Append the characters representing the given void* value into the underlying
+array.  size_hint is unused.
 */
 {
   append_using_c_formatting("%p", underlying_array, size_hint, value);
