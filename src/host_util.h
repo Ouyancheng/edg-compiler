@@ -87,8 +87,7 @@ called again.
   size_t        remaining_buffer_len =
                    ((MAX_INSTANTIATION_OUTPUT_FILE_LEN + 1) - used_buffer_len);
   LOCAL_UNUSED int
-                chars_written = detail::snprintf_impl(
-                                                      buffer + used_buffer_len,
+                chars_written = detail::snprintf_impl(buffer + used_buffer_len,
                                                       remaining_buffer_len,
                                                       "_%08lx", crc_value);
   /* If this assertion fails, there was an error writing the string. */
