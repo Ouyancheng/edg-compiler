@@ -3561,9 +3561,10 @@ underlying array.  size_hint is unused.
 
   size_t num_chars_added = underlying_array.length() - original_size;
   size_t num_chars = 0;
-  /* If this assertion fails, the delegate value is larger than the width of
-     the padded string.  The width should be increased to accomidate the larger
-     size or the logic bug resulting in the overflow should be corrected. */
+  /* If this assertion fails, the delegate value is larger than the width
+     of the padded string.  The width should be increased to accommodate
+     the larger size or the logic bug resulting in the overflow should be
+     corrected. */
   check_assertion(num_chars_added <= value.width);
   if (value.width > num_chars_added) {
     num_chars = value.width - num_chars_added;
