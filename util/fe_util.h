@@ -13,7 +13,7 @@ fe_proxy.h -- General utility components (mostly templates) from the front end.
 
 */
 
-/* Setup prerequisites from checking.h that are unavailable. */
+/* Set up prerequisites from checking.h that are unavailable. */
 
 /* check_assertion must produce a void result. */
 #ifndef check_assertion
