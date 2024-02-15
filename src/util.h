@@ -3384,10 +3384,11 @@ inline void append_using_c_formatting(a_const_char *formatting_str,
                                       size_t       size_hint,
                                       a_Format_arg ...args)
 /*
-Append the characters of the formatted string produced by the given formatting
-string and associated arguments arguments into the underlying array.  size_hint
-is an overestimate (i.e., maximum) number of characters this value might use
-(modulo a temporary null character -- for use by snprintf_impl).
+Append the characters of the formatted string produced by the given
+formatting string and associated arguments into the underlying array.
+size_hint is an overestimate (i.e., maximum) number of characters this
+value might use (modulo a temporary null character -- for use by
+snprintf_impl).
 */
 {
   size_t orig_size = underlying_array.length();
