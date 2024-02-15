@@ -882,6 +882,9 @@ swallowed); otherwise, it's "="-form or "{...}" form.
        set lambda parent entities and/or lambda discriminator values. */
     saved_decl_parse_state = scope_stack_top().decl_parse_state;
     scope_stack_top().decl_parse_state = dps;
+    if (var != NULL && var->is_constexpr) {
+      expr_stack->consteval_call_need_not_fold = TRUE;
+    }  /* if */
   }  /* if */
   /* Scan the expression and save it in an initializer cache so it can be
      scanned as the initializer later, and deduce the "auto" type it
