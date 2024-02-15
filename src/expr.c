@@ -38378,7 +38378,9 @@ FIXME: This is currently incomplete.
 */
 {
   an_operand           opnd;
-  a_source_position    start_pos;
+  a_source_position    start_pos, end_pos = null_source_position;
+  a_token_sequence_number
+                       operator_tok_seq_number;
   a_boolean            consume_right_bracket = FALSE;
   an_expr_stack_entry  expr_stack_entry;
   a_variable           *vp = NULL;
@@ -38389,9 +38391,10 @@ FIXME: This is currently incomplete.
                   /*suppress_object_lifetime=*/TRUE);
   expr_stack->consteval_call_need_not_fold = TRUE;
   if (rcblock != NULL) {
-    /* Rescanning of splicers is not implemented yet. */
-    subst_fail(rcblock->error_detected);
-    make_error_operand(result);
+    make_rescan_operands(rcblock, &opnd,
+                         (an_operand *)NULL, (an_operand *)NULL,
+                         &start_pos, &operator_tok_seq_number,
+                         (a_source_position *)NULL);
   } else {
     /* Normal, non-rescan, processing. */
     /* Skip the left bracket and the colon. */
@@ -38402,6 +38405,9 @@ FIXME: This is currently incomplete.
     scan_expr(&opnd, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
     remove_stop_token(tok_rsplice);
     consume_right_bracket = TRUE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_pos = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   }  /* if */
   do_operand_transformations(&opnd, TOPT_NO_OPTIONS);
   if (is_class_struct_union_type(opnd.type)) {
@@ -38416,8 +38422,11 @@ FIXME: This is currently incomplete.
   if (is_error_operand(&opnd) || is_error_type(opnd.type)) {
     make_error_operand(result);
   } else if (operand_is_instantiation_dependent(&opnd)) {
-    /* FIXME: Generate an actual representation of the splice. */
-    copy_operand(&opnd, result);
+    an_expr_node  *refl = make_node_from_operand(&opnd),
+                  *splice = make_operator_node(
+                       eok_splice, type_of_unknown_templ_param_nontype, refl);
+    make_expression_operand(splice, result);
+    set_operand_position(result, &start_pos, &end_pos, &start_pos);
     make_template_param_expr_constant_operand(result);
   } else if (!is_reflection_type(opnd.type)) {
     expr_pos_ty_error(ec_bad_splicer_operand, &opnd.position, opnd.type);
@@ -50337,6 +50346,9 @@ set accordingly.
       case eok_xor_assign:
         operator_token = tok_excl_or_assign;
         break;
+      case eok_splice:
+        operator_token = tok_lsplice;
+        break;
       default:
         rescannable = FALSE;
         break;
@@ -50961,6 +50973,9 @@ a enclosing expression).
         break;
       case tok_builtin_bit_cast:
         scan_builtin_bit_cast(rcblock, result);
+        break;
+      case tok_lsplice:
+        scan_expr_splicer(rcblock, result);
         break;
       default:
         unexpected_condition();

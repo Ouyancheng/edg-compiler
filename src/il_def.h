@@ -13612,6 +13612,9 @@ enum an_expr_operator_kind : a_byte {
   eok_yield,		/* The coroutine "co_yield" operator applied to a
 			   dependent operand.  (In non-dependent contexts,
 			   an "enk_yield" node is created instead.) */
+  eok_splice,		/* An expression splice from an reflection value.
+			   This can appear in prototype instantiations but
+			   also in backing expressions for constants. */
   /* Special operators: */
   eok_error,            /* This is a special operator used in the cases when
                            the operator cannot be determined.  This operator
@@ -18287,6 +18290,7 @@ EXTERN a_const_char *db_operator_names[(int)eok_last+1]
    "va_start", "va_arg", "va_end", "va_copy", "va_start (single op)",
    "lvalue",
    "co_await", "co_yield",
+   "[: :]",
    "error", "last"
 }
 #endif /* VAR_INITIALIZERS */

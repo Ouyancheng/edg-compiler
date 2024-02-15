@@ -955,6 +955,7 @@ static a_byte generated_precedence[(int)eok_last+1] = {
   PREC_LOWEST,		/* eok_lvalue */
   PREC_PREFIX,		/* eok_await */
   PREC_PREFIX,		/* eok_yield */
+  PREC_PRIMARY,		/* eok_splice */
   PREC_LOWEST,		/* eok_error */
   PREC_LOWEST		/* eok_last */
 };  /* generated_precedence */
@@ -17357,6 +17358,12 @@ gen_expr that might end up generating this expr as a temporary.
           gen_expr_with_parens(operand_2);
           write_tok_ch(')');
           enable_line_wrapping();
+          goto done_with_operation;
+        case eok_splice:
+          write_tok_str("[:");
+          gen_expr(operand_1, /*need_parens=*/FALSE,
+                   obj_expr_of_mfunc_operator);
+          write_tok_str(":]");
           goto done_with_operation;
         default:
           unexpected_condition_str("gen_expr: bad expression operator");

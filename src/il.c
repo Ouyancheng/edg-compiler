@@ -6888,6 +6888,27 @@ copy_constant_full should be called to start a copy.
       default:
         unexpected_condition_str("i_copy_constant_full: bad templ param kind");
     }  /* if */
+  } else if (constant_is(new_constant, ck_reflection)) {
+    a_reflection_value  *rvp = &new_constant->variant.reflection;
+    if (!in_file_scope(rvp->entity.ptr) &&
+        (curr_il_region_number == file_scope_region_number ||
+         copying_from_one_func_to_another)) {
+      switch (rvp->entity.kind) {
+        case iek_expr_node:
+          rvp->entity.ptr = (char*)i_copy_expr_tree(
+                                               (an_expr_node*)rvp->entity.ptr,
+                                               options, cblock);
+          break;
+        case iek_constant:
+          rvp->entity.ptr = (char*)i_copy_constant_full(
+                                                 (a_constant*)rvp->entity.ptr,
+                                                 (a_constant *)NULL,
+                                                 options, cblock);
+          break;
+        default:
+          unexpected_condition();
+      }  /* switch */
+    }  /* if */
   }  /* if */
   if (old_constant->expr == NULL) {
     /* Skip some processing of backing expressions if there isn't one. */
@@ -17397,6 +17418,9 @@ tk_unknown is returned.
     case eok_yield:
       result = expr_kind;
       break;
+    case eok_splice:
+      result = tk_reflection;
+      break;
     case eok_error:
       result = (a_type_kind)tk_error;
       break;
@@ -18695,6 +18719,7 @@ expr_is_rescannable for the equivalent routine for new-style SFINAE.
     case eok_gnu_max:
 #endif /* GNU_EXTENSIONS_ALLOWED */
     case eok_parens:
+    case eok_splice:
       is_foldable = TRUE;
       break;
     default:
@@ -30479,6 +30504,7 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_lvalue: */			LVRV_OPND1_IS_PRVALUE,
   /* eok_await: */			LVRV_NO_REQUIREMENTS,
   /* eok_yield: */			LVRV_NO_REQUIREMENTS,
+  /* eok_splice: */			LVRV_NO_REQUIREMENTS,
   /* eok_error: */			LVRV_NO_REQUIREMENTS,
   /* eok_last: */			LVRV_DISTINGUISHED_VALUE_FOR_LAST
 };  /* lvalue_rvalue_test */

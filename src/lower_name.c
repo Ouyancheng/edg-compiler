@@ -221,6 +221,7 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_OPERATOR_GCNEW "gc"
 #define MANGLING_STRING_FOR_SAFE_CAST "v112clisafe_cast"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#define MANGLING_STRING_FOR_SPLICE "U6splice"
 
 #else /* !IA64_ABI */
 /* Cfront-like name mangling codes. */
@@ -476,6 +477,8 @@ type in the std namespace.
 #define MANGLING_STRING_FOR_OPERATOR_CLI_SUBSCRIPT "sb"
 #define MANGLING_STRING_FOR_SAFE_CAST "sf"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+#define MANGLING_STRING_FOR_SPLICE "SP"
 
 #endif /* IA64_ABI */
 
@@ -11535,6 +11538,9 @@ returned string to an appropriate buffer before this routine is invoked again.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case eok_noexcept:
       name = MANGLING_STRING_FOR_OPERATOR_NOEXCEPT;
+      break;
+    case eok_splice:
+      name = MANGLING_STRING_FOR_SPLICE;
       break;
     case eok_lvalue:                     /* Handled higher up */
 #if MICROSOFT_EXTENSIONS_ALLOWED
