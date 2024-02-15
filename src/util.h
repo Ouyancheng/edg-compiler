@@ -3150,7 +3150,7 @@ struct an_octl_view {
 
 
 /*
-Used to represent textual alignment for a padded string.a
+Used to represent textual alignment for a padded string.
 This type should not be named outside of util.h.
 */
 enum a_text_alignment {
