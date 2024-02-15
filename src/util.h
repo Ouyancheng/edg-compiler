@@ -3292,7 +3292,7 @@ template<typename an_Integral_type>
 inline constexpr size_t integral_digits(an_Integral_type value,
                                         size_t           base)
 /*
-Given a value, return the number of digits required to represent for a
+Given a value, return the number of digits required to represent it for a
 numbering system with the given base.  Note this function does not count the
 negative sign as a digit (i.e., 3 and -3 are both considered 1 digit).
 */
