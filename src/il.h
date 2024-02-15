@@ -2067,6 +2067,10 @@ extern a_boolean compare_constants(a_constant_ptr                   cp1,
                                    a_constant_ptr                   cp2,
                                    a_compare_constants_options_set  options);
 
+extern a_boolean compare_reflections(a_reflection_value               rv1,
+                                     a_reflection_value               rv2,
+                                     a_compare_constants_options_set  options);
+
 extern a_constant_ptr copy_unshared_constant(a_constant_ptr old_constant);
 
 extern a_boolean eq_constants(a_constant *cp1,

@@ -20421,9 +20421,7 @@ the value representation of the integer value.
             } else if (type_is(opnd1_type, tk_reflection)) {
               a_reflection_value  *rvp1 = (a_reflection_value*)opnd1_value,
                                   *rvp2 = (a_reflection_value*)opnd2_value;
-              strip_template_arg(rvp1);
-              strip_template_arg(rvp2);
-              set_bool_value(rvp1->entity.ptr == rvp2->entity.ptr,
+              set_bool_value(compare_reflections(*rvp1, *rvp2, CC_NO_OPTIONS),
                              result_storage);
 #if C99_IL_EXTENSIONS_SUPPORTED
             } else if (tp->kind == (a_type_kind)tk_complex) {
@@ -20539,9 +20537,7 @@ the value representation of the integer value.
             } else if (type_is(opnd1_type, tk_reflection)) {
               a_reflection_value  *rvp1 = (a_reflection_value*)opnd1_value,
                                   *rvp2 = (a_reflection_value*)opnd2_value;
-              strip_template_arg(rvp1);
-              strip_template_arg(rvp2);
-              set_bool_value(rvp1->entity.ptr != rvp2->entity.ptr,
+              set_bool_value(!compare_reflections(*rvp1, *rvp2, CC_NO_OPTIONS),
                              result_storage);
 #if C99_IL_EXTENSIONS_SUPPORTED
             } else if (tp->kind == (a_type_kind)tk_complex) {

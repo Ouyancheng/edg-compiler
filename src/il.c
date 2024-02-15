@@ -8315,6 +8315,43 @@ comparisons are done.
 }  /* equiv_template_constant_identity */
 
 
+a_boolean compare_reflections(a_reflection_value               rv1,
+                              a_reflection_value               rv2,
+                              a_compare_constants_options_set  options)
+/*
+Return TRUE if the two given reflection values are equivalent.  options is a
+set of flags that control the way in which certain comparisons are done.  See
+the definition of the CC flags in il.h for more information.
+*/
+{
+  a_boolean  eq;
+
+  strip_template_arg(&rv1);
+  strip_template_arg(&rv2);
+  if (rv1.entity.kind != rv2.entity.kind) {
+    eq = FALSE;
+  } else if (rv1.entity.kind == iek_type) {
+    a_type_ptr  tp1 = (a_type*)rv1.entity.ptr,
+                tp2 = (a_type*)rv2.entity.ptr;
+    tp1 = skip_typerefs_not_typedefs(tp1);
+    tp2 = skip_typerefs_not_typedefs(tp2);
+    if (tp1->kind != tp2->kind) {
+      eq = FALSE;
+    } else if (tp1->kind == tk_typeref) {
+      eq = (tp1 == tp2);
+    } else {
+      eq = identical_types(tp1, tp2);
+    }  /* if */
+  } else if (rv1.entity.kind == iek_constant) {
+    eq = compare_constants((a_constant*)rv1.entity.ptr,
+                           (a_constant*)rv2.entity.ptr, options);
+  } else {
+    eq = (rv1.entity.ptr == rv2.entity.ptr);
+  }  /* if */
+  return eq;
+}  /* compare_reflections */
+
+
 a_boolean compare_constants(a_constant_ptr                   cp1,
                             a_constant_ptr                   cp2,
                             a_compare_constants_options_set  options)
@@ -8792,8 +8829,8 @@ definition of the CC flags in il.h for more information.
         }  /* if */
         break;
       case ck_reflection:
-        eq = cp1->variant.reflection.entity.ptr ==
-                                           cp2->variant.reflection.entity.ptr;
+        eq = compare_reflections(cp1->variant.reflection,
+                                 cp2->variant.reflection, options);
         break;
       default:
         unexpected_condition_str("compare_constants: bad constant kind");
