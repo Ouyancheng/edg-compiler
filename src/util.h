@@ -3137,7 +3137,7 @@ struct Hex_view {
 
 
 /*
-A struct used for formatting a given value as a octl value.
+A struct used for formatting a given value as an octl value.
 This type should not be named outside of util.h.
 */
 struct an_octl_view {
