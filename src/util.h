@@ -593,7 +593,7 @@ inline Enable_if<!Is_trivially_destructible<an_Object_type>::value, void>
 destroy_elements(an_Array &array,
                  size_t   num_to_destroy)
 /*
-Destroy the given number of non-trivially destructible element at the given
+Destroy the given number of non-trivially destructible elements at the given
 array starting position.
 
 Note: an_Array must represent all elements to be created as a contiguous memory
@@ -3562,8 +3562,7 @@ underlying array.  size_hint is unused.
   size_t num_chars = 0;
   /* If this assertion fails, the delegate value is larger than the width of
      the padded string.  The width should be increased to accomidate the larger
-     size or the logic bug resulting in the the overflow should be
-     corrected. */
+     size or the logic bug resulting in the overflow should be corrected. */
   check_assertion(num_chars_added <= value.width);
   if (value.width > num_chars_added) {
     num_chars = value.width - num_chars_added;
