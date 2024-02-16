@@ -1676,7 +1676,7 @@ struct String_formatter<an_il_unsigned_integer> {
 size_t String_formatter<an_il_hex_integer>::size_hint_of(
                                             ARG_UNUSED an_il_hex_integer value)
 /*
-Given a IL hex integer value, return the approximate character usage.
+Given an IL hex integer value, return the approximate character usage.
 */
 {
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
@@ -1776,7 +1776,7 @@ by snprintf_impl).
 size_t String_formatter<an_il_signed_integer>::size_hint_of(
                                                     an_il_signed_integer value)
 /*
-Given a IL signed integer value, return the approximate character usage.
+Given an IL signed integer value, return the approximate character usage.
 */
 {
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
@@ -1883,7 +1883,7 @@ the underlying array.  size_hint is the previously computed size hint.
 size_t String_formatter<an_il_unsigned_integer>::size_hint_of(
                                                   an_il_unsigned_integer value)
 /*
-Given a IL unsigned integer value, return the approximate character usage.
+Given an IL unsigned integer value, return the approximate character usage.
 */
 {
 #if INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
