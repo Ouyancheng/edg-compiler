@@ -18530,6 +18530,8 @@ indication in *rcblock).
   a_source_position potentially_unevaluated_lambda_pos;
   a_boolean         saved_cpp11_constant_expr_ruled_out;
   a_boolean         make_constant = FALSE;
+  a_token_sequence_number
+                    reparse_tsn = NO_TOKEN_SEQUENCE_NUMBER;
   a_token_cache     opnd_tokens;
   unsigned long     saved_error_count;
 
@@ -18667,21 +18669,13 @@ reparse:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
     {
-      clear_token_cache(&opnd_tokens, /*reusable=*/TRUE);
       if (!unevaluated_scan_done) {
         /* Advance past typeid. */
         (void)get_token();
-        /* Cache the parenthesized operand.  This is done to enable us to
-           potentially parse the operand twice: Once as an unevaluated operand
-           and, if needed, a second time as an evaluated operand. */
-        if (curr_token == tok_lparen &&
-            !cache_token_stream_until_matching_token(
-                                              &opnd_tokens, CTS_NO_OPTIONS)) {
-          /* We found the matching right parenthesis: Cache it. */
-          cache_curr_token(&opnd_tokens);
-          (void)get_token();
-        }  /* if */
-        rescan_reusable_cache(&opnd_tokens);
+        /* Start background caching in case the operand is an expression
+           that must be rescanned in an evaluated context. */
+        reparse_tsn = curr_token_sequence_number;
+        begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
       }  /* if */
       /* Check for and pass over the left parenthesis. */
       (void)required_token(tok_lparen, ec_exp_lparen);
@@ -18816,13 +18810,14 @@ reparse:
         unevaluated_scan_done = TRUE;
         free_init_component_list(alep);
         pop_expr_stack();
-        if (curr_token == tok_rparen) {
-          (void)get_token();
-        } else {
-          expect_error();
-        }  /* if */
         remove_matching_stop_token(tok_rparen);
+        clear_token_cache(&opnd_tokens, /*reusable=*/FALSE);
+        copy_tokens_from_cache(curr_lexical_state_cache(),
+                               reparse_tsn, curr_token_sequence_number,
+                               /*include_last_token=*/FALSE, &opnd_tokens);
         rescan_cached_tokens(&opnd_tokens);
+        end_caching_fetched_tokens();
+        reparse_tsn = NO_TOKEN_SEQUENCE_NUMBER;
         goto reparse;
       }  /* if */
     } else if (constexpr_enabled) {
@@ -18848,6 +18843,10 @@ reparse:
       free_init_component_list(alep);
     }  /* if */
     expr = make_node_from_operand(operand);
+  }  /* if */
+  if (reparse_tsn != NO_TOKEN_SEQUENCE_NUMBER) {
+    end_caching_fetched_tokens();
+    reparse_tsn = NO_TOKEN_SEQUENCE_NUMBER;
   }  /* if */
   if (!runtime_case) {
     /* If this is not a runtime case, the expression is not evaluated,

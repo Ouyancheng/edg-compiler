@@ -1,5 +1,14 @@
 Version 6.7
 
+2/16/24  [EDGcpfe/27014]
+Spurious syntax errors after instantiation of a typeid construct
+
+The changes for EDGcpfe/25657,EDGcpfe/26023,EDGcpfe/26101 introduced a
+regression in version 6.6 where certain instantiations of typeid constructs
+containing a pack expansion resulted in subsequent spurious syntax errors.
+That problem is now fixed.
+
+
 2/14/24  [EDGcpfe/27010]
 C++-generating back end: internal error with macro definition before catch
 
