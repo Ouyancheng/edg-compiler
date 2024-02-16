@@ -8040,16 +8040,14 @@ Return NULL if the name is not found.
 static a_boolean check_valid_qualified_member_in_selection(
                                    a_symbol_locator   *locator,
                                    a_source_position  *diag_pos,
-                                   a_type_ptr         class_struct_union_type,
-                                   a_boolean          is_splice = FALSE)
+                                   a_type_ptr         class_struct_union_type)
 /*
 locator describes the right-hand operand of a selection operator, and is either
-a qualified name (when is_splice is FALSE) or the result of a splice construct
-(when is_splice is TRUE).  Check to see that it is a member of
-class_struct_union_type, which is the class type of the left-hand operand, or
-of an appropriate base class thereof.  Issue an error if not, at diag_pos (for
-a case like "A::x", diag_pos gives the position of the "A", whereas the
-position in the locator gives the position of the "x").
+a qualified name or the result of a splice construct.  Check to see that it is
+a member of class_struct_union_type, which is the class type of the left-hand
+operand, or of an appropriate base class thereof.  Issue an error if not, at
+diag_pos (for a case like "A::x", diag_pos gives the position of the "A",
+whereas the position in the locator gives the position of the "x").
 */
 {
   a_boolean err = FALSE;
@@ -8082,7 +8080,7 @@ position in the locator gives the position of the "x").
                                                sym_parent_class(
                                                      projection_member_sym))) {
         if (expr_error_should_be_issued()) {
-          if (is_splice) {
+          if (locator->is_splicer) {
             pos_syty_error(ec_splice_is_not_a_member_of_class,
                            diag_pos, projection_member_sym,
                            class_struct_union_type);
@@ -8451,8 +8449,14 @@ qualified_name_check:
     clear_operand(ok_error, &opnd2);
     scan_expr_splicer((a_rescan_control_block*)NULL, &opnd2);
     if (operand_is_instantiation_dependent(&opnd2)) {
-      /* FIXME: Create an actual representation for this. */
       *splicer = make_node_from_operand(&opnd2);
+    } else if (is_sym_for_member_operand(&opnd2)) {
+      make_locator_for_symbol(opnd2.symbol, locator);
+      locator->source_position = opnd2.position;
+      if (!check_valid_qualified_member_in_selection(
+                                          locator, &opnd2.position, type_1)) {
+        *err = TRUE;
+      }  /* if */
     } else if (is_constant_operand(&opnd2)) {
       a_constant_ptr  refl_cp = &opnd2.variant.constant;
       a_reflection_value  *rvp = &refl_cp->variant.reflection;
@@ -8471,7 +8475,7 @@ qualified_name_check:
         *err = TRUE;
       }  /* if */
       if (!check_valid_qualified_member_in_selection(
-                      locator, &opnd2.position, type_1, /*is_splice=*/TRUE)) {
+                                          locator, &opnd2.position, type_1)) {
         *err = TRUE;
       }  /* if */
     } else if (is_expression_operand(&opnd2)) {
@@ -8496,6 +8500,7 @@ qualified_name_check:
       check_assertion(is_error_operand(&opnd2));
       *err = TRUE;
     }  /* if */
+    locator->is_splicer = TRUE;
   } else {
     clear_locator(locator, &pos_curr_token);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -38475,7 +38480,13 @@ FIXME: This is currently incomplete.
           make_error_operand(result);
         }  /* if */
       } else if (iek == iek_field) {
-        copy_operand(&opnd, result);
+        /* Treat the splice of a field as if the field name was specified as
+           a qualified name. */
+        make_sym_for_member_operand(symbol_for((a_field*)rvp->entity.ptr),
+                                               /*is_qualified_name=*/TRUE,
+                                               (a_ref_entry*)NULL,
+                                               result);
+        result->is_id_expression = TRUE;
       } else if (iek == iek_variable) {
         vp = (a_variable*)rvp->entity.ptr;
 variable_case:
@@ -38507,6 +38518,7 @@ routine_case:
         make_error_operand(result);
       }  /* if */
     }  /* if */
+    set_operand_position(result, &start_pos, &end_pos, &start_pos);
   }  /* if */
   if (consume_right_bracket) {
     (void)required_token(tok_rsplice, ec_exp_rbracket);

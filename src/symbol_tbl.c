@@ -18620,6 +18620,7 @@ are handled in symbol_tbl_init.)
   cleared_locator.property_or_event_parent        = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   cleared_locator.is_template_param               = FALSE;
+  cleared_locator.is_splicer                      = FALSE;
   cleared_locator.template_arg_list               = NULL;
   cleared_locator.name_qualifier                  = NULL;
   /* The following initializations are typically redundant, but are helpful

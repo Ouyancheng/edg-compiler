@@ -7652,8 +7652,9 @@ expression routines.
 {
   if (!C_mode()) {
     /* See if we're suppressing access checking, e.g., because we're in
-       a prototype instantiation. */
-    if (expr_access_checking_should_be_done()) {
+       a prototype instantiation or because a member is accessed through
+       splicing. */
+    if (expr_access_checking_should_be_done() && !locator->is_splicer) {
       a_boolean error_detected = FALSE;
       a_boolean *p_error_detected = NULL;
       /* If errors are suppressed, get a returned variable instead of issuing

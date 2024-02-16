@@ -273,6 +273,9 @@ typedef struct a_symbol_locator {
   a_bit_field	is_template_param:1;
 			  /* TRUE if normal_id_lookup found a template
 			     parameter name. */
+  a_bit_field	is_splicer:1;
+			  /* TRUE if this locator is the result of a splicer
+			     construct. */
   a_symbol_ptr	specific_symbol;
 			/* If is_qualified_name is TRUE, this points to the
 			   specific symbol for the qualified name.  Otherwise,
