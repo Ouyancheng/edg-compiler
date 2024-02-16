@@ -3193,7 +3193,7 @@ namespace detail {
 /*
 A string formatter for an_il_fp_value values.  Note this string formatter has
 side effects passed through an_il_fp_value (the pointees of the pos_infinity,
-neg_infinity, and not_a_number data members will all bet updated if not-NULL).
+neg_infinity, and not_a_number data members will all be updated if not-NULL).
 */
 template<>
 struct String_formatter<an_il_fp_value> {
