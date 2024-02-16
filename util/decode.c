@@ -1596,6 +1596,10 @@ handle_new_operands:
       /* A C++/CLI subscript operation (with a variable number of operands). */
       has_variable_number_of_operands = TRUE;
       is_cli_subscript = TRUE;
+    } else if (strcmp(operator_str, "splice") == 0) {
+      /* An expression splice from a reflection value. */
+      operator_str = "[:";
+      close_str = ":]";
     }  /* if */
     /* Get the count of operands. */
     p = get_number_with_optional_underscore(p, &num_operands, dctl);
@@ -2087,6 +2091,8 @@ If the first few characters are not an operator encoding, return NULL.
        determined by the caller.  The returned value is simply a flag (and
        not an actual operation string). */
     s = "fold-ex";
+  } else if (start_of_id_is("SP", ptr, dctl)) {
+    s = "splice";
   } else {
     s = NULL;
   }  /* if */
@@ -6237,6 +6243,12 @@ be copied quickly.
           str = "safe_cast";
           *length = 16;
           *num_operands = 1;
+        } else if (start_of_id_is("v16splice", ptr)) {
+          /* [: splice :] */
+          str = "[:";
+          *close_str = ":]";
+          *num_operands = 1;
+          *length = 9;
         } else if (start_of_id_is("9builtin", ptr+2) ||
                    start_of_id_is("10builtin", ptr+2)) {
           /* Builtin operation.  Name is

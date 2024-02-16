@@ -221,7 +221,7 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_OPERATOR_GCNEW "gc"
 #define MANGLING_STRING_FOR_SAFE_CAST "v112clisafe_cast"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#define MANGLING_STRING_FOR_SPLICE "U6splice"
+#define MANGLING_STRING_FOR_SPLICE "v16splice"
 
 #else /* !IA64_ABI */
 /* Cfront-like name mangling codes. */

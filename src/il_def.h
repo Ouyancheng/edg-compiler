@@ -13614,7 +13614,8 @@ enum an_expr_operator_kind : a_byte {
 			   an "enk_yield" node is created instead.) */
   eok_splice,		/* An expression splice from a reflection value.
 			   This can appear in prototype instantiations but
-			   also in backing expressions for constants. */
+			   also in backing expressions for constants.  It
+			   takes one expression/constant operand. */
   /* Special operators: */
   eok_error,            /* This is a special operator used in the cases when
                            the operator cannot be determined.  This operator
