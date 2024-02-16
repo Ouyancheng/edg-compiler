@@ -4289,8 +4289,8 @@ Display the name of an expression operator.
                                 s = "eok_va_start_single_operand";
                                                                   break;
     case eok_lvalue:            s = "eok_lvalue";                 break;
-    case eok_await:             s = "eok_await";                 break;
-    case eok_yield:             s = "eok_yield";                 break;
+    case eok_await:             s = "eok_await";                  break;
+    case eok_yield:             s = "eok_yield";                  break;
     case eok_splice:            s = "eok_splice";                 break;
     case eok_error:             s = "eok_error";                  break;
     default:                    s = "**BAD EXPR OPERATOR KIND**"; break;
