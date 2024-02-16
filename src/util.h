@@ -3160,7 +3160,7 @@ enum a_text_alignment {
 
 
 /*
-A struct used for aligning the a value (converted to a string via
+A struct used for aligning a value (converted to a string via
 String_formatter<a_Value_type>) within a larger string of width characters.
 
 As an example, a value_to_format of the integer value 10, with right alignment,
