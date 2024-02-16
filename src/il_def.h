@@ -13612,7 +13612,7 @@ enum an_expr_operator_kind : a_byte {
   eok_yield,		/* The coroutine "co_yield" operator applied to a
 			   dependent operand.  (In non-dependent contexts,
 			   an "enk_yield" node is created instead.) */
-  eok_splice,		/* An expression splice from an reflection value.
+  eok_splice,		/* An expression splice from a reflection value.
 			   This can appear in prototype instantiations but
 			   also in backing expressions for constants. */
   /* Special operators: */
