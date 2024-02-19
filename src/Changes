@@ -1,5 +1,30 @@
 Version 6.7
 
+2/19/24  [EDGcpfe/27013]
+Incorrect destruction of variadic init-captures
+
+Consider:
+
+  struct Z {
+    bool z;
+    Z(): z(false) { }
+    ~Z() { z = (z != 0) throw : true; }
+  };
+  template<typename... Ts> void sink(Ts... ts) { }
+  template<typename... Ts> auto capture(Ts... ts) {
+    return [...us = ts]() { sink(us...); };
+  }
+  int main() {
+    Z x;
+    auto y = capture(0, x);
+  }
+
+Previously this aborted with an uncaught exception because the front end
+inadvertently recorded two destructions of the captured Z value.  In other
+cases, the problem could manifest as missing destructions.  Those issues are
+now fixed.
+
+
 2/16/24  [EDGcpfe/27014]
 Spurious syntax errors after instantiation of a typeid construct
 

@@ -13194,6 +13194,14 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
             fp->source_corresp.name != next_fp->source_corresp.name) {
           arg_prp->curr_argument.field = NULL;
           done = TRUE;
+          if (fp != NULL) {
+            /* Reset the symbol for the first field. */
+            a_field  *first_fp = fields_of(parent_class_of(fp));
+            while (symbol_for(first_fp) != arg_prp->primary_pack_symbol) {
+              first_fp = first_fp->next;
+            }  /* if */
+            arg_prp->primary_pack_symbol->variant.field.ptr = first_fp;
+          }  /* if */
         } else {
           arg_prp->curr_argument.field = next_fp;
           arg_prp->primary_pack_symbol->variant.field.ptr = next_fp;
