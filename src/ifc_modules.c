@@ -21022,6 +21022,18 @@ there is no offset/the offset is not needed.
 }  /* an_ifc_module::cache_decl_template_declaration */
 
 
+static a_boolean is_template_defined(const an_ifc_decl_template &decl)
+/*
+Return TRUE if the given IFC template is a template definition; otherwise,
+return FALSE.
+*/
+{
+  an_ifc_sentence_index decl_body = get_ifc_body(get_ifc_entity(decl));
+
+  return decl_body != 0;
+}  /* is_template_defined */
+
+
 void an_ifc_module::cache_decl_template(a_module_token_cache_ptr   cache,
                                         an_ifc_decl_index          decl_idx,
                                         const an_ifc_decl_template &decl,
@@ -21032,20 +21044,21 @@ by decl_idx) to cache.  cinfo contains information about the current cache
 context to help inform decisions about what to cache.
 */
 {
-  an_ifc_sentence_index decl_body = get_ifc_body(get_ifc_entity(decl));
-  an_ifc_cache_info     cache_info = cinfo;
-  a_boolean             has_cached_definition = decl_body != 0;
-  uint32_t              offset;
+  an_ifc_cache_info cache_info = cinfo;
+  a_boolean         cache_definition = is_template_defined(decl);
+  uint32_t          offset;
 
   /* If we're ignoring definitions, even if the template has a definition, mark
      that it should be ignored. */
   if (cinfo.ignore_definition) {
-    has_cached_definition = FALSE;
+    cache_definition = FALSE;
   }  /* if */
   /* If we're not caching a definition, the final semicolon must be cached. */
-  cache_info.no_final_semicolon = has_cached_definition;
+  cache_info.no_final_semicolon = cache_definition;
   offset = cache_decl_template_declaration(cache, decl_idx, decl, cache_info);
-  if (has_cached_definition) {
+  if (cache_definition) {
+    an_ifc_sentence_index decl_body = get_ifc_body(get_ifc_entity(decl));
+
     (void)cache_sentence(cache, decl_body, offset);
   }  /* if */
 }  /* an_ifc_module::cache_decl_template */
@@ -25078,6 +25091,23 @@ Display the contents of the specified declaration.
   db_tokens(&cache);
 }  /* an_ifc_module::db_ifc_declaration */
 
+
+static void db_diff_decls(an_ifc_decl_index old_decl_idx,
+                          an_ifc_decl_index new_decl_idx)
+/*
+Given an old IFC declaration index and a new IFC declaration index, compare
+and print the diff of the cached tokens.
+*/
+{
+  a_module_token_cache prev_cache;
+  a_module_token_cache new_cache;
+  an_ifc_cache_info    cinfo;
+
+  module_of(old_decl_idx)->cache_decl(&prev_cache, old_decl_idx, cinfo);
+  module_of(new_decl_idx)->cache_decl(&new_cache, new_decl_idx, cinfo);
+  db_diff_token_caches(prev_cache.as_canonical(), new_cache.as_canonical());
+}  /* db_diff_decls */
+
 #endif /* DEBUG */
 
 static void record_pending_ifc_template_definition(a_template_ptr    templ,
@@ -25102,14 +25132,7 @@ out to be needed later on.
       a_string decl_idxs(index_to_str(existing_decl), " replaced by ",
                          index_to_str(decl_idx));
       print(decl_idxs, f_debug);
-
-      a_module_token_cache prev_cache;
-      a_module_token_cache new_cache;
-      an_ifc_cache_info    cinfo;
-      module_of(existing_decl)->cache_decl(&prev_cache, existing_decl, cinfo);
-      module_of(decl_idx)->cache_decl(&new_cache, decl_idx, cinfo);
-      db_diff_token_caches(prev_cache.as_canonical(),
-                           new_cache.as_canonical());
+      db_diff_decls(existing_decl, decl_idx);
     }  /* if */
 #endif /* DEBUG */
     /* The template definition is being replaced.  Replace the definition in
@@ -25149,14 +25172,31 @@ required).
     an_ifc_decl_template templ_decl;
 
     construct_node_prechecked(&templ_decl, decl_idx);
-    if (is_defined(mep->entity.ptr, mep->entity.kind)) {
+    if (!is_defined(mep->entity.ptr, mep->entity.kind) &&
+        is_template_defined(templ_decl)) {
+      /* The IL template is not currently defined and the IFC template is a
+         definition; map the IFC template for future processing. */
+      record_pending_ifc_template_definition(templ, decl_idx);
+    } else {
       an_ifc_template_spec_info spec_info(decl_idx);
 
       if (spec_info.has_specs()) {
         record_pending_ifc_template_specializations(templ, decl_idx);
       }  /* if */
-    } else {
-      record_pending_ifc_template_definition(templ, decl_idx);
+#if DEBUG
+      if (db_flag_is_set("ifc_redef")) {
+        an_ifc_decl_index existing_decl = ifc_template_definitions->get(templ);
+
+        if (!is_null_index(existing_decl)) {
+          a_string decl_idxs("Keeping ", index_to_str(existing_decl),
+                             " instead of ", index_to_str(decl_idx),
+                             "; the replacement would have been:");
+
+          print(decl_idxs, f_debug);
+          db_diff_decls(existing_decl, decl_idx);
+        }  /* if */
+      }  /* if */
+#endif /* DEBUG */
     }  /* if */
   }  /* if */
 }  /* finish_mep_processing */
