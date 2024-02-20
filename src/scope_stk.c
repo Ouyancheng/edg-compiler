@@ -13199,7 +13199,7 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
             a_field  *first_fp = fields_of(parent_class_of(fp));
             while (symbol_for(first_fp) != arg_prp->primary_pack_symbol) {
               first_fp = first_fp->next;
-            }  /* if */
+            }  /* while */
             arg_prp->primary_pack_symbol->variant.field.ptr = first_fp;
           }  /* if */
         } else {
