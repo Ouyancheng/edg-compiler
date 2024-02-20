@@ -1597,11 +1597,11 @@ The result is returned in the first operand (op_1 = op_1 % op_2).
 namespace {
 
 /*
-A struct used for designating an IL value formatted as a hex.
+A struct used for designating an IL value formatted in hexadecimal.
 */
 struct an_il_hex_integer {
   an_integer_value
-                *value; /* The value to print as hex. */
+                *value; /* The value to print in hexadecimal. */
   a_targ_size_t size;   /* The number of target bytes in the value's type. */
   an_il_hex_integer(an_integer_value *init_value, a_targ_size_t init_size)
     : value(init_value), size(init_size)
@@ -1694,10 +1694,10 @@ void String_formatter<an_il_hex_integer>::append_into(
                                            an_il_hex_integer value,
                                            size_t            size_hint)
 /*
-Append the characters representing in the given IL integer value in hex format
-into the underlying array.  size_hint is an overestimate (i.e., maximum) number
-of characters this value might use (plus a temporary null character -- for use
-by snprintf_impl).
+Append the characters representing in the given IL integer value in hexadecimal
+format into the underlying array.  size_hint is an overestimate (i.e., maximum)
+number of characters this value might use (plus a temporary null character --
+for use by snprintf_impl).
 */
 {
   int num_hex_digits_in_repr = (value.size * targ_char_bit) / 4;
