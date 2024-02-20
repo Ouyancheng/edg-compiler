@@ -38406,7 +38406,7 @@ FIXME: This is currently incomplete.
                          &start_pos, &operator_tok_seq_number,
                          (a_source_position *)NULL);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-  end_pos = rcblock->expr->expr_range.end;
+    end_pos = rcblock->expr->expr_range.end;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else {
     /* Normal, non-rescan, processing. */
