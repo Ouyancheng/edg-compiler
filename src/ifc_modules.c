@@ -115,7 +115,9 @@ a_string index_to_str(an_ifc_Index_type idx)
 Convert the given index value into a string representation.
 */
 {
-  a_string msg(str_for(idx.sort), " (", idx.value, ")");
+  a_module *mod = module_of(idx)->assoc_module_info;
+  a_string msg(str_for(idx.sort), "[", idx.value, "] (\"",
+               mod->full_name, "\")");
 
 #if DEBUG
   if (db_flag_is_set("ifc_idx")) {
