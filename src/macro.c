@@ -4628,6 +4628,9 @@ static a_boolean
 			   used in constexpr expressions.  Used for
 			   __has_feature(cxx_constexpr_string_builtins). */
 
+static a_boolean
+		cpp_static_call_operator_enabled;
+			/* TRUE if operator() can be a static member. */
 
 /*
 The following array describes all the clang __has_feature/__has_extension
@@ -4804,6 +4807,11 @@ static a_feature_support feature_support_list[] = {
     &sized_deallocation_enabled,
     "__cpp_sized_deallocation",
     "201309L" },
+  { "",
+    0,
+    &cpp_static_call_operator_enabled,
+    "__cpp_static_call_operator",
+    "202207L" },
   { "",
     0,
     &struct_bindings_enabled,
@@ -11538,6 +11546,7 @@ command line -D options.
                                     std_thread_local_storage_specifier_enabled;
   cxx_constexpr_string_builtins =
                    !C_mode() && constexpr_enabled && clang_version_is(>=40000);
+  cpp_static_call_operator_enabled = cpp23_mode;
   /* __cplusplus is defined to reflect the appropriate variant if we are
      compiling C++, left undefined otherwise.  In most modes, __cplusplus
      can be redefined as this is needed in some environments.  In Microsoft
