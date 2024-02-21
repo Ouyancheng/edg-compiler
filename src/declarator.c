@@ -2611,13 +2611,14 @@ this is a helper function.
     do {
       done_with_quals = TRUE;
       if (curr_token == tok_mutable) {
-        mutable_seen = TRUE;
         if (has_explicit_this_parameter(rout_type)) {
           /* Lambdas with an explicit "this" parameter cannot be "mutable". */
           pos_error(ec_mutable_qualifier_on_explicit_this_lambda,
                     &error_position);
         } else if (state->storage_class == sc_static) {
           pos_error(ec_lambda_mutable_and_static, &pos_curr_token);
+        } else if (mutable_seen) {
+          pos_error(ec_dupl_decl_specifier, &pos_curr_token);
         } else if (func_info->lambda != NULL) {
           func_info->lambda->is_mutable = TRUE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -2629,6 +2630,7 @@ this is a helper function.
           check_assertion(scope_is(&scope_stack_top()-1,
                                    sck_template_instantiation));
         }  /* if */
+        mutable_seen = TRUE;
         (void)get_token();
         done_with_quals = FALSE;
       } else if (curr_token == tok_constexpr || curr_token == tok_consteval) {
