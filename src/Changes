@@ -1,5 +1,21 @@
 Version 6.7
 
+2/21/24  [EDGcpfe/27031]
+GNU-mode abort on invalid call in template
+
+Consider, in GNU C++17 mode:
+
+  template<typename... Ts> struct S {
+    template<typename C> S(C *obj, void (C::*pmf)(Ts ...ps)) {
+      pmf(1);
+    }
+  };
+
+The call pmf(1) is invalid, but the front accepts the syntax in GNU-mode
+templates.  However, it previously aborted due to an error attempting to
+constant-evaluate the erroneous call.  That is now fixed.
+
+
 2/20/24  [EDGcpfe/26739]
 Abort on conversion of lambda with explicit-this parameter
 

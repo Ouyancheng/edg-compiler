@@ -14147,7 +14147,7 @@ by this_bytes.
       do_constexpr_fail(result);
       goto done;
     }  /* if */
-  } else {
+  } else if (is_immediate_class_type(tp)) {
     /* The call is on a class rvalue.  E.g., "X().f();". */
     a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
     a_byte        *class_bytes;
@@ -14161,6 +14161,11 @@ by this_bytes.
     /* Store the address of the class in *this_bytes. */
     set_active_address(ips, (a_constexpr_address*)this_bytes,
                        class_bytes, class_bytes);
+  } else {
+    /* This is possible in templates in some modes. */
+    do_constexpr_fail(result);
+    info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                  &arg->position, ips);
   }  /* if */
   mark_complete_object_initialized(this_bytes);
 done:
