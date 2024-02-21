@@ -18,14 +18,53 @@ ifc_modules_templ.c -- Microsoft-specific IFC module code template code that's
 #include "basic_hdrs.h"
 #include "fe_common.h"
 #include "ifc_modules.h"
-#if MICROSOFT_EXTENSIONS_ALLOWED
 #include "ifc_map_functions.h"
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED && !STANDALONE_UTILITY_PROGRAM
+#if !STANDALONE_UTILITY_PROGRAM
 
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
+
+a_boolean is_for_read(an_ifc_module_file *file)
+/*
+Return TRUE if the given module file is for a module read operation.  Return
+FALSE if the given module file is for a module write operation.
+
+This function provides a definition for the declaration in ifc_map.h.  This
+allows ifc_map.h to function without a complete definition of
+an_ifc_module_file.
+*/
+{
+  return file->is_for_read();
+}  /* is_for_read */
+
+
+template<typename an_ifc_Storage_type>
+size_t get_byte_buffer_size(an_ifc_module_file *file)
+/*
+Return the number of bytes required to store a node of the given storage type
+in the current module file version.
+
+This function provides a definition for the declaration in ifc_map.h.  This
+allows ifc_map.h to function without numerous forward declarations (of
+get_ifc_buffer_size) or specializations (of the Byte_buffer_entry
+constructor).
+*/
+{
+  return get_ifc_buffer_size<an_ifc_Storage_type>(file);
+}  /* get_byte_buffer_size */
+
+
+/* Macro used to explicitly instantiate
+   Byte_buffer_entity::Byte_buffer_entity. */
+#define INST_NODE_DECL(idx_type) \
+  template \
+  size_t get_byte_buffer_size<idx_type>(an_ifc_module_file *file);
+
+
+/* Manually-defined explicit instantiations explicitly instantiate
+   Byte_buffer_entity::Byte_buffer_entity. */
+/* none */
 
 
 template<typename an_ifc_Index_type>
@@ -141,7 +180,9 @@ Return a pointer to the ifc partition metadata object associated with the given
 index.
 */
 {
-  return &idx.file->mod->get_partition_metadata(get_partition_kind(idx));
+  an_ifc_partition_kind part_kind = get_partition_kind(idx);
+
+  return &idx.file->get_read_state().mod->get_partition_metadata(part_kind);
 }  /* get_partition_metadata */
 
 
@@ -685,7 +726,7 @@ END_EDG_NAMESPACE
 #include "ifc_modules_spec.h"
 #include "ifc_modules_inst.h"
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !STANDALONE_UTILITY_PROGRAM */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /******************************************************************************
 *                                                             \  ___  /       *

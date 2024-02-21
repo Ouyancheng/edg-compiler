@@ -118,6 +118,8 @@ enum an_option_kind {
   optk_pch_mem,
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
   optk_pch_dir,
+  optk_create_module_header_unit,
+  optk_map_module_header_unit,
   optk_restrict,
   optk_long_lifetime_temps,
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -540,7 +542,8 @@ EXTERN a_header_unit_map
 			/* A map for header units to find the corresponding
 			   module file.  Keys are (resolved) header paths,
 			   values are module file paths.  This map corresponds
-			   to command-line option "--ms_header_unit". */
+			   to command-line option "--header_unit" (and the
+			   legacy option "--ms_header_unit"). */
 EXTERN a_header_unit_map
 		*header_unit_quote_map;
 			/* A map for header units to find the corresponding
@@ -553,7 +556,6 @@ EXTERN a_header_unit_map
 			   module file.  Keys are (unresolved) header paths,
 			   values are module file paths.  This map corresponds
 			   to command-line option "--ms_header_unit_angle". */
-
 
 /*
 If the heuristic used to determine whether a virtual function table
@@ -1389,6 +1391,16 @@ EXTERN a_const_char
 EXTERN a_boolean
 		c11_atomic_enabled;
 			/* TRUE if support for C11 _Atomic types is enabled. */
+
+EXTERN a_boolean
+		create_module_header_unit;
+			/* TRUE if this compilation should create a header
+			   unit. */
+
+EXTERN a_const_char
+		*module_header_unit_output_file_name;
+			/* When create_header_unit is TRUE, this specifies the
+			   name of the header unit file to be created. */
 
 EXTERN a_boolean
 		restrict_enabled;

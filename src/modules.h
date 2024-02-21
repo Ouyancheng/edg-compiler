@@ -78,12 +78,10 @@ struct a_module_entity {
                         /* TRUE if this is an entity owned by the "global
                            module". */
   union {
-#if MICROSOFT_EXTENSIONS_ALLOWED
     an_ifc_partition_kind
                 ifc_partition;
                         /* Specifies which IFC partition the module entity
                            belongs to. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } variant;
 };  /* a_module_entity */
 
@@ -96,7 +94,7 @@ FIXME: For PCH, f_module needs to be re-opened and mmap_addr recomputed.
 */
 struct a_module_interface {
 #if !USE_VIRTUAL_FUNCTIONS
-  a_module_kind mod_kind = (a_module_kind)mk_none;
+  a_module_kind mod_kind = mk_none;
                         /* What kind of module this interface is for.  This
                            indicates which class has inherited this module and
                            is used to emulate virtual function dispatch. */
@@ -595,6 +593,8 @@ extern void modules_one_time_init();
 extern void modules_init();
 
 extern void modules_trans_unit_wrapup();
+
+extern void modules_write_out();
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

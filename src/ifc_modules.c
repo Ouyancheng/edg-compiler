@@ -9,17 +9,16 @@
 ******************************************************************************/
 /*
 
-ifc_modules.c -- Microsoft-specific IFC module code
+ifc_modules.c -- IFC reading code.
 
 */
 
-#include "basic_hdrs.h"
+/* Header files common to all files. */
 #include "fe_common.h"
-#include "ifc_modules.h"
-#if MICROSOFT_EXTENSIONS_ALLOWED
-#include "ifc_map_functions.h"
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+/* Additional header files. */
+#include "ifc_modules.h"
+#include "ifc_map_functions.h"
 #include "class_decl.h"
 #include "decl_spec.h"
 #include "exprutil.h"
@@ -31,7 +30,7 @@ ifc_modules.c -- Microsoft-specific IFC module code
 #include "interpret.h"
 #include "folding.h"
 
-#if MICROSOFT_EXTENSIONS_ALLOWED && !STANDALONE_UTILITY_PROGRAM
+#if !STANDALONE_UTILITY_PROGRAM
 
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
@@ -564,8 +563,10 @@ the offset from the start of the memory mapped region to be read.  length is
 its size, in bytes.
 */
 {
-  file->byte_buffer = (unsigned char*)file->mmap_addr + offset;
-  file->buffer_end = file->byte_buffer + length - 1;
+  an_ifc_module_file_read_state &read_state = file->get_read_state();
+
+  read_state.byte_buffer = (unsigned char*)read_state.mmap_addr + offset;
+  read_state.buffer_end = read_state.byte_buffer + length - 1;
 }  /* init_byte_buffer */
 
 
@@ -577,22 +578,28 @@ Fetch a block of bytes from the IFC file, and check for reading past the end of
 the buffer.
 */
 {
+  an_ifc_module_file_read_state &read_state = file->get_read_state();
+
   /* Check for fetching too many bytes. */
-  if (((unsigned char*)file->byte_buffer + length - 1) > file->buffer_end) {
+  if ((read_state.byte_buffer + length - 1) > read_state.buffer_end) {
     (void)buffer_overrun();
   }  /* if */
-  memcpy((a_byte*)entity, file->byte_buffer, length);
-  file->byte_buffer += length;
+  memcpy((a_byte*)entity, read_state.byte_buffer, length);
+  read_state.byte_buffer += length;
 }  /* get_bytes_from_buffer */
 
 
+inline void get_byte(an_ifc_module_file *file,
+                     unsigned char      *byte)
 /*
-Macro to fetch a single byte from the IFC file.
+Fetch a single byte into *byte from the given IFC file.
 */
-#define get_byte(file, byte)                                                  \
-  (*((unsigned char*)(byte)) = (((file)->byte_buffer <=                       \
-                                 (file)->buffer_end) ?                        \
-                                  *((file)->byte_buffer)++ : buffer_overrun()))
+{
+  an_ifc_module_file_read_state &read_state = file->get_read_state();
+
+  *byte = read_state.byte_buffer <= read_state.buffer_end ?
+                              *(read_state.byte_buffer)++ : buffer_overrun();
+}  /* get_byte */
 
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
 
@@ -759,15 +766,18 @@ Utility to print some debug information for every access to an IFC module file.
 {
   if (db_flag_is_set("ifc_modules")) {
     if (debug_partition != NULL) {
+      const an_ifc_module_file_read_state &rs_ref =
+                                                   this->file.get_read_state();
+
       (void)fprintf(f_debug, "[%s:0x%08lx:%d] = ",
                     debug_partition->name,
 #if USE_MMAP_FOR_MEMORY_REGIONS
-                    (unsigned long)((char *)this->file.byte_buffer -
-                                    ((char *)this->file.mmap_addr +
+                    (unsigned long)((char *)rs_ref.byte_buffer -
+                                    ((char *)rs_ref.mmap_addr +
                                      debug_partition->offset) - length),
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
                     (unsigned long)
-               (ftell(this->file.f_module) - debug_partition->offset - length),
+                   (ftell(rs_ref.f_module) - debug_partition->offset - length),
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
                     (int)length);
     }  /* if */
@@ -833,7 +843,8 @@ additional checks for debug modes.  Return the reinterpreted pointer.
 #if USE_VIRTUAL_FUNCTIONS
   check_assertion(dynamic_cast<an_ifc_module*>(interface) != NULL);
 #else /* !USE_VIRTUAL_FUNCTIONS */
-  check_assertion(interface->mod_kind == mk_ifc);
+  check_assertion(interface->mod_kind == mk_ms_ifc ||
+                  interface->mod_kind == mk_edg_ifc);
 #endif /* USE_VIRTUAL_FUNCTIONS */
   return (an_ifc_module*)interface;
 }  /* get_as_an_ifc_module */
@@ -1085,30 +1096,45 @@ key).
 }  /* as_key */
 
 
+an_ifc_module_file::an_ifc_module_file(a_module_kind mk,
+                     /* Defaulted: */  a_boolean     for_read_val)
+/*
+Construct a new IFC module file with the given module kind. for_read_val should
+be TRUE if this IFC module file is being constructed for a read operation.
+for_read_val should be FALSE if this IFC module file is being constructed for a
+write operation.
+*/
+  : module_kind(mk), for_read(for_read_val)
+{
+  if (this->for_read) {
+    this->read_state = {};
+  } else {
+    this->write_state = {};
+  }  /* if */
+}  /* an_ifc_module_file::an_ifc_module_file */
+
+
 an_ifc_module_file::an_ifc_module_file(an_ifc_module_file &&old)
 /*
 Move construct from the given IFC module file.
 */
-  : an_ifc_module_file()
+  : an_ifc_module_file(old.module_kind)
 {
-  swap_at(&old.mod, &this->mod);
-  swap_at(&old.f_module, &this->f_module);
-  swap_at(&old.f_size, &this->f_size);
-  swap_at(&old.version_major, &this->version_major);
-  swap_at(&old.version_minor, &this->version_minor);
+  this->version_major = old.version_major;
+  this->version_minor = old.version_minor;
 #if !ASSUME_LITTLE_ENDIAN_IFC_MODULES
   swap_at(&old.endianness, &this->endianness);
 #endif /* !ASSUME_LITTLE_ENDIAN_IFC_MODULES */
-#if USE_MMAP_FOR_MEMORY_REGIONS
-  swap_at(&old.mmap_addr, &this->mmap_addr);
-  swap_at(&old.mmap_size, &this->mmap_size);
-#if EDG_WIN32
-  swap_at(&old.mapped_input, &this->mapped_input);
-  swap_at(&old.map_object, &this->map_object);
-#endif /* EDG_WIN32 */
-  swap_at(&old.byte_buffer, &this->byte_buffer);
-  swap_at(&old.buffer_end, &this->buffer_end);
-#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+  swap_at(&old.f_module, &this->f_module);
+  if (old.for_read) {
+    this->for_read = TRUE;
+    construct(&this->read_state);
+    swap_at(&old.read_state, &this->read_state);
+  } else {
+    this->for_read = FALSE;
+    construct(&this->write_state);
+    swap_at(&old.write_state, &this->write_state);
+  }  /* if */
 }  /* an_ifc_module_file::an_ifc_module_file */
 
 
@@ -1117,24 +1143,10 @@ an_ifc_module_file &an_ifc_module_file::operator=(an_ifc_module_file &&old)
 Move from the given IFC module file, returning self.
 */
 {
-  swap_at(&old.mod, &this->mod);
-  swap_at(&old.f_module, &this->f_module);
-  swap_at(&old.f_size, &this->f_size);
-  swap_at(&old.version_major, &this->version_major);
-  swap_at(&old.version_minor, &this->version_minor);
-#if !ASSUME_LITTLE_ENDIAN_IFC_MODULES
-  swap_at(&old.endianness, &this->endianness);
-#endif /* !ASSUME_LITTLE_ENDIAN_IFC_MODULES */
-#if USE_MMAP_FOR_MEMORY_REGIONS
-  swap_at(&old.mmap_addr, &this->mmap_addr);
-  swap_at(&old.mmap_size, &this->mmap_size);
-#if EDG_WIN32
-  swap_at(&old.mapped_input, &this->mapped_input);
-  swap_at(&old.map_object, &this->map_object);
-#endif /* EDG_WIN32 */
-  swap_at(&old.byte_buffer, &this->byte_buffer);
-  swap_at(&old.buffer_end, &this->buffer_end);
-#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+  if (this != &old) {
+    destroy(this);
+    construct(this, move_from(&old));
+  }  /* if */
   return *this;
 }  /* an_ifc_module_file::operator= */
 
@@ -1145,13 +1157,22 @@ Close the module file.
 */
 {
   if (this->f_module != NULL) {
-    (void)fclose(this->f_module);
+    if (this->for_read) {
+      (void)fclose(this->f_module);
+    } else {
+      (void)close_output_file_with_error_handling(&this->f_module,
+                                                  this->write_state.file_kind);
+    }  /* if */
     this->f_module = NULL;
 #if USE_MMAP_FOR_MEMORY_REGIONS
 #if EDG_WIN32
-    close_mapped_input_file(mapped_input, map_object);
-    this->mapped_input = NULL;
-    this->map_object = NULL;
+    if (this->for_read) {
+      an_ifc_module_file_read_state &rs_ref = this->read_state;
+
+      close_mapped_input_file(rs_ref.mapped_input, rs_ref.map_object);
+      rs_ref.mapped_input = NULL;
+      rs_ref.map_object = NULL;
+    }  /* if */
 #endif /* EDG_WIN32 */
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   }  /* if */
@@ -1251,7 +1272,7 @@ Given a module reference, import the referenced module.
                                                    /*is_interface=*/TRUE,
                                                    &null_source_position);
 
-      midp->module_info = alloc_module((a_module_kind)mk_ifc);
+      midp->module_info = alloc_module(mk_ms_ifc);
       midp->module_info->name = module_sym->header->identifier;
       import_module(midp, module_sym);
     }  /* if */
@@ -1316,13 +1337,20 @@ module file if it was successfully opened; otherwise, return an empty optional.
     if (fread(magic, (size_t)1, sizeof(magic), file_handle) != sizeof(magic)) {
       goto error;
     }  /* if */
-    /* Verify the magic number (this works for both big and little endian
-       machines). */
-    if (!magic_numbers_match(magic, ifc_magic_numbers)) {
+
+    /* Verify the magic number and determine the module kind (this works for
+       both big and little endian machines). */
+    a_module_kind module_kind;
+    if (magic_numbers_match(magic, ms_ifc_magic_numbers)) {
+      module_kind = mk_ms_ifc;
+    } else if (magic_numbers_match(magic, edg_ifc_magic_numbers)) {
+      module_kind = mk_edg_ifc;
+    } else {
       goto error;
     }  /* if */
 
-    an_ifc_module_file file;
+    an_ifc_module_file            file(module_kind);
+    an_ifc_module_file_read_state &read_state = file.get_read_state();
     /* Map the module file into the address space of the process.  The
        process is a little different on Windows environments.  Note that we
        do not map the file "read-only" because some strings from the string
@@ -1330,23 +1358,26 @@ module file if it was successfully opened; otherwise, return an empty optional.
        becomes "__noname_enum_x_"). */
 #if USE_MMAP_FOR_MEMORY_REGIONS
 #if EDG_WIN32
-    open_mapped_input_file(file_path, &file.mapped_input, &file.map_object);
+    open_mapped_input_file(file_path, &read_state.mapped_input,
+                           &read_state.map_object);
 #endif /* EDG_WIN32 */
-    file.mmap_size = stat_buf.st_size;
-    file.mmap_addr = map_input_file_to_region(file_handle,
+    read_state.mmap_size = stat_buf.st_size;
+    read_state.mmap_addr = map_input_file_to_region(file_handle,
 #if EDG_WIN32
-                                              file.map_object,
+                                                    read_state.map_object,
 #else /* !EDG_WIN32 */
-                                              (a_windows_handle)0,
+                                                    (a_windows_handle)0,
 #endif /* EDG_WIN32 */
-                                              /*read_only=*/TRUE, (sizeof_t)0,
-                                              file.mmap_size, NULL,
-                                              file_path);
-    check_assertion(file.mmap_addr != NULL);
-    file.f_size = file.mmap_size;
+                                                    /*read_only=*/TRUE,
+                                                    (sizeof_t)0,
+                                                    read_state.mmap_size,
+                                                    NULL,
+                                                    file_path);
+    check_assertion(read_state.mmap_addr != NULL);
+    read_state.f_size = read_state.mmap_size;
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
     fseek(file_handle, 0, SEEK_END);
-    file.f_size = (size_t)ftell(file_handle);
+    read_state.f_size = (size_t)ftell(file_handle);
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
     file.f_module = file_handle;
     /* Assign the created file. */
@@ -1376,16 +1407,18 @@ information provided by its header.
                                             get_ifc_string_table_bytes(header);
   an_ifc_cardinality         string_table_size =
                                              get_ifc_string_table_size(header);
+  an_ifc_module_file_read_state
+                             &read_state = file->get_read_state();
 
   result.size = string_table_size;
 #if USE_MMAP_FOR_MEMORY_REGIONS
-  result.contents = (char*)file->mmap_addr + string_table_bytes;
+  result.contents = (char*)read_state.mmap_addr + string_table_bytes;
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
   result.contents = alloc_general(get_ifc_string_table_size(header));
-  fseek(file->f_module, string_table_bytes, SEEK_SET);
+  fseek(read_state.f_module, string_table_bytes, SEEK_SET);
 
   size_t bytes_read = fread((void*)result.contents, 1,
-                            string_table_size, file->f_module);
+                            string_table_size, read_state.f_module);
   if (bytes_read != string_table_size) {
     unexpected_condition_str("Failed to load the IFC module string table");
   }  /* if */
@@ -1399,7 +1432,7 @@ static an_ifc_file_header read_file_header(an_ifc_module_file *file)
 Given an IFC module file, read and return the associated IFC file header.
 */
 {
-  init_byte_buffer(file, 4, file->f_size - 4);
+  init_byte_buffer(file, 4, file->get_read_state().f_size - 4);
   return construct_node_from_module<an_ifc_file_header>(file);
 }  /* read_file_header */
 
@@ -1943,6 +1976,7 @@ return FALSE.
   return result;
 }  /* is_class_scope */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_boolean is_interfance_scope(const an_ifc_decl_scope &scope_decl)
 /*
@@ -1971,6 +2005,7 @@ done:
   return result;
 }  /* is_interfance_scope */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_type_kind get_csu_type_kind(const an_ifc_decl_scope &scope_decl)
 /*
@@ -3533,7 +3568,7 @@ location as the original.
      as we don't want to trigger the destructor of the file (a file handle
      pointer that's no longer valid can still be present, which will cause a
      segfault upon an_ifc_module_file::close). */
-  new (&mod_iface->file) an_ifc_module_file();
+  new (&mod_iface->file) an_ifc_module_file(mk_none);
   /* Any diagnostics related to opening the module file were already issued
      when the PCH file was first created. */
   if (!open_and_map_ifc_module_file(midp, /*issue_diag=*/FALSE)) {
@@ -9328,10 +9363,12 @@ strongly preferred over calling this function directly.
 
               a_type_kind type_kind = get_csu_type_kind(scope_decl);
               a_type_ptr  tag_type = alloc_type(type_kind);
+#if MICROSOFT_EXTENSIONS_ALLOWED
               if (is_interfance_scope(scope_decl)) {
                 tag_type->variant.class_struct_union.is_interface = TRUE;
                 tag_type->variant.class_struct_union.abstract = TRUE;
               }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               tag_sym->variant.class_struct_union.type = tag_type;
               set_source_corresp(&(tag_type->source_corresp), tag_sym);
               if (!decl_is_named) {
@@ -10930,11 +10967,15 @@ Print the corresponding file and line number for the source location
 (for debugging purposes).
 */
 {
-  an_ifc_module_file *file = locus.get_file();
-  a_const_char       *full_name, *diag_file_name;
-  a_line_number      line_number;
-  a_boolean          at_end_of_source;
-  a_source_position  pos;
+  an_ifc_module_file
+                *file = locus.get_file();
+  an_ifc_module_file_read_state
+                &read_state = file->get_read_state();
+  a_const_char  *full_name, *diag_file_name;
+  a_line_number line_number;
+  a_boolean     at_end_of_source;
+  a_source_position
+                pos;
 
   diag_file_name = "";
   /* Save global information related to position before calling
@@ -10943,10 +10984,10 @@ Print the corresponding file and line number for the source location
   const an_ifc_partition_metadata *save_debug_partition = debug_partition;
 #endif /* DEBUG && EXPENSIVE_CHECKING */
 #if USE_MMAP_FOR_MEMORY_REGIONS
-  unsigned char *save_byte_buffer = file->byte_buffer;
-  unsigned char *save_buffer_end = file->buffer_end;
+  unsigned char *save_byte_buffer = read_state.byte_buffer;
+  unsigned char *save_buffer_end = read_state.buffer_end;
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
-  long save_seek = ftell(file->f_module);
+  long save_seek = ftell(read_state.f_module);
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   source_position_from_locus(&pos, locus);
   /* Restore saved information. */
@@ -10954,10 +10995,10 @@ Print the corresponding file and line number for the source location
   debug_partition = save_debug_partition;
 #endif /* DEBUG && EXPENSIVE_CHECKING */
 #if USE_MMAP_FOR_MEMORY_REGIONS
-  file->byte_buffer = save_byte_buffer;
-  file->buffer_end = save_buffer_end;
+  read_state.byte_buffer = save_byte_buffer;
+  read_state.buffer_end = save_buffer_end;
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
-  (void)fseek(file->f_module, save_seek, SEEK_SET);
+  (void)fseek(read_state.f_module, save_seek, SEEK_SET);
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   if (pos.seq != 0) {
     (void)conv_seq_to_file_and_line(pos.seq, &diag_file_name,
@@ -11305,7 +11346,7 @@ diagnostics if issue_diag is TRUE.
       static_assert(sizeof(an_ifc_partition_storage) == 16,
                     "Partition storage is larger than expected");
       init_byte_buffer(&this->file, toc + (16 * i),
-                       this->file.f_size - (size_t)toc);
+                       this->file.get_read_state().f_size - (size_t)toc);
       an_ifc_partition ip =
                      construct_node_from_module<an_ifc_partition>(&this->file);
 
@@ -11499,7 +11540,7 @@ issue_diag == TRUE) otherwise.
     /* Establish the association between the IFC file and the IFC module
        interface. */
     mod_iface->file = move_from(&(*opt_file));
-    mod_iface->file.mod = mod_iface;
+    mod_iface->file.get_read_state().mod = mod_iface;
   } else if (issue_diag) {
     /* FIXME: perhaps better error messages here. */
     pos_error(ec_cannot_import_module, &midp->module_name_position,
@@ -11755,7 +11796,8 @@ been confirmed to exist and the path stored in midp.
   a_module_ptr mod = midp->module_info;
   a_boolean    result = FALSE;
 
-  check_assertion(midp->module_info->kind == (a_module_kind)mk_ifc);
+  check_assertion(midp->module_info->kind == mk_ms_ifc ||
+                  midp->module_info->kind == mk_edg_ifc);
   check_assertion(mod->name != NULL && mod->full_name != NULL);
   check_assertion(mod->module_interface == this);
   if (open_and_map_ifc_module_file(midp, /*issue_diag=*/TRUE)) {
@@ -15826,6 +15868,7 @@ exit_ifc_rescan is required; otherwise, return FALSE.
   return result;
 }  /* extract_tokens_for_ifc_module_expr */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void cache_pragma(a_module_token_cache_ptr cache,
                          a_pragma_kind            kind,
@@ -15865,6 +15908,7 @@ rules of position inference).
 #endif /* DEBUG */
 }  /* cache_pragma */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void cache_pp_token(a_module_token_cache_ptr cache,
                            a_const_char             *text,
@@ -16085,6 +16129,7 @@ the kind of literal.
     case ifc_sls_defined_string:
       cache_string(cache, literal.variant.defined_string);
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
     case ifc_sls_msvc:
       break;
     case ifc_sls_msvc_function_name_macro:
@@ -16193,6 +16238,16 @@ the kind of literal.
       cache_type(cache, literal.variant.msvc_cast_target_type, /*cinfo=*/{});
       cache_token(cache, tok_rparen);
       break;
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+    case ifc_sls_msvc:
+    case ifc_sls_msvc_function_name_macro:
+    case ifc_sls_msvc_string_prefix_macro:
+    case ifc_sls_msvc_binding:
+    case ifc_sls_msvc_resolved_type:
+    case ifc_sls_msvc_defined_constant:
+    case ifc_sls_msvc_cast_target_type:
+      goto invalid;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     default_is_unexpected_str("Unknown SourceLiteral");
   }  /* switch */
   goto done;
@@ -16639,6 +16694,7 @@ Add tokens corresponding to keyword (from the given module) to cache.
     case ifc_sks_while:
       cache_token(cache, tok_while);
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
     case ifc_sks_msvc_asm:
       cache_token(cache, tok_microsoft_asm);
       break;
@@ -16903,6 +16959,96 @@ Add tokens corresponding to keyword (from the given module) to cache.
     case ifc_sks_msvc_confused_alignas:
       cache_token(cache, tok_alignas);
       break;
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+    case ifc_sks_msvc_asm:
+    case ifc_sks_msvc_assume:
+    case ifc_sks_msvc_alignof:
+    case ifc_sks_msvc_based:
+    case ifc_sks_msvc_cdecl:
+    case ifc_sks_msvc_clrcall:
+    case ifc_sks_msvc_declspec:
+    case ifc_sks_msvc_event:
+    case ifc_sks_msvc_seh_except:
+    case ifc_sks_msvc_fastcall:
+    case ifc_sks_msvc_seh_finally:
+    case ifc_sks_msvc_forceinline:
+    case ifc_sks_msvc_identifier:
+    case ifc_sks_msvc_if_exists:
+    case ifc_sks_msvc_if_not_exists:
+    case ifc_sks_msvc_int8:
+    case ifc_sks_msvc_int16:
+    case ifc_sks_msvc_int32:
+    case ifc_sks_msvc_int64:
+    case ifc_sks_msvc_int128:
+    case ifc_sks_msvc_interface:
+    case ifc_sks_msvc_leave:
+    case ifc_sks_msvc_nullptr:
+    case ifc_sks_msvc_ptr32:
+    case ifc_sks_msvc_ptr64:
+    case ifc_sks_msvc_restrict:
+    case ifc_sks_msvc_sptr:
+    case ifc_sks_msvc_stdcall:
+    case ifc_sks_msvc_super:
+    case ifc_sks_msvc_thiscall:
+    case ifc_sks_msvc_seh_try:
+    case ifc_sks_msvc_uptr:
+    case ifc_sks_msvc_uuidof:
+    case ifc_sks_msvc_unaligned:
+    case ifc_sks_msvc_vectorcall:
+    case ifc_sks_msvc_w64:
+    case ifc_sks_msvc_is_class:
+    case ifc_sks_msvc_is_union:
+    case ifc_sks_msvc_is_enum:
+    case ifc_sks_msvc_is_polymorphic:
+    case ifc_sks_msvc_is_empty:
+    case ifc_sks_msvc_has_trivial_constructor:
+    case ifc_sks_msvc_is_trivially_constructible:
+    case ifc_sks_msvc_is_trivially_copy_assignable:
+    case ifc_sks_msvc_is_trivially_destructible:
+    case ifc_sks_msvc_has_virtual_destructor:
+    case ifc_sks_msvc_is_nothrow_constructible:
+    case ifc_sks_msvc_is_pod:
+    case ifc_sks_msvc_is_abstract:
+    case ifc_sks_msvc_is_base_of:
+    case ifc_sks_msvc_is_convertibleto:
+    case ifc_sks_msvc_is_trivial:
+    case ifc_sks_msvc_is_trivially_copyable:
+    case ifc_sks_msvc_is_standard_layout:
+    case ifc_sks_msvc_is_literal_type:
+    case ifc_sks_msvc_has_trivial_move_assign:
+    case ifc_sks_msvc_is_constructible:
+    case ifc_sks_msvc_underlying_type:
+    case ifc_sks_msvc_is_trivially_assignable:
+    case ifc_sks_msvc_is_nothrow_assignable:
+    case ifc_sks_msvc_is_destructible:
+    case ifc_sks_msvc_is_nothrow_destructible:
+    case ifc_sks_msvc_is_assignable:
+    case ifc_sks_msvc_is_assignable_no_check:
+    case ifc_sks_msvc_has_unique_object_representations:
+    case ifc_sks_msvc_is_aggregate:
+    case ifc_sks_msvc_builtin_address_of:
+    case ifc_sks_msvc_builtin_offset_of:
+    case ifc_sks_msvc_builtin_bit_cast:
+    case ifc_sks_msvc_builtin_is_layout_compatible:
+    case ifc_sks_msvc_builtin_is_pointer_interconvertible_base_of:
+    case ifc_sks_msvc_builtin_is_pointer_interconvertible_with_class:
+    case ifc_sks_msvc_builtin_is_corresponding_member:
+    case ifc_sks_msvc_is_ref_class:
+    case ifc_sks_msvc_is_value_class:
+    case ifc_sks_msvc_is_simple_value_class:
+    case ifc_sks_msvc_is_interface_class:
+    case ifc_sks_msvc_is_delegate:
+    case ifc_sks_msvc_is_final:
+    case ifc_sks_msvc_is_sealed:
+    case ifc_sks_msvc_has_finalizer:
+    case ifc_sks_msvc_has_copy:
+    case ifc_sks_msvc_has_assign:
+    case ifc_sks_msvc_has_user_destructor:
+    case ifc_sks_msvc_pack_cardinality:
+    case ifc_sks_msvc_confused_sizeof:
+    case ifc_sks_msvc_confused_alignas:
+      goto invalid;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     default_is_unexpected_str("Unknown SourceKeyword");
   }  /* switch */
   goto done;
@@ -17117,6 +17263,27 @@ an empty optional if the node is not valid.
 
 }  /* namespace */
 
+static void update_cache_pos_from_word(a_module_token_cache     *cache,
+                                       a_source_position        *pos_hint,
+                                       const an_ifc_source_word &word)
+/*
+Given the cache, pointer to the corresponding position hint storage, and the
+word to read locus information from, if the word's locus can be decoded into a
+front end source position, update *pos_hint to this value and set the position
+hint for the cache to said value.
+*/
+{
+  a_source_position      loc_pos;
+  an_ifc_source_location locus = get_ifc_locus(word);
+
+  if (source_position_from_locus(&loc_pos, locus)) {
+    *pos_hint = loc_pos;
+    cache->set_position_hint(pos_hint);
+  }  /* if */
+}  /* update_cache_pos_from_word */
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
 static a_boolean is_source_directive(const an_ifc_source_word     &word,
                                      an_ifc_source_directive_sort sort)
 /*
@@ -17195,26 +17362,6 @@ invalid:
 done:
   return result;
 }  /* find_end_of_source_directive */
-
-
-static void update_cache_pos_from_word(a_module_token_cache     *cache,
-                                       a_source_position        *pos_hint,
-                                       const an_ifc_source_word &word)
-/*
-Given the cache, pointer to the corresponding position hint storage, and the
-word to read locus information from, if the word's locus can be decoded into a
-front end source position, update *pos_hint to this value and set the position
-hint for the cache to said value.
-*/
-{
-  a_source_position      loc_pos;
-  an_ifc_source_location locus = get_ifc_locus(word);
-
-  if (source_position_from_locus(&loc_pos, locus)) {
-    *pos_hint = loc_pos;
-    cache->set_position_hint(pos_hint);
-  }  /* if */
-}  /* update_cache_pos_from_word */
 
 
 static a_boolean handle_one_word_source_directive(
@@ -17420,6 +17567,7 @@ done:
   return result;
 }  /* handle_source_directive */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_boolean is_empty_string_word(const an_ifc_source_word &word)
 /*
@@ -17539,6 +17687,7 @@ processing.
     a_cached_token_ptr ctp = cache->get_last_token();
     an_ifc_source_word &word = word_stream.current_word();
     update_cache_pos_from_word(cache, &pos_hint, word);
+#if MICROSOFT_EXTENSIONS_ALLOWED
     if (is_source_directive_start(word)) {
       /* Handle source directives (which are marked by a start and end
          word). */
@@ -17551,7 +17700,10 @@ processing.
         goto invalid;
       }  /* if */
       goto done_with_token;
-    } else if (word_stream.has_next_word()) {
+    } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not add code here. */
+    if (word_stream.has_next_word()) {
       Opt<an_ifc_source_word> opt_next_word = word_stream.next_word();
 
       if (!opt_next_word.has_value()) {
@@ -18002,6 +18154,7 @@ Cache the noexcept-specifier for the given function-like type.
   cache_noexcept_specifier(cache, eh_spec);
 }  /* cache_func_type_noexcept_specifier */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void cache_calling_convention(a_module_token_cache_ptr       cache,
                                      an_ifc_calling_convention_sort convention)
@@ -18053,6 +18206,7 @@ type.
   cache_calling_convention(cache, convention);
 }  /* cache_func_type_calling_convention */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 template<typename an_ifc_Node_type>
 static void cache_func_type_return_type(a_module_token_cache_ptr     cache,
@@ -18262,13 +18416,14 @@ Cache the noexcept-specifier for the given destructor.
 
 
 static void cache_func_vendor_decl_specifier_seq(
-                                             a_module_token_cache_ptr cache,
-                                             an_ifc_decl_index        decl_idx)
+                                  ARG_UNUSED a_module_token_cache_ptr cache,
+                                  ARG_UNUSED an_ifc_decl_index        decl_idx)
 /*
 Cache the vendor-specific portion of the decl-specifier-seq for the
 function-like declaration at the given declaration index.
 */
 {
+#if MICROSOFT_EXTENSIONS_ALLOWED
   an_ifc_module               *mod = module_of(decl_idx);
   an_ifc_msvc_traits_bitfield msvc_traits = mod->get_vendor_traits(decl_idx);
 
@@ -18312,6 +18467,7 @@ function-like declaration at the given declaration index.
   if (test_bitmask<ifc_mtb_select_any>(msvc_traits)) {
     cache_declspec_fn("selectany");
   }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* cache_func_vendor_decl_specifier_seq */
 
 
@@ -18483,6 +18639,7 @@ context to help inform decisions about what to cache.
   cache_func_noexcept_specifier(cache, decl);
 }  /* cache_func_parameters_and_qualifiers */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 template<typename an_ifc_Node_type>
 static void cache_func_calling_convention(a_module_token_cache_ptr cache,
@@ -18558,6 +18715,7 @@ Cache a token representing the calling convention for the given destructor.
   cache_calling_convention(cache, convention);
 }  /* cache_func_calling_convention */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 template<typename an_ifc_Node_type>
 static void cache_func_return_type(a_module_token_cache_ptr cache,
@@ -19633,6 +19791,7 @@ this is needed.
               case ifc_tps_long:
                 cache_token(cache, tok_long);
                 break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
               case ifc_tps_bit8:
                 cache_token(cache, tok_int8);
                 break;
@@ -19645,11 +19804,20 @@ this is needed.
               case ifc_tps_bit64:
                 cache_token(cache, tok_int64);
                 break;
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+              case ifc_tps_bit8:
+              case ifc_tps_bit16:
+              case ifc_tps_bit32:
+              case ifc_tps_bit64:
+                goto invalid;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               case ifc_tps_bit128:
 #if INT128_EXTENSIONS_ALLOWED
                 cache_token(cache, tok_int128);
-#endif /* INT128_EXTENSIONS_ALLOWED */
                 break;
+#else /* !INT128_EXTENSIONS_ALLOWED */
+                goto invalid;
+#endif /* INT128_EXTENSIONS_ALLOWED */
               default_is_unexpected();
             }  /* switch */
             break;
@@ -19698,9 +19866,13 @@ this is needed.
             cache_token(cache, tok_namespace);
             break;
           case ifc_tbs_interface:
+#if MICROSOFT_EXTENSIONS_ALLOWED
             check_assertion(precision == ifc_tps_default);
             cache_token(cache, tok_interface);
             break;
+#else  /* !MICROSOFT_EXTENSIONS_ALLOWED */
+            goto invalid;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           case ifc_tbs_empty:
             break;
           case ifc_tbs_auto:
@@ -19836,7 +20008,9 @@ this is needed.
           an_ifc_type_method itm = *opt_itm;
           cache_type(cache, get_ifc_target(itm), cinfo);
           cache_token(cache, tok_lparen);
+#if MICROSOFT_EXTENSIONS_ALLOWED
           cache_calling_convention(cache, get_ifc_convention(itm));
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
           cache_type(cache, get_ifc_scope(itm), cinfo);
           cache_token(cache, tok_colon_colon);
         } else {
@@ -19892,7 +20066,9 @@ this is needed.
         an_ifc_type_function itf = *opt_itf;
         cache_type(cache, get_ifc_target(itf), cinfo);
         cache_token(cache, tok_lparen);
+#if MICROSOFT_EXTENSIONS_ALLOWED
         cache_calling_convention(cache, get_ifc_convention(itf));
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }
       break;
     case ifc_ts_type_array:
@@ -20454,6 +20630,7 @@ Add the tokens corresponding to the given Monadic Operator to cache.
                                         "MonadicOperator::PseudoDtorCall",
                                         &error_position);
       goto invalid;
+#if MICROSOFT_EXTENSIONS_ALLOWED
     case ifc_mos_msvc_assume:
       cache_token(cache, tok_assume);
       break;
@@ -20610,6 +20787,53 @@ Add the tokens corresponding to the given Monadic Operator to cache.
     case ifc_mos_msvc_confused_dependent_sizeof:
       cache_token(cache, tok_sizeof);
       break;
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+    case ifc_mos_msvc_assume:
+    case ifc_mos_msvc_alignof:
+    case ifc_mos_msvc_uuidof:
+    case ifc_mos_msvc_is_class:
+    case ifc_mos_msvc_is_union:
+    case ifc_mos_msvc_is_enum:
+    case ifc_mos_msvc_is_polymorphic:
+    case ifc_mos_msvc_is_empty:
+    case ifc_mos_lookup_globally:
+    case ifc_mos_msvc_is_trivially_copy_constructible:
+    case ifc_mos_msvc_is_trivially_copy_assignable:
+    case ifc_mos_msvc_is_trivially_destructible:
+    case ifc_mos_msvc_has_virtual_destructor:
+    case ifc_mos_msvc_is_nothrow_copy_constructible:
+    case ifc_mos_msvc_is_nothrow_copy_assignable:
+    case ifc_mos_msvc_is_pod:
+    case ifc_mos_msvc_is_abstract:
+    case ifc_mos_msvc_is_trivial:
+    case ifc_mos_msvc_is_trivially_copyable:
+    case ifc_mos_msvc_is_standard_layout:
+    case ifc_mos_msvc_is_literal_type:
+    case ifc_mos_msvc_is_trivially_move_constructible:
+    case ifc_mos_msvc_has_trivial_move_assign:
+    case ifc_mos_msvc_is_trivially_move_assignable:
+    case ifc_mos_msvc_is_nothrow_move_assignable:
+    case ifc_mos_msvc_underlying_type:
+    case ifc_mos_msvc_is_destructible:
+    case ifc_mos_msvc_is_nothrow_destructible:
+    case ifc_mos_msvc_has_unique_object_representations:
+    case ifc_mos_msvc_is_aggregate:
+    case ifc_mos_msvc_builtin_address_of:
+    case ifc_mos_msvc_is_ref_class:
+    case ifc_mos_msvc_is_value_class:
+    case ifc_mos_msvc_is_simple_value_class:
+    case ifc_mos_msvc_is_interface_class:
+    case ifc_mos_msvc_is_delegate:
+    case ifc_mos_msvc_is_final:
+    case ifc_mos_msvc_is_sealed:
+    case ifc_mos_msvc_has_finalizer:
+    case ifc_mos_msvc_has_copy:
+    case ifc_mos_msvc_has_assign:
+    case ifc_mos_msvc_has_user_destructor:
+    case ifc_mos_msvc_confused_expand:
+    case ifc_mos_msvc_confused_dependent_sizeof:
+      goto invalid;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     default_is_unexpected_str("Unexpected MonadicOperator");
   }  /* switch */
   goto done;
@@ -20757,6 +20981,7 @@ Add the tokens corresponding to the given Dyadic Operator to cache.
     case ifc_dos_dynamic_cast:
       cache_token(cache, tok_dynamic_cast);
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
     case ifc_dos_msvc_builtin_offset_of:
       cache_token(cache, tok_builtin_offsetof);
       break;
@@ -20781,6 +21006,17 @@ Add the tokens corresponding to the given Dyadic Operator to cache.
     case ifc_dos_msvc_builtin_bit_cast:
       cache_token(cache, tok_builtin_bit_cast);
       break;
+#else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+    case ifc_dos_msvc_builtin_offset_of:
+    case ifc_dos_msvc_is_base_of:
+    case ifc_dos_msvc_is_convertible_to:
+    case ifc_dos_msvc_is_trivially_assignable:
+    case ifc_dos_msvc_is_nothrow_assignable:
+    case ifc_dos_msvc_is_assignable:
+    case ifc_dos_msvc_is_assignable_nocheck:
+    case ifc_dos_msvc_builtin_bit_cast:
+      goto invalid;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case ifc_dos_curry:
     case ifc_dos_apply:
     case ifc_dos_index:
@@ -21419,7 +21655,9 @@ current cache context to help inform decisions about what to cache.
         cache_token(cache, tok_auto);
         cache_func_vendor_decl_specifier_seq(cache, templated_decl_idx);
         cache_func_decl_specifier_seq(cache, idf);
+#if MICROSOFT_EXTENSIONS_ALLOWED
         cache_func_calling_convention(cache, idf);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         cache_specialized_func_declarator_id(cache, decl, idf, cinfo);
         cache_func_parameters_and_qualifiers(cache, templated_decl_idx, idf,
                                              cinfo);
@@ -21446,7 +21684,9 @@ current cache context to help inform decisions about what to cache.
         if (name_idx.sort != ifc_ns_name_conversion) {
           cache_token(cache, tok_auto);
         }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
         cache_func_calling_convention(cache, idm);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         cache_specialized_func_declarator_id(cache, decl, idm, cinfo);
         cache_func_parameters_and_qualifiers(cache, templated_decl_idx, idm,
                                              cinfo);
@@ -21471,7 +21711,9 @@ current cache context to help inform decisions about what to cache.
         this->cache_attrs(cache, templated_decl_idx);
         cache_func_vendor_decl_specifier_seq(cache, templated_decl_idx);
         cache_func_decl_specifier_seq(cache, idc);
+#if MICROSOFT_EXTENSIONS_ALLOWED
         cache_func_calling_convention(cache, idc);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         cache_specialized_func_declarator_id(cache, decl, idc, cinfo);
         cache_func_parameters_and_qualifiers(cache, templated_decl_idx, idc,
                                              cinfo);
@@ -21938,10 +22180,12 @@ about what to cache.
             cache_token(cache, tok_enum);
             break;
           case ifc_tbs_struct:
-            cache_token(cache, tok_enum_struct);
+            cache_token(cache, tok_enum);
+            cache_token(cache, tok_struct);
             break;
           case ifc_tbs_class:
-            cache_token(cache, tok_enum_class);
+            cache_token(cache, tok_enum);
+            cache_token(cache, tok_class);
             break;
           default:
             { a_string err_msg("Unexpected ", str_for(basis));
@@ -22102,7 +22346,9 @@ about what to cache.
         }  /* if */
         cache_func_decl_specifier_seq(cache, idf);
         cache_token(cache, tok_auto);
+#if MICROSOFT_EXTENSIONS_ALLOWED
         cache_func_calling_convention(cache, idf);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         cache_func_declarator_id(cache, idf, cinfo);
         cache_func_parameters_and_qualifiers(cache, decl, idf, cinfo);
         cache_token(cache, tok_arrow);
@@ -22122,7 +22368,9 @@ about what to cache.
         if (name_idx.sort != ifc_ns_name_conversion) {
           cache_token(cache, tok_auto);
         }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
         cache_func_calling_convention(cache, idm);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         cache_func_declarator_id(cache, idm, cinfo);
         cache_func_parameters_and_qualifiers(cache, decl, idm, cinfo);
         if (name_idx.sort != ifc_ns_name_conversion) {
@@ -22140,7 +22388,9 @@ about what to cache.
         this->cache_attrs(cache, decl);
         cache_func_vendor_decl_specifier_seq(cache, decl);
         cache_func_decl_specifier_seq(cache, idc);
+#if MICROSOFT_EXTENSIONS_ALLOWED
         cache_func_calling_convention(cache, idc);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         cache_func_declarator_id(cache, idc, cinfo);
         cache_func_parameters_and_qualifiers(cache, decl, idc, cinfo);
         cache_func_virt_specifier_seq(cache, idc);
@@ -22167,7 +22417,9 @@ about what to cache.
         this->cache_attrs(cache, decl);
         cache_func_vendor_decl_specifier_seq(cache, decl);
         cache_func_decl_specifier_seq(cache, idd);
+#if MICROSOFT_EXTENSIONS_ALLOWED
         cache_func_calling_convention(cache, idd);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         cache_func_declarator_id(cache, idd, cinfo);
         cache_token(cache, tok_lparen);
         cache_token(cache, tok_rparen);
@@ -23619,11 +23871,16 @@ Otherwise, parameter references should only include the parameter name.
           goto invalid;
         }  /* if */
 
-        an_ifc_syntax_declarator       isd = *opt_isd;
-        an_ifc_calling_convention_sort convention = get_ifc_convention(isd);
-        if (convention != ifc_ccs_cdecl) {
-          cache_calling_convention(cache, convention);
-        }  /* if */
+        an_ifc_syntax_declarator isd = *opt_isd;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        {
+          an_ifc_calling_convention_sort convention = get_ifc_convention(isd);
+
+          if (convention != ifc_ccs_cdecl) {
+            cache_calling_convention(cache, convention);
+          }  /* if */
+        }
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
         an_ifc_syntax_index pointer = get_ifc_pointer(isd);
         an_ifc_syntax_index parenthesized = get_ifc_parenthesized(isd);
@@ -23672,10 +23929,15 @@ Otherwise, parameter references should only include the parameter name.
         an_ifc_qualifier_bitfield        qualifiers = get_ifc_qualifiers(ispd);
         cache_syntactic_type_qualifiers(cache, qualifiers);
 
-        an_ifc_calling_convention_sort convention = get_ifc_convention(ispd);
-        if (convention != ifc_ccs_cdecl) {
-          cache_calling_convention(cache, convention);
-        }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        {
+          an_ifc_calling_convention_sort convention = get_ifc_convention(ispd);
+
+          if (convention != ifc_ccs_cdecl) {
+            cache_calling_convention(cache, convention);
+          }  /* if */
+        }
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
         an_ifc_pointer_declarator_sort declar_sort = get_ifc_sort(ispd);
         switch (declar_sort) {
@@ -24794,7 +25056,8 @@ encountered invalid sort value.
 */
 {
   a_diagnostic_ptr diag_ptr = start_error(ec_invalid_ifc_sort_value,
-                                          file->mod->assoc_module_info->name);
+                                          file->get_read_state().mod->
+                                                      assoc_module_info->name);
 
   add_backtrace(diag_ptr, trace);
   end_diagnostic(diag_ptr);
@@ -24809,7 +25072,8 @@ encountered invalid partition.
 */
 {
   a_diagnostic_ptr diag_ptr = start_error(ec_invalid_ifc_partition,
-                                          file->mod->assoc_module_info->name);
+                                          file->get_read_state().mod->
+                                                      assoc_module_info->name);
 
   add_backtrace(diag_ptr, trace);
   end_diagnostic(diag_ptr);
@@ -24891,7 +25155,7 @@ diagnostic using the validation trace.
 {
   a_boolean                   result = TRUE;
   an_ifc_partition_kind_index part_index = {file, partition_kind, index};
-  an_ifc_module               *mod = file->mod;
+  an_ifc_module               *mod = file->get_read_state().mod;
   an_ifc_partition_metadata   *partition_metadata =
                                             get_partition_metadata(part_index);
   size_t                      partition_entry_size =
@@ -24945,7 +25209,8 @@ a partition index.
 */
 {
   a_diagnostic_ptr diag_ptr = start_error(ec_unknown_ifc_partition_conversion,
-                                          file->mod->assoc_module_info->name,
+                                          file->get_read_state().mod->
+                                                       assoc_module_info->name,
                                           sort_name, index);
 
   add_backtrace(diag_ptr, trace);
@@ -25331,7 +25596,7 @@ for each compilation.
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !STANDALONE_UTILITY_PROGRAM */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /******************************************************************************
 *                                                             \  ___  /       *
@@ -25339,6 +25604,6 @@ END_EDG_NAMESPACE
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2023 Edison Design Group Inc.                   [_]          *
+* Copyright 2017-2023 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

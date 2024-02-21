@@ -839,8 +839,9 @@ and before the back end (if any) is executed.
   if (skip_il_read) {
     /* Leave the memory regions intact (mostly for debugging purposes). */
   } else {
-    /* Free all memory regions.  Anything left in any of the IL memory
-       regions should be discarded as it will be reread by the back end. */
+    /* Free all memory regions.  Anything left in any of the IL memory regions
+       should be discarded as it will be reread by module write out or the back
+       end. */
     free_all_memory_regions();
   }  /* if */
 #else /* IL_SHOULD_BE_WRITTEN_TO_FILE */

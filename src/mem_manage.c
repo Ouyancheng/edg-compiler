@@ -1918,6 +1918,9 @@ a pointer.  Look for a previously freed block.  If none is found allocate
 a new block.
 */
 {
+  check_assertion_str(in_front_end,
+                      "memory region allocation must not occur after front "
+                      "end processing has ended");
   void  *ptr = NULL;
 
   /* Ensure at least one byte is allocated to ensure that zero-sized objects

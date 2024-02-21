@@ -17826,9 +17826,8 @@ enum a_module_kind : a_byte {
   mk_none,		/* An unknown module. */
   mk_header,		/* An importable header. */
   mk_edg,		/* An EDG module. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  mk_ifc,		/* A Microsoft IFC module. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  mk_edg_ifc,		/* An EDG IFC module. */
+  mk_ms_ifc,		/* A Microsoft IFC module. */
   mk_any		/* Any kind of module. */
 };
 

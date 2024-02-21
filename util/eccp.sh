@@ -294,6 +294,10 @@ output_file_specified=0
 cfiles=
 more_than_one_c_file=0
 #
+# A list of .h files to compile as header units, separated by blanks.
+#
+header_unit_files=
+#
 # A list of the .o files, library files (e.g., .a files) and library 
 # options (e.g., -la) to be passed to the linker.  The list is maintained
 # in the sequence in which the source files, object files, and libraries
@@ -337,6 +341,14 @@ any_l_or_o_files=0
 # Were any source files specified on the command line?
 #
 any_c_files=0
+#
+# Was a destination header unit specified on the command line?
+#
+header_unit_specified=0
+#
+# Were any header unit files specified on the command line?
+#
+any_header_unit_files=0
 #
 # If --multi_trans_unit mode is used, the secondary files specified on
 # the command line.
@@ -788,6 +800,7 @@ check_abbreviation()
 --gen_move_operations
 --gnu_version
 --guiding_decls
+--header_unit
 --ignore_std
 --il_display
 --implicit_extern_c_type_conversion
@@ -1435,6 +1448,17 @@ process_option()
       any_c_files=1
       add_to_instantiation_command=0
       ;;
+    *\.h | *\.H | *\.hpp | *\.HPP)
+#     Collect a list of .h files.
+      arg=`native_path "$arg"`
+      # Add the file for building the header unit.
+      if [ $any_header_unit_files -ne 0 ] ; then
+        echo "$driver_name: cannot create a header unit from multiple files."
+        eccp_exit 1
+      fi
+      header_unit_files=$header_unit_files" "$arg;
+      any_header_unit_files=1
+      ;;
     *\.o)
 #     Collect a list of .o files.
       arg=`native_path "$arg"`
@@ -1855,6 +1879,7 @@ process_option()
          --diag_warning | \
          --diag_error | \
          --diag_once | \
+         --header_unit | \
          --inline_statement_limit | \
          --max_cost_constexpr_call | \
          --max_depth_constexpr_call | \
@@ -1916,6 +1941,7 @@ process_option()
           fi
           curr_param=`native_path "$curr_param"`
           ;;
+        --header_unit | \
         --ms_mod_file_map | \
         --ms_header_unit | \
         --ms_header_unit_angle | \
@@ -1971,6 +1997,7 @@ process_option()
           --diag_warning=* | \
           --diag_error=* | \
           --diag_once=* | \
+          --header_unit=* | \
           --inline_statement_limit=* | \
           --max_cost_constexpr_call=* | \
           --max_depth_constexpr_call=* | \
@@ -2007,7 +2034,8 @@ process_option()
           --default_calling_convention=* | \
           --dump_legacy_as_target=* | \
           --target=* | \
-          --output_mode=*)
+          --output_mode=* | \
+          --create_header_unit=*)
 #     See if an instantiation mode was specified
       case $arg in
         --definition_list_file=*)
@@ -2052,6 +2080,7 @@ process_option()
           fi
           curr_arg=$opt_name=`native_path "$dir_name"`
           ;;
+        --header_unit=* | \
         --ms_mod_file_map=* | \
         --ms_header_unit=* | \
         --ms_header_unit_angle=* | \
@@ -2076,6 +2105,13 @@ process_option()
           # Capture the specified target configuration.
           arg_value=`expr $arg : '.*=\(.*\)'`    # Get the string after the =
           target=$arg_value
+          ;;
+        --create_header_unit=*)
+          if [ $header_unit_specified -ne 0 ] ; then
+            echo "$driver_name: cannot create multiple header unit files."
+            eccp_exit 1
+          fi
+          header_unit_specified=1
           ;;
       esac
       feoptions=$feoptions" `escape_if_needed "$curr_arg"`"
@@ -2149,7 +2185,36 @@ invoke_front_end()
   else
     eval `echo $command`
   fi
+  fe_status=$?
 }  # invoke_front_end
+
+
+#
+# Function to check the exit code returned by the front end.
+#
+check_front_end_exit_code()
+{
+  #
+  # If the front end aborted, report that.
+  #
+  if [ $fe_status -ge 128 ] ; then
+    echo $driver_name: front end returned an exit status of $fe_status
+    # EDG_SHOW_TRACEBACK enables a special debugging mode in which the
+    # location of an abort is displayed.  This requires that a "show_traceback"
+    # command exist and the CPFE be set to the full path of the executable.
+    if [ ${EDG_SHOW_TRACEBACK-0} -gt 0 ] ; then
+      show_traceback $CPFE
+    fi
+  fi
+  if [ $fe_status -gt 1 ]
+  then
+    if [ $fe_status -gt $max_status ]
+    then
+      max_status=$fe_status
+    fi
+    any_errors=1
+  fi
+}  # check_front_end_exit_code
 
 
 #
@@ -2209,7 +2274,8 @@ fi
 rm -f $cmd_tmp_file
 
 if [ $any_l_or_o_files -eq 0 -a $any_c_files -eq 0 ] ; then
-  if [ $source_file_name_optional -eq 1 ] ; then
+  if [ $source_file_name_optional -eq 1 -o \
+       $any_header_unit_files -eq 1 ] ; then
     # For some class of command-line options, no source file is necessary
     # (but only run the front end in that case).
     fe_only=1
@@ -2438,7 +2504,23 @@ fi
 if [ -z "$cfiles" -a $source_file_name_optional -eq 1 ] ; then
   command=${CPFE}" "$feoptions" "$EDG_CPFE_DEFAULT_OPTIONS
   invoke_front_end 0  # Run front end and keep output
-  status=$?
+  check_front_end_exit_code
+fi
+#
+# Run through the list of header unit files and create them.
+#
+if [ $any_header_unit_files -eq 1 ] ; then
+  if [ $header_unit_specified -eq 1 ] ; then
+    for hu_file in $header_unit_files
+    do
+      command=${CPFE}" "$feoptions" "$EDG_CPFE_DEFAULT_OPTIONS" "$hu_file
+      invoke_front_end 0  # Run front end and keep output
+      check_front_end_exit_code
+    done
+  else
+    echo "$driver_name: no destination header unit file was specified."
+    eccp_exit
+  fi
 fi
 #
 # Run through the list of .c files and compile.
@@ -2577,12 +2659,10 @@ do
     # discarded.
     invoke_front_end 1  # Run front end and discard output
     invoke_front_end 0  # Run front end and keep output
-    status=$?
     rm -f *.pch
   else
     # Normal mode, just run the front end.
     invoke_front_end 0  # Run front end and keep output
-    status=$?
   fi
   if [ "$EDG_CPFE_OUTPUT_FILTER" != "" ] ; then
     # Run the output through the output filter.
@@ -2590,17 +2670,9 @@ do
     rm -f $output_tmp_file
   fi
   #
-  # If the front end aborted, report that.
+  # Check the front end exit code.
   #
-  if [ $status -ge 128 ] ; then
-    echo $driver_name: front end returned an exit status of $status
-    # EDG_SHOW_TRACEBACK enables a special debugging mode in which the
-    # location of an abort is displayed.  This requires that a "show_traceback"
-    # command exist and the CPFE be set to the full path of the executable.
-    if [ ${EDG_SHOW_TRACEBACK-0} -gt 0 ] ; then
-      show_traceback $CPFE
-    fi
-  fi
+  check_front_end_exit_code
   #
   # Remove the dummy primary file, if any.
   #
@@ -2617,7 +2689,7 @@ do
   #  specified and no errors occurred.
   #
   if [ $automatic_instantiation -ne 0 -a $preprocessor_only -eq 0 \
-       -a $fe_only -eq 0 -a $status -eq 0 ] ; then
+       -a $fe_only -eq 0 -a $fe_status -eq 0 ] ; then
     if [ $driver_version -ge 237 ] ; then
       # Create a new .ti file containing the driver-supplied information
       # followed by the information that was output by the front end.
@@ -2673,19 +2745,9 @@ do
     fi
   fi
 #
-# If front end successfully compiled the file, pass it to cc.
-#
-  if [ $status -gt 1 ]
-  then
-    if [ $status -gt $max_status ]
-    then
-	max_status=$status
-    fi
-    any_errors=1
-  else
-#
 #   Execute cc unless explicitly told not to.
 #
+  if [ $fe_status -eq 0 ] ; then
     cc_tmp_file=$eccp_tmpdir/c_output.txt
     if [ $fe_only -ne 1 ]
     then

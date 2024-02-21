@@ -10,7 +10,7 @@
 /*
 
 ifc_modules.h -- Declarations relating to ifc_modules.c (having to do with
-                 Microsoft IFC modules).
+                 IFC-based modules).
 
 */
 
@@ -20,9 +20,7 @@ ifc_modules.h -- Declarations relating to ifc_modules.c (having to do with
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 #include "ifc_map.h"
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #include "util.h"
 
@@ -34,21 +32,17 @@ typedef struct a_tmpl_decl_state *a_tmpl_decl_state_ptr;
 /* FIXME: Temporarily disable "not referenced" warnings until completed. */
 /*lint -save -e755 -e758 -e768 -e769*/
 
-/*lint -e1751*/
-namespace {
+typedef uint64_t a_module_ref_key;
 
 /*
-Magic numbers that identify the beginning of an IFC file.  Declared outside of
-MICROSOFT_EXTENSIONS_ALLOWED to facilitate identifying the kind of a mismatched
-module file.
+Magic numbers that identify the beginning of a Microsoft IFC file.
 */
-constexpr a_byte ifc_magic_numbers[] = { 0x54, 0x51, 0x45, 0x1A };
+constexpr a_byte ms_ifc_magic_numbers[] = { 0x54, 0x51, 0x45, 0x1A };
 
-}  /* namespace */
-
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-typedef uint64_t a_module_ref_key;
+/*
+Magic numbers that identify the beginning of an EDG IFC file.
+*/
+constexpr a_byte edg_ifc_magic_numbers[] = { 0x54, 0x51, 0x45, 0x2C };
 
 /*
 An internal representation of an IFC partition metadata.
@@ -200,40 +194,13 @@ The minimum major and minor supported version combination.
 #define IFC_MIN_VER_MINOR 33
 
 /*
-A structure abstracting the representation of the IFC module file and the
-associated memory managed.
+State for an_ifc_module_file when the object represents an IFC file read.
 */
-struct an_ifc_module_file {
-  an_ifc_module_file() = default;
-  an_ifc_module_file(an_ifc_module_file &&old);
-  ~an_ifc_module_file()
-    { this->close(); }
-
-  an_ifc_module_file &operator=(an_ifc_module_file &&old);
-
-  void close();
-
+struct an_ifc_module_file_read_state {
   an_ifc_module *mod = NULL;
                         /* The IFC module using this file (if any). */
-  FILE          *f_module = NULL;
-                        /* The file descriptor for the file. */
   size_t        f_size = 0;
                         /* The size of the module file. */
-  an_ifc_version_storage
-                version_major = IFC_MIN_VER_MAJOR;
-                        /* The module file's major version.  Defaulted to the
-                           lowest supported version until initialization is
-                           complete. */
-  an_ifc_version_storage
-                version_minor = IFC_MIN_VER_MINOR;
-                        /* The module file's minor version.  Defaulted to the
-                           lowest supported version until initialization is
-                           complete. */
-#if !ASSUME_LITTLE_ENDIAN_IFC_MODULES
-  an_ifc_module_primary_endianness
-                endianness = ifc_mpe_unknown;
-                        /* The primary endianness of the module file. */
-#endif /* !ASSUME_LITTLE_ENDIAN_IFC_MODULES */
 #if USE_MMAP_FOR_MEMORY_REGIONS
   void          *mmap_addr = NULL;
                         /* A pointer to the memory-mapped beginning of the
@@ -259,6 +226,82 @@ struct an_ifc_module_file {
                         /* Pointer to the last byte of the buffer used by
                            get_byte, etc. */
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+};  /* an_ifc_module_file_read_state */
+
+/*
+State for an_ifc_module_file when the object represents an IFC file write.
+*/
+struct an_ifc_module_file_write_state {
+  an_error_code file_kind = ec_edg_ifc_file;
+                        /* If an error occurs related to IO with this output
+                           file, this error code will be used to name the kind
+                           of file for the error. */
+  a_const_char  *source_file_name;
+                        /* The source file name that was used to build this
+                           module file. */
+};  /* an_ifc_module_file_write_state */
+
+/*
+A structure abstracting the representation of the IFC module file and the
+associated memory managed.
+*/
+struct an_ifc_module_file {
+  an_ifc_module_file(a_module_kind mk, a_boolean for_read_val = TRUE);
+  an_ifc_module_file(an_ifc_module_file &&old);
+  ~an_ifc_module_file()
+    { this->close(); }
+
+  an_ifc_module_file &operator=(an_ifc_module_file &&old);
+
+  void close();
+
+  a_boolean is_for_read() const
+    { return this->for_read; }
+
+  an_ifc_module_file_read_state& get_read_state()
+    { check_assertion(this->for_read); return this->read_state; }
+  an_ifc_module_file_read_state const& get_read_state() const
+    { check_assertion(this->for_read); return this->read_state; }
+
+  an_ifc_module_file_write_state& get_write_state()
+    { check_assertion(!this->for_read); return this->write_state; }
+  an_ifc_module_file_write_state const& get_write_state() const
+    { check_assertion(!this->for_read); return this->write_state; }
+
+  a_module_kind module_kind;
+                        /* The module kind of this file. */
+  an_ifc_version_storage
+                version_major = IFC_MIN_VER_MAJOR;
+                        /* The module file's major version.  Defaulted to the
+                           lowest supported version until initialization is
+                           complete. */
+  an_ifc_version_storage
+                version_minor = IFC_MIN_VER_MINOR;
+                        /* The module file's minor version.  Defaulted to the
+                           lowest supported version until initialization is
+                           complete. */
+#if !ASSUME_LITTLE_ENDIAN_IFC_MODULES
+  an_ifc_module_primary_endianness
+                endianness = ifc_mpe_unknown;
+                        /* The primary endianness of the module file. */
+#endif /* !ASSUME_LITTLE_ENDIAN_IFC_MODULES */
+  FILE          *f_module = NULL;
+                        /* The file descriptor for the file. */
+private:
+  a_boolean     for_read;
+                        /* TRUE if this represents an IFC module file that's
+                           being read from.  FALSE if this represents an IFC
+                           module file that's being written to. */
+  union {
+    /* When for_read is TRUE: */
+    an_ifc_module_file_read_state
+                read_state;
+                        /* The state associated with reading an IFC file. */
+    /* When for_read is FALSE: */
+    an_ifc_module_file_write_state
+                write_state;
+                        /* The state associated with writing an IFC file. */
+  };
 };  /* an_ifc_module_file */
 
 
@@ -356,7 +399,7 @@ struct an_ifc_module : public a_module_interface {
                            Dynamically allocated (in front end memory) once
                            the number of source files is known. */
   an_ifc_module_file
-                file = {};
+                file = {mk_none};
                         /* Information about the file backing this IFC module
                            interface. */
   an_ifc_module_string_table
@@ -381,17 +424,16 @@ struct an_ifc_module : public a_module_interface {
                            suppressed (typically because the friendship is
                            handled at a higher level). */
 public:
-  an_ifc_module() : a_module_interface((a_module_kind)mk_ifc),
-                    referenced_modules(/*mask_width=*/4)
+  an_ifc_module(a_module_kind mk)
+    : a_module_interface(mk), referenced_modules(/*mask_width=*/4)
     {}
   VIRTUAL ~an_ifc_module() EDG_NOEXCEPT = default;
 
   a_boolean matches_module(a_const_char *module_name,
                            a_const_char *module_file);
 
-  inline a_boolean is_open() const OVERRIDE {
-    return file.f_module != NULL;
-  }
+  inline a_boolean is_open() const OVERRIDE
+    { return file.f_module != NULL; }
 
   a_boolean import(a_module_import_decl_ptr midp) OVERRIDE;
   void close() OVERRIDE;
@@ -570,6 +612,14 @@ extern void get_bytes(an_ifc_module_file *file,
                       size_t             length,
                       a_boolean          header_bytes);
 
+inline unsigned char* get_byte_buffer(an_ifc_module_file *file)
+/*
+*/
+{
+  /* The byte buffer can only be retrieved in read contexts. */
+  return file->get_read_state().byte_buffer;
+}  /* get_byte_buffer */
+
 extern a_boolean is_at_least(an_ifc_module_file     *file,
                              an_ifc_version_storage minimum_version_major,
                              an_ifc_version_storage minimum_version_minor);
@@ -676,7 +726,7 @@ inline an_ifc_module *module_of(const an_ifc_module_entity &entity)
 Given an IFC module entity, return the corresponding an_ifc_module instance.
 */
 {
-  an_ifc_module *mod = entity.file->mod;
+  an_ifc_module *mod = entity.file->get_read_state().mod;
 
   /* If this assertion fails, the caller is using an IFC file instance that
      does not have a corresponding module set on it.  This can happen when
@@ -768,6 +818,8 @@ extern a_symbol_ptr load_tok_ifc_decl_ref();
 extern void ifc_modules_one_time_init();
 
 extern void ifc_modules_init();
+
+extern void ifc_modules_write_out();
 
 /*
 An enum representing the kind of validation trace.
@@ -869,8 +921,6 @@ extern void db_node_at_tsn(a_module_token_cache_ptr cache,
 extern void db_locus(const an_ifc_source_location &locus);
 
 #endif /* DEBUG */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*lint -restore*/ /* FIXME: temporary. */
 

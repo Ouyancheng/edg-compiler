@@ -78,6 +78,8 @@ MAKE_FRONT_END_CALLABLE is TRUE.
   a_timer	    opt_start_time;
   a_timer	    opt_end_time;
 #endif /* USING_KAI_INLINER */
+  a_timer	    module_start_time;
+  a_timer	    module_end_time;
 #if BACK_END_SHOULD_BE_CALLED
   a_timer	    be_start_time;
   a_timer	    be_end_time;
@@ -117,6 +119,18 @@ MAKE_FRONT_END_CALLABLE is TRUE.
     /* Process the source file. */
     process_translation_unit(primary_source_file_name, /*is_primary=*/TRUE,
                              (an_exported_template_file_ptr)NULL);
+    /* Run module generation if required. */
+    if (create_module_header_unit) {
+      if (display_compilation_time) get_timer(&module_start_time);
+       modules_write_out();
+      if (display_compilation_time) {
+        get_timer(&module_end_time);
+        /* Display the amount of time used during generation of the module
+           files for this translation unit. */
+        display_time_used("Module file generation", &module_start_time,
+                          &module_end_time);
+      }  /* if */
+    }  /* if */
     /* Do wrap-up processing for the front end (before the back end). */
     fe_wrapup();
     if (display_compilation_time) {
@@ -125,7 +139,6 @@ MAKE_FRONT_END_CALLABLE is TRUE.
       /* Display the amount of time used by the front end. */
       display_time_used("Front end time", &fe_start_time, &fe_end_time);
     }  /* if */
-
 #if BACK_END_SHOULD_BE_CALLED
     /* Run the back end if required. */
 #ifndef CALL_BACK_END_EVEN_WITH_ERRORS
@@ -144,7 +157,7 @@ MAKE_FRONT_END_CALLABLE is TRUE.
         get_timer(&opt_end_time);
         /* Display the amount of time used by the optimizer. */
         display_time_used("Optimizer time", &opt_start_time, &opt_end_time);
-      } 
+      }  /* if */
 #endif /* USING_KAI_INLINER */
       if (display_compilation_time) get_timer(&be_start_time);
       back_end();

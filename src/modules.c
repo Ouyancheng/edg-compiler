@@ -37,12 +37,14 @@ struct a_module_file_suffix {
 };  /* a_module_file_suffix */
 
 constexpr a_module_file_suffix module_file_suffixes[] = {
-  { "edgm", (a_module_kind)mk_edg },
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  { "ifc", (a_module_kind)mk_ifc }
-#endif  /* MICROSOFT_EXTENSIONS_ALLOWED */
+  { "edgm", mk_edg },
+  { "eifc", mk_edg_ifc },
+  { "ifc", mk_ms_ifc }
 };
 
+/*
+Magic numbers that identify the beginning of an EDG module file.
+*/
 constexpr a_byte edg_magic_numbers[] = { 0x9A, 0x13, 0x37, 0x7D };
 
 a_text_buffer_ptr module_search_buffer, module_file_name_buffer;
@@ -194,11 +196,11 @@ Given an already open file pointer, determine what kind of module file is open
   }  /* if */
   if (fread(magic, (size_t)1, sizeof(magic), file) == sizeof(magic)) {
     if (magic_numbers_match(magic, edg_magic_numbers)) {
-      kind = (a_module_kind)mk_edg;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (magic_numbers_match(magic, ifc_magic_numbers)) {
-      kind = (a_module_kind)mk_ifc;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      kind = mk_edg;
+    } else if (magic_numbers_match(magic, edg_ifc_magic_numbers)) {
+      kind = mk_edg_ifc;
+    } else if (magic_numbers_match(magic, ms_ifc_magic_numbers)) {
+      kind = mk_ms_ifc;
     }  /* if */
   }  /* if */
   return kind;
@@ -222,11 +224,10 @@ Given a module kind, return a string for that kind for use in error messages.
     case mk_edg:
       str = error_text(ec_module_kind_edg);
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case mk_ifc:
+    case mk_edg_ifc:
+    case mk_ms_ifc:
       str = error_text(ec_module_kind_ifc);
       break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case mk_any:
       str = error_text(ec_module_kind_any);
       break;
@@ -246,11 +247,9 @@ return FALSE.
 {
   a_boolean result = TRUE;
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (kind == mk_ifc && !microsoft_mode) {
+  if (kind == mk_ms_ifc && !microsoft_mode) {
     result = FALSE;
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return result;
 }  /* is_module_kind_available */
 
@@ -263,13 +262,12 @@ Given a module file, issue diagnostics for an unavailable file_kind.
 {
   switch (file_kind) {
     case mk_edg:
+    case mk_edg_ifc:
       /* Always enabled. */
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case mk_ifc:
+    case mk_ms_ifc:
       str_catastrophe(ec_ms_ifc_unavailable, module_file);
       break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case mk_any:
     case mk_none:
     case mk_header:
@@ -298,6 +296,7 @@ file_kind (which may range from remarks to catastrophic errors).
   }  /* if */
   switch (expected_kind) {
     case mk_edg:
+    case mk_edg_ifc:
       severity = es_catastrophe;
       break;
     case mk_any:
@@ -306,11 +305,9 @@ file_kind (which may range from remarks to catastrophic errors).
           file_kind != (a_module_kind)mk_header) {
         goto done;
       }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
       FALLTHROUGH
-    case mk_ifc:
+    case mk_ms_ifc:
       /* Visual Studio skips files that don't appear to be IFCs. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       severity = es_remark;
       break;
     case mk_none:
@@ -452,11 +449,10 @@ determined, return an empty optional.
     case mk_edg:
       unexpected_condition_str("Unimplemented");
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case mk_ifc:
+    case mk_edg_ifc:
+    case mk_ms_ifc:
       result = get_name_of_ifc_module(module_file);
       break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case mk_none:
       break;
     default_is_unexpected();
@@ -487,13 +483,12 @@ the kind of module_file.
         result = mod.matches_module(module_name, module_file);
       }
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case mk_ifc:
-      { an_ifc_module mod;
+    case mk_edg_ifc:
+    case mk_ms_ifc:
+      { an_ifc_module mod(kind);
         result = mod.matches_module(module_name, module_file);
       }
       break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     default_is_unexpected();
   }  /* switch */
   return result;
@@ -717,11 +712,10 @@ Import the module file specified in the module-import-declaration.
     case mk_edg:
       iface = new_fe<an_edg_module>();
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case mk_ifc:
-      iface = new_fe<an_ifc_module>();
+    case mk_edg_ifc:
+    case mk_ms_ifc:
+      iface = new_fe<an_ifc_module>(midp->module_info->kind);
       break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case mk_none:
     case mk_any:
     case mk_header:
@@ -775,11 +769,10 @@ processing has ended.
       }  /* if */
       *mepp = mep->next;
       switch (mep->module_info->kind) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-        case mk_ifc:
+        case mk_edg_ifc:
+        case mk_ms_ifc:
           process_ifc_declaration(mep);
           break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         case mk_edg:
         default:
           unexpected_condition();
@@ -886,11 +879,10 @@ Dispatch the is_open() call to the variant for the actual object.
     case mk_edg:
       result = ((an_edg_module*)this)->is_open();
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case mk_ifc:
+    case mk_edg_ifc:
+    case mk_ms_ifc:
       result = ((an_ifc_module*)this)->is_open();
       break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case mk_header:
     case mk_any:
       unexpected_condition();
@@ -916,11 +908,10 @@ Dispatch the import() call to the variant for the actual object.
     case mk_edg:
       result = ((an_edg_module*)this)->import(midp);
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case mk_ifc:
+    case mk_edg_ifc:
+    case mk_ms_ifc:
       result = ((an_ifc_module*)this)->import(midp);
       break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case mk_header:
     case mk_any:
       unexpected_condition();
@@ -944,11 +935,10 @@ Dispatch the close() call to the variant for the actual object.
     case mk_edg:
       ((an_edg_module*)this)->close();
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case mk_ifc:
+    case mk_edg_ifc:
+    case mk_ms_ifc:
       ((an_ifc_module*)this)->close();
       break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case mk_header:
     case mk_any:
       unexpected_condition();
@@ -971,11 +961,10 @@ Dispatch the pch_reset() call to the variant for the actual object.
     case mk_edg:
       ((an_edg_module*)this)->pch_reset(midp);
       break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case mk_ifc:
+    case mk_edg_ifc:
+    case mk_ms_ifc:
       ((an_ifc_module*)this)->pch_reset(midp);
       break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case mk_header:
     case mk_any:
       unexpected_condition();
@@ -1357,22 +1346,20 @@ Return a string containing debug information about the given module.
   }  /* if */
   result.append(", kind: ");
   switch (m_kind) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case mk_ifc:
+    case mk_edg_ifc:
+    case mk_ms_ifc:
       result.append("ifc");
       break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     default:
       result.append("UNKNOWN");
       break;
   }  /* switch */
   result.append(", version: ");
   switch (m_kind) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case mk_ifc:
+    case mk_edg_ifc:
+    case mk_ms_ifc:
       result.append(s_db_version_of_ifc_module(mod));
       break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     default:
       result.append("UNKNOWN");
       break;
@@ -1410,11 +1397,10 @@ This string does not contain extensive information about the module.
   }  /* if */
   result.append(", entity id: ");
   switch (m_kind) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case mk_ifc:
+    case mk_edg_ifc:
+    case mk_ms_ifc:
       result.append(s_db_id_of_ifc_mep(mep));
       break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     default:
       result.append("UNKNOWN");
       break;
@@ -1538,9 +1524,7 @@ for each compilation.
   curr_mep_state = NULL;
   lazy_symbols_may_be_visible = FALSE;
   module_entity_hash_table = NULL;
-#if MICROSOFT_EXTENSIONS_ALLOWED
   ifc_modules_init();
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* modules_init */
 
 
@@ -1553,6 +1537,20 @@ instantiations, etc.) has been done.
 {
   lazy_symbols_may_be_visible = FALSE;
 }  /* modules_trans_unit_wrapup */
+
+
+void modules_write_out()
+/*
+Write out the module files for the current translation unit.  This is called
+after all processing for the translation unit (including template
+instantiations, etc.) has been done.
+*/
+{
+  Value_saver<a_boolean> in_front_end_saved(&in_front_end,
+                                            /*new_value=*/FALSE);
+
+  ifc_modules_write_out();
+}  /* modules_write_out */
 
 
 /* Conditionally close the "edg" namespace. */

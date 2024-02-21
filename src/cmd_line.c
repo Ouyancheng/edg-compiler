@@ -480,6 +480,12 @@ Initialize the option information table.
   add_option_description(optk_pch_dir, "pch_dir",
                          '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
+  add_option_description(optk_create_module_header_unit, "create_header_unit",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_none);
+  add_option_description(optk_map_module_header_unit, "header_unit", '\0',
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
   add_option_description(optk_restrict, "restrict",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
@@ -3386,6 +3392,19 @@ If it is not acceptable, issue an error.
                            es_command_line_error);
   }  /* if */
 }  /* check_pch_file_name */
+
+
+static void check_module_header_unit_file_name(a_const_char *file_name)
+/*
+Make sure the specified file name is acceptable as an output file.
+If it is not acceptable, issue an error.
+*/
+{
+  if (!okay_as_output_file(file_name)) {
+    output_file_open_error(/*bad_name=*/TRUE, ec_edg_ifc_header_unit,
+                           file_name, es_command_line_error);
+  }  /* if */
+}  /* check_module_header_unit_file_name */
 
 
 #if COMPILE_MULTIPLE_SOURCE_FILES || COMPILE_MULTIPLE_TRANSLATION_UNITS
@@ -10388,6 +10407,7 @@ Process the arguments on the command line that invoked the compiler.
           }  /* if */
         }
         break;
+      case optk_map_module_header_unit:
       case optk_ms_header_unit:
         { a_path_handle header_path;
           a_const_char  *module_path;
@@ -10650,6 +10670,15 @@ Process the arguments on the command line that invoked the compiler.
         }  /* if */
         break;
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */
+      case optk_create_module_header_unit:
+        /* Create a module header unit file as part of this compilation. */
+        create_module_header_unit = TRUE;
+        module_header_unit_output_file_name = file_name_from_opt_arg(opt_arg);
+        /* Make sure the specified name is acceptable as a module header unit
+           file name. */
+        check_module_header_unit_file_name(
+                                          module_header_unit_output_file_name);
+        break;
       case optk_restrict:
         /* Enables or disables recognition of the restrict token. */
         restrict_keyword_enabled = opt_value;
@@ -12793,6 +12822,8 @@ variables declared in cmd_line.h.
 #endif /* !USE_MMAP_FOR_MEMORY_REGIONS */
   pch_dir_name = NULL;
   c11_atomic_enabled = FALSE;
+  create_module_header_unit = FALSE;
+  module_header_unit_output_file_name = NULL;
   restrict_enabled = FALSE;
   restrict_keyword_enabled = DEFAULT_RESTRICT_ENABLED;
   noreturn_keyword_enabled = FALSE;

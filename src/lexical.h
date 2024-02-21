@@ -2268,13 +2268,11 @@ typedef struct a_cached_token {
 			   find_literal_operator when repeating the operator
 			   lookup for a cached token. */
     } ud_lit;
-#if MICROSOFT_EXTENSIONS_ALLOWED
     /* When extra_info_kind == teik_ifc_index: */
     a_lexical_ifc_index_reference
 		ifc_index;
 			/* An index into the IFC module containing additional
 			   information. */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } variant;
 } a_cached_token;
 
