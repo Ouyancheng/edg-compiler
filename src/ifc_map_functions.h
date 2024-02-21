@@ -4,13 +4,13 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2023 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2024 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
 
-ifc_map_functions.h -- Function declarations for interacting with IFC types for
-                       Microsoft modules.
+ifc_map_functions.h -- Function declarations for interacting with types for
+                       IFC-based modules.
 
 ** NOTICE: This file is produced by an external script. **
 
@@ -27,6 +27,38 @@ BEGIN_EDG_NAMESPACE
 
 extern a_boolean is_supported_ifc_version(an_ifc_version major_version,
                                           an_ifc_version minor_version);
+
+
+template<typename an_ifc_Storage_type>
+extern size_t get_ifc_buffer_size(an_ifc_module_file *file) DELETED_FN_DEF
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_ieeele_float_storage>(
+                                                     an_ifc_module_file *file);
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_sha256_storage>(an_ifc_module_file *file);
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_storage_class_storage>(
+                                                     an_ifc_module_file *file);
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_uuid_storage>(an_ifc_module_file *file);
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_variadic_arity_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC AccessSort sorts.
@@ -1781,10 +1813,10 @@ extern an_ifc_word_category to_universal_category(
 
 
 template<typename a_Desired_type, typename an_ifc_Node_type>
-inline void copy_ifc_field(a_Desired_type         *result,
-                           const an_ifc_Node_type *node_start,
-                           size_t                 offset,
-                           size_t                 size)
+inline void copy_from_node_field(a_Desired_type         *result,
+                                 const an_ifc_Node_type *node_start,
+                                 size_t                 offset,
+                                 size_t                 size)
 /*
 Given the starting position of a node's storage, the offset into the storage of
 the field, and the field size, copy the field's bytes into result.
@@ -1816,13 +1848,13 @@ usage/sanity checks).
      Thus, in the interest of portability, copy the bytes manually with memcpy
      into the aligned storage pointed to by result. */
   memcpy(result, (void*)((*node_start) + offset), size);
-}  /* copy_ifc_field */
+}  /* copy_from_node_field */
 
 
 template<typename a_Desired_type, typename an_ifc_Node_type>
-inline void copy_ifc_field(a_Desired_type         *result,
-                           const an_ifc_Node_type *node_start,
-                           size_t                 offset)
+inline void copy_from_node_field(a_Desired_type         *result,
+                                 const an_ifc_Node_type *node_start,
+                                 size_t                 offset)
 /*
 Given the starting position of a node's storage, and the offset into the
 storage of the field, copy the field's bytes into result.
@@ -1838,8 +1870,8 @@ byte arrays that do not have the host's endianness.  The byte array pointed to
 by node_start should already have been (if necessary) realigned to match the
 host's endianness before being passed to this function.
 
-It's additionally important when using this form of copy_ifc_field that the
-result type's byte size corresponds exactly to the byte size of the encoded
+It's additionally important when using this form of copy_from_node_field that
+the result type's byte size corresponds exactly to the byte size of the encoded
 field (otherwise buffer overflow is possible).  In terms of the IFC versioning
 code, this means "versioned" types are the only types that should be used with
 this function, "universal" representations are NOT safe.
@@ -1851,8 +1883,67 @@ generation to make use of (where code generation also handles additional
 usage/sanity checks).
 */
 {
-  copy_ifc_field(result, node_start, offset, /*size=*/sizeof(a_Desired_type));
-}  /* copy_ifc_field */
+  copy_from_node_field(result, node_start, offset,
+                       /*size=*/sizeof(a_Desired_type));
+}  /* copy_from_node_field */
+
+
+template<typename a_Field_type, typename an_ifc_Node_type>
+inline void copy_to_node_field(const a_Field_type *field,
+                               an_ifc_Node_type   *node_start,
+                               size_t             offset,
+                               size_t             size)
+/*
+Given the starting position of a node's storage, the offset into the storage of
+the field, and the field size, copy field's bytes into the node.
+
+node_start should be a pointer to the byte array representing the node's
+storage.  This will be added to the offset to get the start of the field
+value's bytes.  This function guarantees even if the byte position is not an
+aligned representation of the field type (a_Field_type), so long as the result
+pointer points to aligned storage, the result will be properly aligned.
+
+It is strongly advised not to directly use this function in the front end, and
+instead to use a set_ifc_X function to modify node data when working with IFC
+data.  This function exists primarily as an implementation detail for code
+generation to make use of (where code generation also handles additional
+usage/sanity checks).
+*/
+{
+  memcpy((void*)((*node_start) + offset), field, size);
+}  /* copy_to_node_field */
+
+
+template<typename a_Field_type, typename an_ifc_Node_type>
+inline void copy_to_node_field(const a_Field_type *field,
+                               an_ifc_Node_type   *node_start,
+                               size_t             offset)
+/*
+Given the starting position of a node's storage and the offset into the storage
+of the field, copy field's bytes into the node.
+
+node_start should be a pointer to the byte array representing the node's
+storage.  This will be added to the offset to get the start of field value's
+bytes.  This function guarantees even if the byte position is not an aligned
+representation of the desired type (a_Field_type), so long as the result
+pointer points to aligned storage, the result will be properly aligned.
+
+It's important when using this form of copy_to_node_field that the result
+type's byte size corresponds exactly to the byte size of the encoded field
+(otherwise buffer overflow is possible).  In terms of the IFC versioning code,
+this means "versioned" types are the only types that should be used with this
+function, "universal" representations are NOT safe.
+
+It is strongly advised not to directly use this function in the front end, and
+instead to use a set_ifc_X function to modify node data when working with IFC
+data.  This function exists primarily as an implementation detail for code
+generation to make use of (where code generation also handles additional
+usage/sanity checks).
+*/
+{
+  copy_to_node_field(field, node_start, offset,
+                     /*size=*/sizeof(a_Field_type));
+}  /* copy_to_node_field */
 
 
 template<typename an_ifc_Node_type>
@@ -12276,10 +12367,1603 @@ extern an_ifc_sentence_index get_ifc_words(
                               const an_ifc_Node_type &universal) DELETED_FN_DEF
 
 
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_ID(an_ifc_Node_type        *universal,
+                       const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_abi(an_ifc_Node_type        *universal,
+                        const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_abstract_declarator(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_access(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_address(an_ifc_Node_type        *universal,
+                            const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_aliasee(an_ifc_Node_type        *universal,
+                            const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_alignment(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_alternative(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_ampersand(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_arch(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_argument(an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_argument_0(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_argument_1(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_argument_2(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_argument_clause(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_arguments(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_arity_variadic(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_array(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_array_or_function(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_arrow(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_assign(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_assoc(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_associativity(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_asterisk(an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_attr(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_attribute(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_attributes(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_base(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_base_ctor(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_base_specifiers(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_base_subobjects(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_bases(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_basis(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_bitwidth(an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_body(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_bound(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_break(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_by_ref(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_callable(an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_captures(an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_cardinality(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_catch(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_category(an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_chart(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_checksum(an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_class_decl(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_class_key(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_clause(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_cleanup(an_ifc_Node_type        *universal,
+                            const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_colon(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_colons(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_column(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_comma(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_concept_keyword(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_condition(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_consequence(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_constexpr(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_constraint(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_contents(an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_continuation(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_continue(an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_convention(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_ctor_call(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_decl(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_decl_specifier(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_decl_specifiers(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_declarations(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_declarator(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_declarators(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_declspec(an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_decltype_keyword(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_decltype_specifier(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_default_expr(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_definition(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_delimiter(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_denotation(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_designator(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_dialect(an_ifc_Node_type        *universal,
+                            const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_direction(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_directive(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_discriminant(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_do(an_ifc_Node_type        *universal,
+                       const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_dtor_call(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_dyad(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_eh_spec(an_ifc_Node_type        *universal,
+                            const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_elaboration(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_element(an_ifc_Node_type        *universal,
+                            const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_element_type(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_elements(an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_ellipsis(an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_else(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_enclosing(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_encoded(an_ifc_Node_type        *universal,
+                            const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_encoded_decl(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_entity(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_entry_size(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_enum_kw(an_ifc_Node_type        *universal,
+                            const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_enumerators(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_equal(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_except_kw(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_exception(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_expander(an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_explicit_kw(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_expr(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_expression(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_extent(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_factor(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_file(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_final_kw(an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_finally_kw(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_first(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_flags(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_for(an_ifc_Node_type        *universal,
+                        const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_form(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_function(an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_function_type(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_generate(an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_getter(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_global_scope(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_glyph_loci_1(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_glyph_loci_2(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_glyph_locus(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_guard(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_handler(an_ifc_Node_type        *universal,
+                            const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_handlers(an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_head(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_hidden(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_home_scope(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_id(an_ifc_Node_type        *universal,
+                       const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_if(an_ifc_Node_type        *universal,
+                       const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_impl(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_index(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_inheritance(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_init(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_init_decl(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_initializaerion(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_initialization(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_initializer(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_initializers(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_internal(an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_intrinsic(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_introducer(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_key(an_ifc_Node_type        *universal,
+                        const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_keyword(an_ifc_Node_type        *universal,
+                            const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_label(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_leave_kw(an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_left(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_left_angle(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_left_brace(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_left_bracket(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_left_curly(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_left_paren(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_left_paren_1(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_left_paren_2(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_length(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_level(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_line(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_local_index(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_locus(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_macro(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_major_version(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_member(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_member_declarations(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_member_locus(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_member_name(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_members(an_ifc_Node_type        *universal,
+                            const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_message(an_ifc_Node_type        *universal,
+                            const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_minor_version(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_mode(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_modifier(an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_name(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_name2(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_names(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_namespace_kw(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_next(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_noexcept_loc(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_nominated(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_offset(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_op(an_ifc_Node_type        *universal,
+                       const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_operand(an_ifc_Node_type        *universal,
+                            const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_operand_1(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_operand_2(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_operation(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_operator(an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_override(an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_override_kw(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_owner(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_pack(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_pack_expanded(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_pack_size(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_parameters(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_params(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_parent(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_parenthesized(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_partition(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_partition_count(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_path(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_phases(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_pivot(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_pointee(an_ifc_Node_type        *universal,
+                            const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_pointer(an_ifc_Node_type        *universal,
+                            const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_position(an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_pragam(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_pragma(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_precision(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_prefix(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_primary(an_ifc_Node_type        *universal,
+                            const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_primary_template(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_properties(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_pure(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_qualified_name(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_qualifiers(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_ref(an_ifc_Node_type        *universal,
+                        const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_referee(an_ifc_Node_type        *universal,
+                            const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_reference(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_requirements(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_resolution(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_result(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_return(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_right(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_right_angle(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_right_brace(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_right_bracket(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_right_curly(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_right_paren(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_right_paren_1(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_right_paren_2(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_scope(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_second(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_semicolon(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_setter(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_shared(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_sign(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_sort(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_source(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_specifiers(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_spelling(an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_src_path(an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_start(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_stmt(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_stmts(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_storage_class(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_string(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_string_index(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_string_table_bytes(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_string_table_size(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_strings(an_ifc_Node_type        *universal,
+                            const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_subject(an_ifc_Node_type        *universal,
+                            const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_suffix(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_switch(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_symbol(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_syntax(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_synthesis(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_target(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_template_keyword(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_template_kw(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_template_parameters(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_terms(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_throw(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_toc(an_ifc_Node_type        *universal,
+                        const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_tokens(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_trailing_target(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_trait(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_traits(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_try(an_ifc_Node_type        *universal,
+                        const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_try_block(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_try_kw(an_ifc_Node_type        *universal,
+                           const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_type(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_type_id(an_ifc_Node_type        *universal,
+                            const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_type_list(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_type_name(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_type_specifier(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_type_specifiers(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_typename_keyword(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_typename_kw(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_unhashed(an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_unit(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_unknown(an_ifc_Node_type        *universal,
+                            const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_unqualified(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_using_kw(an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_uuid(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_value(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_variant(an_ifc_Node_type        *universal,
+                            const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_virtual_kw(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_virtual_kw2(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_virtual_specifiers(
+                             an_ifc_Node_type        *universal,
+                             const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_while(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_whole(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_width(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_word(an_ifc_Node_type        *universal,
+                         const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
+template<typename an_ifc_Node_type, typename an_ifc_Value_type>
+extern void set_ifc_words(an_ifc_Node_type        *universal,
+                          const an_ifc_Value_type &value) DELETED_FN_DEF
+
+
 template<typename an_ifc_Node_type>
 extern a_boolean validate(
                        const an_ifc_Node_type        &universal,
                        const an_ifc_validation_trace *parent) DELETED_FN_DEF
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_keyword_syntax_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC KeywordSyntax nodes.
@@ -12298,6 +13982,14 @@ template<>
 an_ifc_keyword_sort get_ifc_value(const an_ifc_keyword_syntax &universal);
 
 template<>
+void set_ifc_locus(an_ifc_keyword_syntax        *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_value(an_ifc_keyword_syntax     *universal,
+                   const an_ifc_keyword_sort &value);
+
+template<>
 a_boolean validate(const an_ifc_keyword_syntax   &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -12306,6 +13998,12 @@ extern void db_node(const an_ifc_keyword_syntax &universal, unsigned indent);
 
 extern void db_node(const an_ifc_keyword_syntax &universal);
 #endif /* DEBUG */
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_module_reference_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ModuleReference nodes.
@@ -12324,6 +14022,14 @@ template<>
 an_ifc_text_offset get_ifc_partition(const an_ifc_module_reference &universal);
 
 template<>
+void set_ifc_owner(an_ifc_module_reference  *universal,
+                   const an_ifc_text_offset &value);
+
+template<>
+void set_ifc_partition(an_ifc_module_reference  *universal,
+                       const an_ifc_text_offset &value);
+
+template<>
 a_boolean validate(const an_ifc_module_reference &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -12332,6 +14038,12 @@ extern void db_node(const an_ifc_module_reference &universal, unsigned indent);
 
 extern void db_node(const an_ifc_module_reference &universal);
 #endif /* DEBUG */
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_nestable_word_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC NestableWord nodes.
@@ -12368,6 +14080,24 @@ template<>
 an_ifc_u16 get_ifc_value(const an_ifc_nestable_word &universal);
 
 template<>
+void set_ifc_category(an_ifc_nestable_word       *universal,
+                      const an_ifc_word_category &value);
+
+template<>
+void set_ifc_index(an_ifc_nestable_word *universal, const an_ifc_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_nestable_word         *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_sort(an_ifc_nestable_word   *universal,
+                  const an_ifc_word_sort &value);
+
+template<>
+void set_ifc_value(an_ifc_nestable_word *universal, const an_ifc_u16 &value);
+
+template<>
 a_boolean validate(const an_ifc_nestable_word    &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -12376,6 +14106,12 @@ extern void db_node(const an_ifc_nestable_word &universal, unsigned indent);
 
 extern void db_node(const an_ifc_nestable_word &universal);
 #endif /* DEBUG */
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_noexcept_specification_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC NoexceptSpecification nodes.
@@ -12396,6 +14132,14 @@ an_ifc_sentence_index get_ifc_words(
                                const an_ifc_noexcept_specification &universal);
 
 template<>
+void set_ifc_sort(an_ifc_noexcept_specification *universal,
+                  const an_ifc_noexcept_sort    &value);
+
+template<>
+void set_ifc_words(an_ifc_noexcept_specification *universal,
+                   const an_ifc_sentence_index   &value);
+
+template<>
 a_boolean validate(const an_ifc_noexcept_specification &universal,
                    const an_ifc_validation_trace       *parent);
 
@@ -12405,6 +14149,12 @@ extern void db_node(const an_ifc_noexcept_specification &universal,
 
 extern void db_node(const an_ifc_noexcept_specification &universal);
 #endif /* DEBUG */
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_parameterized_entity_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ParameterizedEntity nodes.
@@ -12438,6 +14188,22 @@ an_ifc_sentence_index get_ifc_head(
                                  const an_ifc_parameterized_entity &universal);
 
 template<>
+void set_ifc_attributes(an_ifc_parameterized_entity *universal,
+                        const an_ifc_sentence_index &value);
+
+template<>
+void set_ifc_body(an_ifc_parameterized_entity *universal,
+                  const an_ifc_sentence_index &value);
+
+template<>
+void set_ifc_decl(an_ifc_parameterized_entity *universal,
+                  const an_ifc_decl_index     &value);
+
+template<>
+void set_ifc_head(an_ifc_parameterized_entity *universal,
+                  const an_ifc_sentence_index &value);
+
+template<>
 a_boolean validate(const an_ifc_parameterized_entity &universal,
                    const an_ifc_validation_trace     *parent);
 
@@ -12447,6 +14213,11 @@ extern void db_node(const an_ifc_parameterized_entity &universal,
 
 extern void db_node(const an_ifc_parameterized_entity &universal);
 #endif /* DEBUG */
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_sequence_storage>(an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC Sequence nodes.
@@ -12465,6 +14236,13 @@ template<>
 an_ifc_index get_ifc_start(const an_ifc_sequence &universal);
 
 template<>
+void set_ifc_cardinality(an_ifc_sequence          *universal,
+                         const an_ifc_cardinality &value);
+
+template<>
+void set_ifc_start(an_ifc_sequence *universal, const an_ifc_index &value);
+
+template<>
 a_boolean validate(const an_ifc_sequence         &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -12473,6 +14251,12 @@ extern void db_node(const an_ifc_sequence &universal, unsigned indent);
 
 extern void db_node(const an_ifc_sequence &universal);
 #endif /* DEBUG */
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_source_location_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SourceLocation nodes.
@@ -12491,6 +14275,14 @@ template<>
 an_ifc_line_offset get_ifc_line(const an_ifc_source_location &universal);
 
 template<>
+void set_ifc_column(an_ifc_source_location *universal,
+                    const an_ifc_column    &value);
+
+template<>
+void set_ifc_line(an_ifc_source_location   *universal,
+                  const an_ifc_line_offset &value);
+
+template<>
 a_boolean validate(const an_ifc_source_location  &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -12499,6 +14291,12 @@ extern void db_node(const an_ifc_source_location &universal, unsigned indent);
 
 extern void db_node(const an_ifc_source_location &universal);
 #endif /* DEBUG */
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_placeholder_basis_wrapper_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC TypePlaceholderBasisWrapper nodes.
@@ -12513,6 +14311,10 @@ an_ifc_type_basis_sort get_ifc_value(
                        const an_ifc_type_placeholder_basis_wrapper &universal);
 
 template<>
+void set_ifc_value(an_ifc_type_placeholder_basis_wrapper *universal,
+                   const an_ifc_type_basis_sort          &value);
+
+template<>
 a_boolean validate(const an_ifc_type_placeholder_basis_wrapper &universal,
                    const an_ifc_validation_trace               *parent);
 
@@ -12522,6 +14324,12 @@ extern void db_node(const an_ifc_type_placeholder_basis_wrapper &universal,
 
 extern void db_node(const an_ifc_type_placeholder_basis_wrapper &universal);
 #endif /* DEBUG */
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_file_header_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC FileHeader nodes.
@@ -12615,6 +14423,60 @@ template<>
 an_ifc_unit_index get_ifc_unit(const an_ifc_file_header &universal);
 
 template<>
+void set_ifc_abi(an_ifc_file_header *universal, const an_ifc_abi &value);
+
+template<>
+void set_ifc_arch(an_ifc_file_header             *universal,
+                  const an_ifc_architecture_sort &value);
+
+template<>
+void set_ifc_checksum(an_ifc_file_header  *universal,
+                      const an_ifc_sha256 &value);
+
+template<>
+void set_ifc_dialect(an_ifc_file_header            *universal,
+                     const an_ifc_language_version &value);
+
+template<>
+void set_ifc_global_scope(an_ifc_file_header        *universal,
+                          const an_ifc_scope_offset &value);
+
+template<>
+void set_ifc_internal(an_ifc_file_header *universal, const an_ifc_bool &value);
+
+template<>
+void set_ifc_major_version(an_ifc_file_header   *universal,
+                           const an_ifc_version &value);
+
+template<>
+void set_ifc_minor_version(an_ifc_file_header   *universal,
+                           const an_ifc_version &value);
+
+template<>
+void set_ifc_partition_count(an_ifc_file_header       *universal,
+                             const an_ifc_cardinality &value);
+
+template<>
+void set_ifc_src_path(an_ifc_file_header       *universal,
+                      const an_ifc_text_offset &value);
+
+template<>
+void set_ifc_string_table_bytes(an_ifc_file_header       *universal,
+                                const an_ifc_byte_offset &value);
+
+template<>
+void set_ifc_string_table_size(an_ifc_file_header       *universal,
+                               const an_ifc_cardinality &value);
+
+template<>
+void set_ifc_toc(an_ifc_file_header       *universal,
+                 const an_ifc_byte_offset &value);
+
+template<>
+void set_ifc_unit(an_ifc_file_header      *universal,
+                  const an_ifc_unit_index &value);
+
+template<>
 a_boolean validate(const an_ifc_file_header      &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -12629,6 +14491,11 @@ an_ifc_file_header_storage* get<an_ifc_file_header_storage>(
                                       an_ifc_module_file         *file,
                                       an_ifc_file_header_storage *storage,
                                       a_boolean                  fill_storage);
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_partition_storage>(an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC Partition nodes.
@@ -12659,6 +14526,22 @@ template<>
 an_ifc_byte_offset get_ifc_offset(const an_ifc_partition &universal);
 
 template<>
+void set_ifc_cardinality(an_ifc_partition         *universal,
+                         const an_ifc_cardinality &value);
+
+template<>
+void set_ifc_entry_size(an_ifc_partition         *universal,
+                        const an_ifc_entity_size &value);
+
+template<>
+void set_ifc_name(an_ifc_partition         *universal,
+                  const an_ifc_text_offset &value);
+
+template<>
+void set_ifc_offset(an_ifc_partition         *universal,
+                    const an_ifc_byte_offset &value);
+
+template<>
 a_boolean validate(const an_ifc_partition        &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -12674,6 +14557,12 @@ an_ifc_partition_storage* get<an_ifc_partition_storage>(
                                         an_ifc_partition_storage *storage,
                                         a_boolean                fill_storage);
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_attr_basic_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC AttrBasic nodes.
 */
@@ -12683,6 +14572,10 @@ a_boolean has_ifc_word(const an_ifc_attr_basic &universal);
 
 template<>
 an_ifc_nestable_word get_ifc_word(const an_ifc_attr_basic &universal);
+
+template<>
+void set_ifc_word(an_ifc_attr_basic          *universal,
+                  const an_ifc_nestable_word &value);
 
 template<>
 a_boolean validate(const an_ifc_attr_basic       &universal,
@@ -12703,6 +14596,12 @@ an_ifc_attr_basic_storage* get<an_ifc_attr_basic_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_attr_basic>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_attr_called_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC AttrCalled nodes.
 */
@@ -12718,6 +14617,14 @@ a_boolean has_ifc_function(const an_ifc_attr_called &universal);
 
 template<>
 an_ifc_attr_index get_ifc_function(const an_ifc_attr_called &universal);
+
+template<>
+void set_ifc_arguments(an_ifc_attr_called      *universal,
+                       const an_ifc_attr_index &value);
+
+template<>
+void set_ifc_function(an_ifc_attr_called      *universal,
+                      const an_ifc_attr_index &value);
 
 template<>
 a_boolean validate(const an_ifc_attr_called      &universal,
@@ -12738,6 +14645,12 @@ an_ifc_attr_called_storage* get<an_ifc_attr_called_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_attr_called>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_attr_elaborated_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC AttrElaborated nodes.
 */
@@ -12747,6 +14660,10 @@ a_boolean has_ifc_expression(const an_ifc_attr_elaborated &universal);
 
 template<>
 an_ifc_expr_index get_ifc_expression(const an_ifc_attr_elaborated &universal);
+
+template<>
+void set_ifc_expression(an_ifc_attr_elaborated  *universal,
+                        const an_ifc_expr_index &value);
 
 template<>
 a_boolean validate(const an_ifc_attr_elaborated  &universal,
@@ -12767,6 +14684,12 @@ an_ifc_attr_elaborated_storage* get<an_ifc_attr_elaborated_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_attr_elaborated>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_attr_expanded_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC AttrExpanded nodes.
 */
@@ -12776,6 +14699,10 @@ a_boolean has_ifc_operand(const an_ifc_attr_expanded &universal);
 
 template<>
 an_ifc_attr_index get_ifc_operand(const an_ifc_attr_expanded &universal);
+
+template<>
+void set_ifc_operand(an_ifc_attr_expanded    *universal,
+                     const an_ifc_attr_index &value);
 
 template<>
 a_boolean validate(const an_ifc_attr_expanded    &universal,
@@ -12796,6 +14723,12 @@ an_ifc_attr_expanded_storage* get<an_ifc_attr_expanded_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_attr_expanded>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_attr_factored_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC AttrFactored nodes.
 */
@@ -12811,6 +14744,14 @@ a_boolean has_ifc_terms(const an_ifc_attr_factored &universal);
 
 template<>
 an_ifc_attr_index get_ifc_terms(const an_ifc_attr_factored &universal);
+
+template<>
+void set_ifc_factor(an_ifc_attr_factored       *universal,
+                    const an_ifc_nestable_word &value);
+
+template<>
+void set_ifc_terms(an_ifc_attr_factored    *universal,
+                   const an_ifc_attr_index &value);
 
 template<>
 a_boolean validate(const an_ifc_attr_factored    &universal,
@@ -12831,6 +14772,12 @@ an_ifc_attr_factored_storage* get<an_ifc_attr_factored_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_attr_factored>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_attr_labeled_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC AttrLabeled nodes.
 */
@@ -12846,6 +14793,14 @@ a_boolean has_ifc_label(const an_ifc_attr_labeled &universal);
 
 template<>
 an_ifc_nestable_word get_ifc_label(const an_ifc_attr_labeled &universal);
+
+template<>
+void set_ifc_attribute(an_ifc_attr_labeled     *universal,
+                       const an_ifc_attr_index &value);
+
+template<>
+void set_ifc_label(an_ifc_attr_labeled        *universal,
+                   const an_ifc_nestable_word &value);
 
 template<>
 a_boolean validate(const an_ifc_attr_labeled     &universal,
@@ -12866,6 +14821,12 @@ an_ifc_attr_labeled_storage* get<an_ifc_attr_labeled_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_attr_labeled>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_attr_scoped_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC AttrScoped nodes.
 */
@@ -12881,6 +14842,14 @@ a_boolean has_ifc_scope(const an_ifc_attr_scoped &universal);
 
 template<>
 an_ifc_nestable_word get_ifc_scope(const an_ifc_attr_scoped &universal);
+
+template<>
+void set_ifc_member(an_ifc_attr_scoped         *universal,
+                    const an_ifc_nestable_word &value);
+
+template<>
+void set_ifc_scope(an_ifc_attr_scoped         *universal,
+                   const an_ifc_nestable_word &value);
 
 template<>
 a_boolean validate(const an_ifc_attr_scoped      &universal,
@@ -12901,6 +14870,12 @@ an_ifc_attr_scoped_storage* get<an_ifc_attr_scoped_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_attr_scoped>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_attr_tuple_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC AttrTuple nodes.
 */
@@ -12916,6 +14891,13 @@ a_boolean has_ifc_start(const an_ifc_attr_tuple &universal);
 
 template<>
 an_ifc_index get_ifc_start(const an_ifc_attr_tuple &universal);
+
+template<>
+void set_ifc_cardinality(an_ifc_attr_tuple        *universal,
+                         const an_ifc_cardinality &value);
+
+template<>
+void set_ifc_start(an_ifc_attr_tuple *universal, const an_ifc_index &value);
 
 template<>
 a_boolean validate(const an_ifc_attr_tuple       &universal,
@@ -12936,6 +14918,12 @@ an_ifc_attr_tuple_storage* get<an_ifc_attr_tuple_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_attr_tuple>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_chart_multilevel_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC ChartMultilevel nodes.
 */
@@ -12952,6 +14940,14 @@ a_boolean has_ifc_start(const an_ifc_chart_multilevel &universal);
 
 template<>
 an_ifc_index get_ifc_start(const an_ifc_chart_multilevel &universal);
+
+template<>
+void set_ifc_cardinality(an_ifc_chart_multilevel  *universal,
+                         const an_ifc_cardinality &value);
+
+template<>
+void set_ifc_start(an_ifc_chart_multilevel *universal,
+                   const an_ifc_index      &value);
 
 template<>
 a_boolean validate(const an_ifc_chart_multilevel &universal,
@@ -12971,6 +14967,12 @@ an_ifc_chart_multilevel_storage* get<an_ifc_chart_multilevel_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_chart_multilevel>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_chart_unilevel_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ChartUnilevel nodes.
@@ -12995,6 +14997,18 @@ template<>
 an_ifc_index get_ifc_start(const an_ifc_chart_unilevel &universal);
 
 template<>
+void set_ifc_cardinality(an_ifc_chart_unilevel    *universal,
+                         const an_ifc_cardinality &value);
+
+template<>
+void set_ifc_constraint(an_ifc_chart_unilevel   *universal,
+                        const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_start(an_ifc_chart_unilevel *universal,
+                   const an_ifc_index    &value);
+
+template<>
 a_boolean validate(const an_ifc_chart_unilevel   &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -13013,6 +15027,11 @@ an_ifc_chart_unilevel_storage* get<an_ifc_chart_unilevel_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_chart_unilevel>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_const_f64_storage>(an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC ConstF64 nodes.
 */
@@ -13022,6 +15041,10 @@ a_boolean has_ifc_value(const an_ifc_const_f64 &universal);
 
 template<>
 an_ifc_ieeele_float get_ifc_value(const an_ifc_const_f64 &universal);
+
+template<>
+void set_ifc_value(an_ifc_const_f64          *universal,
+                   const an_ifc_ieeele_float &value);
 
 template<>
 a_boolean validate(const an_ifc_const_f64        &universal,
@@ -13042,6 +15065,11 @@ an_ifc_const_f64_storage* get<an_ifc_const_f64_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_const_f64>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_const_i64_storage>(an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC ConstI64 nodes.
 */
@@ -13051,6 +15079,9 @@ a_boolean has_ifc_value(const an_ifc_const_i64 &universal);
 
 template<>
 an_ifc_u64 get_ifc_value(const an_ifc_const_i64 &universal);
+
+template<>
+void set_ifc_value(an_ifc_const_i64 *universal, const an_ifc_u64 &value);
 
 template<>
 a_boolean validate(const an_ifc_const_i64        &universal,
@@ -13070,6 +15101,11 @@ an_ifc_const_i64_storage* get<an_ifc_const_i64_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_const_i64>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_const_str_storage>(an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ConstStr nodes.
@@ -13094,6 +15130,18 @@ template<>
 an_ifc_text_offset get_ifc_suffix(const an_ifc_const_str &universal);
 
 template<>
+void set_ifc_length(an_ifc_const_str         *universal,
+                    const an_ifc_cardinality &value);
+
+template<>
+void set_ifc_start(an_ifc_const_str         *universal,
+                   const an_ifc_text_offset &value);
+
+template<>
+void set_ifc_suffix(an_ifc_const_str         *universal,
+                    const an_ifc_text_offset &value);
+
+template<>
 a_boolean validate(const an_ifc_const_str        &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -13111,6 +15159,12 @@ an_ifc_const_str_storage* get<an_ifc_const_str_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_const_str>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_alias_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC DeclAlias nodes.
@@ -13160,6 +15214,34 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_alias &universal);
 
 template<>
+void set_ifc_access(an_ifc_decl_alias        *universal,
+                    const an_ifc_access_sort &value);
+
+template<>
+void set_ifc_aliasee(an_ifc_decl_alias       *universal,
+                     const an_ifc_type_index &value);
+
+template<>
+void set_ifc_home_scope(an_ifc_decl_alias       *universal,
+                        const an_ifc_decl_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_decl_alias            *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_name(an_ifc_decl_alias        *universal,
+                  const an_ifc_text_offset &value);
+
+template<>
+void set_ifc_specifiers(an_ifc_decl_alias                      *universal,
+                        const an_ifc_basic_specifiers_bitfield &value);
+
+template<>
+void set_ifc_type(an_ifc_decl_alias       *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_decl_alias       &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -13177,6 +15259,12 @@ an_ifc_decl_alias_storage* get<an_ifc_decl_alias_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_alias>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_barren_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC DeclBarren nodes.
@@ -13202,6 +15290,18 @@ an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                           const an_ifc_decl_barren &universal);
 
 template<>
+void set_ifc_access(an_ifc_decl_barren       *universal,
+                    const an_ifc_access_sort &value);
+
+template<>
+void set_ifc_directive(an_ifc_decl_barren     *universal,
+                       const an_ifc_dir_index &value);
+
+template<>
+void set_ifc_specifiers(an_ifc_decl_barren                     *universal,
+                        const an_ifc_basic_specifiers_bitfield &value);
+
+template<>
 a_boolean validate(const an_ifc_decl_barren      &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -13219,6 +15319,12 @@ an_ifc_decl_barren_storage* get<an_ifc_decl_barren_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_barren>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_bitfield_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC DeclBitfield nodes.
@@ -13288,6 +15394,46 @@ template<>
 an_ifc_expr_index get_ifc_width(const an_ifc_decl_bitfield &universal);
 
 template<>
+void set_ifc_access(an_ifc_decl_bitfield     *universal,
+                    const an_ifc_access_sort &value);
+
+template<>
+void set_ifc_home_scope(an_ifc_decl_bitfield    *universal,
+                        const an_ifc_decl_index &value);
+
+template<>
+void set_ifc_initializer(an_ifc_decl_bitfield    *universal,
+                         const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_decl_bitfield         *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_name(an_ifc_decl_bitfield     *universal,
+                  const an_ifc_text_offset &value);
+
+template<>
+void set_ifc_properties(an_ifc_decl_bitfield                       *universal,
+                        const an_ifc_reachable_properties_bitfield &value);
+
+template<>
+void set_ifc_specifiers(an_ifc_decl_bitfield                   *universal,
+                        const an_ifc_basic_specifiers_bitfield &value);
+
+template<>
+void set_ifc_traits(an_ifc_decl_bitfield                *universal,
+                    const an_ifc_object_traits_bitfield &value);
+
+template<>
+void set_ifc_type(an_ifc_decl_bitfield    *universal,
+                  const an_ifc_type_index &value);
+
+template<>
+void set_ifc_width(an_ifc_decl_bitfield    *universal,
+                   const an_ifc_expr_index &value);
+
+template<>
 a_boolean validate(const an_ifc_decl_bitfield    &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -13305,6 +15451,12 @@ an_ifc_decl_bitfield_storage* get<an_ifc_decl_bitfield_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_bitfield>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_concept_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC DeclConcept nodes.
@@ -13378,6 +15530,49 @@ template<>
 an_ifc_u16 get_ifc_unknown(const an_ifc_decl_concept &universal);
 
 template<>
+void set_ifc_access(an_ifc_decl_concept      *universal,
+                    const an_ifc_access_sort &value);
+
+template<>
+void set_ifc_body(an_ifc_decl_concept         *universal,
+                  const an_ifc_sentence_index &value);
+
+template<>
+void set_ifc_chart(an_ifc_decl_concept      *universal,
+                   const an_ifc_chart_index &value);
+
+template<>
+void set_ifc_constraint(an_ifc_decl_concept     *universal,
+                        const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_head(an_ifc_decl_concept         *universal,
+                  const an_ifc_sentence_index &value);
+
+template<>
+void set_ifc_home_scope(an_ifc_decl_concept     *universal,
+                        const an_ifc_decl_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_decl_concept          *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_name(an_ifc_decl_concept      *universal,
+                  const an_ifc_text_offset &value);
+
+template<>
+void set_ifc_specifiers(an_ifc_decl_concept                    *universal,
+                        const an_ifc_basic_specifiers_bitfield &value);
+
+template<>
+void set_ifc_type(an_ifc_decl_concept     *universal,
+                  const an_ifc_type_index &value);
+
+template<>
+void set_ifc_unknown(an_ifc_decl_concept *universal, const an_ifc_u16 &value);
+
+template<>
 a_boolean validate(const an_ifc_decl_concept     &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -13395,6 +15590,12 @@ an_ifc_decl_concept_storage* get<an_ifc_decl_concept_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_concept>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_constructor_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC DeclConstructor nodes.
@@ -13458,6 +15659,42 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_constructor &universal);
 
 template<>
+void set_ifc_access(an_ifc_decl_constructor  *universal,
+                    const an_ifc_access_sort &value);
+
+template<>
+void set_ifc_chart(an_ifc_decl_constructor  *universal,
+                   const an_ifc_chart_index &value);
+
+template<>
+void set_ifc_home_scope(an_ifc_decl_constructor *universal,
+                        const an_ifc_decl_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_decl_constructor      *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_name(an_ifc_decl_constructor  *universal,
+                  const an_ifc_text_offset &value);
+
+template<>
+void set_ifc_properties(an_ifc_decl_constructor                    *universal,
+                        const an_ifc_reachable_properties_bitfield &value);
+
+template<>
+void set_ifc_specifiers(an_ifc_decl_constructor                *universal,
+                        const an_ifc_basic_specifiers_bitfield &value);
+
+template<>
+void set_ifc_traits(an_ifc_decl_constructor               *universal,
+                    const an_ifc_function_traits_bitfield &value);
+
+template<>
+void set_ifc_type(an_ifc_decl_constructor *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_decl_constructor &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -13475,6 +15712,12 @@ an_ifc_decl_constructor_storage* get<an_ifc_decl_constructor_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_constructor>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_deduction_guide_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC DeclDeductionGuide nodes.
@@ -13528,6 +15771,34 @@ an_ifc_guide_traits_bitfield get_ifc_traits(
                                  const an_ifc_decl_deduction_guide &universal);
 
 template<>
+void set_ifc_home_scope(an_ifc_decl_deduction_guide *universal,
+                        const an_ifc_decl_index     &value);
+
+template<>
+void set_ifc_locus(an_ifc_decl_deduction_guide  *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_name(an_ifc_decl_deduction_guide *universal,
+                  const an_ifc_text_offset    &value);
+
+template<>
+void set_ifc_source(an_ifc_decl_deduction_guide *universal,
+                    const an_ifc_chart_index    &value);
+
+template<>
+void set_ifc_specifiers(an_ifc_decl_deduction_guide            *universal,
+                        const an_ifc_basic_specifiers_bitfield &value);
+
+template<>
+void set_ifc_target(an_ifc_decl_deduction_guide *universal,
+                    const an_ifc_expr_index     &value);
+
+template<>
+void set_ifc_traits(an_ifc_decl_deduction_guide        *universal,
+                    const an_ifc_guide_traits_bitfield &value);
+
+template<>
 a_boolean validate(const an_ifc_decl_deduction_guide &universal,
                    const an_ifc_validation_trace     *parent);
 
@@ -13546,6 +15817,12 @@ an_ifc_decl_deduction_guide_storage* get<an_ifc_decl_deduction_guide_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_deduction_guide>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_default_argument_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC DeclDefaultArgument nodes.
@@ -13600,6 +15877,34 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_default_argument &universal);
 
 template<>
+void set_ifc_access(an_ifc_decl_default_argument *universal,
+                    const an_ifc_access_sort     &value);
+
+template<>
+void set_ifc_home_scope(an_ifc_decl_default_argument *universal,
+                        const an_ifc_decl_index      &value);
+
+template<>
+void set_ifc_initializer(an_ifc_decl_default_argument *universal,
+                         const an_ifc_expr_index      &value);
+
+template<>
+void set_ifc_locus(an_ifc_decl_default_argument *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_properties(an_ifc_decl_default_argument               *universal,
+                        const an_ifc_reachable_properties_bitfield &value);
+
+template<>
+void set_ifc_specifiers(an_ifc_decl_default_argument           *universal,
+                        const an_ifc_basic_specifiers_bitfield &value);
+
+template<>
+void set_ifc_type(an_ifc_decl_default_argument *universal,
+                  const an_ifc_type_index      &value);
+
+template<>
 a_boolean validate(const an_ifc_decl_default_argument &universal,
                    const an_ifc_validation_trace      *parent);
 
@@ -13619,6 +15924,12 @@ get<an_ifc_decl_default_argument_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_default_argument>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_destructor_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC DeclDestructor nodes.
@@ -13684,6 +15995,42 @@ an_ifc_function_traits_bitfield get_ifc_traits(
                                       const an_ifc_decl_destructor &universal);
 
 template<>
+void set_ifc_access(an_ifc_decl_destructor   *universal,
+                    const an_ifc_access_sort &value);
+
+template<>
+void set_ifc_convention(an_ifc_decl_destructor               *universal,
+                        const an_ifc_calling_convention_sort &value);
+
+template<>
+void set_ifc_eh_spec(an_ifc_decl_destructor              *universal,
+                     const an_ifc_noexcept_specification &value);
+
+template<>
+void set_ifc_home_scope(an_ifc_decl_destructor  *universal,
+                        const an_ifc_decl_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_decl_destructor       *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_name(an_ifc_decl_destructor   *universal,
+                  const an_ifc_text_offset &value);
+
+template<>
+void set_ifc_properties(an_ifc_decl_destructor                     *universal,
+                        const an_ifc_reachable_properties_bitfield &value);
+
+template<>
+void set_ifc_specifiers(an_ifc_decl_destructor                 *universal,
+                        const an_ifc_basic_specifiers_bitfield &value);
+
+template<>
+void set_ifc_traits(an_ifc_decl_destructor                *universal,
+                    const an_ifc_function_traits_bitfield &value);
+
+template<>
 a_boolean validate(const an_ifc_decl_destructor  &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -13701,6 +16048,12 @@ an_ifc_decl_destructor_storage* get<an_ifc_decl_destructor_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_destructor>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_enumeration_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC DeclEnumeration nodes.
@@ -13769,6 +16122,46 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_enumeration &universal);
 
 template<>
+void set_ifc_access(an_ifc_decl_enumeration  *universal,
+                    const an_ifc_access_sort &value);
+
+template<>
+void set_ifc_alignment(an_ifc_decl_enumeration *universal,
+                       const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_base(an_ifc_decl_enumeration *universal,
+                  const an_ifc_type_index &value);
+
+template<>
+void set_ifc_home_scope(an_ifc_decl_enumeration *universal,
+                        const an_ifc_decl_index &value);
+
+template<>
+void set_ifc_initializer(an_ifc_decl_enumeration *universal,
+                         const an_ifc_sequence   &value);
+
+template<>
+void set_ifc_locus(an_ifc_decl_enumeration      *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_name(an_ifc_decl_enumeration  *universal,
+                  const an_ifc_text_offset &value);
+
+template<>
+void set_ifc_properties(an_ifc_decl_enumeration                    *universal,
+                        const an_ifc_reachable_properties_bitfield &value);
+
+template<>
+void set_ifc_specifiers(an_ifc_decl_enumeration                *universal,
+                        const an_ifc_basic_specifiers_bitfield &value);
+
+template<>
+void set_ifc_type(an_ifc_decl_enumeration *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_decl_enumeration &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -13786,6 +16179,12 @@ an_ifc_decl_enumeration_storage* get<an_ifc_decl_enumeration_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_enumeration>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_enumerator_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC DeclEnumerator nodes.
@@ -13835,6 +16234,34 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_enumerator &universal);
 
 template<>
+void set_ifc_access(an_ifc_decl_enumerator   *universal,
+                    const an_ifc_access_sort &value);
+
+template<>
+void set_ifc_home_scope(an_ifc_decl_enumerator  *universal,
+                        const an_ifc_decl_index &value);
+
+template<>
+void set_ifc_initializer(an_ifc_decl_enumerator  *universal,
+                         const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_decl_enumerator       *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_name(an_ifc_decl_enumerator   *universal,
+                  const an_ifc_text_offset &value);
+
+template<>
+void set_ifc_specifiers(an_ifc_decl_enumerator                 *universal,
+                        const an_ifc_basic_specifiers_bitfield &value);
+
+template<>
+void set_ifc_type(an_ifc_decl_enumerator  *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_decl_enumerator  &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -13853,6 +16280,12 @@ an_ifc_decl_enumerator_storage* get<an_ifc_decl_enumerator_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_enumerator>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_expansion_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC DeclExpansion nodes.
 */
@@ -13868,6 +16301,14 @@ a_boolean has_ifc_operand(const an_ifc_decl_expansion &universal);
 
 template<>
 an_ifc_decl_index get_ifc_operand(const an_ifc_decl_expansion &universal);
+
+template<>
+void set_ifc_locus(an_ifc_decl_expansion        *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_operand(an_ifc_decl_expansion   *universal,
+                     const an_ifc_decl_index &value);
 
 template<>
 a_boolean validate(const an_ifc_decl_expansion   &universal,
@@ -13888,6 +16329,12 @@ an_ifc_decl_expansion_storage* get<an_ifc_decl_expansion_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_expansion>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_explicit_instantiation_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC DeclExplicitInstantiation nodes.
 */
@@ -13905,6 +16352,14 @@ a_boolean has_ifc_form(const an_ifc_decl_explicit_instantiation &universal);
 template<>
 an_ifc_form_spec_offset get_ifc_form(
                           const an_ifc_decl_explicit_instantiation &universal);
+
+template<>
+void set_ifc_decl(an_ifc_decl_explicit_instantiation *universal,
+                  const an_ifc_decl_index            &value);
+
+template<>
+void set_ifc_form(an_ifc_decl_explicit_instantiation *universal,
+                  const an_ifc_form_spec_offset      &value);
 
 template<>
 a_boolean validate(const an_ifc_decl_explicit_instantiation &universal,
@@ -13928,6 +16383,12 @@ template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_decl_explicit_instantiation>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_explicit_specialization_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC DeclExplicitSpecialization nodes.
 */
@@ -13945,6 +16406,14 @@ a_boolean has_ifc_form(const an_ifc_decl_explicit_specialization &universal);
 template<>
 an_ifc_form_spec_offset get_ifc_form(
                          const an_ifc_decl_explicit_specialization &universal);
+
+template<>
+void set_ifc_decl(an_ifc_decl_explicit_specialization *universal,
+                  const an_ifc_decl_index             &value);
+
+template<>
+void set_ifc_form(an_ifc_decl_explicit_specialization *universal,
+                  const an_ifc_form_spec_offset       &value);
 
 template<>
 a_boolean validate(const an_ifc_decl_explicit_specialization &universal,
@@ -13967,6 +16436,12 @@ get<an_ifc_decl_explicit_specialization_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_decl_explicit_specialization>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_field_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC DeclField nodes.
@@ -14036,6 +16511,46 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_field &universal);
 
 template<>
+void set_ifc_access(an_ifc_decl_field        *universal,
+                    const an_ifc_access_sort &value);
+
+template<>
+void set_ifc_alignment(an_ifc_decl_field       *universal,
+                       const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_home_scope(an_ifc_decl_field       *universal,
+                        const an_ifc_decl_index &value);
+
+template<>
+void set_ifc_initializer(an_ifc_decl_field       *universal,
+                         const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_decl_field            *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_name(an_ifc_decl_field        *universal,
+                  const an_ifc_text_offset &value);
+
+template<>
+void set_ifc_properties(an_ifc_decl_field                          *universal,
+                        const an_ifc_reachable_properties_bitfield &value);
+
+template<>
+void set_ifc_specifiers(an_ifc_decl_field                      *universal,
+                        const an_ifc_basic_specifiers_bitfield &value);
+
+template<>
+void set_ifc_traits(an_ifc_decl_field                   *universal,
+                    const an_ifc_object_traits_bitfield &value);
+
+template<>
+void set_ifc_type(an_ifc_decl_field       *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_decl_field       &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -14054,6 +16569,12 @@ an_ifc_decl_field_storage* get<an_ifc_decl_field_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_field>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_friend_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC DeclFriend nodes.
 */
@@ -14063,6 +16584,10 @@ a_boolean has_ifc_entity(const an_ifc_decl_friend &universal);
 
 template<>
 an_ifc_expr_index get_ifc_entity(const an_ifc_decl_friend &universal);
+
+template<>
+void set_ifc_entity(an_ifc_decl_friend      *universal,
+                    const an_ifc_expr_index &value);
 
 template<>
 a_boolean validate(const an_ifc_decl_friend      &universal,
@@ -14082,6 +16607,12 @@ an_ifc_decl_friend_storage* get<an_ifc_decl_friend_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_friend>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_function_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC DeclFunction nodes.
@@ -14145,6 +16676,42 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_function &universal);
 
 template<>
+void set_ifc_access(an_ifc_decl_function     *universal,
+                    const an_ifc_access_sort &value);
+
+template<>
+void set_ifc_chart(an_ifc_decl_function     *universal,
+                   const an_ifc_chart_index &value);
+
+template<>
+void set_ifc_home_scope(an_ifc_decl_function    *universal,
+                        const an_ifc_decl_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_decl_function         *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_name(an_ifc_decl_function    *universal,
+                  const an_ifc_name_index &value);
+
+template<>
+void set_ifc_properties(an_ifc_decl_function                       *universal,
+                        const an_ifc_reachable_properties_bitfield &value);
+
+template<>
+void set_ifc_specifiers(an_ifc_decl_function                   *universal,
+                        const an_ifc_basic_specifiers_bitfield &value);
+
+template<>
+void set_ifc_traits(an_ifc_decl_function                  *universal,
+                    const an_ifc_function_traits_bitfield &value);
+
+template<>
+void set_ifc_type(an_ifc_decl_function    *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_decl_function    &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -14162,6 +16729,12 @@ an_ifc_decl_function_storage* get<an_ifc_decl_function_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_function>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_inherited_constructor_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC DeclInheritedConstructor nodes.
@@ -14234,6 +16807,42 @@ an_ifc_type_index get_ifc_type(
                            const an_ifc_decl_inherited_constructor &universal);
 
 template<>
+void set_ifc_access(an_ifc_decl_inherited_constructor *universal,
+                    const an_ifc_access_sort          &value);
+
+template<>
+void set_ifc_base_ctor(an_ifc_decl_inherited_constructor *universal,
+                       const an_ifc_decl_index           &value);
+
+template<>
+void set_ifc_chart(an_ifc_decl_inherited_constructor *universal,
+                   const an_ifc_chart_index          &value);
+
+template<>
+void set_ifc_home_scope(an_ifc_decl_inherited_constructor *universal,
+                        const an_ifc_decl_index           &value);
+
+template<>
+void set_ifc_locus(an_ifc_decl_inherited_constructor *universal,
+                   const an_ifc_source_location      &value);
+
+template<>
+void set_ifc_name(an_ifc_decl_inherited_constructor *universal,
+                  const an_ifc_text_offset          &value);
+
+template<>
+void set_ifc_specifiers(an_ifc_decl_inherited_constructor      *universal,
+                        const an_ifc_basic_specifiers_bitfield &value);
+
+template<>
+void set_ifc_traits(an_ifc_decl_inherited_constructor     *universal,
+                    const an_ifc_function_traits_bitfield &value);
+
+template<>
+void set_ifc_type(an_ifc_decl_inherited_constructor *universal,
+                  const an_ifc_type_index           &value);
+
+template<>
 a_boolean validate(const an_ifc_decl_inherited_constructor &universal,
                    const an_ifc_validation_trace           *parent);
 
@@ -14254,6 +16863,12 @@ get<an_ifc_decl_inherited_constructor_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_decl_inherited_constructor>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_intrinsic_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC DeclIntrinsic nodes.
@@ -14297,6 +16912,30 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_intrinsic &universal);
 
 template<>
+void set_ifc_access(an_ifc_decl_intrinsic    *universal,
+                    const an_ifc_access_sort &value);
+
+template<>
+void set_ifc_home_scope(an_ifc_decl_intrinsic   *universal,
+                        const an_ifc_decl_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_decl_intrinsic        *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_name(an_ifc_decl_intrinsic    *universal,
+                  const an_ifc_text_offset &value);
+
+template<>
+void set_ifc_specifiers(an_ifc_decl_intrinsic                  *universal,
+                        const an_ifc_basic_specifiers_bitfield &value);
+
+template<>
+void set_ifc_type(an_ifc_decl_intrinsic   *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_decl_intrinsic   &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -14314,6 +16953,12 @@ an_ifc_decl_intrinsic_storage* get<an_ifc_decl_intrinsic_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_intrinsic>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_method_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC DeclMethod nodes.
@@ -14377,6 +17022,42 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_method &universal);
 
 template<>
+void set_ifc_access(an_ifc_decl_method       *universal,
+                    const an_ifc_access_sort &value);
+
+template<>
+void set_ifc_chart(an_ifc_decl_method       *universal,
+                   const an_ifc_chart_index &value);
+
+template<>
+void set_ifc_home_scope(an_ifc_decl_method      *universal,
+                        const an_ifc_decl_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_decl_method           *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_name(an_ifc_decl_method      *universal,
+                  const an_ifc_name_index &value);
+
+template<>
+void set_ifc_properties(an_ifc_decl_method                         *universal,
+                        const an_ifc_reachable_properties_bitfield &value);
+
+template<>
+void set_ifc_specifiers(an_ifc_decl_method                     *universal,
+                        const an_ifc_basic_specifiers_bitfield &value);
+
+template<>
+void set_ifc_traits(an_ifc_decl_method                    *universal,
+                    const an_ifc_function_traits_bitfield &value);
+
+template<>
+void set_ifc_type(an_ifc_decl_method      *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_decl_method      &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -14394,6 +17075,12 @@ an_ifc_decl_method_storage* get<an_ifc_decl_method_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_method>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_output_segment_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC DeclOutputSegment nodes.
@@ -14425,6 +17112,22 @@ template<>
 an_ifc_segment_type get_ifc_type(const an_ifc_decl_output_segment &universal);
 
 template<>
+void set_ifc_ID(an_ifc_decl_output_segment *universal,
+                const an_ifc_text_offset   &value);
+
+template<>
+void set_ifc_name(an_ifc_decl_output_segment *universal,
+                  const an_ifc_text_offset   &value);
+
+template<>
+void set_ifc_traits(an_ifc_decl_output_segment  *universal,
+                    const an_ifc_segment_traits &value);
+
+template<>
+void set_ifc_type(an_ifc_decl_output_segment *universal,
+                  const an_ifc_segment_type  &value);
+
+template<>
 a_boolean validate(const an_ifc_decl_output_segment &universal,
                    const an_ifc_validation_trace    *parent);
 
@@ -14443,6 +17146,12 @@ an_ifc_decl_output_segment_storage* get<an_ifc_decl_output_segment_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_output_segment>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_parameter_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC DeclParameter nodes.
@@ -14518,6 +17227,49 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_parameter &universal);
 
 template<>
+void set_ifc_constraint(an_ifc_decl_parameter   *universal,
+                        const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_init_decl(an_ifc_decl_parameter               *universal,
+                       const an_ifc_expr_named_decl_offset &value);
+
+template<>
+void set_ifc_initializer(an_ifc_decl_parameter   *universal,
+                         const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_level(an_ifc_decl_parameter        *universal,
+                   const an_ifc_parameter_level &value);
+
+template<>
+void set_ifc_locus(an_ifc_decl_parameter        *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_name(an_ifc_decl_parameter    *universal,
+                  const an_ifc_text_offset &value);
+
+template<>
+void set_ifc_pack(an_ifc_decl_parameter *universal, const an_ifc_bool &value);
+
+template<>
+void set_ifc_position(an_ifc_decl_parameter           *universal,
+                      const an_ifc_parameter_position &value);
+
+template<>
+void set_ifc_properties(an_ifc_decl_parameter                      *universal,
+                        const an_ifc_reachable_properties_bitfield &value);
+
+template<>
+void set_ifc_sort(an_ifc_decl_parameter       *universal,
+                  const an_ifc_parameter_sort &value);
+
+template<>
+void set_ifc_type(an_ifc_decl_parameter   *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_decl_parameter   &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -14535,6 +17287,12 @@ an_ifc_decl_parameter_storage* get<an_ifc_decl_parameter_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_parameter>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_partial_specialization_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC DeclPartialSpecialization nodes.
@@ -14615,6 +17373,46 @@ an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                           const an_ifc_decl_partial_specialization &universal);
 
 template<>
+void set_ifc_access(an_ifc_decl_partial_specialization *universal,
+                    const an_ifc_access_sort           &value);
+
+template<>
+void set_ifc_chart(an_ifc_decl_partial_specialization *universal,
+                   const an_ifc_chart_index           &value);
+
+template<>
+void set_ifc_entity(an_ifc_decl_partial_specialization *universal,
+                    const an_ifc_parameterized_entity  &value);
+
+template<>
+void set_ifc_form(an_ifc_decl_partial_specialization *universal,
+                  const an_ifc_form_spec_offset      &value);
+
+template<>
+void set_ifc_home_scope(an_ifc_decl_partial_specialization *universal,
+                        const an_ifc_decl_index            &value);
+
+template<>
+void set_ifc_locus(an_ifc_decl_partial_specialization *universal,
+                   const an_ifc_source_location       &value);
+
+template<>
+void set_ifc_name(an_ifc_decl_partial_specialization *universal,
+                  const an_ifc_name_index            &value);
+
+template<>
+void set_ifc_primary_template(an_ifc_decl_partial_specialization *universal,
+                              const an_ifc_decl_index            &value);
+
+template<>
+void set_ifc_properties(an_ifc_decl_partial_specialization         *universal,
+                        const an_ifc_reachable_properties_bitfield &value);
+
+template<>
+void set_ifc_specifiers(an_ifc_decl_partial_specialization     *universal,
+                        const an_ifc_basic_specifiers_bitfield &value);
+
+template<>
 a_boolean validate(const an_ifc_decl_partial_specialization &universal,
                    const an_ifc_validation_trace            *parent);
 
@@ -14635,6 +17433,12 @@ get<an_ifc_decl_partial_specialization_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_decl_partial_specialization>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_property_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC DeclProperty nodes.
@@ -14659,6 +17463,18 @@ template<>
 an_ifc_text_offset get_ifc_setter(const an_ifc_decl_property &universal);
 
 template<>
+void set_ifc_getter(an_ifc_decl_property     *universal,
+                    const an_ifc_text_offset &value);
+
+template<>
+void set_ifc_member(an_ifc_decl_property    *universal,
+                    const an_ifc_decl_index &value);
+
+template<>
+void set_ifc_setter(an_ifc_decl_property     *universal,
+                    const an_ifc_text_offset &value);
+
+template<>
 a_boolean validate(const an_ifc_decl_property    &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -14676,6 +17492,12 @@ an_ifc_decl_property_storage* get<an_ifc_decl_property_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_property>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_reference_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC DeclReference nodes.
@@ -14701,6 +17523,18 @@ template<>
 an_ifc_module_reference get_ifc_unit(const an_ifc_decl_reference &universal);
 
 template<>
+void set_ifc_index(an_ifc_decl_reference   *universal,
+                   const an_ifc_decl_index &value);
+
+template<>
+void set_ifc_local_index(an_ifc_decl_reference           *universal,
+                         const an_ifc_decl_foreign_index &value);
+
+template<>
+void set_ifc_unit(an_ifc_decl_reference         *universal,
+                  const an_ifc_module_reference &value);
+
+template<>
 a_boolean validate(const an_ifc_decl_reference   &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -14718,6 +17552,12 @@ an_ifc_decl_reference_storage* get<an_ifc_decl_reference_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_reference>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_scope_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC DeclScope nodes.
@@ -14799,6 +17639,54 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_scope &universal);
 
 template<>
+void set_ifc_access(an_ifc_decl_scope        *universal,
+                    const an_ifc_access_sort &value);
+
+template<>
+void set_ifc_alignment(an_ifc_decl_scope       *universal,
+                       const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_base(an_ifc_decl_scope       *universal,
+                  const an_ifc_type_index &value);
+
+template<>
+void set_ifc_home_scope(an_ifc_decl_scope       *universal,
+                        const an_ifc_decl_index &value);
+
+template<>
+void set_ifc_initializer(an_ifc_decl_scope         *universal,
+                         const an_ifc_scope_offset &value);
+
+template<>
+void set_ifc_locus(an_ifc_decl_scope            *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_name(an_ifc_decl_scope       *universal,
+                  const an_ifc_name_index &value);
+
+template<>
+void set_ifc_pack_size(an_ifc_decl_scope      *universal,
+                       const an_ifc_pack_size &value);
+
+template<>
+void set_ifc_properties(an_ifc_decl_scope                          *universal,
+                        const an_ifc_reachable_properties_bitfield &value);
+
+template<>
+void set_ifc_specifiers(an_ifc_decl_scope                      *universal,
+                        const an_ifc_basic_specifiers_bitfield &value);
+
+template<>
+void set_ifc_traits(an_ifc_decl_scope                  *universal,
+                    const an_ifc_scope_traits_bitfield &value);
+
+template<>
+void set_ifc_type(an_ifc_decl_scope       *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_decl_scope       &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -14816,6 +17704,12 @@ an_ifc_decl_scope_storage* get<an_ifc_decl_scope_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_scope>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_specialization_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC DeclSpecialization nodes.
@@ -14870,6 +17764,34 @@ an_ifc_specialization_sort get_ifc_sort(
                                   const an_ifc_decl_specialization &universal);
 
 template<>
+void set_ifc_decl(an_ifc_decl_specialization *universal,
+                  const an_ifc_decl_index    &value);
+
+template<>
+void set_ifc_form(an_ifc_decl_specialization    *universal,
+                  const an_ifc_form_spec_offset &value);
+
+template<>
+void set_ifc_home_scope(an_ifc_decl_specialization *universal,
+                        const an_ifc_decl_index    &value);
+
+template<>
+void set_ifc_locus(an_ifc_decl_specialization   *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_name(an_ifc_decl_specialization *universal,
+                  const an_ifc_name_index    &value);
+
+template<>
+void set_ifc_primary_template(an_ifc_decl_specialization *universal,
+                              const an_ifc_decl_index    &value);
+
+template<>
+void set_ifc_sort(an_ifc_decl_specialization       *universal,
+                  const an_ifc_specialization_sort &value);
+
+template<>
 a_boolean validate(const an_ifc_decl_specialization &universal,
                    const an_ifc_validation_trace    *parent);
 
@@ -14889,6 +17811,12 @@ an_ifc_decl_specialization_storage* get<an_ifc_decl_specialization_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_specialization>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_syntax_tree_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC DeclSyntaxTree nodes.
 */
@@ -14898,6 +17826,10 @@ a_boolean has_ifc_syntax(const an_ifc_decl_syntax_tree &universal);
 
 template<>
 an_ifc_syntax_index get_ifc_syntax(const an_ifc_decl_syntax_tree &universal);
+
+template<>
+void set_ifc_syntax(an_ifc_decl_syntax_tree   *universal,
+                    const an_ifc_syntax_index &value);
 
 template<>
 a_boolean validate(const an_ifc_decl_syntax_tree &universal,
@@ -14917,6 +17849,12 @@ an_ifc_decl_syntax_tree_storage* get<an_ifc_decl_syntax_tree_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_syntax_tree>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_template_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC DeclTemplate nodes.
@@ -14980,6 +17918,42 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_template &universal);
 
 template<>
+void set_ifc_access(an_ifc_decl_template     *universal,
+                    const an_ifc_access_sort &value);
+
+template<>
+void set_ifc_chart(an_ifc_decl_template     *universal,
+                   const an_ifc_chart_index &value);
+
+template<>
+void set_ifc_entity(an_ifc_decl_template              *universal,
+                    const an_ifc_parameterized_entity &value);
+
+template<>
+void set_ifc_home_scope(an_ifc_decl_template    *universal,
+                        const an_ifc_decl_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_decl_template         *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_name(an_ifc_decl_template    *universal,
+                  const an_ifc_name_index &value);
+
+template<>
+void set_ifc_properties(an_ifc_decl_template                       *universal,
+                        const an_ifc_reachable_properties_bitfield &value);
+
+template<>
+void set_ifc_specifiers(an_ifc_decl_template                   *universal,
+                        const an_ifc_basic_specifiers_bitfield &value);
+
+template<>
+void set_ifc_type(an_ifc_decl_template    *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_decl_template    &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -14997,6 +17971,12 @@ an_ifc_decl_template_storage* get<an_ifc_decl_template_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_template>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_temploid_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC DeclTemploid nodes.
@@ -15023,6 +18003,18 @@ an_ifc_reachable_properties_bitfield get_ifc_properties(
                                         const an_ifc_decl_temploid &universal);
 
 template<>
+void set_ifc_chart(an_ifc_decl_temploid     *universal,
+                   const an_ifc_chart_index &value);
+
+template<>
+void set_ifc_entity(an_ifc_decl_temploid              *universal,
+                    const an_ifc_parameterized_entity &value);
+
+template<>
+void set_ifc_properties(an_ifc_decl_temploid                       *universal,
+                        const an_ifc_reachable_properties_bitfield &value);
+
+template<>
 a_boolean validate(const an_ifc_decl_temploid    &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -15041,6 +18033,12 @@ an_ifc_decl_temploid_storage* get<an_ifc_decl_temploid_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_temploid>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_tuple_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC DeclTuple nodes.
 */
@@ -15056,6 +18054,13 @@ a_boolean has_ifc_start(const an_ifc_decl_tuple &universal);
 
 template<>
 an_ifc_index get_ifc_start(const an_ifc_decl_tuple &universal);
+
+template<>
+void set_ifc_cardinality(an_ifc_decl_tuple        *universal,
+                         const an_ifc_cardinality &value);
+
+template<>
+void set_ifc_start(an_ifc_decl_tuple *universal, const an_ifc_index &value);
 
 template<>
 a_boolean validate(const an_ifc_decl_tuple       &universal,
@@ -15075,6 +18080,12 @@ an_ifc_decl_tuple_storage* get<an_ifc_decl_tuple_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_tuple>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_using_declaration_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC DeclUsingDeclaration nodes.
@@ -15143,6 +18154,42 @@ an_ifc_basic_specifiers_bitfield get_ifc_specifiers(
                                const an_ifc_decl_using_declaration &universal);
 
 template<>
+void set_ifc_access(an_ifc_decl_using_declaration *universal,
+                    const an_ifc_access_sort      &value);
+
+template<>
+void set_ifc_hidden(an_ifc_decl_using_declaration *universal,
+                    const an_ifc_bool             &value);
+
+template<>
+void set_ifc_home_scope(an_ifc_decl_using_declaration *universal,
+                        const an_ifc_decl_index       &value);
+
+template<>
+void set_ifc_locus(an_ifc_decl_using_declaration *universal,
+                   const an_ifc_source_location  &value);
+
+template<>
+void set_ifc_name(an_ifc_decl_using_declaration *universal,
+                  const an_ifc_text_offset      &value);
+
+template<>
+void set_ifc_name2(an_ifc_decl_using_declaration *universal,
+                   const an_ifc_text_offset      &value);
+
+template<>
+void set_ifc_parent(an_ifc_decl_using_declaration *universal,
+                    const an_ifc_expr_index       &value);
+
+template<>
+void set_ifc_resolution(an_ifc_decl_using_declaration *universal,
+                        const an_ifc_decl_index       &value);
+
+template<>
+void set_ifc_specifiers(an_ifc_decl_using_declaration          *universal,
+                        const an_ifc_basic_specifiers_bitfield &value);
+
+template<>
 a_boolean validate(const an_ifc_decl_using_declaration &universal,
                    const an_ifc_validation_trace       *parent);
 
@@ -15162,6 +18209,12 @@ get<an_ifc_decl_using_declaration_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_using_declaration>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_variable_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC DeclVariable nodes.
@@ -15231,6 +18284,46 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_decl_variable &universal);
 
 template<>
+void set_ifc_access(an_ifc_decl_variable     *universal,
+                    const an_ifc_access_sort &value);
+
+template<>
+void set_ifc_alignment(an_ifc_decl_variable    *universal,
+                       const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_home_scope(an_ifc_decl_variable    *universal,
+                        const an_ifc_decl_index &value);
+
+template<>
+void set_ifc_initializer(an_ifc_decl_variable    *universal,
+                         const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_decl_variable         *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_name(an_ifc_decl_variable    *universal,
+                  const an_ifc_name_index &value);
+
+template<>
+void set_ifc_properties(an_ifc_decl_variable                       *universal,
+                        const an_ifc_reachable_properties_bitfield &value);
+
+template<>
+void set_ifc_specifiers(an_ifc_decl_variable                   *universal,
+                        const an_ifc_basic_specifiers_bitfield &value);
+
+template<>
+void set_ifc_traits(an_ifc_decl_variable                *universal,
+                    const an_ifc_object_traits_bitfield &value);
+
+template<>
+void set_ifc_type(an_ifc_decl_variable    *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_decl_variable    &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -15249,6 +18342,12 @@ an_ifc_decl_variable_storage* get<an_ifc_decl_variable_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_decl_variable>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_dir_attribute_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC DirAttribute nodes.
 */
@@ -15264,6 +18363,14 @@ a_boolean has_ifc_locus(const an_ifc_dir_attribute &universal);
 
 template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_dir_attribute &universal);
+
+template<>
+void set_ifc_attr(an_ifc_dir_attribute    *universal,
+                  const an_ifc_attr_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_dir_attribute         *universal,
+                   const an_ifc_source_location &value);
 
 template<>
 a_boolean validate(const an_ifc_dir_attribute    &universal,
@@ -15283,6 +18390,12 @@ an_ifc_dir_attribute_storage* get<an_ifc_dir_attribute_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_dir_attribute>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_dir_decl_use_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC DirDeclUse nodes.
@@ -15307,6 +18420,18 @@ template<>
 an_ifc_decl_index get_ifc_result(const an_ifc_dir_decl_use &universal);
 
 template<>
+void set_ifc_locus(an_ifc_dir_decl_use          *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_path(an_ifc_dir_decl_use     *universal,
+                  const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_result(an_ifc_dir_decl_use     *universal,
+                    const an_ifc_decl_index &value);
+
+template<>
 a_boolean validate(const an_ifc_dir_decl_use     &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -15325,6 +18450,11 @@ an_ifc_dir_decl_use_storage* get<an_ifc_dir_decl_use_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_dir_decl_use>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_dir_empty_storage>(an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC DirEmpty nodes.
 */
@@ -15334,6 +18464,10 @@ a_boolean has_ifc_locus(const an_ifc_dir_empty &universal);
 
 template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_dir_empty &universal);
+
+template<>
+void set_ifc_locus(an_ifc_dir_empty             *universal,
+                   const an_ifc_source_location &value);
 
 template<>
 a_boolean validate(const an_ifc_dir_empty        &universal,
@@ -15353,6 +18487,11 @@ an_ifc_dir_empty_storage* get<an_ifc_dir_empty_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_dir_empty>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_dir_expr_storage>(an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC DirExpr nodes.
@@ -15377,6 +18516,17 @@ template<>
 an_ifc_phases_bitfield get_ifc_phases(const an_ifc_dir_expr &universal);
 
 template<>
+void set_ifc_expr(an_ifc_dir_expr *universal, const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_dir_expr              *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_phases(an_ifc_dir_expr              *universal,
+                    const an_ifc_phases_bitfield &value);
+
+template<>
 a_boolean validate(const an_ifc_dir_expr         &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -15395,6 +18545,12 @@ an_ifc_dir_expr_storage* get<an_ifc_dir_expr_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_dir_expr>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_dir_pragma_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC DirPragma nodes.
 */
@@ -15410,6 +18566,14 @@ a_boolean has_ifc_words(const an_ifc_dir_pragma &universal);
 
 template<>
 an_ifc_sentence_index get_ifc_words(const an_ifc_dir_pragma &universal);
+
+template<>
+void set_ifc_locus(an_ifc_dir_pragma            *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_words(an_ifc_dir_pragma           *universal,
+                   const an_ifc_sentence_index &value);
 
 template<>
 a_boolean validate(const an_ifc_dir_pragma       &universal,
@@ -15430,6 +18594,11 @@ an_ifc_dir_pragma_storage* get<an_ifc_dir_pragma_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_dir_pragma>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_dir_tuple_storage>(an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC DirTuple nodes.
 */
@@ -15445,6 +18614,13 @@ a_boolean has_ifc_start(const an_ifc_dir_tuple &universal);
 
 template<>
 an_ifc_index get_ifc_start(const an_ifc_dir_tuple &universal);
+
+template<>
+void set_ifc_cardinality(an_ifc_dir_tuple         *universal,
+                         const an_ifc_cardinality &value);
+
+template<>
+void set_ifc_start(an_ifc_dir_tuple *universal, const an_ifc_index &value);
 
 template<>
 a_boolean validate(const an_ifc_dir_tuple        &universal,
@@ -15464,6 +18640,11 @@ an_ifc_dir_tuple_storage* get<an_ifc_dir_tuple_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_dir_tuple>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_dir_using_storage>(an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC DirUsing nodes.
@@ -15488,6 +18669,18 @@ template<>
 an_ifc_decl_index get_ifc_resolution(const an_ifc_dir_using &universal);
 
 template<>
+void set_ifc_locus(an_ifc_dir_using             *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_nominated(an_ifc_dir_using        *universal,
+                       const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_resolution(an_ifc_dir_using        *universal,
+                        const an_ifc_decl_index &value);
+
+template<>
 a_boolean validate(const an_ifc_dir_using        &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -15505,6 +18698,12 @@ an_ifc_dir_using_storage* get<an_ifc_dir_using_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_dir_using>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_alignof_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprAlignof nodes.
@@ -15529,6 +18728,18 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_alignof &universal);
 
 template<>
+void set_ifc_locus(an_ifc_expr_alignof          *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_operand(an_ifc_expr_alignof       *universal,
+                     const an_ifc_syntax_index &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_alignof     *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_alignof     &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -15546,6 +18757,12 @@ an_ifc_expr_alignof_storage* get<an_ifc_expr_alignof_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_alignof>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_array_value_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprArrayValue nodes.
@@ -15577,6 +18794,22 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_array_value &universal);
 
 template<>
+void set_ifc_element_type(an_ifc_expr_array_value *universal,
+                          const an_ifc_type_index &value);
+
+template<>
+void set_ifc_elements(an_ifc_expr_array_value *universal,
+                      const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_expr_array_value      *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_array_value *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_array_value &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -15595,6 +18828,12 @@ an_ifc_expr_array_value_storage* get<an_ifc_expr_array_value_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_array_value>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_assign_initializer_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC ExprAssignInitializer nodes.
 */
@@ -15612,6 +18851,14 @@ a_boolean has_ifc_initializer(const an_ifc_expr_assign_initializer &universal);
 template<>
 an_ifc_expr_index get_ifc_initializer(
                               const an_ifc_expr_assign_initializer &universal);
+
+template<>
+void set_ifc_equal(an_ifc_expr_assign_initializer *universal,
+                   const an_ifc_source_location   &value);
+
+template<>
+void set_ifc_initializer(an_ifc_expr_assign_initializer *universal,
+                         const an_ifc_expr_index        &value);
 
 template<>
 a_boolean validate(const an_ifc_expr_assign_initializer &universal,
@@ -15633,6 +18880,12 @@ get<an_ifc_expr_assign_initializer_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_assign_initializer>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_binary_fold_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprBinaryFold nodes.
@@ -15677,6 +18930,30 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_binary_fold &universal);
 
 template<>
+void set_ifc_associativity(an_ifc_expr_binary_fold    *universal,
+                           const an_ifc_associativity &value);
+
+template<>
+void set_ifc_left(an_ifc_expr_binary_fold *universal,
+                  const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_expr_binary_fold      *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_operation(an_ifc_expr_binary_fold           *universal,
+                       const an_ifc_dyadic_operator_sort &value);
+
+template<>
+void set_ifc_right(an_ifc_expr_binary_fold *universal,
+                   const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_binary_fold *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_binary_fold &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -15694,6 +18971,11 @@ an_ifc_expr_binary_fold_storage* get<an_ifc_expr_binary_fold_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_binary_fold>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_call_storage>(an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprCall nodes.
@@ -15724,6 +19006,21 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_call &universal);
 
 template<>
+void set_ifc_arguments(an_ifc_expr_call        *universal,
+                       const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_expr_call             *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_operation(an_ifc_expr_call        *universal,
+                       const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_call *universal, const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_call        &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -15741,6 +19038,11 @@ an_ifc_expr_call_storage* get<an_ifc_expr_call_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_call>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_cast_storage>(an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprCast nodes.
@@ -15777,6 +19079,25 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_cast &universal);
 
 template<>
+void set_ifc_locus(an_ifc_expr_cast             *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_op(an_ifc_expr_cast                  *universal,
+                const an_ifc_dyadic_operator_sort &value);
+
+template<>
+void set_ifc_source(an_ifc_expr_cast        *universal,
+                    const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_target(an_ifc_expr_cast        *universal,
+                    const an_ifc_type_index &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_cast *universal, const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_cast        &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -15794,6 +19115,12 @@ an_ifc_expr_cast_storage* get<an_ifc_expr_cast_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_cast>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_compound_string_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprCompoundString nodes.
@@ -15826,6 +19153,22 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_compound_string &universal);
 
 template<>
+void set_ifc_locus(an_ifc_expr_compound_string  *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_prefix(an_ifc_expr_compound_string *universal,
+                    const an_ifc_text_offset    &value);
+
+template<>
+void set_ifc_string(an_ifc_expr_compound_string *universal,
+                    const an_ifc_expr_index     &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_compound_string *universal,
+                  const an_ifc_type_index     &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_compound_string &universal,
                    const an_ifc_validation_trace     *parent);
 
@@ -15844,6 +19187,12 @@ an_ifc_expr_compound_string_storage* get<an_ifc_expr_compound_string_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_compound_string>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_condition_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprCondition nodes.
@@ -15868,6 +19217,18 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_condition &universal);
 
 template<>
+void set_ifc_expr(an_ifc_expr_condition   *universal,
+                  const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_expr_condition        *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_condition   *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_condition   &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -15885,6 +19246,12 @@ an_ifc_expr_condition_storage* get<an_ifc_expr_condition_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_condition>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_designated_initializer_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprDesignatedInitializer nodes.
@@ -15920,6 +19287,22 @@ an_ifc_type_index get_ifc_type(
                           const an_ifc_expr_designated_initializer &universal);
 
 template<>
+void set_ifc_initializer(an_ifc_expr_designated_initializer *universal,
+                         const an_ifc_expr_index            &value);
+
+template<>
+void set_ifc_locus(an_ifc_expr_designated_initializer *universal,
+                   const an_ifc_source_location       &value);
+
+template<>
+void set_ifc_member(an_ifc_expr_designated_initializer *universal,
+                    const an_ifc_text_offset           &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_designated_initializer *universal,
+                  const an_ifc_type_index            &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_designated_initializer &universal,
                    const an_ifc_validation_trace            *parent);
 
@@ -15940,6 +19323,12 @@ get<an_ifc_expr_designated_initializer_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_expr_designated_initializer>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_destructor_call_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprDestructorCall nodes.
@@ -15980,6 +19369,26 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_destructor_call &universal);
 
 template<>
+void set_ifc_cleanup(an_ifc_expr_destructor_call  *universal,
+                     const an_ifc_destructor_sort &value);
+
+template<>
+void set_ifc_decltype_specifier(an_ifc_expr_destructor_call *universal,
+                                const an_ifc_syntax_index   &value);
+
+template<>
+void set_ifc_locus(an_ifc_expr_destructor_call  *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_name(an_ifc_expr_destructor_call *universal,
+                  const an_ifc_expr_index     &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_destructor_call *universal,
+                  const an_ifc_type_index     &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_destructor_call &universal,
                    const an_ifc_validation_trace     *parent);
 
@@ -15998,6 +19407,11 @@ an_ifc_expr_destructor_call_storage* get<an_ifc_expr_destructor_call_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_destructor_call>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_dyad_storage>(an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprDyad nodes.
@@ -16040,6 +19454,28 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_dyad &universal);
 
 template<>
+void set_ifc_argument_0(an_ifc_expr_dyad        *universal,
+                        const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_argument_1(an_ifc_expr_dyad        *universal,
+                        const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_assoc(an_ifc_expr_dyad                  *universal,
+                   const an_ifc_dyadic_operator_sort &value);
+
+template<>
+void set_ifc_impl(an_ifc_expr_dyad *universal, const an_ifc_decl_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_expr_dyad             *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_dyad *universal, const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_dyad        &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -16057,6 +19493,12 @@ an_ifc_expr_dyad_storage* get<an_ifc_expr_dyad_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_dyad>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_dynamic_dispatch_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprDynamicDispatch nodes.
@@ -16082,6 +19524,18 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_dynamic_dispatch &universal);
 
 template<>
+void set_ifc_locus(an_ifc_expr_dynamic_dispatch *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_pivot(an_ifc_expr_dynamic_dispatch *universal,
+                   const an_ifc_expr_index      &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_dynamic_dispatch *universal,
+                  const an_ifc_type_index      &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_dynamic_dispatch &universal,
                    const an_ifc_validation_trace      *parent);
 
@@ -16102,6 +19556,12 @@ get<an_ifc_expr_dynamic_dispatch_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_dynamic_dispatch>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_empty_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC ExprEmpty nodes.
 */
@@ -16117,6 +19577,14 @@ a_boolean has_ifc_type(const an_ifc_expr_empty &universal);
 
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_empty &universal);
+
+template<>
+void set_ifc_locus(an_ifc_expr_empty            *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_empty       *universal,
+                  const an_ifc_type_index &value);
 
 template<>
 a_boolean validate(const an_ifc_expr_empty       &universal,
@@ -16136,6 +19604,12 @@ an_ifc_expr_empty_storage* get<an_ifc_expr_empty_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_empty>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_expansion_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprExpansion nodes.
@@ -16160,6 +19634,18 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_expansion &universal);
 
 template<>
+void set_ifc_locus(an_ifc_expr_expansion        *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_operand(an_ifc_expr_expansion   *universal,
+                     const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_expansion   *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_expansion   &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -16177,6 +19663,12 @@ an_ifc_expr_expansion_storage* get<an_ifc_expr_expansion_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_expansion>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_expression_list_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprExpressionList nodes.
@@ -16211,6 +19703,22 @@ an_ifc_source_location get_ifc_right(
                                  const an_ifc_expr_expression_list &universal);
 
 template<>
+void set_ifc_contents(an_ifc_expr_expression_list *universal,
+                      const an_ifc_expr_index     &value);
+
+template<>
+void set_ifc_delimiter(an_ifc_expr_expression_list *universal,
+                       const an_ifc_delimiter_sort &value);
+
+template<>
+void set_ifc_left(an_ifc_expr_expression_list  *universal,
+                  const an_ifc_source_location &value);
+
+template<>
+void set_ifc_right(an_ifc_expr_expression_list  *universal,
+                   const an_ifc_source_location &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_expression_list &universal,
                    const an_ifc_validation_trace     *parent);
 
@@ -16229,6 +19737,12 @@ an_ifc_expr_expression_list_storage* get<an_ifc_expr_expression_list_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_expression_list>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_function_string_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprFunctionString nodes.
@@ -16254,6 +19768,18 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_function_string &universal);
 
 template<>
+void set_ifc_locus(an_ifc_expr_function_string  *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_macro(an_ifc_expr_function_string *universal,
+                   const an_ifc_text_offset    &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_function_string *universal,
+                  const an_ifc_type_index     &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_function_string &universal,
                    const an_ifc_validation_trace     *parent);
 
@@ -16272,6 +19798,12 @@ an_ifc_expr_function_string_storage* get<an_ifc_expr_function_string_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_function_string>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_hierarchy_conversion_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprHierarchyConversion nodes.
@@ -16328,6 +19860,34 @@ an_ifc_type_index get_ifc_type(
                             const an_ifc_expr_hierarchy_conversion &universal);
 
 template<>
+void set_ifc_inheritance(an_ifc_expr_hierarchy_conversion *universal,
+                         const an_ifc_expr_index          &value);
+
+template<>
+void set_ifc_locus(an_ifc_expr_hierarchy_conversion *universal,
+                   const an_ifc_source_location     &value);
+
+template<>
+void set_ifc_op(an_ifc_expr_hierarchy_conversion  *universal,
+                const an_ifc_dyadic_operator_sort &value);
+
+template<>
+void set_ifc_override(an_ifc_expr_hierarchy_conversion *universal,
+                      const an_ifc_expr_index          &value);
+
+template<>
+void set_ifc_source(an_ifc_expr_hierarchy_conversion *universal,
+                    const an_ifc_expr_index          &value);
+
+template<>
+void set_ifc_target(an_ifc_expr_hierarchy_conversion *universal,
+                    const an_ifc_type_index          &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_hierarchy_conversion *universal,
+                  const an_ifc_type_index          &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_hierarchy_conversion &universal,
                    const an_ifc_validation_trace          *parent);
 
@@ -16348,6 +19908,12 @@ get<an_ifc_expr_hierarchy_conversion_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_expr_hierarchy_conversion>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_inheritance_path_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprInheritancePath nodes.
@@ -16373,6 +19939,18 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_inheritance_path &universal);
 
 template<>
+void set_ifc_locus(an_ifc_expr_inheritance_path *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_path(an_ifc_expr_inheritance_path *universal,
+                  const an_ifc_expr_index      &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_inheritance_path *universal,
+                  const an_ifc_type_index      &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_inheritance_path &universal,
                    const an_ifc_validation_trace      *parent);
 
@@ -16392,6 +19970,12 @@ get<an_ifc_expr_inheritance_path_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_inheritance_path>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_initializer_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprInitializer nodes.
@@ -16422,6 +20006,22 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_initializer &universal);
 
 template<>
+void set_ifc_expr(an_ifc_expr_initializer *universal,
+                  const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_expr_initializer      *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_sort(an_ifc_expr_initializer       *universal,
+                  const an_ifc_initializer_sort &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_initializer *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_initializer &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -16439,6 +20039,12 @@ an_ifc_expr_initializer_storage* get<an_ifc_expr_initializer_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_initializer>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_initializer_list_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprInitializerList nodes.
@@ -16465,6 +20071,18 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_initializer_list &universal);
 
 template<>
+void set_ifc_elements(an_ifc_expr_initializer_list *universal,
+                      const an_ifc_expr_index      &value);
+
+template<>
+void set_ifc_locus(an_ifc_expr_initializer_list *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_initializer_list *universal,
+                  const an_ifc_type_index      &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_initializer_list &universal,
                    const an_ifc_validation_trace      *parent);
 
@@ -16484,6 +20102,12 @@ get<an_ifc_expr_initializer_list_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_initializer_list>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_label_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprLabel nodes.
@@ -16508,6 +20132,18 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_label &universal);
 
 template<>
+void set_ifc_designator(an_ifc_expr_label       *universal,
+                        const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_expr_label            *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_label       *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_label       &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -16525,6 +20161,12 @@ an_ifc_expr_label_storage* get<an_ifc_expr_label_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_label>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_lambda_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprLambda nodes.
@@ -16562,6 +20204,26 @@ an_ifc_syntax_index get_ifc_template_parameters(
                                           const an_ifc_expr_lambda &universal);
 
 template<>
+void set_ifc_body(an_ifc_expr_lambda        *universal,
+                  const an_ifc_syntax_index &value);
+
+template<>
+void set_ifc_constraint(an_ifc_expr_lambda        *universal,
+                        const an_ifc_syntax_index &value);
+
+template<>
+void set_ifc_declarator(an_ifc_expr_lambda        *universal,
+                        const an_ifc_syntax_index &value);
+
+template<>
+void set_ifc_introducer(an_ifc_expr_lambda        *universal,
+                        const an_ifc_syntax_index &value);
+
+template<>
+void set_ifc_template_parameters(an_ifc_expr_lambda        *universal,
+                                 const an_ifc_syntax_index &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_lambda      &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -16579,6 +20241,12 @@ an_ifc_expr_lambda_storage* get<an_ifc_expr_lambda_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_lambda>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_literal_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprLiteral nodes.
@@ -16603,6 +20271,18 @@ template<>
 an_ifc_lit_index get_ifc_value(const an_ifc_expr_literal &universal);
 
 template<>
+void set_ifc_locus(an_ifc_expr_literal          *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_literal     *universal,
+                  const an_ifc_type_index &value);
+
+template<>
+void set_ifc_value(an_ifc_expr_literal    *universal,
+                   const an_ifc_lit_index &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_literal     &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -16620,6 +20300,12 @@ an_ifc_expr_literal_storage* get<an_ifc_expr_literal_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_literal>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_member_access_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprMemberAccess nodes.
@@ -16658,6 +20344,26 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_member_access &universal);
 
 template<>
+void set_ifc_enclosing(an_ifc_expr_member_access *universal,
+                       const an_ifc_type_index   &value);
+
+template<>
+void set_ifc_locus(an_ifc_expr_member_access    *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_name(an_ifc_expr_member_access *universal,
+                  const an_ifc_text_offset  &value);
+
+template<>
+void set_ifc_offset(an_ifc_expr_member_access *universal,
+                    const an_ifc_expr_index   &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_member_access *universal,
+                  const an_ifc_type_index   &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_member_access &universal,
                    const an_ifc_validation_trace   *parent);
 
@@ -16676,6 +20382,12 @@ an_ifc_expr_member_access_storage* get<an_ifc_expr_member_access_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_member_access>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_member_initializer_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprMemberInitializer nodes.
@@ -16717,6 +20429,26 @@ an_ifc_type_index get_ifc_type(
                               const an_ifc_expr_member_initializer &universal);
 
 template<>
+void set_ifc_base(an_ifc_expr_member_initializer *universal,
+                  const an_ifc_type_index        &value);
+
+template<>
+void set_ifc_initializer(an_ifc_expr_member_initializer *universal,
+                         const an_ifc_expr_index        &value);
+
+template<>
+void set_ifc_locus(an_ifc_expr_member_initializer *universal,
+                   const an_ifc_source_location   &value);
+
+template<>
+void set_ifc_member(an_ifc_expr_member_initializer *universal,
+                    const an_ifc_decl_index        &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_member_initializer *universal,
+                  const an_ifc_type_index        &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_member_initializer &universal,
                    const an_ifc_validation_trace        *parent);
 
@@ -16736,6 +20468,12 @@ get<an_ifc_expr_member_initializer_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_member_initializer>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_monad_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprMonad nodes.
@@ -16772,6 +20510,26 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_monad &universal);
 
 template<>
+void set_ifc_argument(an_ifc_expr_monad       *universal,
+                      const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_assoc(an_ifc_expr_monad                  *universal,
+                   const an_ifc_monadic_operator_sort &value);
+
+template<>
+void set_ifc_impl(an_ifc_expr_monad       *universal,
+                  const an_ifc_decl_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_expr_monad            *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_monad       *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_monad       &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -16789,6 +20547,12 @@ an_ifc_expr_monad_storage* get<an_ifc_expr_monad_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_monad>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_named_decl_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprNamedDecl nodes.
@@ -16813,6 +20577,18 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_named_decl &universal);
 
 template<>
+void set_ifc_locus(an_ifc_expr_named_decl       *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_resolution(an_ifc_expr_named_decl  *universal,
+                        const an_ifc_decl_index &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_named_decl  *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_named_decl  &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -16831,6 +20607,12 @@ an_ifc_expr_named_decl_storage* get<an_ifc_expr_named_decl_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_named_decl>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_nullptr_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC ExprNullptr nodes.
 */
@@ -16846,6 +20628,14 @@ a_boolean has_ifc_type(const an_ifc_expr_nullptr &universal);
 
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_nullptr &universal);
+
+template<>
+void set_ifc_locus(an_ifc_expr_nullptr          *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_nullptr     *universal,
+                  const an_ifc_type_index &value);
 
 template<>
 a_boolean validate(const an_ifc_expr_nullptr     &universal,
@@ -16865,6 +20655,12 @@ an_ifc_expr_nullptr_storage* get<an_ifc_expr_nullptr_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_nullptr>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_packed_template_arguments_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprPackedTemplateArguments nodes.
@@ -16894,6 +20690,18 @@ an_ifc_type_index get_ifc_type(
                        const an_ifc_expr_packed_template_arguments &universal);
 
 template<>
+void set_ifc_arguments(an_ifc_expr_packed_template_arguments *universal,
+                       const an_ifc_expr_index               &value);
+
+template<>
+void set_ifc_locus(an_ifc_expr_packed_template_arguments *universal,
+                   const an_ifc_source_location          &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_packed_template_arguments *universal,
+                  const an_ifc_type_index               &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_packed_template_arguments &universal,
                    const an_ifc_validation_trace               *parent);
 
@@ -16914,6 +20722,11 @@ get<an_ifc_expr_packed_template_arguments_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_expr_packed_template_arguments>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_path_storage>(an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprPath nodes.
@@ -16944,6 +20757,21 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_path &universal);
 
 template<>
+void set_ifc_locus(an_ifc_expr_path             *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_member(an_ifc_expr_path        *universal,
+                    const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_scope(an_ifc_expr_path        *universal,
+                   const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_path *universal, const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_path        &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -16962,6 +20790,12 @@ an_ifc_expr_path_storage* get<an_ifc_expr_path_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_path>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_placeholder_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC ExprPlaceholder nodes.
 */
@@ -16977,6 +20811,14 @@ a_boolean has_ifc_type(const an_ifc_expr_placeholder &universal);
 
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_placeholder &universal);
+
+template<>
+void set_ifc_locus(an_ifc_expr_placeholder      *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_placeholder *universal,
+                  const an_ifc_type_index &value);
 
 template<>
 a_boolean validate(const an_ifc_expr_placeholder &universal,
@@ -16997,6 +20839,12 @@ an_ifc_expr_placeholder_storage* get<an_ifc_expr_placeholder_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_placeholder>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_pointer_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC ExprPointer nodes.
 */
@@ -17006,6 +20854,10 @@ a_boolean has_ifc_locus(const an_ifc_expr_pointer &universal);
 
 template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_expr_pointer &universal);
+
+template<>
+void set_ifc_locus(an_ifc_expr_pointer          *universal,
+                   const an_ifc_source_location &value);
 
 template<>
 a_boolean validate(const an_ifc_expr_pointer     &universal,
@@ -17025,6 +20877,12 @@ an_ifc_expr_pointer_storage* get<an_ifc_expr_pointer_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_pointer>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_product_type_value_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprProductTypeValue nodes.
@@ -17067,6 +20925,26 @@ an_ifc_type_index get_ifc_type(
                               const an_ifc_expr_product_type_value &universal);
 
 template<>
+void set_ifc_base_subobjects(an_ifc_expr_product_type_value *universal,
+                             const an_ifc_expr_index        &value);
+
+template<>
+void set_ifc_class_decl(an_ifc_expr_product_type_value *universal,
+                        const an_ifc_type_index        &value);
+
+template<>
+void set_ifc_locus(an_ifc_expr_product_type_value *universal,
+                   const an_ifc_source_location   &value);
+
+template<>
+void set_ifc_members(an_ifc_expr_product_type_value *universal,
+                     const an_ifc_expr_index        &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_product_type_value *universal,
+                  const an_ifc_type_index        &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_product_type_value &universal,
                    const an_ifc_validation_trace        *parent);
 
@@ -17086,6 +20964,12 @@ get<an_ifc_expr_product_type_value_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_product_type_value>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_push_state_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprPushState nodes.
@@ -17122,6 +21006,26 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_push_state &universal);
 
 template<>
+void set_ifc_ctor_call(an_ifc_expr_push_state  *universal,
+                       const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_dtor_call(an_ifc_expr_push_state  *universal,
+                       const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_flags(an_ifc_expr_push_state *universal,
+                   const an_ifc_eh_flags  &value);
+
+template<>
+void set_ifc_locus(an_ifc_expr_push_state       *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_push_state  *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_push_state  &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -17139,6 +21043,12 @@ an_ifc_expr_push_state_storage* get<an_ifc_expr_push_state_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_push_state>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_qualified_name_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprQualifiedName nodes.
@@ -17173,6 +21083,22 @@ an_ifc_source_location get_ifc_typename_keyword(
                                   const an_ifc_expr_qualified_name &universal);
 
 template<>
+void set_ifc_elements(an_ifc_expr_qualified_name *universal,
+                      const an_ifc_expr_index    &value);
+
+template<>
+void set_ifc_locus(an_ifc_expr_qualified_name   *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_qualified_name *universal,
+                  const an_ifc_type_index    &value);
+
+template<>
+void set_ifc_typename_keyword(an_ifc_expr_qualified_name   *universal,
+                              const an_ifc_source_location &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_qualified_name &universal,
                    const an_ifc_validation_trace    *parent);
 
@@ -17191,6 +21117,11 @@ an_ifc_expr_qualified_name_storage* get<an_ifc_expr_qualified_name_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_qualified_name>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_read_storage>(an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprRead nodes.
@@ -17221,6 +21152,21 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_read &universal);
 
 template<>
+void set_ifc_address(an_ifc_expr_read        *universal,
+                     const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_expr_read             *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_sort(an_ifc_expr_read                  *universal,
+                  const an_ifc_read_conversion_sort &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_read *universal, const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_read        &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -17238,6 +21184,12 @@ an_ifc_expr_read_storage* get<an_ifc_expr_read_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_read>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_requires_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprRequires nodes.
@@ -17268,6 +21220,22 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_requires &universal);
 
 template<>
+void set_ifc_body(an_ifc_expr_requires      *universal,
+                  const an_ifc_syntax_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_expr_requires         *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_parameters(an_ifc_expr_requires      *universal,
+                        const an_ifc_syntax_index &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_requires    *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_requires    &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -17285,6 +21253,12 @@ an_ifc_expr_requires_storage* get<an_ifc_expr_requires_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_requires>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_simple_identifier_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprSimpleIdentifier nodes.
@@ -17310,6 +21284,18 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_simple_identifier &universal);
 
 template<>
+void set_ifc_locus(an_ifc_expr_simple_identifier *universal,
+                   const an_ifc_source_location  &value);
+
+template<>
+void set_ifc_name(an_ifc_expr_simple_identifier *universal,
+                  const an_ifc_name_index       &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_simple_identifier *universal,
+                  const an_ifc_type_index       &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_simple_identifier &universal,
                    const an_ifc_validation_trace       *parent);
 
@@ -17329,6 +21315,12 @@ get<an_ifc_expr_simple_identifier_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_simple_identifier>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_sizeof_type_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprSizeofType nodes.
@@ -17353,6 +21345,18 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_sizeof_type &universal);
 
 template<>
+void set_ifc_locus(an_ifc_expr_sizeof_type      *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_operand(an_ifc_expr_sizeof_type *universal,
+                     const an_ifc_type_index &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_sizeof_type *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_sizeof_type &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -17370,6 +21374,12 @@ an_ifc_expr_sizeof_type_storage* get<an_ifc_expr_sizeof_type_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_sizeof_type>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_string_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprString nodes.
@@ -17394,6 +21404,18 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_string &universal);
 
 template<>
+void set_ifc_locus(an_ifc_expr_string           *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_string_index(an_ifc_expr_string        *universal,
+                          const an_ifc_string_index &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_string      *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_string      &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -17411,6 +21433,12 @@ an_ifc_expr_string_storage* get<an_ifc_expr_string_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_string>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_string_sequence_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprStringSequence nodes.
@@ -17437,6 +21465,18 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_string_sequence &universal);
 
 template<>
+void set_ifc_locus(an_ifc_expr_string_sequence  *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_strings(an_ifc_expr_string_sequence *universal,
+                     const an_ifc_expr_index     &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_string_sequence *universal,
+                  const an_ifc_type_index     &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_string_sequence &universal,
                    const an_ifc_validation_trace     *parent);
 
@@ -17456,6 +21496,12 @@ an_ifc_expr_string_sequence_storage* get<an_ifc_expr_string_sequence_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_string_sequence>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_subobject_value_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC ExprSubobjectValue nodes.
 */
@@ -17465,6 +21511,10 @@ a_boolean has_ifc_value(const an_ifc_expr_subobject_value &universal);
 
 template<>
 an_ifc_expr_index get_ifc_value(const an_ifc_expr_subobject_value &universal);
+
+template<>
+void set_ifc_value(an_ifc_expr_subobject_value *universal,
+                   const an_ifc_expr_index     &value);
 
 template<>
 a_boolean validate(const an_ifc_expr_subobject_value &universal,
@@ -17485,6 +21535,12 @@ an_ifc_expr_subobject_value_storage* get<an_ifc_expr_subobject_value_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_subobject_value>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_sum_type_value_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprSumTypeValue nodes.
@@ -17523,6 +21579,26 @@ template<>
 an_ifc_decl_index get_ifc_variant(const an_ifc_expr_sum_type_value &universal);
 
 template<>
+void set_ifc_discriminant(an_ifc_expr_sum_type_value *universal,
+                          const an_ifc_active_member &value);
+
+template<>
+void set_ifc_locus(an_ifc_expr_sum_type_value   *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_sum_type_value *universal,
+                  const an_ifc_type_index    &value);
+
+template<>
+void set_ifc_value(an_ifc_expr_sum_type_value *universal,
+                   const an_ifc_expr_index    &value);
+
+template<>
+void set_ifc_variant(an_ifc_expr_sum_type_value *universal,
+                     const an_ifc_decl_index    &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_sum_type_value &universal,
                    const an_ifc_validation_trace    *parent);
 
@@ -17542,6 +21618,12 @@ an_ifc_expr_sum_type_value_storage* get<an_ifc_expr_sum_type_value_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_sum_type_value>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_syntax_tree_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC ExprSyntaxTree nodes.
 */
@@ -17551,6 +21633,10 @@ a_boolean has_ifc_syntax(const an_ifc_expr_syntax_tree &universal);
 
 template<>
 an_ifc_syntax_index get_ifc_syntax(const an_ifc_expr_syntax_tree &universal);
+
+template<>
+void set_ifc_syntax(an_ifc_expr_syntax_tree   *universal,
+                    const an_ifc_syntax_index &value);
 
 template<>
 a_boolean validate(const an_ifc_expr_syntax_tree &universal,
@@ -17570,6 +21656,12 @@ an_ifc_expr_syntax_tree_storage* get<an_ifc_expr_syntax_tree_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_syntax_tree>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_template_id_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprTemplateId nodes.
@@ -17600,6 +21692,22 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_template_id &universal);
 
 template<>
+void set_ifc_arguments(an_ifc_expr_template_id *universal,
+                       const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_expr_template_id      *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_primary(an_ifc_expr_template_id *universal,
+                     const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_template_id *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_template_id &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -17617,6 +21725,12 @@ an_ifc_expr_template_id_storage* get<an_ifc_expr_template_id_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_template_id>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_template_reference_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprTemplateReference nodes.
@@ -17673,6 +21787,34 @@ an_ifc_type_index get_ifc_type(
                               const an_ifc_expr_template_reference &universal);
 
 template<>
+void set_ifc_arguments(an_ifc_expr_template_reference *universal,
+                       const an_ifc_expr_index        &value);
+
+template<>
+void set_ifc_locus(an_ifc_expr_template_reference *universal,
+                   const an_ifc_source_location   &value);
+
+template<>
+void set_ifc_member(an_ifc_expr_template_reference *universal,
+                    const an_ifc_decl_index        &value);
+
+template<>
+void set_ifc_member_locus(an_ifc_expr_template_reference *universal,
+                          const an_ifc_source_location   &value);
+
+template<>
+void set_ifc_member_name(an_ifc_expr_template_reference *universal,
+                         const an_ifc_name_index        &value);
+
+template<>
+void set_ifc_scope(an_ifc_expr_template_reference *universal,
+                   const an_ifc_type_index        &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_template_reference *universal,
+                  const an_ifc_type_index        &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_template_reference &universal,
                    const an_ifc_validation_trace        *parent);
 
@@ -17692,6 +21834,12 @@ get<an_ifc_expr_template_reference_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_template_reference>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_temporary_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprTemporary nodes.
@@ -17716,6 +21864,18 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_temporary &universal);
 
 template<>
+void set_ifc_id(an_ifc_expr_temporary  *universal,
+                const an_ifc_unique_id &value);
+
+template<>
+void set_ifc_locus(an_ifc_expr_temporary        *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_temporary   *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_temporary   &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -17734,6 +21894,11 @@ an_ifc_expr_temporary_storage* get<an_ifc_expr_temporary_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_temporary>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_this_storage>(an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC ExprThis nodes.
 */
@@ -17749,6 +21914,13 @@ a_boolean has_ifc_type(const an_ifc_expr_this &universal);
 
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_this &universal);
+
+template<>
+void set_ifc_locus(an_ifc_expr_this             *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_this *universal, const an_ifc_type_index &value);
 
 template<>
 a_boolean validate(const an_ifc_expr_this        &universal,
@@ -17768,6 +21940,12 @@ an_ifc_expr_this_storage* get<an_ifc_expr_this_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_this>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_tokens_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprTokens nodes.
@@ -17792,6 +21970,18 @@ template<>
 an_ifc_sentence_index get_ifc_words(const an_ifc_expr_tokens &universal);
 
 template<>
+void set_ifc_locus(an_ifc_expr_tokens           *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_tokens      *universal,
+                  const an_ifc_type_index &value);
+
+template<>
+void set_ifc_words(an_ifc_expr_tokens          *universal,
+                   const an_ifc_sentence_index &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_tokens      &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -17809,6 +21999,12 @@ an_ifc_expr_tokens_storage* get<an_ifc_expr_tokens_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_tokens>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_triad_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprTriad nodes.
@@ -17857,6 +22053,34 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_triad &universal);
 
 template<>
+void set_ifc_argument_0(an_ifc_expr_triad       *universal,
+                        const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_argument_1(an_ifc_expr_triad       *universal,
+                        const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_argument_2(an_ifc_expr_triad       *universal,
+                        const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_assoc(an_ifc_expr_triad                  *universal,
+                   const an_ifc_triadic_operator_sort &value);
+
+template<>
+void set_ifc_impl(an_ifc_expr_triad       *universal,
+                  const an_ifc_decl_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_expr_triad            *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_triad       *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_triad       &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -17874,6 +22098,12 @@ an_ifc_expr_triad_storage* get<an_ifc_expr_triad_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_triad>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_tuple_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprTuple nodes.
@@ -17904,6 +22134,21 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_tuple &universal);
 
 template<>
+void set_ifc_cardinality(an_ifc_expr_tuple        *universal,
+                         const an_ifc_cardinality &value);
+
+template<>
+void set_ifc_locus(an_ifc_expr_tuple            *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_start(an_ifc_expr_tuple *universal, const an_ifc_index &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_tuple       *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_tuple       &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -17921,6 +22166,11 @@ an_ifc_expr_tuple_storage* get<an_ifc_expr_tuple_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_tuple>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_type_storage>(an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprType nodes.
@@ -17945,6 +22195,17 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_type &universal);
 
 template<>
+void set_ifc_denotation(an_ifc_expr_type        *universal,
+                        const an_ifc_type_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_expr_type             *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_type *universal, const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_type        &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -17962,6 +22223,12 @@ an_ifc_expr_type_storage* get<an_ifc_expr_type_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_type>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_type_trait_intrinsic_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprTypeTraitIntrinsic nodes.
@@ -17996,6 +22263,22 @@ an_ifc_type_index get_ifc_type(
                             const an_ifc_expr_type_trait_intrinsic &universal);
 
 template<>
+void set_ifc_arguments(an_ifc_expr_type_trait_intrinsic *universal,
+                       const an_ifc_type_index          &value);
+
+template<>
+void set_ifc_intrinsic(an_ifc_expr_type_trait_intrinsic *universal,
+                       const an_ifc_operator_category   &value);
+
+template<>
+void set_ifc_locus(an_ifc_expr_type_trait_intrinsic *universal,
+                   const an_ifc_source_location     &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_type_trait_intrinsic *universal,
+                  const an_ifc_type_index          &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_type_trait_intrinsic &universal,
                    const an_ifc_validation_trace          *parent);
 
@@ -18016,6 +22299,12 @@ get<an_ifc_expr_type_trait_intrinsic_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_expr_type_trait_intrinsic>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_typeid_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprTypeid nodes.
@@ -18040,6 +22329,18 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_typeid &universal);
 
 template<>
+void set_ifc_locus(an_ifc_expr_typeid           *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_operand(an_ifc_expr_typeid      *universal,
+                     const an_ifc_type_index &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_typeid      *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_typeid      &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -18057,6 +22358,12 @@ an_ifc_expr_typeid_storage* get<an_ifc_expr_typeid_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_typeid>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_unary_fold_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprUnaryFold nodes.
@@ -18095,6 +22402,26 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_unary_fold &universal);
 
 template<>
+void set_ifc_associativity(an_ifc_expr_unary_fold     *universal,
+                           const an_ifc_associativity &value);
+
+template<>
+void set_ifc_expr(an_ifc_expr_unary_fold  *universal,
+                  const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_expr_unary_fold       *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_operation(an_ifc_expr_unary_fold            *universal,
+                       const an_ifc_dyadic_operator_sort &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_unary_fold  *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_unary_fold  &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -18112,6 +22439,12 @@ an_ifc_expr_unary_fold_storage* get<an_ifc_expr_unary_fold_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_unary_fold>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_unqualified_id_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprUnqualifiedId nodes.
@@ -18152,6 +22485,26 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_unqualified_id &universal);
 
 template<>
+void set_ifc_locus(an_ifc_expr_unqualified_id   *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_name(an_ifc_expr_unqualified_id *universal,
+                  const an_ifc_name_index    &value);
+
+template<>
+void set_ifc_resolution(an_ifc_expr_unqualified_id *universal,
+                        const an_ifc_expr_index    &value);
+
+template<>
+void set_ifc_template_keyword(an_ifc_expr_unqualified_id   *universal,
+                              const an_ifc_source_location &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_unqualified_id *universal,
+                  const an_ifc_type_index    &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_unqualified_id &universal,
                    const an_ifc_validation_trace    *parent);
 
@@ -18170,6 +22523,12 @@ an_ifc_expr_unqualified_id_storage* get<an_ifc_expr_unqualified_id_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_unqualified_id>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_unresolved_id_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprUnresolvedId nodes.
@@ -18195,6 +22554,18 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_expr_unresolved_id &universal);
 
 template<>
+void set_ifc_locus(an_ifc_expr_unresolved_id    *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_name(an_ifc_expr_unresolved_id *universal,
+                  const an_ifc_name_index   &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_unresolved_id *universal,
+                  const an_ifc_type_index   &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_unresolved_id &universal,
                    const an_ifc_validation_trace   *parent);
 
@@ -18213,6 +22584,12 @@ an_ifc_expr_unresolved_id_storage* get<an_ifc_expr_unresolved_id_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_expr_unresolved_id>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_virtual_function_conversion_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC ExprVirtualFunctionConversion nodes.
@@ -18243,6 +22620,18 @@ an_ifc_type_index get_ifc_type(
                      const an_ifc_expr_virtual_function_conversion &universal);
 
 template<>
+void set_ifc_function(an_ifc_expr_virtual_function_conversion *universal,
+                      const an_ifc_decl_index                 &value);
+
+template<>
+void set_ifc_locus(an_ifc_expr_virtual_function_conversion *universal,
+                   const an_ifc_source_location            &value);
+
+template<>
+void set_ifc_type(an_ifc_expr_virtual_function_conversion *universal,
+                  const an_ifc_type_index                 &value);
+
+template<>
 a_boolean validate(const an_ifc_expr_virtual_function_conversion &universal,
                    const an_ifc_validation_trace                 *parent);
 
@@ -18263,6 +22652,12 @@ get<an_ifc_expr_virtual_function_conversion_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_expr_virtual_function_conversion>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_form_catenate_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC FormCatenate nodes.
@@ -18287,6 +22682,18 @@ template<>
 an_ifc_form_index get_ifc_second(const an_ifc_form_catenate &universal);
 
 template<>
+void set_ifc_first(an_ifc_form_catenate    *universal,
+                   const an_ifc_form_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_form_catenate         *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_second(an_ifc_form_catenate    *universal,
+                    const an_ifc_form_index &value);
+
+template<>
 a_boolean validate(const an_ifc_form_catenate    &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -18305,6 +22712,12 @@ an_ifc_form_catenate_storage* get<an_ifc_form_catenate_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_catenate>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_form_character_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC FormCharacter nodes.
 */
@@ -18320,6 +22733,14 @@ a_boolean has_ifc_spelling(const an_ifc_form_character &universal);
 
 template<>
 an_ifc_text_offset get_ifc_spelling(const an_ifc_form_character &universal);
+
+template<>
+void set_ifc_locus(an_ifc_form_character        *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_spelling(an_ifc_form_character    *universal,
+                      const an_ifc_text_offset &value);
 
 template<>
 a_boolean validate(const an_ifc_form_character   &universal,
@@ -18340,6 +22761,12 @@ an_ifc_form_character_storage* get<an_ifc_form_character_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_character>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_form_header_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC FormHeader nodes.
 */
@@ -18355,6 +22782,14 @@ a_boolean has_ifc_spelling(const an_ifc_form_header &universal);
 
 template<>
 an_ifc_text_offset get_ifc_spelling(const an_ifc_form_header &universal);
+
+template<>
+void set_ifc_locus(an_ifc_form_header           *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_spelling(an_ifc_form_header       *universal,
+                      const an_ifc_text_offset &value);
 
 template<>
 a_boolean validate(const an_ifc_form_header      &universal,
@@ -18375,6 +22810,12 @@ an_ifc_form_header_storage* get<an_ifc_form_header_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_header>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_form_identifier_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC FormIdentifier nodes.
 */
@@ -18390,6 +22831,14 @@ a_boolean has_ifc_spelling(const an_ifc_form_identifier &universal);
 
 template<>
 an_ifc_text_offset get_ifc_spelling(const an_ifc_form_identifier &universal);
+
+template<>
+void set_ifc_locus(an_ifc_form_identifier       *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_spelling(an_ifc_form_identifier   *universal,
+                      const an_ifc_text_offset &value);
 
 template<>
 a_boolean validate(const an_ifc_form_identifier  &universal,
@@ -18410,6 +22859,11 @@ an_ifc_form_identifier_storage* get<an_ifc_form_identifier_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_identifier>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_form_junk_storage>(an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC FormJunk nodes.
 */
@@ -18425,6 +22879,14 @@ a_boolean has_ifc_spelling(const an_ifc_form_junk &universal);
 
 template<>
 an_ifc_text_offset get_ifc_spelling(const an_ifc_form_junk &universal);
+
+template<>
+void set_ifc_locus(an_ifc_form_junk             *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_spelling(an_ifc_form_junk         *universal,
+                      const an_ifc_text_offset &value);
 
 template<>
 a_boolean validate(const an_ifc_form_junk        &universal,
@@ -18445,6 +22907,12 @@ an_ifc_form_junk_storage* get<an_ifc_form_junk_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_junk>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_form_keyword_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC FormKeyword nodes.
 */
@@ -18460,6 +22928,14 @@ a_boolean has_ifc_spelling(const an_ifc_form_keyword &universal);
 
 template<>
 an_ifc_text_offset get_ifc_spelling(const an_ifc_form_keyword &universal);
+
+template<>
+void set_ifc_locus(an_ifc_form_keyword          *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_spelling(an_ifc_form_keyword      *universal,
+                      const an_ifc_text_offset &value);
 
 template<>
 a_boolean validate(const an_ifc_form_keyword     &universal,
@@ -18480,6 +22956,12 @@ an_ifc_form_keyword_storage* get<an_ifc_form_keyword_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_keyword>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_form_number_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC FormNumber nodes.
 */
@@ -18495,6 +22977,14 @@ a_boolean has_ifc_spelling(const an_ifc_form_number &universal);
 
 template<>
 an_ifc_text_offset get_ifc_spelling(const an_ifc_form_number &universal);
+
+template<>
+void set_ifc_locus(an_ifc_form_number           *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_spelling(an_ifc_form_number       *universal,
+                      const an_ifc_text_offset &value);
 
 template<>
 a_boolean validate(const an_ifc_form_number      &universal,
@@ -18514,6 +23004,12 @@ an_ifc_form_number_storage* get<an_ifc_form_number_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_number>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_form_operator_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC FormOperator nodes.
@@ -18538,6 +23034,18 @@ template<>
 an_ifc_text_offset get_ifc_spelling(const an_ifc_form_operator &universal);
 
 template<>
+void set_ifc_locus(an_ifc_form_operator         *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_op(an_ifc_form_operator            *universal,
+                const an_ifc_form_operator_sort &value);
+
+template<>
+void set_ifc_spelling(an_ifc_form_operator     *universal,
+                      const an_ifc_text_offset &value);
+
+template<>
 a_boolean validate(const an_ifc_form_operator    &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -18556,6 +23064,12 @@ an_ifc_form_operator_storage* get<an_ifc_form_operator_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_operator>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_form_parameter_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC FormParameter nodes.
 */
@@ -18571,6 +23085,14 @@ a_boolean has_ifc_spelling(const an_ifc_form_parameter &universal);
 
 template<>
 an_ifc_text_offset get_ifc_spelling(const an_ifc_form_parameter &universal);
+
+template<>
+void set_ifc_locus(an_ifc_form_parameter        *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_spelling(an_ifc_form_parameter    *universal,
+                      const an_ifc_text_offset &value);
 
 template<>
 a_boolean validate(const an_ifc_form_parameter   &universal,
@@ -18591,6 +23113,12 @@ an_ifc_form_parameter_storage* get<an_ifc_form_parameter_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_parameter>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_form_parenthesized_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC FormParenthesized nodes.
 */
@@ -18607,6 +23135,14 @@ a_boolean has_ifc_operand(const an_ifc_form_parenthesized &universal);
 
 template<>
 an_ifc_form_index get_ifc_operand(const an_ifc_form_parenthesized &universal);
+
+template<>
+void set_ifc_locus(an_ifc_form_parenthesized    *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_operand(an_ifc_form_parenthesized *universal,
+                     const an_ifc_form_index   &value);
 
 template<>
 a_boolean validate(const an_ifc_form_parenthesized &universal,
@@ -18628,6 +23164,12 @@ an_ifc_form_parenthesized_storage* get<an_ifc_form_parenthesized_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_parenthesized>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_form_pragma_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC FormPragma nodes.
 */
@@ -18643,6 +23185,14 @@ a_boolean has_ifc_operand(const an_ifc_form_pragma &universal);
 
 template<>
 an_ifc_form_index get_ifc_operand(const an_ifc_form_pragma &universal);
+
+template<>
+void set_ifc_locus(an_ifc_form_pragma           *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_operand(an_ifc_form_pragma      *universal,
+                     const an_ifc_form_index &value);
 
 template<>
 a_boolean validate(const an_ifc_form_pragma      &universal,
@@ -18663,6 +23213,11 @@ an_ifc_form_pragma_storage* get<an_ifc_form_pragma_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_pragma>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_form_spec_storage>(an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC FormSpec nodes.
 */
@@ -18678,6 +23233,14 @@ a_boolean has_ifc_primary_template(const an_ifc_form_spec &universal);
 
 template<>
 an_ifc_decl_index get_ifc_primary_template(const an_ifc_form_spec &universal);
+
+template<>
+void set_ifc_arguments(an_ifc_form_spec        *universal,
+                       const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_primary_template(an_ifc_form_spec        *universal,
+                              const an_ifc_decl_index &value);
 
 template<>
 a_boolean validate(const an_ifc_form_spec        &universal,
@@ -18698,6 +23261,12 @@ an_ifc_form_spec_storage* get<an_ifc_form_spec_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_spec>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_form_string_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC FormString nodes.
 */
@@ -18713,6 +23282,14 @@ a_boolean has_ifc_spelling(const an_ifc_form_string &universal);
 
 template<>
 an_ifc_text_offset get_ifc_spelling(const an_ifc_form_string &universal);
+
+template<>
+void set_ifc_locus(an_ifc_form_string           *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_spelling(an_ifc_form_string       *universal,
+                      const an_ifc_text_offset &value);
 
 template<>
 a_boolean validate(const an_ifc_form_string      &universal,
@@ -18733,6 +23310,12 @@ an_ifc_form_string_storage* get<an_ifc_form_string_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_string>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_form_stringize_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC FormStringize nodes.
 */
@@ -18748,6 +23331,14 @@ a_boolean has_ifc_operand(const an_ifc_form_stringize &universal);
 
 template<>
 an_ifc_form_index get_ifc_operand(const an_ifc_form_stringize &universal);
+
+template<>
+void set_ifc_locus(an_ifc_form_stringize        *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_operand(an_ifc_form_stringize   *universal,
+                     const an_ifc_form_index &value);
 
 template<>
 a_boolean validate(const an_ifc_form_stringize   &universal,
@@ -18768,6 +23359,12 @@ an_ifc_form_stringize_storage* get<an_ifc_form_stringize_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_stringize>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_form_tuple_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC FormTuple nodes.
 */
@@ -18783,6 +23380,13 @@ a_boolean has_ifc_start(const an_ifc_form_tuple &universal);
 
 template<>
 an_ifc_index get_ifc_start(const an_ifc_form_tuple &universal);
+
+template<>
+void set_ifc_cardinality(an_ifc_form_tuple        *universal,
+                         const an_ifc_cardinality &value);
+
+template<>
+void set_ifc_start(an_ifc_form_tuple *universal, const an_ifc_index &value);
 
 template<>
 a_boolean validate(const an_ifc_form_tuple       &universal,
@@ -18803,6 +23407,12 @@ an_ifc_form_tuple_storage* get<an_ifc_form_tuple_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_tuple>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_form_whitespace_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC FormWhitespace nodes.
 */
@@ -18812,6 +23422,10 @@ a_boolean has_ifc_locus(const an_ifc_form_whitespace &universal);
 
 template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_form_whitespace &universal);
+
+template<>
+void set_ifc_locus(an_ifc_form_whitespace       *universal,
+                   const an_ifc_source_location &value);
 
 template<>
 a_boolean validate(const an_ifc_form_whitespace  &universal,
@@ -18832,6 +23446,11 @@ an_ifc_form_whitespace_storage* get<an_ifc_form_whitespace_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_form_whitespace>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_heap_attr_storage>(an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC HeapAttr nodes.
 */
@@ -18841,6 +23460,10 @@ a_boolean has_ifc_value(const an_ifc_heap_attr &universal);
 
 template<>
 an_ifc_attr_index get_ifc_value(const an_ifc_heap_attr &universal);
+
+template<>
+void set_ifc_value(an_ifc_heap_attr        *universal,
+                   const an_ifc_attr_index &value);
 
 template<>
 a_boolean validate(const an_ifc_heap_attr        &universal,
@@ -18861,6 +23484,12 @@ an_ifc_heap_attr_storage* get<an_ifc_heap_attr_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_attr>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_heap_chart_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC HeapChart nodes.
 */
@@ -18870,6 +23499,10 @@ a_boolean has_ifc_value(const an_ifc_heap_chart &universal);
 
 template<>
 an_ifc_chart_index get_ifc_value(const an_ifc_heap_chart &universal);
+
+template<>
+void set_ifc_value(an_ifc_heap_chart        *universal,
+                   const an_ifc_chart_index &value);
 
 template<>
 a_boolean validate(const an_ifc_heap_chart       &universal,
@@ -18890,6 +23523,11 @@ an_ifc_heap_chart_storage* get<an_ifc_heap_chart_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_chart>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_heap_decl_storage>(an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC HeapDecl nodes.
 */
@@ -18899,6 +23537,10 @@ a_boolean has_ifc_value(const an_ifc_heap_decl &universal);
 
 template<>
 an_ifc_decl_index get_ifc_value(const an_ifc_heap_decl &universal);
+
+template<>
+void set_ifc_value(an_ifc_heap_decl        *universal,
+                   const an_ifc_decl_index &value);
 
 template<>
 a_boolean validate(const an_ifc_heap_decl        &universal,
@@ -18919,6 +23561,11 @@ an_ifc_heap_decl_storage* get<an_ifc_heap_decl_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_decl>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_heap_expr_storage>(an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC HeapExpr nodes.
 */
@@ -18928,6 +23575,10 @@ a_boolean has_ifc_value(const an_ifc_heap_expr &universal);
 
 template<>
 an_ifc_expr_index get_ifc_value(const an_ifc_heap_expr &universal);
+
+template<>
+void set_ifc_value(an_ifc_heap_expr        *universal,
+                   const an_ifc_expr_index &value);
 
 template<>
 a_boolean validate(const an_ifc_heap_expr        &universal,
@@ -18948,6 +23599,11 @@ an_ifc_heap_expr_storage* get<an_ifc_heap_expr_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_expr>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_heap_form_storage>(an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC HeapForm nodes.
 */
@@ -18957,6 +23613,10 @@ a_boolean has_ifc_value(const an_ifc_heap_form &universal);
 
 template<>
 an_ifc_form_index get_ifc_value(const an_ifc_heap_form &universal);
+
+template<>
+void set_ifc_value(an_ifc_heap_form        *universal,
+                   const an_ifc_form_index &value);
 
 template<>
 a_boolean validate(const an_ifc_heap_form        &universal,
@@ -18977,6 +23637,12 @@ an_ifc_heap_form_storage* get<an_ifc_heap_form_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_form>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_heap_pp_form_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC HeapPPForm nodes.
 */
@@ -18986,6 +23652,10 @@ a_boolean has_ifc_value(const an_ifc_heap_pp_form &universal);
 
 template<>
 an_ifc_form_index get_ifc_value(const an_ifc_heap_pp_form &universal);
+
+template<>
+void set_ifc_value(an_ifc_heap_pp_form     *universal,
+                   const an_ifc_form_index &value);
 
 template<>
 a_boolean validate(const an_ifc_heap_pp_form     &universal,
@@ -19006,6 +23676,11 @@ an_ifc_heap_pp_form_storage* get<an_ifc_heap_pp_form_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_pp_form>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_heap_stmt_storage>(an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC HeapStmt nodes.
 */
@@ -19015,6 +23690,10 @@ a_boolean has_ifc_value(const an_ifc_heap_stmt &universal);
 
 template<>
 an_ifc_stmt_index get_ifc_value(const an_ifc_heap_stmt &universal);
+
+template<>
+void set_ifc_value(an_ifc_heap_stmt        *universal,
+                   const an_ifc_stmt_index &value);
 
 template<>
 a_boolean validate(const an_ifc_heap_stmt        &universal,
@@ -19035,6 +23714,12 @@ an_ifc_heap_stmt_storage* get<an_ifc_heap_stmt_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_stmt>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_heap_syntax_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC HeapSyntax nodes.
 */
@@ -19044,6 +23729,10 @@ a_boolean has_ifc_value(const an_ifc_heap_syntax &universal);
 
 template<>
 an_ifc_syntax_index get_ifc_value(const an_ifc_heap_syntax &universal);
+
+template<>
+void set_ifc_value(an_ifc_heap_syntax        *universal,
+                   const an_ifc_syntax_index &value);
 
 template<>
 a_boolean validate(const an_ifc_heap_syntax      &universal,
@@ -19064,6 +23753,11 @@ an_ifc_heap_syntax_storage* get<an_ifc_heap_syntax_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_syntax>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_heap_type_storage>(an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC HeapType nodes.
 */
@@ -19073,6 +23767,10 @@ a_boolean has_ifc_value(const an_ifc_heap_type &universal);
 
 template<>
 an_ifc_type_index get_ifc_value(const an_ifc_heap_type &universal);
+
+template<>
+void set_ifc_value(an_ifc_heap_type        *universal,
+                   const an_ifc_type_index &value);
 
 template<>
 a_boolean validate(const an_ifc_heap_type        &universal,
@@ -19092,6 +23790,12 @@ an_ifc_heap_type_storage* get<an_ifc_heap_type_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_heap_type>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_macro_function_like_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC MacroFunctionLike nodes.
@@ -19131,6 +23835,26 @@ an_ifc_form_index get_ifc_parameters(
                                   const an_ifc_macro_function_like &universal);
 
 template<>
+void set_ifc_arity_variadic(an_ifc_macro_function_like  *universal,
+                            const an_ifc_variadic_arity &value);
+
+template<>
+void set_ifc_body(an_ifc_macro_function_like *universal,
+                  const an_ifc_form_index    &value);
+
+template<>
+void set_ifc_locus(an_ifc_macro_function_like   *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_name(an_ifc_macro_function_like *universal,
+                  const an_ifc_text_offset   &value);
+
+template<>
+void set_ifc_parameters(an_ifc_macro_function_like *universal,
+                        const an_ifc_form_index    &value);
+
+template<>
 a_boolean validate(const an_ifc_macro_function_like &universal,
                    const an_ifc_validation_trace    *parent);
 
@@ -19149,6 +23873,12 @@ an_ifc_macro_function_like_storage* get<an_ifc_macro_function_like_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_macro_function_like>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_macro_object_like_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC MacroObjectLike nodes.
@@ -19174,6 +23904,18 @@ template<>
 an_ifc_text_offset get_ifc_name(const an_ifc_macro_object_like &universal);
 
 template<>
+void set_ifc_body(an_ifc_macro_object_like *universal,
+                  const an_ifc_form_index  &value);
+
+template<>
+void set_ifc_locus(an_ifc_macro_object_like     *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_name(an_ifc_macro_object_like *universal,
+                  const an_ifc_text_offset &value);
+
+template<>
 a_boolean validate(const an_ifc_macro_object_like &universal,
                    const an_ifc_validation_trace  *parent);
 
@@ -19193,6 +23935,12 @@ an_ifc_macro_object_like_storage* get<an_ifc_macro_object_like_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_macro_object_like>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_module_export_reference_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC ModuleExportReference nodes.
 */
@@ -19203,6 +23951,10 @@ a_boolean has_ifc_reference(const an_ifc_module_export_reference &universal);
 template<>
 an_ifc_module_reference get_ifc_reference(
                               const an_ifc_module_export_reference &universal);
+
+template<>
+void set_ifc_reference(an_ifc_module_export_reference *universal,
+                       const an_ifc_module_reference  &value);
 
 template<>
 a_boolean validate(const an_ifc_module_export_reference &universal,
@@ -19225,6 +23977,12 @@ get<an_ifc_module_export_reference_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_module_export_reference>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_module_import_reference_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC ModuleImportReference nodes.
 */
@@ -19235,6 +23993,10 @@ a_boolean has_ifc_reference(const an_ifc_module_import_reference &universal);
 template<>
 an_ifc_module_reference get_ifc_reference(
                               const an_ifc_module_import_reference &universal);
+
+template<>
+void set_ifc_reference(an_ifc_module_import_reference *universal,
+                       const an_ifc_module_reference  &value);
 
 template<>
 a_boolean validate(const an_ifc_module_import_reference &universal,
@@ -19257,6 +24019,12 @@ get<an_ifc_module_import_reference_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_module_import_reference>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_name_conversion_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC NameConversion nodes.
 */
@@ -19272,6 +24040,14 @@ a_boolean has_ifc_target(const an_ifc_name_conversion &universal);
 
 template<>
 an_ifc_type_index get_ifc_target(const an_ifc_name_conversion &universal);
+
+template<>
+void set_ifc_encoded(an_ifc_name_conversion   *universal,
+                     const an_ifc_text_offset &value);
+
+template<>
+void set_ifc_target(an_ifc_name_conversion  *universal,
+                    const an_ifc_type_index &value);
 
 template<>
 a_boolean validate(const an_ifc_name_conversion  &universal,
@@ -19292,6 +24068,12 @@ an_ifc_name_conversion_storage* get<an_ifc_name_conversion_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_name_conversion>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_name_guide_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC NameGuide nodes.
 */
@@ -19301,6 +24083,10 @@ a_boolean has_ifc_primary_template(const an_ifc_name_guide &universal);
 
 template<>
 an_ifc_decl_index get_ifc_primary_template(const an_ifc_name_guide &universal);
+
+template<>
+void set_ifc_primary_template(an_ifc_name_guide       *universal,
+                              const an_ifc_decl_index &value);
 
 template<>
 a_boolean validate(const an_ifc_name_guide       &universal,
@@ -19321,6 +24107,12 @@ an_ifc_name_guide_storage* get<an_ifc_name_guide_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_name_guide>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_name_literal_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC NameLiteral nodes.
 */
@@ -19330,6 +24122,10 @@ a_boolean has_ifc_encoded(const an_ifc_name_literal &universal);
 
 template<>
 an_ifc_text_offset get_ifc_encoded(const an_ifc_name_literal &universal);
+
+template<>
+void set_ifc_encoded(an_ifc_name_literal      *universal,
+                     const an_ifc_text_offset &value);
 
 template<>
 a_boolean validate(const an_ifc_name_literal     &universal,
@@ -19350,6 +24146,12 @@ an_ifc_name_literal_storage* get<an_ifc_name_literal_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_name_literal>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_name_operator_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC NameOperator nodes.
 */
@@ -19366,6 +24168,14 @@ a_boolean has_ifc_operator(const an_ifc_name_operator &universal);
 template<>
 an_ifc_operator_category get_ifc_operator(
                                         const an_ifc_name_operator &universal);
+
+template<>
+void set_ifc_encoded(an_ifc_name_operator     *universal,
+                     const an_ifc_text_offset &value);
+
+template<>
+void set_ifc_operator(an_ifc_name_operator           *universal,
+                      const an_ifc_operator_category &value);
 
 template<>
 a_boolean validate(const an_ifc_name_operator    &universal,
@@ -19386,6 +24196,12 @@ an_ifc_name_operator_storage* get<an_ifc_name_operator_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_name_operator>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_name_source_file_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC NameSourceFile nodes.
 */
@@ -19401,6 +24217,14 @@ a_boolean has_ifc_path(const an_ifc_name_source_file &universal);
 
 template<>
 an_ifc_text_offset get_ifc_path(const an_ifc_name_source_file &universal);
+
+template<>
+void set_ifc_guard(an_ifc_name_source_file  *universal,
+                   const an_ifc_text_offset &value);
+
+template<>
+void set_ifc_path(an_ifc_name_source_file  *universal,
+                  const an_ifc_text_offset &value);
 
 template<>
 a_boolean validate(const an_ifc_name_source_file &universal,
@@ -19421,6 +24245,12 @@ an_ifc_name_source_file_storage* get<an_ifc_name_source_file_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_name_source_file>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_name_specialization_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC NameSpecialization nodes.
 */
@@ -19437,6 +24267,14 @@ a_boolean has_ifc_primary(const an_ifc_name_specialization &universal);
 
 template<>
 an_ifc_name_index get_ifc_primary(const an_ifc_name_specialization &universal);
+
+template<>
+void set_ifc_arguments(an_ifc_name_specialization *universal,
+                       const an_ifc_expr_index    &value);
+
+template<>
+void set_ifc_primary(an_ifc_name_specialization *universal,
+                     const an_ifc_name_index    &value);
 
 template<>
 a_boolean validate(const an_ifc_name_specialization &universal,
@@ -19458,6 +24296,12 @@ an_ifc_name_specialization_storage* get<an_ifc_name_specialization_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_name_specialization>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_name_template_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC NameTemplate nodes.
 */
@@ -19467,6 +24311,10 @@ a_boolean has_ifc_name(const an_ifc_name_template &universal);
 
 template<>
 an_ifc_name_index get_ifc_name(const an_ifc_name_template &universal);
+
+template<>
+void set_ifc_name(an_ifc_name_template    *universal,
+                  const an_ifc_name_index &value);
 
 template<>
 a_boolean validate(const an_ifc_name_template    &universal,
@@ -19487,6 +24335,12 @@ an_ifc_name_template_storage* get<an_ifc_name_template_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_name_template>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_scope_descriptor_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC ScopeDescriptor nodes.
 */
@@ -19503,6 +24357,14 @@ a_boolean has_ifc_start(const an_ifc_scope_descriptor &universal);
 
 template<>
 an_ifc_index get_ifc_start(const an_ifc_scope_descriptor &universal);
+
+template<>
+void set_ifc_cardinality(an_ifc_scope_descriptor  *universal,
+                         const an_ifc_cardinality &value);
+
+template<>
+void set_ifc_start(an_ifc_scope_descriptor *universal,
+                   const an_ifc_index      &value);
 
 template<>
 a_boolean validate(const an_ifc_scope_descriptor &universal,
@@ -19523,6 +24385,12 @@ an_ifc_scope_descriptor_storage* get<an_ifc_scope_descriptor_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_scope_descriptor>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_scope_member_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC ScopeMember nodes.
 */
@@ -19532,6 +24400,10 @@ a_boolean has_ifc_index(const an_ifc_scope_member &universal);
 
 template<>
 an_ifc_decl_index get_ifc_index(const an_ifc_scope_member &universal);
+
+template<>
+void set_ifc_index(an_ifc_scope_member     *universal,
+                   const an_ifc_decl_index &value);
 
 template<>
 a_boolean validate(const an_ifc_scope_member     &universal,
@@ -19552,6 +24424,12 @@ an_ifc_scope_member_storage* get<an_ifc_scope_member_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_scope_member>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_source_line_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC SourceLine nodes.
 */
@@ -19567,6 +24445,14 @@ a_boolean has_ifc_line(const an_ifc_source_line &universal);
 
 template<>
 an_ifc_line_number get_ifc_line(const an_ifc_source_line &universal);
+
+template<>
+void set_ifc_file(an_ifc_source_line      *universal,
+                  const an_ifc_name_index &value);
+
+template<>
+void set_ifc_line(an_ifc_source_line       *universal,
+                  const an_ifc_line_number &value);
 
 template<>
 a_boolean validate(const an_ifc_source_line      &universal,
@@ -19586,6 +24472,12 @@ an_ifc_source_line_storage* get<an_ifc_source_line_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_source_line>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_source_sentence_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SourceSentence nodes.
@@ -19611,6 +24503,18 @@ template<>
 an_ifc_index get_ifc_start(const an_ifc_source_sentence &universal);
 
 template<>
+void set_ifc_cardinality(an_ifc_source_sentence   *universal,
+                         const an_ifc_cardinality &value);
+
+template<>
+void set_ifc_locus(an_ifc_source_sentence       *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_start(an_ifc_source_sentence *universal,
+                   const an_ifc_index     &value);
+
+template<>
 a_boolean validate(const an_ifc_source_sentence  &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -19628,6 +24532,12 @@ an_ifc_source_sentence_storage* get<an_ifc_source_sentence_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_source_sentence>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_source_word_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SourceWord nodes.
@@ -19664,6 +24574,24 @@ template<>
 an_ifc_u16 get_ifc_value(const an_ifc_source_word &universal);
 
 template<>
+void set_ifc_category(an_ifc_source_word         *universal,
+                      const an_ifc_word_category &value);
+
+template<>
+void set_ifc_index(an_ifc_source_word *universal, const an_ifc_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_source_word           *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_sort(an_ifc_source_word     *universal,
+                  const an_ifc_word_sort &value);
+
+template<>
+void set_ifc_value(an_ifc_source_word *universal, const an_ifc_u16 &value);
+
+template<>
 a_boolean validate(const an_ifc_source_word      &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -19681,6 +24609,12 @@ an_ifc_source_word_storage* get<an_ifc_source_word_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_source_word>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_block_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC StmtBlock nodes.
@@ -19705,6 +24639,17 @@ template<>
 an_ifc_index get_ifc_start(const an_ifc_stmt_block &universal);
 
 template<>
+void set_ifc_cardinality(an_ifc_stmt_block        *universal,
+                         const an_ifc_cardinality &value);
+
+template<>
+void set_ifc_locus(an_ifc_stmt_block            *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_start(an_ifc_stmt_block *universal, const an_ifc_index &value);
+
+template<>
 a_boolean validate(const an_ifc_stmt_block       &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -19723,6 +24668,12 @@ an_ifc_stmt_block_storage* get<an_ifc_stmt_block_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_block>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_break_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC StmtBreak nodes.
 */
@@ -19732,6 +24683,10 @@ a_boolean has_ifc_locus(const an_ifc_stmt_break &universal);
 
 template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_break &universal);
+
+template<>
+void set_ifc_locus(an_ifc_stmt_break            *universal,
+                   const an_ifc_source_location &value);
 
 template<>
 a_boolean validate(const an_ifc_stmt_break       &universal,
@@ -19752,6 +24707,11 @@ an_ifc_stmt_break_storage* get<an_ifc_stmt_break_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_break>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_case_storage>(an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC StmtCase nodes.
 */
@@ -19767,6 +24727,13 @@ a_boolean has_ifc_locus(const an_ifc_stmt_case &universal);
 
 template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_case &universal);
+
+template<>
+void set_ifc_expr(an_ifc_stmt_case *universal, const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_stmt_case             *universal,
+                   const an_ifc_source_location &value);
 
 template<>
 a_boolean validate(const an_ifc_stmt_case        &universal,
@@ -19787,6 +24754,12 @@ an_ifc_stmt_case_storage* get<an_ifc_stmt_case_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_case>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_continue_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC StmtContinue nodes.
 */
@@ -19796,6 +24769,10 @@ a_boolean has_ifc_locus(const an_ifc_stmt_continue &universal);
 
 template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_continue &universal);
+
+template<>
+void set_ifc_locus(an_ifc_stmt_continue         *universal,
+                   const an_ifc_source_location &value);
 
 template<>
 a_boolean validate(const an_ifc_stmt_continue    &universal,
@@ -19816,6 +24793,11 @@ an_ifc_stmt_continue_storage* get<an_ifc_stmt_continue_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_continue>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_decl_storage>(an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC StmtDecl nodes.
 */
@@ -19831,6 +24813,13 @@ a_boolean has_ifc_locus(const an_ifc_stmt_decl &universal);
 
 template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_decl &universal);
+
+template<>
+void set_ifc_decl(an_ifc_stmt_decl *universal, const an_ifc_decl_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_stmt_decl             *universal,
+                   const an_ifc_source_location &value);
 
 template<>
 a_boolean validate(const an_ifc_stmt_decl        &universal,
@@ -19851,6 +24840,12 @@ an_ifc_stmt_decl_storage* get<an_ifc_stmt_decl_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_decl>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_default_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC StmtDefault nodes.
 */
@@ -19860,6 +24855,10 @@ a_boolean has_ifc_locus(const an_ifc_stmt_default &universal);
 
 template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_default &universal);
+
+template<>
+void set_ifc_locus(an_ifc_stmt_default          *universal,
+                   const an_ifc_source_location &value);
 
 template<>
 a_boolean validate(const an_ifc_stmt_default     &universal,
@@ -19879,6 +24878,12 @@ an_ifc_stmt_default_storage* get<an_ifc_stmt_default_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_default>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_do_while_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC StmtDoWhile nodes.
@@ -19903,6 +24908,18 @@ template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_do_while &universal);
 
 template<>
+void set_ifc_body(an_ifc_stmt_do_while    *universal,
+                  const an_ifc_stmt_index &value);
+
+template<>
+void set_ifc_condition(an_ifc_stmt_do_while    *universal,
+                       const an_ifc_stmt_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_stmt_do_while         *universal,
+                   const an_ifc_source_location &value);
+
+template<>
 a_boolean validate(const an_ifc_stmt_do_while    &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -19921,6 +24938,12 @@ an_ifc_stmt_do_while_storage* get<an_ifc_stmt_do_while_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_do_while>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_empty_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC StmtEmpty nodes.
 */
@@ -19930,6 +24953,10 @@ a_boolean has_ifc_locus(const an_ifc_stmt_empty &universal);
 
 template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_empty &universal);
+
+template<>
+void set_ifc_locus(an_ifc_stmt_empty            *universal,
+                   const an_ifc_source_location &value);
 
 template<>
 a_boolean validate(const an_ifc_stmt_empty       &universal,
@@ -19950,6 +24977,12 @@ an_ifc_stmt_empty_storage* get<an_ifc_stmt_empty_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_empty>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_expansion_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC StmtExpansion nodes.
 */
@@ -19965,6 +24998,14 @@ a_boolean has_ifc_operand(const an_ifc_stmt_expansion &universal);
 
 template<>
 an_ifc_stmt_index get_ifc_operand(const an_ifc_stmt_expansion &universal);
+
+template<>
+void set_ifc_locus(an_ifc_stmt_expansion        *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_operand(an_ifc_stmt_expansion   *universal,
+                     const an_ifc_stmt_index &value);
 
 template<>
 a_boolean validate(const an_ifc_stmt_expansion   &universal,
@@ -19985,6 +25026,12 @@ an_ifc_stmt_expansion_storage* get<an_ifc_stmt_expansion_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_expansion>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_expression_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC StmtExpression nodes.
 */
@@ -20000,6 +25047,14 @@ a_boolean has_ifc_locus(const an_ifc_stmt_expression &universal);
 
 template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_expression &universal);
+
+template<>
+void set_ifc_expr(an_ifc_stmt_expression  *universal,
+                  const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_stmt_expression       *universal,
+                   const an_ifc_source_location &value);
 
 template<>
 a_boolean validate(const an_ifc_stmt_expression  &universal,
@@ -20019,6 +25074,11 @@ an_ifc_stmt_expression_storage* get<an_ifc_stmt_expression_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_expression>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_for_storage>(an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC StmtFor nodes.
@@ -20055,6 +25115,25 @@ template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_for &universal);
 
 template<>
+void set_ifc_body(an_ifc_stmt_for *universal, const an_ifc_stmt_index &value);
+
+template<>
+void set_ifc_condition(an_ifc_stmt_for         *universal,
+                       const an_ifc_stmt_index &value);
+
+template<>
+void set_ifc_continuation(an_ifc_stmt_for         *universal,
+                          const an_ifc_stmt_index &value);
+
+template<>
+void set_ifc_initialization(an_ifc_stmt_for         *universal,
+                            const an_ifc_stmt_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_stmt_for              *universal,
+                   const an_ifc_source_location &value);
+
+template<>
 a_boolean validate(const an_ifc_stmt_for         &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -20073,6 +25152,11 @@ an_ifc_stmt_for_storage* get<an_ifc_stmt_for_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_for>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_goto_storage>(an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC StmtGoto nodes.
 */
@@ -20088,6 +25172,14 @@ a_boolean has_ifc_target(const an_ifc_stmt_goto &universal);
 
 template<>
 an_ifc_expr_index get_ifc_target(const an_ifc_stmt_goto &universal);
+
+template<>
+void set_ifc_locus(an_ifc_stmt_goto             *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_target(an_ifc_stmt_goto        *universal,
+                    const an_ifc_expr_index &value);
 
 template<>
 a_boolean validate(const an_ifc_stmt_goto        &universal,
@@ -20107,6 +25199,12 @@ an_ifc_stmt_goto_storage* get<an_ifc_stmt_goto_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_goto>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_handler_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC StmtHandler nodes.
@@ -20131,6 +25229,18 @@ template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_handler &universal);
 
 template<>
+void set_ifc_body(an_ifc_stmt_handler     *universal,
+                  const an_ifc_stmt_index &value);
+
+template<>
+void set_ifc_exception(an_ifc_stmt_handler     *universal,
+                       const an_ifc_decl_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_stmt_handler          *universal,
+                   const an_ifc_source_location &value);
+
+template<>
 a_boolean validate(const an_ifc_stmt_handler     &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -20148,6 +25258,11 @@ an_ifc_stmt_handler_storage* get<an_ifc_stmt_handler_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_handler>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_if_storage>(an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC StmtIf nodes.
@@ -20184,6 +25299,26 @@ template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_if &universal);
 
 template<>
+void set_ifc_alternative(an_ifc_stmt_if          *universal,
+                         const an_ifc_stmt_index &value);
+
+template<>
+void set_ifc_condition(an_ifc_stmt_if          *universal,
+                       const an_ifc_stmt_index &value);
+
+template<>
+void set_ifc_consequence(an_ifc_stmt_if          *universal,
+                         const an_ifc_stmt_index &value);
+
+template<>
+void set_ifc_initialization(an_ifc_stmt_if          *universal,
+                            const an_ifc_stmt_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_stmt_if               *universal,
+                   const an_ifc_source_location &value);
+
+template<>
 a_boolean validate(const an_ifc_stmt_if          &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -20201,6 +25336,12 @@ an_ifc_stmt_if_storage* get<an_ifc_stmt_if_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_if>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_labeled_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC StmtLabeled nodes.
@@ -20231,6 +25372,22 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_stmt_labeled &universal);
 
 template<>
+void set_ifc_label(an_ifc_stmt_labeled     *universal,
+                   const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_stmt_labeled          *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_stmt(an_ifc_stmt_labeled     *universal,
+                  const an_ifc_stmt_index &value);
+
+template<>
+void set_ifc_type(an_ifc_stmt_labeled     *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_stmt_labeled     &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -20248,6 +25405,12 @@ an_ifc_stmt_labeled_storage* get<an_ifc_stmt_labeled_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_labeled>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_return_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC StmtReturn nodes.
@@ -20278,6 +25441,22 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_stmt_return &universal);
 
 template<>
+void set_ifc_expr(an_ifc_stmt_return      *universal,
+                  const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_function_type(an_ifc_stmt_return      *universal,
+                           const an_ifc_type_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_stmt_return           *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_type(an_ifc_stmt_return      *universal,
+                  const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_stmt_return      &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -20295,6 +25474,12 @@ an_ifc_stmt_return_storage* get<an_ifc_stmt_return_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_return>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_switch_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC StmtSwitch nodes.
@@ -20325,6 +25510,22 @@ template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_switch &universal);
 
 template<>
+void set_ifc_body(an_ifc_stmt_switch      *universal,
+                  const an_ifc_stmt_index &value);
+
+template<>
+void set_ifc_condition(an_ifc_stmt_switch      *universal,
+                       const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_initialization(an_ifc_stmt_switch      *universal,
+                            const an_ifc_stmt_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_stmt_switch           *universal,
+                   const an_ifc_source_location &value);
+
+template<>
 a_boolean validate(const an_ifc_stmt_switch      &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -20342,6 +25543,11 @@ an_ifc_stmt_switch_storage* get<an_ifc_stmt_switch_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_switch>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_try_storage>(an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC StmtTry nodes.
@@ -20372,6 +25578,21 @@ template<>
 an_ifc_index get_ifc_start(const an_ifc_stmt_try &universal);
 
 template<>
+void set_ifc_cardinality(an_ifc_stmt_try          *universal,
+                         const an_ifc_cardinality &value);
+
+template<>
+void set_ifc_handlers(an_ifc_stmt_try         *universal,
+                      const an_ifc_stmt_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_stmt_try              *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_start(an_ifc_stmt_try *universal, const an_ifc_index &value);
+
+template<>
 a_boolean validate(const an_ifc_stmt_try         &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -20389,6 +25610,12 @@ an_ifc_stmt_try_storage* get<an_ifc_stmt_try_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_try>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_tuple_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC StmtTuple nodes.
@@ -20413,6 +25640,17 @@ template<>
 an_ifc_index get_ifc_start(const an_ifc_stmt_tuple &universal);
 
 template<>
+void set_ifc_cardinality(an_ifc_stmt_tuple        *universal,
+                         const an_ifc_cardinality &value);
+
+template<>
+void set_ifc_locus(an_ifc_stmt_tuple            *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_start(an_ifc_stmt_tuple *universal, const an_ifc_index &value);
+
+template<>
 a_boolean validate(const an_ifc_stmt_tuple       &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -20431,6 +25669,12 @@ an_ifc_stmt_tuple_storage* get<an_ifc_stmt_tuple_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_tuple>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_variable_decl_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC StmtVariableDecl nodes.
 */
@@ -20447,6 +25691,14 @@ a_boolean has_ifc_locus(const an_ifc_stmt_variable_decl &universal);
 template<>
 an_ifc_source_location get_ifc_locus(
                                    const an_ifc_stmt_variable_decl &universal);
+
+template<>
+void set_ifc_decl(an_ifc_stmt_variable_decl *universal,
+                  const an_ifc_decl_index   &value);
+
+template<>
+void set_ifc_locus(an_ifc_stmt_variable_decl    *universal,
+                   const an_ifc_source_location &value);
 
 template<>
 a_boolean validate(const an_ifc_stmt_variable_decl &universal,
@@ -20467,6 +25719,12 @@ an_ifc_stmt_variable_decl_storage* get<an_ifc_stmt_variable_decl_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_variable_decl>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_while_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC StmtWhile nodes.
@@ -20491,6 +25749,18 @@ template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_stmt_while &universal);
 
 template<>
+void set_ifc_body(an_ifc_stmt_while       *universal,
+                  const an_ifc_stmt_index &value);
+
+template<>
+void set_ifc_condition(an_ifc_stmt_while       *universal,
+                       const an_ifc_stmt_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_stmt_while            *universal,
+                   const an_ifc_source_location &value);
+
+template<>
 a_boolean validate(const an_ifc_stmt_while       &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -20508,6 +25778,12 @@ an_ifc_stmt_while_storage* get<an_ifc_stmt_while_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_stmt_while>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_access_specifier_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxAccessSpecifier nodes.
@@ -20556,6 +25832,30 @@ an_ifc_source_location get_ifc_virtual_kw2(
                               const an_ifc_syntax_access_specifier &universal);
 
 template<>
+void set_ifc_access(an_ifc_syntax_access_specifier *universal,
+                    const an_ifc_keyword_syntax    &value);
+
+template<>
+void set_ifc_comma(an_ifc_syntax_access_specifier *universal,
+                   const an_ifc_source_location   &value);
+
+template<>
+void set_ifc_designator(an_ifc_syntax_access_specifier *universal,
+                        const an_ifc_expr_index        &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_access_specifier *universal,
+                   const an_ifc_source_location   &value);
+
+template<>
+void set_ifc_virtual_kw(an_ifc_syntax_access_specifier *universal,
+                        const an_ifc_source_location   &value);
+
+template<>
+void set_ifc_virtual_kw2(an_ifc_syntax_access_specifier *universal,
+                         const an_ifc_source_location   &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_access_specifier &universal,
                    const an_ifc_validation_trace        *parent);
 
@@ -20575,6 +25875,12 @@ get<an_ifc_syntax_access_specifier_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_access_specifier>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_alias_declaration_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxAliasDeclaration nodes.
@@ -20616,6 +25922,26 @@ an_ifc_source_location get_ifc_semicolon(
                              const an_ifc_syntax_alias_declaration &universal);
 
 template<>
+void set_ifc_aliasee(an_ifc_syntax_alias_declaration *universal,
+                     const an_ifc_syntax_index       &value);
+
+template<>
+void set_ifc_equal(an_ifc_syntax_alias_declaration *universal,
+                   const an_ifc_source_location    &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_alias_declaration *universal,
+                   const an_ifc_source_location    &value);
+
+template<>
+void set_ifc_name(an_ifc_syntax_alias_declaration *universal,
+                  const an_ifc_expr_index         &value);
+
+template<>
+void set_ifc_semicolon(an_ifc_syntax_alias_declaration *universal,
+                       const an_ifc_source_location    &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_alias_declaration &universal,
                    const an_ifc_validation_trace         *parent);
 
@@ -20636,6 +25962,12 @@ get<an_ifc_syntax_alias_declaration_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_alias_declaration>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_alignas_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxAlignas nodes.
@@ -20668,6 +26000,22 @@ an_ifc_source_location get_ifc_right_paren(
                                        const an_ifc_syntax_alignas &universal);
 
 template<>
+void set_ifc_left_paren(an_ifc_syntax_alignas        *universal,
+                        const an_ifc_source_location &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_alignas        *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_operand(an_ifc_syntax_alignas     *universal,
+                     const an_ifc_syntax_index &value);
+
+template<>
+void set_ifc_right_paren(an_ifc_syntax_alignas        *universal,
+                         const an_ifc_source_location &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_alignas   &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -20685,6 +26033,12 @@ an_ifc_syntax_alignas_storage* get<an_ifc_syntax_alignas_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_alignas>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_array_declarator_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxArrayDeclarator nodes.
@@ -20714,6 +26068,18 @@ an_ifc_source_location get_ifc_right_bracket(
                               const an_ifc_syntax_array_declarator &universal);
 
 template<>
+void set_ifc_bound(an_ifc_syntax_array_declarator *universal,
+                   const an_ifc_expr_index        &value);
+
+template<>
+void set_ifc_left_bracket(an_ifc_syntax_array_declarator *universal,
+                          const an_ifc_source_location   &value);
+
+template<>
+void set_ifc_right_bracket(an_ifc_syntax_array_declarator *universal,
+                           const an_ifc_source_location   &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_array_declarator &universal,
                    const an_ifc_validation_trace        *parent);
 
@@ -20733,6 +26099,12 @@ get<an_ifc_syntax_array_declarator_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_array_declarator>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_array_index_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxArrayIndex nodes.
@@ -20765,6 +26137,22 @@ an_ifc_source_location get_ifc_right_bracket(
                                    const an_ifc_syntax_array_index &universal);
 
 template<>
+void set_ifc_array(an_ifc_syntax_array_index *universal,
+                   const an_ifc_expr_index   &value);
+
+template<>
+void set_ifc_index(an_ifc_syntax_array_index *universal,
+                   const an_ifc_expr_index   &value);
+
+template<>
+void set_ifc_left_bracket(an_ifc_syntax_array_index    *universal,
+                          const an_ifc_source_location &value);
+
+template<>
+void set_ifc_right_bracket(an_ifc_syntax_array_index    *universal,
+                           const an_ifc_source_location &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_array_index &universal,
                    const an_ifc_validation_trace   *parent);
 
@@ -20783,6 +26171,12 @@ an_ifc_syntax_array_index_storage* get<an_ifc_syntax_array_index_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_array_index>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_array_or_function_declarator_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxArrayOrFunctionDeclarator nodes.
@@ -20803,6 +26197,14 @@ a_boolean has_ifc_next(
 template<>
 an_ifc_syntax_index get_ifc_next(
                   const an_ifc_syntax_array_or_function_declarator &universal);
+
+template<>
+void set_ifc_declarator(an_ifc_syntax_array_or_function_declarator *universal,
+                        const an_ifc_syntax_index                  &value);
+
+template<>
+void set_ifc_next(an_ifc_syntax_array_or_function_declarator *universal,
+                  const an_ifc_syntax_index                  &value);
 
 template<>
 a_boolean validate(
@@ -20829,6 +26231,12 @@ template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_array_or_function_declarator>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_asm_statement_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC SyntaxAsmStatement nodes.
 */
@@ -20846,6 +26254,14 @@ a_boolean has_ifc_tokens(const an_ifc_syntax_asm_statement &universal);
 template<>
 an_ifc_sentence_index get_ifc_tokens(
                                  const an_ifc_syntax_asm_statement &universal);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_asm_statement  *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_tokens(an_ifc_syntax_asm_statement *universal,
+                    const an_ifc_sentence_index &value);
 
 template<>
 a_boolean validate(const an_ifc_syntax_asm_statement &universal,
@@ -20866,6 +26282,12 @@ an_ifc_syntax_asm_statement_storage* get<an_ifc_syntax_asm_statement_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_asm_statement>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_attribute_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxAttribute nodes.
@@ -20911,6 +26333,30 @@ template<>
 an_ifc_expr_index get_ifc_scope(const an_ifc_syntax_attribute &universal);
 
 template<>
+void set_ifc_argument_clause(an_ifc_syntax_attribute   *universal,
+                             const an_ifc_syntax_index &value);
+
+template<>
+void set_ifc_colons(an_ifc_syntax_attribute      *universal,
+                    const an_ifc_source_location &value);
+
+template<>
+void set_ifc_comma(an_ifc_syntax_attribute      *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_expander(an_ifc_syntax_attribute      *universal,
+                      const an_ifc_source_location &value);
+
+template<>
+void set_ifc_name(an_ifc_syntax_attribute *universal,
+                  const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_scope(an_ifc_syntax_attribute *universal,
+                   const an_ifc_expr_index &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_attribute &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -20928,6 +26374,12 @@ an_ifc_syntax_attribute_storage* get<an_ifc_syntax_attribute_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_attribute>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_attribute_argument_clause_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxAttributeArgumentClause nodes.
@@ -20958,6 +26410,18 @@ an_ifc_sentence_index get_ifc_tokens(
                      const an_ifc_syntax_attribute_argument_clause &universal);
 
 template<>
+void set_ifc_left_paren(an_ifc_syntax_attribute_argument_clause *universal,
+                        const an_ifc_source_location            &value);
+
+template<>
+void set_ifc_right_paren(an_ifc_syntax_attribute_argument_clause *universal,
+                         const an_ifc_source_location            &value);
+
+template<>
+void set_ifc_tokens(an_ifc_syntax_attribute_argument_clause *universal,
+                    const an_ifc_sentence_index             &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_attribute_argument_clause &universal,
                    const an_ifc_validation_trace                 *parent);
 
@@ -20978,6 +26442,12 @@ get<an_ifc_syntax_attribute_argument_clause_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_attribute_argument_clause>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_attribute_specifier_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxAttributeSpecifier nodes.
@@ -21031,6 +26501,30 @@ an_ifc_source_location get_ifc_right_paren_2(
                            const an_ifc_syntax_attribute_specifier &universal);
 
 template<>
+void set_ifc_attributes(an_ifc_syntax_attribute_specifier *universal,
+                        const an_ifc_syntax_index         &value);
+
+template<>
+void set_ifc_left_paren_1(an_ifc_syntax_attribute_specifier *universal,
+                          const an_ifc_source_location      &value);
+
+template<>
+void set_ifc_left_paren_2(an_ifc_syntax_attribute_specifier *universal,
+                          const an_ifc_source_location      &value);
+
+template<>
+void set_ifc_prefix(an_ifc_syntax_attribute_specifier *universal,
+                    const an_ifc_syntax_index         &value);
+
+template<>
+void set_ifc_right_paren_1(an_ifc_syntax_attribute_specifier *universal,
+                           const an_ifc_source_location      &value);
+
+template<>
+void set_ifc_right_paren_2(an_ifc_syntax_attribute_specifier *universal,
+                           const an_ifc_source_location      &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_attribute_specifier &universal,
                    const an_ifc_validation_trace           *parent);
 
@@ -21052,6 +26546,12 @@ template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_attribute_specifier>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_attribute_specifier_seq_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC SyntaxAttributeSpecifierSeq nodes.
 */
@@ -21063,6 +26563,10 @@ a_boolean has_ifc_attributes(
 template<>
 an_ifc_syntax_index get_ifc_attributes(
                        const an_ifc_syntax_attribute_specifier_seq &universal);
+
+template<>
+void set_ifc_attributes(an_ifc_syntax_attribute_specifier_seq *universal,
+                        const an_ifc_syntax_index             &value);
 
 template<>
 a_boolean validate(const an_ifc_syntax_attribute_specifier_seq &universal,
@@ -21086,6 +26590,12 @@ template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_attribute_specifier_seq>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_attribute_using_prefix_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC SyntaxAttributeUsingPrefix nodes.
 */
@@ -21103,6 +26613,14 @@ a_boolean has_ifc_scope(const an_ifc_syntax_attribute_using_prefix &universal);
 template<>
 an_ifc_source_location get_ifc_scope(
                         const an_ifc_syntax_attribute_using_prefix &universal);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_attribute_using_prefix *universal,
+                   const an_ifc_source_location         &value);
+
+template<>
+void set_ifc_scope(an_ifc_syntax_attribute_using_prefix *universal,
+                   const an_ifc_source_location         &value);
 
 template<>
 a_boolean validate(const an_ifc_syntax_attribute_using_prefix &universal,
@@ -21125,6 +26643,12 @@ get<an_ifc_syntax_attribute_using_prefix_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_attribute_using_prefix>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_attributed_declaration_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxAttributedDeclaration nodes.
@@ -21153,6 +26677,18 @@ an_ifc_source_location get_ifc_locus(
                         const an_ifc_syntax_attributed_declaration &universal);
 
 template<>
+void set_ifc_attributes(an_ifc_syntax_attributed_declaration *universal,
+                        const an_ifc_syntax_index            &value);
+
+template<>
+void set_ifc_decl(an_ifc_syntax_attributed_declaration *universal,
+                  const an_ifc_syntax_index            &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_attributed_declaration *universal,
+                   const an_ifc_source_location         &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_attributed_declaration &universal,
                    const an_ifc_validation_trace              *parent);
 
@@ -21173,6 +26709,12 @@ get<an_ifc_syntax_attributed_declaration_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_attributed_declaration>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_attributed_statement_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxAttributedStatement nodes.
@@ -21201,6 +26743,18 @@ an_ifc_syntax_index get_ifc_stmt(
                           const an_ifc_syntax_attributed_statement &universal);
 
 template<>
+void set_ifc_attributes(an_ifc_syntax_attributed_statement *universal,
+                        const an_ifc_syntax_index          &value);
+
+template<>
+void set_ifc_pragma(an_ifc_syntax_attributed_statement *universal,
+                    const an_ifc_sentence_index        &value);
+
+template<>
+void set_ifc_stmt(an_ifc_syntax_attributed_statement *universal,
+                  const an_ifc_syntax_index          &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_attributed_statement &universal,
                    const an_ifc_validation_trace            *parent);
 
@@ -21222,6 +26776,12 @@ template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_attributed_statement>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_base_specifier_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC SyntaxBaseSpecifier nodes.
 */
@@ -21239,6 +26799,14 @@ a_boolean has_ifc_colon(const an_ifc_syntax_base_specifier &universal);
 template<>
 an_ifc_source_location get_ifc_colon(
                                 const an_ifc_syntax_base_specifier &universal);
+
+template<>
+void set_ifc_access(an_ifc_syntax_base_specifier *universal,
+                    const an_ifc_keyword_syntax  &value);
+
+template<>
+void set_ifc_colon(an_ifc_syntax_base_specifier *universal,
+                   const an_ifc_source_location &value);
 
 template<>
 a_boolean validate(const an_ifc_syntax_base_specifier &universal,
@@ -21261,6 +26829,12 @@ get<an_ifc_syntax_base_specifier_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_base_specifier>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_base_specifier_list_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC SyntaxBaseSpecifierList nodes.
 */
@@ -21279,6 +26853,14 @@ a_boolean has_ifc_colon(const an_ifc_syntax_base_specifier_list &universal);
 template<>
 an_ifc_source_location get_ifc_colon(
                            const an_ifc_syntax_base_specifier_list &universal);
+
+template<>
+void set_ifc_base_specifiers(an_ifc_syntax_base_specifier_list *universal,
+                             const an_ifc_syntax_index         &value);
+
+template<>
+void set_ifc_colon(an_ifc_syntax_base_specifier_list *universal,
+                   const an_ifc_source_location      &value);
 
 template<>
 a_boolean validate(const an_ifc_syntax_base_specifier_list &universal,
@@ -21301,6 +26883,12 @@ get<an_ifc_syntax_base_specifier_list_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_base_specifier_list>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_binary_fold_expression_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxBinaryFoldExpression nodes.
@@ -21377,6 +26965,42 @@ an_ifc_source_location get_ifc_right_paren(
                         const an_ifc_syntax_binary_fold_expression &universal);
 
 template<>
+void set_ifc_direction(an_ifc_syntax_binary_fold_expression *universal,
+                       const an_ifc_fold_direction_sort     &value);
+
+template<>
+void set_ifc_dyad(an_ifc_syntax_binary_fold_expression *universal,
+                  const an_ifc_dyadic_operator_sort    &value);
+
+template<>
+void set_ifc_ellipsis(an_ifc_syntax_binary_fold_expression *universal,
+                      const an_ifc_source_location         &value);
+
+template<>
+void set_ifc_glyph_loci_1(an_ifc_syntax_binary_fold_expression *universal,
+                          const an_ifc_source_location         &value);
+
+template<>
+void set_ifc_glyph_loci_2(an_ifc_syntax_binary_fold_expression *universal,
+                          const an_ifc_source_location         &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_binary_fold_expression *universal,
+                   const an_ifc_source_location         &value);
+
+template<>
+void set_ifc_operand_1(an_ifc_syntax_binary_fold_expression *universal,
+                       const an_ifc_expr_index              &value);
+
+template<>
+void set_ifc_operand_2(an_ifc_syntax_binary_fold_expression *universal,
+                       const an_ifc_expr_index              &value);
+
+template<>
+void set_ifc_right_paren(an_ifc_syntax_binary_fold_expression *universal,
+                         const an_ifc_source_location         &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_binary_fold_expression &universal,
                    const an_ifc_validation_trace              *parent);
 
@@ -21398,6 +27022,12 @@ template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_binary_fold_expression>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_break_statement_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC SyntaxBreakStatement nodes.
 */
@@ -21415,6 +27045,14 @@ a_boolean has_ifc_semicolon(const an_ifc_syntax_break_statement &universal);
 template<>
 an_ifc_source_location get_ifc_semicolon(
                                const an_ifc_syntax_break_statement &universal);
+
+template<>
+void set_ifc_break(an_ifc_syntax_break_statement *universal,
+                   const an_ifc_source_location  &value);
+
+template<>
+void set_ifc_semicolon(an_ifc_syntax_break_statement *universal,
+                       const an_ifc_source_location  &value);
 
 template<>
 a_boolean validate(const an_ifc_syntax_break_statement &universal,
@@ -21436,6 +27074,12 @@ get<an_ifc_syntax_break_statement_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_break_statement>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_capture_default_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxCaptureDefault nodes.
@@ -21462,6 +27106,18 @@ an_ifc_source_location get_ifc_locus(
                                const an_ifc_syntax_capture_default &universal);
 
 template<>
+void set_ifc_by_ref(an_ifc_syntax_capture_default *universal,
+                    const an_ifc_bool             &value);
+
+template<>
+void set_ifc_comma(an_ifc_syntax_capture_default *universal,
+                   const an_ifc_source_location  &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_capture_default *universal,
+                   const an_ifc_source_location  &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_capture_default &universal,
                    const an_ifc_validation_trace       *parent);
 
@@ -21481,6 +27137,12 @@ get<an_ifc_syntax_capture_default_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_capture_default>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_class_specifier_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxClassSpecifier nodes.
@@ -21528,6 +27190,30 @@ an_ifc_syntax_index get_ifc_right_paren(
                                const an_ifc_syntax_class_specifier &universal);
 
 template<>
+void set_ifc_bases(an_ifc_syntax_class_specifier *universal,
+                   const an_ifc_syntax_index     &value);
+
+template<>
+void set_ifc_class_key(an_ifc_syntax_class_specifier *universal,
+                       const an_ifc_keyword_syntax   &value);
+
+template<>
+void set_ifc_left_paren(an_ifc_syntax_class_specifier *universal,
+                        const an_ifc_syntax_index     &value);
+
+template<>
+void set_ifc_members(an_ifc_syntax_class_specifier *universal,
+                     const an_ifc_syntax_index     &value);
+
+template<>
+void set_ifc_name(an_ifc_syntax_class_specifier *universal,
+                  const an_ifc_expr_index       &value);
+
+template<>
+void set_ifc_right_paren(an_ifc_syntax_class_specifier *universal,
+                         const an_ifc_syntax_index     &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_class_specifier &universal,
                    const an_ifc_validation_trace       *parent);
 
@@ -21547,6 +27233,12 @@ get<an_ifc_syntax_class_specifier_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_class_specifier>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_compound_requirement_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxCompoundRequirement nodes.
@@ -21592,6 +27284,26 @@ an_ifc_source_location get_ifc_right_curly(
                           const an_ifc_syntax_compound_requirement &universal);
 
 template<>
+void set_ifc_condition(an_ifc_syntax_compound_requirement *universal,
+                       const an_ifc_expr_index            &value);
+
+template<>
+void set_ifc_constraint(an_ifc_syntax_compound_requirement *universal,
+                        const an_ifc_expr_index            &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_compound_requirement *universal,
+                   const an_ifc_source_location       &value);
+
+template<>
+void set_ifc_noexcept_loc(an_ifc_syntax_compound_requirement *universal,
+                          const an_ifc_source_location       &value);
+
+template<>
+void set_ifc_right_curly(an_ifc_syntax_compound_requirement *universal,
+                         const an_ifc_source_location       &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_compound_requirement &universal,
                    const an_ifc_validation_trace            *parent);
 
@@ -21612,6 +27324,12 @@ get<an_ifc_syntax_compound_requirement_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_compound_requirement>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_compound_statement_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxCompoundStatement nodes.
@@ -21648,6 +27366,22 @@ an_ifc_syntax_index get_ifc_stmts(
                             const an_ifc_syntax_compound_statement &universal);
 
 template<>
+void set_ifc_left_curly(an_ifc_syntax_compound_statement *universal,
+                        const an_ifc_source_location     &value);
+
+template<>
+void set_ifc_pragam(an_ifc_syntax_compound_statement *universal,
+                    const an_ifc_sentence_index      &value);
+
+template<>
+void set_ifc_right_curly(an_ifc_syntax_compound_statement *universal,
+                         const an_ifc_source_location     &value);
+
+template<>
+void set_ifc_stmts(an_ifc_syntax_compound_statement *universal,
+                   const an_ifc_syntax_index        &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_compound_statement &universal,
                    const an_ifc_validation_trace          *parent);
 
@@ -21668,6 +27402,12 @@ get<an_ifc_syntax_compound_statement_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_compound_statement>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_concept_definition_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxConceptDefinition nodes.
@@ -21726,6 +27466,34 @@ an_ifc_source_location get_ifc_semicolon(
                             const an_ifc_syntax_concept_definition &universal);
 
 template<>
+void set_ifc_concept_keyword(an_ifc_syntax_concept_definition *universal,
+                             const an_ifc_source_location     &value);
+
+template<>
+void set_ifc_equal(an_ifc_syntax_concept_definition *universal,
+                   const an_ifc_source_location     &value);
+
+template<>
+void set_ifc_initializer(an_ifc_syntax_concept_definition *universal,
+                         const an_ifc_expr_index          &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_concept_definition *universal,
+                   const an_ifc_source_location     &value);
+
+template<>
+void set_ifc_name(an_ifc_syntax_concept_definition *universal,
+                  const an_ifc_text_offset         &value);
+
+template<>
+void set_ifc_parameters(an_ifc_syntax_concept_definition *universal,
+                        const an_ifc_syntax_index        &value);
+
+template<>
+void set_ifc_semicolon(an_ifc_syntax_concept_definition *universal,
+                       const an_ifc_source_location     &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_concept_definition &universal,
                    const an_ifc_validation_trace          *parent);
 
@@ -21746,6 +27514,12 @@ get<an_ifc_syntax_concept_definition_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_concept_definition>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_condition_declaration_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxConditionDeclaration nodes.
@@ -21775,6 +27549,18 @@ an_ifc_source_location get_ifc_locus(
                          const an_ifc_syntax_condition_declaration &universal);
 
 template<>
+void set_ifc_decl_specifier(an_ifc_syntax_condition_declaration *universal,
+                            const an_ifc_syntax_index           &value);
+
+template<>
+void set_ifc_initializaerion(an_ifc_syntax_condition_declaration *universal,
+                             const an_ifc_syntax_index           &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_condition_declaration *universal,
+                   const an_ifc_source_location        &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_condition_declaration &universal,
                    const an_ifc_validation_trace             *parent);
 
@@ -21796,6 +27582,12 @@ template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_condition_declaration>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_continue_statement_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC SyntaxContinueStatement nodes.
 */
@@ -21813,6 +27605,14 @@ a_boolean has_ifc_semicolon(const an_ifc_syntax_continue_statement &universal);
 template<>
 an_ifc_source_location get_ifc_semicolon(
                             const an_ifc_syntax_continue_statement &universal);
+
+template<>
+void set_ifc_continue(an_ifc_syntax_continue_statement *universal,
+                      const an_ifc_source_location     &value);
+
+template<>
+void set_ifc_semicolon(an_ifc_syntax_continue_statement *universal,
+                       const an_ifc_source_location     &value);
 
 template<>
 a_boolean validate(const an_ifc_syntax_continue_statement &universal,
@@ -21836,6 +27636,12 @@ template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_continue_statement>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_ctor_initializer_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC SyntaxCtorInitializer nodes.
 */
@@ -21854,6 +27660,14 @@ a_boolean has_ifc_initializers(
 template<>
 an_ifc_syntax_index get_ifc_initializers(
                               const an_ifc_syntax_ctor_initializer &universal);
+
+template<>
+void set_ifc_colon(an_ifc_syntax_ctor_initializer *universal,
+                   const an_ifc_source_location   &value);
+
+template<>
+void set_ifc_initializers(an_ifc_syntax_ctor_initializer *universal,
+                          const an_ifc_syntax_index      &value);
 
 template<>
 a_boolean validate(const an_ifc_syntax_ctor_initializer &universal,
@@ -21875,6 +27689,12 @@ get<an_ifc_syntax_ctor_initializer_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_ctor_initializer>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_decl_specifier_seq_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxDeclSpecifierSeq nodes.
@@ -21933,6 +27753,34 @@ an_ifc_syntax_index get_ifc_type_name(
                             const an_ifc_syntax_decl_specifier_seq &universal);
 
 template<>
+void set_ifc_declspec(an_ifc_syntax_decl_specifier_seq *universal,
+                      const an_ifc_sentence_index      &value);
+
+template<>
+void set_ifc_explicit_kw(an_ifc_syntax_decl_specifier_seq *universal,
+                         const an_ifc_syntax_index        &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_decl_specifier_seq *universal,
+                   const an_ifc_source_location     &value);
+
+template<>
+void set_ifc_qualifiers(an_ifc_syntax_decl_specifier_seq *universal,
+                        const an_ifc_qualifier_bitfield  &value);
+
+template<>
+void set_ifc_storage_class(an_ifc_syntax_decl_specifier_seq *universal,
+                           const an_ifc_storage_class       &value);
+
+template<>
+void set_ifc_type(an_ifc_syntax_decl_specifier_seq *universal,
+                  const an_ifc_type_index          &value);
+
+template<>
+void set_ifc_type_name(an_ifc_syntax_decl_specifier_seq *universal,
+                       const an_ifc_syntax_index        &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_decl_specifier_seq &universal,
                    const an_ifc_validation_trace          *parent);
 
@@ -21954,6 +27802,12 @@ template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_decl_specifier_seq>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_declaration_statement_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC SyntaxDeclarationStatement nodes.
 */
@@ -21971,6 +27825,14 @@ a_boolean has_ifc_pragma(const an_ifc_syntax_declaration_statement &universal);
 template<>
 an_ifc_sentence_index get_ifc_pragma(
                          const an_ifc_syntax_declaration_statement &universal);
+
+template<>
+void set_ifc_decl(an_ifc_syntax_declaration_statement *universal,
+                  const an_ifc_syntax_index           &value);
+
+template<>
+void set_ifc_pragma(an_ifc_syntax_declaration_statement *universal,
+                    const an_ifc_sentence_index         &value);
 
 template<>
 a_boolean validate(const an_ifc_syntax_declaration_statement &universal,
@@ -21993,6 +27855,12 @@ get<an_ifc_syntax_declaration_statement_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_declaration_statement>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_declarator_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxDeclarator nodes.
@@ -22074,6 +27942,50 @@ an_ifc_syntax_index get_ifc_virtual_specifiers(
                                     const an_ifc_syntax_declarator &universal);
 
 template<>
+void set_ifc_array_or_function(an_ifc_syntax_declarator  *universal,
+                               const an_ifc_syntax_index &value);
+
+template<>
+void set_ifc_callable(an_ifc_syntax_declarator *universal,
+                      const an_ifc_bool        &value);
+
+template<>
+void set_ifc_convention(an_ifc_syntax_declarator             *universal,
+                        const an_ifc_calling_convention_sort &value);
+
+template<>
+void set_ifc_ellipsis(an_ifc_syntax_declarator     *universal,
+                      const an_ifc_source_location &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_declarator     *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_name(an_ifc_syntax_declarator *universal,
+                  const an_ifc_expr_index  &value);
+
+template<>
+void set_ifc_parenthesized(an_ifc_syntax_declarator  *universal,
+                           const an_ifc_syntax_index &value);
+
+template<>
+void set_ifc_pointer(an_ifc_syntax_declarator  *universal,
+                     const an_ifc_syntax_index &value);
+
+template<>
+void set_ifc_qualifiers(an_ifc_syntax_declarator        *universal,
+                        const an_ifc_qualifier_bitfield &value);
+
+template<>
+void set_ifc_trailing_target(an_ifc_syntax_declarator  *universal,
+                             const an_ifc_syntax_index &value);
+
+template<>
+void set_ifc_virtual_specifiers(an_ifc_syntax_declarator  *universal,
+                                const an_ifc_syntax_index &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_declarator &universal,
                    const an_ifc_validation_trace  *parent);
 
@@ -22092,6 +28004,12 @@ an_ifc_syntax_declarator_storage* get<an_ifc_syntax_declarator_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_declarator>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_decltype_specifier_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxDecltypeSpecifier nodes.
@@ -22129,6 +28047,22 @@ an_ifc_source_location get_ifc_right_paren(
                             const an_ifc_syntax_decltype_specifier &universal);
 
 template<>
+void set_ifc_decltype_keyword(an_ifc_syntax_decltype_specifier *universal,
+                              const an_ifc_source_location     &value);
+
+template<>
+void set_ifc_expr(an_ifc_syntax_decltype_specifier *universal,
+                  const an_ifc_expr_index          &value);
+
+template<>
+void set_ifc_left_paren(an_ifc_syntax_decltype_specifier *universal,
+                        const an_ifc_source_location     &value);
+
+template<>
+void set_ifc_right_paren(an_ifc_syntax_decltype_specifier *universal,
+                         const an_ifc_source_location     &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_decltype_specifier &universal,
                    const an_ifc_validation_trace          *parent);
 
@@ -22149,6 +28083,12 @@ get<an_ifc_syntax_decltype_specifier_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_decltype_specifier>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_do_while_statement_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxDoWhileStatement nodes.
@@ -22197,6 +28137,30 @@ an_ifc_source_location get_ifc_while(
                             const an_ifc_syntax_do_while_statement &universal);
 
 template<>
+void set_ifc_body(an_ifc_syntax_do_while_statement *universal,
+                  const an_ifc_syntax_index        &value);
+
+template<>
+void set_ifc_condition(an_ifc_syntax_do_while_statement *universal,
+                       const an_ifc_expr_index          &value);
+
+template<>
+void set_ifc_do(an_ifc_syntax_do_while_statement *universal,
+                const an_ifc_source_location     &value);
+
+template<>
+void set_ifc_pragma(an_ifc_syntax_do_while_statement *universal,
+                    const an_ifc_sentence_index      &value);
+
+template<>
+void set_ifc_semicolon(an_ifc_syntax_do_while_statement *universal,
+                       const an_ifc_source_location     &value);
+
+template<>
+void set_ifc_while(an_ifc_syntax_do_while_statement *universal,
+                   const an_ifc_source_location     &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_do_while_statement &universal,
                    const an_ifc_validation_trace          *parent);
 
@@ -22217,6 +28181,12 @@ get<an_ifc_syntax_do_while_statement_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_do_while_statement>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_dynamic_exception_spec_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxDynamicExceptionSpec nodes.
@@ -22262,6 +28232,26 @@ an_ifc_syntax_index get_ifc_type_list(
                         const an_ifc_syntax_dynamic_exception_spec &universal);
 
 template<>
+void set_ifc_expander(an_ifc_syntax_dynamic_exception_spec *universal,
+                      const an_ifc_source_location         &value);
+
+template<>
+void set_ifc_left_paren(an_ifc_syntax_dynamic_exception_spec *universal,
+                        const an_ifc_source_location         &value);
+
+template<>
+void set_ifc_right_paren(an_ifc_syntax_dynamic_exception_spec *universal,
+                         const an_ifc_source_location         &value);
+
+template<>
+void set_ifc_throw(an_ifc_syntax_dynamic_exception_spec *universal,
+                   const an_ifc_source_location         &value);
+
+template<>
+void set_ifc_type_list(an_ifc_syntax_dynamic_exception_spec *universal,
+                       const an_ifc_syntax_index            &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_dynamic_exception_spec &universal,
                    const an_ifc_validation_trace              *parent);
 
@@ -22283,6 +28273,12 @@ template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_dynamic_exception_spec>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_empty_statement_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC SyntaxEmptyStatement nodes.
 */
@@ -22293,6 +28289,10 @@ a_boolean has_ifc_locus(const an_ifc_syntax_empty_statement &universal);
 template<>
 an_ifc_source_location get_ifc_locus(
                                const an_ifc_syntax_empty_statement &universal);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_empty_statement *universal,
+                   const an_ifc_source_location  &value);
 
 template<>
 a_boolean validate(const an_ifc_syntax_empty_statement &universal,
@@ -22314,6 +28314,12 @@ get<an_ifc_syntax_empty_statement_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_empty_statement>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_enum_specifier_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxEnumSpecifier nodes.
@@ -22375,6 +28381,38 @@ an_ifc_source_location get_ifc_right_brace(
                                 const an_ifc_syntax_enum_specifier &universal);
 
 template<>
+void set_ifc_base(an_ifc_syntax_enum_specifier *universal,
+                  const an_ifc_syntax_index    &value);
+
+template<>
+void set_ifc_class_key(an_ifc_syntax_enum_specifier *universal,
+                       const an_ifc_keyword_syntax  &value);
+
+template<>
+void set_ifc_colon(an_ifc_syntax_enum_specifier *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_enumerators(an_ifc_syntax_enum_specifier *universal,
+                         const an_ifc_syntax_index    &value);
+
+template<>
+void set_ifc_left_brace(an_ifc_syntax_enum_specifier *universal,
+                        const an_ifc_source_location &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_enum_specifier *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_name(an_ifc_syntax_enum_specifier *universal,
+                  const an_ifc_expr_index      &value);
+
+template<>
+void set_ifc_right_brace(an_ifc_syntax_enum_specifier *universal,
+                         const an_ifc_source_location &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_enum_specifier &universal,
                    const an_ifc_validation_trace      *parent);
 
@@ -22394,6 +28432,12 @@ get<an_ifc_syntax_enum_specifier_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_enum_specifier>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_enumerator_definition_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxEnumeratorDefinition nodes.
@@ -22436,6 +28480,26 @@ an_ifc_text_offset get_ifc_name(
                          const an_ifc_syntax_enumerator_definition &universal);
 
 template<>
+void set_ifc_comma(an_ifc_syntax_enumerator_definition *universal,
+                   const an_ifc_source_location        &value);
+
+template<>
+void set_ifc_equal(an_ifc_syntax_enumerator_definition *universal,
+                   const an_ifc_source_location        &value);
+
+template<>
+void set_ifc_initializer(an_ifc_syntax_enumerator_definition *universal,
+                         const an_ifc_expr_index             &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_enumerator_definition *universal,
+                   const an_ifc_source_location        &value);
+
+template<>
+void set_ifc_name(an_ifc_syntax_enumerator_definition *universal,
+                  const an_ifc_text_offset            &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_enumerator_definition &universal,
                    const an_ifc_validation_trace             *parent);
 
@@ -22456,6 +28520,12 @@ get<an_ifc_syntax_enumerator_definition_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_enumerator_definition>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_exception_declaration_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxExceptionDeclaration nodes.
@@ -22493,6 +28563,22 @@ an_ifc_syntax_index get_ifc_type_specifiers(
                          const an_ifc_syntax_exception_declaration &universal);
 
 template<>
+void set_ifc_declarator(an_ifc_syntax_exception_declaration *universal,
+                        const an_ifc_syntax_index           &value);
+
+template<>
+void set_ifc_ellipsis(an_ifc_syntax_exception_declaration *universal,
+                      const an_ifc_source_location        &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_exception_declaration *universal,
+                   const an_ifc_source_location        &value);
+
+template<>
+void set_ifc_type_specifiers(an_ifc_syntax_exception_declaration *universal,
+                             const an_ifc_syntax_index           &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_exception_declaration &universal,
                    const an_ifc_validation_trace             *parent);
 
@@ -22513,6 +28599,12 @@ get<an_ifc_syntax_exception_declaration_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_exception_declaration>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_explicit_specifier_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxExplicitSpecifier nodes.
@@ -22549,6 +28641,22 @@ an_ifc_source_location get_ifc_right_paren(
                             const an_ifc_syntax_explicit_specifier &universal);
 
 template<>
+void set_ifc_condition(an_ifc_syntax_explicit_specifier *universal,
+                       const an_ifc_expr_index          &value);
+
+template<>
+void set_ifc_left_paren(an_ifc_syntax_explicit_specifier *universal,
+                        const an_ifc_source_location     &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_explicit_specifier *universal,
+                   const an_ifc_source_location     &value);
+
+template<>
+void set_ifc_right_paren(an_ifc_syntax_explicit_specifier *universal,
+                         const an_ifc_source_location     &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_explicit_specifier &universal,
                    const an_ifc_validation_trace          *parent);
 
@@ -22570,6 +28678,12 @@ template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_explicit_specifier>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_expression_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC SyntaxExpression nodes.
 */
@@ -22580,6 +28694,10 @@ a_boolean has_ifc_expression(const an_ifc_syntax_expression &universal);
 template<>
 an_ifc_expr_index get_ifc_expression(
                                     const an_ifc_syntax_expression &universal);
+
+template<>
+void set_ifc_expression(an_ifc_syntax_expression *universal,
+                        const an_ifc_expr_index  &value);
 
 template<>
 a_boolean validate(const an_ifc_syntax_expression &universal,
@@ -22600,6 +28718,12 @@ an_ifc_syntax_expression_storage* get<an_ifc_syntax_expression_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_expression>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_expression_statement_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxExpressionStatement nodes.
@@ -22628,6 +28752,18 @@ an_ifc_source_location get_ifc_semicolon(
                           const an_ifc_syntax_expression_statement &universal);
 
 template<>
+void set_ifc_expr(an_ifc_syntax_expression_statement *universal,
+                  const an_ifc_expr_index            &value);
+
+template<>
+void set_ifc_pragma(an_ifc_syntax_expression_statement *universal,
+                    const an_ifc_sentence_index        &value);
+
+template<>
+void set_ifc_semicolon(an_ifc_syntax_expression_statement *universal,
+                       const an_ifc_source_location       &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_expression_statement &universal,
                    const an_ifc_validation_trace            *parent);
 
@@ -22648,6 +28784,12 @@ get<an_ifc_syntax_expression_statement_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_expression_statement>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_for_range_declaration_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxForRangeDeclaration nodes.
@@ -22670,6 +28812,14 @@ an_ifc_syntax_index get_ifc_specifiers(
                          const an_ifc_syntax_for_range_declaration &universal);
 
 template<>
+void set_ifc_declarator(an_ifc_syntax_for_range_declaration *universal,
+                        const an_ifc_syntax_index           &value);
+
+template<>
+void set_ifc_specifiers(an_ifc_syntax_for_range_declaration *universal,
+                        const an_ifc_syntax_index           &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_for_range_declaration &universal,
                    const an_ifc_validation_trace             *parent);
 
@@ -22690,6 +28840,12 @@ get<an_ifc_syntax_for_range_declaration_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_for_range_declaration>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_for_statement_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxForStatement nodes.
@@ -22758,6 +28914,42 @@ an_ifc_source_location get_ifc_semicolon(
                                  const an_ifc_syntax_for_statement &universal);
 
 template<>
+void set_ifc_body(an_ifc_syntax_for_statement *universal,
+                  const an_ifc_syntax_index   &value);
+
+template<>
+void set_ifc_condition(an_ifc_syntax_for_statement *universal,
+                       const an_ifc_expr_index     &value);
+
+template<>
+void set_ifc_continuation(an_ifc_syntax_for_statement *universal,
+                          const an_ifc_expr_index     &value);
+
+template<>
+void set_ifc_for(an_ifc_syntax_for_statement  *universal,
+                 const an_ifc_source_location &value);
+
+template<>
+void set_ifc_initialization(an_ifc_syntax_for_statement *universal,
+                            const an_ifc_syntax_index   &value);
+
+template<>
+void set_ifc_left_paren(an_ifc_syntax_for_statement  *universal,
+                        const an_ifc_source_location &value);
+
+template<>
+void set_ifc_pragma(an_ifc_syntax_for_statement *universal,
+                    const an_ifc_sentence_index &value);
+
+template<>
+void set_ifc_right_paren(an_ifc_syntax_for_statement  *universal,
+                         const an_ifc_source_location &value);
+
+template<>
+void set_ifc_semicolon(an_ifc_syntax_for_statement  *universal,
+                       const an_ifc_source_location &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_for_statement &universal,
                    const an_ifc_validation_trace     *parent);
 
@@ -22776,6 +28968,12 @@ an_ifc_syntax_for_statement_storage* get<an_ifc_syntax_for_statement_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_for_statement>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_function_body_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxFunctionBody nodes.
@@ -22824,6 +29022,30 @@ an_ifc_syntax_index get_ifc_try_block(
                                  const an_ifc_syntax_function_body &universal);
 
 template<>
+void set_ifc_assign(an_ifc_syntax_function_body  *universal,
+                    const an_ifc_source_location &value);
+
+template<>
+void set_ifc_generate(an_ifc_syntax_function_body *universal,
+                      const an_ifc_keyword_syntax &value);
+
+template<>
+void set_ifc_initializers(an_ifc_syntax_function_body *universal,
+                          const an_ifc_syntax_index   &value);
+
+template<>
+void set_ifc_semicolon(an_ifc_syntax_function_body  *universal,
+                       const an_ifc_source_location &value);
+
+template<>
+void set_ifc_stmts(an_ifc_syntax_function_body *universal,
+                   const an_ifc_syntax_index   &value);
+
+template<>
+void set_ifc_try_block(an_ifc_syntax_function_body *universal,
+                       const an_ifc_syntax_index   &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_function_body &universal,
                    const an_ifc_validation_trace     *parent);
 
@@ -22842,6 +29064,12 @@ an_ifc_syntax_function_body_storage* get<an_ifc_syntax_function_body_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_function_body>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_function_declarator_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxFunctionDeclarator nodes.
@@ -22900,6 +29128,34 @@ an_ifc_function_type_traits_bitfield get_ifc_traits(
                            const an_ifc_syntax_function_declarator &universal);
 
 template<>
+void set_ifc_eh_spec(an_ifc_syntax_function_declarator *universal,
+                     const an_ifc_syntax_index         &value);
+
+template<>
+void set_ifc_ellipsis(an_ifc_syntax_function_declarator *universal,
+                      const an_ifc_source_location      &value);
+
+template<>
+void set_ifc_left_paren(an_ifc_syntax_function_declarator *universal,
+                        const an_ifc_source_location      &value);
+
+template<>
+void set_ifc_parameters(an_ifc_syntax_function_declarator *universal,
+                        const an_ifc_syntax_index         &value);
+
+template<>
+void set_ifc_ref(an_ifc_syntax_function_declarator *universal,
+                 const an_ifc_source_location      &value);
+
+template<>
+void set_ifc_right_paren(an_ifc_syntax_function_declarator *universal,
+                         const an_ifc_source_location      &value);
+
+template<>
+void set_ifc_traits(an_ifc_syntax_function_declarator          *universal,
+                    const an_ifc_function_type_traits_bitfield &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_function_declarator &universal,
                    const an_ifc_validation_trace           *parent);
 
@@ -22920,6 +29176,12 @@ get<an_ifc_syntax_function_declarator_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_function_declarator>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_function_definition_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxFunctionDefinition nodes.
@@ -22972,6 +29234,30 @@ an_ifc_syntax_index get_ifc_try_block(
                            const an_ifc_syntax_function_definition &universal);
 
 template<>
+void set_ifc_assign(an_ifc_syntax_function_definition *universal,
+                    const an_ifc_source_location      &value);
+
+template<>
+void set_ifc_initializers(an_ifc_syntax_function_definition *universal,
+                          const an_ifc_syntax_index         &value);
+
+template<>
+void set_ifc_semicolon(an_ifc_syntax_function_definition *universal,
+                       const an_ifc_source_location      &value);
+
+template<>
+void set_ifc_stmts(an_ifc_syntax_function_definition *universal,
+                   const an_ifc_syntax_index         &value);
+
+template<>
+void set_ifc_synthesis(an_ifc_syntax_function_definition *universal,
+                       const an_ifc_keyword_syntax       &value);
+
+template<>
+void set_ifc_try_block(an_ifc_syntax_function_definition *universal,
+                       const an_ifc_syntax_index         &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_function_definition &universal,
                    const an_ifc_validation_trace           *parent);
 
@@ -22992,6 +29278,12 @@ get<an_ifc_syntax_function_definition_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_function_definition>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_function_try_block_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxFunctionTryBlock nodes.
@@ -23020,6 +29312,18 @@ an_ifc_syntax_index get_ifc_initializers(
                             const an_ifc_syntax_function_try_block &universal);
 
 template<>
+void set_ifc_body(an_ifc_syntax_function_try_block *universal,
+                  const an_ifc_syntax_index        &value);
+
+template<>
+void set_ifc_handlers(an_ifc_syntax_function_try_block *universal,
+                      const an_ifc_syntax_index        &value);
+
+template<>
+void set_ifc_initializers(an_ifc_syntax_function_try_block *universal,
+                          const an_ifc_syntax_index        &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_function_try_block &universal,
                    const an_ifc_validation_trace          *parent);
 
@@ -23040,6 +29344,12 @@ get<an_ifc_syntax_function_try_block_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_function_try_block>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_goto_statement_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxGotoStatement nodes.
@@ -23081,6 +29391,26 @@ an_ifc_text_offset get_ifc_target(
                                 const an_ifc_syntax_goto_statement &universal);
 
 template<>
+void set_ifc_label(an_ifc_syntax_goto_statement *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_goto_statement *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_pragma(an_ifc_syntax_goto_statement *universal,
+                    const an_ifc_sentence_index  &value);
+
+template<>
+void set_ifc_semicolon(an_ifc_syntax_goto_statement *universal,
+                       const an_ifc_source_location &value);
+
+template<>
+void set_ifc_target(an_ifc_syntax_goto_statement *universal,
+                    const an_ifc_text_offset     &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_goto_statement &universal,
                    const an_ifc_validation_trace      *parent);
 
@@ -23100,6 +29430,12 @@ get<an_ifc_syntax_goto_statement_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_goto_statement>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_handler_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxHandler nodes.
@@ -23144,6 +29480,30 @@ an_ifc_source_location get_ifc_right_paren(
                                        const an_ifc_syntax_handler &universal);
 
 template<>
+void set_ifc_body(an_ifc_syntax_handler     *universal,
+                  const an_ifc_syntax_index &value);
+
+template<>
+void set_ifc_catch(an_ifc_syntax_handler        *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_exception(an_ifc_syntax_handler     *universal,
+                       const an_ifc_syntax_index &value);
+
+template<>
+void set_ifc_left_paren(an_ifc_syntax_handler        *universal,
+                        const an_ifc_source_location &value);
+
+template<>
+void set_ifc_pragma(an_ifc_syntax_handler       *universal,
+                    const an_ifc_sentence_index &value);
+
+template<>
+void set_ifc_right_paren(an_ifc_syntax_handler        *universal,
+                         const an_ifc_source_location &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_handler   &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -23162,6 +29522,12 @@ an_ifc_syntax_handler_storage* get<an_ifc_syntax_handler_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_handler>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_handler_seq_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC SyntaxHandlerSeq nodes.
 */
@@ -23172,6 +29538,10 @@ a_boolean has_ifc_handlers(const an_ifc_syntax_handler_seq &universal);
 template<>
 an_ifc_syntax_index get_ifc_handlers(
                                    const an_ifc_syntax_handler_seq &universal);
+
+template<>
+void set_ifc_handlers(an_ifc_syntax_handler_seq *universal,
+                      const an_ifc_syntax_index &value);
 
 template<>
 a_boolean validate(const an_ifc_syntax_handler_seq &universal,
@@ -23192,6 +29562,12 @@ an_ifc_syntax_handler_seq_storage* get<an_ifc_syntax_handler_seq_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_handler_seq>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_if_statement_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxIfStatement nodes.
@@ -23252,6 +29628,38 @@ an_ifc_sentence_index get_ifc_pragma(
                                   const an_ifc_syntax_if_statement &universal);
 
 template<>
+void set_ifc_alternative(an_ifc_syntax_if_statement *universal,
+                         const an_ifc_syntax_index  &value);
+
+template<>
+void set_ifc_condition(an_ifc_syntax_if_statement *universal,
+                       const an_ifc_index         &value);
+
+template<>
+void set_ifc_consequence(an_ifc_syntax_if_statement *universal,
+                         const an_ifc_syntax_index  &value);
+
+template<>
+void set_ifc_constexpr(an_ifc_syntax_if_statement   *universal,
+                       const an_ifc_source_location &value);
+
+template<>
+void set_ifc_else(an_ifc_syntax_if_statement   *universal,
+                  const an_ifc_source_location &value);
+
+template<>
+void set_ifc_if(an_ifc_syntax_if_statement   *universal,
+                const an_ifc_source_location &value);
+
+template<>
+void set_ifc_initialization(an_ifc_syntax_if_statement *universal,
+                            const an_ifc_syntax_index  &value);
+
+template<>
+void set_ifc_pragma(an_ifc_syntax_if_statement  *universal,
+                    const an_ifc_sentence_index &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_if_statement &universal,
                    const an_ifc_validation_trace    *parent);
 
@@ -23270,6 +29678,12 @@ an_ifc_syntax_if_statement_storage* get<an_ifc_syntax_if_statement_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_if_statement>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_init_capture_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxInitCapture nodes.
@@ -23310,6 +29724,26 @@ template<>
 an_ifc_expr_index get_ifc_name(const an_ifc_syntax_init_capture &universal);
 
 template<>
+void set_ifc_ampersand(an_ifc_syntax_init_capture   *universal,
+                       const an_ifc_source_location &value);
+
+template<>
+void set_ifc_comma(an_ifc_syntax_init_capture   *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_expander(an_ifc_syntax_init_capture   *universal,
+                      const an_ifc_source_location &value);
+
+template<>
+void set_ifc_initializer(an_ifc_syntax_init_capture *universal,
+                         const an_ifc_expr_index    &value);
+
+template<>
+void set_ifc_name(an_ifc_syntax_init_capture *universal,
+                  const an_ifc_expr_index    &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_init_capture &universal,
                    const an_ifc_validation_trace    *parent);
 
@@ -23328,6 +29762,12 @@ an_ifc_syntax_init_capture_storage* get<an_ifc_syntax_init_capture_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_init_capture>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_init_declarator_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxInitDeclarator nodes.
@@ -23362,6 +29802,22 @@ an_ifc_expr_index get_ifc_initializer(
                                const an_ifc_syntax_init_declarator &universal);
 
 template<>
+void set_ifc_comma(an_ifc_syntax_init_declarator *universal,
+                   const an_ifc_source_location  &value);
+
+template<>
+void set_ifc_constraint(an_ifc_syntax_init_declarator *universal,
+                        const an_ifc_syntax_index     &value);
+
+template<>
+void set_ifc_declarator(an_ifc_syntax_init_declarator *universal,
+                        const an_ifc_syntax_index     &value);
+
+template<>
+void set_ifc_initializer(an_ifc_syntax_init_declarator *universal,
+                         const an_ifc_expr_index       &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_init_declarator &universal,
                    const an_ifc_validation_trace       *parent);
 
@@ -23382,6 +29838,12 @@ get<an_ifc_syntax_init_declarator_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_init_declarator>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_init_statement_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC SyntaxInitStatement nodes.
 */
@@ -23399,6 +29861,14 @@ a_boolean has_ifc_pragma(const an_ifc_syntax_init_statement &universal);
 template<>
 an_ifc_sentence_index get_ifc_pragma(
                                 const an_ifc_syntax_init_statement &universal);
+
+template<>
+void set_ifc_init(an_ifc_syntax_init_statement *universal,
+                  const an_ifc_syntax_index    &value);
+
+template<>
+void set_ifc_pragma(an_ifc_syntax_init_statement *universal,
+                    const an_ifc_sentence_index  &value);
 
 template<>
 a_boolean validate(const an_ifc_syntax_init_statement &universal,
@@ -23420,6 +29890,12 @@ get<an_ifc_syntax_init_statement_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_init_statement>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_labeled_statement_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxLabeledStatement nodes.
@@ -23461,6 +29937,26 @@ an_ifc_syntax_index get_ifc_stmt(
                              const an_ifc_syntax_labeled_statement &universal);
 
 template<>
+void set_ifc_label(an_ifc_syntax_labeled_statement *universal,
+                   const an_ifc_expr_index         &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_labeled_statement *universal,
+                   const an_ifc_keyword_sort       &value);
+
+template<>
+void set_ifc_pragma(an_ifc_syntax_labeled_statement *universal,
+                    const an_ifc_sentence_index     &value);
+
+template<>
+void set_ifc_sort(an_ifc_syntax_labeled_statement *universal,
+                  const an_ifc_label_sort         &value);
+
+template<>
+void set_ifc_stmt(an_ifc_syntax_labeled_statement *universal,
+                  const an_ifc_syntax_index       &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_labeled_statement &universal,
                    const an_ifc_validation_trace         *parent);
 
@@ -23481,6 +29977,12 @@ get<an_ifc_syntax_labeled_statement_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_labeled_statement>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_lambda_declarator_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxLambdaDeclarator nodes.
@@ -23538,6 +30040,34 @@ an_ifc_syntax_index get_ifc_trailing_target(
                              const an_ifc_syntax_lambda_declarator &universal);
 
 template<>
+void set_ifc_eh_spec(an_ifc_syntax_lambda_declarator *universal,
+                     const an_ifc_syntax_index       &value);
+
+template<>
+void set_ifc_expander(an_ifc_syntax_lambda_declarator *universal,
+                      const an_ifc_source_location    &value);
+
+template<>
+void set_ifc_left_paren(an_ifc_syntax_lambda_declarator *universal,
+                        const an_ifc_source_location    &value);
+
+template<>
+void set_ifc_modifier(an_ifc_syntax_lambda_declarator *universal,
+                      const an_ifc_keyword_sort       &value);
+
+template<>
+void set_ifc_parameters(an_ifc_syntax_lambda_declarator *universal,
+                        const an_ifc_syntax_index       &value);
+
+template<>
+void set_ifc_right_paren(an_ifc_syntax_lambda_declarator *universal,
+                         const an_ifc_source_location    &value);
+
+template<>
+void set_ifc_trailing_target(an_ifc_syntax_lambda_declarator *universal,
+                             const an_ifc_syntax_index       &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_lambda_declarator &universal,
                    const an_ifc_validation_trace         *parent);
 
@@ -23558,6 +30088,12 @@ get<an_ifc_syntax_lambda_declarator_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_lambda_declarator>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_lambda_introducer_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxLambdaIntroducer nodes.
@@ -23587,6 +30123,18 @@ an_ifc_source_location get_ifc_right_bracket(
                              const an_ifc_syntax_lambda_introducer &universal);
 
 template<>
+void set_ifc_captures(an_ifc_syntax_lambda_introducer *universal,
+                      const an_ifc_syntax_index       &value);
+
+template<>
+void set_ifc_left_bracket(an_ifc_syntax_lambda_introducer *universal,
+                          const an_ifc_source_location    &value);
+
+template<>
+void set_ifc_right_bracket(an_ifc_syntax_lambda_introducer *universal,
+                           const an_ifc_source_location    &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_lambda_introducer &universal,
                    const an_ifc_validation_trace         *parent);
 
@@ -23607,6 +30155,12 @@ get<an_ifc_syntax_lambda_introducer_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_lambda_introducer>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_mem_initializer_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxMemInitializer nodes.
@@ -23641,6 +30195,22 @@ an_ifc_expr_index get_ifc_member(
                                const an_ifc_syntax_mem_initializer &universal);
 
 template<>
+void set_ifc_comma(an_ifc_syntax_mem_initializer *universal,
+                   const an_ifc_source_location  &value);
+
+template<>
+void set_ifc_expander(an_ifc_syntax_mem_initializer *universal,
+                      const an_ifc_source_location  &value);
+
+template<>
+void set_ifc_initializer(an_ifc_syntax_mem_initializer *universal,
+                         const an_ifc_expr_index       &value);
+
+template<>
+void set_ifc_member(an_ifc_syntax_mem_initializer *universal,
+                    const an_ifc_expr_index       &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_mem_initializer &universal,
                    const an_ifc_validation_trace       *parent);
 
@@ -23660,6 +30230,12 @@ get<an_ifc_syntax_mem_initializer_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_mem_initializer>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_member_declaration_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxMemberDeclaration nodes.
@@ -23689,6 +30265,18 @@ an_ifc_source_location get_ifc_semicolon(
                             const an_ifc_syntax_member_declaration &universal);
 
 template<>
+void set_ifc_decl_specifiers(an_ifc_syntax_member_declaration *universal,
+                             const an_ifc_syntax_index        &value);
+
+template<>
+void set_ifc_declarations(an_ifc_syntax_member_declaration *universal,
+                          const an_ifc_syntax_index        &value);
+
+template<>
+void set_ifc_semicolon(an_ifc_syntax_member_declaration *universal,
+                       const an_ifc_source_location     &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_member_declaration &universal,
                    const an_ifc_validation_trace          *parent);
 
@@ -23709,6 +30297,12 @@ get<an_ifc_syntax_member_declaration_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_member_declaration>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_member_declarator_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxMemberDeclarator nodes.
@@ -23765,6 +30359,34 @@ an_ifc_source_location get_ifc_locus(
                              const an_ifc_syntax_member_declarator &universal);
 
 template<>
+void set_ifc_bitwidth(an_ifc_syntax_member_declarator *universal,
+                      const an_ifc_expr_index         &value);
+
+template<>
+void set_ifc_colon(an_ifc_syntax_member_declarator *universal,
+                   const an_ifc_source_location    &value);
+
+template<>
+void set_ifc_comma(an_ifc_syntax_member_declarator *universal,
+                   const an_ifc_source_location    &value);
+
+template<>
+void set_ifc_constraint(an_ifc_syntax_member_declarator *universal,
+                        const an_ifc_syntax_index       &value);
+
+template<>
+void set_ifc_declarator(an_ifc_syntax_member_declarator *universal,
+                        const an_ifc_syntax_index       &value);
+
+template<>
+void set_ifc_initializer(an_ifc_syntax_member_declarator *universal,
+                         const an_ifc_expr_index         &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_member_declarator *universal,
+                   const an_ifc_source_location    &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_member_declarator &universal,
                    const an_ifc_validation_trace         *parent);
 
@@ -23786,6 +30408,12 @@ template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_member_declarator>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_member_function_declaration_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC SyntaxMemberFunctionDeclaration nodes.
 */
@@ -23797,6 +30425,10 @@ a_boolean has_ifc_definition(
 template<>
 an_ifc_syntax_index get_ifc_definition(
                    const an_ifc_syntax_member_function_declaration &universal);
+
+template<>
+void set_ifc_definition(an_ifc_syntax_member_function_declaration *universal,
+                        const an_ifc_syntax_index                 &value);
 
 template<>
 a_boolean validate(const an_ifc_syntax_member_function_declaration &universal,
@@ -23822,6 +30454,12 @@ template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_member_function_declaration>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_member_specification_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC SyntaxMemberSpecification nodes.
 */
@@ -23833,6 +30471,11 @@ a_boolean has_ifc_member_declarations(
 template<>
 an_ifc_syntax_index get_ifc_member_declarations(
                           const an_ifc_syntax_member_specification &universal);
+
+template<>
+void set_ifc_member_declarations(
+                                an_ifc_syntax_member_specification *universal,
+                                const an_ifc_syntax_index          &value);
 
 template<>
 a_boolean validate(const an_ifc_syntax_member_specification &universal,
@@ -23855,6 +30498,12 @@ get<an_ifc_syntax_member_specification_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_member_specification>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_namespace_alias_definition_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxNamespaceAliasDefinition nodes.
@@ -23901,6 +30550,26 @@ an_ifc_expr_index get_ifc_target(
                     const an_ifc_syntax_namespace_alias_definition &universal);
 
 template<>
+void set_ifc_assign(an_ifc_syntax_namespace_alias_definition *universal,
+                    const an_ifc_source_location             &value);
+
+template<>
+void set_ifc_name(an_ifc_syntax_namespace_alias_definition *universal,
+                  const an_ifc_expr_index                  &value);
+
+template<>
+void set_ifc_namespace_kw(an_ifc_syntax_namespace_alias_definition *universal,
+                          const an_ifc_source_location             &value);
+
+template<>
+void set_ifc_semicolon(an_ifc_syntax_namespace_alias_definition *universal,
+                       const an_ifc_source_location             &value);
+
+template<>
+void set_ifc_target(an_ifc_syntax_namespace_alias_definition *universal,
+                    const an_ifc_expr_index                  &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_namespace_alias_definition &universal,
                    const an_ifc_validation_trace                  *parent);
 
@@ -23922,6 +30591,12 @@ template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_namespace_alias_definition>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_nested_requirement_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC SyntaxNestedRequirement nodes.
 */
@@ -23939,6 +30614,14 @@ a_boolean has_ifc_locus(const an_ifc_syntax_nested_requirement &universal);
 template<>
 an_ifc_source_location get_ifc_locus(
                             const an_ifc_syntax_nested_requirement &universal);
+
+template<>
+void set_ifc_condition(an_ifc_syntax_nested_requirement *universal,
+                       const an_ifc_expr_index          &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_nested_requirement *universal,
+                   const an_ifc_source_location     &value);
 
 template<>
 a_boolean validate(const an_ifc_syntax_nested_requirement &universal,
@@ -23962,6 +30645,12 @@ template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_nested_requirement>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_new_declarator_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC SyntaxNewDeclarator nodes.
 */
@@ -23972,6 +30661,10 @@ a_boolean has_ifc_declarator(const an_ifc_syntax_new_declarator &universal);
 template<>
 an_ifc_syntax_index get_ifc_declarator(
                                 const an_ifc_syntax_new_declarator &universal);
+
+template<>
+void set_ifc_declarator(an_ifc_syntax_new_declarator *universal,
+                        const an_ifc_syntax_index    &value);
 
 template<>
 a_boolean validate(const an_ifc_syntax_new_declarator &universal,
@@ -23993,6 +30686,12 @@ get<an_ifc_syntax_new_declarator_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_new_declarator>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_noexcept_specification_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxNoexceptSpecification nodes.
@@ -24029,6 +30728,22 @@ an_ifc_source_location get_ifc_right_paren(
                         const an_ifc_syntax_noexcept_specification &universal);
 
 template<>
+void set_ifc_expr(an_ifc_syntax_noexcept_specification *universal,
+                  const an_ifc_syntax_index            &value);
+
+template<>
+void set_ifc_left_paren(an_ifc_syntax_noexcept_specification *universal,
+                        const an_ifc_source_location         &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_noexcept_specification *universal,
+                   const an_ifc_source_location         &value);
+
+template<>
+void set_ifc_right_paren(an_ifc_syntax_noexcept_specification *universal,
+                         const an_ifc_source_location         &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_noexcept_specification &universal,
                    const an_ifc_validation_trace              *parent);
 
@@ -24049,6 +30764,12 @@ get<an_ifc_syntax_noexcept_specification_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_noexcept_specification>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_non_type_template_argument_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxNonTypeTemplateArgument nodes.
@@ -24079,6 +30800,18 @@ an_ifc_source_location get_ifc_ellipsis(
                     const an_ifc_syntax_non_type_template_argument &universal);
 
 template<>
+void set_ifc_argument(an_ifc_syntax_non_type_template_argument *universal,
+                      const an_ifc_expr_index                  &value);
+
+template<>
+void set_ifc_comma(an_ifc_syntax_non_type_template_argument *universal,
+                   const an_ifc_source_location             &value);
+
+template<>
+void set_ifc_ellipsis(an_ifc_syntax_non_type_template_argument *universal,
+                      const an_ifc_source_location             &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_non_type_template_argument &universal,
                    const an_ifc_validation_trace                  *parent);
 
@@ -24099,6 +30832,12 @@ get<an_ifc_syntax_non_type_template_argument_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_non_type_template_argument>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_parameter_declarator_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxParameterDeclarator nodes.
@@ -24143,6 +30882,26 @@ an_ifc_parameter_sort get_ifc_sort(
                           const an_ifc_syntax_parameter_declarator &universal);
 
 template<>
+void set_ifc_decl_specifiers(an_ifc_syntax_parameter_declarator *universal,
+                             const an_ifc_syntax_index          &value);
+
+template<>
+void set_ifc_declarator(an_ifc_syntax_parameter_declarator *universal,
+                        const an_ifc_syntax_index          &value);
+
+template<>
+void set_ifc_default_expr(an_ifc_syntax_parameter_declarator *universal,
+                          const an_ifc_expr_index            &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_parameter_declarator *universal,
+                   const an_ifc_source_location       &value);
+
+template<>
+void set_ifc_sort(an_ifc_syntax_parameter_declarator *universal,
+                  const an_ifc_parameter_sort        &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_parameter_declarator &universal,
                    const an_ifc_validation_trace            *parent);
 
@@ -24163,6 +30922,12 @@ get<an_ifc_syntax_parameter_declarator_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_parameter_declarator>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_placeholder_type_specifier_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxPlaceholderTypeSpecifier nodes.
@@ -24201,6 +30966,22 @@ an_ifc_source_location get_ifc_locus(
                     const an_ifc_syntax_placeholder_type_specifier &universal);
 
 template<>
+void set_ifc_basis(an_ifc_syntax_placeholder_type_specifier *universal,
+                   const an_ifc_type_basis_sort             &value);
+
+template<>
+void set_ifc_constraint(an_ifc_syntax_placeholder_type_specifier *universal,
+                        const an_ifc_expr_index                  &value);
+
+template<>
+void set_ifc_keyword(an_ifc_syntax_placeholder_type_specifier *universal,
+                     const an_ifc_source_location             &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_placeholder_type_specifier *universal,
+                   const an_ifc_source_location             &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_placeholder_type_specifier &universal,
                    const an_ifc_validation_trace                  *parent);
 
@@ -24221,6 +31002,12 @@ get<an_ifc_syntax_placeholder_type_specifier_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_placeholder_type_specifier>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_pointer_declarator_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxPointerDeclarator nodes.
@@ -24278,6 +31065,34 @@ an_ifc_syntax_index get_ifc_whole(
                             const an_ifc_syntax_pointer_declarator &universal);
 
 template<>
+void set_ifc_callable(an_ifc_syntax_pointer_declarator *universal,
+                      const an_ifc_bool                &value);
+
+template<>
+void set_ifc_convention(an_ifc_syntax_pointer_declarator     *universal,
+                        const an_ifc_calling_convention_sort &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_pointer_declarator *universal,
+                   const an_ifc_source_location     &value);
+
+template<>
+void set_ifc_next(an_ifc_syntax_pointer_declarator *universal,
+                  const an_ifc_syntax_index        &value);
+
+template<>
+void set_ifc_qualifiers(an_ifc_syntax_pointer_declarator *universal,
+                        const an_ifc_qualifier_bitfield  &value);
+
+template<>
+void set_ifc_sort(an_ifc_syntax_pointer_declarator     *universal,
+                  const an_ifc_pointer_declarator_sort &value);
+
+template<>
+void set_ifc_whole(an_ifc_syntax_pointer_declarator *universal,
+                   const an_ifc_syntax_index        &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_pointer_declarator &universal,
                    const an_ifc_validation_trace          *parent);
 
@@ -24298,6 +31113,12 @@ get<an_ifc_syntax_pointer_declarator_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_pointer_declarator>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_range_based_for_statement_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxRangeBasedForStatement nodes.
@@ -24376,6 +31197,42 @@ an_ifc_source_location get_ifc_right_paren(
                      const an_ifc_syntax_range_based_for_statement &universal);
 
 template<>
+void set_ifc_body(an_ifc_syntax_range_based_for_statement *universal,
+                  const an_ifc_syntax_index               &value);
+
+template<>
+void set_ifc_colon(an_ifc_syntax_range_based_for_statement *universal,
+                   const an_ifc_source_location            &value);
+
+template<>
+void set_ifc_decl(an_ifc_syntax_range_based_for_statement *universal,
+                  const an_ifc_syntax_index               &value);
+
+template<>
+void set_ifc_for(an_ifc_syntax_range_based_for_statement *universal,
+                 const an_ifc_source_location            &value);
+
+template<>
+void set_ifc_init(an_ifc_syntax_range_based_for_statement *universal,
+                  const an_ifc_syntax_index               &value);
+
+template<>
+void set_ifc_initializer(an_ifc_syntax_range_based_for_statement *universal,
+                         const an_ifc_syntax_index               &value);
+
+template<>
+void set_ifc_left_paren(an_ifc_syntax_range_based_for_statement *universal,
+                        const an_ifc_source_location            &value);
+
+template<>
+void set_ifc_pragma(an_ifc_syntax_range_based_for_statement *universal,
+                    const an_ifc_sentence_index             &value);
+
+template<>
+void set_ifc_right_paren(an_ifc_syntax_range_based_for_statement *universal,
+                         const an_ifc_source_location            &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_range_based_for_statement &universal,
                    const an_ifc_validation_trace                 *parent);
 
@@ -24396,6 +31253,12 @@ get<an_ifc_syntax_range_based_for_statement_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_range_based_for_statement>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_requirement_body_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxRequirementBody nodes.
@@ -24424,6 +31287,18 @@ an_ifc_source_location get_ifc_right_curly(
                               const an_ifc_syntax_requirement_body &universal);
 
 template<>
+void set_ifc_locus(an_ifc_syntax_requirement_body *universal,
+                   const an_ifc_source_location   &value);
+
+template<>
+void set_ifc_requirements(an_ifc_syntax_requirement_body *universal,
+                          const an_ifc_syntax_index      &value);
+
+template<>
+void set_ifc_right_curly(an_ifc_syntax_requirement_body *universal,
+                         const an_ifc_source_location   &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_requirement_body &universal,
                    const an_ifc_validation_trace        *parent);
 
@@ -24444,6 +31319,12 @@ get<an_ifc_syntax_requirement_body_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_requirement_body>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_requires_clause_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC SyntaxRequiresClause nodes.
 */
@@ -24461,6 +31342,14 @@ a_boolean has_ifc_locus(const an_ifc_syntax_requires_clause &universal);
 template<>
 an_ifc_source_location get_ifc_locus(
                                const an_ifc_syntax_requires_clause &universal);
+
+template<>
+void set_ifc_condition(an_ifc_syntax_requires_clause *universal,
+                       const an_ifc_expr_index       &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_requires_clause *universal,
+                   const an_ifc_source_location  &value);
 
 template<>
 a_boolean validate(const an_ifc_syntax_requires_clause &universal,
@@ -24482,6 +31371,12 @@ get<an_ifc_syntax_requires_clause_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_requires_clause>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_return_statement_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxReturnStatement nodes.
@@ -24523,6 +31418,26 @@ an_ifc_return_sort get_ifc_sort(
                               const an_ifc_syntax_return_statement &universal);
 
 template<>
+void set_ifc_expr(an_ifc_syntax_return_statement *universal,
+                  const an_ifc_expr_index        &value);
+
+template<>
+void set_ifc_pragma(an_ifc_syntax_return_statement *universal,
+                    const an_ifc_sentence_index    &value);
+
+template<>
+void set_ifc_return(an_ifc_syntax_return_statement *universal,
+                    const an_ifc_source_location   &value);
+
+template<>
+void set_ifc_semicolon(an_ifc_syntax_return_statement *universal,
+                       const an_ifc_source_location   &value);
+
+template<>
+void set_ifc_sort(an_ifc_syntax_return_statement *universal,
+                  const an_ifc_return_sort       &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_return_statement &universal,
                    const an_ifc_validation_trace        *parent);
 
@@ -24542,6 +31457,12 @@ get<an_ifc_syntax_return_statement_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_return_statement>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_seh_except_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxSEHExcept nodes.
@@ -24581,6 +31502,26 @@ an_ifc_source_location get_ifc_right_paren(
                                     const an_ifc_syntax_seh_except &universal);
 
 template<>
+void set_ifc_body(an_ifc_syntax_seh_except  *universal,
+                  const an_ifc_syntax_index &value);
+
+template<>
+void set_ifc_condition(an_ifc_syntax_seh_except *universal,
+                       const an_ifc_expr_index  &value);
+
+template<>
+void set_ifc_except_kw(an_ifc_syntax_seh_except     *universal,
+                       const an_ifc_source_location &value);
+
+template<>
+void set_ifc_left_paren(an_ifc_syntax_seh_except     *universal,
+                        const an_ifc_source_location &value);
+
+template<>
+void set_ifc_right_paren(an_ifc_syntax_seh_except     *universal,
+                         const an_ifc_source_location &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_seh_except &universal,
                    const an_ifc_validation_trace  *parent);
 
@@ -24600,6 +31541,12 @@ an_ifc_syntax_seh_except_storage* get<an_ifc_syntax_seh_except_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_seh_except>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_seh_finally_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC SyntaxSEHFinally nodes.
 */
@@ -24616,6 +31563,14 @@ a_boolean has_ifc_finally_kw(const an_ifc_syntax_seh_finally &universal);
 template<>
 an_ifc_source_location get_ifc_finally_kw(
                                    const an_ifc_syntax_seh_finally &universal);
+
+template<>
+void set_ifc_body(an_ifc_syntax_seh_finally *universal,
+                  const an_ifc_syntax_index &value);
+
+template<>
+void set_ifc_finally_kw(an_ifc_syntax_seh_finally    *universal,
+                        const an_ifc_source_location &value);
 
 template<>
 a_boolean validate(const an_ifc_syntax_seh_finally &universal,
@@ -24637,6 +31592,12 @@ an_ifc_syntax_seh_finally_storage* get<an_ifc_syntax_seh_finally_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_seh_finally>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_seh_leave_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC SyntaxSEHLeave nodes.
 */
@@ -24656,6 +31617,14 @@ an_ifc_source_location get_ifc_semicolon(
                                      const an_ifc_syntax_seh_leave &universal);
 
 template<>
+void set_ifc_leave_kw(an_ifc_syntax_seh_leave      *universal,
+                      const an_ifc_source_location &value);
+
+template<>
+void set_ifc_semicolon(an_ifc_syntax_seh_leave      *universal,
+                       const an_ifc_source_location &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_seh_leave &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -24673,6 +31642,12 @@ an_ifc_syntax_seh_leave_storage* get<an_ifc_syntax_seh_leave_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_seh_leave>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_seh_try_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxSEHTry nodes.
@@ -24697,6 +31672,18 @@ template<>
 an_ifc_source_location get_ifc_try_kw(const an_ifc_syntax_seh_try &universal);
 
 template<>
+void set_ifc_body(an_ifc_syntax_seh_try     *universal,
+                  const an_ifc_syntax_index &value);
+
+template<>
+void set_ifc_handler(an_ifc_syntax_seh_try     *universal,
+                     const an_ifc_syntax_index &value);
+
+template<>
+void set_ifc_try_kw(an_ifc_syntax_seh_try        *universal,
+                    const an_ifc_source_location &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_seh_try   &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -24714,6 +31701,12 @@ an_ifc_syntax_seh_try_storage* get<an_ifc_syntax_seh_try_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_seh_try>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_simple_capture_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxSimpleCapture nodes.
@@ -24747,6 +31740,22 @@ template<>
 an_ifc_expr_index get_ifc_name(const an_ifc_syntax_simple_capture &universal);
 
 template<>
+void set_ifc_ampersand(an_ifc_syntax_simple_capture *universal,
+                       const an_ifc_source_location &value);
+
+template<>
+void set_ifc_comma(an_ifc_syntax_simple_capture *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_expander(an_ifc_syntax_simple_capture *universal,
+                      const an_ifc_source_location &value);
+
+template<>
+void set_ifc_name(an_ifc_syntax_simple_capture *universal,
+                  const an_ifc_expr_index      &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_simple_capture &universal,
                    const an_ifc_validation_trace      *parent);
 
@@ -24766,6 +31775,12 @@ get<an_ifc_syntax_simple_capture_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_simple_capture>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_simple_declaration_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxSimpleDeclaration nodes.
@@ -24802,6 +31817,22 @@ an_ifc_source_location get_ifc_semicolon(
                             const an_ifc_syntax_simple_declaration &universal);
 
 template<>
+void set_ifc_decl_specifiers(an_ifc_syntax_simple_declaration *universal,
+                             const an_ifc_syntax_index        &value);
+
+template<>
+void set_ifc_declarators(an_ifc_syntax_simple_declaration *universal,
+                         const an_ifc_syntax_index        &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_simple_declaration *universal,
+                   const an_ifc_source_location     &value);
+
+template<>
+void set_ifc_semicolon(an_ifc_syntax_simple_declaration *universal,
+                       const an_ifc_source_location     &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_simple_declaration &universal,
                    const an_ifc_validation_trace          *parent);
 
@@ -24823,6 +31854,12 @@ template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_simple_declaration>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_simple_requirement_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC SyntaxSimpleRequirement nodes.
 */
@@ -24840,6 +31877,14 @@ a_boolean has_ifc_locus(const an_ifc_syntax_simple_requirement &universal);
 template<>
 an_ifc_source_location get_ifc_locus(
                             const an_ifc_syntax_simple_requirement &universal);
+
+template<>
+void set_ifc_condition(an_ifc_syntax_simple_requirement *universal,
+                       const an_ifc_expr_index          &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_simple_requirement *universal,
+                   const an_ifc_source_location     &value);
 
 template<>
 a_boolean validate(const an_ifc_syntax_simple_requirement &universal,
@@ -24862,6 +31907,12 @@ get<an_ifc_syntax_simple_requirement_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_simple_requirement>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_simple_type_specifier_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxSimpleTypeSpecifier nodes.
@@ -24889,6 +31940,18 @@ an_ifc_type_index get_ifc_type(
                          const an_ifc_syntax_simple_type_specifier &universal);
 
 template<>
+void set_ifc_expr(an_ifc_syntax_simple_type_specifier *universal,
+                  const an_ifc_expr_index             &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_simple_type_specifier *universal,
+                   const an_ifc_source_location        &value);
+
+template<>
+void set_ifc_type(an_ifc_syntax_simple_type_specifier *universal,
+                  const an_ifc_type_index             &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_simple_type_specifier &universal,
                    const an_ifc_validation_trace             *parent);
 
@@ -24910,6 +31973,12 @@ template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_simple_type_specifier>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_statement_seq_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC SyntaxStatementSeq nodes.
 */
@@ -24920,6 +31989,10 @@ a_boolean has_ifc_stmts(const an_ifc_syntax_statement_seq &universal);
 template<>
 an_ifc_syntax_index get_ifc_stmts(
                                  const an_ifc_syntax_statement_seq &universal);
+
+template<>
+void set_ifc_stmts(an_ifc_syntax_statement_seq *universal,
+                   const an_ifc_syntax_index   &value);
 
 template<>
 a_boolean validate(const an_ifc_syntax_statement_seq &universal,
@@ -24940,6 +32013,12 @@ an_ifc_syntax_statement_seq_storage* get<an_ifc_syntax_statement_seq_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_statement_seq>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_static_assert_declaration_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxStaticAssertDeclaration nodes.
@@ -25002,6 +32081,34 @@ an_ifc_source_location get_ifc_semicolon(
                      const an_ifc_syntax_static_assert_declaration &universal);
 
 template<>
+void set_ifc_comma(an_ifc_syntax_static_assert_declaration *universal,
+                   const an_ifc_source_location            &value);
+
+template<>
+void set_ifc_condition(an_ifc_syntax_static_assert_declaration *universal,
+                       const an_ifc_expr_index                 &value);
+
+template<>
+void set_ifc_left_paren(an_ifc_syntax_static_assert_declaration *universal,
+                        const an_ifc_source_location            &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_static_assert_declaration *universal,
+                   const an_ifc_source_location            &value);
+
+template<>
+void set_ifc_message(an_ifc_syntax_static_assert_declaration *universal,
+                     const an_ifc_expr_index                 &value);
+
+template<>
+void set_ifc_right_paren(an_ifc_syntax_static_assert_declaration *universal,
+                         const an_ifc_source_location            &value);
+
+template<>
+void set_ifc_semicolon(an_ifc_syntax_static_assert_declaration *universal,
+                       const an_ifc_source_location            &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_static_assert_declaration &universal,
                    const an_ifc_validation_trace                 *parent);
 
@@ -25022,6 +32129,13 @@ get<an_ifc_syntax_static_assert_declaration_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_static_assert_declaration>();
+
+
+
+template<>
+size_t
+get_ifc_buffer_size<an_ifc_syntax_structured_binding_declaration_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxStructuredBindingDeclaration nodes.
@@ -25068,6 +32182,28 @@ an_ifc_syntax_index get_ifc_specifiers(
                 const an_ifc_syntax_structured_binding_declaration &universal);
 
 template<>
+void set_ifc_initializer(
+                      an_ifc_syntax_structured_binding_declaration *universal,
+                      const an_ifc_expr_index                      &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_structured_binding_declaration *universal,
+                   const an_ifc_source_location                 &value);
+
+template<>
+void set_ifc_names(an_ifc_syntax_structured_binding_declaration *universal,
+                   const an_ifc_syntax_index                    &value);
+
+template<>
+void set_ifc_ref(an_ifc_syntax_structured_binding_declaration *universal,
+                 const an_ifc_source_location                 &value);
+
+template<>
+void set_ifc_specifiers(
+                      an_ifc_syntax_structured_binding_declaration *universal,
+                      const an_ifc_syntax_index                    &value);
+
+template<>
 a_boolean validate(
                 const an_ifc_syntax_structured_binding_declaration &universal,
                 const an_ifc_validation_trace                      *parent);
@@ -25092,6 +32228,13 @@ template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_structured_binding_declaration>();
 
+
+
+template<>
+size_t
+get_ifc_buffer_size<an_ifc_syntax_structured_binding_identifier_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC SyntaxStructuredBindingIdentifier nodes.
 */
@@ -25111,6 +32254,14 @@ a_boolean has_ifc_name(
 template<>
 an_ifc_expr_index get_ifc_name(
                  const an_ifc_syntax_structured_binding_identifier &universal);
+
+template<>
+void set_ifc_comma(an_ifc_syntax_structured_binding_identifier *universal,
+                   const an_ifc_source_location                &value);
+
+template<>
+void set_ifc_name(an_ifc_syntax_structured_binding_identifier *universal,
+                  const an_ifc_expr_index                     &value);
 
 template<>
 a_boolean validate(
@@ -25137,6 +32288,12 @@ template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_structured_binding_identifier>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_super_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC SyntaxSuper nodes.
 */
@@ -25146,6 +32303,10 @@ a_boolean has_ifc_locus(const an_ifc_syntax_super &universal);
 
 template<>
 an_ifc_source_location get_ifc_locus(const an_ifc_syntax_super &universal);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_super          *universal,
+                   const an_ifc_source_location &value);
 
 template<>
 a_boolean validate(const an_ifc_syntax_super     &universal,
@@ -25165,6 +32326,12 @@ an_ifc_syntax_super_storage* get<an_ifc_syntax_super_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_super>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_switch_statement_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxSwitchStatement nodes.
@@ -25206,6 +32373,26 @@ an_ifc_source_location get_ifc_switch(
                               const an_ifc_syntax_switch_statement &universal);
 
 template<>
+void set_ifc_body(an_ifc_syntax_switch_statement *universal,
+                  const an_ifc_syntax_index      &value);
+
+template<>
+void set_ifc_condition(an_ifc_syntax_switch_statement *universal,
+                       const an_ifc_syntax_index      &value);
+
+template<>
+void set_ifc_init(an_ifc_syntax_switch_statement *universal,
+                  const an_ifc_syntax_index      &value);
+
+template<>
+void set_ifc_pragma(an_ifc_syntax_switch_statement *universal,
+                    const an_ifc_sentence_index    &value);
+
+template<>
+void set_ifc_switch(an_ifc_syntax_switch_statement *universal,
+                    const an_ifc_source_location   &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_switch_statement &universal,
                    const an_ifc_validation_trace        *parent);
 
@@ -25225,6 +32412,12 @@ get<an_ifc_syntax_switch_statement_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_switch_statement>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_template_argument_list_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxTemplateArgumentList nodes.
@@ -25255,6 +32448,18 @@ an_ifc_source_location get_ifc_right_angle(
                         const an_ifc_syntax_template_argument_list &universal);
 
 template<>
+void set_ifc_arguments(an_ifc_syntax_template_argument_list *universal,
+                       const an_ifc_syntax_index            &value);
+
+template<>
+void set_ifc_left_angle(an_ifc_syntax_template_argument_list *universal,
+                        const an_ifc_source_location         &value);
+
+template<>
+void set_ifc_right_angle(an_ifc_syntax_template_argument_list *universal,
+                         const an_ifc_source_location         &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_template_argument_list &universal,
                    const an_ifc_validation_trace              *parent);
 
@@ -25275,6 +32480,12 @@ get<an_ifc_syntax_template_argument_list_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_template_argument_list>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_template_declaration_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxTemplateDeclaration nodes.
@@ -25303,6 +32514,18 @@ an_ifc_syntax_index get_ifc_subject(
                           const an_ifc_syntax_template_declaration &universal);
 
 template<>
+void set_ifc_locus(an_ifc_syntax_template_declaration *universal,
+                   const an_ifc_source_location       &value);
+
+template<>
+void set_ifc_parameters(an_ifc_syntax_template_declaration *universal,
+                        const an_ifc_syntax_index          &value);
+
+template<>
+void set_ifc_subject(an_ifc_syntax_template_declaration *universal,
+                     const an_ifc_syntax_index          &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_template_declaration &universal,
                    const an_ifc_validation_trace            *parent);
 
@@ -25323,6 +32546,12 @@ get<an_ifc_syntax_template_declaration_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_template_declaration>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_template_id_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxTemplateId nodes.
@@ -25362,6 +32591,26 @@ an_ifc_source_location get_ifc_template_kw(
                                    const an_ifc_syntax_template_id &universal);
 
 template<>
+void set_ifc_arguments(an_ifc_syntax_template_id *universal,
+                       const an_ifc_syntax_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_template_id    *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_name(an_ifc_syntax_template_id *universal,
+                  const an_ifc_syntax_index &value);
+
+template<>
+void set_ifc_symbol(an_ifc_syntax_template_id *universal,
+                    const an_ifc_expr_index   &value);
+
+template<>
+void set_ifc_template_kw(an_ifc_syntax_template_id    *universal,
+                         const an_ifc_source_location &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_template_id &universal,
                    const an_ifc_validation_trace   *parent);
 
@@ -25380,6 +32629,12 @@ an_ifc_syntax_template_id_storage* get<an_ifc_syntax_template_id_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_template_id>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_template_parameter_list_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxTemplateParameterList nodes.
@@ -25418,6 +32673,22 @@ an_ifc_source_location get_ifc_right_angle(
                        const an_ifc_syntax_template_parameter_list &universal);
 
 template<>
+void set_ifc_clause(an_ifc_syntax_template_parameter_list *universal,
+                    const an_ifc_syntax_index             &value);
+
+template<>
+void set_ifc_left_angle(an_ifc_syntax_template_parameter_list *universal,
+                        const an_ifc_source_location          &value);
+
+template<>
+void set_ifc_parameters(an_ifc_syntax_template_parameter_list *universal,
+                        const an_ifc_syntax_index             &value);
+
+template<>
+void set_ifc_right_angle(an_ifc_syntax_template_parameter_list *universal,
+                         const an_ifc_source_location          &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_template_parameter_list &universal,
                    const an_ifc_validation_trace               *parent);
 
@@ -25438,6 +32709,12 @@ get<an_ifc_syntax_template_parameter_list_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_template_parameter_list>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_template_template_parameter_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxTemplateTemplateParameter nodes.
@@ -25500,6 +32777,34 @@ an_ifc_syntax_index get_ifc_parameters(
                    const an_ifc_syntax_template_template_parameter &universal);
 
 template<>
+void set_ifc_argument(an_ifc_syntax_template_template_parameter *universal,
+                      const an_ifc_syntax_index                 &value);
+
+template<>
+void set_ifc_comma(an_ifc_syntax_template_template_parameter *universal,
+                   const an_ifc_source_location              &value);
+
+template<>
+void set_ifc_ellipsis(an_ifc_syntax_template_template_parameter *universal,
+                      const an_ifc_source_location              &value);
+
+template<>
+void set_ifc_key(an_ifc_syntax_template_template_parameter *universal,
+                 const an_ifc_keyword_syntax               &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_template_template_parameter *universal,
+                   const an_ifc_source_location              &value);
+
+template<>
+void set_ifc_name(an_ifc_syntax_template_template_parameter *universal,
+                  const an_ifc_text_offset                  &value);
+
+template<>
+void set_ifc_parameters(an_ifc_syntax_template_template_parameter *universal,
+                        const an_ifc_syntax_index                 &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_template_template_parameter &universal,
                    const an_ifc_validation_trace                   *parent);
 
@@ -25522,6 +32827,12 @@ get<an_ifc_syntax_template_template_parameter_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_template_template_parameter>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_this_capture_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxThisCapture nodes.
@@ -25549,6 +32860,18 @@ an_ifc_source_location get_ifc_locus(
                                   const an_ifc_syntax_this_capture &universal);
 
 template<>
+void set_ifc_asterisk(an_ifc_syntax_this_capture   *universal,
+                      const an_ifc_source_location &value);
+
+template<>
+void set_ifc_comma(an_ifc_syntax_this_capture   *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_this_capture   *universal,
+                   const an_ifc_source_location &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_this_capture &universal,
                    const an_ifc_validation_trace    *parent);
 
@@ -25568,6 +32891,12 @@ an_ifc_syntax_this_capture_storage* get<an_ifc_syntax_this_capture_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_this_capture>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_trailing_return_type_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC SyntaxTrailingReturnType nodes.
 */
@@ -25585,6 +32914,14 @@ a_boolean has_ifc_target(const an_ifc_syntax_trailing_return_type &universal);
 template<>
 an_ifc_syntax_index get_ifc_target(
                           const an_ifc_syntax_trailing_return_type &universal);
+
+template<>
+void set_ifc_arrow(an_ifc_syntax_trailing_return_type *universal,
+                   const an_ifc_source_location       &value);
+
+template<>
+void set_ifc_target(an_ifc_syntax_trailing_return_type *universal,
+                    const an_ifc_syntax_index          &value);
 
 template<>
 a_boolean validate(const an_ifc_syntax_trailing_return_type &universal,
@@ -25607,6 +32944,12 @@ get<an_ifc_syntax_trailing_return_type_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_trailing_return_type>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_try_block_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxTryBlock nodes.
@@ -25637,6 +32980,22 @@ template<>
 an_ifc_source_location get_ifc_try(const an_ifc_syntax_try_block &universal);
 
 template<>
+void set_ifc_body(an_ifc_syntax_try_block   *universal,
+                  const an_ifc_syntax_index &value);
+
+template<>
+void set_ifc_handlers(an_ifc_syntax_try_block   *universal,
+                      const an_ifc_syntax_index &value);
+
+template<>
+void set_ifc_pragma(an_ifc_syntax_try_block     *universal,
+                    const an_ifc_sentence_index &value);
+
+template<>
+void set_ifc_try(an_ifc_syntax_try_block      *universal,
+                 const an_ifc_source_location &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_try_block &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -25655,6 +33014,12 @@ an_ifc_syntax_try_block_storage* get<an_ifc_syntax_try_block_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_try_block>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_tuple_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC SyntaxTuple nodes.
 */
@@ -25670,6 +33035,13 @@ a_boolean has_ifc_start(const an_ifc_syntax_tuple &universal);
 
 template<>
 an_ifc_index get_ifc_start(const an_ifc_syntax_tuple &universal);
+
+template<>
+void set_ifc_cardinality(an_ifc_syntax_tuple      *universal,
+                         const an_ifc_cardinality &value);
+
+template<>
+void set_ifc_start(an_ifc_syntax_tuple *universal, const an_ifc_index &value);
 
 template<>
 a_boolean validate(const an_ifc_syntax_tuple     &universal,
@@ -25689,6 +33061,12 @@ an_ifc_syntax_tuple_storage* get<an_ifc_syntax_tuple_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_tuple>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_type_id_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxTypeId nodes.
@@ -25715,6 +33093,18 @@ an_ifc_syntax_index get_ifc_type_specifier(
                                        const an_ifc_syntax_type_id &universal);
 
 template<>
+void set_ifc_abstract_declarator(an_ifc_syntax_type_id     *universal,
+                                 const an_ifc_syntax_index &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_type_id        *universal,
+                   const an_ifc_source_location &value);
+
+template<>
+void set_ifc_type_specifier(an_ifc_syntax_type_id     *universal,
+                            const an_ifc_syntax_index &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_type_id   &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -25732,6 +33122,12 @@ an_ifc_syntax_type_id_storage* get<an_ifc_syntax_type_id_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_type_id>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_type_id_list_element_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxTypeIdListElement nodes.
@@ -25751,6 +33147,14 @@ a_boolean has_ifc_type_id(const an_ifc_syntax_type_id_list_element &universal);
 template<>
 an_ifc_syntax_index get_ifc_type_id(
                           const an_ifc_syntax_type_id_list_element &universal);
+
+template<>
+void set_ifc_ellipsis(an_ifc_syntax_type_id_list_element *universal,
+                      const an_ifc_source_location       &value);
+
+template<>
+void set_ifc_type_id(an_ifc_syntax_type_id_list_element *universal,
+                     const an_ifc_syntax_index          &value);
 
 template<>
 a_boolean validate(const an_ifc_syntax_type_id_list_element &universal,
@@ -25774,6 +33178,12 @@ template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_type_id_list_element>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_type_requirement_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC SyntaxTypeRequirement nodes.
 */
@@ -25791,6 +33201,14 @@ a_boolean has_ifc_type(const an_ifc_syntax_type_requirement &universal);
 template<>
 an_ifc_expr_index get_ifc_type(
                               const an_ifc_syntax_type_requirement &universal);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_type_requirement *universal,
+                   const an_ifc_source_location   &value);
+
+template<>
+void set_ifc_type(an_ifc_syntax_type_requirement *universal,
+                  const an_ifc_expr_index        &value);
 
 template<>
 a_boolean validate(const an_ifc_syntax_type_requirement &universal,
@@ -25812,6 +33230,12 @@ get<an_ifc_syntax_type_requirement_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_type_requirement>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_type_specifier_seq_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxTypeSpecifierSeq nodes.
@@ -25854,6 +33278,26 @@ an_ifc_bool get_ifc_unhashed(
                             const an_ifc_syntax_type_specifier_seq &universal);
 
 template<>
+void set_ifc_locus(an_ifc_syntax_type_specifier_seq *universal,
+                   const an_ifc_source_location     &value);
+
+template<>
+void set_ifc_qualifiers(an_ifc_syntax_type_specifier_seq *universal,
+                        const an_ifc_qualifier_bitfield  &value);
+
+template<>
+void set_ifc_type(an_ifc_syntax_type_specifier_seq *universal,
+                  const an_ifc_type_index          &value);
+
+template<>
+void set_ifc_type_name(an_ifc_syntax_type_specifier_seq *universal,
+                       const an_ifc_syntax_index        &value);
+
+template<>
+void set_ifc_unhashed(an_ifc_syntax_type_specifier_seq *universal,
+                      const an_ifc_bool                &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_type_specifier_seq &universal,
                    const an_ifc_validation_trace          *parent);
 
@@ -25874,6 +33318,12 @@ get<an_ifc_syntax_type_specifier_seq_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_type_specifier_seq>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_type_template_argument_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxTypeTemplateArgument nodes.
@@ -25903,6 +33353,18 @@ an_ifc_source_location get_ifc_ellipsis(
                         const an_ifc_syntax_type_template_argument &universal);
 
 template<>
+void set_ifc_argument(an_ifc_syntax_type_template_argument *universal,
+                      const an_ifc_syntax_index            &value);
+
+template<>
+void set_ifc_comma(an_ifc_syntax_type_template_argument *universal,
+                   const an_ifc_source_location         &value);
+
+template<>
+void set_ifc_ellipsis(an_ifc_syntax_type_template_argument *universal,
+                      const an_ifc_source_location         &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_type_template_argument &universal,
                    const an_ifc_validation_trace              *parent);
 
@@ -25923,6 +33385,12 @@ get<an_ifc_syntax_type_template_argument_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_type_template_argument>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_type_template_parameter_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxTypeTemplateParameter nodes.
@@ -25968,6 +33436,26 @@ an_ifc_text_offset get_ifc_name(
                        const an_ifc_syntax_type_template_parameter &universal);
 
 template<>
+void set_ifc_argument(an_ifc_syntax_type_template_parameter *universal,
+                      const an_ifc_syntax_index             &value);
+
+template<>
+void set_ifc_constraint(an_ifc_syntax_type_template_parameter *universal,
+                        const an_ifc_syntax_index             &value);
+
+template<>
+void set_ifc_ellipsis(an_ifc_syntax_type_template_parameter *universal,
+                      const an_ifc_source_location          &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_type_template_parameter *universal,
+                   const an_ifc_source_location          &value);
+
+template<>
+void set_ifc_name(an_ifc_syntax_type_template_parameter *universal,
+                  const an_ifc_text_offset              &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_type_template_parameter &universal,
                    const an_ifc_validation_trace               *parent);
 
@@ -25988,6 +33476,12 @@ get<an_ifc_syntax_type_template_parameter_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_type_template_parameter>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_type_trait_intrinsic_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxTypeTraitIntrinsic nodes.
@@ -26017,6 +33511,18 @@ an_ifc_source_location get_ifc_locus(
                           const an_ifc_syntax_type_trait_intrinsic &universal);
 
 template<>
+void set_ifc_arguments(an_ifc_syntax_type_trait_intrinsic *universal,
+                       const an_ifc_syntax_index          &value);
+
+template<>
+void set_ifc_intrinsic(an_ifc_syntax_type_trait_intrinsic *universal,
+                       const an_ifc_operator_category     &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_type_trait_intrinsic *universal,
+                   const an_ifc_source_location       &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_type_trait_intrinsic &universal,
                    const an_ifc_validation_trace            *parent);
 
@@ -26037,6 +33543,12 @@ get<an_ifc_syntax_type_trait_intrinsic_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_type_trait_intrinsic>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_unary_fold_expression_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxUnaryFoldExpression nodes.
@@ -26097,6 +33609,34 @@ an_ifc_source_location get_ifc_right_paren(
                          const an_ifc_syntax_unary_fold_expression &universal);
 
 template<>
+void set_ifc_direction(an_ifc_syntax_unary_fold_expression *universal,
+                       const an_ifc_fold_direction_sort    &value);
+
+template<>
+void set_ifc_dyad(an_ifc_syntax_unary_fold_expression *universal,
+                  const an_ifc_dyadic_operator_sort   &value);
+
+template<>
+void set_ifc_ellipsis(an_ifc_syntax_unary_fold_expression *universal,
+                      const an_ifc_source_location        &value);
+
+template<>
+void set_ifc_glyph_locus(an_ifc_syntax_unary_fold_expression *universal,
+                         const an_ifc_source_location        &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_unary_fold_expression *universal,
+                   const an_ifc_source_location        &value);
+
+template<>
+void set_ifc_operand(an_ifc_syntax_unary_fold_expression *universal,
+                     const an_ifc_expr_index             &value);
+
+template<>
+void set_ifc_right_paren(an_ifc_syntax_unary_fold_expression *universal,
+                         const an_ifc_source_location        &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_unary_fold_expression &universal,
                    const an_ifc_validation_trace             *parent);
 
@@ -26117,6 +33657,12 @@ get<an_ifc_syntax_unary_fold_expression_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_unary_fold_expression>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_using_declaration_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxUsingDeclaration nodes.
@@ -26145,6 +33691,18 @@ an_ifc_source_location get_ifc_semicolon(
                              const an_ifc_syntax_using_declaration &universal);
 
 template<>
+void set_ifc_declarators(an_ifc_syntax_using_declaration *universal,
+                         const an_ifc_syntax_index       &value);
+
+template<>
+void set_ifc_keyword(an_ifc_syntax_using_declaration *universal,
+                     const an_ifc_source_location    &value);
+
+template<>
+void set_ifc_semicolon(an_ifc_syntax_using_declaration *universal,
+                       const an_ifc_source_location    &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_using_declaration &universal,
                    const an_ifc_validation_trace         *parent);
 
@@ -26165,6 +33723,12 @@ get<an_ifc_syntax_using_declaration_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_using_declaration>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_using_declarator_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxUsingDeclarator nodes.
@@ -26200,6 +33764,22 @@ an_ifc_source_location get_ifc_typename_kw(
                               const an_ifc_syntax_using_declarator &universal);
 
 template<>
+void set_ifc_comma(an_ifc_syntax_using_declarator *universal,
+                   const an_ifc_source_location   &value);
+
+template<>
+void set_ifc_expander(an_ifc_syntax_using_declarator *universal,
+                      const an_ifc_source_location   &value);
+
+template<>
+void set_ifc_qualified_name(an_ifc_syntax_using_declarator *universal,
+                            const an_ifc_expr_index        &value);
+
+template<>
+void set_ifc_typename_kw(an_ifc_syntax_using_declarator *universal,
+                         const an_ifc_source_location   &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_using_declarator &universal,
                    const an_ifc_validation_trace        *parent);
 
@@ -26219,6 +33799,12 @@ get<an_ifc_syntax_using_declarator_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_using_declarator>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_using_directive_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxUsingDirective nodes.
@@ -26254,6 +33840,22 @@ an_ifc_source_location get_ifc_using_kw(
                                const an_ifc_syntax_using_directive &universal);
 
 template<>
+void set_ifc_namespace_kw(an_ifc_syntax_using_directive *universal,
+                          const an_ifc_source_location  &value);
+
+template<>
+void set_ifc_qualified_name(an_ifc_syntax_using_directive *universal,
+                            const an_ifc_expr_index       &value);
+
+template<>
+void set_ifc_semicolon(an_ifc_syntax_using_directive *universal,
+                       const an_ifc_source_location  &value);
+
+template<>
+void set_ifc_using_kw(an_ifc_syntax_using_directive *universal,
+                      const an_ifc_source_location  &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_using_directive &universal,
                    const an_ifc_validation_trace       *parent);
 
@@ -26273,6 +33875,12 @@ get<an_ifc_syntax_using_directive_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_using_directive>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_using_enum_declaration_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxUsingEnumDeclaration nodes.
@@ -26310,6 +33918,22 @@ an_ifc_source_location get_ifc_using_kw(
                         const an_ifc_syntax_using_enum_declaration &universal);
 
 template<>
+void set_ifc_enum_kw(an_ifc_syntax_using_enum_declaration *universal,
+                     const an_ifc_source_location         &value);
+
+template<>
+void set_ifc_name(an_ifc_syntax_using_enum_declaration *universal,
+                  const an_ifc_expr_index              &value);
+
+template<>
+void set_ifc_semicolon(an_ifc_syntax_using_enum_declaration *universal,
+                       const an_ifc_source_location         &value);
+
+template<>
+void set_ifc_using_kw(an_ifc_syntax_using_enum_declaration *universal,
+                      const an_ifc_source_location         &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_using_enum_declaration &universal,
                    const an_ifc_validation_trace              *parent);
 
@@ -26330,6 +33954,12 @@ get<an_ifc_syntax_using_enum_declaration_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_using_enum_declaration>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_virtual_specifier_seq_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxVirtualSpecifierSeq nodes.
@@ -26365,6 +33995,22 @@ template<>
 an_ifc_bool get_ifc_pure(const an_ifc_syntax_virtual_specifier_seq &universal);
 
 template<>
+void set_ifc_final_kw(an_ifc_syntax_virtual_specifier_seq *universal,
+                      const an_ifc_source_location        &value);
+
+template<>
+void set_ifc_locus(an_ifc_syntax_virtual_specifier_seq *universal,
+                   const an_ifc_source_location        &value);
+
+template<>
+void set_ifc_override_kw(an_ifc_syntax_virtual_specifier_seq *universal,
+                         const an_ifc_source_location        &value);
+
+template<>
+void set_ifc_pure(an_ifc_syntax_virtual_specifier_seq *universal,
+                  const an_ifc_bool                   &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_virtual_specifier_seq &universal,
                    const an_ifc_validation_trace             *parent);
 
@@ -26385,6 +34031,12 @@ get<an_ifc_syntax_virtual_specifier_seq_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_syntax_virtual_specifier_seq>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_while_statement_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC SyntaxWhileStatement nodes.
@@ -26419,6 +34071,22 @@ an_ifc_source_location get_ifc_while(
                                const an_ifc_syntax_while_statement &universal);
 
 template<>
+void set_ifc_body(an_ifc_syntax_while_statement *universal,
+                  const an_ifc_syntax_index     &value);
+
+template<>
+void set_ifc_condition(an_ifc_syntax_while_statement *universal,
+                       const an_ifc_expr_index       &value);
+
+template<>
+void set_ifc_pragma(an_ifc_syntax_while_statement *universal,
+                    const an_ifc_sentence_index   &value);
+
+template<>
+void set_ifc_while(an_ifc_syntax_while_statement *universal,
+                   const an_ifc_source_location  &value);
+
+template<>
 a_boolean validate(const an_ifc_syntax_while_statement &universal,
                    const an_ifc_validation_trace       *parent);
 
@@ -26438,6 +34106,12 @@ get<an_ifc_syntax_while_statement_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_syntax_while_statement>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_trait_alias_template_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC TraitAliasTemplate nodes.
@@ -26464,6 +34138,18 @@ an_ifc_syntax_index get_ifc_trait(
                                  const an_ifc_trait_alias_template &universal);
 
 template<>
+void set_ifc_decl(an_ifc_trait_alias_template *universal,
+                  const an_ifc_decl_index     &value);
+
+template<>
+void set_ifc_encoded_decl(an_ifc_trait_alias_template     *universal,
+                          const an_ifc_encoded_decl_index &value);
+
+template<>
+void set_ifc_trait(an_ifc_trait_alias_template *universal,
+                   const an_ifc_syntax_index   &value);
+
+template<>
 a_boolean validate(const an_ifc_trait_alias_template &universal,
                    const an_ifc_validation_trace     *parent);
 
@@ -26482,6 +34168,12 @@ an_ifc_trait_alias_template_storage* get<an_ifc_trait_alias_template_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_trait_alias_template>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_trait_attribute_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC TraitAttribute nodes.
@@ -26507,6 +34199,18 @@ template<>
 an_ifc_attr_index get_ifc_trait(const an_ifc_trait_attribute &universal);
 
 template<>
+void set_ifc_decl(an_ifc_trait_attribute  *universal,
+                  const an_ifc_decl_index &value);
+
+template<>
+void set_ifc_encoded_decl(an_ifc_trait_attribute          *universal,
+                          const an_ifc_encoded_decl_index &value);
+
+template<>
+void set_ifc_trait(an_ifc_trait_attribute  *universal,
+                   const an_ifc_attr_index &value);
+
+template<>
 a_boolean validate(const an_ifc_trait_attribute  &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -26524,6 +34228,12 @@ an_ifc_trait_attribute_storage* get<an_ifc_trait_attribute_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_trait_attribute>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_trait_deduction_guide_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC TraitDeductionGuide nodes.
@@ -26549,6 +34259,18 @@ template<>
 an_ifc_decl_index get_ifc_trait(const an_ifc_trait_deduction_guide &universal);
 
 template<>
+void set_ifc_decl(an_ifc_trait_deduction_guide *universal,
+                  const an_ifc_decl_index      &value);
+
+template<>
+void set_ifc_encoded_decl(an_ifc_trait_deduction_guide    *universal,
+                          const an_ifc_encoded_decl_index &value);
+
+template<>
+void set_ifc_trait(an_ifc_trait_deduction_guide *universal,
+                   const an_ifc_decl_index      &value);
+
+template<>
 a_boolean validate(const an_ifc_trait_deduction_guide &universal,
                    const an_ifc_validation_trace      *parent);
 
@@ -26568,6 +34290,12 @@ get<an_ifc_trait_deduction_guide_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_trait_deduction_guide>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_trait_deprecated_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC TraitDeprecated nodes.
@@ -26593,6 +34321,18 @@ template<>
 an_ifc_text_offset get_ifc_trait(const an_ifc_trait_deprecated &universal);
 
 template<>
+void set_ifc_decl(an_ifc_trait_deprecated *universal,
+                  const an_ifc_decl_index &value);
+
+template<>
+void set_ifc_encoded_decl(an_ifc_trait_deprecated         *universal,
+                          const an_ifc_encoded_decl_index &value);
+
+template<>
+void set_ifc_trait(an_ifc_trait_deprecated  *universal,
+                   const an_ifc_text_offset &value);
+
+template<>
 a_boolean validate(const an_ifc_trait_deprecated &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -26610,6 +34350,12 @@ an_ifc_trait_deprecated_storage* get<an_ifc_trait_deprecated_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_trait_deprecated>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_trait_friend_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC TraitFriend nodes.
@@ -26635,6 +34381,18 @@ template<>
 an_ifc_sequence get_ifc_trait(const an_ifc_trait_friend &universal);
 
 template<>
+void set_ifc_decl(an_ifc_trait_friend     *universal,
+                  const an_ifc_decl_index &value);
+
+template<>
+void set_ifc_encoded_decl(an_ifc_trait_friend             *universal,
+                          const an_ifc_encoded_decl_index &value);
+
+template<>
+void set_ifc_trait(an_ifc_trait_friend   *universal,
+                   const an_ifc_sequence &value);
+
+template<>
 a_boolean validate(const an_ifc_trait_friend     &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -26652,6 +34410,12 @@ an_ifc_trait_friend_storage* get<an_ifc_trait_friend_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_trait_friend>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_trait_function_definition_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC TraitFunctionDefinition nodes.
@@ -26696,6 +34460,26 @@ an_ifc_chart_index get_ifc_parameters(
                             const an_ifc_trait_function_definition &universal);
 
 template<>
+void set_ifc_body(an_ifc_trait_function_definition *universal,
+                  const an_ifc_stmt_index          &value);
+
+template<>
+void set_ifc_decl(an_ifc_trait_function_definition *universal,
+                  const an_ifc_decl_index          &value);
+
+template<>
+void set_ifc_encoded_decl(an_ifc_trait_function_definition *universal,
+                          const an_ifc_encoded_decl_index  &value);
+
+template<>
+void set_ifc_initializers(an_ifc_trait_function_definition *universal,
+                          const an_ifc_expr_index          &value);
+
+template<>
+void set_ifc_parameters(an_ifc_trait_function_definition *universal,
+                        const an_ifc_chart_index         &value);
+
+template<>
 a_boolean validate(const an_ifc_trait_function_definition &universal,
                    const an_ifc_validation_trace          *parent);
 
@@ -26716,6 +34500,12 @@ get<an_ifc_trait_function_definition_storage>(
 template<>
 an_ifc_partition_kind
 get_ifc_partition_kind<an_ifc_trait_function_definition>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_trait_msvc_decl_attrs_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC TraitMsvcDeclAttrs nodes.
@@ -26741,6 +34531,18 @@ template<>
 an_ifc_attr_index get_ifc_trait(const an_ifc_trait_msvc_decl_attrs &universal);
 
 template<>
+void set_ifc_decl(an_ifc_trait_msvc_decl_attrs *universal,
+                  const an_ifc_decl_index      &value);
+
+template<>
+void set_ifc_encoded_decl(an_ifc_trait_msvc_decl_attrs    *universal,
+                          const an_ifc_encoded_decl_index &value);
+
+template<>
+void set_ifc_trait(an_ifc_trait_msvc_decl_attrs *universal,
+                   const an_ifc_attr_index      &value);
+
+template<>
 a_boolean validate(const an_ifc_trait_msvc_decl_attrs &universal,
                    const an_ifc_validation_trace      *parent);
 
@@ -26760,6 +34562,12 @@ get<an_ifc_trait_msvc_decl_attrs_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_trait_msvc_decl_attrs>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_trait_msvc_func_params_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC TraitMsvcFuncParams nodes.
@@ -26786,6 +34594,18 @@ an_ifc_chart_index get_ifc_params(
                                const an_ifc_trait_msvc_func_params &universal);
 
 template<>
+void set_ifc_decl(an_ifc_trait_msvc_func_params *universal,
+                  const an_ifc_decl_index       &value);
+
+template<>
+void set_ifc_encoded_decl(an_ifc_trait_msvc_func_params   *universal,
+                          const an_ifc_encoded_decl_index &value);
+
+template<>
+void set_ifc_params(an_ifc_trait_msvc_func_params *universal,
+                    const an_ifc_chart_index      &value);
+
+template<>
 a_boolean validate(const an_ifc_trait_msvc_func_params &universal,
                    const an_ifc_validation_trace       *parent);
 
@@ -26805,6 +34625,12 @@ get<an_ifc_trait_msvc_func_params_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_trait_msvc_func_params>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_trait_msvc_uuid_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC TraitMsvcUuid nodes.
@@ -26830,6 +34656,17 @@ template<>
 an_ifc_uuid get_ifc_uuid(const an_ifc_trait_msvc_uuid &universal);
 
 template<>
+void set_ifc_decl(an_ifc_trait_msvc_uuid  *universal,
+                  const an_ifc_decl_index &value);
+
+template<>
+void set_ifc_encoded_decl(an_ifc_trait_msvc_uuid          *universal,
+                          const an_ifc_encoded_decl_index &value);
+
+template<>
+void set_ifc_uuid(an_ifc_trait_msvc_uuid *universal, const an_ifc_uuid &value);
+
+template<>
 a_boolean validate(const an_ifc_trait_msvc_uuid  &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -26847,6 +34684,12 @@ an_ifc_trait_msvc_uuid_storage* get<an_ifc_trait_msvc_uuid_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_trait_msvc_uuid>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_trait_msvc_vendor_trait_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC TraitMsvcVendorTrait nodes.
@@ -26875,6 +34718,18 @@ an_ifc_msvc_traits_bitfield get_ifc_trait(
                               const an_ifc_trait_msvc_vendor_trait &universal);
 
 template<>
+void set_ifc_decl(an_ifc_trait_msvc_vendor_trait *universal,
+                  const an_ifc_decl_index        &value);
+
+template<>
+void set_ifc_encoded_decl(an_ifc_trait_msvc_vendor_trait  *universal,
+                          const an_ifc_encoded_decl_index &value);
+
+template<>
+void set_ifc_trait(an_ifc_trait_msvc_vendor_trait    *universal,
+                   const an_ifc_msvc_traits_bitfield &value);
+
+template<>
 a_boolean validate(const an_ifc_trait_msvc_vendor_trait &universal,
                    const an_ifc_validation_trace        *parent);
 
@@ -26894,6 +34749,12 @@ get<an_ifc_trait_msvc_vendor_trait_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_trait_msvc_vendor_trait>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_trait_requires_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC TraitRequires nodes.
@@ -26919,6 +34780,18 @@ template<>
 an_ifc_syntax_index get_ifc_trait(const an_ifc_trait_requires &universal);
 
 template<>
+void set_ifc_decl(an_ifc_trait_requires   *universal,
+                  const an_ifc_decl_index &value);
+
+template<>
+void set_ifc_encoded_decl(an_ifc_trait_requires           *universal,
+                          const an_ifc_encoded_decl_index &value);
+
+template<>
+void set_ifc_trait(an_ifc_trait_requires     *universal,
+                   const an_ifc_syntax_index &value);
+
+template<>
 a_boolean validate(const an_ifc_trait_requires   &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -26936,6 +34809,12 @@ an_ifc_trait_requires_storage* get<an_ifc_trait_requires_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_trait_requires>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_trait_specialization_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC TraitSpecialization nodes.
@@ -26961,6 +34840,18 @@ template<>
 an_ifc_sequence get_ifc_trait(const an_ifc_trait_specialization &universal);
 
 template<>
+void set_ifc_decl(an_ifc_trait_specialization *universal,
+                  const an_ifc_decl_index     &value);
+
+template<>
+void set_ifc_encoded_decl(an_ifc_trait_specialization     *universal,
+                          const an_ifc_encoded_decl_index &value);
+
+template<>
+void set_ifc_trait(an_ifc_trait_specialization *universal,
+                   const an_ifc_sequence       &value);
+
+template<>
 a_boolean validate(const an_ifc_trait_specialization &universal,
                    const an_ifc_validation_trace     *parent);
 
@@ -26980,6 +34871,12 @@ an_ifc_trait_specialization_storage* get<an_ifc_trait_specialization_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_trait_specialization>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_array_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC TypeArray nodes.
 */
@@ -26995,6 +34892,14 @@ a_boolean has_ifc_extent(const an_ifc_type_array &universal);
 
 template<>
 an_ifc_expr_index get_ifc_extent(const an_ifc_type_array &universal);
+
+template<>
+void set_ifc_element(an_ifc_type_array       *universal,
+                     const an_ifc_type_index &value);
+
+template<>
+void set_ifc_extent(an_ifc_type_array       *universal,
+                    const an_ifc_expr_index &value);
 
 template<>
 a_boolean validate(const an_ifc_type_array       &universal,
@@ -27014,6 +34919,11 @@ an_ifc_type_array_storage* get<an_ifc_type_array_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_array>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_base_storage>(an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC TypeBase nodes.
@@ -27044,6 +34954,20 @@ template<>
 an_ifc_type_index get_ifc_type(const an_ifc_type_base &universal);
 
 template<>
+void set_ifc_access(an_ifc_type_base         *universal,
+                    const an_ifc_access_sort &value);
+
+template<>
+void set_ifc_pack_expanded(an_ifc_type_base  *universal,
+                           const an_ifc_bool &value);
+
+template<>
+void set_ifc_shared(an_ifc_type_base *universal, const an_ifc_bool &value);
+
+template<>
+void set_ifc_type(an_ifc_type_base *universal, const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_type_base        &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -27062,6 +34986,12 @@ an_ifc_type_base_storage* get<an_ifc_type_base_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_base>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_decltype_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC TypeDecltype nodes.
 */
@@ -27071,6 +35001,10 @@ a_boolean has_ifc_expr(const an_ifc_type_decltype &universal);
 
 template<>
 an_ifc_syntax_index get_ifc_expr(const an_ifc_type_decltype &universal);
+
+template<>
+void set_ifc_expr(an_ifc_type_decltype      *universal,
+                  const an_ifc_syntax_index &value);
 
 template<>
 a_boolean validate(const an_ifc_type_decltype    &universal,
@@ -27091,6 +35025,12 @@ an_ifc_type_decltype_storage* get<an_ifc_type_decltype_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_decltype>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_designated_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC TypeDesignated nodes.
 */
@@ -27100,6 +35040,10 @@ a_boolean has_ifc_decl(const an_ifc_type_designated &universal);
 
 template<>
 an_ifc_decl_index get_ifc_decl(const an_ifc_type_designated &universal);
+
+template<>
+void set_ifc_decl(an_ifc_type_designated  *universal,
+                  const an_ifc_decl_index &value);
 
 template<>
 a_boolean validate(const an_ifc_type_designated  &universal,
@@ -27120,6 +35064,12 @@ an_ifc_type_designated_storage* get<an_ifc_type_designated_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_designated>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_expansion_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC TypeExpansion nodes.
 */
@@ -27136,6 +35086,14 @@ a_boolean has_ifc_pack(const an_ifc_type_expansion &universal);
 
 template<>
 an_ifc_type_index get_ifc_pack(const an_ifc_type_expansion &universal);
+
+template<>
+void set_ifc_mode(an_ifc_type_expansion            *universal,
+                  const an_ifc_expansion_mode_sort &value);
+
+template<>
+void set_ifc_pack(an_ifc_type_expansion   *universal,
+                  const an_ifc_type_index &value);
 
 template<>
 a_boolean validate(const an_ifc_type_expansion   &universal,
@@ -27156,6 +35114,12 @@ an_ifc_type_expansion_storage* get<an_ifc_type_expansion_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_expansion>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_forall_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC TypeForall nodes.
 */
@@ -27171,6 +35135,14 @@ a_boolean has_ifc_subject(const an_ifc_type_forall &universal);
 
 template<>
 an_ifc_type_index get_ifc_subject(const an_ifc_type_forall &universal);
+
+template<>
+void set_ifc_chart(an_ifc_type_forall       *universal,
+                   const an_ifc_chart_index &value);
+
+template<>
+void set_ifc_subject(an_ifc_type_forall      *universal,
+                     const an_ifc_type_index &value);
 
 template<>
 a_boolean validate(const an_ifc_type_forall      &universal,
@@ -27190,6 +35162,12 @@ an_ifc_type_forall_storage* get<an_ifc_type_forall_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_forall>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_function_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC TypeFunction nodes.
@@ -27229,6 +35207,26 @@ an_ifc_function_type_traits_bitfield get_ifc_traits(
                                         const an_ifc_type_function &universal);
 
 template<>
+void set_ifc_convention(an_ifc_type_function                 *universal,
+                        const an_ifc_calling_convention_sort &value);
+
+template<>
+void set_ifc_eh_spec(an_ifc_type_function                *universal,
+                     const an_ifc_noexcept_specification &value);
+
+template<>
+void set_ifc_source(an_ifc_type_function    *universal,
+                    const an_ifc_type_index &value);
+
+template<>
+void set_ifc_target(an_ifc_type_function    *universal,
+                    const an_ifc_type_index &value);
+
+template<>
+void set_ifc_traits(an_ifc_type_function                       *universal,
+                    const an_ifc_function_type_traits_bitfield &value);
+
+template<>
 a_boolean validate(const an_ifc_type_function    &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -27246,6 +35244,12 @@ an_ifc_type_function_storage* get<an_ifc_type_function_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_function>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_fundamental_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC TypeFundamental nodes.
@@ -27271,6 +35275,18 @@ template<>
 an_ifc_type_sign_sort get_ifc_sign(const an_ifc_type_fundamental &universal);
 
 template<>
+void set_ifc_basis(an_ifc_type_fundamental      *universal,
+                   const an_ifc_type_basis_sort &value);
+
+template<>
+void set_ifc_precision(an_ifc_type_fundamental          *universal,
+                       const an_ifc_type_precision_sort &value);
+
+template<>
+void set_ifc_sign(an_ifc_type_fundamental     *universal,
+                  const an_ifc_type_sign_sort &value);
+
+template<>
 a_boolean validate(const an_ifc_type_fundamental &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -27289,6 +35305,12 @@ an_ifc_type_fundamental_storage* get<an_ifc_type_fundamental_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_fundamental>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_lvalue_reference_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC TypeLvalueReference nodes.
 */
@@ -27299,6 +35321,10 @@ a_boolean has_ifc_referee(const an_ifc_type_lvalue_reference &universal);
 template<>
 an_ifc_type_index get_ifc_referee(
                                 const an_ifc_type_lvalue_reference &universal);
+
+template<>
+void set_ifc_referee(an_ifc_type_lvalue_reference *universal,
+                     const an_ifc_type_index      &value);
 
 template<>
 a_boolean validate(const an_ifc_type_lvalue_reference &universal,
@@ -27320,6 +35346,12 @@ get<an_ifc_type_lvalue_reference_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_lvalue_reference>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_method_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC TypeMethod nodes.
@@ -27365,6 +35397,30 @@ an_ifc_function_type_traits_bitfield get_ifc_traits(
                                           const an_ifc_type_method &universal);
 
 template<>
+void set_ifc_convention(an_ifc_type_method                   *universal,
+                        const an_ifc_calling_convention_sort &value);
+
+template<>
+void set_ifc_eh_spec(an_ifc_type_method                  *universal,
+                     const an_ifc_noexcept_specification &value);
+
+template<>
+void set_ifc_scope(an_ifc_type_method      *universal,
+                   const an_ifc_type_index &value);
+
+template<>
+void set_ifc_source(an_ifc_type_method      *universal,
+                    const an_ifc_type_index &value);
+
+template<>
+void set_ifc_target(an_ifc_type_method      *universal,
+                    const an_ifc_type_index &value);
+
+template<>
+void set_ifc_traits(an_ifc_type_method                         *universal,
+                    const an_ifc_function_type_traits_bitfield &value);
+
+template<>
 a_boolean validate(const an_ifc_type_method      &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -27382,6 +35438,12 @@ an_ifc_type_method_storage* get<an_ifc_type_method_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_method>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_placeholder_storage>(
+                                                     an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC TypePlaceholder nodes.
@@ -27407,6 +35469,18 @@ an_ifc_type_index get_ifc_elaboration(
                                      const an_ifc_type_placeholder &universal);
 
 template<>
+void set_ifc_basis(an_ifc_type_placeholder                     *universal,
+                   const an_ifc_type_placeholder_basis_wrapper &value);
+
+template<>
+void set_ifc_constraint(an_ifc_type_placeholder *universal,
+                        const an_ifc_expr_index &value);
+
+template<>
+void set_ifc_elaboration(an_ifc_type_placeholder *universal,
+                         const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_type_placeholder &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -27425,6 +35499,12 @@ an_ifc_type_placeholder_storage* get<an_ifc_type_placeholder_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_placeholder>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_pointer_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC TypePointer nodes.
 */
@@ -27434,6 +35514,10 @@ a_boolean has_ifc_pointee(const an_ifc_type_pointer &universal);
 
 template<>
 an_ifc_type_index get_ifc_pointee(const an_ifc_type_pointer &universal);
+
+template<>
+void set_ifc_pointee(an_ifc_type_pointer     *universal,
+                     const an_ifc_type_index &value);
 
 template<>
 a_boolean validate(const an_ifc_type_pointer     &universal,
@@ -27454,6 +35538,12 @@ an_ifc_type_pointer_storage* get<an_ifc_type_pointer_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_pointer>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_pointer_to_member_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC TypePointerToMember nodes.
 */
@@ -27471,6 +35561,14 @@ a_boolean has_ifc_scope(const an_ifc_type_pointer_to_member &universal);
 template<>
 an_ifc_type_index get_ifc_scope(
                                const an_ifc_type_pointer_to_member &universal);
+
+template<>
+void set_ifc_member(an_ifc_type_pointer_to_member *universal,
+                    const an_ifc_type_index       &value);
+
+template<>
+void set_ifc_scope(an_ifc_type_pointer_to_member *universal,
+                   const an_ifc_type_index       &value);
 
 template<>
 a_boolean validate(const an_ifc_type_pointer_to_member &universal,
@@ -27493,6 +35591,12 @@ get<an_ifc_type_pointer_to_member_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_pointer_to_member>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_qualified_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC TypeQualified nodes.
 */
@@ -27509,6 +35613,14 @@ a_boolean has_ifc_unqualified(const an_ifc_type_qualified &universal);
 
 template<>
 an_ifc_type_index get_ifc_unqualified(const an_ifc_type_qualified &universal);
+
+template<>
+void set_ifc_qualifiers(an_ifc_type_qualified           *universal,
+                        const an_ifc_qualifier_bitfield &value);
+
+template<>
+void set_ifc_unqualified(an_ifc_type_qualified   *universal,
+                         const an_ifc_type_index &value);
 
 template<>
 a_boolean validate(const an_ifc_type_qualified   &universal,
@@ -27529,6 +35641,12 @@ an_ifc_type_qualified_storage* get<an_ifc_type_qualified_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_qualified>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_rvalue_reference_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC TypeRvalueReference nodes.
 */
@@ -27539,6 +35657,10 @@ a_boolean has_ifc_referee(const an_ifc_type_rvalue_reference &universal);
 template<>
 an_ifc_type_index get_ifc_referee(
                                 const an_ifc_type_rvalue_reference &universal);
+
+template<>
+void set_ifc_referee(an_ifc_type_rvalue_reference *universal,
+                     const an_ifc_type_index      &value);
 
 template<>
 a_boolean validate(const an_ifc_type_rvalue_reference &universal,
@@ -27561,6 +35683,12 @@ get<an_ifc_type_rvalue_reference_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_rvalue_reference>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_syntactic_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC TypeSyntactic nodes.
 */
@@ -27570,6 +35698,10 @@ a_boolean has_ifc_expr(const an_ifc_type_syntactic &universal);
 
 template<>
 an_ifc_expr_index get_ifc_expr(const an_ifc_type_syntactic &universal);
+
+template<>
+void set_ifc_expr(an_ifc_type_syntactic   *universal,
+                  const an_ifc_expr_index &value);
 
 template<>
 a_boolean validate(const an_ifc_type_syntactic   &universal,
@@ -27590,6 +35722,12 @@ an_ifc_type_syntactic_storage* get<an_ifc_type_syntactic_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_syntactic>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_syntax_tree_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC TypeSyntaxTree nodes.
 */
@@ -27599,6 +35737,10 @@ a_boolean has_ifc_syntax(const an_ifc_type_syntax_tree &universal);
 
 template<>
 an_ifc_syntax_index get_ifc_syntax(const an_ifc_type_syntax_tree &universal);
+
+template<>
+void set_ifc_syntax(an_ifc_type_syntax_tree   *universal,
+                    const an_ifc_syntax_index &value);
 
 template<>
 a_boolean validate(const an_ifc_type_syntax_tree &universal,
@@ -27618,6 +35760,11 @@ an_ifc_type_syntax_tree_storage* get<an_ifc_type_syntax_tree_storage>(
 
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_syntax_tree>();
+
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_tor_storage>(an_ifc_module_file *file);
 
 /*
 Functions for interacting with IFC TypeTor nodes.
@@ -27644,6 +35791,18 @@ template<>
 an_ifc_type_index get_ifc_source(const an_ifc_type_tor &universal);
 
 template<>
+void set_ifc_convention(an_ifc_type_tor                      *universal,
+                        const an_ifc_calling_convention_sort &value);
+
+template<>
+void set_ifc_eh_spec(an_ifc_type_tor                     *universal,
+                     const an_ifc_noexcept_specification &value);
+
+template<>
+void set_ifc_source(an_ifc_type_tor         *universal,
+                    const an_ifc_type_index &value);
+
+template<>
 a_boolean validate(const an_ifc_type_tor         &universal,
                    const an_ifc_validation_trace *parent);
 
@@ -27662,6 +35821,12 @@ an_ifc_type_tor_storage* get<an_ifc_type_tor_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_tor>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_tuple_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC TypeTuple nodes.
 */
@@ -27677,6 +35842,13 @@ a_boolean has_ifc_start(const an_ifc_type_tuple &universal);
 
 template<>
 an_ifc_index get_ifc_start(const an_ifc_type_tuple &universal);
+
+template<>
+void set_ifc_cardinality(an_ifc_type_tuple        *universal,
+                         const an_ifc_cardinality &value);
+
+template<>
+void set_ifc_start(an_ifc_type_tuple *universal, const an_ifc_index &value);
 
 template<>
 a_boolean validate(const an_ifc_type_tuple       &universal,
@@ -27697,6 +35869,12 @@ an_ifc_type_tuple_storage* get<an_ifc_type_tuple_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_tuple>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_typename_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC TypeTypename nodes.
 */
@@ -27706,6 +35884,10 @@ a_boolean has_ifc_path(const an_ifc_type_typename &universal);
 
 template<>
 an_ifc_expr_index get_ifc_path(const an_ifc_type_typename &universal);
+
+template<>
+void set_ifc_path(an_ifc_type_typename    *universal,
+                  const an_ifc_expr_index &value);
 
 template<>
 a_boolean validate(const an_ifc_type_typename    &universal,
@@ -27726,6 +35908,12 @@ an_ifc_type_typename_storage* get<an_ifc_type_typename_storage>(
 template<>
 an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_typename>();
 
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_unaligned_storage>(
+                                                     an_ifc_module_file *file);
+
 /*
 Functions for interacting with IFC TypeUnaligned nodes.
 */
@@ -27735,6 +35923,10 @@ a_boolean has_ifc_type(const an_ifc_type_unaligned &universal);
 
 template<>
 an_ifc_type_index get_ifc_type(const an_ifc_type_unaligned &universal);
+
+template<>
+void set_ifc_type(an_ifc_type_unaligned   *universal,
+                  const an_ifc_type_index &value);
 
 template<>
 a_boolean validate(const an_ifc_type_unaligned   &universal,
@@ -27759,6 +35951,10 @@ an_ifc_partition_kind get_ifc_partition_kind<an_ifc_type_unaligned>();
 Functions for interacting with IFC ExprNamedDeclOffset offsets.
 */
 
+extern an_ifc_encoded_expr_named_decl_offset to_encoded(
+                                      an_ifc_module_file            *file,
+                                      an_ifc_expr_named_decl_offset universal);
+
 extern a_boolean is_null_index(an_ifc_expr_named_decl_offset universal);
 
 template<>
@@ -27775,6 +35971,10 @@ extern an_ifc_expr_named_decl_offset to_universal_offset(
 /*
 Functions for interacting with IFC FormSpecOffset offsets.
 */
+
+extern an_ifc_encoded_form_spec_offset to_encoded(
+                                            an_ifc_module_file      *file,
+                                            an_ifc_form_spec_offset universal);
 
 extern a_boolean is_null_index(an_ifc_form_spec_offset universal);
 
@@ -27793,6 +35993,9 @@ extern an_ifc_form_spec_offset to_universal_offset(
 Functions for interacting with IFC LineOffset offsets.
 */
 
+extern an_ifc_encoded_line_offset to_encoded(an_ifc_module_file *file,
+                                             an_ifc_line_offset universal);
+
 extern a_boolean is_null_index(an_ifc_line_offset universal);
 
 template<>
@@ -27809,6 +36012,9 @@ extern an_ifc_line_offset to_universal_offset(
 /*
 Functions for interacting with IFC ScopeOffset offsets.
 */
+
+extern an_ifc_encoded_scope_offset to_encoded(an_ifc_module_file  *file,
+                                              an_ifc_scope_offset universal);
 
 extern a_boolean is_null_index(an_ifc_scope_offset universal);
 
@@ -28056,6 +36262,6 @@ END_EDG_NAMESPACE
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2023 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2024 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

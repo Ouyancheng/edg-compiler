@@ -4,13 +4,13 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2023 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2024 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
 
-ifc_map_functions_acc.c -- Function implementations for interacting with IFC
-                           types for Microsoft modules for accessor functions.
+ifc_map_functions_acc.c -- Function implementations for IFC-based module
+                           accessor functions.
 
 ** NOTICE: This file is produced by an external script. **
 
@@ -25,11 +25,10 @@ more about, the tool that generated this file.
 #include "basic_hdrs.h"
 #include "fe_common.h"
 #include "ifc_modules.h"
-#if MICROSOFT_EXTENSIONS_ALLOWED
 #include "ifc_map_functions.h"
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED && !STANDALONE_UTILITY_PROGRAM
+
+#if !STANDALONE_UTILITY_PROGRAM
 
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
@@ -78,7 +77,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (KeywordSyntax::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -121,7 +121,7 @@ representation of the field "value".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -168,7 +168,7 @@ representation of the field "owner".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -210,7 +210,7 @@ representation of the field "partition".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -262,17 +262,17 @@ representation of the field "category".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     /* Copy the field (NestableWord::value - u16) into version-specific
        storage. */
     static_assert(sizeof(stage_1) == 2,
                   "stage_1 is not properly sized storage!");
-    copy_ifc_field(&stage_1, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_1, universal.get_storage(), /*offset=*/12);
     /* Copy the field (NestableWord::sort - WordSort) into version-specific
        storage. */
     static_assert(sizeof(stage_2) == 1,
                   "stage_2 is not properly sized storage!");
-    copy_ifc_field(&stage_2, universal.get_storage(), /*offset=*/14);
+    copy_from_node_field(&stage_2, universal.get_storage(), /*offset=*/14);
     /* Pack the fields (sort, value, index) into the 64 bit WordCategory
        representation.  Then, decode the bit encoded value using the standard
        conversion to the universal representation for the category. */
@@ -297,17 +297,17 @@ representation of the field "category".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     /* Copy the field (NestableWord::value - u16) into version-specific
        storage. */
     static_assert(sizeof(stage_1) == 2,
                   "stage_1 is not properly sized storage!");
-    copy_ifc_field(&stage_1, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_1, universal.get_storage(), /*offset=*/12);
     /* Copy the field (NestableWord::sort - WordSort) into version-specific
        storage. */
     static_assert(sizeof(stage_2) == 1,
                   "stage_2 is not properly sized storage!");
-    copy_ifc_field(&stage_2, universal.get_storage(), /*offset=*/14);
+    copy_from_node_field(&stage_2, universal.get_storage(), /*offset=*/14);
     /* Pack the fields (sort, value, index) into the 64 bit WordCategory
        representation.  Then, decode the bit encoded value using the standard
        conversion to the universal representation for the category. */
@@ -360,7 +360,7 @@ representation of the field "index".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = {universal.get_file(), (an_ifc_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -405,7 +405,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (NestableWord::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -448,7 +449,7 @@ representation of the field "sort".
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/14);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/14);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -490,7 +491,7 @@ representation of the field "value".
      storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = {universal.get_file(), (an_ifc_u16_storage)stage_0};
   result = stage_1;
   return result;
@@ -538,7 +539,7 @@ universal representation of the field "sort".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -581,7 +582,7 @@ universal representation of the field "words".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_sentence_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -629,7 +630,7 @@ representation of the field "attributes".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = {universal.get_file(), (an_ifc_sentence_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -672,7 +673,7 @@ representation of the field "body".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = {universal.get_file(), (an_ifc_sentence_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -715,7 +716,7 @@ representation of the field "decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -726,7 +727,7 @@ representation of the field "decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -737,7 +738,7 @@ representation of the field "decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -781,7 +782,7 @@ representation of the field "head".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = {universal.get_file(), (an_ifc_sentence_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -828,7 +829,7 @@ representation of the field "cardinality".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = {universal.get_file(), (an_ifc_cardinality_storage)stage_0};
   result = stage_1;
   return result;
@@ -869,7 +870,7 @@ representation of the field "start".
   /* Copy the field (Sequence::start - Index) into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -916,7 +917,7 @@ representation of the field "column".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = {universal.get_file(), (an_ifc_column_storage)stage_0};
   result = stage_1;
   return result;
@@ -958,7 +959,7 @@ representation of the field "line".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_offset(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -1006,7 +1007,7 @@ universal representation of the field "value".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -1052,7 +1053,7 @@ representation of the field "abi".
   /* Copy the field (FileHeader::abi - Abi) into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/34);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/34);
   stage_1 = {universal.get_file(), (an_ifc_abi_storage)stage_0};
   result = stage_1;
   return result;
@@ -1094,7 +1095,7 @@ representation of the field "arch".
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/35);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/35);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -1138,8 +1139,8 @@ representation of the field "checksum".
   stage_0 = (an_ifc_sha256_bytes)((*universal.get_storage()) + 0);
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (FileHeader::checksum - SHA256) into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
-                 /*size=*/32);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/32);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -1182,7 +1183,7 @@ representation of the field "dialect".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/36);
   stage_1 = {universal.get_file(), (an_ifc_language_version_storage)stage_0};
   result = stage_1;
   return result;
@@ -1224,7 +1225,7 @@ representation of the field "global_scope".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/56);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/56);
   stage_1 = to_universal_offset(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -1266,7 +1267,7 @@ representation of the field "internal".
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/68);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/68);
   stage_1 = {universal.get_file(), (an_ifc_bool_storage)stage_0};
   result = stage_1;
   return result;
@@ -1308,7 +1309,7 @@ representation of the field "major_version".
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/32);
   stage_1 = {universal.get_file(), (an_ifc_version_storage)stage_0};
   result = stage_1;
   return result;
@@ -1350,7 +1351,7 @@ representation of the field "minor_version".
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/33);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/33);
   stage_1 = {universal.get_file(), (an_ifc_version_storage)stage_0};
   result = stage_1;
   return result;
@@ -1392,7 +1393,7 @@ representation of the field "partition_count".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/64);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/64);
   stage_1 = {universal.get_file(), (an_ifc_cardinality_storage)stage_0};
   result = stage_1;
   return result;
@@ -1434,7 +1435,7 @@ representation of the field "src_path".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/52);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/52);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -1478,7 +1479,7 @@ representation of the field "string_table_bytes".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/40);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/40);
   stage_1 = {universal.get_file(), (an_ifc_byte_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -1522,7 +1523,7 @@ representation of the field "string_table_size".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/44);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/44);
   stage_1 = {universal.get_file(), (an_ifc_cardinality_storage)stage_0};
   result = stage_1;
   return result;
@@ -1564,7 +1565,7 @@ representation of the field "toc".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/60);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/60);
   stage_1 = {universal.get_file(), (an_ifc_byte_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -1606,7 +1607,7 @@ representation of the field "unit".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/48);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/48);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -1653,7 +1654,7 @@ representation of the field "cardinality".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = {universal.get_file(), (an_ifc_cardinality_storage)stage_0};
   result = stage_1;
   return result;
@@ -1695,7 +1696,7 @@ representation of the field "entry_size".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = {universal.get_file(), (an_ifc_entity_size_storage)stage_0};
   result = stage_1;
   return result;
@@ -1737,7 +1738,7 @@ representation of the field "name".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -1779,7 +1780,7 @@ representation of the field "offset".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = {universal.get_file(), (an_ifc_byte_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -1828,8 +1829,8 @@ representation of the field "word".
   stage_0 = (an_ifc_nestable_word_bytes)((*universal.get_storage()) + 0);
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (AttrBasic::word - NestableWord) into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
-                 /*size=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -1877,7 +1878,7 @@ representation of the field "arguments".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -1919,7 +1920,7 @@ representation of the field "function".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -1967,7 +1968,7 @@ representation of the field "expression".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -1978,7 +1979,7 @@ representation of the field "expression".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -2026,7 +2027,7 @@ representation of the field "operand".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -2076,8 +2077,8 @@ representation of the field "factor".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (AttrFactored::factor - NestableWord) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
-                 /*size=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -2120,7 +2121,7 @@ representation of the field "terms".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -2167,7 +2168,7 @@ representation of the field "attribute".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -2212,8 +2213,8 @@ representation of the field "label".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (AttrLabeled::label - NestableWord) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
-                 /*size=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -2264,8 +2265,8 @@ representation of the field "member".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (AttrScoped::member - NestableWord) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                 /*size=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                       /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -2311,8 +2312,8 @@ representation of the field "scope".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (AttrScoped::scope - NestableWord) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
-                 /*size=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -2360,7 +2361,7 @@ representation of the field "cardinality".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = {universal.get_file(), (an_ifc_cardinality_storage)stage_0};
   result = stage_1;
   return result;
@@ -2402,7 +2403,7 @@ representation of the field "start".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -2450,7 +2451,7 @@ representation of the field "cardinality".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = {universal.get_file(), (an_ifc_cardinality_storage)stage_0};
   result = stage_1;
   return result;
@@ -2492,7 +2493,7 @@ representation of the field "start".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -2539,7 +2540,7 @@ representation of the field "cardinality".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = {universal.get_file(), (an_ifc_cardinality_storage)stage_0};
   result = stage_1;
   return result;
@@ -2582,7 +2583,7 @@ representation of the field "constraint".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -2593,7 +2594,7 @@ representation of the field "constraint".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -2636,7 +2637,7 @@ representation of the field "start".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -2685,7 +2686,8 @@ representation of the field "value".
   stage_0 = (an_ifc_ieeele_float_bytes)((*universal.get_storage()) + 0);
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ConstF64::value - IEEELEFloat) into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -2732,7 +2734,7 @@ representation of the field "value".
   /* Copy the field (ConstI64::value - u64) into version-specific storage. */
   static_assert(sizeof(stage_0) == 8,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_u64_storage)stage_0};
   result = stage_1;
   return result;
@@ -2779,7 +2781,7 @@ representation of the field "length".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = {universal.get_file(), (an_ifc_cardinality_storage)stage_0};
   result = stage_1;
   return result;
@@ -2821,7 +2823,7 @@ representation of the field "start".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -2863,7 +2865,7 @@ representation of the field "suffix".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -2910,7 +2912,7 @@ representation of the field "access".
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/25);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/25);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -2952,7 +2954,7 @@ representation of the field "aliasee".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -2997,7 +2999,7 @@ representation of the field "home_scope".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -3020,7 +3022,7 @@ representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -3040,7 +3042,7 @@ representation of the field "home_scope".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -3063,7 +3065,7 @@ representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -3081,7 +3083,7 @@ representation of the field "home_scope".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -3127,7 +3129,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DeclAlias::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -3170,7 +3173,7 @@ representation of the field "name".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -3213,7 +3216,7 @@ representation of the field "specifiers".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
   stage_1 = {universal.get_file(),
              (an_ifc_basic_specifiers_bitfield_storage)stage_0};
   result = stage_1;
@@ -3256,7 +3259,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -3303,7 +3306,7 @@ representation of the field "access".
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/5);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/5);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -3345,7 +3348,7 @@ representation of the field "directive".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -3388,7 +3391,7 @@ representation of the field "specifiers".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = {universal.get_file(),
              (an_ifc_basic_specifiers_bitfield_storage)stage_0};
   result = stage_1;
@@ -3436,7 +3439,7 @@ representation of the field "access".
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/30);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/30);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -3481,7 +3484,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -3504,7 +3507,7 @@ representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -3524,7 +3527,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -3547,7 +3550,7 @@ representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -3565,7 +3568,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -3609,7 +3612,7 @@ representation of the field "initializer".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -3620,7 +3623,7 @@ representation of the field "initializer".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -3666,7 +3669,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DeclBitfield::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -3709,7 +3713,7 @@ representation of the field "name".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -3752,7 +3756,7 @@ representation of the field "properties".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/31);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/31);
   stage_1 = {universal.get_file(),
              (an_ifc_reachable_properties_bitfield_storage)stage_0};
   result = stage_1;
@@ -3796,7 +3800,7 @@ representation of the field "specifiers".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/29);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/29);
   stage_1 = {universal.get_file(),
              (an_ifc_basic_specifiers_bitfield_storage)stage_0};
   result = stage_1;
@@ -3840,7 +3844,7 @@ representation of the field "traits".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28);
   stage_1 = {universal.get_file(),
              (an_ifc_object_traits_bitfield_storage)stage_0};
   result = stage_1;
@@ -3883,7 +3887,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -3926,7 +3930,7 @@ representation of the field "width".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -3937,7 +3941,7 @@ representation of the field "width".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -3985,7 +3989,7 @@ representation of the field "access".
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/29);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/29);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -4027,7 +4031,7 @@ representation of the field "body".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/36);
   stage_1 = {universal.get_file(), (an_ifc_sentence_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -4069,7 +4073,7 @@ representation of the field "chart".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -4112,7 +4116,7 @@ representation of the field "constraint".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -4123,7 +4127,7 @@ representation of the field "constraint".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -4166,7 +4170,7 @@ representation of the field "head".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/32);
   stage_1 = {universal.get_file(), (an_ifc_sentence_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -4211,7 +4215,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -4234,7 +4238,7 @@ representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -4254,7 +4258,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -4277,7 +4281,7 @@ representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -4295,7 +4299,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -4341,7 +4345,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DeclConcept::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -4384,7 +4389,7 @@ representation of the field "name".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -4427,7 +4432,7 @@ representation of the field "specifiers".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28);
   stage_1 = {universal.get_file(),
              (an_ifc_basic_specifiers_bitfield_storage)stage_0};
   result = stage_1;
@@ -4470,7 +4475,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -4512,7 +4517,7 @@ representation of the field "unknown".
      storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/30);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/30);
   stage_1 = {universal.get_file(), (an_ifc_u16_storage)stage_0};
   result = stage_1;
   return result;
@@ -4559,7 +4564,7 @@ representation of the field "access".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/27);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/27);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -4601,7 +4606,7 @@ representation of the field "chart".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -4646,7 +4651,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -4669,7 +4674,7 @@ representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -4689,7 +4694,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -4712,7 +4717,7 @@ representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -4730,7 +4735,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -4776,7 +4781,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DeclConstructor::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -4822,7 +4828,7 @@ representation of the field "name".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -4838,7 +4844,8 @@ representation of the field "name".
          version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
-      copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/16);
+      copy_from_node_field(&stage_3_0, universal.get_storage(),
+                           /*offset=*/16);
       stage_3_1 = to_universal_index(universal.get_file(), stage_3_0);
       stage_3_2 = get_ifc_name(stage_3_1);
       stage_3 = stage_3_2;
@@ -4861,7 +4868,7 @@ representation of the field "name".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -4877,7 +4884,8 @@ representation of the field "name".
          version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
-      copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/16);
+      copy_from_node_field(&stage_3_0, universal.get_storage(),
+                           /*offset=*/16);
       stage_3_1 = to_universal_index(universal.get_file(), stage_3_0);
       stage_3_2 = get_ifc_name(stage_3_1);
       stage_3 = stage_3_2;
@@ -4938,7 +4946,7 @@ representation of the field "properties".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28);
   stage_1 = {universal.get_file(),
              (an_ifc_reachable_properties_bitfield_storage)stage_0};
   result = stage_1;
@@ -4982,7 +4990,7 @@ representation of the field "specifiers".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/26);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/26);
   stage_1 = {universal.get_file(),
              (an_ifc_basic_specifiers_bitfield_storage)stage_0};
   result = stage_1;
@@ -5026,7 +5034,7 @@ representation of the field "traits".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
   stage_1 = {universal.get_file(),
              (an_ifc_function_traits_bitfield_storage)stage_0};
   result = stage_1;
@@ -5069,7 +5077,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -5120,7 +5128,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -5143,7 +5151,7 @@ representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -5163,7 +5171,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -5186,7 +5194,7 @@ representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -5204,7 +5212,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -5251,7 +5259,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DeclDeductionGuide::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -5294,7 +5303,7 @@ representation of the field "name".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -5336,7 +5345,7 @@ representation of the field "source".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -5379,7 +5388,7 @@ representation of the field "specifiers".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/25);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/25);
   stage_1 = {universal.get_file(),
              (an_ifc_basic_specifiers_bitfield_storage)stage_0};
   result = stage_1;
@@ -5423,7 +5432,7 @@ representation of the field "target".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -5434,7 +5443,7 @@ representation of the field "target".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -5478,7 +5487,7 @@ representation of the field "traits".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
   stage_1 = {universal.get_file(),
              (an_ifc_guide_traits_bitfield_storage)stage_0};
   result = stage_1;
@@ -5527,7 +5536,7 @@ representation of the field "access".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/21);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/21);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -5572,7 +5581,7 @@ representation of the field "home_scope".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   if (stage_1.sort == ifc_ds_decl_specialization) {
     stage_2 = TRUE;
@@ -5595,7 +5604,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_3_2) == 4,
                   "stage_3_2 is not properly sized storage!");
-    copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
     stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
     stage_3 = stage_3_3;
   } else {
@@ -5645,7 +5654,7 @@ representation of the field "initializer".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -5691,7 +5700,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DeclDefaultArgument::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -5735,7 +5745,7 @@ representation of the field "properties".
      ReachablePropertiesBitfield) into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/22);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/22);
   stage_1 = {universal.get_file(),
              (an_ifc_reachable_properties_bitfield_storage)stage_0};
   result = stage_1;
@@ -5779,7 +5789,7 @@ representation of the field "specifiers".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
   stage_1 = {universal.get_file(),
              (an_ifc_basic_specifiers_bitfield_storage)stage_0};
   result = stage_1;
@@ -5822,7 +5832,7 @@ representation of the field "type".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -5869,7 +5879,7 @@ representation of the field "access".
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/27);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/27);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -5912,7 +5922,7 @@ representation of the field "convention".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -5959,8 +5969,8 @@ representation of the field "eh_spec".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DeclDestructor::eh_spec - NoexceptSpecification) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -6006,7 +6016,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -6029,7 +6039,7 @@ representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -6049,7 +6059,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -6072,7 +6082,7 @@ representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -6090,7 +6100,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -6136,7 +6146,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DeclDestructor::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -6182,7 +6193,7 @@ representation of the field "name".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -6198,7 +6209,8 @@ representation of the field "name".
          version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
-      copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/12);
+      copy_from_node_field(&stage_3_0, universal.get_storage(),
+                           /*offset=*/12);
       stage_3_1 = to_universal_index(universal.get_file(), stage_3_0);
       stage_3_2 = get_ifc_name(stage_3_1);
       stage_3 = stage_3_2;
@@ -6221,7 +6233,7 @@ representation of the field "name".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -6237,7 +6249,8 @@ representation of the field "name".
          version-specific storage. */
       static_assert(sizeof(stage_3_0) == 4,
                     "stage_3_0 is not properly sized storage!");
-      copy_ifc_field(&stage_3_0, universal.get_storage(), /*offset=*/12);
+      copy_from_node_field(&stage_3_0, universal.get_storage(),
+                           /*offset=*/12);
       stage_3_1 = to_universal_index(universal.get_file(), stage_3_0);
       stage_3_2 = get_ifc_name(stage_3_1);
       stage_3 = stage_3_2;
@@ -6298,7 +6311,7 @@ representation of the field "properties".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/29);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/29);
   stage_1 = {universal.get_file(),
              (an_ifc_reachable_properties_bitfield_storage)stage_0};
   result = stage_1;
@@ -6342,7 +6355,7 @@ representation of the field "specifiers".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/26);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/26);
   stage_1 = {universal.get_file(),
              (an_ifc_basic_specifiers_bitfield_storage)stage_0};
   result = stage_1;
@@ -6386,7 +6399,7 @@ representation of the field "traits".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
   stage_1 = {universal.get_file(),
              (an_ifc_function_traits_bitfield_storage)stage_0};
   result = stage_1;
@@ -6434,7 +6447,7 @@ representation of the field "access".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/37);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/37);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -6477,7 +6490,7 @@ representation of the field "alignment".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/32);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -6488,7 +6501,7 @@ representation of the field "alignment".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/32);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -6531,7 +6544,7 @@ representation of the field "base".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -6576,7 +6589,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -6599,7 +6612,7 @@ representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -6619,7 +6632,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -6642,7 +6655,7 @@ representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -6660,7 +6673,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -6706,8 +6719,8 @@ representation of the field "initializer".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DeclEnumeration::initializer - Sequence) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -6753,7 +6766,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DeclEnumeration::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -6796,7 +6810,7 @@ representation of the field "name".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -6839,7 +6853,7 @@ representation of the field "properties".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/38);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/38);
   stage_1 = {universal.get_file(),
              (an_ifc_reachable_properties_bitfield_storage)stage_0};
   result = stage_1;
@@ -6883,7 +6897,7 @@ representation of the field "specifiers".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/36);
   stage_1 = {universal.get_file(),
              (an_ifc_basic_specifiers_bitfield_storage)stage_0};
   result = stage_1;
@@ -6926,7 +6940,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -6973,7 +6987,7 @@ representation of the field "access".
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/21);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/21);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -7021,7 +7035,7 @@ representation of the field "home_scope".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the obtained index to retrieve the appropriate instance of
        TypeDesignated (the type tag should have been prechecked by validation).
@@ -7031,7 +7045,7 @@ representation of the field "home_scope".
        storage. */
     static_assert(sizeof(stage_3) == 4,
                   "stage_3 is not properly sized storage!");
-    copy_ifc_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
     stage_4 = to_universal_index(stage_2.get_file(), stage_3);
     if (stage_4.sort == ifc_ds_decl_specialization) {
       stage_5 = TRUE;
@@ -7054,7 +7068,7 @@ representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_6_2) == 4,
                     "stage_6_2 is not properly sized storage!");
-      copy_ifc_field(&stage_6_2, stage_6_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_6_2, stage_6_1.get_storage(), /*offset=*/4);
       stage_6_3 = to_universal_index(stage_6_1.get_file(), stage_6_2);
       stage_6 = stage_6_3;
     } else {
@@ -7077,7 +7091,7 @@ representation of the field "home_scope".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the obtained index to retrieve the appropriate instance of
        TypeDesignated (the type tag should have been prechecked by validation).
@@ -7087,7 +7101,7 @@ representation of the field "home_scope".
        storage. */
     static_assert(sizeof(stage_3) == 4,
                   "stage_3 is not properly sized storage!");
-    copy_ifc_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
     stage_4 = to_universal_index(stage_2.get_file(), stage_3);
     if (stage_4.sort == ifc_ds_decl_specialization) {
       stage_5 = TRUE;
@@ -7110,7 +7124,7 @@ representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_6_2) == 4,
                     "stage_6_2 is not properly sized storage!");
-      copy_ifc_field(&stage_6_2, stage_6_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_6_2, stage_6_1.get_storage(), /*offset=*/4);
       stage_6_3 = to_universal_index(stage_6_1.get_file(), stage_6_2);
       stage_6 = stage_6_3;
     } else {
@@ -7131,7 +7145,7 @@ representation of the field "home_scope".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the obtained index to retrieve the appropriate instance of
        TypeDesignated (the type tag should have been prechecked by validation).
@@ -7141,7 +7155,7 @@ representation of the field "home_scope".
        storage. */
     static_assert(sizeof(stage_3) == 4,
                   "stage_3 is not properly sized storage!");
-    copy_ifc_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
     stage_4 = to_universal_index(stage_2.get_file(), stage_3);
     result = stage_4;
   }  /* if */
@@ -7185,7 +7199,7 @@ representation of the field "initializer".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -7196,7 +7210,7 @@ representation of the field "initializer".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -7242,7 +7256,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DeclEnumerator::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -7285,7 +7300,7 @@ representation of the field "name".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -7328,7 +7343,7 @@ representation of the field "specifiers".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
   stage_1 = {universal.get_file(),
              (an_ifc_basic_specifiers_bitfield_storage)stage_0};
   result = stage_1;
@@ -7371,7 +7386,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -7421,7 +7436,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DeclExpansion::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -7465,7 +7481,7 @@ representation of the field "operand".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -7476,7 +7492,7 @@ representation of the field "operand".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -7487,7 +7503,7 @@ representation of the field "operand".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -7538,7 +7554,7 @@ universal representation of the field "decl".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -7583,7 +7599,7 @@ universal representation of the field "form".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_offset(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -7633,7 +7649,7 @@ universal representation of the field "decl".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -7678,7 +7694,7 @@ universal representation of the field "form".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_offset(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -7725,7 +7741,7 @@ representation of the field "access".
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/30);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/30);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -7768,7 +7784,7 @@ representation of the field "alignment".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -7779,7 +7795,7 @@ representation of the field "alignment".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -7825,7 +7841,7 @@ representation of the field "home_scope".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -7848,7 +7864,7 @@ representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -7868,7 +7884,7 @@ representation of the field "home_scope".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -7891,7 +7907,7 @@ representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -7909,7 +7925,7 @@ representation of the field "home_scope".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -7953,7 +7969,7 @@ representation of the field "initializer".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -7964,7 +7980,7 @@ representation of the field "initializer".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -8010,7 +8026,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DeclField::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -8053,7 +8070,7 @@ representation of the field "name".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -8096,7 +8113,7 @@ representation of the field "properties".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/31);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/31);
   stage_1 = {universal.get_file(),
              (an_ifc_reachable_properties_bitfield_storage)stage_0};
   result = stage_1;
@@ -8140,7 +8157,7 @@ representation of the field "specifiers".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/29);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/29);
   stage_1 = {universal.get_file(),
              (an_ifc_basic_specifiers_bitfield_storage)stage_0};
   result = stage_1;
@@ -8184,7 +8201,7 @@ representation of the field "traits".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28);
   stage_1 = {universal.get_file(),
              (an_ifc_object_traits_bitfield_storage)stage_0};
   result = stage_1;
@@ -8227,7 +8244,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -8275,7 +8292,7 @@ representation of the field "entity".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -8286,7 +8303,7 @@ representation of the field "entity".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -8334,7 +8351,7 @@ representation of the field "access".
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/27);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/27);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -8376,7 +8393,7 @@ representation of the field "chart".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -8421,7 +8438,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -8444,7 +8461,7 @@ representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -8464,7 +8481,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -8487,7 +8504,7 @@ representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -8505,7 +8522,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -8551,7 +8568,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DeclFunction::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -8594,7 +8612,7 @@ representation of the field "name".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -8637,7 +8655,7 @@ representation of the field "properties".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28);
   stage_1 = {universal.get_file(),
              (an_ifc_reachable_properties_bitfield_storage)stage_0};
   result = stage_1;
@@ -8681,7 +8699,7 @@ representation of the field "specifiers".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/26);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/26);
   stage_1 = {universal.get_file(),
              (an_ifc_basic_specifiers_bitfield_storage)stage_0};
   result = stage_1;
@@ -8725,7 +8743,7 @@ representation of the field "traits".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
   stage_1 = {universal.get_file(),
              (an_ifc_function_traits_bitfield_storage)stage_0};
   result = stage_1;
@@ -8768,7 +8786,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -8816,7 +8834,7 @@ universal representation of the field "access".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/27);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/27);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -8860,7 +8878,7 @@ universal representation of the field "base_ctor".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -8871,7 +8889,7 @@ universal representation of the field "base_ctor".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -8882,7 +8900,7 @@ universal representation of the field "base_ctor".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -8926,7 +8944,7 @@ universal representation of the field "chart".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -8973,7 +8991,7 @@ universal representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -8996,7 +9014,7 @@ universal representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -9016,7 +9034,7 @@ universal representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -9039,7 +9057,7 @@ universal representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -9057,7 +9075,7 @@ universal representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -9104,7 +9122,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DeclInheritedConstructor::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -9148,7 +9167,7 @@ universal representation of the field "name".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -9192,7 +9211,7 @@ universal representation of the field "specifiers".
      BasicSpecifiersBitfield) into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/26);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/26);
   stage_1 = {universal.get_file(),
              (an_ifc_basic_specifiers_bitfield_storage)stage_0};
   result = stage_1;
@@ -9236,7 +9255,7 @@ universal representation of the field "traits".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
   stage_1 = {universal.get_file(),
              (an_ifc_function_traits_bitfield_storage)stage_0};
   result = stage_1;
@@ -9280,7 +9299,7 @@ universal representation of the field "type".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -9327,7 +9346,7 @@ representation of the field "access".
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/21);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/21);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -9372,7 +9391,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -9395,7 +9414,7 @@ representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -9415,7 +9434,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -9438,7 +9457,7 @@ representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -9456,7 +9475,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -9502,7 +9521,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DeclIntrinsic::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -9545,7 +9565,7 @@ representation of the field "name".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -9588,7 +9608,7 @@ representation of the field "specifiers".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
   stage_1 = {universal.get_file(),
              (an_ifc_basic_specifiers_bitfield_storage)stage_0};
   result = stage_1;
@@ -9631,7 +9651,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -9678,7 +9698,7 @@ representation of the field "access".
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/27);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/27);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -9720,7 +9740,7 @@ representation of the field "chart".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -9765,7 +9785,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -9788,7 +9808,7 @@ representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -9808,7 +9828,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -9831,7 +9851,7 @@ representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -9849,7 +9869,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -9895,7 +9915,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DeclMethod::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -9938,7 +9959,7 @@ representation of the field "name".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -9981,7 +10002,7 @@ representation of the field "properties".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28);
   stage_1 = {universal.get_file(),
              (an_ifc_reachable_properties_bitfield_storage)stage_0};
   result = stage_1;
@@ -10025,7 +10046,7 @@ representation of the field "specifiers".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/26);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/26);
   stage_1 = {universal.get_file(),
              (an_ifc_basic_specifiers_bitfield_storage)stage_0};
   result = stage_1;
@@ -10069,7 +10090,7 @@ representation of the field "traits".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
   stage_1 = {universal.get_file(),
              (an_ifc_function_traits_bitfield_storage)stage_0};
   result = stage_1;
@@ -10112,7 +10133,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -10159,7 +10180,7 @@ representation of the field "ID".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -10201,7 +10222,7 @@ representation of the field "name".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -10244,7 +10265,7 @@ representation of the field "traits".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = {universal.get_file(), (an_ifc_segment_traits_storage)stage_0};
   result = stage_1;
   return result;
@@ -10286,7 +10307,7 @@ representation of the field "type".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = {universal.get_file(), (an_ifc_segment_type_storage)stage_0};
   result = stage_1;
   return result;
@@ -10334,7 +10355,7 @@ representation of the field "constraint".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -10345,7 +10366,7 @@ representation of the field "constraint".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -10389,7 +10410,7 @@ representation of the field "init_decl".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
   stage_1 = to_universal_offset(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -10434,7 +10455,7 @@ representation of the field "initializer".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -10445,7 +10466,7 @@ representation of the field "initializer".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -10488,7 +10509,7 @@ representation of the field "level".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
   stage_1 = {universal.get_file(), (an_ifc_parameter_level_storage)stage_0};
   result = stage_1;
   return result;
@@ -10533,7 +10554,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DeclParameter::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -10576,7 +10598,7 @@ representation of the field "name".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -10620,7 +10642,7 @@ representation of the field "pack".
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/34);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/34);
   stage_1 = {universal.get_file(), (an_ifc_bool_storage)stage_0};
   result = stage_1;
   return result;
@@ -10663,7 +10685,7 @@ representation of the field "position".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28);
   stage_1 = {universal.get_file(),
              (an_ifc_parameter_position_storage)stage_0};
   result = stage_1;
@@ -10707,7 +10729,7 @@ representation of the field "properties".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/33);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/33);
   stage_1 = {universal.get_file(),
              (an_ifc_reachable_properties_bitfield_storage)stage_0};
   result = stage_1;
@@ -10750,7 +10772,7 @@ representation of the field "sort".
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/32);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -10792,7 +10814,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -10840,7 +10862,7 @@ universal representation of the field "access".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/41);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/41);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -10883,7 +10905,7 @@ universal representation of the field "chart".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -10930,8 +10952,8 @@ universal representation of the field "entity".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DeclPartialSpecialization::entity - ParameterizedEntity)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
-                 /*size=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                       /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -10975,7 +10997,7 @@ universal representation of the field "form".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/36);
   stage_1 = to_universal_offset(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -11027,15 +11049,15 @@ universal representation of the field "home_scope".
 #else /* !USE_MMAP_FOR_MODULES */
     /* Copy the field (DeclPartialSpecialization::entity - ParameterizedEntity)
        into universal storage. */
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
-                   /*size=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                         /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
     stage_1 = {universal.get_file(), stage_0};
     /* Copy the field (ParameterizedEntity::decl - DeclIndex) into
        version-specific storage. */
     static_assert(sizeof(stage_2) == 4,
                   "stage_2 is not properly sized storage!");
-    copy_ifc_field(&stage_2, stage_1.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_2, stage_1.get_storage(), /*offset=*/0);
     stage_3 = to_universal_index(stage_1.get_file(), stage_2);
     stage_4 = get_ifc_home_scope(stage_3);
     result = stage_4;
@@ -11054,15 +11076,15 @@ universal representation of the field "home_scope".
 #else /* !USE_MMAP_FOR_MODULES */
     /* Copy the field (DeclPartialSpecialization::entity - ParameterizedEntity)
        into universal storage. */
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
-                   /*size=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                         /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
     stage_1 = {universal.get_file(), stage_0};
     /* Copy the field (ParameterizedEntity::decl - DeclIndex) into
        version-specific storage. */
     static_assert(sizeof(stage_2) == 4,
                   "stage_2 is not properly sized storage!");
-    copy_ifc_field(&stage_2, stage_1.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_2, stage_1.get_storage(), /*offset=*/0);
     stage_3 = to_universal_index(stage_1.get_file(), stage_2);
     stage_4 = get_ifc_home_scope(stage_3);
     result = stage_4;
@@ -11081,15 +11103,15 @@ universal representation of the field "home_scope".
 #else /* !USE_MMAP_FOR_MODULES */
     /* Copy the field (DeclPartialSpecialization::entity - ParameterizedEntity)
        into universal storage. */
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
-                   /*size=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                         /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
     stage_1 = {universal.get_file(), stage_0};
     /* Copy the field (ParameterizedEntity::decl - DeclIndex) into
        version-specific storage. */
     static_assert(sizeof(stage_2) == 4,
                   "stage_2 is not properly sized storage!");
-    copy_ifc_field(&stage_2, stage_1.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_2, stage_1.get_storage(), /*offset=*/0);
     stage_3 = to_universal_index(stage_1.get_file(), stage_2);
     stage_4 = get_ifc_home_scope(stage_3);
     result = stage_4;
@@ -11137,7 +11159,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DeclPartialSpecialization::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -11225,7 +11248,7 @@ universal representation of the field "primary_template".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/36);
     stage_1 = to_universal_offset(universal.get_file(), stage_0);
     /* Use the obtained offset to retrieve the appropriate instance of
        FormSpec.  Then, retrieve and return the desired value held by the field
@@ -11235,7 +11258,7 @@ universal representation of the field "primary_template".
        version-specific storage. */
     static_assert(sizeof(stage_3) == 4,
                   "stage_3 is not properly sized storage!");
-    copy_ifc_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
     stage_4 = to_universal_index(stage_2.get_file(), stage_3);
     result = stage_4;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -11249,7 +11272,7 @@ universal representation of the field "primary_template".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/36);
     stage_1 = to_universal_offset(universal.get_file(), stage_0);
     /* Use the obtained offset to retrieve the appropriate instance of
        FormSpec.  Then, retrieve and return the desired value held by the field
@@ -11259,7 +11282,7 @@ universal representation of the field "primary_template".
        version-specific storage. */
     static_assert(sizeof(stage_3) == 4,
                   "stage_3 is not properly sized storage!");
-    copy_ifc_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
     stage_4 = to_universal_index(stage_2.get_file(), stage_3);
     result = stage_4;
   } else {
@@ -11273,7 +11296,7 @@ universal representation of the field "primary_template".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/36);
     stage_1 = to_universal_offset(universal.get_file(), stage_0);
     /* Use the obtained offset to retrieve the appropriate instance of
        FormSpec.  Then, retrieve and return the desired value held by the field
@@ -11283,7 +11306,7 @@ universal representation of the field "primary_template".
        version-specific storage. */
     static_assert(sizeof(stage_3) == 4,
                   "stage_3 is not properly sized storage!");
-    copy_ifc_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
     stage_4 = to_universal_index(stage_2.get_file(), stage_3);
     result = stage_4;
   }  /* if */
@@ -11328,7 +11351,7 @@ universal representation of the field "properties".
      ReachablePropertiesBitfield) into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/42);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/42);
   stage_1 = {universal.get_file(),
              (an_ifc_reachable_properties_bitfield_storage)stage_0};
   result = stage_1;
@@ -11373,7 +11396,7 @@ universal representation of the field "specifiers".
      BasicSpecifiersBitfield) into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/40);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/40);
   stage_1 = {universal.get_file(),
              (an_ifc_basic_specifiers_bitfield_storage)stage_0};
   result = stage_1;
@@ -11421,7 +11444,7 @@ representation of the field "getter".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -11464,7 +11487,7 @@ representation of the field "member".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -11475,7 +11498,7 @@ representation of the field "member".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -11486,7 +11509,7 @@ representation of the field "member".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -11529,7 +11552,7 @@ representation of the field "setter".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -11583,7 +11606,8 @@ representation of the field "index".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DeclReference::unit - ModuleReference) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   stage_2 = get_module(stage_1);
@@ -11591,7 +11615,7 @@ representation of the field "index".
      version-specific storage. */
   static_assert(sizeof(stage_3) == 4,
                 "stage_3 is not properly sized storage!");
-  copy_ifc_field(&stage_3, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_3, universal.get_storage(), /*offset=*/8);
   stage_4 = {universal.get_file(),
              (an_ifc_decl_foreign_index_storage)stage_3};
   stage_5 = to_universal_index(stage_2, stage_4);
@@ -11636,7 +11660,7 @@ representation of the field "local_index".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = {universal.get_file(),
              (an_ifc_decl_foreign_index_storage)stage_0};
   result = stage_1;
@@ -11682,7 +11706,8 @@ representation of the field "unit".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DeclReference::unit - ModuleReference) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -11730,7 +11755,7 @@ representation of the field "access".
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/36);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -11773,7 +11798,7 @@ representation of the field "alignment".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -11784,7 +11809,7 @@ representation of the field "alignment".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -11827,7 +11852,7 @@ representation of the field "base".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -11872,7 +11897,7 @@ representation of the field "home_scope".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -11895,7 +11920,7 @@ representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -11915,7 +11940,7 @@ representation of the field "home_scope".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -11938,7 +11963,7 @@ representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -11956,7 +11981,7 @@ representation of the field "home_scope".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -11999,7 +12024,7 @@ representation of the field "initializer".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
   stage_1 = to_universal_offset(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -12044,7 +12069,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DeclScope::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -12087,7 +12113,7 @@ representation of the field "name".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -12129,7 +12155,7 @@ representation of the field "pack_size".
      storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/32);
   stage_1 = {universal.get_file(), (an_ifc_pack_size_storage)stage_0};
   result = stage_1;
   return result;
@@ -12172,7 +12198,7 @@ representation of the field "properties".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/37);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/37);
   stage_1 = {universal.get_file(),
              (an_ifc_reachable_properties_bitfield_storage)stage_0};
   result = stage_1;
@@ -12216,7 +12242,7 @@ representation of the field "specifiers".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/34);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/34);
   stage_1 = {universal.get_file(),
              (an_ifc_basic_specifiers_bitfield_storage)stage_0};
   result = stage_1;
@@ -12259,7 +12285,7 @@ representation of the field "traits".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/35);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/35);
   stage_1 = {universal.get_file(),
              (an_ifc_scope_traits_bitfield_storage)stage_0};
   result = stage_1;
@@ -12302,7 +12328,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -12350,7 +12376,7 @@ representation of the field "decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -12361,7 +12387,7 @@ representation of the field "decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -12405,7 +12431,7 @@ representation of the field "form".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_offset(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -12450,7 +12476,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     stage_2 = get_ifc_home_scope(stage_1);
     result = stage_2;
@@ -12463,7 +12489,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     stage_2 = get_ifc_home_scope(stage_1);
     result = stage_2;
@@ -12510,7 +12536,7 @@ representation of the field "locus".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     stage_2 = get_ifc_locus(stage_1);
     result = stage_2;
@@ -12523,7 +12549,7 @@ representation of the field "locus".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     stage_2 = get_ifc_locus(stage_1);
     result = stage_2;
@@ -12610,7 +12636,7 @@ representation of the field "primary_template".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_offset(universal.get_file(), stage_0);
     /* Use the obtained offset to retrieve the appropriate instance of
        FormSpec.  Then, retrieve and return the desired value held by the field
@@ -12620,7 +12646,7 @@ representation of the field "primary_template".
        version-specific storage. */
     static_assert(sizeof(stage_3) == 4,
                   "stage_3 is not properly sized storage!");
-    copy_ifc_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
     stage_4 = to_universal_index(stage_2.get_file(), stage_3);
     result = stage_4;
   } else {
@@ -12634,7 +12660,7 @@ representation of the field "primary_template".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_offset(universal.get_file(), stage_0);
     /* Use the obtained offset to retrieve the appropriate instance of
        FormSpec.  Then, retrieve and return the desired value held by the field
@@ -12644,7 +12670,7 @@ representation of the field "primary_template".
        version-specific storage. */
     static_assert(sizeof(stage_3) == 4,
                   "stage_3 is not properly sized storage!");
-    copy_ifc_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_3, stage_2.get_storage(), /*offset=*/0);
     stage_4 = to_universal_index(stage_2.get_file(), stage_3);
     result = stage_4;
   }  /* if */
@@ -12688,7 +12714,7 @@ representation of the field "sort".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -12735,7 +12761,7 @@ representation of the field "syntax".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -12782,7 +12808,7 @@ representation of the field "access".
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/41);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/41);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -12824,7 +12850,7 @@ representation of the field "chart".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -12871,8 +12897,8 @@ representation of the field "entity".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DeclTemplate::entity - ParameterizedEntity) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
-                 /*size=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                       /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -12918,7 +12944,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -12941,7 +12967,7 @@ representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -12961,7 +12987,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -12984,7 +13010,7 @@ representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -13002,7 +13028,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -13048,7 +13074,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DeclTemplate::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -13100,15 +13127,15 @@ representation of the field "name".
 #else /* !USE_MMAP_FOR_MODULES */
     /* Copy the field (DeclTemplate::entity - ParameterizedEntity) into
        universal storage. */
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
-                   /*size=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                         /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
     stage_1 = {universal.get_file(), stage_0};
     /* Copy the field (ParameterizedEntity::decl - DeclIndex) into
        version-specific storage. */
     static_assert(sizeof(stage_2) == 4,
                   "stage_2 is not properly sized storage!");
-    copy_ifc_field(&stage_2, stage_1.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_2, stage_1.get_storage(), /*offset=*/0);
     stage_3 = to_universal_index(stage_1.get_file(), stage_2);
     if (stage_3.sort == ifc_ds_decl_constructor) {
       stage_4 = TRUE;
@@ -13132,15 +13159,15 @@ representation of the field "name".
 #else /* !USE_MMAP_FOR_MODULES */
       /* Copy the field (DeclTemplate::entity - ParameterizedEntity) into
          universal storage. */
-      copy_ifc_field(&stage_5_0, universal.get_storage(), /*offset=*/20,
-                     /*size=*/16);
+      copy_from_node_field(&stage_5_0, universal.get_storage(), /*offset=*/20,
+                           /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
       stage_5_1 = {universal.get_file(), stage_5_0};
       /* Copy the field (ParameterizedEntity::decl - DeclIndex) into
          version-specific storage. */
       static_assert(sizeof(stage_5_2) == 4,
                     "stage_5_2 is not properly sized storage!");
-      copy_ifc_field(&stage_5_2, stage_5_1.get_storage(), /*offset=*/0);
+      copy_from_node_field(&stage_5_2, stage_5_1.get_storage(), /*offset=*/0);
       stage_5_3 = to_universal_index(stage_5_1.get_file(), stage_5_2);
       stage_5_4 = get_ifc_name(stage_5_3);
       stage_5 = stage_5_4;
@@ -13152,7 +13179,7 @@ representation of the field "name".
          storage. */
       static_assert(sizeof(stage_5_0) == 4,
                     "stage_5_0 is not properly sized storage!");
-      copy_ifc_field(&stage_5_0, universal.get_storage(), /*offset=*/0);
+      copy_from_node_field(&stage_5_0, universal.get_storage(), /*offset=*/0);
       stage_5_1 = to_universal_index(universal.get_file(), stage_5_0);
       stage_5 = stage_5_1;
     }  /* if */
@@ -13173,15 +13200,15 @@ representation of the field "name".
 #else /* !USE_MMAP_FOR_MODULES */
     /* Copy the field (DeclTemplate::entity - ParameterizedEntity) into
        universal storage. */
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
-                   /*size=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                         /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
     stage_1 = {universal.get_file(), stage_0};
     /* Copy the field (ParameterizedEntity::decl - DeclIndex) into
        version-specific storage. */
     static_assert(sizeof(stage_2) == 4,
                   "stage_2 is not properly sized storage!");
-    copy_ifc_field(&stage_2, stage_1.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_2, stage_1.get_storage(), /*offset=*/0);
     stage_3 = to_universal_index(stage_1.get_file(), stage_2);
     if (stage_3.sort == ifc_ds_decl_constructor) {
       stage_4 = TRUE;
@@ -13205,15 +13232,15 @@ representation of the field "name".
 #else /* !USE_MMAP_FOR_MODULES */
       /* Copy the field (DeclTemplate::entity - ParameterizedEntity) into
          universal storage. */
-      copy_ifc_field(&stage_5_0, universal.get_storage(), /*offset=*/20,
-                     /*size=*/16);
+      copy_from_node_field(&stage_5_0, universal.get_storage(), /*offset=*/20,
+                           /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
       stage_5_1 = {universal.get_file(), stage_5_0};
       /* Copy the field (ParameterizedEntity::decl - DeclIndex) into
          version-specific storage. */
       static_assert(sizeof(stage_5_2) == 4,
                     "stage_5_2 is not properly sized storage!");
-      copy_ifc_field(&stage_5_2, stage_5_1.get_storage(), /*offset=*/0);
+      copy_from_node_field(&stage_5_2, stage_5_1.get_storage(), /*offset=*/0);
       stage_5_3 = to_universal_index(stage_5_1.get_file(), stage_5_2);
       stage_5_4 = get_ifc_name(stage_5_3);
       stage_5 = stage_5_4;
@@ -13225,7 +13252,7 @@ representation of the field "name".
          storage. */
       static_assert(sizeof(stage_5_0) == 4,
                     "stage_5_0 is not properly sized storage!");
-      copy_ifc_field(&stage_5_0, universal.get_storage(), /*offset=*/0);
+      copy_from_node_field(&stage_5_0, universal.get_storage(), /*offset=*/0);
       stage_5_1 = to_universal_index(universal.get_file(), stage_5_0);
       stage_5 = stage_5_1;
     }  /* if */
@@ -13246,15 +13273,15 @@ representation of the field "name".
 #else /* !USE_MMAP_FOR_MODULES */
     /* Copy the field (DeclTemplate::entity - ParameterizedEntity) into
        universal storage. */
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
-                   /*size=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                         /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
     stage_1 = {universal.get_file(), stage_0};
     /* Copy the field (ParameterizedEntity::decl - DeclIndex) into
        version-specific storage. */
     static_assert(sizeof(stage_2) == 4,
                   "stage_2 is not properly sized storage!");
-    copy_ifc_field(&stage_2, stage_1.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_2, stage_1.get_storage(), /*offset=*/0);
     stage_3 = to_universal_index(stage_1.get_file(), stage_2);
     if (stage_3.sort == ifc_ds_decl_constructor) {
       stage_4 = TRUE;
@@ -13278,15 +13305,15 @@ representation of the field "name".
 #else /* !USE_MMAP_FOR_MODULES */
       /* Copy the field (DeclTemplate::entity - ParameterizedEntity) into
          universal storage. */
-      copy_ifc_field(&stage_5_0, universal.get_storage(), /*offset=*/20,
-                     /*size=*/16);
+      copy_from_node_field(&stage_5_0, universal.get_storage(), /*offset=*/20,
+                           /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
       stage_5_1 = {universal.get_file(), stage_5_0};
       /* Copy the field (ParameterizedEntity::decl - DeclIndex) into
          version-specific storage. */
       static_assert(sizeof(stage_5_2) == 4,
                     "stage_5_2 is not properly sized storage!");
-      copy_ifc_field(&stage_5_2, stage_5_1.get_storage(), /*offset=*/0);
+      copy_from_node_field(&stage_5_2, stage_5_1.get_storage(), /*offset=*/0);
       stage_5_3 = to_universal_index(stage_5_1.get_file(), stage_5_2);
       stage_5_4 = get_ifc_name(stage_5_3);
       stage_5 = stage_5_4;
@@ -13298,7 +13325,7 @@ representation of the field "name".
          storage. */
       static_assert(sizeof(stage_5_0) == 4,
                     "stage_5_0 is not properly sized storage!");
-      copy_ifc_field(&stage_5_0, universal.get_storage(), /*offset=*/0);
+      copy_from_node_field(&stage_5_0, universal.get_storage(), /*offset=*/0);
       stage_5_1 = to_universal_index(universal.get_file(), stage_5_0);
       stage_5 = stage_5_1;
     }  /* if */
@@ -13344,7 +13371,7 @@ representation of the field "properties".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/42);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/42);
   stage_1 = {universal.get_file(),
              (an_ifc_reachable_properties_bitfield_storage)stage_0};
   result = stage_1;
@@ -13388,7 +13415,7 @@ representation of the field "specifiers".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/40);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/40);
   stage_1 = {universal.get_file(),
              (an_ifc_basic_specifiers_bitfield_storage)stage_0};
   result = stage_1;
@@ -13431,7 +13458,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/36);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -13478,7 +13505,7 @@ representation of the field "chart".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -13525,8 +13552,8 @@ representation of the field "entity".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DeclTemploid::entity - ParameterizedEntity) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
-                 /*size=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/16);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -13570,7 +13597,7 @@ representation of the field "properties".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
   stage_1 = {universal.get_file(),
              (an_ifc_reachable_properties_bitfield_storage)stage_0};
   result = stage_1;
@@ -13618,7 +13645,7 @@ representation of the field "cardinality".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = {universal.get_file(), (an_ifc_cardinality_storage)stage_0};
   result = stage_1;
   return result;
@@ -13660,7 +13687,7 @@ representation of the field "start".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -13708,7 +13735,7 @@ universal representation of the field "access".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/29);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/29);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -13750,7 +13777,7 @@ universal representation of the field "hidden".
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/30);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/30);
   stage_1 = {universal.get_file(), (an_ifc_bool_storage)stage_0};
   result = stage_1;
   return result;
@@ -13796,7 +13823,7 @@ universal representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -13819,7 +13846,7 @@ universal representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -13839,7 +13866,7 @@ universal representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -13862,7 +13889,7 @@ universal representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -13880,7 +13907,7 @@ universal representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -13927,7 +13954,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DeclUsingDeclaration::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -13970,7 +13998,7 @@ universal representation of the field "name".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -14013,7 +14041,7 @@ universal representation of the field "name2".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -14057,7 +14085,7 @@ universal representation of the field "parent".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -14068,7 +14096,7 @@ universal representation of the field "parent".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -14113,7 +14141,7 @@ universal representation of the field "resolution".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -14124,7 +14152,7 @@ universal representation of the field "resolution".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -14135,7 +14163,7 @@ universal representation of the field "resolution".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -14179,7 +14207,7 @@ universal representation of the field "specifiers".
      BasicSpecifiersBitfield) into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28);
   stage_1 = {universal.get_file(),
              (an_ifc_basic_specifiers_bitfield_storage)stage_0};
   result = stage_1;
@@ -14227,7 +14255,7 @@ representation of the field "access".
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/30);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/30);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -14270,7 +14298,7 @@ representation of the field "alignment".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -14281,7 +14309,7 @@ representation of the field "alignment".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -14327,7 +14355,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -14350,7 +14378,7 @@ representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -14370,7 +14398,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     if (stage_1.sort == ifc_ds_decl_specialization) {
       stage_2 = TRUE;
@@ -14393,7 +14421,7 @@ representation of the field "home_scope".
          version-specific storage. */
       static_assert(sizeof(stage_3_2) == 4,
                     "stage_3_2 is not properly sized storage!");
-      copy_ifc_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
+      copy_from_node_field(&stage_3_2, stage_3_1.get_storage(), /*offset=*/4);
       stage_3_3 = to_universal_index(stage_3_1.get_file(), stage_3_2);
       stage_3 = stage_3_3;
     } else {
@@ -14411,7 +14439,7 @@ representation of the field "home_scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -14455,7 +14483,7 @@ representation of the field "initializer".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -14466,7 +14494,7 @@ representation of the field "initializer".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -14512,7 +14540,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DeclVariable::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -14555,7 +14584,7 @@ representation of the field "name".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -14598,7 +14627,7 @@ representation of the field "properties".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/31);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/31);
   stage_1 = {universal.get_file(),
              (an_ifc_reachable_properties_bitfield_storage)stage_0};
   result = stage_1;
@@ -14642,7 +14671,7 @@ representation of the field "specifiers".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/29);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/29);
   stage_1 = {universal.get_file(),
              (an_ifc_basic_specifiers_bitfield_storage)stage_0};
   result = stage_1;
@@ -14686,7 +14715,7 @@ representation of the field "traits".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28);
   stage_1 = {universal.get_file(),
              (an_ifc_object_traits_bitfield_storage)stage_0};
   result = stage_1;
@@ -14729,7 +14758,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -14776,7 +14805,7 @@ representation of the field "attr".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -14821,7 +14850,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DirAttribute::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -14872,7 +14902,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DirDeclUse::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -14915,7 +14946,7 @@ representation of the field "path".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -14957,7 +14988,7 @@ representation of the field "result".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -15007,7 +15038,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DirEmpty::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -15055,7 +15087,7 @@ representation of the field "expr".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -15100,7 +15132,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DirExpr::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -15143,7 +15176,7 @@ representation of the field "phases".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = {universal.get_file(), (an_ifc_phases_bitfield_storage)stage_0};
   result = stage_1;
   return result;
@@ -15193,7 +15226,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DirPragma::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -15236,7 +15270,7 @@ representation of the field "words".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = {universal.get_file(), (an_ifc_sentence_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -15283,7 +15317,7 @@ representation of the field "cardinality".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = {universal.get_file(), (an_ifc_cardinality_storage)stage_0};
   result = stage_1;
   return result;
@@ -15324,7 +15358,7 @@ representation of the field "start".
   /* Copy the field (DirTuple::start - Index) into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -15374,7 +15408,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (DirUsing::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -15417,7 +15452,7 @@ representation of the field "nominated".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -15459,7 +15494,7 @@ representation of the field "resolution".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -15509,7 +15544,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprAlignof::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -15552,7 +15588,7 @@ representation of the field "operand".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -15594,7 +15630,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -15642,7 +15678,7 @@ representation of the field "element_type".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -15685,7 +15721,7 @@ representation of the field "elements".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -15696,7 +15732,7 @@ representation of the field "elements".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -15742,7 +15778,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprArrayValue::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -15785,7 +15822,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -15836,7 +15873,8 @@ universal representation of the field "equal".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprAssignInitializer::equal - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -15881,7 +15919,7 @@ universal representation of the field "initializer".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -15892,7 +15930,7 @@ universal representation of the field "initializer".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -15941,7 +15979,7 @@ representation of the field "associativity".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/22);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/22);
   stage_1 = {universal.get_file(), (an_ifc_associativity_storage)stage_0};
   result = stage_1;
   return result;
@@ -15984,7 +16022,7 @@ representation of the field "left".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -15995,7 +16033,7 @@ representation of the field "left".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -16041,7 +16079,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprBinaryFold::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -16086,7 +16125,7 @@ representation of the field "operation".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_sort(stage_0);
     result = stage_1;
   } else {
@@ -16097,7 +16136,7 @@ representation of the field "operation".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_sort(stage_0);
     result = stage_1;
   }  /* if */
@@ -16141,7 +16180,7 @@ representation of the field "right".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -16152,7 +16191,7 @@ representation of the field "right".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -16195,7 +16234,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -16243,7 +16282,7 @@ representation of the field "arguments".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -16254,7 +16293,7 @@ representation of the field "arguments".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -16300,7 +16339,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprCall::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -16344,7 +16384,7 @@ representation of the field "operation".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -16355,7 +16395,7 @@ representation of the field "operation".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -16398,7 +16438,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -16448,7 +16488,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprCast::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -16492,7 +16533,7 @@ representation of the field "op".
        storage. */
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_sort(stage_0);
     result = stage_1;
   } else {
@@ -16503,7 +16544,7 @@ representation of the field "op".
        storage. */
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_sort(stage_0);
     result = stage_1;
   }  /* if */
@@ -16547,7 +16588,7 @@ representation of the field "source".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -16558,7 +16599,7 @@ representation of the field "source".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -16601,7 +16642,7 @@ representation of the field "target".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -16643,7 +16684,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -16694,7 +16735,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprCompoundString::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -16737,7 +16779,7 @@ representation of the field "prefix".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -16780,7 +16822,7 @@ representation of the field "string".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -16791,7 +16833,7 @@ representation of the field "string".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -16834,7 +16876,7 @@ representation of the field "type".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -16882,7 +16924,7 @@ representation of the field "expr".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -16893,7 +16935,7 @@ representation of the field "expr".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -16939,7 +16981,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprCondition::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -16982,7 +17025,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -17032,7 +17075,7 @@ universal representation of the field "initializer".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -17043,7 +17086,7 @@ universal representation of the field "initializer".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -17090,7 +17133,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprDesignatedInitializer::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -17134,7 +17178,7 @@ universal representation of the field "member".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -17177,7 +17221,7 @@ universal representation of the field "type".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -17225,7 +17269,7 @@ representation of the field "cleanup".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
   stage_1 = {universal.get_file(), (an_ifc_destructor_sort_storage)stage_0};
   result = stage_1;
   return result;
@@ -17270,7 +17314,7 @@ representation of the field "decltype_specifier".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -17316,7 +17360,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprDestructorCall::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -17360,7 +17405,7 @@ representation of the field "name".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -17371,7 +17416,7 @@ representation of the field "name".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -17414,7 +17459,7 @@ representation of the field "type".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -17462,7 +17507,7 @@ representation of the field "argument_0".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -17473,7 +17518,7 @@ representation of the field "argument_0".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -17517,7 +17562,7 @@ representation of the field "argument_1".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -17528,7 +17573,7 @@ representation of the field "argument_1".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -17572,7 +17617,7 @@ representation of the field "assoc".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
     stage_1 = to_universal_sort(stage_0);
     result = stage_1;
   } else {
@@ -17583,7 +17628,7 @@ representation of the field "assoc".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
     stage_1 = to_universal_sort(stage_0);
     result = stage_1;
   }  /* if */
@@ -17627,7 +17672,7 @@ representation of the field "impl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -17638,7 +17683,7 @@ representation of the field "impl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -17649,7 +17694,7 @@ representation of the field "impl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -17695,7 +17740,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprDyad::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -17738,7 +17784,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -17789,7 +17835,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprDynamicDispatch::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -17833,7 +17880,7 @@ representation of the field "pivot".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -17844,7 +17891,7 @@ representation of the field "pivot".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -17887,7 +17934,7 @@ representation of the field "type".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -17937,7 +17984,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprEmpty::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -17980,7 +18028,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -18030,7 +18078,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprExpansion::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -18074,7 +18123,7 @@ representation of the field "operand".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -18085,7 +18134,7 @@ representation of the field "operand".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -18128,7 +18177,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -18177,7 +18226,7 @@ representation of the field "contents".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -18188,7 +18237,7 @@ representation of the field "contents".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -18232,7 +18281,7 @@ representation of the field "delimiter".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -18278,7 +18327,8 @@ representation of the field "left".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprExpressionList::left - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -18325,7 +18375,8 @@ representation of the field "right".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprExpressionList::right - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -18377,7 +18428,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprFunctionString::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -18420,7 +18472,7 @@ representation of the field "macro".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -18462,7 +18514,7 @@ representation of the field "type".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -18512,7 +18564,7 @@ universal representation of the field "inheritance".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -18523,7 +18575,7 @@ universal representation of the field "inheritance".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -18570,7 +18622,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprHierarchyConversion::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -18615,7 +18668,7 @@ universal representation of the field "op".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28);
     stage_1 = to_universal_sort(stage_0);
     result = stage_1;
   } else {
@@ -18626,7 +18679,7 @@ universal representation of the field "op".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28);
     stage_1 = to_universal_sort(stage_0);
     result = stage_1;
   }  /* if */
@@ -18671,7 +18724,7 @@ universal representation of the field "override".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -18682,7 +18735,7 @@ universal representation of the field "override".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -18727,7 +18780,7 @@ universal representation of the field "source".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -18738,7 +18791,7 @@ universal representation of the field "source".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -18782,7 +18835,7 @@ universal representation of the field "target".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -18825,7 +18878,7 @@ universal representation of the field "type".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -18876,7 +18929,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprInheritancePath::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -18920,7 +18974,7 @@ representation of the field "path".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -18931,7 +18985,7 @@ representation of the field "path".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -18974,7 +19028,7 @@ representation of the field "type".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -19022,7 +19076,7 @@ representation of the field "expr".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -19033,7 +19087,7 @@ representation of the field "expr".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -19079,7 +19133,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprInitializer::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -19122,7 +19177,7 @@ representation of the field "sort".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -19164,7 +19219,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -19213,7 +19268,7 @@ representation of the field "elements".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -19224,7 +19279,7 @@ representation of the field "elements".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -19271,7 +19326,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprInitializerList::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -19314,7 +19370,7 @@ representation of the field "type".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -19361,7 +19417,7 @@ representation of the field "designator".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -19406,7 +19462,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprLabel::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -19449,7 +19506,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -19496,7 +19553,7 @@ representation of the field "body".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -19538,7 +19595,7 @@ representation of the field "constraint".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -19580,7 +19637,7 @@ representation of the field "declarator".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -19622,7 +19679,7 @@ representation of the field "introducer".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -19666,7 +19723,7 @@ representation of the field "template_parameters".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -19716,7 +19773,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprLiteral::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -19759,7 +19817,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -19801,7 +19859,7 @@ representation of the field "value".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -19848,7 +19906,7 @@ representation of the field "enclosing".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -19894,7 +19952,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprMemberAccess::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -19937,7 +19996,7 @@ representation of the field "name".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -19980,7 +20039,7 @@ representation of the field "offset".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -19991,7 +20050,7 @@ representation of the field "offset".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -20034,7 +20093,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -20081,7 +20140,7 @@ universal representation of the field "base".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -20125,7 +20184,7 @@ universal representation of the field "initializer".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -20136,7 +20195,7 @@ universal representation of the field "initializer".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -20183,7 +20242,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprMemberInitializer::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -20228,7 +20288,7 @@ universal representation of the field "member".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -20239,7 +20299,7 @@ universal representation of the field "member".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -20250,7 +20310,7 @@ universal representation of the field "member".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -20293,7 +20353,7 @@ universal representation of the field "type".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -20341,7 +20401,7 @@ representation of the field "argument".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -20352,7 +20412,7 @@ representation of the field "argument".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -20396,7 +20456,7 @@ representation of the field "assoc".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_sort(stage_0);
     result = stage_1;
   } else {
@@ -20407,7 +20467,7 @@ representation of the field "assoc".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_sort(stage_0);
     result = stage_1;
   }  /* if */
@@ -20451,7 +20511,7 @@ representation of the field "impl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -20462,7 +20522,7 @@ representation of the field "impl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -20473,7 +20533,7 @@ representation of the field "impl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -20519,7 +20579,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprMonad::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -20562,7 +20623,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -20612,7 +20673,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprNamedDecl::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -20656,7 +20718,7 @@ representation of the field "resolution".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -20667,7 +20729,7 @@ representation of the field "resolution".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -20678,7 +20740,7 @@ representation of the field "resolution".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -20721,7 +20783,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -20771,7 +20833,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprNullptr::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -20814,7 +20877,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -20864,7 +20927,7 @@ universal representation of the field "arguments".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -20875,7 +20938,7 @@ universal representation of the field "arguments".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -20922,7 +20985,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprPackedTemplateArguments::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -20966,7 +21030,7 @@ universal representation of the field "type".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -21016,7 +21080,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprPath::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -21060,7 +21125,7 @@ representation of the field "member".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -21071,7 +21136,7 @@ representation of the field "member".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -21115,7 +21180,7 @@ representation of the field "scope".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -21126,7 +21191,7 @@ representation of the field "scope".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -21169,7 +21234,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -21219,7 +21284,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprPlaceholder::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -21262,7 +21328,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -21312,7 +21378,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprPointer::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -21363,7 +21430,7 @@ universal representation of the field "base_subobjects".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -21374,7 +21441,7 @@ universal representation of the field "base_subobjects".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -21418,7 +21485,7 @@ universal representation of the field "class_decl".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -21464,7 +21531,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprProductTypeValue::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -21509,7 +21577,7 @@ universal representation of the field "members".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -21520,7 +21588,7 @@ universal representation of the field "members".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -21563,7 +21631,7 @@ universal representation of the field "type".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -21612,7 +21680,7 @@ representation of the field "ctor_call".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -21656,7 +21724,7 @@ representation of the field "dtor_call".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -21700,7 +21768,7 @@ representation of the field "flags".
      storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
   stage_1 = {universal.get_file(), (an_ifc_eh_flags_storage)stage_0};
   result = stage_1;
   return result;
@@ -21747,7 +21815,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprPushState::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -21792,7 +21861,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -21840,7 +21909,7 @@ representation of the field "elements".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -21851,7 +21920,7 @@ representation of the field "elements".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -21898,7 +21967,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprQualifiedName::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -21941,7 +22011,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -21987,8 +22057,8 @@ representation of the field "typename_keyword".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprQualifiedName::typename_keyword - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -22037,7 +22107,7 @@ representation of the field "address".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -22048,7 +22118,7 @@ representation of the field "address".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -22094,7 +22164,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprRead::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -22137,7 +22208,7 @@ representation of the field "sort".
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -22179,7 +22250,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -22226,7 +22297,7 @@ representation of the field "body".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -22271,7 +22342,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprRequires::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -22314,7 +22386,7 @@ representation of the field "parameters".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -22356,7 +22428,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -22407,7 +22479,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprSimpleIdentifier::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -22450,7 +22523,7 @@ universal representation of the field "name".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -22492,7 +22565,7 @@ universal representation of the field "type".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -22542,7 +22615,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprSizeofType::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -22585,7 +22659,7 @@ representation of the field "operand".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -22627,7 +22701,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -22677,7 +22751,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprString::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -22720,7 +22795,7 @@ representation of the field "string_index".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -22762,7 +22837,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -22813,7 +22888,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprStringSequence::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -22857,7 +22933,7 @@ representation of the field "strings".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -22868,7 +22944,7 @@ representation of the field "strings".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -22911,7 +22987,7 @@ representation of the field "type".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -22959,7 +23035,7 @@ representation of the field "value".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -22970,7 +23046,7 @@ representation of the field "value".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -23019,7 +23095,7 @@ representation of the field "discriminant".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = {universal.get_file(), (an_ifc_active_member_storage)stage_0};
   result = stage_1;
   return result;
@@ -23065,7 +23141,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprSumTypeValue::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -23108,7 +23185,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -23151,7 +23228,7 @@ representation of the field "value".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -23162,7 +23239,7 @@ representation of the field "value".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -23206,7 +23283,7 @@ representation of the field "variant".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -23217,7 +23294,7 @@ representation of the field "variant".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -23228,7 +23305,7 @@ representation of the field "variant".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -23276,7 +23353,7 @@ representation of the field "syntax".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -23324,7 +23401,7 @@ representation of the field "arguments".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -23335,7 +23412,7 @@ representation of the field "arguments".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -23381,7 +23458,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprTemplateId::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -23425,7 +23503,7 @@ representation of the field "primary".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -23436,7 +23514,7 @@ representation of the field "primary".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -23479,7 +23557,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -23528,7 +23606,7 @@ universal representation of the field "arguments".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 42)) {
@@ -23539,7 +23617,7 @@ universal representation of the field "arguments".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -23550,7 +23628,7 @@ universal representation of the field "arguments".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -23597,7 +23675,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprTemplateReference::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -23641,7 +23720,7 @@ universal representation of the field "member".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -23689,8 +23768,8 @@ universal representation of the field "member_locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprTemplateReference::member_locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -23735,7 +23814,7 @@ universal representation of the field "member_name".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -23746,7 +23825,7 @@ universal representation of the field "member_name".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -23791,7 +23870,7 @@ universal representation of the field "scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -23802,7 +23881,7 @@ universal representation of the field "scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -23845,7 +23924,7 @@ universal representation of the field "type".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -23892,7 +23971,7 @@ representation of the field "id".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = {universal.get_file(), (an_ifc_unique_id_storage)stage_0};
   result = stage_1;
   return result;
@@ -23937,7 +24016,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprTemporary::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -23980,7 +24060,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -24030,7 +24110,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprThis::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -24073,7 +24154,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -24123,7 +24204,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprTokens::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -24166,7 +24248,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -24208,7 +24290,7 @@ representation of the field "words".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = {universal.get_file(), (an_ifc_sentence_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -24256,7 +24338,7 @@ representation of the field "argument_0".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -24267,7 +24349,7 @@ representation of the field "argument_0".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -24311,7 +24393,7 @@ representation of the field "argument_1".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -24322,7 +24404,7 @@ representation of the field "argument_1".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -24366,7 +24448,7 @@ representation of the field "argument_2".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -24377,7 +24459,7 @@ representation of the field "argument_2".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -24421,7 +24503,7 @@ representation of the field "assoc".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28);
     stage_1 = to_universal_sort(stage_0);
     result = stage_1;
   } else {
@@ -24432,7 +24514,7 @@ representation of the field "assoc".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28);
     stage_1 = to_universal_sort(stage_0);
     result = stage_1;
   }  /* if */
@@ -24476,7 +24558,7 @@ representation of the field "impl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -24487,7 +24569,7 @@ representation of the field "impl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -24498,7 +24580,7 @@ representation of the field "impl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -24544,7 +24626,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprTriad::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -24587,7 +24670,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -24634,7 +24717,7 @@ representation of the field "cardinality".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = {universal.get_file(), (an_ifc_cardinality_storage)stage_0};
   result = stage_1;
   return result;
@@ -24679,7 +24762,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprTuple::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -24722,7 +24806,7 @@ representation of the field "start".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = {universal.get_file(), (an_ifc_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -24764,7 +24848,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -24811,7 +24895,7 @@ representation of the field "denotation".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -24856,7 +24940,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprType::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -24899,7 +24984,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -24947,7 +25032,7 @@ universal representation of the field "arguments".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -24991,7 +25076,7 @@ universal representation of the field "intrinsic".
        into version-specific storage. */
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_category(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 42)) {
@@ -25002,7 +25087,7 @@ universal representation of the field "intrinsic".
        into version-specific storage. */
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_category(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -25013,7 +25098,7 @@ universal representation of the field "intrinsic".
        into version-specific storage. */
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_category(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -25060,7 +25145,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprTypeTraitIntrinsic::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -25104,7 +25190,7 @@ universal representation of the field "type".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -25154,7 +25240,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprTypeid::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -25197,7 +25284,7 @@ representation of the field "operand".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -25239,7 +25326,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -25287,7 +25374,7 @@ representation of the field "associativity".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/18);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/18);
   stage_1 = {universal.get_file(), (an_ifc_associativity_storage)stage_0};
   result = stage_1;
   return result;
@@ -25330,7 +25417,7 @@ representation of the field "expr".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -25341,7 +25428,7 @@ representation of the field "expr".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -25387,7 +25474,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprUnaryFold::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -25432,7 +25520,7 @@ representation of the field "operation".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_sort(stage_0);
     result = stage_1;
   } else {
@@ -25443,7 +25531,7 @@ representation of the field "operation".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_sort(stage_0);
     result = stage_1;
   }  /* if */
@@ -25486,7 +25574,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -25537,7 +25625,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprUnqualifiedId::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -25580,7 +25669,7 @@ representation of the field "name".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -25624,7 +25713,7 @@ representation of the field "resolution".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -25635,7 +25724,7 @@ representation of the field "resolution".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -25682,8 +25771,8 @@ representation of the field "template_keyword".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprUnqualifiedId::template_keyword - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -25726,7 +25815,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -25777,7 +25866,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprUnresolvedId::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -25820,7 +25910,7 @@ representation of the field "name".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -25862,7 +25952,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -25912,7 +26002,7 @@ universal representation of the field "function".
        into version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -25923,7 +26013,7 @@ universal representation of the field "function".
        into version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -25934,7 +26024,7 @@ universal representation of the field "function".
        into version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -25982,7 +26072,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ExprVirtualFunctionConversion::locus - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -26027,7 +26118,7 @@ universal representation of the field "type".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -26074,7 +26165,7 @@ representation of the field "first".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -26119,7 +26210,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (FormCatenate::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -26162,7 +26254,7 @@ representation of the field "second".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -26212,7 +26304,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (FormCharacter::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -26255,7 +26348,7 @@ representation of the field "spelling".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -26305,7 +26398,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (FormHeader::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -26348,7 +26442,7 @@ representation of the field "spelling".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -26398,7 +26492,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (FormIdentifier::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -26441,7 +26536,7 @@ representation of the field "spelling".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -26491,7 +26586,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (FormJunk::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -26534,7 +26630,7 @@ representation of the field "spelling".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -26584,7 +26680,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (FormKeyword::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -26627,7 +26724,7 @@ representation of the field "spelling".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -26677,7 +26774,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (FormNumber::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -26720,7 +26818,7 @@ representation of the field "spelling".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -26770,7 +26868,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (FormOperator::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -26813,7 +26912,7 @@ representation of the field "op".
      storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = {universal.get_file(),
              (an_ifc_form_operator_sort_storage)stage_0};
   result = stage_1;
@@ -26856,7 +26955,7 @@ representation of the field "spelling".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -26906,7 +27005,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (FormParameter::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -26949,7 +27049,7 @@ representation of the field "spelling".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -27000,7 +27100,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (FormParenthesized::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -27043,7 +27144,7 @@ representation of the field "operand".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -27093,7 +27194,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (FormPragma::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -27136,7 +27238,7 @@ representation of the field "operand".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -27184,7 +27286,7 @@ representation of the field "arguments".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -27195,7 +27297,7 @@ representation of the field "arguments".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -27239,7 +27341,7 @@ representation of the field "primary_template".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -27250,7 +27352,7 @@ representation of the field "primary_template".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -27261,7 +27363,7 @@ representation of the field "primary_template".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -27312,7 +27414,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (FormString::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -27355,7 +27458,7 @@ representation of the field "spelling".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -27405,7 +27508,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (FormStringize::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -27448,7 +27552,7 @@ representation of the field "operand".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -27495,7 +27599,7 @@ representation of the field "cardinality".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = {universal.get_file(), (an_ifc_cardinality_storage)stage_0};
   result = stage_1;
   return result;
@@ -27537,7 +27641,7 @@ representation of the field "start".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -27587,7 +27691,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (FormWhitespace::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -27635,7 +27740,7 @@ representation of the field "value".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -27682,7 +27787,7 @@ representation of the field "value".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -27730,7 +27835,7 @@ representation of the field "value".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -27741,7 +27846,7 @@ representation of the field "value".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -27752,7 +27857,7 @@ representation of the field "value".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -27801,7 +27906,7 @@ representation of the field "value".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -27812,7 +27917,7 @@ representation of the field "value".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -27860,7 +27965,7 @@ representation of the field "value".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -27907,7 +28012,7 @@ representation of the field "value".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -27955,7 +28060,7 @@ representation of the field "value".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -27966,7 +28071,7 @@ representation of the field "value".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -28014,7 +28119,7 @@ representation of the field "value".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -28061,7 +28166,7 @@ representation of the field "value".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -28112,8 +28217,8 @@ representation of the field "arity_variadic".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (MacroFunctionLike::arity_variadic - VariadicArity) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
-                 /*size=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                       /*size=*/4);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -28156,7 +28261,7 @@ representation of the field "body".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -28202,7 +28307,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (MacroFunctionLike::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -28245,7 +28351,7 @@ representation of the field "name".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -28288,7 +28394,7 @@ representation of the field "parameters".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -28335,7 +28441,7 @@ representation of the field "body".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -28380,7 +28486,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (MacroObjectLike::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -28423,7 +28530,7 @@ representation of the field "name".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -28474,7 +28581,8 @@ universal representation of the field "reference".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ModuleExportReference::reference - ModuleReference) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -28526,7 +28634,8 @@ universal representation of the field "reference".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (ModuleImportReference::reference - ModuleReference) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -28574,7 +28683,7 @@ representation of the field "encoded".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -28616,7 +28725,7 @@ representation of the field "target".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -28664,7 +28773,7 @@ representation of the field "primary_template".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -28675,7 +28784,7 @@ representation of the field "primary_template".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -28686,7 +28795,7 @@ representation of the field "primary_template".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -28734,7 +28843,7 @@ representation of the field "encoded".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -28781,7 +28890,7 @@ representation of the field "encoded".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -28825,7 +28934,7 @@ representation of the field "operator".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_category(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 42)) {
@@ -28836,7 +28945,7 @@ representation of the field "operator".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_category(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -28847,7 +28956,7 @@ representation of the field "operator".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_category(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -28895,7 +29004,7 @@ representation of the field "guard".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -28937,7 +29046,7 @@ representation of the field "path".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -28986,7 +29095,7 @@ representation of the field "arguments".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -28997,7 +29106,7 @@ representation of the field "arguments".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -29040,7 +29149,7 @@ representation of the field "primary".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -29087,7 +29196,7 @@ representation of the field "name".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -29135,7 +29244,7 @@ representation of the field "cardinality".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = {universal.get_file(), (an_ifc_cardinality_storage)stage_0};
   result = stage_1;
   return result;
@@ -29177,7 +29286,7 @@ representation of the field "start".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -29225,7 +29334,7 @@ representation of the field "index".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -29236,7 +29345,7 @@ representation of the field "index".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -29247,7 +29356,7 @@ representation of the field "index".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -29295,7 +29404,7 @@ representation of the field "file".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -29337,7 +29446,7 @@ representation of the field "line".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = {universal.get_file(), (an_ifc_line_number_storage)stage_0};
   result = stage_1;
   return result;
@@ -29384,7 +29493,7 @@ representation of the field "cardinality".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = {universal.get_file(), (an_ifc_cardinality_storage)stage_0};
   result = stage_1;
   return result;
@@ -29429,7 +29538,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SourceSentence::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -29472,7 +29582,7 @@ representation of the field "start".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -29524,17 +29634,17 @@ representation of the field "category".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     /* Copy the field (SourceWord::value - u16) into version-specific
        storage. */
     static_assert(sizeof(stage_1) == 2,
                   "stage_1 is not properly sized storage!");
-    copy_ifc_field(&stage_1, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_1, universal.get_storage(), /*offset=*/12);
     /* Copy the field (SourceWord::sort - WordSort) into version-specific
        storage. */
     static_assert(sizeof(stage_2) == 1,
                   "stage_2 is not properly sized storage!");
-    copy_ifc_field(&stage_2, universal.get_storage(), /*offset=*/14);
+    copy_from_node_field(&stage_2, universal.get_storage(), /*offset=*/14);
     /* Pack the fields (sort, value, index) into the 64 bit WordCategory
        representation.  Then, decode the bit encoded value using the standard
        conversion to the universal representation for the category. */
@@ -29559,17 +29669,17 @@ representation of the field "category".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     /* Copy the field (SourceWord::value - u16) into version-specific
        storage. */
     static_assert(sizeof(stage_1) == 2,
                   "stage_1 is not properly sized storage!");
-    copy_ifc_field(&stage_1, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_1, universal.get_storage(), /*offset=*/12);
     /* Copy the field (SourceWord::sort - WordSort) into version-specific
        storage. */
     static_assert(sizeof(stage_2) == 1,
                   "stage_2 is not properly sized storage!");
-    copy_ifc_field(&stage_2, universal.get_storage(), /*offset=*/14);
+    copy_from_node_field(&stage_2, universal.get_storage(), /*offset=*/14);
     /* Pack the fields (sort, value, index) into the 64 bit WordCategory
        representation.  Then, decode the bit encoded value using the standard
        conversion to the universal representation for the category. */
@@ -29622,7 +29732,7 @@ representation of the field "index".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = {universal.get_file(), (an_ifc_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -29667,7 +29777,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SourceWord::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -29710,7 +29821,7 @@ representation of the field "sort".
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/14);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/14);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -29751,7 +29862,7 @@ representation of the field "value".
   /* Copy the field (SourceWord::value - u16) into version-specific storage. */
   static_assert(sizeof(stage_0) == 2,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = {universal.get_file(), (an_ifc_u16_storage)stage_0};
   result = stage_1;
   return result;
@@ -29799,7 +29910,7 @@ representation of the field "cardinality".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = {universal.get_file(), (an_ifc_cardinality_storage)stage_0};
     result = stage_1;
   } else {
@@ -29810,7 +29921,7 @@ representation of the field "cardinality".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = {universal.get_file(), (an_ifc_cardinality_storage)stage_0};
     result = stage_1;
   }  /* if */
@@ -29856,7 +29967,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (StmtBlock::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -29900,7 +30012,7 @@ representation of the field "start".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = {universal.get_file(), (an_ifc_index_storage)stage_0};
     result = stage_1;
   } else {
@@ -29911,7 +30023,7 @@ representation of the field "start".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = {universal.get_file(), (an_ifc_index_storage)stage_0};
     result = stage_1;
   }  /* if */
@@ -29962,7 +30074,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (StmtBreak::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -30011,7 +30124,7 @@ representation of the field "expr".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -30022,7 +30135,7 @@ representation of the field "expr".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -30068,7 +30181,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (StmtCase::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -30119,7 +30233,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (StmtContinue::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -30168,7 +30283,7 @@ representation of the field "decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -30179,7 +30294,7 @@ representation of the field "decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -30225,7 +30340,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (StmtDecl::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -30278,7 +30394,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (StmtDefault::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -30327,7 +30444,7 @@ representation of the field "body".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -30338,7 +30455,7 @@ representation of the field "body".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -30382,7 +30499,7 @@ representation of the field "condition".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -30393,7 +30510,7 @@ representation of the field "condition".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -30440,8 +30557,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
     /* Copy the field (StmtDoWhile::locus - SourceLocation) into universal
        storage. */
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
-                   /*size=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                         /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
     stage_1 = {universal.get_file(), stage_0};
     result = stage_1;
@@ -30456,8 +30573,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
     /* Copy the field (StmtDoWhile::locus - SourceLocation) into universal
        storage. */
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
-                   /*size=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                         /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
     stage_1 = {universal.get_file(), stage_0};
     result = stage_1;
@@ -30511,7 +30628,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (StmtEmpty::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -30562,7 +30680,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (StmtExpansion::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -30606,7 +30725,7 @@ representation of the field "operand".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -30617,7 +30736,7 @@ representation of the field "operand".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -30666,7 +30785,7 @@ representation of the field "expr".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -30677,7 +30796,7 @@ representation of the field "expr".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -30724,8 +30843,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
     /* Copy the field (StmtExpression::locus - SourceLocation) into universal
        storage. */
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
-                   /*size=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                         /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
     stage_1 = {universal.get_file(), stage_0};
     result = stage_1;
@@ -30740,8 +30859,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
     /* Copy the field (StmtExpression::locus - SourceLocation) into universal
        storage. */
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
-                   /*size=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                         /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
     stage_1 = {universal.get_file(), stage_0};
     result = stage_1;
@@ -30791,7 +30910,7 @@ representation of the field "body".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -30802,7 +30921,7 @@ representation of the field "body".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -30846,7 +30965,7 @@ representation of the field "condition".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -30857,7 +30976,7 @@ representation of the field "condition".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -30901,7 +31020,7 @@ representation of the field "continuation".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -30912,7 +31031,7 @@ representation of the field "continuation".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -30956,7 +31075,7 @@ representation of the field "initialization".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -30967,7 +31086,7 @@ representation of the field "initialization".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -31014,8 +31133,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
     /* Copy the field (StmtFor::locus - SourceLocation) into universal
        storage. */
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
-                   /*size=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                         /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
     stage_1 = {universal.get_file(), stage_0};
     result = stage_1;
@@ -31030,8 +31149,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
     /* Copy the field (StmtFor::locus - SourceLocation) into universal
        storage. */
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                   /*size=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                         /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
     stage_1 = {universal.get_file(), stage_0};
     result = stage_1;
@@ -31083,7 +31202,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (StmtGoto::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -31126,7 +31246,7 @@ representation of the field "target".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -31173,7 +31293,7 @@ representation of the field "body".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -31216,7 +31336,7 @@ representation of the field "exception".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -31227,7 +31347,7 @@ representation of the field "exception".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -31273,7 +31393,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (StmtHandler::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -31322,7 +31443,7 @@ representation of the field "alternative".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -31333,7 +31454,7 @@ representation of the field "alternative".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -31377,7 +31498,7 @@ representation of the field "condition".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -31388,7 +31509,7 @@ representation of the field "condition".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -31432,7 +31553,7 @@ representation of the field "consequence".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -31443,7 +31564,7 @@ representation of the field "consequence".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -31487,7 +31608,7 @@ representation of the field "initialization".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -31498,7 +31619,7 @@ representation of the field "initialization".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -31545,8 +31666,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
     /* Copy the field (StmtIf::locus - SourceLocation) into universal
        storage. */
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
-                   /*size=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                         /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
     stage_1 = {universal.get_file(), stage_0};
     result = stage_1;
@@ -31561,8 +31682,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
     /* Copy the field (StmtIf::locus - SourceLocation) into universal
        storage. */
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                   /*size=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                         /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
     stage_1 = {universal.get_file(), stage_0};
     result = stage_1;
@@ -31611,7 +31732,7 @@ representation of the field "label".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -31656,7 +31777,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (StmtLabeled::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -31699,7 +31821,7 @@ representation of the field "stmt".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -31741,7 +31863,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -31789,7 +31911,7 @@ representation of the field "expr".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -31800,7 +31922,7 @@ representation of the field "expr".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -31844,7 +31966,7 @@ representation of the field "function_type".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -31855,7 +31977,7 @@ representation of the field "function_type".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -31902,8 +32024,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
     /* Copy the field (StmtReturn::locus - SourceLocation) into universal
        storage. */
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
-                   /*size=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                         /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
     stage_1 = {universal.get_file(), stage_0};
     result = stage_1;
@@ -31918,8 +32040,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
     /* Copy the field (StmtReturn::locus - SourceLocation) into universal
        storage. */
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                   /*size=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                         /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
     stage_1 = {universal.get_file(), stage_0};
     result = stage_1;
@@ -31963,7 +32085,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -32011,7 +32133,7 @@ representation of the field "body".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -32022,7 +32144,7 @@ representation of the field "body".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -32066,7 +32188,7 @@ representation of the field "condition".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -32077,7 +32199,7 @@ representation of the field "condition".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -32121,7 +32243,7 @@ representation of the field "initialization".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -32132,7 +32254,7 @@ representation of the field "initialization".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -32179,8 +32301,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
     /* Copy the field (StmtSwitch::locus - SourceLocation) into universal
        storage. */
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
-                   /*size=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                         /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
     stage_1 = {universal.get_file(), stage_0};
     result = stage_1;
@@ -32195,8 +32317,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
     /* Copy the field (StmtSwitch::locus - SourceLocation) into universal
        storage. */
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                   /*size=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                         /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
     stage_1 = {universal.get_file(), stage_0};
     result = stage_1;
@@ -32245,7 +32367,7 @@ representation of the field "cardinality".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = {universal.get_file(), (an_ifc_cardinality_storage)stage_0};
   result = stage_1;
   return result;
@@ -32287,7 +32409,7 @@ representation of the field "handlers".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -32332,7 +32454,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (StmtTry::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -32374,7 +32497,7 @@ representation of the field "start".
   /* Copy the field (StmtTry::start - Index) into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = {universal.get_file(), (an_ifc_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -32421,7 +32544,7 @@ representation of the field "cardinality".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = {universal.get_file(), (an_ifc_cardinality_storage)stage_0};
   result = stage_1;
   return result;
@@ -32466,7 +32589,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (StmtTuple::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -32509,7 +32633,7 @@ representation of the field "start".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = {universal.get_file(), (an_ifc_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -32559,7 +32683,7 @@ representation of the field "decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -32570,7 +32694,7 @@ representation of the field "decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -32619,7 +32743,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (StmtVariableDecl::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -32668,7 +32793,7 @@ representation of the field "body".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -32679,7 +32804,7 @@ representation of the field "body".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -32723,7 +32848,7 @@ representation of the field "condition".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -32734,7 +32859,7 @@ representation of the field "condition".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -32781,8 +32906,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
     /* Copy the field (StmtWhile::locus - SourceLocation) into universal
        storage. */
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
-                   /*size=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                         /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
     stage_1 = {universal.get_file(), stage_0};
     result = stage_1;
@@ -32797,8 +32922,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
     /* Copy the field (StmtWhile::locus - SourceLocation) into universal
        storage. */
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8,
-                   /*size=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                         /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
     stage_1 = {universal.get_file(), stage_0};
     result = stage_1;
@@ -32851,8 +32976,8 @@ universal representation of the field "access".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxAccessSpecifier::access - KeywordSyntax) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
-                 /*size=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/12);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -32899,8 +33024,8 @@ universal representation of the field "comma".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxAccessSpecifier::comma - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/40,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/40,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -32945,7 +33070,7 @@ universal representation of the field "designator".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -32956,7 +33081,7 @@ universal representation of the field "designator".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -33003,8 +33128,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxAccessSpecifier::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -33051,8 +33176,8 @@ universal representation of the field "virtual_kw".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxAccessSpecifier::virtual_kw - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -33099,8 +33224,8 @@ universal representation of the field "virtual_kw2".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxAccessSpecifier::virtual_kw2 - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/32,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -33149,7 +33274,7 @@ universal representation of the field "aliasee".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -33195,8 +33320,8 @@ universal representation of the field "equal".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxAliasDeclaration::equal - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -33243,7 +33368,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxAliasDeclaration::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -33288,7 +33414,7 @@ universal representation of the field "name".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -33299,7 +33425,7 @@ universal representation of the field "name".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -33346,8 +33472,8 @@ universal representation of the field "semicolon".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxAliasDeclaration::semicolon - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -33399,8 +33525,8 @@ representation of the field "left_paren".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxAlignas::left_paren - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -33446,7 +33572,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxAlignas::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -33489,7 +33616,7 @@ representation of the field "operand".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -33535,8 +33662,8 @@ representation of the field "right_paren".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxAlignas::right_paren - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -33586,7 +33713,7 @@ universal representation of the field "bound".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -33597,7 +33724,7 @@ universal representation of the field "bound".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -33644,7 +33771,8 @@ universal representation of the field "left_bracket".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxArrayDeclarator::left_bracket - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -33692,8 +33820,8 @@ universal representation of the field "right_bracket".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxArrayDeclarator::right_bracket - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -33742,7 +33870,7 @@ representation of the field "array".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -33753,7 +33881,7 @@ representation of the field "array".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -33797,7 +33925,7 @@ representation of the field "index".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -33808,7 +33936,7 @@ representation of the field "index".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -33855,7 +33983,8 @@ representation of the field "left_bracket".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxArrayIndex::left_bracket - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -33902,8 +34031,8 @@ representation of the field "right_bracket".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxArrayIndex::right_bracket - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -33953,7 +34082,7 @@ the universal representation of the field "declarator".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -33997,7 +34126,7 @@ the universal representation of the field "next".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -34048,7 +34177,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxAsmStatement::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -34092,7 +34222,7 @@ representation of the field "tokens".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_sentence_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -34140,7 +34270,7 @@ representation of the field "argument_clause".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -34185,8 +34315,8 @@ representation of the field "colons".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxAttribute::colons - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -34232,8 +34362,8 @@ representation of the field "comma".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxAttribute::comma - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -34280,8 +34410,8 @@ representation of the field "expander".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxAttribute::expander - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -34325,7 +34455,7 @@ representation of the field "name".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -34336,7 +34466,7 @@ representation of the field "name".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -34380,7 +34510,7 @@ representation of the field "scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -34391,7 +34521,7 @@ representation of the field "scope".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -34444,7 +34574,8 @@ universal representation of the field "left_paren".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxAttributeArgumentClause::left_paren -
      SourceLocation) into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -34492,8 +34623,8 @@ universal representation of the field "right_paren".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxAttributeArgumentClause::right_paren -
      SourceLocation) into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -34538,7 +34669,7 @@ universal representation of the field "tokens".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_sentence_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -34587,7 +34718,7 @@ universal representation of the field "attributes".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -34634,7 +34765,8 @@ universal representation of the field "left_paren_1".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxAttributeSpecifier::left_paren_1 - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -34682,8 +34814,8 @@ universal representation of the field "left_paren_2".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxAttributeSpecifier::left_paren_2 - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -34727,7 +34859,7 @@ universal representation of the field "prefix".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -34774,8 +34906,8 @@ universal representation of the field "right_paren_1".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxAttributeSpecifier::right_paren_1 - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -34823,8 +34955,8 @@ universal representation of the field "right_paren_2".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxAttributeSpecifier::right_paren_2 - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/32,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -34874,7 +35006,7 @@ universal representation of the field "attributes".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -34925,7 +35057,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxAttributeUsingPrefix::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -34972,7 +35105,8 @@ universal representation of the field "scope".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxAttributeUsingPrefix::scope - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -35022,7 +35156,7 @@ universal representation of the field "attributes".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -35065,7 +35199,7 @@ universal representation of the field "decl".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -35111,7 +35245,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxAttributedDeclaration::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -35161,7 +35296,7 @@ universal representation of the field "attributes".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -35204,7 +35339,7 @@ universal representation of the field "pragma".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_sentence_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -35247,7 +35382,7 @@ universal representation of the field "stmt".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -35298,8 +35433,8 @@ representation of the field "access".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxBaseSpecifier::access - KeywordSyntax) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0,
-                 /*size=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/12);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -35346,8 +35481,8 @@ representation of the field "colon".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxBaseSpecifier::colon - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -35397,7 +35532,7 @@ universal representation of the field "base_specifiers".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -35443,7 +35578,8 @@ universal representation of the field "colon".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxBaseSpecifierList::colon - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -35493,7 +35629,7 @@ universal representation of the field "direction".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -35537,7 +35673,7 @@ universal representation of the field "dyad".
        into version-specific storage. */
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_sort(stage_0);
     result = stage_1;
   } else {
@@ -35548,7 +35684,7 @@ universal representation of the field "dyad".
        into version-specific storage. */
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_sort(stage_0);
     result = stage_1;
   }  /* if */
@@ -35596,8 +35732,8 @@ universal representation of the field "ellipsis".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxBinaryFoldExpression::ellipsis - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/22,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/22,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -35645,8 +35781,8 @@ universal representation of the field "glyph_loci_1".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxBinaryFoldExpression::glyph_loci_1 - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/30,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/30,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -35694,8 +35830,8 @@ universal representation of the field "glyph_loci_2".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxBinaryFoldExpression::glyph_loci_2 - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/38,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/38,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -35742,8 +35878,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxBinaryFoldExpression::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/14,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/14,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -35789,7 +35925,7 @@ universal representation of the field "operand_1".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -35800,7 +35936,7 @@ universal representation of the field "operand_1".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -35846,7 +35982,7 @@ universal representation of the field "operand_2".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -35857,7 +35993,7 @@ universal representation of the field "operand_2".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -35905,8 +36041,8 @@ universal representation of the field "right_paren".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxBinaryFoldExpression::right_paren - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/46,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/46,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -35958,7 +36094,8 @@ universal representation of the field "break".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxBreakStatement::break - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -36005,7 +36142,8 @@ universal representation of the field "semicolon".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxBreakStatement::semicolon - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -36053,7 +36191,7 @@ universal representation of the field "by_ref".
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = {universal.get_file(), (an_ifc_bool_storage)stage_0};
   result = stage_1;
   return result;
@@ -36099,7 +36237,8 @@ universal representation of the field "comma".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxCaptureDefault::comma - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -36146,7 +36285,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxCaptureDefault::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -36195,7 +36335,7 @@ universal representation of the field "bases".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -36241,8 +36381,8 @@ universal representation of the field "class_key".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxClassSpecifier::class_key - KeywordSyntax) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
-                 /*size=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/12);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -36286,7 +36426,7 @@ universal representation of the field "left_paren".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -36329,7 +36469,7 @@ universal representation of the field "members".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -36372,7 +36512,7 @@ universal representation of the field "name".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -36383,7 +36523,7 @@ universal representation of the field "name".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -36427,7 +36567,7 @@ universal representation of the field "right_paren".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -36477,7 +36617,7 @@ universal representation of the field "condition".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -36488,7 +36628,7 @@ universal representation of the field "condition".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -36534,7 +36674,7 @@ universal representation of the field "constraint".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -36545,7 +36685,7 @@ universal representation of the field "constraint".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -36592,7 +36732,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxCompoundRequirement::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -36640,8 +36781,8 @@ universal representation of the field "noexcept_loc".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxCompoundRequirement::noexcept_loc - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -36689,8 +36830,8 @@ universal representation of the field "right_curly".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxCompoundRequirement::right_curly - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -36742,7 +36883,8 @@ universal representation of the field "left_curly".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxCompoundStatement::left_curly - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -36786,7 +36928,7 @@ universal representation of the field "pragam".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_sentence_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -36833,8 +36975,8 @@ universal representation of the field "right_curly".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxCompoundStatement::right_curly - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -36878,7 +37020,7 @@ universal representation of the field "stmts".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -36930,8 +37072,8 @@ universal representation of the field "concept_keyword".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxConceptDefinition::concept_keyword - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -36978,8 +37120,8 @@ universal representation of the field "equal".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxConceptDefinition::equal - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -37025,7 +37167,7 @@ universal representation of the field "initializer".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -37036,7 +37178,7 @@ universal representation of the field "initializer".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -37083,7 +37225,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxConceptDefinition::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -37127,7 +37270,7 @@ universal representation of the field "name".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -37170,7 +37313,7 @@ universal representation of the field "parameters".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -37216,8 +37359,8 @@ universal representation of the field "semicolon".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxConceptDefinition::semicolon - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/36,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -37267,7 +37410,7 @@ universal representation of the field "decl_specifier".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -37311,7 +37454,7 @@ universal representation of the field "initializaerion".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -37357,7 +37500,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxConditionDeclaration::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -37409,7 +37553,8 @@ universal representation of the field "continue".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxContinueStatement::continue - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -37456,7 +37601,8 @@ universal representation of the field "semicolon".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxContinueStatement::semicolon - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -37508,7 +37654,8 @@ universal representation of the field "colon".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxCtorInitializer::colon - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -37552,7 +37699,7 @@ universal representation of the field "initializers".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -37600,7 +37747,7 @@ universal representation of the field "declspec".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
   stage_1 = {universal.get_file(), (an_ifc_sentence_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -37644,7 +37791,7 @@ universal representation of the field "explicit_kw".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -37690,7 +37837,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxDeclSpecifierSeq::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -37734,7 +37882,7 @@ universal representation of the field "qualifiers".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28);
   stage_1 = {universal.get_file(),
              (an_ifc_qualifier_bitfield_storage)stage_0};
   result = stage_1;
@@ -37782,8 +37930,8 @@ universal representation of the field "storage_class".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxDeclSpecifierSeq::storage_class - StorageClass) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                 /*size=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                       /*size=*/4);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -37827,7 +37975,7 @@ universal representation of the field "type".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -37870,7 +38018,7 @@ universal representation of the field "type_name".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -37918,7 +38066,7 @@ universal representation of the field "decl".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -37961,7 +38109,7 @@ universal representation of the field "pragma".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_sentence_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -38010,7 +38158,7 @@ representation of the field "array_or_function".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -38052,7 +38200,7 @@ representation of the field "callable".
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/42);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/42);
   stage_1 = {universal.get_file(), (an_ifc_bool_storage)stage_0};
   result = stage_1;
   return result;
@@ -38095,7 +38243,7 @@ representation of the field "convention".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/41);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/41);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -38141,8 +38289,8 @@ representation of the field "ellipsis".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxDeclarator::ellipsis - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -38188,8 +38336,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxDeclarator::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/32,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -38233,7 +38381,7 @@ representation of the field "name".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -38244,7 +38392,7 @@ representation of the field "name".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -38288,7 +38436,7 @@ representation of the field "parenthesized".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -38330,7 +38478,7 @@ representation of the field "pointer".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -38373,7 +38521,7 @@ representation of the field "qualifiers".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/40);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/40);
   stage_1 = {universal.get_file(),
              (an_ifc_qualifier_bitfield_storage)stage_0};
   result = stage_1;
@@ -38417,7 +38565,7 @@ representation of the field "trailing_target".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -38461,7 +38609,7 @@ representation of the field "virtual_specifiers".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -38513,7 +38661,8 @@ universal representation of the field "decltype_keyword".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxDecltypeSpecifier::decltype_keyword -
      SourceLocation) into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -38558,7 +38707,7 @@ universal representation of the field "expr".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -38569,7 +38718,7 @@ universal representation of the field "expr".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -38616,8 +38765,8 @@ universal representation of the field "left_paren".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxDecltypeSpecifier::left_paren - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -38665,8 +38814,8 @@ universal representation of the field "right_paren".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxDecltypeSpecifier::right_paren - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -38715,7 +38864,7 @@ universal representation of the field "body".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -38759,7 +38908,7 @@ universal representation of the field "condition".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -38770,7 +38919,7 @@ universal representation of the field "condition".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -38817,8 +38966,8 @@ universal representation of the field "do".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxDoWhileStatement::do - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -38862,7 +39011,7 @@ universal representation of the field "pragma".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_sentence_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -38908,8 +39057,8 @@ universal representation of the field "semicolon".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxDoWhileStatement::semicolon - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -38956,8 +39105,8 @@ universal representation of the field "while".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxDoWhileStatement::while - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -39010,8 +39159,8 @@ universal representation of the field "expander".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxDynamicExceptionSpec::expander - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -39059,8 +39208,8 @@ universal representation of the field "left_paren".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxDynamicExceptionSpec::left_paren - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -39108,8 +39257,8 @@ universal representation of the field "right_paren".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxDynamicExceptionSpec::right_paren - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -39156,7 +39305,8 @@ universal representation of the field "throw".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxDynamicExceptionSpec::throw - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -39201,7 +39351,7 @@ universal representation of the field "type_list".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -39252,7 +39402,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxEmptyStatement::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -39300,7 +39451,7 @@ representation of the field "base".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -39346,8 +39497,8 @@ representation of the field "class_key".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxEnumSpecifier::class_key - KeywordSyntax) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4,
-                 /*size=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/12);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -39394,8 +39545,8 @@ representation of the field "colon".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxEnumSpecifier::colon - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/32,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -39439,7 +39590,7 @@ representation of the field "enumerators".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -39485,8 +39636,8 @@ representation of the field "left_brace".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxEnumSpecifier::left_brace - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/40,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/40,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -39533,8 +39684,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxEnumSpecifier::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -39578,7 +39729,7 @@ representation of the field "name".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -39589,7 +39740,7 @@ representation of the field "name".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -39636,8 +39787,8 @@ representation of the field "right_brace".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxEnumSpecifier::right_brace - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/48,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/48,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -39689,8 +39840,8 @@ universal representation of the field "comma".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxEnumeratorDefinition::comma - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -39737,8 +39888,8 @@ universal representation of the field "equal".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxEnumeratorDefinition::equal - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -39784,7 +39935,7 @@ universal representation of the field "initializer".
        into version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -39795,7 +39946,7 @@ universal representation of the field "initializer".
        into version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -39842,7 +39993,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxEnumeratorDefinition::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -39886,7 +40038,7 @@ universal representation of the field "name".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -39935,7 +40087,7 @@ universal representation of the field "declarator".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -39982,8 +40134,8 @@ universal representation of the field "ellipsis".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxExceptionDeclaration::ellipsis - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -40030,7 +40182,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxExceptionDeclaration::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -40075,7 +40228,7 @@ universal representation of the field "type_specifiers".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -40124,7 +40277,7 @@ universal representation of the field "condition".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -40135,7 +40288,7 @@ universal representation of the field "condition".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -40182,8 +40335,8 @@ universal representation of the field "left_paren".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxExplicitSpecifier::left_paren - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -40230,7 +40383,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxExplicitSpecifier::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -40278,8 +40432,8 @@ universal representation of the field "right_paren".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxExplicitSpecifier::right_paren - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -40328,7 +40482,7 @@ representation of the field "expression".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -40339,7 +40493,7 @@ representation of the field "expression".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -40389,7 +40543,7 @@ universal representation of the field "expr".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -40400,7 +40554,7 @@ universal representation of the field "expr".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -40444,7 +40598,7 @@ universal representation of the field "pragma".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_sentence_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -40491,7 +40645,8 @@ universal representation of the field "semicolon".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxExpressionStatement::semicolon - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -40541,7 +40696,7 @@ universal representation of the field "declarator".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -40585,7 +40740,7 @@ universal representation of the field "specifiers".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -40632,7 +40787,7 @@ representation of the field "body".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -40676,7 +40831,7 @@ representation of the field "condition".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -40687,7 +40842,7 @@ representation of the field "condition".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -40732,7 +40887,7 @@ representation of the field "continuation".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -40743,7 +40898,7 @@ representation of the field "continuation".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -40790,8 +40945,8 @@ representation of the field "for".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxForStatement::for - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -40835,7 +40990,7 @@ representation of the field "initialization".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -40881,8 +41036,8 @@ representation of the field "left_paren".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxForStatement::left_paren - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -40926,7 +41081,7 @@ representation of the field "pragma".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_sentence_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -40972,8 +41127,8 @@ representation of the field "right_paren".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxForStatement::right_paren - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/36,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -41020,8 +41175,8 @@ representation of the field "semicolon".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxForStatement::semicolon - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/44,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/44,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -41073,8 +41228,8 @@ representation of the field "assign".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxFunctionBody::assign - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -41121,8 +41276,8 @@ representation of the field "generate".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxFunctionBody::generate - KeywordSyntax) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/12);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -41166,7 +41321,7 @@ representation of the field "initializers".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -41212,8 +41367,8 @@ representation of the field "semicolon".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxFunctionBody::semicolon - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/32,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -41256,7 +41411,7 @@ representation of the field "stmts".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -41299,7 +41454,7 @@ representation of the field "try_block".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -41347,7 +41502,7 @@ universal representation of the field "eh_spec".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -41393,8 +41548,8 @@ universal representation of the field "ellipsis".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxFunctionDeclarator::ellipsis - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -41442,7 +41597,8 @@ universal representation of the field "left_paren".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxFunctionDeclarator::left_paren - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -41487,7 +41643,7 @@ universal representation of the field "parameters".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -41533,8 +41689,8 @@ universal representation of the field "ref".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxFunctionDeclarator::ref - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/32,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -41582,8 +41738,8 @@ universal representation of the field "right_paren".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxFunctionDeclarator::right_paren - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -41627,7 +41783,7 @@ universal representation of the field "traits".
      FunctionTypeTraitsBitfield) into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/40);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/40);
   stage_1 = {universal.get_file(),
              (an_ifc_function_type_traits_bitfield_storage)stage_0};
   result = stage_1;
@@ -41679,8 +41835,8 @@ universal representation of the field "assign".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxFunctionDefinition::assign - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -41725,7 +41881,7 @@ universal representation of the field "initializers".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -41771,8 +41927,8 @@ universal representation of the field "semicolon".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxFunctionDefinition::semicolon - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/32,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -41816,7 +41972,7 @@ universal representation of the field "stmts".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -41862,8 +42018,8 @@ universal representation of the field "synthesis".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxFunctionDefinition::synthesis - KeywordSyntax) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/12);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -41907,7 +42063,7 @@ universal representation of the field "try_block".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -41955,7 +42111,7 @@ universal representation of the field "body".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -41998,7 +42154,7 @@ universal representation of the field "handlers".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -42042,7 +42198,7 @@ universal representation of the field "initializers".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -42093,8 +42249,8 @@ representation of the field "label".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxGotoStatement::label - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -42141,7 +42297,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxGotoStatement::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -42185,7 +42342,7 @@ representation of the field "pragma".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_sentence_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -42231,8 +42388,8 @@ representation of the field "semicolon".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxGotoStatement::semicolon - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -42276,7 +42433,7 @@ representation of the field "target".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -42323,7 +42480,7 @@ representation of the field "body".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -42368,8 +42525,8 @@ representation of the field "catch".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxHandler::catch - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -42412,7 +42569,7 @@ representation of the field "exception".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -42458,8 +42615,8 @@ representation of the field "left_paren".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxHandler::left_paren - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -42502,7 +42659,7 @@ representation of the field "pragma".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_sentence_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -42548,8 +42705,8 @@ representation of the field "right_paren".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxHandler::right_paren - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -42598,7 +42755,7 @@ representation of the field "handlers".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -42646,7 +42803,7 @@ representation of the field "alternative".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -42688,7 +42845,7 @@ representation of the field "condition".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = {universal.get_file(), (an_ifc_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -42731,7 +42888,7 @@ representation of the field "consequence".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -42777,8 +42934,8 @@ representation of the field "constexpr".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxIfStatement::constexpr - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -42825,8 +42982,8 @@ representation of the field "else".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxIfStatement::else - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/36,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -42872,8 +43029,8 @@ representation of the field "if".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxIfStatement::if - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -42917,7 +43074,7 @@ representation of the field "initialization".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -42960,7 +43117,7 @@ representation of the field "pragma".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_sentence_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -43011,8 +43168,8 @@ representation of the field "ampersand".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxInitCapture::ampersand - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -43059,8 +43216,8 @@ representation of the field "comma".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxInitCapture::comma - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -43107,7 +43264,8 @@ representation of the field "expander".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxInitCapture::expander - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -43152,7 +43310,7 @@ representation of the field "initializer".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -43163,7 +43321,7 @@ representation of the field "initializer".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -43207,7 +43365,7 @@ representation of the field "name".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -43218,7 +43376,7 @@ representation of the field "name".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -43270,8 +43428,8 @@ universal representation of the field "comma".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxInitDeclarator::comma - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -43315,7 +43473,7 @@ universal representation of the field "constraint".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -43358,7 +43516,7 @@ universal representation of the field "declarator".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -43402,7 +43560,7 @@ universal representation of the field "initializer".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -43413,7 +43571,7 @@ universal representation of the field "initializer".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -43461,7 +43619,7 @@ representation of the field "init".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -43504,7 +43662,7 @@ representation of the field "pragma".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_sentence_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -43553,7 +43711,7 @@ universal representation of the field "label".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -43564,7 +43722,7 @@ universal representation of the field "label".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -43608,7 +43766,7 @@ universal representation of the field "locus".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -43651,7 +43809,7 @@ universal representation of the field "pragma".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_sentence_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -43694,7 +43852,7 @@ universal representation of the field "sort".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -43737,7 +43895,7 @@ universal representation of the field "stmt".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -43785,7 +43943,7 @@ universal representation of the field "eh_spec".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -43831,8 +43989,8 @@ universal representation of the field "expander".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxLambdaDeclarator::expander - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/32,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -43879,8 +44037,8 @@ universal representation of the field "left_paren".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxLambdaDeclarator::left_paren - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -43924,7 +44082,7 @@ universal representation of the field "modifier".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -43967,7 +44125,7 @@ universal representation of the field "parameters".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -44013,8 +44171,8 @@ universal representation of the field "right_paren".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxLambdaDeclarator::right_paren - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -44059,7 +44217,7 @@ universal representation of the field "trailing_target".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -44107,7 +44265,7 @@ universal representation of the field "captures".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -44154,7 +44312,8 @@ universal representation of the field "left_bracket".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxLambdaIntroducer::left_bracket - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -44202,8 +44361,8 @@ universal representation of the field "right_bracket".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxLambdaIntroducer::right_bracket - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -44255,8 +44414,8 @@ universal representation of the field "comma".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxMemInitializer::comma - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -44303,7 +44462,8 @@ universal representation of the field "expander".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxMemInitializer::expander - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -44348,7 +44508,7 @@ universal representation of the field "initializer".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -44359,7 +44519,7 @@ universal representation of the field "initializer".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -44404,7 +44564,7 @@ universal representation of the field "member".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -44415,7 +44575,7 @@ universal representation of the field "member".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -44465,7 +44625,7 @@ universal representation of the field "decl_specifiers".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -44509,7 +44669,7 @@ universal representation of the field "declarations".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -44555,7 +44715,8 @@ universal representation of the field "semicolon".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxMemberDeclaration::semicolon - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -44605,7 +44766,7 @@ universal representation of the field "bitwidth".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -44616,7 +44777,7 @@ universal representation of the field "bitwidth".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -44663,8 +44824,8 @@ universal representation of the field "colon".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxMemberDeclarator::colon - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -44711,8 +44872,8 @@ universal representation of the field "comma".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxMemberDeclarator::comma - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/32,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -44756,7 +44917,7 @@ universal representation of the field "constraint".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -44799,7 +44960,7 @@ universal representation of the field "declarator".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -44843,7 +45004,7 @@ universal representation of the field "initializer".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -44854,7 +45015,7 @@ universal representation of the field "initializer".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -44901,8 +45062,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxMemberDeclarator::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -44952,7 +45113,7 @@ the universal representation of the field "definition".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -45002,7 +45163,7 @@ universal representation of the field "member_declarations".
      SyntaxIndex) into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -45054,8 +45215,8 @@ the universal representation of the field "assign".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxNamespaceAliasDefinition::assign - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -45101,7 +45262,7 @@ the universal representation of the field "name".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -45112,7 +45273,7 @@ the universal representation of the field "name".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -45160,7 +45321,8 @@ the universal representation of the field "namespace_kw".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxNamespaceAliasDefinition::namespace_kw -
      SourceLocation) into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -45208,8 +45370,8 @@ the universal representation of the field "semicolon".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxNamespaceAliasDefinition::semicolon -
      SourceLocation) into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -45255,7 +45417,7 @@ the universal representation of the field "target".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -45266,7 +45428,7 @@ the universal representation of the field "target".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -45316,7 +45478,7 @@ universal representation of the field "condition".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -45327,7 +45489,7 @@ universal representation of the field "condition".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -45374,7 +45536,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxNestedRequirement::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -45423,7 +45586,7 @@ representation of the field "declarator".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -45471,7 +45634,7 @@ universal representation of the field "expr".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -45518,8 +45681,8 @@ universal representation of the field "left_paren".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxNoexceptSpecification::left_paren - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -45566,7 +45729,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxNoexceptSpecification::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -45614,8 +45778,8 @@ universal representation of the field "right_paren".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxNoexceptSpecification::right_paren - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -45666,7 +45830,7 @@ universal representation of the field "argument".
        into version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -45677,7 +45841,7 @@ universal representation of the field "argument".
        into version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -45725,8 +45889,8 @@ universal representation of the field "comma".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxNonTypeTemplateArgument::comma - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -45774,7 +45938,8 @@ universal representation of the field "ellipsis".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxNonTypeTemplateArgument::ellipsis - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -45824,7 +45989,7 @@ universal representation of the field "decl_specifiers".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -45868,7 +46033,7 @@ universal representation of the field "declarator".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -45913,7 +46078,7 @@ universal representation of the field "default_expr".
        into version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -45924,7 +46089,7 @@ universal representation of the field "default_expr".
        into version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -45971,8 +46136,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxParameterDeclarator::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -46016,7 +46181,7 @@ universal representation of the field "sort".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -46065,7 +46230,7 @@ the universal representation of the field "basis".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -46110,7 +46275,7 @@ the universal representation of the field "constraint".
        into version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -46121,7 +46286,7 @@ the universal representation of the field "constraint".
        into version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -46169,7 +46334,8 @@ the universal representation of the field "keyword".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxPlaceholderTypeSpecifier::keyword - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/5, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/5,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -46217,8 +46383,8 @@ the universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxPlaceholderTypeSpecifier::locus - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/13,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/13,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -46266,7 +46432,7 @@ universal representation of the field "callable".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/19);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/19);
   stage_1 = {universal.get_file(), (an_ifc_bool_storage)stage_0};
   result = stage_1;
   return result;
@@ -46309,7 +46475,7 @@ universal representation of the field "convention".
      CallingConventionSort) into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/18);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/18);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -46355,7 +46521,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxPointerDeclarator::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -46399,7 +46566,7 @@ universal representation of the field "next".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -46442,7 +46609,7 @@ universal representation of the field "qualifiers".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/17);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/17);
   stage_1 = {universal.get_file(),
              (an_ifc_qualifier_bitfield_storage)stage_0};
   result = stage_1;
@@ -46486,7 +46653,7 @@ universal representation of the field "sort".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -46529,7 +46696,7 @@ universal representation of the field "whole".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -46578,7 +46745,7 @@ universal representation of the field "body".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -46625,8 +46792,8 @@ universal representation of the field "colon".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxRangeBasedForStatement::colon - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/44,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/44,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -46671,7 +46838,7 @@ universal representation of the field "decl".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -46717,8 +46884,8 @@ universal representation of the field "for".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxRangeBasedForStatement::for - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -46763,7 +46930,7 @@ universal representation of the field "init".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -46807,7 +46974,7 @@ universal representation of the field "initializer".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -46854,8 +47021,8 @@ universal representation of the field "left_paren".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxRangeBasedForStatement::left_paren - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -46900,7 +47067,7 @@ universal representation of the field "pragma".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_sentence_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -46947,8 +47114,8 @@ universal representation of the field "right_paren".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxRangeBasedForStatement::right_paren -
      SourceLocation) into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/36,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -47000,7 +47167,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxRequirementBody::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -47044,7 +47212,7 @@ universal representation of the field "requirements".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -47090,8 +47258,8 @@ universal representation of the field "right_curly".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxRequirementBody::right_curly - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -47141,7 +47309,7 @@ universal representation of the field "condition".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -47152,7 +47320,7 @@ universal representation of the field "condition".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -47199,7 +47367,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxRequiresClause::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -47248,7 +47417,7 @@ universal representation of the field "expr".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -47259,7 +47428,7 @@ universal representation of the field "expr".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -47303,7 +47472,7 @@ universal representation of the field "pragma".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_sentence_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -47349,7 +47518,8 @@ universal representation of the field "return".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxReturnStatement::return - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/9, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/9,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -47396,8 +47566,8 @@ universal representation of the field "semicolon".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxReturnStatement::semicolon - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/17,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/17,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -47441,7 +47611,7 @@ universal representation of the field "sort".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -47488,7 +47658,7 @@ representation of the field "body".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -47531,7 +47701,7 @@ representation of the field "condition".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -47542,7 +47712,7 @@ representation of the field "condition".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -47589,7 +47759,8 @@ representation of the field "except_kw".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxSEHExcept::except_kw - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -47636,8 +47807,8 @@ representation of the field "left_paren".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxSEHExcept::left_paren - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -47684,8 +47855,8 @@ representation of the field "right_paren".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxSEHExcept::right_paren - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -47733,7 +47904,7 @@ representation of the field "body".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -47779,7 +47950,8 @@ representation of the field "finally_kw".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxSEHFinally::finally_kw - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -47831,7 +48003,8 @@ representation of the field "leave_kw".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxSEHLeave::leave_kw - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -47878,7 +48051,8 @@ representation of the field "semicolon".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxSEHLeave::semicolon - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -47926,7 +48100,7 @@ representation of the field "body".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -47968,7 +48142,7 @@ representation of the field "handler".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -48013,7 +48187,8 @@ representation of the field "try_kw".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxSEHTry::try_kw - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -48065,7 +48240,8 @@ representation of the field "ampersand".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxSimpleCapture::ampersand - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -48112,8 +48288,8 @@ representation of the field "comma".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxSimpleCapture::comma - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -48160,8 +48336,8 @@ representation of the field "expander".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxSimpleCapture::expander - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -48205,7 +48381,7 @@ representation of the field "name".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -48216,7 +48392,7 @@ representation of the field "name".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -48266,7 +48442,7 @@ universal representation of the field "decl_specifiers".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -48310,7 +48486,7 @@ universal representation of the field "declarators".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -48356,7 +48532,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxSimpleDeclaration::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -48403,8 +48580,8 @@ universal representation of the field "semicolon".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxSimpleDeclaration::semicolon - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -48454,7 +48631,7 @@ universal representation of the field "condition".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -48465,7 +48642,7 @@ universal representation of the field "condition".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -48512,7 +48689,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxSimpleRequirement::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -48562,7 +48740,7 @@ universal representation of the field "expr".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -48573,7 +48751,7 @@ universal representation of the field "expr".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -48620,7 +48798,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxSimpleTypeSpecifier::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -48664,7 +48843,7 @@ universal representation of the field "type".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -48711,7 +48890,7 @@ representation of the field "stmts".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -48763,8 +48942,8 @@ universal representation of the field "comma".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxStaticAssertDeclaration::comma - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/40,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/40,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -48810,7 +48989,7 @@ universal representation of the field "condition".
        into version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -48821,7 +49000,7 @@ universal representation of the field "condition".
        into version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -48869,8 +49048,8 @@ universal representation of the field "left_paren".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxStaticAssertDeclaration::left_paren -
      SourceLocation) into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -48918,7 +49097,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxStaticAssertDeclaration::locus - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -48964,7 +49144,7 @@ universal representation of the field "message".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -48975,7 +49155,7 @@ universal representation of the field "message".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -49023,8 +49203,8 @@ universal representation of the field "right_paren".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxStaticAssertDeclaration::right_paren -
      SourceLocation) into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -49072,8 +49252,8 @@ universal representation of the field "semicolon".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxStaticAssertDeclaration::semicolon - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/32,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/32,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -49124,7 +49304,7 @@ return the universal representation of the field "initializer".
        ExprIndex) into version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -49135,7 +49315,7 @@ return the universal representation of the field "initializer".
        ExprIndex) into version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -49183,7 +49363,8 @@ return the universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxStructuredBindingDeclaration::locus -
      SourceLocation) into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -49228,7 +49409,7 @@ return the universal representation of the field "names".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -49275,7 +49456,8 @@ return the universal representation of the field "ref".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxStructuredBindingDeclaration::ref - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -49320,7 +49502,7 @@ return the universal representation of the field "specifiers".
      SyntaxIndex) into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -49372,7 +49554,8 @@ the universal representation of the field "comma".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxStructuredBindingIdentifier::comma - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -49418,7 +49601,7 @@ the universal representation of the field "name".
        into version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -49429,7 +49612,7 @@ the universal representation of the field "name".
        into version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -49480,7 +49663,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxSuper::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -49529,7 +49713,7 @@ universal representation of the field "body".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -49572,7 +49756,7 @@ universal representation of the field "condition".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -49615,7 +49799,7 @@ universal representation of the field "init".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -49658,7 +49842,7 @@ universal representation of the field "pragma".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_sentence_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -49704,8 +49888,8 @@ universal representation of the field "switch".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxSwitchStatement::switch - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -49755,7 +49939,7 @@ universal representation of the field "arguments".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -49802,7 +49986,8 @@ universal representation of the field "left_angle".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxTemplateArgumentList::left_angle - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -49850,8 +50035,8 @@ universal representation of the field "right_angle".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxTemplateArgumentList::right_angle - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -49903,7 +50088,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxTemplateDeclaration::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -49948,7 +50134,7 @@ universal representation of the field "parameters".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -49991,7 +50177,7 @@ universal representation of the field "subject".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -50039,7 +50225,7 @@ representation of the field "arguments".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -50085,8 +50271,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxTemplateId::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -50129,7 +50315,7 @@ representation of the field "name".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -50172,7 +50358,7 @@ representation of the field "symbol".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -50183,7 +50369,7 @@ representation of the field "symbol".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -50230,8 +50416,8 @@ representation of the field "template_kw".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxTemplateId::template_kw - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -50281,7 +50467,7 @@ universal representation of the field "clause".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -50328,7 +50514,8 @@ universal representation of the field "left_angle".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxTemplateParameterList::left_angle - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -50373,7 +50560,7 @@ universal representation of the field "parameters".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -50420,8 +50607,8 @@ universal representation of the field "right_angle".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxTemplateParameterList::right_angle - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -50471,7 +50658,7 @@ the universal representation of the field "argument".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -50518,8 +50705,8 @@ the universal representation of the field "comma".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxTemplateTemplateParameter::comma - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/28,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/28,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -50567,8 +50754,8 @@ the universal representation of the field "ellipsis".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxTemplateTemplateParameter::ellipsis -
      SourceLocation) into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -50616,8 +50803,8 @@ the universal representation of the field "key".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxTemplateTemplateParameter::key - KeywordSyntax) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/36,
-                 /*size=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/36,
+                       /*size=*/12);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -50665,8 +50852,8 @@ the universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxTemplateTemplateParameter::locus - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -50711,7 +50898,7 @@ the universal representation of the field "name".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -50755,7 +50942,7 @@ the universal representation of the field "parameters".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -50806,7 +50993,8 @@ representation of the field "asterisk".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxThisCapture::asterisk - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -50853,8 +51041,8 @@ representation of the field "comma".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxThisCapture::comma - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -50901,7 +51089,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxThisCapture::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -50953,7 +51142,8 @@ universal representation of the field "arrow".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxTrailingReturnType::arrow - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -50997,7 +51187,7 @@ universal representation of the field "target".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -51044,7 +51234,7 @@ representation of the field "body".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -51086,7 +51276,7 @@ representation of the field "handlers".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -51128,7 +51318,7 @@ representation of the field "pragma".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_sentence_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -51173,8 +51363,8 @@ representation of the field "try".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxTryBlock::try - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -51222,7 +51412,7 @@ representation of the field "cardinality".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = {universal.get_file(), (an_ifc_cardinality_storage)stage_0};
   result = stage_1;
   return result;
@@ -51264,7 +51454,7 @@ representation of the field "start".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -51313,7 +51503,7 @@ representation of the field "abstract_declarator".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -51358,7 +51548,8 @@ representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxTypeId::locus - SourceLocation) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -51402,7 +51593,7 @@ representation of the field "type_specifier".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -51453,7 +51644,8 @@ universal representation of the field "ellipsis".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxTypeIdListElement::ellipsis - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -51497,7 +51689,7 @@ universal representation of the field "type_id".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -51548,7 +51740,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxTypeRequirement::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -51592,7 +51785,7 @@ universal representation of the field "type".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -51603,7 +51796,7 @@ universal representation of the field "type".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -51655,7 +51848,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxTypeSpecifierSeq::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -51699,7 +51893,7 @@ universal representation of the field "qualifiers".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = {universal.get_file(),
              (an_ifc_qualifier_bitfield_storage)stage_0};
   result = stage_1;
@@ -51743,7 +51937,7 @@ universal representation of the field "type".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -51786,7 +51980,7 @@ universal representation of the field "type_name".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -51828,7 +52022,7 @@ universal representation of the field "unhashed".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/17);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/17);
   stage_1 = {universal.get_file(), (an_ifc_bool_storage)stage_0};
   result = stage_1;
   return result;
@@ -51877,7 +52071,7 @@ universal representation of the field "argument".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -51923,8 +52117,8 @@ universal representation of the field "comma".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxTypeTemplateArgument::comma - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -51972,7 +52166,8 @@ universal representation of the field "ellipsis".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxTypeTemplateArgument::ellipsis - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -52022,7 +52217,7 @@ universal representation of the field "argument".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -52066,7 +52261,7 @@ universal representation of the field "constraint".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -52113,8 +52308,8 @@ universal representation of the field "ellipsis".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxTypeTemplateParameter::ellipsis - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -52161,8 +52356,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxTypeTemplateParameter::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -52206,7 +52401,7 @@ universal representation of the field "name".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -52255,7 +52450,7 @@ universal representation of the field "arguments".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -52300,7 +52495,7 @@ universal representation of the field "intrinsic".
        into version-specific storage. */
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_category(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 42)) {
@@ -52311,7 +52506,7 @@ universal representation of the field "intrinsic".
        into version-specific storage. */
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_category(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -52322,7 +52517,7 @@ universal representation of the field "intrinsic".
        into version-specific storage. */
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_category(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -52369,7 +52564,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxTypeTraitIntrinsic::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -52419,7 +52615,7 @@ universal representation of the field "direction".
      into version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -52463,7 +52659,7 @@ universal representation of the field "dyad".
        into version-specific storage. */
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_sort(stage_0);
     result = stage_1;
   } else {
@@ -52474,7 +52670,7 @@ universal representation of the field "dyad".
        into version-specific storage. */
     static_assert(sizeof(stage_0) == 2,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_sort(stage_0);
     result = stage_1;
   }  /* if */
@@ -52522,8 +52718,8 @@ universal representation of the field "ellipsis".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxUnaryFoldExpression::ellipsis - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/18,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/18,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -52571,8 +52767,8 @@ universal representation of the field "glyph_locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxUnaryFoldExpression::glyph_locus - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/26,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/26,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -52619,8 +52815,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxUnaryFoldExpression::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/10,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/10,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -52665,7 +52861,7 @@ universal representation of the field "operand".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -52676,7 +52872,7 @@ universal representation of the field "operand".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -52724,8 +52920,8 @@ universal representation of the field "right_paren".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxUnaryFoldExpression::right_paren - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/34,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/34,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -52774,7 +52970,7 @@ universal representation of the field "declarators".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -52820,7 +53016,8 @@ universal representation of the field "keyword".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxUsingDeclaration::keyword - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -52867,8 +53064,8 @@ universal representation of the field "semicolon".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxUsingDeclaration::semicolon - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -52920,8 +53117,8 @@ universal representation of the field "comma".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxUsingDeclarator::comma - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -52968,8 +53165,8 @@ universal representation of the field "expander".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxUsingDeclarator::expander - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -53015,7 +53212,7 @@ universal representation of the field "qualified_name".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -53026,7 +53223,7 @@ universal representation of the field "qualified_name".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -53073,7 +53270,8 @@ universal representation of the field "typename_kw".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxUsingDeclarator::typename_kw - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -53125,8 +53323,8 @@ universal representation of the field "namespace_kw".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxUsingDirective::namespace_kw - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -53172,7 +53370,7 @@ universal representation of the field "qualified_name".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -53183,7 +53381,7 @@ universal representation of the field "qualified_name".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -53230,8 +53428,8 @@ universal representation of the field "semicolon".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxUsingDirective::semicolon - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -53278,7 +53476,8 @@ universal representation of the field "using_kw".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxUsingDirective::using_kw - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -53331,8 +53530,8 @@ universal representation of the field "enum_kw".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxUsingEnumDeclaration::enum_kw - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -53377,7 +53576,7 @@ universal representation of the field "name".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -53388,7 +53587,7 @@ universal representation of the field "name".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -53436,8 +53635,8 @@ universal representation of the field "semicolon".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxUsingEnumDeclaration::semicolon - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -53485,7 +53684,8 @@ universal representation of the field "using_kw".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxUsingEnumDeclaration::using_kw - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -53538,7 +53738,8 @@ universal representation of the field "final_kw".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxVirtualSpecifierSeq::final_kw - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -53585,7 +53786,8 @@ universal representation of the field "locus".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxVirtualSpecifierSeq::locus - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -53633,8 +53835,8 @@ universal representation of the field "override_kw".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxVirtualSpecifierSeq::override_kw - SourceLocation)
      into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -53677,7 +53879,7 @@ universal representation of the field "pure".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/24);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/24);
   stage_1 = {universal.get_file(), (an_ifc_bool_storage)stage_0};
   result = stage_1;
   return result;
@@ -53725,7 +53927,7 @@ universal representation of the field "body".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -53769,7 +53971,7 @@ universal representation of the field "condition".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -53780,7 +53982,7 @@ universal representation of the field "condition".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -53824,7 +54026,7 @@ universal representation of the field "pragma".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_sentence_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -53870,8 +54072,8 @@ universal representation of the field "while".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (SyntaxWhileStatement::while - SourceLocation) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -53920,7 +54122,7 @@ representation of the field "decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -53931,7 +54133,7 @@ representation of the field "decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -53942,7 +54144,7 @@ representation of the field "decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -53988,7 +54190,7 @@ representation of the field "encoded_decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -54004,7 +54206,7 @@ representation of the field "encoded_decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -54020,7 +54222,7 @@ representation of the field "encoded_decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -54067,7 +54269,7 @@ representation of the field "trait".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -54115,7 +54317,7 @@ representation of the field "decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -54126,7 +54328,7 @@ representation of the field "decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -54137,7 +54339,7 @@ representation of the field "decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -54183,7 +54385,7 @@ representation of the field "encoded_decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -54199,7 +54401,7 @@ representation of the field "encoded_decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -54215,7 +54417,7 @@ representation of the field "encoded_decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -54262,7 +54464,7 @@ representation of the field "trait".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -54310,7 +54512,7 @@ representation of the field "decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -54321,7 +54523,7 @@ representation of the field "decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -54332,7 +54534,7 @@ representation of the field "decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -54378,7 +54580,7 @@ representation of the field "encoded_decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -54394,7 +54596,7 @@ representation of the field "encoded_decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -54410,7 +54612,7 @@ representation of the field "encoded_decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -54458,7 +54660,7 @@ representation of the field "trait".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -54469,7 +54671,7 @@ representation of the field "trait".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -54480,7 +54682,7 @@ representation of the field "trait".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -54529,7 +54731,7 @@ representation of the field "decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -54540,7 +54742,7 @@ representation of the field "decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -54551,7 +54753,7 @@ representation of the field "decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -54597,7 +54799,7 @@ representation of the field "encoded_decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -54613,7 +54815,7 @@ representation of the field "encoded_decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -54629,7 +54831,7 @@ representation of the field "encoded_decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -54676,7 +54878,7 @@ representation of the field "trait".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = {universal.get_file(), (an_ifc_text_offset_storage)stage_0};
   result = stage_1;
   return result;
@@ -54724,7 +54926,7 @@ representation of the field "decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -54735,7 +54937,7 @@ representation of the field "decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -54746,7 +54948,7 @@ representation of the field "decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -54792,7 +54994,7 @@ representation of the field "encoded_decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -54808,7 +55010,7 @@ representation of the field "encoded_decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -54824,7 +55026,7 @@ representation of the field "encoded_decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -54873,7 +55075,8 @@ representation of the field "trait".
   stage_0 = (an_ifc_sequence_bytes)((*universal.get_storage()) + 4);
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (TraitFriend::trait - Sequence) into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -54923,7 +55126,7 @@ universal representation of the field "body".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -54934,7 +55137,7 @@ universal representation of the field "body".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -54979,7 +55182,7 @@ universal representation of the field "decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -54990,7 +55193,7 @@ universal representation of the field "decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -55001,7 +55204,7 @@ universal representation of the field "decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -55048,7 +55251,7 @@ universal representation of the field "encoded_decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -55064,7 +55267,7 @@ universal representation of the field "encoded_decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -55080,7 +55283,7 @@ universal representation of the field "encoded_decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -55130,7 +55333,7 @@ universal representation of the field "initializers".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -55141,7 +55344,7 @@ universal representation of the field "initializers".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -55185,7 +55388,7 @@ universal representation of the field "parameters".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -55233,7 +55436,7 @@ representation of the field "decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -55244,7 +55447,7 @@ representation of the field "decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -55255,7 +55458,7 @@ representation of the field "decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -55301,7 +55504,7 @@ representation of the field "encoded_decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -55317,7 +55520,7 @@ representation of the field "encoded_decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -55333,7 +55536,7 @@ representation of the field "encoded_decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -55380,7 +55583,7 @@ representation of the field "trait".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -55428,7 +55631,7 @@ representation of the field "decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -55439,7 +55642,7 @@ representation of the field "decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -55450,7 +55653,7 @@ representation of the field "decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -55496,7 +55699,7 @@ representation of the field "encoded_decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -55512,7 +55715,7 @@ representation of the field "encoded_decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -55528,7 +55731,7 @@ representation of the field "encoded_decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -55576,7 +55779,7 @@ representation of the field "params".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -55624,7 +55827,7 @@ representation of the field "decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -55635,7 +55838,7 @@ representation of the field "decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -55646,7 +55849,7 @@ representation of the field "decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -55692,7 +55895,7 @@ representation of the field "encoded_decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -55708,7 +55911,7 @@ representation of the field "encoded_decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -55724,7 +55927,7 @@ representation of the field "encoded_decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -55773,7 +55976,8 @@ representation of the field "uuid".
   stage_0 = (an_ifc_uuid_bytes)((*universal.get_storage()) + 4);
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (TraitMsvcUuid::uuid - Uuid) into universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/2);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/2);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -55822,7 +56026,7 @@ universal representation of the field "decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -55833,7 +56037,7 @@ universal representation of the field "decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -55844,7 +56048,7 @@ universal representation of the field "decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -55890,7 +56094,7 @@ universal representation of the field "encoded_decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -55906,7 +56110,7 @@ universal representation of the field "encoded_decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -55922,7 +56126,7 @@ universal representation of the field "encoded_decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -55970,7 +56174,7 @@ universal representation of the field "trait".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = {universal.get_file(),
              (an_ifc_msvc_traits_bitfield_storage)stage_0};
   result = stage_1;
@@ -56019,7 +56223,7 @@ representation of the field "decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -56030,7 +56234,7 @@ representation of the field "decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -56041,7 +56245,7 @@ representation of the field "decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -56087,7 +56291,7 @@ representation of the field "encoded_decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -56103,7 +56307,7 @@ representation of the field "encoded_decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -56119,7 +56323,7 @@ representation of the field "encoded_decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -56166,7 +56370,7 @@ representation of the field "trait".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -56214,7 +56418,7 @@ representation of the field "decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -56225,7 +56429,7 @@ representation of the field "decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -56236,7 +56440,7 @@ representation of the field "decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -56282,7 +56486,7 @@ representation of the field "encoded_decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -56298,7 +56502,7 @@ representation of the field "encoded_decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -56314,7 +56518,7 @@ representation of the field "encoded_decl".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     /* Use the encoding matching the request, regardless of where we're coming
        from, to get an encoding result that matches the source node (and is
@@ -56364,7 +56568,8 @@ representation of the field "trait".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (TraitSpecialization::trait - Sequence) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -56412,7 +56617,7 @@ representation of the field "element".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -56455,7 +56660,7 @@ representation of the field "extent".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -56466,7 +56671,7 @@ representation of the field "extent".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -56514,7 +56719,7 @@ representation of the field "access".
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -56556,7 +56761,7 @@ representation of the field "pack_expanded".
      storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/6);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/6);
   stage_1 = {universal.get_file(), (an_ifc_bool_storage)stage_0};
   result = stage_1;
   return result;
@@ -56597,7 +56802,7 @@ representation of the field "shared".
   /* Copy the field (TypeBase::shared - bool) into version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/5);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/5);
   stage_1 = {universal.get_file(), (an_ifc_bool_storage)stage_0};
   result = stage_1;
   return result;
@@ -56639,7 +56844,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -56686,7 +56891,7 @@ representation of the field "expr".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -56734,7 +56939,7 @@ representation of the field "decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else if (is_at_least(universal.get_file(), 0, 41)) {
@@ -56745,7 +56950,7 @@ representation of the field "decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -56756,7 +56961,7 @@ representation of the field "decl".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -56804,7 +57009,7 @@ representation of the field "mode".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -56846,7 +57051,7 @@ representation of the field "pack".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -56893,7 +57098,7 @@ representation of the field "chart".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -56935,7 +57140,7 @@ representation of the field "subject".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -56983,7 +57188,7 @@ representation of the field "convention".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/16);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/16);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -57030,7 +57235,8 @@ representation of the field "eh_spec".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (TypeFunction::eh_spec - NoexceptSpecification) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -57073,7 +57279,7 @@ representation of the field "source".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -57115,7 +57321,7 @@ representation of the field "target".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -57158,7 +57364,7 @@ representation of the field "traits".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/17);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/17);
   stage_1 = {universal.get_file(),
              (an_ifc_function_type_traits_bitfield_storage)stage_0};
   result = stage_1;
@@ -57206,7 +57412,7 @@ representation of the field "basis".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -57249,7 +57455,7 @@ representation of the field "precision".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/1);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/1);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -57291,7 +57497,7 @@ representation of the field "sign".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/2);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/2);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -57339,7 +57545,7 @@ representation of the field "referee".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -57387,7 +57593,7 @@ representation of the field "convention".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/20);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/20);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -57434,8 +57640,8 @@ representation of the field "eh_spec".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (TypeMethod::eh_spec - NoexceptSpecification) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12,
-                 /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -57478,7 +57684,7 @@ representation of the field "scope".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -57520,7 +57726,7 @@ representation of the field "source".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -57562,7 +57768,7 @@ representation of the field "target".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -57605,7 +57811,7 @@ representation of the field "traits".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/21);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/21);
   stage_1 = {universal.get_file(),
              (an_ifc_function_type_traits_bitfield_storage)stage_0};
   result = stage_1;
@@ -57659,14 +57865,15 @@ representation of the field "basis".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (TypePlaceholder::basis - TypePlaceholderBasisWrapper) into
      universal storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/4);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   /* Copy the field (TypePlaceholderBasisWrapper::value - TypeBasisSort) into
      version-specific storage. */
   static_assert(sizeof(stage_2) == 1,
                 "stage_2 is not properly sized storage!");
-  copy_ifc_field(&stage_2, stage_1.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_2, stage_1.get_storage(), /*offset=*/0);
   stage_3 = to_universal_sort(stage_2);
   result = stage_3;
   return result;
@@ -57709,7 +57916,7 @@ representation of the field "constraint".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -57720,7 +57927,7 @@ representation of the field "constraint".
        version-specific storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -57763,7 +57970,7 @@ representation of the field "elaboration".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/8);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -57810,7 +58017,7 @@ representation of the field "pointee".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -57858,7 +58065,7 @@ representation of the field "member".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -57900,7 +58107,7 @@ representation of the field "scope".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -57948,7 +58155,7 @@ representation of the field "qualifiers".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = {universal.get_file(),
              (an_ifc_qualifier_bitfield_storage)stage_0};
   result = stage_1;
@@ -57991,7 +58198,7 @@ representation of the field "unqualified".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -58039,7 +58246,7 @@ representation of the field "referee".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -58087,7 +58294,7 @@ representation of the field "expr".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -58098,7 +58305,7 @@ representation of the field "expr".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -58146,7 +58353,7 @@ representation of the field "syntax".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -58194,7 +58401,7 @@ representation of the field "convention".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 1,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/12);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/12);
   stage_1 = to_universal_sort(stage_0);
   result = stage_1;
   return result;
@@ -58240,7 +58447,8 @@ representation of the field "eh_spec".
 #else /* !USE_MMAP_FOR_MODULES */
   /* Copy the field (TypeTor::eh_spec - NoexceptSpecification) into universal
      storage. */
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4, /*size=*/8);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4,
+                       /*size=*/8);
 #endif /* USE_MMAP_FOR_MODULES */
   stage_1 = {universal.get_file(), stage_0};
   result = stage_1;
@@ -58283,7 +58491,7 @@ representation of the field "source".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -58330,7 +58538,7 @@ representation of the field "cardinality".
      version-specific storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/4);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/4);
   stage_1 = {universal.get_file(), (an_ifc_cardinality_storage)stage_0};
   result = stage_1;
   return result;
@@ -58372,7 +58580,7 @@ representation of the field "start".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = {universal.get_file(), (an_ifc_index_storage)stage_0};
   result = stage_1;
   return result;
@@ -58420,7 +58628,7 @@ representation of the field "path".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   } else {
@@ -58431,7 +58639,7 @@ representation of the field "path".
        storage. */
     static_assert(sizeof(stage_0) == 4,
                   "stage_0 is not properly sized storage!");
-    copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+    copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
     stage_1 = to_universal_index(universal.get_file(), stage_0);
     result = stage_1;
   }  /* if */
@@ -58479,7 +58687,7 @@ representation of the field "type".
      storage. */
   static_assert(sizeof(stage_0) == 4,
                 "stage_0 is not properly sized storage!");
-  copy_ifc_field(&stage_0, universal.get_storage(), /*offset=*/0);
+  copy_from_node_field(&stage_0, universal.get_storage(), /*offset=*/0);
   stage_1 = to_universal_index(universal.get_file(), stage_0);
   result = stage_1;
   return result;
@@ -58489,7 +58697,7 @@ representation of the field "type".
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !STANDALONE_UTILITY_PROGRAM */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /******************************************************************************
 *                                                             \  ___  /       *
@@ -58497,6 +58705,6 @@ END_EDG_NAMESPACE
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2023 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2024 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

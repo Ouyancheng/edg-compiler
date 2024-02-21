@@ -4,13 +4,13 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2023 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2024 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
 
-ifc_map_functions_dbg.c -- Function implementations for interacting with IFC
-                           types for Microsoft modules for debug functions.
+ifc_map_functions_dbg.c -- Function implementations for IFC-based module
+                           debug functions.
 
 ** NOTICE: This file is produced by an external script. **
 
@@ -25,11 +25,10 @@ more about, the tool that generated this file.
 #include "basic_hdrs.h"
 #include "fe_common.h"
 #include "ifc_modules.h"
-#if MICROSOFT_EXTENSIONS_ALLOWED
 #include "ifc_map_functions.h"
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED && !STANDALONE_UTILITY_PROGRAM
+
+#if !STANDALONE_UTILITY_PROGRAM
 
 #if DEBUG
 
@@ -23747,7 +23746,7 @@ END_EDG_NAMESPACE
 
 #endif /* DEBUG */
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !STANDALONE_UTILITY_PROGRAM */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /******************************************************************************
 *                                                             \  ___  /       *
@@ -23755,6 +23754,6 @@ END_EDG_NAMESPACE
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2023 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2024 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

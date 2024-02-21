@@ -4,14 +4,14 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2023 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2024 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
 
-ifc_map_functions.c -- Function implementations for interacting with IFC types
-                       for Microsoft modules for functions that don't have
-                       a more specific implementation file.
+ifc_map_functions.c -- Function implementations for interacting with types for
+                       IFC-based modules for functions that don't have a more
+                       specific implementation file.
 
 ** NOTICE: This file is produced by an external script. **
 
@@ -26,11 +26,10 @@ more about, the tool that generated this file.
 #include "basic_hdrs.h"
 #include "fe_common.h"
 #include "ifc_modules.h"
-#if MICROSOFT_EXTENSIONS_ALLOWED
 #include "ifc_map_functions.h"
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED && !STANDALONE_UTILITY_PROGRAM
+
+#if !STANDALONE_UTILITY_PROGRAM
 
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
@@ -63,6 +62,79 @@ supported, otherwise return FALSE.
   }  /* switch */
   return result;
 }  /* is_supported_ifc_version */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_ieeele_float_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC IEEELEFloat node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_sha256_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SHA256 node.
+*/
+{
+  size_t result;
+
+  result = 32;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_storage_class_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC StorageClass node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_uuid_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC Uuid node.
+*/
+{
+  size_t result;
+
+  result = 2;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_variadic_arity_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC VariadicArity node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 /*
@@ -13511,11 +13583,16 @@ Given the universal representation of AttrIndex and the destination module
 file, return a reencoded index value.
 */
 {
-  an_ifc_encoded_attr_sort  encoded_sort = to_encoded(file, universal.sort);
   an_ifc_encoded_attr_index result = {file, universal.value};
 
-  result.value <<= 4;
-  result.value |= encoded_sort;
+  if (universal.file == NULL) {
+    result.value = 0;
+  } else {
+    an_ifc_encoded_attr_sort encoded_sort = to_encoded(file, universal.sort);
+
+    result.value <<= 4;
+    result.value |= encoded_sort;
+  }  /* if */
   return result;
 }  /* to_encoded */
 
@@ -13584,11 +13661,16 @@ Given the universal representation of ChartIndex and the destination module
 file, return a reencoded index value.
 */
 {
-  an_ifc_encoded_chart_sort  encoded_sort = to_encoded(file, universal.sort);
   an_ifc_encoded_chart_index result = {file, universal.value};
 
-  result.value <<= 2;
-  result.value |= encoded_sort;
+  if (universal.file == NULL) {
+    result.value = 0;
+  } else {
+    an_ifc_encoded_chart_sort encoded_sort = to_encoded(file, universal.sort);
+
+    result.value <<= 2;
+    result.value |= encoded_sort;
+  }  /* if */
   return result;
 }  /* to_encoded */
 
@@ -13725,11 +13807,16 @@ Given the universal representation of DeclIndex and the destination module
 file, return a reencoded index value.
 */
 {
-  an_ifc_encoded_decl_sort  encoded_sort = to_encoded(file, universal.sort);
   an_ifc_encoded_decl_index result = {file, universal.value};
 
-  result.value <<= 5;
-  result.value |= encoded_sort;
+  if (universal.file == NULL) {
+    result.value = 0;
+  } else {
+    an_ifc_encoded_decl_sort encoded_sort = to_encoded(file, universal.sort);
+
+    result.value <<= 5;
+    result.value |= encoded_sort;
+  }  /* if */
   return result;
 }  /* to_encoded */
 
@@ -13798,11 +13885,16 @@ Given the universal representation of DirIndex and the destination module file,
 return a reencoded index value.
 */
 {
-  an_ifc_encoded_dir_sort  encoded_sort = to_encoded(file, universal.sort);
   an_ifc_encoded_dir_index result = {file, universal.value};
 
-  result.value <<= 5;
-  result.value |= encoded_sort;
+  if (universal.file == NULL) {
+    result.value = 0;
+  } else {
+    an_ifc_encoded_dir_sort encoded_sort = to_encoded(file, universal.sort);
+
+    result.value <<= 5;
+    result.value |= encoded_sort;
+  }  /* if */
   return result;
 }  /* to_encoded */
 
@@ -13905,11 +13997,16 @@ Given the universal representation of ExprIndex and the destination module
 file, return a reencoded index value.
 */
 {
-  an_ifc_encoded_expr_sort  encoded_sort = to_encoded(file, universal.sort);
   an_ifc_encoded_expr_index result = {file, universal.value};
 
-  result.value <<= 6;
-  result.value |= encoded_sort;
+  if (universal.file == NULL) {
+    result.value = 0;
+  } else {
+    an_ifc_encoded_expr_sort encoded_sort = to_encoded(file, universal.sort);
+
+    result.value <<= 6;
+    result.value |= encoded_sort;
+  }  /* if */
   return result;
 }  /* to_encoded */
 
@@ -13978,11 +14075,16 @@ Given the universal representation of FormIndex and the destination module
 file, return a reencoded index value.
 */
 {
-  an_ifc_encoded_form_sort  encoded_sort = to_encoded(file, universal.sort);
   an_ifc_encoded_form_index result = {file, universal.value};
 
-  result.value <<= 4;
-  result.value |= encoded_sort;
+  if (universal.file == NULL) {
+    result.value = 0;
+  } else {
+    an_ifc_encoded_form_sort encoded_sort = to_encoded(file, universal.sort);
+
+    result.value <<= 4;
+    result.value |= encoded_sort;
+  }  /* if */
   return result;
 }  /* to_encoded */
 
@@ -14052,11 +14154,16 @@ Given the universal representation of LitIndex and the destination module file,
 return a reencoded index value.
 */
 {
-  an_ifc_encoded_lit_sort  encoded_sort = to_encoded(file, universal.sort);
   an_ifc_encoded_lit_index result = {file, universal.value};
 
-  result.value <<= 2;
-  result.value |= encoded_sort;
+  if (universal.file == NULL) {
+    result.value = 0;
+  } else {
+    an_ifc_encoded_lit_sort encoded_sort = to_encoded(file, universal.sort);
+
+    result.value <<= 2;
+    result.value |= encoded_sort;
+  }  /* if */
   return result;
 }  /* to_encoded */
 
@@ -14126,11 +14233,16 @@ Given the universal representation of MacroIndex and the destination module
 file, return a reencoded index value.
 */
 {
-  an_ifc_encoded_macro_sort  encoded_sort = to_encoded(file, universal.sort);
   an_ifc_encoded_macro_index result = {file, universal.value};
 
-  result.value <<= 1;
-  result.value |= encoded_sort;
+  if (universal.file == NULL) {
+    result.value = 0;
+  } else {
+    an_ifc_encoded_macro_sort encoded_sort = to_encoded(file, universal.sort);
+
+    result.value <<= 1;
+    result.value |= encoded_sort;
+  }  /* if */
   return result;
 }  /* to_encoded */
 
@@ -14200,11 +14312,16 @@ Given the universal representation of NameIndex and the destination module
 file, return a reencoded index value.
 */
 {
-  an_ifc_encoded_name_sort  encoded_sort = to_encoded(file, universal.sort);
   an_ifc_encoded_name_index result = {file, universal.value};
 
-  result.value <<= 3;
-  result.value |= encoded_sort;
+  if (universal.file == NULL) {
+    result.value = 0;
+  } else {
+    an_ifc_encoded_name_sort encoded_sort = to_encoded(file, universal.sort);
+
+    result.value <<= 3;
+    result.value |= encoded_sort;
+  }  /* if */
   return result;
 }  /* to_encoded */
 
@@ -14274,11 +14391,16 @@ Given the universal representation of PragmaIndex and the destination module
 file, return a reencoded index value.
 */
 {
-  an_ifc_encoded_pragma_sort  encoded_sort = to_encoded(file, universal.sort);
   an_ifc_encoded_pragma_index result = {file, universal.value};
 
-  result.value <<= 1;
-  result.value |= encoded_sort;
+  if (universal.file == NULL) {
+    result.value = 0;
+  } else {
+    an_ifc_encoded_pragma_sort encoded_sort = to_encoded(file, universal.sort);
+
+    result.value <<= 1;
+    result.value |= encoded_sort;
+  }  /* if */
   return result;
 }  /* to_encoded */
 
@@ -14382,11 +14504,16 @@ Given the universal representation of StmtIndex and the destination module
 file, return a reencoded index value.
 */
 {
-  an_ifc_encoded_stmt_sort  encoded_sort = to_encoded(file, universal.sort);
   an_ifc_encoded_stmt_index result = {file, universal.value};
 
-  result.value <<= 5;
-  result.value |= encoded_sort;
+  if (universal.file == NULL) {
+    result.value = 0;
+  } else {
+    an_ifc_encoded_stmt_sort encoded_sort = to_encoded(file, universal.sort);
+
+    result.value <<= 5;
+    result.value |= encoded_sort;
+  }  /* if */
   return result;
 }  /* to_encoded */
 
@@ -14455,11 +14582,16 @@ Given the universal representation of StringIndex and the destination module
 file, return a reencoded index value.
 */
 {
-  an_ifc_encoded_string_sort  encoded_sort = to_encoded(file, universal.sort);
   an_ifc_encoded_string_index result = {file, universal.value};
 
-  result.value <<= 3;
-  result.value |= encoded_sort;
+  if (universal.file == NULL) {
+    result.value = 0;
+  } else {
+    an_ifc_encoded_string_sort encoded_sort = to_encoded(file, universal.sort);
+
+    result.value <<= 3;
+    result.value |= encoded_sort;
+  }  /* if */
   return result;
 }  /* to_encoded */
 
@@ -14529,11 +14661,16 @@ Given the universal representation of SyntaxIndex and the destination module
 file, return a reencoded index value.
 */
 {
-  an_ifc_encoded_syntax_sort  encoded_sort = to_encoded(file, universal.sort);
   an_ifc_encoded_syntax_index result = {file, universal.value};
 
-  result.value <<= 7;
-  result.value |= encoded_sort;
+  if (universal.file == NULL) {
+    result.value = 0;
+  } else {
+    an_ifc_encoded_syntax_sort encoded_sort = to_encoded(file, universal.sort);
+
+    result.value <<= 7;
+    result.value |= encoded_sort;
+  }  /* if */
   return result;
 }  /* to_encoded */
 
@@ -14602,11 +14739,16 @@ Given the universal representation of TypeIndex and the destination module
 file, return a reencoded index value.
 */
 {
-  an_ifc_encoded_type_sort  encoded_sort = to_encoded(file, universal.sort);
   an_ifc_encoded_type_index result = {file, universal.value};
 
-  result.value <<= 5;
-  result.value |= encoded_sort;
+  if (universal.file == NULL) {
+    result.value = 0;
+  } else {
+    an_ifc_encoded_type_sort encoded_sort = to_encoded(file, universal.sort);
+
+    result.value <<= 5;
+    result.value |= encoded_sort;
+  }  /* if */
   return result;
 }  /* to_encoded */
 
@@ -14675,11 +14817,16 @@ Given the universal representation of UnitIndex and the destination module
 file, return a reencoded index value.
 */
 {
-  an_ifc_encoded_unit_sort  encoded_sort = to_encoded(file, universal.sort);
   an_ifc_encoded_unit_index result = {file, universal.value};
 
-  result.value <<= 3;
-  result.value |= encoded_sort;
+  if (universal.file == NULL) {
+    result.value = 0;
+  } else {
+    an_ifc_encoded_unit_sort encoded_sort = to_encoded(file, universal.sort);
+
+    result.value <<= 3;
+    result.value |= encoded_sort;
+  }  /* if */
   return result;
 }  /* to_encoded */
 
@@ -16231,6 +16378,140 @@ universal representation.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_keyword_syntax_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC KeywordSyntax node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_module_reference_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ModuleReference node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_nestable_word_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC NestableWord node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_noexcept_specification_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC NoexceptSpecification node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_parameterized_entity_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ParameterizedEntity node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_sequence_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC Sequence node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_source_location_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SourceLocation node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_placeholder_basis_wrapper_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TypePlaceholderBasisWrapper node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_file_header_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC FileHeader node.
+*/
+{
+  size_t result;
+
+  result = 69;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_file_header_storage* get<an_ifc_file_header_storage>(
                                        an_ifc_module_file         *file,
                                        an_ifc_file_header_storage *storage,
@@ -16256,9 +16537,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_file_header_storage;
   if (host_little_endian) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/69);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/69);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -16298,6 +16579,20 @@ the storage specified by the storage argument).
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_partition_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC Partition node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_partition_storage* get<an_ifc_partition_storage>(
                                          an_ifc_module_file       *file,
                                          an_ifc_partition_storage *storage,
@@ -16323,9 +16618,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_partition_storage;
   if (host_little_endian) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -16342,6 +16637,20 @@ the storage specified by the storage argument).
   }  /* if */
   return storage;
 }  /* get<an_ifc_partition_storage> */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_attr_basic_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC AttrBasic node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -16370,9 +16679,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_attr_basic_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -16404,6 +16713,21 @@ Return the corresponding partition kind for AttrBasic.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_attr_called_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC AttrCalled node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_attr_called_storage* get<an_ifc_attr_called_storage>(
                                        an_ifc_module_file         *file,
                                        an_ifc_attr_called_storage *storage,
@@ -16429,9 +16753,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_attr_called_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -16454,6 +16778,21 @@ Return the corresponding partition kind for AttrCalled.
 {
   return ifc_pk_attr_called;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_attr_elaborated_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC AttrElaborated node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -16482,9 +16821,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_attr_elaborated_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -16505,6 +16844,21 @@ Return the corresponding partition kind for AttrElaborated.
 {
   return ifc_pk_attr_elaborated;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_attr_expanded_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC AttrExpanded node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -16533,9 +16887,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_attr_expanded_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -16556,6 +16910,21 @@ Return the corresponding partition kind for AttrExpanded.
 {
   return ifc_pk_attr_expanded;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_attr_factored_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC AttrFactored node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -16584,9 +16953,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_attr_factored_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -16620,6 +16989,21 @@ Return the corresponding partition kind for AttrFactored.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_attr_labeled_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC AttrLabeled node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_attr_labeled_storage* get<an_ifc_attr_labeled_storage>(
                                       an_ifc_module_file          *file,
                                       an_ifc_attr_labeled_storage *storage,
@@ -16645,9 +17029,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_attr_labeled_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -16681,6 +17065,21 @@ Return the corresponding partition kind for AttrLabeled.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_attr_scoped_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC AttrScoped node.
+*/
+{
+  size_t result;
+
+  result = 32;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_attr_scoped_storage* get<an_ifc_attr_scoped_storage>(
                                        an_ifc_module_file         *file,
                                        an_ifc_attr_scoped_storage *storage,
@@ -16706,9 +17105,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_attr_scoped_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/32);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/32);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -16750,6 +17149,20 @@ Return the corresponding partition kind for AttrScoped.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_attr_tuple_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC AttrTuple node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_attr_tuple_storage* get<an_ifc_attr_tuple_storage>(
                                         an_ifc_module_file        *file,
                                         an_ifc_attr_tuple_storage *storage,
@@ -16775,9 +17188,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_attr_tuple_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -16800,6 +17213,21 @@ Return the corresponding partition kind for AttrTuple.
 {
   return ifc_pk_attr_tuple;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_chart_multilevel_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ChartMultilevel node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -16828,9 +17256,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_chart_multilevel_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -16853,6 +17281,21 @@ Return the corresponding partition kind for ChartMultilevel.
 {
   return ifc_pk_chart_multilevel;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_chart_unilevel_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ChartUnilevel node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -16881,9 +17324,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_chart_unilevel_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -16908,6 +17351,20 @@ Return the corresponding partition kind for ChartUnilevel.
 {
   return ifc_pk_chart_unilevel;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_const_f64_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ConstF64 node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -16936,9 +17393,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_const_f64_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -16959,6 +17416,20 @@ Return the corresponding partition kind for ConstF64.
 {
   return ifc_pk_const_f64;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_const_i64_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ConstI64 node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -16987,9 +17458,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_const_i64_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -17010,6 +17481,20 @@ Return the corresponding partition kind for ConstI64.
 {
   return ifc_pk_const_i64;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_const_str_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ConstStr node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -17038,9 +17523,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_const_str_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -17065,6 +17550,20 @@ Return the corresponding partition kind for ConstStr.
 {
   return ifc_pk_const_str;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_alias_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclAlias node.
+*/
+{
+  size_t result;
+
+  result = 28;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -17093,9 +17592,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_alias_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/28);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/28);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -17133,6 +17632,21 @@ Return the corresponding partition kind for DeclAlias.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_decl_barren_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclBarren node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_decl_barren_storage* get<an_ifc_decl_barren_storage>(
                                        an_ifc_module_file         *file,
                                        an_ifc_decl_barren_storage *storage,
@@ -17158,9 +17672,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_barren_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -17185,6 +17699,21 @@ Return the corresponding partition kind for DeclBarren.
 {
   return ifc_pk_decl_barren;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_bitfield_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclBitfield node.
+*/
+{
+  size_t result;
+
+  result = 32;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -17213,9 +17742,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_bitfield_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/32);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/32);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -17259,6 +17788,21 @@ Return the corresponding partition kind for DeclBitfield.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_decl_concept_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclConcept node.
+*/
+{
+  size_t result;
+
+  result = 40;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_decl_concept_storage* get<an_ifc_decl_concept_storage>(
                                       an_ifc_module_file          *file,
                                       an_ifc_decl_concept_storage *storage,
@@ -17284,9 +17828,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_concept_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/40);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/40);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -17332,6 +17876,21 @@ Return the corresponding partition kind for DeclConcept.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_decl_constructor_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclConstructor node.
+*/
+{
+  size_t result;
+
+  result = 32;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_decl_constructor_storage* get<an_ifc_decl_constructor_storage>(
                                   an_ifc_module_file              *file,
                                   an_ifc_decl_constructor_storage *storage,
@@ -17357,9 +17916,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_constructor_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/32);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/32);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -17401,6 +17960,21 @@ Return the corresponding partition kind for DeclConstructor.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_decl_deduction_guide_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclDeductionGuide node.
+*/
+{
+  size_t result;
+
+  result = 28;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_decl_deduction_guide_storage* get<an_ifc_decl_deduction_guide_storage>(
                               an_ifc_module_file                  *file,
                               an_ifc_decl_deduction_guide_storage *storage,
@@ -17426,9 +18000,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_deduction_guide_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/28);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/28);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -17466,6 +18040,21 @@ Return the corresponding partition kind for DeclDeductionGuide.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_decl_default_argument_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclDefaultArgument node.
+*/
+{
+  size_t result;
+
+  result = 24;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_decl_default_argument_storage*
 get<an_ifc_decl_default_argument_storage>(
                              an_ifc_module_file                   *file,
@@ -17492,9 +18081,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_default_argument_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/24);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/24);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -17532,6 +18121,21 @@ Return the corresponding partition kind for DeclDefaultArgument.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_decl_destructor_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclDestructor node.
+*/
+{
+  size_t result;
+
+  result = 32;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_decl_destructor_storage* get<an_ifc_decl_destructor_storage>(
                                    an_ifc_module_file             *file,
                                    an_ifc_decl_destructor_storage *storage,
@@ -17557,9 +18161,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_destructor_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/32);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/32);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -17603,6 +18207,21 @@ Return the corresponding partition kind for DeclDestructor.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_decl_enumeration_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclEnumeration node.
+*/
+{
+  size_t result;
+
+  result = 40;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_decl_enumeration_storage* get<an_ifc_decl_enumeration_storage>(
                                   an_ifc_module_file              *file,
                                   an_ifc_decl_enumeration_storage *storage,
@@ -17628,9 +18247,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_enumeration_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/40);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/40);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -17676,6 +18295,21 @@ Return the corresponding partition kind for DeclEnumeration.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_decl_enumerator_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclEnumerator node.
+*/
+{
+  size_t result;
+
+  result = 24;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_decl_enumerator_storage* get<an_ifc_decl_enumerator_storage>(
                                    an_ifc_module_file             *file,
                                    an_ifc_decl_enumerator_storage *storage,
@@ -17701,9 +18335,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_enumerator_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/24);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/24);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -17739,6 +18373,21 @@ Return the corresponding partition kind for DeclEnumerator.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_decl_expansion_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclExpansion node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_decl_expansion_storage* get<an_ifc_decl_expansion_storage>(
                                     an_ifc_module_file            *file,
                                     an_ifc_decl_expansion_storage *storage,
@@ -17764,9 +18413,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_expansion_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -17791,6 +18440,21 @@ Return the corresponding partition kind for DeclExpansion.
 {
   return ifc_pk_decl_expansion;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_explicit_instantiation_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclExplicitInstantiation node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -17820,9 +18484,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_explicit_instantiation_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -17846,6 +18510,21 @@ Return the corresponding partition kind for DeclExplicitInstantiation.
 {
   return ifc_pk_decl_explicit_instantiation;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_explicit_specialization_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclExplicitSpecialization node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -17875,9 +18554,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_explicit_specialization_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -17901,6 +18580,20 @@ Return the corresponding partition kind for DeclExplicitSpecialization.
 {
   return ifc_pk_decl_explicit_specialization;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_field_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclField node.
+*/
+{
+  size_t result;
+
+  result = 32;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -17929,9 +18622,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_field_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/32);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/32);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -17975,6 +18668,21 @@ Return the corresponding partition kind for DeclField.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_decl_friend_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclFriend node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_decl_friend_storage* get<an_ifc_decl_friend_storage>(
                                        an_ifc_module_file         *file,
                                        an_ifc_decl_friend_storage *storage,
@@ -18000,9 +18708,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_friend_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -18023,6 +18731,21 @@ Return the corresponding partition kind for DeclFriend.
 {
   return ifc_pk_decl_friend;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_function_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclFunction node.
+*/
+{
+  size_t result;
+
+  result = 32;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -18051,9 +18774,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_function_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/32);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/32);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -18095,6 +18818,21 @@ Return the corresponding partition kind for DeclFunction.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_decl_inherited_constructor_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclInheritedConstructor node.
+*/
+{
+  size_t result;
+
+  result = 32;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_decl_inherited_constructor_storage*
 get<an_ifc_decl_inherited_constructor_storage>(
                         an_ifc_module_file                        *file,
@@ -18121,9 +18859,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_inherited_constructor_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/32);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/32);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -18166,6 +18904,21 @@ Return the corresponding partition kind for DeclInheritedConstructor.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_decl_intrinsic_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclIntrinsic node.
+*/
+{
+  size_t result;
+
+  result = 24;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_decl_intrinsic_storage* get<an_ifc_decl_intrinsic_storage>(
                                     an_ifc_module_file            *file,
                                     an_ifc_decl_intrinsic_storage *storage,
@@ -18191,9 +18944,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_intrinsic_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/24);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/24);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -18229,6 +18982,21 @@ Return the corresponding partition kind for DeclIntrinsic.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_decl_method_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclMethod node.
+*/
+{
+  size_t result;
+
+  result = 32;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_decl_method_storage* get<an_ifc_decl_method_storage>(
                                        an_ifc_module_file         *file,
                                        an_ifc_decl_method_storage *storage,
@@ -18254,9 +19022,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_method_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/32);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/32);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -18298,6 +19066,21 @@ Return the corresponding partition kind for DeclMethod.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_decl_output_segment_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclOutputSegment node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_decl_output_segment_storage* get<an_ifc_decl_output_segment_storage>(
                                an_ifc_module_file                 *file,
                                an_ifc_decl_output_segment_storage *storage,
@@ -18323,9 +19106,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_output_segment_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -18355,6 +19138,21 @@ Return the corresponding partition kind for DeclOutputSegment.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_decl_parameter_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclParameter node.
+*/
+{
+  size_t result;
+
+  result = 36;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_decl_parameter_storage* get<an_ifc_decl_parameter_storage>(
                                     an_ifc_module_file            *file,
                                     an_ifc_decl_parameter_storage *storage,
@@ -18380,9 +19178,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_parameter_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/36);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/36);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -18464,6 +19262,21 @@ Return the corresponding partition kind for DeclParameter.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_decl_partial_specialization_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclPartialSpecialization node.
+*/
+{
+  size_t result;
+
+  result = 44;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_decl_partial_specialization_storage*
 get<an_ifc_decl_partial_specialization_storage>(
                        an_ifc_module_file                         *file,
@@ -18490,9 +19303,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_partial_specialization_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/44);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/44);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -18541,6 +19354,21 @@ Return the corresponding partition kind for DeclPartialSpecialization.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_decl_property_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclProperty node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_decl_property_storage* get<an_ifc_decl_property_storage>(
                                      an_ifc_module_file           *file,
                                      an_ifc_decl_property_storage *storage,
@@ -18566,9 +19394,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_property_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -18593,6 +19421,21 @@ Return the corresponding partition kind for DeclProperty.
 {
   return ifc_pk_decl_property;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_reference_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclReference node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -18621,9 +19464,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_reference_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -18648,6 +19491,20 @@ Return the corresponding partition kind for DeclReference.
 {
   return ifc_pk_decl_reference;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_scope_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclScope node.
+*/
+{
+  size_t result;
+
+  result = 40;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -18676,9 +19533,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_scope_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/40);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/40);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -18726,6 +19583,21 @@ Return the corresponding partition kind for DeclScope.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_decl_specialization_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclSpecialization node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_decl_specialization_storage* get<an_ifc_decl_specialization_storage>(
                                an_ifc_module_file                 *file,
                                an_ifc_decl_specialization_storage *storage,
@@ -18751,9 +19623,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_specialization_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -18778,6 +19650,21 @@ Return the corresponding partition kind for DeclSpecialization.
 {
   return ifc_pk_decl_specialization;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_syntax_tree_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclSyntaxTree node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -18806,9 +19693,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_syntax_tree_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -18829,6 +19716,21 @@ Return the corresponding partition kind for DeclSyntaxTree.
 {
   return ifc_pk_decl_syntax_tree;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_template_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclTemplate node.
+*/
+{
+  size_t result;
+
+  result = 44;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -18857,9 +19759,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_template_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/44);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/44);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -18907,6 +19809,21 @@ Return the corresponding partition kind for DeclTemplate.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_decl_temploid_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclTemploid node.
+*/
+{
+  size_t result;
+
+  result = 24;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_decl_temploid_storage* get<an_ifc_decl_temploid_storage>(
                                      an_ifc_module_file           *file,
                                      an_ifc_decl_temploid_storage *storage,
@@ -18932,9 +19849,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_temploid_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/24);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/24);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -18968,6 +19885,20 @@ Return the corresponding partition kind for DeclTemploid.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_decl_tuple_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclTuple node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_decl_tuple_storage* get<an_ifc_decl_tuple_storage>(
                                         an_ifc_module_file        *file,
                                         an_ifc_decl_tuple_storage *storage,
@@ -18993,9 +19924,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_tuple_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -19018,6 +19949,21 @@ Return the corresponding partition kind for DeclTuple.
 {
   return ifc_pk_decl_tuple;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_decl_using_declaration_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclUsingDeclaration node.
+*/
+{
+  size_t result;
+
+  result = 32;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -19047,9 +19993,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_using_declaration_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/32);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/32);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -19091,6 +20037,21 @@ Return the corresponding partition kind for DeclUsingDeclaration.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_decl_variable_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DeclVariable node.
+*/
+{
+  size_t result;
+
+  result = 32;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_decl_variable_storage* get<an_ifc_decl_variable_storage>(
                                      an_ifc_module_file           *file,
                                      an_ifc_decl_variable_storage *storage,
@@ -19116,9 +20077,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_decl_variable_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/32);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/32);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -19162,6 +20123,21 @@ Return the corresponding partition kind for DeclVariable.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_dir_attribute_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DirAttribute node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_dir_attribute_storage* get<an_ifc_dir_attribute_storage>(
                                      an_ifc_module_file           *file,
                                      an_ifc_dir_attribute_storage *storage,
@@ -19187,9 +20163,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_dir_attribute_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -19214,6 +20190,21 @@ Return the corresponding partition kind for DirAttribute.
 {
   return ifc_pk_dir_attribute;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_dir_decl_use_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DirDeclUse node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -19242,9 +20233,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_dir_decl_use_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -19274,6 +20265,20 @@ Return the corresponding partition kind for DirDeclUse.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_dir_empty_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DirEmpty node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_dir_empty_storage* get<an_ifc_dir_empty_storage>(
                                          an_ifc_module_file       *file,
                                          an_ifc_dir_empty_storage *storage,
@@ -19299,9 +20304,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_dir_empty_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -19324,6 +20329,20 @@ Return the corresponding partition kind for DirEmpty.
 {
   return ifc_pk_dir_empty;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_dir_expr_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DirExpr node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -19352,9 +20371,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_dir_expr_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -19384,6 +20403,20 @@ Return the corresponding partition kind for DirExpr.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_dir_pragma_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DirPragma node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_dir_pragma_storage* get<an_ifc_dir_pragma_storage>(
                                         an_ifc_module_file        *file,
                                         an_ifc_dir_pragma_storage *storage,
@@ -19409,9 +20442,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_dir_pragma_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -19436,6 +20469,20 @@ Return the corresponding partition kind for DirPragma.
 {
   return ifc_pk_dir_pragma;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_dir_tuple_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DirTuple node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -19464,9 +20511,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_dir_tuple_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -19489,6 +20536,20 @@ Return the corresponding partition kind for DirTuple.
 {
   return ifc_pk_dir_tuple;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_dir_using_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC DirUsing node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -19517,9 +20578,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_dir_using_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -19549,6 +20610,21 @@ Return the corresponding partition kind for DirUsing.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_alignof_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprAlignof node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_alignof_storage* get<an_ifc_expr_alignof_storage>(
                                       an_ifc_module_file          *file,
                                       an_ifc_expr_alignof_storage *storage,
@@ -19574,9 +20650,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_alignof_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -19606,6 +20682,21 @@ Return the corresponding partition kind for ExprAlignof.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_array_value_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprArrayValue node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_array_value_storage* get<an_ifc_expr_array_value_storage>(
                                   an_ifc_module_file              *file,
                                   an_ifc_expr_array_value_storage *storage,
@@ -19631,9 +20722,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_array_value_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -19665,6 +20756,21 @@ Return the corresponding partition kind for ExprArrayValue.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_assign_initializer_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprAssignInitializer node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_assign_initializer_storage*
 get<an_ifc_expr_assign_initializer_storage>(
                            an_ifc_module_file                     *file,
@@ -19691,9 +20797,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_assign_initializer_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -19718,6 +20824,21 @@ Return the corresponding partition kind for ExprAssignInitializer.
 {
   return ifc_pk_expr_assign_initializer;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_binary_fold_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprBinaryFold node.
+*/
+{
+  size_t result;
+
+  result = 23;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -19746,9 +20867,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_binary_fold_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/23);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/23);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -19784,6 +20905,20 @@ Return the corresponding partition kind for ExprBinaryFold.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_call_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprCall node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_call_storage* get<an_ifc_expr_call_storage>(
                                          an_ifc_module_file       *file,
                                          an_ifc_expr_call_storage *storage,
@@ -19809,9 +20944,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_call_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -19843,6 +20978,20 @@ Return the corresponding partition kind for ExprCall.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_cast_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprCast node.
+*/
+{
+  size_t result;
+
+  result = 24;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_cast_storage* get<an_ifc_expr_cast_storage>(
                                          an_ifc_module_file       *file,
                                          an_ifc_expr_cast_storage *storage,
@@ -19868,9 +21017,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_cast_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/24);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/24);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -19904,6 +21053,21 @@ Return the corresponding partition kind for ExprCast.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_compound_string_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprCompoundString node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_compound_string_storage* get<an_ifc_expr_compound_string_storage>(
                               an_ifc_module_file                  *file,
                               an_ifc_expr_compound_string_storage *storage,
@@ -19929,9 +21093,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_compound_string_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -19963,6 +21127,21 @@ Return the corresponding partition kind for ExprCompoundString.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_condition_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprCondition node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_condition_storage* get<an_ifc_expr_condition_storage>(
                                     an_ifc_module_file            *file,
                                     an_ifc_expr_condition_storage *storage,
@@ -19988,9 +21167,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_condition_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -20020,6 +21199,21 @@ Return the corresponding partition kind for ExprCondition.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_designated_initializer_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprDesignatedInitializer node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_designated_initializer_storage*
 get<an_ifc_expr_designated_initializer_storage>(
                        an_ifc_module_file                         *file,
@@ -20046,9 +21240,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_designated_initializer_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -20081,6 +21275,21 @@ Return the corresponding partition kind for ExprDesignatedInitializer.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_destructor_call_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprDestructorCall node.
+*/
+{
+  size_t result;
+
+  result = 21;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_destructor_call_storage* get<an_ifc_expr_destructor_call_storage>(
                               an_ifc_module_file                  *file,
                               an_ifc_expr_destructor_call_storage *storage,
@@ -20106,9 +21315,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_destructor_call_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/21);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/21);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -20142,6 +21351,20 @@ Return the corresponding partition kind for ExprDestructorCall.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_dyad_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprDyad node.
+*/
+{
+  size_t result;
+
+  result = 28;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_dyad_storage* get<an_ifc_expr_dyad_storage>(
                                          an_ifc_module_file       *file,
                                          an_ifc_expr_dyad_storage *storage,
@@ -20167,9 +21390,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_dyad_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/28);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/28);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -20205,6 +21428,21 @@ Return the corresponding partition kind for ExprDyad.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_dynamic_dispatch_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprDynamicDispatch node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_dynamic_dispatch_storage*
 get<an_ifc_expr_dynamic_dispatch_storage>(
                              an_ifc_module_file                   *file,
@@ -20231,9 +21469,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_dynamic_dispatch_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -20263,6 +21501,20 @@ Return the corresponding partition kind for ExprDynamicDispatch.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_empty_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprEmpty node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_empty_storage* get<an_ifc_expr_empty_storage>(
                                         an_ifc_module_file        *file,
                                         an_ifc_expr_empty_storage *storage,
@@ -20288,9 +21540,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_empty_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -20315,6 +21567,21 @@ Return the corresponding partition kind for ExprEmpty.
 {
   return ifc_pk_expr_empty;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_expansion_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprExpansion node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -20343,9 +21610,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_expansion_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -20375,6 +21642,21 @@ Return the corresponding partition kind for ExprExpansion.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_expression_list_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprExpressionList node.
+*/
+{
+  size_t result;
+
+  result = 24;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_expression_list_storage* get<an_ifc_expr_expression_list_storage>(
                               an_ifc_module_file                  *file,
                               an_ifc_expr_expression_list_storage *storage,
@@ -20400,9 +21682,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_expression_list_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/24);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/24);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -20436,6 +21718,21 @@ Return the corresponding partition kind for ExprExpressionList.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_function_string_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprFunctionString node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_function_string_storage* get<an_ifc_expr_function_string_storage>(
                               an_ifc_module_file                  *file,
                               an_ifc_expr_function_string_storage *storage,
@@ -20461,9 +21758,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_function_string_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -20493,6 +21790,21 @@ Return the corresponding partition kind for ExprFunctionString.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_hierarchy_conversion_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprHierarchyConversion node.
+*/
+{
+  size_t result;
+
+  result = 32;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_hierarchy_conversion_storage*
 get<an_ifc_expr_hierarchy_conversion_storage>(
                          an_ifc_module_file                       *file,
@@ -20519,9 +21831,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_hierarchy_conversion_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/32);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/32);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -20560,6 +21872,21 @@ Return the corresponding partition kind for ExprHierarchyConversion.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_inheritance_path_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprInheritancePath node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_inheritance_path_storage*
 get<an_ifc_expr_inheritance_path_storage>(
                              an_ifc_module_file                   *file,
@@ -20586,9 +21913,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_inheritance_path_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -20618,6 +21945,21 @@ Return the corresponding partition kind for ExprInheritancePath.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_initializer_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprInitializer node.
+*/
+{
+  size_t result;
+
+  result = 17;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_initializer_storage* get<an_ifc_expr_initializer_storage>(
                                   an_ifc_module_file              *file,
                                   an_ifc_expr_initializer_storage *storage,
@@ -20643,9 +21985,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_initializer_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/17);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/17);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -20677,6 +22019,21 @@ Return the corresponding partition kind for ExprInitializer.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_initializer_list_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprInitializerList node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_initializer_list_storage*
 get<an_ifc_expr_initializer_list_storage>(
                              an_ifc_module_file                   *file,
@@ -20703,9 +22060,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_initializer_list_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -20735,6 +22092,20 @@ Return the corresponding partition kind for ExprInitializerList.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_label_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprLabel node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_label_storage* get<an_ifc_expr_label_storage>(
                                         an_ifc_module_file        *file,
                                         an_ifc_expr_label_storage *storage,
@@ -20760,9 +22131,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_label_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -20792,6 +22163,21 @@ Return the corresponding partition kind for ExprLabel.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_lambda_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprLambda node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_lambda_storage* get<an_ifc_expr_lambda_storage>(
                                        an_ifc_module_file         *file,
                                        an_ifc_expr_lambda_storage *storage,
@@ -20817,9 +22203,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_lambda_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -20851,6 +22237,21 @@ Return the corresponding partition kind for ExprLambda.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_literal_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprLiteral node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_literal_storage* get<an_ifc_expr_literal_storage>(
                                       an_ifc_module_file          *file,
                                       an_ifc_expr_literal_storage *storage,
@@ -20876,9 +22277,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_literal_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -20908,6 +22309,21 @@ Return the corresponding partition kind for ExprLiteral.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_member_access_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprMemberAccess node.
+*/
+{
+  size_t result;
+
+  result = 24;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_member_access_storage* get<an_ifc_expr_member_access_storage>(
                                 an_ifc_module_file                *file,
                                 an_ifc_expr_member_access_storage *storage,
@@ -20933,9 +22349,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_member_access_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/24);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/24);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -20969,6 +22385,21 @@ Return the corresponding partition kind for ExprMemberAccess.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_member_initializer_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprMemberInitializer node.
+*/
+{
+  size_t result;
+
+  result = 24;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_member_initializer_storage*
 get<an_ifc_expr_member_initializer_storage>(
                            an_ifc_module_file                     *file,
@@ -20995,9 +22426,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_member_initializer_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/24);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/24);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -21031,6 +22462,20 @@ Return the corresponding partition kind for ExprMemberInitializer.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_monad_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprMonad node.
+*/
+{
+  size_t result;
+
+  result = 24;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_monad_storage* get<an_ifc_expr_monad_storage>(
                                         an_ifc_module_file        *file,
                                         an_ifc_expr_monad_storage *storage,
@@ -21056,9 +22501,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_monad_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/24);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/24);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -21092,6 +22537,21 @@ Return the corresponding partition kind for ExprMonad.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_named_decl_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprNamedDecl node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_named_decl_storage* get<an_ifc_expr_named_decl_storage>(
                                    an_ifc_module_file             *file,
                                    an_ifc_expr_named_decl_storage *storage,
@@ -21117,9 +22577,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_named_decl_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -21149,6 +22609,21 @@ Return the corresponding partition kind for ExprNamedDecl.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_nullptr_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprNullptr node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_nullptr_storage* get<an_ifc_expr_nullptr_storage>(
                                       an_ifc_module_file          *file,
                                       an_ifc_expr_nullptr_storage *storage,
@@ -21174,9 +22649,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_nullptr_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -21201,6 +22676,21 @@ Return the corresponding partition kind for ExprNullptr.
 {
   return ifc_pk_expr_nullptr;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_packed_template_arguments_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprPackedTemplateArguments node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -21230,9 +22720,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_packed_template_arguments_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -21263,6 +22753,20 @@ Return the corresponding partition kind for ExprPackedTemplateArguments.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_path_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprPath node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_path_storage* get<an_ifc_expr_path_storage>(
                                          an_ifc_module_file       *file,
                                          an_ifc_expr_path_storage *storage,
@@ -21288,9 +22792,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_path_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -21322,6 +22826,21 @@ Return the corresponding partition kind for ExprPath.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_placeholder_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprPlaceholder node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_placeholder_storage* get<an_ifc_expr_placeholder_storage>(
                                   an_ifc_module_file              *file,
                                   an_ifc_expr_placeholder_storage *storage,
@@ -21347,9 +22866,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_placeholder_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -21374,6 +22893,21 @@ Return the corresponding partition kind for ExprPlaceholder.
 {
   return ifc_pk_expr_placeholder;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_pointer_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprPointer node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -21402,9 +22936,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_pointer_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -21427,6 +22961,21 @@ Return the corresponding partition kind for ExprPointer.
 {
   return ifc_pk_expr_pointer;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_product_type_value_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprProductTypeValue node.
+*/
+{
+  size_t result;
+
+  result = 24;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -21456,9 +23005,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_product_type_value_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/24);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/24);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -21492,6 +23041,21 @@ Return the corresponding partition kind for ExprProductTypeValue.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_push_state_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprPushState node.
+*/
+{
+  size_t result;
+
+  result = 22;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_push_state_storage* get<an_ifc_expr_push_state_storage>(
                                    an_ifc_module_file             *file,
                                    an_ifc_expr_push_state_storage *storage,
@@ -21517,9 +23081,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_push_state_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/22);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/22);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -21553,6 +23117,21 @@ Return the corresponding partition kind for ExprPushState.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_qualified_name_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprQualifiedName node.
+*/
+{
+  size_t result;
+
+  result = 24;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_qualified_name_storage* get<an_ifc_expr_qualified_name_storage>(
                                an_ifc_module_file                 *file,
                                an_ifc_expr_qualified_name_storage *storage,
@@ -21578,9 +23157,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_qualified_name_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/24);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/24);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -21614,6 +23193,20 @@ Return the corresponding partition kind for ExprQualifiedName.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_read_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprRead node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_read_storage* get<an_ifc_expr_read_storage>(
                                          an_ifc_module_file       *file,
                                          an_ifc_expr_read_storage *storage,
@@ -21639,9 +23232,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_read_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -21673,6 +23266,21 @@ Return the corresponding partition kind for ExprRead.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_requires_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprRequires node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_requires_storage* get<an_ifc_expr_requires_storage>(
                                      an_ifc_module_file           *file,
                                      an_ifc_expr_requires_storage *storage,
@@ -21698,9 +23306,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_requires_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -21732,6 +23340,21 @@ Return the corresponding partition kind for ExprRequires.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_simple_identifier_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprSimpleIdentifier node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_simple_identifier_storage*
 get<an_ifc_expr_simple_identifier_storage>(
                             an_ifc_module_file                    *file,
@@ -21758,9 +23381,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_simple_identifier_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -21790,6 +23413,21 @@ Return the corresponding partition kind for ExprSimpleIdentifier.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_sizeof_type_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprSizeofType node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_sizeof_type_storage* get<an_ifc_expr_sizeof_type_storage>(
                                   an_ifc_module_file              *file,
                                   an_ifc_expr_sizeof_type_storage *storage,
@@ -21815,9 +23453,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_sizeof_type_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -21847,6 +23485,21 @@ Return the corresponding partition kind for ExprSizeofType.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_string_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprString node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_string_storage* get<an_ifc_expr_string_storage>(
                                        an_ifc_module_file         *file,
                                        an_ifc_expr_string_storage *storage,
@@ -21872,9 +23525,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_string_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -21904,6 +23557,21 @@ Return the corresponding partition kind for ExprString.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_string_sequence_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprStringSequence node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_string_sequence_storage* get<an_ifc_expr_string_sequence_storage>(
                               an_ifc_module_file                  *file,
                               an_ifc_expr_string_sequence_storage *storage,
@@ -21929,9 +23597,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_string_sequence_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -21961,6 +23629,21 @@ Return the corresponding partition kind for ExprStringSequence.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_subobject_value_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprSubobjectValue node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_subobject_value_storage* get<an_ifc_expr_subobject_value_storage>(
                               an_ifc_module_file                  *file,
                               an_ifc_expr_subobject_value_storage *storage,
@@ -21986,9 +23669,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_subobject_value_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -22009,6 +23692,21 @@ Return the corresponding partition kind for ExprSubobjectValue.
 {
   return ifc_pk_expr_class_subobject_value;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_sum_type_value_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprSumTypeValue node.
+*/
+{
+  size_t result;
+
+  result = 24;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -22037,9 +23735,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_sum_type_value_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/24);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/24);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -22073,6 +23771,21 @@ Return the corresponding partition kind for ExprSumTypeValue.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_syntax_tree_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprSyntaxTree node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_syntax_tree_storage* get<an_ifc_expr_syntax_tree_storage>(
                                   an_ifc_module_file              *file,
                                   an_ifc_expr_syntax_tree_storage *storage,
@@ -22098,9 +23811,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_syntax_tree_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -22121,6 +23834,21 @@ Return the corresponding partition kind for ExprSyntaxTree.
 {
   return ifc_pk_expr_syntax_tree;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_template_id_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprTemplateId node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -22149,9 +23877,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_template_id_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -22183,6 +23911,25 @@ Return the corresponding partition kind for ExprTemplateId.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_template_reference_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprTemplateReference node.
+*/
+{
+  size_t result;
+
+  if (is_at_least(file, 0, 43)) {
+    result = 28;
+  } else {
+    result = 32;
+  }  /* if */
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_template_reference_storage*
 get<an_ifc_expr_template_reference_storage>(
                            an_ifc_module_file                     *file,
@@ -22210,12 +23957,12 @@ the storage specified by the storage argument).
   if (has_matching_endianness(file)) {
     if (fill_storage) {
       if (is_at_least(file, 0, 43)) {
-        memcpy(*storage, file->byte_buffer, /*size=*/28);
+        memcpy(*storage, get_byte_buffer(file), /*size=*/28);
       } else {
-        memcpy(*storage, file->byte_buffer, /*size=*/32);
+        memcpy(*storage, get_byte_buffer(file), /*size=*/32);
       }  /* if */
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -22279,6 +24026,21 @@ Return the corresponding partition kind for ExprTemplateReference.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_temporary_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprTemporary node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_temporary_storage* get<an_ifc_expr_temporary_storage>(
                                     an_ifc_module_file            *file,
                                     an_ifc_expr_temporary_storage *storage,
@@ -22304,9 +24066,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_temporary_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -22336,6 +24098,20 @@ Return the corresponding partition kind for ExprTemporary.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_this_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprThis node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_this_storage* get<an_ifc_expr_this_storage>(
                                          an_ifc_module_file       *file,
                                          an_ifc_expr_this_storage *storage,
@@ -22361,9 +24137,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_this_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -22388,6 +24164,21 @@ Return the corresponding partition kind for ExprThis.
 {
   return ifc_pk_expr_this;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_expr_tokens_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprTokens node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -22416,9 +24207,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_tokens_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -22448,6 +24239,20 @@ Return the corresponding partition kind for ExprTokens.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_triad_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprTriad node.
+*/
+{
+  size_t result;
+
+  result = 32;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_triad_storage* get<an_ifc_expr_triad_storage>(
                                         an_ifc_module_file        *file,
                                         an_ifc_expr_triad_storage *storage,
@@ -22473,9 +24278,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_triad_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/32);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/32);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -22513,6 +24318,20 @@ Return the corresponding partition kind for ExprTriad.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_tuple_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprTuple node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_tuple_storage* get<an_ifc_expr_tuple_storage>(
                                         an_ifc_module_file        *file,
                                         an_ifc_expr_tuple_storage *storage,
@@ -22538,9 +24357,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_tuple_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -22572,6 +24391,20 @@ Return the corresponding partition kind for ExprTuple.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_type_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprType node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_type_storage* get<an_ifc_expr_type_storage>(
                                          an_ifc_module_file       *file,
                                          an_ifc_expr_type_storage *storage,
@@ -22597,9 +24430,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_type_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -22629,6 +24462,21 @@ Return the corresponding partition kind for ExprType.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_type_trait_intrinsic_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprTypeTraitIntrinsic node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_type_trait_intrinsic_storage*
 get<an_ifc_expr_type_trait_intrinsic_storage>(
                          an_ifc_module_file                       *file,
@@ -22655,9 +24503,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_type_trait_intrinsic_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -22690,6 +24538,21 @@ Return the corresponding partition kind for ExprTypeTraitIntrinsic.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_typeid_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprTypeid node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_typeid_storage* get<an_ifc_expr_typeid_storage>(
                                        an_ifc_module_file         *file,
                                        an_ifc_expr_typeid_storage *storage,
@@ -22715,9 +24578,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_typeid_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -22747,6 +24610,21 @@ Return the corresponding partition kind for ExprTypeid.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_unary_fold_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprUnaryFold node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_unary_fold_storage* get<an_ifc_expr_unary_fold_storage>(
                                    an_ifc_module_file             *file,
                                    an_ifc_expr_unary_fold_storage *storage,
@@ -22772,9 +24650,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_unary_fold_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -22808,6 +24686,21 @@ Return the corresponding partition kind for ExprUnaryFold.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_unqualified_id_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprUnqualifiedId node.
+*/
+{
+  size_t result;
+
+  result = 28;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_unqualified_id_storage* get<an_ifc_expr_unqualified_id_storage>(
                                an_ifc_module_file                 *file,
                                an_ifc_expr_unqualified_id_storage *storage,
@@ -22833,9 +24726,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_unqualified_id_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/28);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/28);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -22871,6 +24764,21 @@ Return the corresponding partition kind for ExprUnqualifiedId.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_unresolved_id_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprUnresolvedId node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_unresolved_id_storage* get<an_ifc_expr_unresolved_id_storage>(
                                 an_ifc_module_file                *file,
                                 an_ifc_expr_unresolved_id_storage *storage,
@@ -22896,9 +24804,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_unresolved_id_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -22928,6 +24836,21 @@ Return the corresponding partition kind for ExprUnresolvedId.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_expr_virtual_function_conversion_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ExprVirtualFunctionConversion node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_expr_virtual_function_conversion_storage*
 get<an_ifc_expr_virtual_function_conversion_storage>(
                   an_ifc_module_file                              *file,
@@ -22954,9 +24877,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_expr_virtual_function_conversion_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -22987,6 +24910,21 @@ Return the corresponding partition kind for ExprVirtualFunctionConversion.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_form_catenate_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC FormCatenate node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_form_catenate_storage* get<an_ifc_form_catenate_storage>(
                                      an_ifc_module_file           *file,
                                      an_ifc_form_catenate_storage *storage,
@@ -23012,9 +24950,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_form_catenate_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -23044,6 +24982,21 @@ Return the corresponding partition kind for FormCatenate.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_form_character_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC FormCharacter node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_form_character_storage* get<an_ifc_form_character_storage>(
                                     an_ifc_module_file            *file,
                                     an_ifc_form_character_storage *storage,
@@ -23069,9 +25022,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_form_character_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -23096,6 +25049,21 @@ Return the corresponding partition kind for FormCharacter.
 {
   return ifc_pk_pp_char;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_form_header_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC FormHeader node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -23124,9 +25092,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_form_header_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -23151,6 +25119,21 @@ Return the corresponding partition kind for FormHeader.
 {
   return ifc_pk_pp_header;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_form_identifier_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC FormIdentifier node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -23179,9 +25162,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_form_identifier_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -23206,6 +25189,20 @@ Return the corresponding partition kind for FormIdentifier.
 {
   return ifc_pk_pp_ident;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_form_junk_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC FormJunk node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -23234,9 +25231,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_form_junk_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -23261,6 +25258,21 @@ Return the corresponding partition kind for FormJunk.
 {
   return ifc_pk_pp_junk;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_form_keyword_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC FormKeyword node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -23289,9 +25301,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_form_keyword_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -23316,6 +25328,21 @@ Return the corresponding partition kind for FormKeyword.
 {
   return ifc_pk_pp_key;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_form_number_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC FormNumber node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -23344,9 +25371,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_form_number_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -23371,6 +25398,21 @@ Return the corresponding partition kind for FormNumber.
 {
   return ifc_pk_pp_num;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_form_operator_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC FormOperator node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -23399,9 +25441,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_form_operator_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -23431,6 +25473,21 @@ Return the corresponding partition kind for FormOperator.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_form_parameter_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC FormParameter node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_form_parameter_storage* get<an_ifc_form_parameter_storage>(
                                     an_ifc_module_file            *file,
                                     an_ifc_form_parameter_storage *storage,
@@ -23456,9 +25513,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_form_parameter_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -23483,6 +25540,21 @@ Return the corresponding partition kind for FormParameter.
 {
   return ifc_pk_pp_param;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_form_parenthesized_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC FormParenthesized node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -23511,9 +25583,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_form_parenthesized_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -23538,6 +25610,21 @@ Return the corresponding partition kind for FormParenthesized.
 {
   return ifc_pk_pp_paren;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_form_pragma_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC FormPragma node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -23566,9 +25653,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_form_pragma_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -23593,6 +25680,20 @@ Return the corresponding partition kind for FormPragma.
 {
   return ifc_pk_pp_pragma;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_form_spec_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC FormSpec node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -23621,9 +25722,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_form_spec_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -23646,6 +25747,21 @@ Return the corresponding partition kind for FormSpec.
 {
   return ifc_pk_form_spec;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_form_string_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC FormString node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -23674,9 +25790,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_form_string_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -23701,6 +25817,21 @@ Return the corresponding partition kind for FormString.
 {
   return ifc_pk_pp_string;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_form_stringize_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC FormStringize node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -23729,9 +25860,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_form_stringize_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -23756,6 +25887,20 @@ Return the corresponding partition kind for FormStringize.
 {
   return ifc_pk_pp_to_string;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_form_tuple_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC FormTuple node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -23784,9 +25929,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_form_tuple_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -23809,6 +25954,21 @@ Return the corresponding partition kind for FormTuple.
 {
   return ifc_pk_pp_tuple;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_form_whitespace_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC FormWhitespace node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -23837,9 +25997,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_form_whitespace_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -23862,6 +26022,20 @@ Return the corresponding partition kind for FormWhitespace.
 {
   return ifc_pk_pp_space;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_heap_attr_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC HeapAttr node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -23890,9 +26064,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_heap_attr_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -23913,6 +26087,20 @@ Return the corresponding partition kind for HeapAttr.
 {
   return ifc_pk_heap_attr;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_heap_chart_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC HeapChart node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -23941,9 +26129,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_heap_chart_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -23964,6 +26152,20 @@ Return the corresponding partition kind for HeapChart.
 {
   return ifc_pk_heap_chart;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_heap_decl_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC HeapDecl node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -23992,9 +26194,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_heap_decl_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -24015,6 +26217,20 @@ Return the corresponding partition kind for HeapDecl.
 {
   return ifc_pk_heap_decl;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_heap_expr_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC HeapExpr node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -24043,9 +26259,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_heap_expr_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -24066,6 +26282,20 @@ Return the corresponding partition kind for HeapExpr.
 {
   return ifc_pk_heap_expr;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_heap_form_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC HeapForm node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -24094,9 +26324,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_heap_form_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -24117,6 +26347,21 @@ Return the corresponding partition kind for HeapForm.
 {
   return ifc_pk_heap_form;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_heap_pp_form_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC HeapPPForm node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -24145,9 +26390,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_heap_pp_form_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -24168,6 +26413,20 @@ Return the corresponding partition kind for HeapPPForm.
 {
   return ifc_pk_heap_pp;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_heap_stmt_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC HeapStmt node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -24196,9 +26455,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_heap_stmt_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -24219,6 +26478,21 @@ Return the corresponding partition kind for HeapStmt.
 {
   return ifc_pk_heap_stmt;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_heap_syntax_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC HeapSyntax node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -24247,9 +26521,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_heap_syntax_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -24270,6 +26544,20 @@ Return the corresponding partition kind for HeapSyntax.
 {
   return ifc_pk_heap_syn;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_heap_type_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC HeapType node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -24298,9 +26586,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_heap_type_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -24321,6 +26609,21 @@ Return the corresponding partition kind for HeapType.
 {
   return ifc_pk_heap_type;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_macro_function_like_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC MacroFunctionLike node.
+*/
+{
+  size_t result;
+
+  result = 24;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -24349,9 +26652,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_macro_function_like_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/24);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/24);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -24385,6 +26688,21 @@ Return the corresponding partition kind for MacroFunctionLike.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_macro_object_like_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC MacroObjectLike node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_macro_object_like_storage* get<an_ifc_macro_object_like_storage>(
                                  an_ifc_module_file               *file,
                                  an_ifc_macro_object_like_storage *storage,
@@ -24410,9 +26728,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_macro_object_like_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -24442,6 +26760,21 @@ Return the corresponding partition kind for MacroObjectLike.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_module_export_reference_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ModuleExportReference node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_module_export_reference_storage*
 get<an_ifc_module_export_reference_storage>(
                            an_ifc_module_file                     *file,
@@ -24468,9 +26801,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_module_export_reference_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -24493,6 +26826,21 @@ Return the corresponding partition kind for ModuleExportReference.
 {
   return ifc_pk_module_exported;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_module_import_reference_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ModuleImportReference node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -24522,9 +26870,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_module_import_reference_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -24547,6 +26895,21 @@ Return the corresponding partition kind for ModuleImportReference.
 {
   return ifc_pk_module_imported;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_name_conversion_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC NameConversion node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -24575,9 +26938,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_name_conversion_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -24600,6 +26963,20 @@ Return the corresponding partition kind for NameConversion.
 {
   return ifc_pk_name_conversion;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_name_guide_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC NameGuide node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -24628,9 +27005,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_name_guide_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -24651,6 +27028,21 @@ Return the corresponding partition kind for NameGuide.
 {
   return ifc_pk_name_guide;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_name_literal_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC NameLiteral node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -24679,9 +27071,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_name_literal_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -24702,6 +27094,21 @@ Return the corresponding partition kind for NameLiteral.
 {
   return ifc_pk_name_literal;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_name_operator_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC NameOperator node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -24730,9 +27137,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_name_operator_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -24755,6 +27162,21 @@ Return the corresponding partition kind for NameOperator.
 {
   return ifc_pk_name_operator;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_name_source_file_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC NameSourceFile node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -24783,9 +27205,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_name_source_file_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -24808,6 +27230,21 @@ Return the corresponding partition kind for NameSourceFile.
 {
   return ifc_pk_name_source_file;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_name_specialization_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC NameSpecialization node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -24836,9 +27273,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_name_specialization_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -24861,6 +27298,21 @@ Return the corresponding partition kind for NameSpecialization.
 {
   return ifc_pk_name_specialization;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_name_template_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC NameTemplate node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -24889,9 +27341,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_name_template_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -24912,6 +27364,21 @@ Return the corresponding partition kind for NameTemplate.
 {
   return ifc_pk_name_template;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_scope_descriptor_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ScopeDescriptor node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -24940,9 +27407,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_scope_descriptor_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -24965,6 +27432,21 @@ Return the corresponding partition kind for ScopeDescriptor.
 {
   return ifc_pk_scope_desc;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_scope_member_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC ScopeMember node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -24993,9 +27475,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_scope_member_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -25016,6 +27498,21 @@ Return the corresponding partition kind for ScopeMember.
 {
   return ifc_pk_scope_member;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_source_line_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SourceLine node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -25044,9 +27541,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_source_line_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -25069,6 +27566,21 @@ Return the corresponding partition kind for SourceLine.
 {
   return ifc_pk_src_line;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_source_sentence_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SourceSentence node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -25097,9 +27609,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_source_sentence_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -25129,6 +27641,21 @@ Return the corresponding partition kind for SourceSentence.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_source_word_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SourceWord node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_source_word_storage* get<an_ifc_source_word_storage>(
                                        an_ifc_module_file         *file,
                                        an_ifc_source_word_storage *storage,
@@ -25154,9 +27681,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_source_word_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -25188,6 +27715,24 @@ Return the corresponding partition kind for SourceWord.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_block_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC StmtBlock node.
+*/
+{
+  size_t result;
+
+  if (is_at_least(file, 0, 42)) {
+    result = 16;
+  } else {
+    result = 8;
+  }  /* if */
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_stmt_block_storage* get<an_ifc_stmt_block_storage>(
                                         an_ifc_module_file        *file,
                                         an_ifc_stmt_block_storage *storage,
@@ -25214,12 +27759,12 @@ the storage specified by the storage argument).
   if (has_matching_endianness(file)) {
     if (fill_storage) {
       if (is_at_least(file, 0, 42)) {
-        memcpy(*storage, file->byte_buffer, /*size=*/16);
+        memcpy(*storage, get_byte_buffer(file), /*size=*/16);
       } else {
-        memcpy(*storage, file->byte_buffer, /*size=*/8);
+        memcpy(*storage, get_byte_buffer(file), /*size=*/8);
       }  /* if */
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -25257,6 +27802,20 @@ Return the corresponding partition kind for StmtBlock.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_break_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC StmtBreak node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_stmt_break_storage* get<an_ifc_stmt_break_storage>(
                                         an_ifc_module_file        *file,
                                         an_ifc_stmt_break_storage *storage,
@@ -25282,9 +27841,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_stmt_break_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -25307,6 +27866,20 @@ Return the corresponding partition kind for StmtBreak.
 {
   return ifc_pk_stmt_break;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_case_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC StmtCase node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -25335,9 +27908,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_stmt_case_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -25362,6 +27935,21 @@ Return the corresponding partition kind for StmtCase.
 {
   return ifc_pk_stmt_case;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_continue_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC StmtContinue node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -25390,9 +27978,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_stmt_continue_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -25415,6 +28003,20 @@ Return the corresponding partition kind for StmtContinue.
 {
   return ifc_pk_stmt_continue;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_decl_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC StmtDecl node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -25443,9 +28045,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_stmt_decl_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -25470,6 +28072,21 @@ Return the corresponding partition kind for StmtDecl.
 {
   return ifc_pk_stmt_decl;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_default_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC StmtDefault node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -25498,9 +28115,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_stmt_default_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -25523,6 +28140,21 @@ Return the corresponding partition kind for StmtDefault.
 {
   return ifc_pk_stmt_default;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_do_while_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC StmtDoWhile node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -25551,9 +28183,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_stmt_do_while_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -25596,6 +28228,20 @@ Return the corresponding partition kind for StmtDoWhile.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_empty_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC StmtEmpty node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_stmt_empty_storage* get<an_ifc_stmt_empty_storage>(
                                         an_ifc_module_file        *file,
                                         an_ifc_stmt_empty_storage *storage,
@@ -25621,9 +28267,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_stmt_empty_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -25646,6 +28292,25 @@ Return the corresponding partition kind for StmtEmpty.
 {
   return ifc_pk_stmt_empty;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_expansion_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC StmtExpansion node.
+*/
+{
+  size_t result;
+
+  if (is_at_least(file, 0, 42)) {
+    result = 12;
+  } else {
+    result = 4;
+  }  /* if */
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -25675,12 +28340,12 @@ the storage specified by the storage argument).
   if (has_matching_endianness(file)) {
     if (fill_storage) {
       if (is_at_least(file, 0, 42)) {
-        memcpy(*storage, file->byte_buffer, /*size=*/12);
+        memcpy(*storage, get_byte_buffer(file), /*size=*/12);
       } else {
-        memcpy(*storage, file->byte_buffer, /*size=*/4);
+        memcpy(*storage, get_byte_buffer(file), /*size=*/4);
       }  /* if */
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -25713,6 +28378,21 @@ Return the corresponding partition kind for StmtExpansion.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_expression_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC StmtExpression node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_stmt_expression_storage* get<an_ifc_stmt_expression_storage>(
                                    an_ifc_module_file             *file,
                                    an_ifc_stmt_expression_storage *storage,
@@ -25738,9 +28418,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_stmt_expression_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -25777,6 +28457,20 @@ Return the corresponding partition kind for StmtExpression.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_for_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC StmtFor node.
+*/
+{
+  size_t result;
+
+  result = 24;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_stmt_for_storage* get<an_ifc_stmt_for_storage>(
                                           an_ifc_module_file      *file,
                                           an_ifc_stmt_for_storage *storage,
@@ -25802,9 +28496,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_stmt_for_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/24);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/24);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -25859,6 +28553,20 @@ Return the corresponding partition kind for StmtFor.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_goto_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC StmtGoto node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_stmt_goto_storage* get<an_ifc_stmt_goto_storage>(
                                          an_ifc_module_file       *file,
                                          an_ifc_stmt_goto_storage *storage,
@@ -25884,9 +28592,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_stmt_goto_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -25911,6 +28619,21 @@ Return the corresponding partition kind for StmtGoto.
 {
   return ifc_pk_stmt_goto;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_handler_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC StmtHandler node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -25939,9 +28662,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_stmt_handler_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -25971,6 +28694,20 @@ Return the corresponding partition kind for StmtHandler.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_if_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC StmtIf node.
+*/
+{
+  size_t result;
+
+  result = 24;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_stmt_if_storage* get<an_ifc_stmt_if_storage>(
                                            an_ifc_module_file     *file,
                                            an_ifc_stmt_if_storage *storage,
@@ -25996,9 +28733,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_stmt_if_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/24);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/24);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -26053,6 +28790,21 @@ Return the corresponding partition kind for StmtIf.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_labeled_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC StmtLabeled node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_stmt_labeled_storage* get<an_ifc_stmt_labeled_storage>(
                                       an_ifc_module_file          *file,
                                       an_ifc_stmt_labeled_storage *storage,
@@ -26078,9 +28830,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_stmt_labeled_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -26112,6 +28864,21 @@ Return the corresponding partition kind for StmtLabeled.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_return_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC StmtReturn node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_stmt_return_storage* get<an_ifc_stmt_return_storage>(
                                        an_ifc_module_file         *file,
                                        an_ifc_stmt_return_storage *storage,
@@ -26137,9 +28904,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_stmt_return_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -26188,6 +28955,21 @@ Return the corresponding partition kind for StmtReturn.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_switch_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC StmtSwitch node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_stmt_switch_storage* get<an_ifc_stmt_switch_storage>(
                                        an_ifc_module_file         *file,
                                        an_ifc_stmt_switch_storage *storage,
@@ -26213,9 +28995,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_stmt_switch_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -26264,6 +29046,20 @@ Return the corresponding partition kind for StmtSwitch.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_try_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC StmtTry node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_stmt_try_storage* get<an_ifc_stmt_try_storage>(
                                           an_ifc_module_file      *file,
                                           an_ifc_stmt_try_storage *storage,
@@ -26289,9 +29085,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_stmt_try_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -26323,6 +29119,20 @@ Return the corresponding partition kind for StmtTry.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_tuple_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC StmtTuple node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_stmt_tuple_storage* get<an_ifc_stmt_tuple_storage>(
                                         an_ifc_module_file        *file,
                                         an_ifc_stmt_tuple_storage *storage,
@@ -26348,9 +29158,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_stmt_tuple_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -26380,6 +29190,21 @@ Return the corresponding partition kind for StmtTuple.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_variable_decl_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC StmtVariableDecl node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_stmt_variable_decl_storage* get<an_ifc_stmt_variable_decl_storage>(
                                 an_ifc_module_file                *file,
                                 an_ifc_stmt_variable_decl_storage *storage,
@@ -26405,9 +29230,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_stmt_variable_decl_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -26432,6 +29257,20 @@ Return the corresponding partition kind for StmtVariableDecl.
 {
   return ifc_pk_stmt_variable;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_stmt_while_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC StmtWhile node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -26460,9 +29299,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_stmt_while_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -26505,6 +29344,21 @@ Return the corresponding partition kind for StmtWhile.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_access_specifier_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxAccessSpecifier node.
+*/
+{
+  size_t result;
+
+  result = 48;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_access_specifier_storage*
 get<an_ifc_syntax_access_specifier_storage>(
                            an_ifc_module_file                     *file,
@@ -26531,9 +29385,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_access_specifier_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/48);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/48);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -26579,6 +29433,21 @@ Return the corresponding partition kind for SyntaxAccessSpecifier.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_alias_declaration_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxAliasDeclaration node.
+*/
+{
+  size_t result;
+
+  result = 32;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_alias_declaration_storage*
 get<an_ifc_syntax_alias_declaration_storage>(
                           an_ifc_module_file                      *file,
@@ -26605,9 +29474,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_alias_declaration_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/32);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/32);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -26645,6 +29514,21 @@ Return the corresponding partition kind for SyntaxAliasDeclaration.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_alignas_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxAlignas node.
+*/
+{
+  size_t result;
+
+  result = 28;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_alignas_storage* get<an_ifc_syntax_alignas_storage>(
                                     an_ifc_module_file            *file,
                                     an_ifc_syntax_alignas_storage *storage,
@@ -26670,9 +29554,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_alignas_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/28);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/28);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -26708,6 +29592,21 @@ Return the corresponding partition kind for SyntaxAlignas.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_array_declarator_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxArrayDeclarator node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_array_declarator_storage*
 get<an_ifc_syntax_array_declarator_storage>(
                            an_ifc_module_file                     *file,
@@ -26734,9 +29633,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_array_declarator_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -26768,6 +29667,21 @@ Return the corresponding partition kind for SyntaxArrayDeclarator.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_array_index_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxArrayIndex node.
+*/
+{
+  size_t result;
+
+  result = 24;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_array_index_storage* get<an_ifc_syntax_array_index_storage>(
                                 an_ifc_module_file                *file,
                                 an_ifc_syntax_array_index_storage *storage,
@@ -26793,9 +29707,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_array_index_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/24);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/24);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -26829,6 +29743,21 @@ Return the corresponding partition kind for SyntaxArrayIndex.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_array_or_function_declarator_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxArrayOrFunctionDeclarator node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_array_or_function_declarator_storage*
 get<an_ifc_syntax_array_or_function_declarator_storage>(
                an_ifc_module_file                                 *file,
@@ -26856,9 +29785,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_array_or_function_declarator_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -26882,6 +29811,21 @@ Return the corresponding partition kind for SyntaxArrayOrFunctionDeclarator.
 {
   return ifc_pk_syntax_array_or_function_declarator;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_asm_statement_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxAsmStatement node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -26910,9 +29854,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_asm_statement_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -26937,6 +29881,21 @@ Return the corresponding partition kind for SyntaxAsmStatement.
 {
   return ifc_pk_syntax_asm_statement;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_attribute_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxAttribute node.
+*/
+{
+  size_t result;
+
+  result = 36;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -26965,9 +29924,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_attribute_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/36);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/36);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -27007,6 +29966,21 @@ Return the corresponding partition kind for SyntaxAttribute.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_attribute_argument_clause_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxAttributeArgumentClause node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_attribute_argument_clause_storage*
 get<an_ifc_syntax_attribute_argument_clause_storage>(
                   an_ifc_module_file                              *file,
@@ -27033,9 +30007,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_attribute_argument_clause_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -27068,6 +30042,21 @@ Return the corresponding partition kind for SyntaxAttributeArgumentClause.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_attribute_specifier_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxAttributeSpecifier node.
+*/
+{
+  size_t result;
+
+  result = 40;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_attribute_specifier_storage*
 get<an_ifc_syntax_attribute_specifier_storage>(
                         an_ifc_module_file                        *file,
@@ -27094,9 +30083,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_attribute_specifier_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/40);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/40);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -27139,6 +30128,21 @@ Return the corresponding partition kind for SyntaxAttributeSpecifier.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_attribute_specifier_seq_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxAttributeSpecifierSeq node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_attribute_specifier_seq_storage*
 get<an_ifc_syntax_attribute_specifier_seq_storage>(
                     an_ifc_module_file                            *file,
@@ -27165,9 +30169,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_attribute_specifier_seq_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -27189,6 +30193,21 @@ Return the corresponding partition kind for SyntaxAttributeSpecifierSeq.
 {
   return ifc_pk_syntax_attribute_specifier_seq;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_attribute_using_prefix_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxAttributeUsingPrefix node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -27218,9 +30237,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_attribute_using_prefix_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -27251,6 +30270,21 @@ Return the corresponding partition kind for SyntaxAttributeUsingPrefix.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_attributed_declaration_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxAttributedDeclaration node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_attributed_declaration_storage*
 get<an_ifc_syntax_attributed_declaration_storage>(
                      an_ifc_module_file                           *file,
@@ -27277,9 +30311,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_attributed_declaration_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -27310,6 +30344,21 @@ Return the corresponding partition kind for SyntaxAttributedDeclaration.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_attributed_statement_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxAttributedStatement node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_attributed_statement_storage*
 get<an_ifc_syntax_attributed_statement_storage>(
                        an_ifc_module_file                         *file,
@@ -27336,9 +30385,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_attributed_statement_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -27364,6 +30413,21 @@ Return the corresponding partition kind for SyntaxAttributedStatement.
 {
   return ifc_pk_syntax_attributed_statement;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_base_specifier_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxBaseSpecifier node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -27393,9 +30457,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_base_specifier_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -27427,6 +30491,21 @@ Return the corresponding partition kind for SyntaxBaseSpecifier.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_base_specifier_list_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxBaseSpecifierList node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_base_specifier_list_storage*
 get<an_ifc_syntax_base_specifier_list_storage>(
                         an_ifc_module_file                        *file,
@@ -27453,9 +30532,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_base_specifier_list_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -27481,6 +30560,25 @@ Return the corresponding partition kind for SyntaxBaseSpecifierList.
 {
   return ifc_pk_syntax_base_specifier_list;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_binary_fold_expression_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxBinaryFoldExpression node.
+*/
+{
+  size_t result;
+
+  if (is_at_least(file, 0, 43)) {
+    result = 56;
+  } else {
+    result = 54;
+  }  /* if */
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -27511,12 +30609,12 @@ the storage specified by the storage argument).
   if (has_matching_endianness(file)) {
     if (fill_storage) {
       if (is_at_least(file, 0, 43)) {
-        memcpy(*storage, file->byte_buffer, /*size=*/56);
+        memcpy(*storage, get_byte_buffer(file), /*size=*/56);
       } else {
-        memcpy(*storage, file->byte_buffer, /*size=*/54);
+        memcpy(*storage, get_byte_buffer(file), /*size=*/54);
       }  /* if */
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -27620,6 +30718,21 @@ Return the corresponding partition kind for SyntaxBinaryFoldExpression.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_break_statement_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxBreakStatement node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_break_statement_storage*
 get<an_ifc_syntax_break_statement_storage>(
                             an_ifc_module_file                    *file,
@@ -27646,9 +30759,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_break_statement_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -27678,6 +30791,21 @@ Return the corresponding partition kind for SyntaxBreakStatement.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_capture_default_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxCaptureDefault node.
+*/
+{
+  size_t result;
+
+  result = 17;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_capture_default_storage*
 get<an_ifc_syntax_capture_default_storage>(
                             an_ifc_module_file                    *file,
@@ -27704,9 +30832,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_capture_default_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/17);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/17);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -27738,6 +30866,21 @@ Return the corresponding partition kind for SyntaxCaptureDefault.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_class_specifier_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxClassSpecifier node.
+*/
+{
+  size_t result;
+
+  result = 32;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_class_specifier_storage*
 get<an_ifc_syntax_class_specifier_storage>(
                             an_ifc_module_file                    *file,
@@ -27764,9 +30907,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_class_specifier_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/32);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/32);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -27804,6 +30947,21 @@ Return the corresponding partition kind for SyntaxClassSpecifier.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_compound_requirement_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxCompoundRequirement node.
+*/
+{
+  size_t result;
+
+  result = 32;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_compound_requirement_storage*
 get<an_ifc_syntax_compound_requirement_storage>(
                        an_ifc_module_file                         *file,
@@ -27830,9 +30988,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_compound_requirement_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/32);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/32);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -27871,6 +31029,21 @@ Return the corresponding partition kind for SyntaxCompoundRequirement.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_compound_statement_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxCompoundStatement node.
+*/
+{
+  size_t result;
+
+  result = 24;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_compound_statement_storage*
 get<an_ifc_syntax_compound_statement_storage>(
                          an_ifc_module_file                       *file,
@@ -27897,9 +31070,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_compound_statement_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/24);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/24);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -27934,6 +31107,21 @@ Return the corresponding partition kind for SyntaxCompoundStatement.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_concept_definition_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxConceptDefinition node.
+*/
+{
+  size_t result;
+
+  result = 44;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_concept_definition_storage*
 get<an_ifc_syntax_concept_definition_storage>(
                          an_ifc_module_file                       *file,
@@ -27960,9 +31148,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_concept_definition_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/44);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/44);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -28007,6 +31195,21 @@ Return the corresponding partition kind for SyntaxConceptDefinition.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_condition_declaration_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxConditionDeclaration node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_condition_declaration_storage*
 get<an_ifc_syntax_condition_declaration_storage>(
                       an_ifc_module_file                          *file,
@@ -28033,9 +31236,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_condition_declaration_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -28066,6 +31269,21 @@ Return the corresponding partition kind for SyntaxConditionDeclaration.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_continue_statement_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxContinueStatement node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_continue_statement_storage*
 get<an_ifc_syntax_continue_statement_storage>(
                          an_ifc_module_file                       *file,
@@ -28092,9 +31310,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_continue_statement_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -28125,6 +31343,21 @@ Return the corresponding partition kind for SyntaxContinueStatement.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_ctor_initializer_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxCtorInitializer node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_ctor_initializer_storage*
 get<an_ifc_syntax_ctor_initializer_storage>(
                            an_ifc_module_file                     *file,
@@ -28151,9 +31384,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_ctor_initializer_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -28178,6 +31411,21 @@ Return the corresponding partition kind for SyntaxCtorInitializer.
 {
   return ifc_pk_syntax_ctor_initializer;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_decl_specifier_seq_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxDeclSpecifierSeq node.
+*/
+{
+  size_t result;
+
+  result = 32;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -28207,9 +31455,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_decl_specifier_seq_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/32);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/32);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -28248,6 +31496,21 @@ Return the corresponding partition kind for SyntaxDeclSpecifierSeq.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_declaration_statement_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxDeclarationStatement node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_declaration_statement_storage*
 get<an_ifc_syntax_declaration_statement_storage>(
                       an_ifc_module_file                          *file,
@@ -28274,9 +31537,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_declaration_statement_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -28300,6 +31563,21 @@ Return the corresponding partition kind for SyntaxDeclarationStatement.
 {
   return ifc_pk_syntax_declaration_statement;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_declarator_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxDeclarator node.
+*/
+{
+  size_t result;
+
+  result = 44;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -28328,9 +31606,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_declarator_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/44);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/44);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -28378,6 +31656,21 @@ Return the corresponding partition kind for SyntaxDeclarator.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_decltype_specifier_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxDecltypeSpecifier node.
+*/
+{
+  size_t result;
+
+  result = 28;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_decltype_specifier_storage*
 get<an_ifc_syntax_decltype_specifier_storage>(
                          an_ifc_module_file                       *file,
@@ -28404,9 +31697,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_decltype_specifier_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/28);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/28);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -28443,6 +31736,21 @@ Return the corresponding partition kind for SyntaxDecltypeSpecifier.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_do_while_statement_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxDoWhileStatement node.
+*/
+{
+  size_t result;
+
+  result = 36;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_do_while_statement_storage*
 get<an_ifc_syntax_do_while_statement_storage>(
                          an_ifc_module_file                       *file,
@@ -28469,9 +31777,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_do_while_statement_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/36);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/36);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -28512,6 +31820,21 @@ Return the corresponding partition kind for SyntaxDoWhileStatement.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_dynamic_exception_spec_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxDynamicExceptionSpec node.
+*/
+{
+  size_t result;
+
+  result = 36;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_dynamic_exception_spec_storage*
 get<an_ifc_syntax_dynamic_exception_spec_storage>(
                      an_ifc_module_file                           *file,
@@ -28538,9 +31861,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_dynamic_exception_spec_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/36);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/36);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -28581,6 +31904,21 @@ Return the corresponding partition kind for SyntaxDynamicExceptionSpec.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_empty_statement_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxEmptyStatement node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_empty_statement_storage*
 get<an_ifc_syntax_empty_statement_storage>(
                             an_ifc_module_file                    *file,
@@ -28607,9 +31945,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_empty_statement_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -28632,6 +31970,21 @@ Return the corresponding partition kind for SyntaxEmptyStatement.
 {
   return ifc_pk_syntax_empty_statement;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_enum_specifier_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxEnumSpecifier node.
+*/
+{
+  size_t result;
+
+  result = 56;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -28661,9 +32014,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_enum_specifier_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/56);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/56);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -28713,6 +32066,21 @@ Return the corresponding partition kind for SyntaxEnumSpecifier.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_enumerator_definition_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxEnumeratorDefinition node.
+*/
+{
+  size_t result;
+
+  result = 32;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_enumerator_definition_storage*
 get<an_ifc_syntax_enumerator_definition_storage>(
                       an_ifc_module_file                          *file,
@@ -28739,9 +32107,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_enumerator_definition_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/32);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/32);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -28780,6 +32148,21 @@ Return the corresponding partition kind for SyntaxEnumeratorDefinition.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_exception_declaration_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxExceptionDeclaration node.
+*/
+{
+  size_t result;
+
+  result = 24;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_exception_declaration_storage*
 get<an_ifc_syntax_exception_declaration_storage>(
                       an_ifc_module_file                          *file,
@@ -28806,9 +32189,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_exception_declaration_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/24);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/24);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -28843,6 +32226,21 @@ Return the corresponding partition kind for SyntaxExceptionDeclaration.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_explicit_specifier_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxExplicitSpecifier node.
+*/
+{
+  size_t result;
+
+  result = 28;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_explicit_specifier_storage*
 get<an_ifc_syntax_explicit_specifier_storage>(
                          an_ifc_module_file                       *file,
@@ -28869,9 +32267,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_explicit_specifier_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/28);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/28);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -28908,6 +32306,21 @@ Return the corresponding partition kind for SyntaxExplicitSpecifier.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_expression_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxExpression node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_expression_storage* get<an_ifc_syntax_expression_storage>(
                                  an_ifc_module_file               *file,
                                  an_ifc_syntax_expression_storage *storage,
@@ -28933,9 +32346,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_expression_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -28956,6 +32369,21 @@ Return the corresponding partition kind for SyntaxExpression.
 {
   return ifc_pk_syntax_expression;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_expression_statement_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxExpressionStatement node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -28985,9 +32413,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_expression_statement_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -29018,6 +32446,21 @@ Return the corresponding partition kind for SyntaxExpressionStatement.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_for_range_declaration_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxForRangeDeclaration node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_for_range_declaration_storage*
 get<an_ifc_syntax_for_range_declaration_storage>(
                       an_ifc_module_file                          *file,
@@ -29044,9 +32487,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_for_range_declaration_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -29070,6 +32513,21 @@ Return the corresponding partition kind for SyntaxForRangeDeclaration.
 {
   return ifc_pk_syntax_for_range_declaration;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_for_statement_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxForStatement node.
+*/
+{
+  size_t result;
+
+  result = 52;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -29098,9 +32556,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_for_statement_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/52);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/52);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -29148,6 +32606,21 @@ Return the corresponding partition kind for SyntaxForStatement.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_function_body_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxFunctionBody node.
+*/
+{
+  size_t result;
+
+  result = 40;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_function_body_storage* get<an_ifc_syntax_function_body_storage>(
                               an_ifc_module_file                  *file,
                               an_ifc_syntax_function_body_storage *storage,
@@ -29173,9 +32646,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_function_body_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/40);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/40);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -29217,6 +32690,21 @@ Return the corresponding partition kind for SyntaxFunctionBody.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_function_declarator_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxFunctionDeclarator node.
+*/
+{
+  size_t result;
+
+  result = 44;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_function_declarator_storage*
 get<an_ifc_syntax_function_declarator_storage>(
                         an_ifc_module_file                        *file,
@@ -29243,9 +32731,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_function_declarator_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/44);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/44);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -29290,6 +32778,21 @@ Return the corresponding partition kind for SyntaxFunctionDeclarator.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_function_definition_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxFunctionDefinition node.
+*/
+{
+  size_t result;
+
+  result = 40;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_function_definition_storage*
 get<an_ifc_syntax_function_definition_storage>(
                         an_ifc_module_file                        *file,
@@ -29316,9 +32819,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_function_definition_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/40);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/40);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -29361,6 +32864,21 @@ Return the corresponding partition kind for SyntaxFunctionDefinition.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_function_try_block_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxFunctionTryBlock node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_function_try_block_storage*
 get<an_ifc_syntax_function_try_block_storage>(
                          an_ifc_module_file                       *file,
@@ -29387,9 +32905,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_function_try_block_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -29415,6 +32933,21 @@ Return the corresponding partition kind for SyntaxFunctionTryBlock.
 {
   return ifc_pk_syntax_function_try_block;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_goto_statement_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxGotoStatement node.
+*/
+{
+  size_t result;
+
+  result = 32;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -29444,9 +32977,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_goto_statement_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/32);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/32);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -29484,6 +33017,21 @@ Return the corresponding partition kind for SyntaxGotoStatement.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_handler_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxHandler node.
+*/
+{
+  size_t result;
+
+  result = 36;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_handler_storage* get<an_ifc_syntax_handler_storage>(
                                     an_ifc_module_file            *file,
                                     an_ifc_syntax_handler_storage *storage,
@@ -29509,9 +33057,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_handler_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/36);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/36);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -29551,6 +33099,21 @@ Return the corresponding partition kind for SyntaxHandler.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_handler_seq_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxHandlerSeq node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_handler_seq_storage* get<an_ifc_syntax_handler_seq_storage>(
                                 an_ifc_module_file                *file,
                                 an_ifc_syntax_handler_seq_storage *storage,
@@ -29576,9 +33139,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_handler_seq_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -29599,6 +33162,21 @@ Return the corresponding partition kind for SyntaxHandlerSeq.
 {
   return ifc_pk_syntax_handler_seq;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_if_statement_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxIfStatement node.
+*/
+{
+  size_t result;
+
+  result = 44;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -29627,9 +33205,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_if_statement_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/44);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/44);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -29673,6 +33251,21 @@ Return the corresponding partition kind for SyntaxIfStatement.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_init_capture_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxInitCapture node.
+*/
+{
+  size_t result;
+
+  result = 32;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_init_capture_storage* get<an_ifc_syntax_init_capture_storage>(
                                an_ifc_module_file                 *file,
                                an_ifc_syntax_init_capture_storage *storage,
@@ -29698,9 +33291,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_init_capture_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/32);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/32);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -29738,6 +33331,21 @@ Return the corresponding partition kind for SyntaxInitCapture.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_init_declarator_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxInitDeclarator node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_init_declarator_storage*
 get<an_ifc_syntax_init_declarator_storage>(
                             an_ifc_module_file                    *file,
@@ -29764,9 +33372,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_init_declarator_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -29798,6 +33406,21 @@ Return the corresponding partition kind for SyntaxInitDeclarator.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_init_statement_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxInitStatement node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_init_statement_storage*
 get<an_ifc_syntax_init_statement_storage>(
                              an_ifc_module_file                   *file,
@@ -29824,9 +33447,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_init_statement_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -29849,6 +33472,21 @@ Return the corresponding partition kind for SyntaxInitStatement.
 {
   return ifc_pk_syntax_init_statement;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_labeled_statement_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxLabeledStatement node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -29878,9 +33516,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_labeled_statement_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -29912,6 +33550,21 @@ Return the corresponding partition kind for SyntaxLabeledStatement.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_lambda_declarator_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxLambdaDeclarator node.
+*/
+{
+  size_t result;
+
+  result = 48;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_lambda_declarator_storage*
 get<an_ifc_syntax_lambda_declarator_storage>(
                           an_ifc_module_file                      *file,
@@ -29938,9 +33591,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_lambda_declarator_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/48);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/48);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -29982,6 +33635,21 @@ Return the corresponding partition kind for SyntaxLambdaDeclarator.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_lambda_introducer_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxLambdaIntroducer node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_lambda_introducer_storage*
 get<an_ifc_syntax_lambda_introducer_storage>(
                           an_ifc_module_file                      *file,
@@ -30008,9 +33676,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_lambda_introducer_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -30042,6 +33710,21 @@ Return the corresponding partition kind for SyntaxLambdaIntroducer.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_mem_initializer_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxMemInitializer node.
+*/
+{
+  size_t result;
+
+  result = 24;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_mem_initializer_storage*
 get<an_ifc_syntax_mem_initializer_storage>(
                             an_ifc_module_file                    *file,
@@ -30068,9 +33751,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_mem_initializer_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/24);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/24);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -30104,6 +33787,21 @@ Return the corresponding partition kind for SyntaxMemInitializer.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_member_declaration_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxMemberDeclaration node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_member_declaration_storage*
 get<an_ifc_syntax_member_declaration_storage>(
                          an_ifc_module_file                       *file,
@@ -30130,9 +33828,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_member_declaration_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -30163,6 +33861,21 @@ Return the corresponding partition kind for SyntaxMemberDeclaration.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_member_declarator_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxMemberDeclarator node.
+*/
+{
+  size_t result;
+
+  result = 40;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_member_declarator_storage*
 get<an_ifc_syntax_member_declarator_storage>(
                           an_ifc_module_file                      *file,
@@ -30189,9 +33902,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_member_declarator_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/40);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/40);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -30233,6 +33946,21 @@ Return the corresponding partition kind for SyntaxMemberDeclarator.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_member_function_declaration_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxMemberFunctionDeclaration node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_member_function_declaration_storage*
 get<an_ifc_syntax_member_function_declaration_storage>(
                 an_ifc_module_file                                *file,
@@ -30260,9 +33988,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_member_function_declaration_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -30284,6 +34012,21 @@ Return the corresponding partition kind for SyntaxMemberFunctionDeclaration.
 {
   return ifc_pk_syntax_member_function_declaration;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_member_specification_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxMemberSpecification node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -30313,9 +34056,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_member_specification_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -30337,6 +34080,21 @@ Return the corresponding partition kind for SyntaxMemberSpecification.
 {
   return ifc_pk_syntax_member_specification;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_namespace_alias_definition_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxNamespaceAliasDefinition node.
+*/
+{
+  size_t result;
+
+  result = 32;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -30367,9 +34125,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_namespace_alias_definition_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/32);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/32);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -30408,6 +34166,21 @@ Return the corresponding partition kind for SyntaxNamespaceAliasDefinition.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_nested_requirement_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxNestedRequirement node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_nested_requirement_storage*
 get<an_ifc_syntax_nested_requirement_storage>(
                          an_ifc_module_file                       *file,
@@ -30434,9 +34207,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_nested_requirement_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -30462,6 +34235,21 @@ Return the corresponding partition kind for SyntaxNestedRequirement.
 {
   return ifc_pk_syntax_nested_requirement;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_new_declarator_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxNewDeclarator node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -30491,9 +34279,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_new_declarator_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -30514,6 +34302,21 @@ Return the corresponding partition kind for SyntaxNewDeclarator.
 {
   return ifc_pk_syntax_new_declarator;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_noexcept_specification_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxNoexceptSpecification node.
+*/
+{
+  size_t result;
+
+  result = 28;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -30543,9 +34346,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_noexcept_specification_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/28);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/28);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -30582,6 +34385,21 @@ Return the corresponding partition kind for SyntaxNoexceptSpecification.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_non_type_template_argument_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxNonTypeTemplateArgument node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_non_type_template_argument_storage*
 get<an_ifc_syntax_non_type_template_argument_storage>(
                  an_ifc_module_file                               *file,
@@ -30608,9 +34426,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_non_type_template_argument_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -30643,6 +34461,21 @@ Return the corresponding partition kind for SyntaxNonTypeTemplateArgument.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_parameter_declarator_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxParameterDeclarator node.
+*/
+{
+  size_t result;
+
+  result = 24;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_parameter_declarator_storage*
 get<an_ifc_syntax_parameter_declarator_storage>(
                        an_ifc_module_file                         *file,
@@ -30669,9 +34502,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_parameter_declarator_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/24);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/24);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -30706,6 +34539,21 @@ Return the corresponding partition kind for SyntaxParameterDeclarator.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_placeholder_type_specifier_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxPlaceholderTypeSpecifier node.
+*/
+{
+  size_t result;
+
+  result = 21;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_placeholder_type_specifier_storage*
 get<an_ifc_syntax_placeholder_type_specifier_storage>(
                  an_ifc_module_file                               *file,
@@ -30733,9 +34581,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_placeholder_type_specifier_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/21);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/21);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -30770,6 +34618,21 @@ Return the corresponding partition kind for SyntaxPlaceholderTypeSpecifier.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_pointer_declarator_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxPointerDeclarator node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_pointer_declarator_storage*
 get<an_ifc_syntax_pointer_declarator_storage>(
                          an_ifc_module_file                       *file,
@@ -30796,9 +34659,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_pointer_declarator_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -30837,6 +34700,21 @@ Return the corresponding partition kind for SyntaxPointerDeclarator.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_range_based_for_statement_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxRangeBasedForStatement node.
+*/
+{
+  size_t result;
+
+  result = 52;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_range_based_for_statement_storage*
 get<an_ifc_syntax_range_based_for_statement_storage>(
                   an_ifc_module_file                              *file,
@@ -30863,9 +34741,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_range_based_for_statement_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/52);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/52);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -30914,6 +34792,21 @@ Return the corresponding partition kind for SyntaxRangeBasedForStatement.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_requirement_body_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxRequirementBody node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_requirement_body_storage*
 get<an_ifc_syntax_requirement_body_storage>(
                            an_ifc_module_file                     *file,
@@ -30940,9 +34833,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_requirement_body_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -30974,6 +34867,21 @@ Return the corresponding partition kind for SyntaxRequirementBody.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_requires_clause_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxRequiresClause node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_requires_clause_storage*
 get<an_ifc_syntax_requires_clause_storage>(
                             an_ifc_module_file                    *file,
@@ -31000,9 +34908,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_requires_clause_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -31027,6 +34935,21 @@ Return the corresponding partition kind for SyntaxRequiresClause.
 {
   return ifc_pk_syntax_requires_clause;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_return_statement_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxReturnStatement node.
+*/
+{
+  size_t result;
+
+  result = 28;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -31056,9 +34979,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_return_statement_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/28);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/28);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -31094,6 +35017,21 @@ Return the corresponding partition kind for SyntaxReturnStatement.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_seh_except_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxSEHExcept node.
+*/
+{
+  size_t result;
+
+  result = 32;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_seh_except_storage* get<an_ifc_syntax_seh_except_storage>(
                                  an_ifc_module_file               *file,
                                  an_ifc_syntax_seh_except_storage *storage,
@@ -31119,9 +35057,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_seh_except_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/32);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/32);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -31159,6 +35097,21 @@ Return the corresponding partition kind for SyntaxSEHExcept.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_seh_finally_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxSEHFinally node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_seh_finally_storage* get<an_ifc_syntax_seh_finally_storage>(
                                 an_ifc_module_file                *file,
                                 an_ifc_syntax_seh_finally_storage *storage,
@@ -31184,9 +35137,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_seh_finally_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -31211,6 +35164,21 @@ Return the corresponding partition kind for SyntaxSEHFinally.
 {
   return ifc_pk_syntax_seh_finally;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_seh_leave_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxSEHLeave node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -31239,9 +35207,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_seh_leave_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -31271,6 +35239,21 @@ Return the corresponding partition kind for SyntaxSEHLeave.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_seh_try_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxSEHTry node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_seh_try_storage* get<an_ifc_syntax_seh_try_storage>(
                                     an_ifc_module_file            *file,
                                     an_ifc_syntax_seh_try_storage *storage,
@@ -31296,9 +35279,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_seh_try_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -31328,6 +35311,21 @@ Return the corresponding partition kind for SyntaxSEHTry.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_simple_capture_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxSimpleCapture node.
+*/
+{
+  size_t result;
+
+  result = 28;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_simple_capture_storage*
 get<an_ifc_syntax_simple_capture_storage>(
                              an_ifc_module_file                   *file,
@@ -31354,9 +35352,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_simple_capture_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/28);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/28);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -31392,6 +35390,21 @@ Return the corresponding partition kind for SyntaxSimpleCapture.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_simple_declaration_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxSimpleDeclaration node.
+*/
+{
+  size_t result;
+
+  result = 24;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_simple_declaration_storage*
 get<an_ifc_syntax_simple_declaration_storage>(
                          an_ifc_module_file                       *file,
@@ -31418,9 +35431,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_simple_declaration_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/24);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/24);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -31455,6 +35468,21 @@ Return the corresponding partition kind for SyntaxSimpleDeclaration.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_simple_requirement_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxSimpleRequirement node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_simple_requirement_storage*
 get<an_ifc_syntax_simple_requirement_storage>(
                          an_ifc_module_file                       *file,
@@ -31481,9 +35509,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_simple_requirement_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -31509,6 +35537,21 @@ Return the corresponding partition kind for SyntaxSimpleRequirement.
 {
   return ifc_pk_syntax_simple_requirement;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_simple_type_specifier_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxSimpleTypeSpecifier node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -31538,9 +35581,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_simple_type_specifier_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -31571,6 +35614,21 @@ Return the corresponding partition kind for SyntaxSimpleTypeSpecifier.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_statement_seq_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxStatementSeq node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_statement_seq_storage* get<an_ifc_syntax_statement_seq_storage>(
                               an_ifc_module_file                  *file,
                               an_ifc_syntax_statement_seq_storage *storage,
@@ -31596,9 +35654,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_statement_seq_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -31619,6 +35677,21 @@ Return the corresponding partition kind for SyntaxStatementSeq.
 {
   return ifc_pk_syntax_statement_seq;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_static_assert_declaration_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxStaticAssertDeclaration node.
+*/
+{
+  size_t result;
+
+  result = 48;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -31648,9 +35721,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_static_assert_declaration_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/48);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/48);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -31697,6 +35770,22 @@ Return the corresponding partition kind for SyntaxStaticAssertDeclaration.
 
 
 template<>
+size_t
+get_ifc_buffer_size<an_ifc_syntax_structured_binding_declaration_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxStructuredBindingDeclaration node.
+*/
+{
+  size_t result;
+
+  result = 28;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_structured_binding_declaration_storage*
 get<an_ifc_syntax_structured_binding_declaration_storage>(
              an_ifc_module_file                                   *file,
@@ -31724,9 +35813,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_structured_binding_declaration_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/28);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/28);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -31763,6 +35852,22 @@ Return the corresponding partition kind for SyntaxStructuredBindingDeclaration.
 
 
 template<>
+size_t
+get_ifc_buffer_size<an_ifc_syntax_structured_binding_identifier_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxStructuredBindingIdentifier node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_structured_binding_identifier_storage*
 get<an_ifc_syntax_structured_binding_identifier_storage>(
               an_ifc_module_file                                  *file,
@@ -31790,9 +35895,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_structured_binding_identifier_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -31821,6 +35926,21 @@ Return the corresponding partition kind for SyntaxStructuredBindingIdentifier.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_super_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxSuper node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_super_storage* get<an_ifc_syntax_super_storage>(
                                       an_ifc_module_file          *file,
                                       an_ifc_syntax_super_storage *storage,
@@ -31846,9 +35966,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_super_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -31871,6 +35991,21 @@ Return the corresponding partition kind for SyntaxSuper.
 {
   return ifc_pk_syntax_super;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_switch_statement_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxSwitchStatement node.
+*/
+{
+  size_t result;
+
+  result = 24;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -31900,9 +36035,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_switch_statement_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/24);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/24);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -31936,6 +36071,21 @@ Return the corresponding partition kind for SyntaxSwitchStatement.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_template_argument_list_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxTemplateArgumentList node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_template_argument_list_storage*
 get<an_ifc_syntax_template_argument_list_storage>(
                      an_ifc_module_file                           *file,
@@ -31962,9 +36112,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_template_argument_list_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -31997,6 +36147,21 @@ Return the corresponding partition kind for SyntaxTemplateArgumentList.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_template_declaration_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxTemplateDeclaration node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_template_declaration_storage*
 get<an_ifc_syntax_template_declaration_storage>(
                        an_ifc_module_file                         *file,
@@ -32023,9 +36188,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_template_declaration_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -32056,6 +36221,21 @@ Return the corresponding partition kind for SyntaxTemplateDeclaration.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_template_id_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxTemplateId node.
+*/
+{
+  size_t result;
+
+  result = 28;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_template_id_storage* get<an_ifc_syntax_template_id_storage>(
                                 an_ifc_module_file                *file,
                                 an_ifc_syntax_template_id_storage *storage,
@@ -32081,9 +36261,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_template_id_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/28);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/28);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -32119,6 +36299,21 @@ Return the corresponding partition kind for SyntaxTemplateId.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_template_parameter_list_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxTemplateParameterList node.
+*/
+{
+  size_t result;
+
+  result = 24;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_template_parameter_list_storage*
 get<an_ifc_syntax_template_parameter_list_storage>(
                     an_ifc_module_file                            *file,
@@ -32145,9 +36340,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_template_parameter_list_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/24);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/24);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -32182,6 +36377,21 @@ Return the corresponding partition kind for SyntaxTemplateParameterList.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_template_template_parameter_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxTemplateTemplateParameter node.
+*/
+{
+  size_t result;
+
+  result = 48;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_template_template_parameter_storage*
 get<an_ifc_syntax_template_template_parameter_storage>(
                 an_ifc_module_file                                *file,
@@ -32209,9 +36419,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_template_template_parameter_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/48);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/48);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -32258,6 +36468,21 @@ Return the corresponding partition kind for SyntaxTemplateTemplateParameter.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_this_capture_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxThisCapture node.
+*/
+{
+  size_t result;
+
+  result = 24;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_this_capture_storage* get<an_ifc_syntax_this_capture_storage>(
                                an_ifc_module_file                 *file,
                                an_ifc_syntax_this_capture_storage *storage,
@@ -32283,9 +36508,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_this_capture_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/24);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/24);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -32319,6 +36544,21 @@ Return the corresponding partition kind for SyntaxThisCapture.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_trailing_return_type_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxTrailingReturnType node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_trailing_return_type_storage*
 get<an_ifc_syntax_trailing_return_type_storage>(
                        an_ifc_module_file                         *file,
@@ -32345,9 +36585,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_trailing_return_type_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -32376,6 +36616,21 @@ Return the corresponding partition kind for SyntaxTrailingReturnType.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_try_block_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxTryBlock node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_try_block_storage* get<an_ifc_syntax_try_block_storage>(
                                   an_ifc_module_file              *file,
                                   an_ifc_syntax_try_block_storage *storage,
@@ -32401,9 +36656,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_try_block_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -32435,6 +36690,21 @@ Return the corresponding partition kind for SyntaxTryBlock.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_tuple_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxTuple node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_tuple_storage* get<an_ifc_syntax_tuple_storage>(
                                       an_ifc_module_file          *file,
                                       an_ifc_syntax_tuple_storage *storage,
@@ -32460,9 +36730,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_tuple_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -32485,6 +36755,21 @@ Return the corresponding partition kind for SyntaxTuple.
 {
   return ifc_pk_syntax_tuple;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_type_id_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxTypeId node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -32513,9 +36798,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_type_id_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -32545,6 +36830,21 @@ Return the corresponding partition kind for SyntaxTypeId.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_type_id_list_element_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxTypeIdListElement node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_type_id_list_element_storage*
 get<an_ifc_syntax_type_id_list_element_storage>(
                        an_ifc_module_file                         *file,
@@ -32571,9 +36871,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_type_id_list_element_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -32599,6 +36899,21 @@ Return the corresponding partition kind for SyntaxTypeIdListElement.
 {
   return ifc_pk_syntax_type_id_list_element;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_type_requirement_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxTypeRequirement node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -32628,9 +36943,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_type_requirement_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -32655,6 +36970,21 @@ Return the corresponding partition kind for SyntaxTypeRequirement.
 {
   return ifc_pk_syntax_type_requirement;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_type_specifier_seq_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxTypeSpecifierSeq node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -32684,9 +37014,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_type_specifier_seq_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -32721,6 +37051,21 @@ Return the corresponding partition kind for SyntaxTypeSpecifierSeq.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_type_template_argument_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxTypeTemplateArgument node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_type_template_argument_storage*
 get<an_ifc_syntax_type_template_argument_storage>(
                      an_ifc_module_file                           *file,
@@ -32747,9 +37092,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_type_template_argument_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -32782,6 +37127,21 @@ Return the corresponding partition kind for SyntaxTypeTemplateArgument.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_type_template_parameter_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxTypeTemplateParameter node.
+*/
+{
+  size_t result;
+
+  result = 28;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_type_template_parameter_storage*
 get<an_ifc_syntax_type_template_parameter_storage>(
                     an_ifc_module_file                            *file,
@@ -32808,9 +37168,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_type_template_parameter_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/28);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/28);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -32847,6 +37207,21 @@ Return the corresponding partition kind for SyntaxTypeTemplateParameter.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_type_trait_intrinsic_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxTypeTraitIntrinsic node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_type_trait_intrinsic_storage*
 get<an_ifc_syntax_type_trait_intrinsic_storage>(
                        an_ifc_module_file                         *file,
@@ -32873,9 +37248,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_type_trait_intrinsic_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -32906,6 +37281,21 @@ Return the corresponding partition kind for SyntaxTypeTraitIntrinsic.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_unary_fold_expression_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxUnaryFoldExpression node.
+*/
+{
+  size_t result;
+
+  result = 44;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_unary_fold_expression_storage*
 get<an_ifc_syntax_unary_fold_expression_storage>(
                       an_ifc_module_file                          *file,
@@ -32932,9 +37322,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_unary_fold_expression_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/44);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/44);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -32979,6 +37369,21 @@ Return the corresponding partition kind for SyntaxUnaryFoldExpression.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_using_declaration_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxUsingDeclaration node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_using_declaration_storage*
 get<an_ifc_syntax_using_declaration_storage>(
                           an_ifc_module_file                      *file,
@@ -33005,9 +37410,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_using_declaration_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -33039,6 +37444,21 @@ Return the corresponding partition kind for SyntaxUsingDeclaration.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_using_declarator_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxUsingDeclarator node.
+*/
+{
+  size_t result;
+
+  result = 28;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_using_declarator_storage*
 get<an_ifc_syntax_using_declarator_storage>(
                            an_ifc_module_file                     *file,
@@ -33065,9 +37485,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_using_declarator_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/28);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/28);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -33103,6 +37523,21 @@ Return the corresponding partition kind for SyntaxUsingDeclarator.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_using_directive_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxUsingDirective node.
+*/
+{
+  size_t result;
+
+  result = 28;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_using_directive_storage*
 get<an_ifc_syntax_using_directive_storage>(
                             an_ifc_module_file                    *file,
@@ -33129,9 +37564,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_using_directive_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/28);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/28);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -33167,6 +37602,21 @@ Return the corresponding partition kind for SyntaxUsingDirective.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_using_enum_declaration_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxUsingEnumDeclaration node.
+*/
+{
+  size_t result;
+
+  result = 28;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_using_enum_declaration_storage*
 get<an_ifc_syntax_using_enum_declaration_storage>(
                      an_ifc_module_file                           *file,
@@ -33193,9 +37643,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_using_enum_declaration_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/28);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/28);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -33232,6 +37682,21 @@ Return the corresponding partition kind for SyntaxUsingEnumDeclaration.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_virtual_specifier_seq_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxVirtualSpecifierSeq node.
+*/
+{
+  size_t result;
+
+  result = 25;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_virtual_specifier_seq_storage*
 get<an_ifc_syntax_virtual_specifier_seq_storage>(
                       an_ifc_module_file                          *file,
@@ -33258,9 +37723,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_virtual_specifier_seq_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/25);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/25);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -33297,6 +37762,21 @@ Return the corresponding partition kind for SyntaxVirtualSpecifierSeq.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_syntax_while_statement_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC SyntaxWhileStatement node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_syntax_while_statement_storage*
 get<an_ifc_syntax_while_statement_storage>(
                             an_ifc_module_file                    *file,
@@ -33323,9 +37803,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_syntax_while_statement_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -33357,6 +37837,21 @@ Return the corresponding partition kind for SyntaxWhileStatement.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_trait_alias_template_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TraitAliasTemplate node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_trait_alias_template_storage* get<an_ifc_trait_alias_template_storage>(
                               an_ifc_module_file                  *file,
                               an_ifc_trait_alias_template_storage *storage,
@@ -33382,9 +37877,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_trait_alias_template_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -33407,6 +37902,21 @@ Return the corresponding partition kind for TraitAliasTemplate.
 {
   return ifc_pk_trait_alias_template;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_trait_attribute_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TraitAttribute node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -33435,9 +37945,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_trait_attribute_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -33460,6 +37970,21 @@ Return the corresponding partition kind for TraitAttribute.
 {
   return ifc_pk_trait_attribute;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_trait_deduction_guide_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TraitDeductionGuide node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -33489,9 +38014,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_trait_deduction_guide_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -33514,6 +38039,21 @@ Return the corresponding partition kind for TraitDeductionGuide.
 {
   return ifc_pk_trait_deduction_guides;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_trait_deprecated_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TraitDeprecated node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -33542,9 +38082,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_trait_deprecated_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -33567,6 +38107,21 @@ Return the corresponding partition kind for TraitDeprecated.
 {
   return ifc_pk_trait_deprecated;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_trait_friend_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TraitFriend node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -33595,9 +38150,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_trait_friend_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -33622,6 +38177,21 @@ Return the corresponding partition kind for TraitFriend.
 {
   return ifc_pk_trait_friend;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_trait_function_definition_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TraitFunctionDefinition node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -33651,9 +38221,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_trait_function_definition_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -33684,6 +38254,21 @@ Return the corresponding partition kind for TraitFunctionDefinition.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_trait_msvc_decl_attrs_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TraitMsvcDeclAttrs node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_trait_msvc_decl_attrs_storage*
 get<an_ifc_trait_msvc_decl_attrs_storage>(
                              an_ifc_module_file                   *file,
@@ -33710,9 +38295,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_trait_msvc_decl_attrs_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -33735,6 +38320,21 @@ Return the corresponding partition kind for TraitMsvcDeclAttrs.
 {
   return ifc_pk_msvc_trait_decl_attrs;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_trait_msvc_func_params_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TraitMsvcFuncParams node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -33764,9 +38364,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_trait_msvc_func_params_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -33789,6 +38389,21 @@ Return the corresponding partition kind for TraitMsvcFuncParams.
 {
   return ifc_pk_msvc_trait_named_function_parameters;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_trait_msvc_uuid_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TraitMsvcUuid node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -33817,9 +38432,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_trait_msvc_uuid_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -33842,6 +38457,21 @@ Return the corresponding partition kind for TraitMsvcUuid.
 {
   return ifc_pk_msvc_trait_uuid;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_trait_msvc_vendor_trait_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TraitMsvcVendorTrait node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -33871,9 +38501,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_trait_msvc_vendor_trait_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -33896,6 +38526,21 @@ Return the corresponding partition kind for TraitMsvcVendorTrait.
 {
   return ifc_pk_msvc_trait_vendor_traits;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_trait_requires_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TraitRequires node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -33924,9 +38569,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_trait_requires_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -33949,6 +38594,21 @@ Return the corresponding partition kind for TraitRequires.
 {
   return ifc_pk_trait_requires;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_trait_specialization_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TraitSpecialization node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -33977,9 +38637,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_trait_specialization_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -34004,6 +38664,20 @@ Return the corresponding partition kind for TraitSpecialization.
 {
   return ifc_pk_trait_specialization;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_array_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TypeArray node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -34032,9 +38706,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_type_array_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -34057,6 +38731,20 @@ Return the corresponding partition kind for TypeArray.
 {
   return ifc_pk_type_array;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_base_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TypeBase node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -34085,9 +38773,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_type_base_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -34117,6 +38805,21 @@ Return the corresponding partition kind for TypeBase.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_type_decltype_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TypeDecltype node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_type_decltype_storage* get<an_ifc_type_decltype_storage>(
                                      an_ifc_module_file           *file,
                                      an_ifc_type_decltype_storage *storage,
@@ -34142,9 +38845,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_type_decltype_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -34165,6 +38868,21 @@ Return the corresponding partition kind for TypeDecltype.
 {
   return ifc_pk_type_decltype;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_designated_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TypeDesignated node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -34193,9 +38911,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_type_designated_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -34216,6 +38934,21 @@ Return the corresponding partition kind for TypeDesignated.
 {
   return ifc_pk_type_designated;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_expansion_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TypeExpansion node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -34244,9 +38977,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_type_expansion_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -34269,6 +39002,21 @@ Return the corresponding partition kind for TypeExpansion.
 {
   return ifc_pk_type_expansion;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_forall_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TypeForall node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -34297,9 +39045,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_type_forall_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -34322,6 +39070,21 @@ Return the corresponding partition kind for TypeForall.
 {
   return ifc_pk_type_forall;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_function_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TypeFunction node.
+*/
+{
+  size_t result;
+
+  result = 20;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -34350,9 +39113,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_type_function_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/20);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/20);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -34386,6 +39149,21 @@ Return the corresponding partition kind for TypeFunction.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_type_fundamental_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TypeFundamental node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_type_fundamental_storage* get<an_ifc_type_fundamental_storage>(
                                   an_ifc_module_file              *file,
                                   an_ifc_type_fundamental_storage *storage,
@@ -34411,9 +39189,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_type_fundamental_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -34438,6 +39216,21 @@ Return the corresponding partition kind for TypeFundamental.
 {
   return ifc_pk_type_fundamental;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_lvalue_reference_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TypeLvalueReference node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -34467,9 +39260,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_type_lvalue_reference_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -34490,6 +39283,21 @@ Return the corresponding partition kind for TypeLvalueReference.
 {
   return ifc_pk_type_lvalue_reference;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_method_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TypeMethod node.
+*/
+{
+  size_t result;
+
+  result = 24;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -34518,9 +39326,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_type_method_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/24);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/24);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -34556,6 +39364,21 @@ Return the corresponding partition kind for TypeMethod.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_type_placeholder_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TypePlaceholder node.
+*/
+{
+  size_t result;
+
+  result = 12;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_type_placeholder_storage* get<an_ifc_type_placeholder_storage>(
                                   an_ifc_module_file              *file,
                                   an_ifc_type_placeholder_storage *storage,
@@ -34581,9 +39404,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_type_placeholder_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/12);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/12);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -34608,6 +39431,21 @@ Return the corresponding partition kind for TypePlaceholder.
 {
   return ifc_pk_type_placeholder;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_pointer_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TypePointer node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -34636,9 +39474,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_type_pointer_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -34659,6 +39497,21 @@ Return the corresponding partition kind for TypePointer.
 {
   return ifc_pk_type_pointer;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_pointer_to_member_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TypePointerToMember node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -34688,9 +39541,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_type_pointer_to_member_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -34713,6 +39566,21 @@ Return the corresponding partition kind for TypePointerToMember.
 {
   return ifc_pk_type_pointer_to_member;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_qualified_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TypeQualified node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -34741,9 +39609,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_type_qualified_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -34766,6 +39634,21 @@ Return the corresponding partition kind for TypeQualified.
 {
   return ifc_pk_type_qualified;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_rvalue_reference_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TypeRvalueReference node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -34795,9 +39678,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_type_rvalue_reference_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -34818,6 +39701,21 @@ Return the corresponding partition kind for TypeRvalueReference.
 {
   return ifc_pk_type_rvalue_reference;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_syntactic_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TypeSyntactic node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -34846,9 +39744,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_type_syntactic_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -34869,6 +39767,21 @@ Return the corresponding partition kind for TypeSyntactic.
 {
   return ifc_pk_type_syntactic;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_syntax_tree_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TypeSyntaxTree node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -34897,9 +39810,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_type_syntax_tree_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -34920,6 +39833,20 @@ Return the corresponding partition kind for TypeSyntaxTree.
 {
   return ifc_pk_type_syntax_tree;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_tor_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TypeTor node.
+*/
+{
+  size_t result;
+
+  result = 16;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -34948,9 +39875,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_type_tor_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/16);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/16);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -34980,6 +39907,20 @@ Return the corresponding partition kind for TypeTor.
 
 
 template<>
+size_t get_ifc_buffer_size<an_ifc_type_tuple_storage>(an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TypeTuple node.
+*/
+{
+  size_t result;
+
+  result = 8;
+  return result;
+}  /* get_ifc_buffer_size */
+
+
+template<>
 an_ifc_type_tuple_storage* get<an_ifc_type_tuple_storage>(
                                         an_ifc_module_file        *file,
                                         an_ifc_type_tuple_storage *storage,
@@ -35005,9 +39946,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_type_tuple_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/8);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/8);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -35030,6 +39971,21 @@ Return the corresponding partition kind for TypeTuple.
 {
   return ifc_pk_type_tuple;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_typename_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TypeTypename node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -35058,9 +40014,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_type_typename_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -35081,6 +40037,21 @@ Return the corresponding partition kind for TypeTypename.
 {
   return ifc_pk_type_typename;
 }  /* get_ifc_partition_kind */
+
+
+template<>
+size_t get_ifc_buffer_size<an_ifc_type_unaligned_storage>(
+                                                      an_ifc_module_file *file)
+/*
+Given the associated module file, return the number of bytes required for an
+IFC TypeUnaligned node.
+*/
+{
+  size_t result;
+
+  result = 4;
+  return result;
+}  /* get_ifc_buffer_size */
 
 
 template<>
@@ -35109,9 +40080,9 @@ the storage specified by the storage argument).
   using storage_type = an_ifc_type_unaligned_storage;
   if (has_matching_endianness(file)) {
     if (fill_storage) {
-      memcpy(*storage, file->byte_buffer, /*size=*/4);
+      memcpy(*storage, get_byte_buffer(file), /*size=*/4);
     } else {
-      storage = (storage_type*)(file->byte_buffer);
+      storage = (storage_type*)(get_byte_buffer(file));
     }  /* if */
   } else
 #endif /* USE_MMAP_FOR_MODULES */
@@ -35137,6 +40108,22 @@ Return the corresponding partition kind for TypeUnaligned.
 /*
 Functions for interacting with IFC ExprNamedDeclOffset offsets.
 */
+
+
+an_ifc_encoded_expr_named_decl_offset to_encoded(
+                                       an_ifc_module_file            *file,
+                                       an_ifc_expr_named_decl_offset universal)
+/*
+Given the universal representation of ExprNamedDeclOffset and the destination
+module file, return a reencoded index value.
+*/
+{
+  an_ifc_encoded_expr_named_decl_offset result = {file, universal.value};
+
+  /* This offset contains a null value in its encoded form, do not modify its
+     value. */
+  return result;
+}  /* to_encoded */
 
 
 a_boolean is_null_index(an_ifc_expr_named_decl_offset universal)
@@ -35176,6 +40163,23 @@ module, return the corresponding universal representation.
 /*
 Functions for interacting with IFC FormSpecOffset offsets.
 */
+
+
+an_ifc_encoded_form_spec_offset to_encoded(an_ifc_module_file      *file,
+                                           an_ifc_form_spec_offset universal)
+/*
+Given the universal representation of FormSpecOffset and the destination module
+file, return a reencoded index value.
+*/
+{
+  an_ifc_encoded_form_spec_offset result = {file, universal.value};
+
+  /* This offset never contains a null value in its encoded form, decrease all
+     values by one. */
+  check_assertion(result.value != 0);
+  --result.value;
+  return result;
+}  /* to_encoded */
 
 
 a_boolean is_null_index(an_ifc_form_spec_offset universal)
@@ -35220,6 +40224,23 @@ Functions for interacting with IFC LineOffset offsets.
 */
 
 
+an_ifc_encoded_line_offset to_encoded(an_ifc_module_file *file,
+                                      an_ifc_line_offset universal)
+/*
+Given the universal representation of LineOffset and the destination module
+file, return a reencoded index value.
+*/
+{
+  an_ifc_encoded_line_offset result = {file, universal.value};
+
+  /* This offset never contains a null value in its encoded form, decrease all
+     values by one. */
+  check_assertion(result.value != 0);
+  --result.value;
+  return result;
+}  /* to_encoded */
+
+
 a_boolean is_null_index(an_ifc_line_offset universal)
 /*
 Given the universal representation of LineOffset, return TRUE if the given
@@ -35259,6 +40280,21 @@ return the corresponding universal representation.
 /*
 Functions for interacting with IFC ScopeOffset offsets.
 */
+
+
+an_ifc_encoded_scope_offset to_encoded(an_ifc_module_file  *file,
+                                       an_ifc_scope_offset universal)
+/*
+Given the universal representation of ScopeOffset and the destination module
+file, return a reencoded index value.
+*/
+{
+  an_ifc_encoded_scope_offset result = {file, universal.value};
+
+  /* This offset contains a null value in its encoded form, do not modify its
+     value. */
+  return result;
+}  /* to_encoded */
 
 
 a_boolean is_null_index(an_ifc_scope_offset universal)
@@ -44191,7 +49227,7 @@ node's "locus" field value.
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !STANDALONE_UTILITY_PROGRAM */
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /******************************************************************************
 *                                                             \  ___  /       *
@@ -44199,6 +49235,6 @@ END_EDG_NAMESPACE
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2023 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2024 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

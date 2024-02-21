@@ -4,12 +4,12 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2023 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2024 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
 
-ifc_map.h -- IFC types for Microsoft modules.
+ifc_map.h -- Types for IFC-based modules.
 
 ** NOTICE: This file is produced by an external script. **
 
@@ -44,6 +44,38 @@ struct an_ifc_module_entity {
                            byte buffer. */
 };  /* an_ifc_module_entity */
 
+enum a_byte_buffer_kind {
+  bbk_none,             /* The byte buffer is uninitialized. */
+  bbk_local,            /* The byte buffer is stored in the Byte_buffer_entry
+                           object itself (used during non-MMAP based IFC
+                           reading). */
+  bbk_direct_ptr,       /* The byte buffer is accessible by dereferencing
+                           a pointer stored in the Byte_buffer_entry object
+                           (used during MMAP based IFC reading). */
+  bbk_indirect_ptr      /* The byte buffer can be retrieved by dereferencing
+                           a pointer to get the current array start and then
+                           adding the associated offset (used during IFC
+                           writing). */
+};
+
+/*
+An encapsulation which represents an offset into a byte buffer where the
+underlying byte buffer might be reallocated (and thus moved to a different
+starting address).
+*/
+struct a_byte_buffer_indirect_ptr {
+  a_byte_buffer_indirect_ptr(char          **start_val,
+                             size_t        byte_offset_val)
+    : start(start_val), byte_offset(byte_offset_val)
+    {}
+
+  char          **start;
+                        /* A an indirect pointer to the start of the byte
+                           buffer. */
+  size_t        byte_offset;
+                        /* The offset into the buffer for this element. */
+};  /* a_byte_buffer_indirect_ptr */
+
 /*
 An encapsulated representation of an IFC byte buffer.  This encapsulation
 abstracts away the exact location of the underlying byte buffer storage.
@@ -51,40 +83,77 @@ abstracts away the exact location of the underlying byte buffer storage.
 template<typename an_ifc_Storage_type>
 struct Byte_buffer_entity : public an_ifc_module_entity {
   Byte_buffer_entity()
-    : an_ifc_module_entity(NULL), storing_value(FALSE), storage_ptr(NULL)
+    : an_ifc_module_entity(NULL), kind(bbk_none)
+    {}
+
+  Byte_buffer_entity(an_ifc_module_file *mod_val)
+    : an_ifc_module_entity(mod_val), kind(bbk_local), storage{}
     {}
 
   Byte_buffer_entity(an_ifc_module_file        *mod_val,
                      const an_ifc_Storage_type &storage_ref)
-    : an_ifc_module_entity(mod_val), storing_value(TRUE), storage{}
-    { memcpy(&storage, &storage_ref, sizeof(an_ifc_Storage_type)); }
+    : an_ifc_module_entity(mod_val), kind(bbk_local), storage{}
+    { memcpy(&this->storage, &storage_ref, sizeof(an_ifc_Storage_type)); }
 
-  Byte_buffer_entity(an_ifc_module_file        *mod_val,
-                     const an_ifc_Storage_type *storage_ptr_val)
-    : an_ifc_module_entity(mod_val), storing_value(FALSE),
-      storage_ptr(storage_ptr_val)
+  inline Byte_buffer_entity(an_ifc_module_file        *mod_val,
+                            const an_ifc_Storage_type *storage_ptr_val);
+
+  Byte_buffer_entity(an_ifc_module_file *mod_val,
+                     char               **buffer_start,
+                     size_t             byte_offset)
+    : an_ifc_module_entity(mod_val), kind(bbk_indirect_ptr),
+      storage_indirect_ptr(buffer_start, byte_offset)
     {}
 
   inline const an_ifc_Storage_type *get_storage() const;
 private:
-  a_boolean     storing_value;
-                        /* TRUE when the underlying IFC byte buffer is stored
-                           as a data member and should be obtained from the
-                           "storage" data member.  FALSE when the underlying
-                           IFC byte buffer is stored at a different address
-                           and should be obtained from the "storage_ptr"
-                           data member. */
+  a_byte_buffer_kind
+                kind;   /* The origin of the bytes. */
   union {
+    /* When kind == bbk_none: no variant fields. */
+    /* When kind == bbk_local: */
     an_ifc_Storage_type
                 storage;
-                        /* When "storing_value" is TRUE this data member holds
-                           the underlying IFC byte buffer. */
+                        /* The underlying IFC byte buffer (stored locally). */
+    /* When kind == bbk_direct_ptr: */
     const an_ifc_Storage_type
                 *storage_ptr;
-                        /* When "storing_value" is FALSE this is the pointer
-                           used to obtain the underlying IFC byte buffer. */
+                        /* A pointer to the underlying IFC byte buffer. */
+    /* When kind == bbk_indirect_ptr: */
+    a_byte_buffer_indirect_ptr
+                storage_indirect_ptr;
+                        /* An indirect pointer to the underlying byte
+                           buffer. */
   };
 };  /* Byte_buffer_entity */
+
+template<typename an_ifc_Storage_type>
+extern size_t get_byte_buffer_size(an_ifc_module_file *file);
+
+extern a_boolean is_for_read(an_ifc_module_file *file);
+
+template<typename an_ifc_Storage_type>
+Byte_buffer_entity<an_ifc_Storage_type>::Byte_buffer_entity(
+                                    an_ifc_module_file        *mod_val,
+                                    const an_ifc_Storage_type *storage_ptr_val)
+/*
+Given a module file and a pointer to associated storage this constructor
+creates a direct pointer reference in file read modes and a memory copy in file
+write modes (to prevent issues that would otherwise occur if the bytes are
+relocated due to a reallocation of underlying buffer).
+*/
+  : an_ifc_module_entity(mod_val)
+{
+  if (is_for_read(mod_val)) {
+    this->kind = bbk_direct_ptr;
+    this->storage_ptr = storage_ptr_val;
+  } else {
+    size_t storage_len = get_byte_buffer_size<an_ifc_Storage_type>(mod_val);
+
+    this->kind = bbk_local;
+    memcpy(&this->storage, storage_ptr_val, storage_len);
+  }  /* if */
+}  /* Byte_buffer_entity::Byte_buffer_entity */
 
 
 template<typename an_ifc_Storage_type>
@@ -92,24 +161,32 @@ inline const an_ifc_Storage_type*
 Byte_buffer_entity<an_ifc_Storage_type>::get_storage() const
 /*
 This function provides access to the underlying IFC node storage by returning
-a pointer to the associated IFC byte buffer (regardless of whether the byte
-buffer is stored as part of this object or a pointer to a memory mapping).
+a pointer to the associated IFC byte buffer (regardless of where the byte
+buffer actually resides in memory).
 */
 {
   const an_ifc_Storage_type *result;
 
-  if (storing_value) {
-    /* The value is stored as part of this object, "storage" is the correct
-       resolution. */
-    result = &storage;
-  } else {
-    /* Check that this isn't an "uninitialized" forward declaration that's
-       being accessed. */
-    check_assertion(storage_ptr != NULL);
-    /* The value is not stored as part of this object, "storage_ptr" is the
-       correct resolution. */
-    result = storage_ptr;
-  }  /* if */
+  switch (this->kind) {
+    case bbk_none:
+      /* This is a read from an "uninitialized" forward declaration that's
+         being accessed. */
+      unexpected_condition();
+    case bbk_local:
+      result = &this->storage;
+      break;
+    case bbk_direct_ptr:
+      result = this->storage_ptr;
+      break;
+    case bbk_indirect_ptr:
+      { char   **start = this->storage_indirect_ptr.start;
+        size_t byte_offset = this->storage_indirect_ptr.byte_offset;
+
+        result = (const an_ifc_Storage_type*)((*start) + byte_offset);
+      }
+      break;
+    default_is_unexpected();
+  }  /* switch */
   return result;
 }  /* get_storage */
 
@@ -231,6 +308,7 @@ struct an_ifc_ieeele_float : Byte_buffer_entity<an_ifc_ieeele_float_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_ieeele_float */
 
+
 /*
   |----------------|
   | Version | Size |
@@ -256,6 +334,7 @@ struct an_ifc_sha256 : Byte_buffer_entity<an_ifc_sha256_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_sha256 */
+
 
 /*
   |----------------|
@@ -284,6 +363,7 @@ struct an_ifc_storage_class :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_storage_class */
 
+
 /*
   |----------------|
   | Version | Size |
@@ -309,6 +389,7 @@ struct an_ifc_uuid : Byte_buffer_entity<an_ifc_uuid_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_uuid */
+
 
 /*
   |----------------|
@@ -336,6 +417,7 @@ struct an_ifc_variadic_arity :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_variadic_arity */
+
 
 enum an_ifc_abi_0_33 : uint8_t;
 using an_ifc_abi_storage = uint8_t;
@@ -679,6 +761,21 @@ struct an_ifc_encoded_expr_index : Implicit_numeric_entity<
 };  /* an_ifc_encoded_expr_index */
 
 
+enum an_ifc_encoded_expr_named_decl_offset_0_43 : uint32_t;
+using an_ifc_encoded_expr_named_decl_offset_storage = uint32_t;
+
+
+/*
+The universal representation for an IFC EncodedExprNamedDeclOffset.
+*/
+struct an_ifc_encoded_expr_named_decl_offset : Implicit_numeric_entity<
+                               an_ifc_encoded_expr_named_decl_offset_storage> {
+  using storage_type = an_ifc_encoded_expr_named_decl_offset_storage;
+  using base_type = Implicit_numeric_entity<storage_type>;
+  using base_type::Implicit_numeric_entity;
+};  /* an_ifc_encoded_expr_named_decl_offset */
+
+
 enum an_ifc_encoded_expr_sort_0_33 : uint32_t;
 using an_ifc_encoded_expr_sort_storage = uint32_t;
 
@@ -739,6 +836,21 @@ struct an_ifc_encoded_form_sort : Implicit_numeric_entity<
 };  /* an_ifc_encoded_form_sort */
 
 
+enum an_ifc_encoded_form_spec_offset_0_33 : uint32_t;
+using an_ifc_encoded_form_spec_offset_storage = uint32_t;
+
+
+/*
+The universal representation for an IFC EncodedFormSpecOffset.
+*/
+struct an_ifc_encoded_form_spec_offset : Implicit_numeric_entity<
+                                     an_ifc_encoded_form_spec_offset_storage> {
+  using storage_type = an_ifc_encoded_form_spec_offset_storage;
+  using base_type = Implicit_numeric_entity<storage_type>;
+  using base_type::Implicit_numeric_entity;
+};  /* an_ifc_encoded_form_spec_offset */
+
+
 enum an_ifc_encoded_initializer_sort_0_33 : uint8_t;
 using an_ifc_encoded_initializer_sort_storage = uint8_t;
 
@@ -782,6 +894,21 @@ struct an_ifc_encoded_label_sort : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_label_sort */
+
+
+enum an_ifc_encoded_line_offset_0_33 : uint32_t;
+using an_ifc_encoded_line_offset_storage = uint32_t;
+
+
+/*
+The universal representation for an IFC EncodedLineOffset.
+*/
+struct an_ifc_encoded_line_offset : Implicit_numeric_entity<
+                                          an_ifc_encoded_line_offset_storage> {
+  using storage_type = an_ifc_encoded_line_offset_storage;
+  using base_type = Implicit_numeric_entity<storage_type>;
+  using base_type::Implicit_numeric_entity;
+};  /* an_ifc_encoded_line_offset */
 
 
 enum an_ifc_encoded_lit_index_0_33 : uint32_t;
@@ -1022,6 +1149,21 @@ struct an_ifc_encoded_return_sort : Implicit_numeric_entity<
   using base_type = Implicit_numeric_entity<storage_type>;
   using base_type::Implicit_numeric_entity;
 };  /* an_ifc_encoded_return_sort */
+
+
+enum an_ifc_encoded_scope_offset_0_33 : uint32_t;
+using an_ifc_encoded_scope_offset_storage = uint32_t;
+
+
+/*
+The universal representation for an IFC EncodedScopeOffset.
+*/
+struct an_ifc_encoded_scope_offset : Implicit_numeric_entity<
+                                         an_ifc_encoded_scope_offset_storage> {
+  using storage_type = an_ifc_encoded_scope_offset_storage;
+  using base_type = Implicit_numeric_entity<storage_type>;
+  using base_type::Implicit_numeric_entity;
+};  /* an_ifc_encoded_scope_offset */
 
 
 enum an_ifc_encoded_source_directive_sort_0_33 : uint16_t;
@@ -5672,6 +5814,7 @@ struct an_ifc_keyword_syntax :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_keyword_syntax */
 
+
 /*
   |-----------------------------------------|
   |    ModuleReference - 0.33 (8 bytes)     |
@@ -5701,6 +5844,7 @@ struct an_ifc_module_reference :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_module_reference */
+
 
 /*
   |-----------------------------------------------|
@@ -5737,6 +5881,7 @@ struct an_ifc_nestable_word :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_nestable_word */
 
+
 /*
   |----------------------------------------------|
   |    NoexceptSpecification - 0.33 (8 bytes)    |
@@ -5770,6 +5915,7 @@ struct an_ifc_noexcept_specification :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_noexcept_specification */
+
 
 /*
   |---------------------------------------------|
@@ -5827,6 +5973,7 @@ struct an_ifc_parameterized_entity :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_parameterized_entity */
 
+
 /*
   |--------------------------------------------|
   |         Sequence - 0.33 (8 bytes)          |
@@ -5855,6 +6002,7 @@ struct an_ifc_sequence : Byte_buffer_entity<an_ifc_sequence_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_sequence */
+
 
 /*
   |--------------------------------------|
@@ -5885,6 +6033,7 @@ struct an_ifc_source_location :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_source_location */
+
 
 /*
   |----------------------------------------------|
@@ -5918,6 +6067,7 @@ struct an_ifc_type_placeholder_basis_wrapper :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_type_placeholder_basis_wrapper */
+
 
 /*
   |--------------------------------------------------------|
@@ -5960,6 +6110,7 @@ struct an_ifc_file_header : Byte_buffer_entity<an_ifc_file_header_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_file_header */
 
+
 /*
   |--------------------------------------------|
   |        Partition - 0.33 (16 bytes)         |
@@ -5991,6 +6142,7 @@ struct an_ifc_partition : Byte_buffer_entity<an_ifc_partition_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_partition */
 
+
 /*
   |--------------------------------------|
   |     AttrBasic - 0.33 (16 bytes)      |
@@ -6018,6 +6170,7 @@ struct an_ifc_attr_basic : Byte_buffer_entity<an_ifc_attr_basic_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_attr_basic */
+
 
 /*
   |----------------------------------------|
@@ -6047,6 +6200,7 @@ struct an_ifc_attr_called : Byte_buffer_entity<an_ifc_attr_called_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_attr_called */
+
 
 /*
   |-----------------------------------------|
@@ -6085,6 +6239,7 @@ struct an_ifc_attr_elaborated :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_attr_elaborated */
 
+
 /*
   |--------------------------------------|
   |    AttrExpanded - 0.33 (4 bytes)     |
@@ -6113,6 +6268,7 @@ struct an_ifc_attr_expanded :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_attr_expanded */
+
 
 /*
   |----------------------------------------|
@@ -6144,6 +6300,7 @@ struct an_ifc_attr_factored :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_attr_factored */
 
+
 /*
   |-------------------------------------------|
   |       AttrLabeled - 0.33 (20 bytes)       |
@@ -6172,6 +6329,7 @@ struct an_ifc_attr_labeled : Byte_buffer_entity<an_ifc_attr_labeled_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_attr_labeled */
+
 
 /*
   |----------------------------------------|
@@ -6202,6 +6360,7 @@ struct an_ifc_attr_scoped : Byte_buffer_entity<an_ifc_attr_scoped_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_attr_scoped */
 
+
 /*
   |--------------------------------------------|
   |         AttrTuple - 0.33 (8 bytes)         |
@@ -6230,6 +6389,7 @@ struct an_ifc_attr_tuple : Byte_buffer_entity<an_ifc_attr_tuple_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_attr_tuple */
+
 
 /*
   |--------------------------------------------|
@@ -6260,6 +6420,7 @@ struct an_ifc_chart_multilevel :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_chart_multilevel */
+
 
 /*
   |--------------------------------------------|
@@ -6302,6 +6463,7 @@ struct an_ifc_chart_unilevel :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_chart_unilevel */
 
+
 /*
   |--------------------------------------------|
   |         ConstF64 - 0.33 (12 bytes)         |
@@ -6331,6 +6493,7 @@ struct an_ifc_const_f64 : Byte_buffer_entity<an_ifc_const_f64_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_const_f64 */
 
+
 /*
   |-------------------------------|
   |   ConstI64 - 0.33 (8 bytes)   |
@@ -6358,6 +6521,7 @@ struct an_ifc_const_i64 : Byte_buffer_entity<an_ifc_const_i64_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_const_i64 */
+
 
 /*
   |---------------------------------------|
@@ -6388,6 +6552,7 @@ struct an_ifc_const_str : Byte_buffer_entity<an_ifc_const_str_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_const_str */
+
 
 /*
   |--------------------------------------------------------|
@@ -6458,6 +6623,7 @@ struct an_ifc_decl_alias : Byte_buffer_entity<an_ifc_decl_alias_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_alias */
 
+
 /*
   |--------------------------------------------------------|
   |              DeclBarren - 0.43 (8 bytes)               |
@@ -6488,6 +6654,7 @@ struct an_ifc_decl_barren : Byte_buffer_entity<an_ifc_decl_barren_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_barren */
+
 
 /*
   |------------------------------------------------------------|
@@ -6583,6 +6750,7 @@ struct an_ifc_decl_bitfield :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_bitfield */
+
 
 /*
   |-------------------------------------------------------|
@@ -6682,6 +6850,7 @@ struct an_ifc_decl_concept : Byte_buffer_entity<an_ifc_decl_concept_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_concept */
 
+
 /*
   |------------------------------------------------------------|
   |             DeclConstructor - 0.33 (32 bytes)              |
@@ -6761,6 +6930,7 @@ struct an_ifc_decl_constructor :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_constructor */
+
 
 /*
   |--------------------------------------------------------|
@@ -6851,6 +7021,7 @@ struct an_ifc_decl_deduction_guide :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_deduction_guide */
 
+
 /*
   |------------------------------------------------------------|
   |           DeclDefaultArgument - 0.43 (24 bytes)            |
@@ -6891,6 +7062,7 @@ struct an_ifc_decl_default_argument :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_default_argument */
+
 
 /*
   |------------------------------------------------------------|
@@ -6971,6 +7143,7 @@ struct an_ifc_decl_destructor :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_destructor */
+
 
 /*
   |------------------------------------------------------------|
@@ -7071,6 +7244,7 @@ struct an_ifc_decl_enumeration :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_enumeration */
 
+
 /*
   |--------------------------------------------------------|
   |            DeclEnumerator - 0.33 (24 bytes)            |
@@ -7124,6 +7298,7 @@ struct an_ifc_decl_enumerator :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_enumerator */
 
+
 /*
   |-------------------------------------------|
   |      DeclExpansion - 0.33 (12 bytes)      |
@@ -7172,6 +7347,7 @@ struct an_ifc_decl_expansion :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_expansion */
 
+
 /*
   |--------------------------------------------|
   | DeclExplicitInstantiation - 0.33 (8 bytes) |
@@ -7205,6 +7381,7 @@ struct an_ifc_decl_explicit_instantiation :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_explicit_instantiation */
 
+
 /*
   |---------------------------------------------|
   | DeclExplicitSpecialization - 0.33 (8 bytes) |
@@ -7237,6 +7414,7 @@ struct an_ifc_decl_explicit_specialization :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_explicit_specialization */
+
 
 /*
   |------------------------------------------------------------|
@@ -7332,6 +7510,7 @@ struct an_ifc_decl_field : Byte_buffer_entity<an_ifc_decl_field_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_field */
 
+
 /*
   |-------------------------------------|
   |     DeclFriend - 0.33 (4 bytes)     |
@@ -7367,6 +7546,7 @@ struct an_ifc_decl_friend : Byte_buffer_entity<an_ifc_decl_friend_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_friend */
+
 
 /*
   |------------------------------------------------------------|
@@ -7444,6 +7624,7 @@ struct an_ifc_decl_function :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_function */
 
+
 /*
   |-------------------------------------------------------|
   |      DeclInheritedConstructor - 0.33 (32 bytes)       |
@@ -7520,6 +7701,7 @@ struct an_ifc_decl_inherited_constructor :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_inherited_constructor */
 
+
 /*
   |--------------------------------------------------------|
   |            DeclIntrinsic - 0.33 (24 bytes)             |
@@ -7586,6 +7768,7 @@ struct an_ifc_decl_intrinsic :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_intrinsic */
+
 
 /*
   |------------------------------------------------------------|
@@ -7662,6 +7845,7 @@ struct an_ifc_decl_method : Byte_buffer_entity<an_ifc_decl_method_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_method */
 
+
 /*
   |-----------------------------------------|
   |   DeclOutputSegment - 0.33 (16 bytes)   |
@@ -7694,6 +7878,7 @@ struct an_ifc_decl_output_segment :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_output_segment */
+
 
 /*
   |------------------------------------------------------------|
@@ -7785,6 +7970,7 @@ struct an_ifc_decl_parameter :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_parameter */
 
+
 /*
   |-----------------------------------------------------------------|
   |           DeclPartialSpecialization - 0.33 (44 bytes)           |
@@ -7872,6 +8058,7 @@ struct an_ifc_decl_partial_specialization :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_partial_specialization */
 
+
 /*
   |--------------------------------------|
   |    DeclProperty - 0.33 (12 bytes)    |
@@ -7923,6 +8110,7 @@ struct an_ifc_decl_property :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_property */
 
+
 /*
   |-------------------------------------------------|
   |         DeclReference - 0.33 (12 bytes)         |
@@ -7954,6 +8142,7 @@ struct an_ifc_decl_reference :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_reference */
+
 
 /*
   |------------------------------------------------------------|
@@ -8061,6 +8250,7 @@ struct an_ifc_decl_scope : Byte_buffer_entity<an_ifc_decl_scope_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_scope */
 
+
 /*
   |--------------------------------------------------------|
   |          DeclSpecialization - 0.41 (12 bytes)          |
@@ -8115,6 +8305,7 @@ struct an_ifc_decl_specialization :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_specialization */
 
+
 /*
   |---------------------------------------|
   |    DeclSyntaxTree - 0.43 (4 bytes)    |
@@ -8143,6 +8334,7 @@ struct an_ifc_decl_syntax_tree :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_syntax_tree */
+
 
 /*
   |------------------------------------------------------------|
@@ -8224,6 +8416,7 @@ struct an_ifc_decl_template :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_template */
 
+
 /*
   |------------------------------------------------------------|
   |               DeclTemploid - 0.33 (24 bytes)               |
@@ -8278,6 +8471,7 @@ struct an_ifc_decl_temploid :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_temploid */
 
+
 /*
   |--------------------------------------------|
   |         DeclTuple - 0.33 (8 bytes)         |
@@ -8306,6 +8500,7 @@ struct an_ifc_decl_tuple : Byte_buffer_entity<an_ifc_decl_tuple_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_tuple */
+
 
 /*
   |--------------------------------------------------------|
@@ -8405,6 +8600,7 @@ struct an_ifc_decl_using_declaration :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_using_declaration */
 
+
 /*
   |------------------------------------------------------------|
   |               DeclVariable - 0.33 (32 bytes)               |
@@ -8500,6 +8696,7 @@ struct an_ifc_decl_variable :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_decl_variable */
 
+
 /*
   |-----------------------------------------|
   |     DirAttribute - 0.43 (12 bytes)      |
@@ -8529,6 +8726,7 @@ struct an_ifc_dir_attribute :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_dir_attribute */
+
 
 /*
   |------------------------------------------|
@@ -8560,6 +8758,7 @@ struct an_ifc_dir_decl_use : Byte_buffer_entity<an_ifc_dir_decl_use_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_dir_decl_use */
 
+
 /*
   |-----------------------------------------|
   |        DirEmpty - 0.43 (8 bytes)        |
@@ -8587,6 +8786,7 @@ struct an_ifc_dir_empty : Byte_buffer_entity<an_ifc_dir_empty_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_dir_empty */
+
 
 /*
   |------------------------------------------|
@@ -8618,6 +8818,7 @@ struct an_ifc_dir_expr : Byte_buffer_entity<an_ifc_dir_expr_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_dir_expr */
 
+
 /*
   |-----------------------------------------|
   |       DirPragma - 0.43 (12 bytes)       |
@@ -8647,6 +8848,7 @@ struct an_ifc_dir_pragma : Byte_buffer_entity<an_ifc_dir_pragma_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_dir_pragma */
 
+
 /*
   |--------------------------------------------|
   |         DirTuple - 0.43 (8 bytes)          |
@@ -8675,6 +8877,7 @@ struct an_ifc_dir_tuple : Byte_buffer_entity<an_ifc_dir_tuple_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_dir_tuple */
+
 
 /*
   |----------------------------------------------|
@@ -8706,6 +8909,7 @@ struct an_ifc_dir_using : Byte_buffer_entity<an_ifc_dir_using_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_dir_using */
 
+
 /*
   |-------------------------------------------|
   |       ExprAlignof - 0.33 (16 bytes)       |
@@ -8735,6 +8939,7 @@ struct an_ifc_expr_alignof : Byte_buffer_entity<an_ifc_expr_alignof_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_alignof */
+
 
 /*
   |------------------------------------------------|
@@ -8779,6 +8984,7 @@ struct an_ifc_expr_array_value :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_array_value */
 
+
 /*
   |-----------------------------------------------|
   |    ExprAssignInitializer - 0.33 (12 bytes)    |
@@ -8820,6 +9026,7 @@ struct an_ifc_expr_assign_initializer :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_assign_initializer */
+
 
 /*
   |-----------------------------------------------------|
@@ -8881,6 +9088,7 @@ struct an_ifc_expr_binary_fold :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_binary_fold */
 
+
 /*
   |---------------------------------------------|
   |         ExprCall - 0.33 (20 bytes)          |
@@ -8922,6 +9130,7 @@ struct an_ifc_expr_call : Byte_buffer_entity<an_ifc_expr_call_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_call */
+
 
 /*
   |---------------------------------------------------|
@@ -8982,6 +9191,7 @@ struct an_ifc_expr_cast : Byte_buffer_entity<an_ifc_expr_cast_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_cast */
 
+
 /*
   |------------------------------------------|
   |   ExprCompoundString - 0.33 (20 bytes)   |
@@ -9027,6 +9237,7 @@ struct an_ifc_expr_compound_string :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_compound_string */
 
+
 /*
   |-----------------------------------------|
   |     ExprCondition - 0.33 (16 bytes)     |
@@ -9067,6 +9278,7 @@ struct an_ifc_expr_condition :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_condition */
+
 
 /*
   |-----------------------------------------------|
@@ -9114,6 +9326,7 @@ struct an_ifc_expr_designated_initializer :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_designated_initializer */
 
+
 /*
   |------------------------------------------------------|
   |         ExprDestructorCall - 0.33 (21 bytes)         |
@@ -9160,6 +9373,7 @@ struct an_ifc_expr_destructor_call :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_destructor_call */
+
 
 /*
   |---------------------------------------------------|
@@ -9237,6 +9451,7 @@ struct an_ifc_expr_dyad : Byte_buffer_entity<an_ifc_expr_dyad_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_dyad */
 
+
 /*
   |-----------------------------------------|
   |  ExprDynamicDispatch - 0.33 (16 bytes)  |
@@ -9281,6 +9496,7 @@ struct an_ifc_expr_dynamic_dispatch :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_dynamic_dispatch */
 
+
 /*
   |-----------------------------------------|
   |       ExprEmpty - 0.33 (12 bytes)       |
@@ -9309,6 +9525,7 @@ struct an_ifc_expr_empty : Byte_buffer_entity<an_ifc_expr_empty_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_empty */
+
 
 /*
   |-------------------------------------------|
@@ -9350,6 +9567,7 @@ struct an_ifc_expr_expansion :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_expansion */
+
 
 /*
   |-----------------------------------------------|
@@ -9398,6 +9616,7 @@ struct an_ifc_expr_expression_list :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_expression_list */
 
+
 /*
   |-----------------------------------------|
   |  ExprFunctionString - 0.33 (16 bytes)   |
@@ -9430,6 +9649,7 @@ struct an_ifc_expr_function_string :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_function_string */
+
 
 /*
   |---------------------------------------------------|
@@ -9500,6 +9720,7 @@ struct an_ifc_expr_hierarchy_conversion :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_hierarchy_conversion */
 
+
 /*
   |-----------------------------------------|
   |  ExprInheritancePath - 0.33 (16 bytes)  |
@@ -9544,6 +9765,7 @@ struct an_ifc_expr_inheritance_path :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_inheritance_path */
 
+
 /*
   |------------------------------------------|
   |    ExprInitializer - 0.33 (17 bytes)     |
@@ -9586,6 +9808,7 @@ struct an_ifc_expr_initializer :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_initializer */
+
 
 /*
   |--------------------------------------------|
@@ -9631,6 +9854,7 @@ struct an_ifc_expr_initializer_list :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_initializer_list */
 
+
 /*
   |----------------------------------------------|
   |         ExprLabel - 0.42 (16 bytes)          |
@@ -9660,6 +9884,7 @@ struct an_ifc_expr_label : Byte_buffer_entity<an_ifc_expr_label_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_label */
+
 
 /*
   |----------------------------------------------------|
@@ -9693,6 +9918,7 @@ struct an_ifc_expr_lambda : Byte_buffer_entity<an_ifc_expr_lambda_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_lambda */
 
+
 /*
   |-----------------------------------------|
   |      ExprLiteral - 0.33 (16 bytes)      |
@@ -9722,6 +9948,7 @@ struct an_ifc_expr_literal : Byte_buffer_entity<an_ifc_expr_literal_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_literal */
+
 
 /*
   |---------------------------------------------|
@@ -9768,6 +9995,7 @@ struct an_ifc_expr_member_access :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_member_access */
+
 
 /*
   |-----------------------------------------------|
@@ -9841,6 +10069,7 @@ struct an_ifc_expr_member_initializer :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_member_initializer */
 
+
 /*
   |----------------------------------------------------|
   |            ExprMonad - 0.33 (24 bytes)             |
@@ -9913,6 +10142,7 @@ struct an_ifc_expr_monad : Byte_buffer_entity<an_ifc_expr_monad_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_monad */
 
+
 /*
   |----------------------------------------------|
   |       ExprNamedDecl - 0.33 (16 bytes)        |
@@ -9964,6 +10194,7 @@ struct an_ifc_expr_named_decl :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_named_decl */
 
+
 /*
   |-----------------------------------------|
   |      ExprNullptr - 0.33 (12 bytes)      |
@@ -9992,6 +10223,7 @@ struct an_ifc_expr_nullptr : Byte_buffer_entity<an_ifc_expr_nullptr_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_nullptr */
+
 
 /*
   |-----------------------------------------------|
@@ -10037,6 +10269,7 @@ struct an_ifc_expr_packed_template_arguments :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_packed_template_arguments */
 
+
 /*
   |------------------------------------------|
   |        ExprPath - 0.33 (20 bytes)        |
@@ -10079,6 +10312,7 @@ struct an_ifc_expr_path : Byte_buffer_entity<an_ifc_expr_path_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_path */
 
+
 /*
   |-----------------------------------------|
   |    ExprPlaceholder - 0.33 (12 bytes)    |
@@ -10109,6 +10343,7 @@ struct an_ifc_expr_placeholder :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_placeholder */
 
+
 /*
   |-----------------------------------------|
   |      ExprPointer - 0.33 (8 bytes)       |
@@ -10136,6 +10371,7 @@ struct an_ifc_expr_pointer : Byte_buffer_entity<an_ifc_expr_pointer_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_pointer */
+
 
 /*
   |---------------------------------------------------|
@@ -10185,6 +10421,7 @@ struct an_ifc_expr_product_type_value :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_product_type_value */
 
+
 /*
   |---------------------------------------------|
   |       ExprPushState - 0.33 (22 bytes)       |
@@ -10217,6 +10454,7 @@ struct an_ifc_expr_push_state :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_push_state */
+
 
 /*
   |----------------------------------------------------|
@@ -10262,6 +10500,7 @@ struct an_ifc_expr_qualified_name :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_qualified_name */
 
+
 /*
   |---------------------------------------------------|
   |            ExprRead - 0.33 (20 bytes)             |
@@ -10306,6 +10545,7 @@ struct an_ifc_expr_read : Byte_buffer_entity<an_ifc_expr_read_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_read */
 
+
 /*
   |----------------------------------------------|
   |        ExprRequires - 0.33 (20 bytes)        |
@@ -10337,6 +10577,7 @@ struct an_ifc_expr_requires :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_requires */
+
 
 /*
   |-----------------------------------------|
@@ -10372,6 +10613,7 @@ struct an_ifc_expr_simple_identifier :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_simple_identifier */
 
+
 /*
   |-------------------------------------------|
   |     ExprSizeofType - 0.33 (16 bytes)      |
@@ -10403,6 +10645,7 @@ struct an_ifc_expr_sizeof_type :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_sizeof_type */
 
+
 /*
   |------------------------------------------------|
   |          ExprString - 0.33 (16 bytes)          |
@@ -10432,6 +10675,7 @@ struct an_ifc_expr_string : Byte_buffer_entity<an_ifc_expr_string_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_string */
+
 
 /*
   |-------------------------------------------|
@@ -10476,6 +10720,7 @@ struct an_ifc_expr_string_sequence :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_string_sequence */
 
+
 /*
   |-------------------------------------|
   | ExprSubobjectValue - 0.33 (4 bytes) |
@@ -10514,6 +10759,7 @@ struct an_ifc_expr_subobject_value :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_subobject_value */
+
 
 /*
   |------------------------------------------------|
@@ -10585,6 +10831,7 @@ struct an_ifc_expr_sum_type_value :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_sum_type_value */
 
+
 /*
   |---------------------------------------|
   |    ExprSyntaxTree - 0.33 (4 bytes)    |
@@ -10613,6 +10860,7 @@ struct an_ifc_expr_syntax_tree :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_syntax_tree */
+
 
 /*
   |---------------------------------------------|
@@ -10656,6 +10904,7 @@ struct an_ifc_expr_template_id :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_template_id */
+
 
 /*
   |------------------------------------------------|
@@ -10720,6 +10969,7 @@ struct an_ifc_expr_template_reference :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_template_reference */
 
+
 /*
   |-----------------------------------------|
   |     ExprTemporary - 0.33 (16 bytes)     |
@@ -10751,6 +11001,7 @@ struct an_ifc_expr_temporary :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_temporary */
 
+
 /*
   |-----------------------------------------|
   |       ExprThis - 0.33 (12 bytes)        |
@@ -10779,6 +11030,7 @@ struct an_ifc_expr_this : Byte_buffer_entity<an_ifc_expr_this_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_this */
+
 
 /*
   |-----------------------------------------|
@@ -10809,6 +11061,7 @@ struct an_ifc_expr_tokens : Byte_buffer_entity<an_ifc_expr_tokens_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_tokens */
+
 
 /*
   |----------------------------------------------------|
@@ -10890,6 +11143,7 @@ struct an_ifc_expr_triad : Byte_buffer_entity<an_ifc_expr_triad_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_triad */
 
+
 /*
   |-----------------------------------------------|
   |          ExprTuple - 0.33 (20 bytes)          |
@@ -10921,6 +11175,7 @@ struct an_ifc_expr_tuple : Byte_buffer_entity<an_ifc_expr_tuple_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_tuple */
 
+
 /*
   |----------------------------------------------|
   |          ExprType - 0.33 (16 bytes)          |
@@ -10950,6 +11205,7 @@ struct an_ifc_expr_type : Byte_buffer_entity<an_ifc_expr_type_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_type */
+
 
 /*
   |-------------------------------------------------|
@@ -11011,6 +11267,7 @@ struct an_ifc_expr_type_trait_intrinsic :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_type_trait_intrinsic */
 
+
 /*
   |-------------------------------------------|
   |       ExprTypeid - 0.33 (16 bytes)        |
@@ -11040,6 +11297,7 @@ struct an_ifc_expr_typeid : Byte_buffer_entity<an_ifc_expr_typeid_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_typeid */
+
 
 /*
   |-----------------------------------------------------|
@@ -11101,6 +11359,7 @@ struct an_ifc_expr_unary_fold :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_unary_fold */
 
+
 /*
   |----------------------------------------------------|
   |        ExprUnqualifiedId - 0.33 (28 bytes)         |
@@ -11147,6 +11406,7 @@ struct an_ifc_expr_unqualified_id :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_unqualified_id */
 
+
 /*
   |-----------------------------------------|
   |   ExprUnresolvedId - 0.33 (16 bytes)    |
@@ -11178,6 +11438,7 @@ struct an_ifc_expr_unresolved_id :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_unresolved_id */
+
 
 /*
   |-------------------------------------------------|
@@ -11233,6 +11494,7 @@ struct an_ifc_expr_virtual_function_conversion :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_expr_virtual_function_conversion */
 
+
 /*
   |------------------------------------------|
   |      FormCatenate - 0.33 (16 bytes)      |
@@ -11264,6 +11526,7 @@ struct an_ifc_form_catenate :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_form_catenate */
 
+
 /*
   |--------------------------------------------|
   |      FormCharacter - 0.33 (12 bytes)       |
@@ -11294,6 +11557,7 @@ struct an_ifc_form_character :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_form_character */
 
+
 /*
   |--------------------------------------------|
   |        FormHeader - 0.33 (12 bytes)        |
@@ -11322,6 +11586,7 @@ struct an_ifc_form_header : Byte_buffer_entity<an_ifc_form_header_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_form_header */
+
 
 /*
   |--------------------------------------------|
@@ -11353,6 +11618,7 @@ struct an_ifc_form_identifier :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_form_identifier */
 
+
 /*
   |--------------------------------------------|
   |         FormJunk - 0.33 (12 bytes)         |
@@ -11381,6 +11647,7 @@ struct an_ifc_form_junk : Byte_buffer_entity<an_ifc_form_junk_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_form_junk */
+
 
 /*
   |--------------------------------------------|
@@ -11411,6 +11678,7 @@ struct an_ifc_form_keyword : Byte_buffer_entity<an_ifc_form_keyword_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_form_keyword */
 
+
 /*
   |--------------------------------------------|
   |        FormNumber - 0.33 (12 bytes)        |
@@ -11439,6 +11707,7 @@ struct an_ifc_form_number : Byte_buffer_entity<an_ifc_form_number_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_form_number */
+
 
 /*
   |-------------------------------------------------|
@@ -11472,6 +11741,7 @@ struct an_ifc_form_operator :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_form_operator */
 
+
 /*
   |--------------------------------------------|
   |      FormParameter - 0.33 (12 bytes)       |
@@ -11501,6 +11771,7 @@ struct an_ifc_form_parameter :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_form_parameter */
+
 
 /*
   |-------------------------------------------|
@@ -11533,6 +11804,7 @@ struct an_ifc_form_parenthesized :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_form_parenthesized */
 
+
 /*
   |-------------------------------------------|
   |       FormPragma - 0.33 (12 bytes)        |
@@ -11561,6 +11833,7 @@ struct an_ifc_form_pragma : Byte_buffer_entity<an_ifc_form_pragma_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_form_pragma */
+
 
 /*
   |-----------------------------------------------|
@@ -11618,6 +11891,7 @@ struct an_ifc_form_spec : Byte_buffer_entity<an_ifc_form_spec_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_form_spec */
 
+
 /*
   |--------------------------------------------|
   |        FormString - 0.33 (12 bytes)        |
@@ -11646,6 +11920,7 @@ struct an_ifc_form_string : Byte_buffer_entity<an_ifc_form_string_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_form_string */
+
 
 /*
   |-------------------------------------------|
@@ -11677,6 +11952,7 @@ struct an_ifc_form_stringize :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_form_stringize */
 
+
 /*
   |--------------------------------------------|
   |         FormTuple - 0.33 (8 bytes)         |
@@ -11705,6 +11981,7 @@ struct an_ifc_form_tuple : Byte_buffer_entity<an_ifc_form_tuple_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_form_tuple */
+
 
 /*
   |-----------------------------------------|
@@ -11735,6 +12012,7 @@ struct an_ifc_form_whitespace :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_form_whitespace */
 
+
 /*
   |------------------------------------|
   |     HeapAttr - 0.33 (4 bytes)      |
@@ -11763,6 +12041,7 @@ struct an_ifc_heap_attr : Byte_buffer_entity<an_ifc_heap_attr_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_heap_attr */
 
+
 /*
   |-------------------------------------|
   |     HeapChart - 0.33 (4 bytes)      |
@@ -11790,6 +12069,7 @@ struct an_ifc_heap_chart : Byte_buffer_entity<an_ifc_heap_chart_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_heap_chart */
+
 
 /*
   |------------------------------------|
@@ -11835,6 +12115,7 @@ struct an_ifc_heap_decl : Byte_buffer_entity<an_ifc_heap_decl_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_heap_decl */
 
+
 /*
   |------------------------------------|
   |     HeapExpr - 0.33 (4 bytes)      |
@@ -11871,6 +12152,7 @@ struct an_ifc_heap_expr : Byte_buffer_entity<an_ifc_heap_expr_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_heap_expr */
 
+
 /*
   |------------------------------------|
   |     HeapForm - 0.33 (4 bytes)      |
@@ -11899,6 +12181,7 @@ struct an_ifc_heap_form : Byte_buffer_entity<an_ifc_heap_form_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_heap_form */
 
+
 /*
   |------------------------------------|
   |    HeapPPForm - 0.33 (4 bytes)     |
@@ -11926,6 +12209,7 @@ struct an_ifc_heap_pp_form : Byte_buffer_entity<an_ifc_heap_pp_form_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_heap_pp_form */
+
 
 /*
   |------------------------------------|
@@ -11963,6 +12247,7 @@ struct an_ifc_heap_stmt : Byte_buffer_entity<an_ifc_heap_stmt_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_heap_stmt */
 
+
 /*
   |--------------------------------------|
   |     HeapSyntax - 0.33 (4 bytes)      |
@@ -11991,6 +12276,7 @@ struct an_ifc_heap_syntax : Byte_buffer_entity<an_ifc_heap_syntax_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_heap_syntax */
 
+
 /*
   |------------------------------------|
   |     HeapType - 0.33 (4 bytes)      |
@@ -12018,6 +12304,7 @@ struct an_ifc_heap_type : Byte_buffer_entity<an_ifc_heap_type_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_heap_type */
+
 
 /*
   |--------------------------------------------------|
@@ -12053,6 +12340,7 @@ struct an_ifc_macro_function_like :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_macro_function_like */
 
+
 /*
   |-----------------------------------------|
   |    MacroObjectLike - 0.33 (16 bytes)    |
@@ -12083,6 +12371,7 @@ struct an_ifc_macro_object_like :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_macro_object_like */
+
 
 /*
   |----------------------------------------------|
@@ -12116,6 +12405,7 @@ struct an_ifc_module_export_reference :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_module_export_reference */
 
+
 /*
   |----------------------------------------------|
   |    ModuleImportReference - 0.33 (8 bytes)    |
@@ -12148,6 +12438,7 @@ struct an_ifc_module_import_reference :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_module_import_reference */
 
+
 /*
   |---------------------------------------|
   |    NameConversion - 0.33 (8 bytes)    |
@@ -12177,6 +12468,7 @@ struct an_ifc_name_conversion :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_name_conversion */
+
 
 /*
   |-----------------------------------------------|
@@ -12222,6 +12514,7 @@ struct an_ifc_name_guide : Byte_buffer_entity<an_ifc_name_guide_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_name_guide */
 
+
 /*
   |---------------------------------------|
   |     NameLiteral - 0.33 (4 bytes)      |
@@ -12249,6 +12542,7 @@ struct an_ifc_name_literal : Byte_buffer_entity<an_ifc_name_literal_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_name_literal */
+
 
 /*
   |-------------------------------------------------|
@@ -12301,6 +12595,7 @@ struct an_ifc_name_operator :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_name_operator */
 
+
 /*
   |-------------------------------------|
   |   NameSourceFile - 0.33 (8 bytes)   |
@@ -12330,6 +12625,7 @@ struct an_ifc_name_source_file :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_name_source_file */
+
 
 /*
   |----------------------------------------|
@@ -12371,6 +12667,7 @@ struct an_ifc_name_specialization :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_name_specialization */
 
+
 /*
   |-----------------------------------|
   |   NameTemplate - 0.33 (4 bytes)   |
@@ -12399,6 +12696,7 @@ struct an_ifc_name_template :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_name_template */
+
 
 /*
   |--------------------------------------------|
@@ -12429,6 +12727,7 @@ struct an_ifc_scope_descriptor :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_scope_descriptor */
+
 
 /*
   |------------------------------------|
@@ -12474,6 +12773,7 @@ struct an_ifc_scope_member : Byte_buffer_entity<an_ifc_scope_member_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_scope_member */
 
+
 /*
   |------------------------------------|
   |    SourceLine - 0.33 (8 bytes)     |
@@ -12502,6 +12802,7 @@ struct an_ifc_source_line : Byte_buffer_entity<an_ifc_source_line_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_source_line */
+
 
 /*
   |-----------------------------------------------|
@@ -12533,6 +12834,7 @@ struct an_ifc_source_sentence :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_source_sentence */
+
 
 /*
   |-----------------------------------------------|
@@ -12567,6 +12869,7 @@ struct an_ifc_source_word : Byte_buffer_entity<an_ifc_source_word_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_source_word */
+
 
 /*
   |--------------------------------------------|
@@ -12607,6 +12910,7 @@ struct an_ifc_stmt_block : Byte_buffer_entity<an_ifc_stmt_block_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_stmt_block */
 
+
 /*
   |-----------------------------------------|
   |       StmtBreak - 0.33 (8 bytes)        |
@@ -12634,6 +12938,7 @@ struct an_ifc_stmt_break : Byte_buffer_entity<an_ifc_stmt_break_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_stmt_break */
+
 
 /*
   |-----------------------------------------|
@@ -12673,6 +12978,7 @@ struct an_ifc_stmt_case : Byte_buffer_entity<an_ifc_stmt_case_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_stmt_case */
 
+
 /*
   |-----------------------------------------|
   |      StmtContinue - 0.33 (8 bytes)      |
@@ -12701,6 +13007,7 @@ struct an_ifc_stmt_continue :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_stmt_continue */
+
 
 /*
   |-----------------------------------------|
@@ -12740,6 +13047,7 @@ struct an_ifc_stmt_decl : Byte_buffer_entity<an_ifc_stmt_decl_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_stmt_decl */
 
+
 /*
   |-----------------------------------------|
   |      StmtDefault - 0.33 (8 bytes)       |
@@ -12767,6 +13075,7 @@ struct an_ifc_stmt_default : Byte_buffer_entity<an_ifc_stmt_default_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_stmt_default */
+
 
 /*
   |---------------------------------------------|
@@ -12809,6 +13118,7 @@ struct an_ifc_stmt_do_while :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_stmt_do_while */
 
+
 /*
   |-----------------------------------------|
   |       StmtEmpty - 0.33 (8 bytes)        |
@@ -12836,6 +13146,7 @@ struct an_ifc_stmt_empty : Byte_buffer_entity<an_ifc_stmt_empty_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_stmt_empty */
+
 
 /*
   |--------------------------------------|
@@ -12875,6 +13186,7 @@ struct an_ifc_stmt_expansion :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_stmt_expansion */
 
+
 /*
   |-----------------------------------------|
   |    StmtExpression - 0.33 (12 bytes)     |
@@ -12913,6 +13225,7 @@ struct an_ifc_stmt_expression :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_stmt_expression */
+
 
 /*
   |--------------------------------------------------|
@@ -12958,6 +13271,7 @@ struct an_ifc_stmt_for : Byte_buffer_entity<an_ifc_stmt_for_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_stmt_for */
 
+
 /*
   |------------------------------------------|
   |        StmtGoto - 0.42 (12 bytes)        |
@@ -12986,6 +13300,7 @@ struct an_ifc_stmt_goto : Byte_buffer_entity<an_ifc_stmt_goto_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_stmt_goto */
+
 
 /*
   |---------------------------------------------|
@@ -13026,6 +13341,7 @@ struct an_ifc_stmt_handler : Byte_buffer_entity<an_ifc_stmt_handler_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_stmt_handler */
+
 
 /*
   |--------------------------------------------------|
@@ -13071,6 +13387,7 @@ struct an_ifc_stmt_if : Byte_buffer_entity<an_ifc_stmt_if_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_stmt_if */
 
+
 /*
   |-----------------------------------------|
   |      StmtLabeled - 0.42 (20 bytes)      |
@@ -13101,6 +13418,7 @@ struct an_ifc_stmt_labeled : Byte_buffer_entity<an_ifc_stmt_labeled_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_stmt_labeled */
+
 
 /*
   |-------------------------------------------------|
@@ -13144,6 +13462,7 @@ struct an_ifc_stmt_return : Byte_buffer_entity<an_ifc_stmt_return_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_stmt_return */
 
+
 /*
   |--------------------------------------------------|
   |           StmtSwitch - 0.33 (20 bytes)           |
@@ -13186,6 +13505,7 @@ struct an_ifc_stmt_switch : Byte_buffer_entity<an_ifc_stmt_switch_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_stmt_switch */
 
+
 /*
   |-----------------------------------------------|
   |           StmtTry - 0.42 (20 bytes)           |
@@ -13217,6 +13537,7 @@ struct an_ifc_stmt_try : Byte_buffer_entity<an_ifc_stmt_try_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_stmt_try */
 
+
 /*
   |-----------------------------------------------|
   |          StmtTuple - 0.42 (20 bytes)          |
@@ -13247,6 +13568,7 @@ struct an_ifc_stmt_tuple : Byte_buffer_entity<an_ifc_stmt_tuple_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_stmt_tuple */
+
 
 /*
   |-----------------------------------------|
@@ -13288,6 +13610,7 @@ struct an_ifc_stmt_variable_decl :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_stmt_variable_decl */
 
+
 /*
   |---------------------------------------------|
   |         StmtWhile - 0.33 (16 bytes)         |
@@ -13327,6 +13650,7 @@ struct an_ifc_stmt_while : Byte_buffer_entity<an_ifc_stmt_while_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_stmt_while */
+
 
 /*
   |-----------------------------------------------|
@@ -13378,6 +13702,7 @@ struct an_ifc_syntax_access_specifier :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_access_specifier */
 
+
 /*
   |---------------------------------------------|
   |  SyntaxAliasDeclaration - 0.33 (32 bytes)   |
@@ -13426,6 +13751,7 @@ struct an_ifc_syntax_alias_declaration :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_alias_declaration */
 
+
 /*
   |-----------------------------------------------|
   |        SyntaxAlignas - 0.33 (28 bytes)        |
@@ -13457,6 +13783,7 @@ struct an_ifc_syntax_alignas :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_alignas */
+
 
 /*
   |-------------------------------------------------|
@@ -13502,6 +13829,7 @@ struct an_ifc_syntax_array_declarator :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_array_declarator */
 
+
 /*
   |-------------------------------------------------|
   |       SyntaxArrayIndex - 0.33 (24 bytes)        |
@@ -13546,6 +13874,7 @@ struct an_ifc_syntax_array_index :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_array_index */
 
+
 /*
   |--------------------------------------------------|
   | SyntaxArrayOrFunctionDeclarator - 0.33 (8 bytes) |
@@ -13579,6 +13908,7 @@ struct an_ifc_syntax_array_or_function_declarator :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_array_or_function_declarator */
 
+
 /*
   |------------------------------------------|
   |   SyntaxAsmStatement - 0.33 (12 bytes)   |
@@ -13610,6 +13940,7 @@ struct an_ifc_syntax_asm_statement :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_asm_statement */
+
 
 /*
   |---------------------------------------------------|
@@ -13658,6 +13989,7 @@ struct an_ifc_syntax_attribute :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_attribute */
 
+
 /*
   |-------------------------------------------------|
   | SyntaxAttributeArgumentClause - 0.33 (20 bytes) |
@@ -13691,6 +14023,7 @@ struct an_ifc_syntax_attribute_argument_clause :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_attribute_argument_clause */
+
 
 /*
   |-------------------------------------------------|
@@ -13729,6 +14062,7 @@ struct an_ifc_syntax_attribute_specifier :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_attribute_specifier */
 
+
 /*
   |----------------------------------------------|
   | SyntaxAttributeSpecifierSeq - 0.33 (4 bytes) |
@@ -13760,6 +14094,7 @@ struct an_ifc_syntax_attribute_specifier_seq :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_attribute_specifier_seq */
+
 
 /*
   |----------------------------------------------|
@@ -13793,6 +14128,7 @@ struct an_ifc_syntax_attribute_using_prefix :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_attribute_using_prefix */
+
 
 /*
   |-----------------------------------------------|
@@ -13828,6 +14164,7 @@ struct an_ifc_syntax_attributed_declaration :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_attributed_declaration */
 
+
 /*
   |---------------------------------------------|
   | SyntaxAttributedStatement - 0.33 (12 bytes) |
@@ -13862,6 +14199,7 @@ struct an_ifc_syntax_attributed_statement :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_attributed_statement */
 
+
 /*
   |------------------------------------------|
   |  SyntaxBaseSpecifier - 0.33 (20 bytes)   |
@@ -13895,6 +14233,7 @@ struct an_ifc_syntax_base_specifier :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_base_specifier */
 
+
 /*
   |---------------------------------------------------|
   |     SyntaxBaseSpecifierList - 0.33 (12 bytes)     |
@@ -13927,6 +14266,7 @@ struct an_ifc_syntax_base_specifier_list :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_base_specifier_list */
+
 
 /*
   |----------------------------------------------------|
@@ -14001,6 +14341,7 @@ struct an_ifc_syntax_binary_fold_expression :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_binary_fold_expression */
 
+
 /*
   |---------------------------------------------|
   |   SyntaxBreakStatement - 0.33 (16 bytes)    |
@@ -14033,6 +14374,7 @@ struct an_ifc_syntax_break_statement :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_break_statement */
+
 
 /*
   |------------------------------------------|
@@ -14067,6 +14409,7 @@ struct an_ifc_syntax_capture_default :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_capture_default */
+
 
 /*
   |----------------------------------------------|
@@ -14118,6 +14461,7 @@ struct an_ifc_syntax_class_specifier :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_class_specifier */
 
+
 /*
   |------------------------------------------------|
   |  SyntaxCompoundRequirement - 0.33 (32 bytes)   |
@@ -14166,6 +14510,7 @@ struct an_ifc_syntax_compound_requirement :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_compound_requirement */
 
+
 /*
   |-----------------------------------------------|
   |   SyntaxCompoundStatement - 0.33 (24 bytes)   |
@@ -14200,6 +14545,7 @@ struct an_ifc_syntax_compound_statement :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_compound_statement */
+
 
 /*
   |---------------------------------------------------|
@@ -14253,6 +14599,7 @@ struct an_ifc_syntax_concept_definition :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_concept_definition */
 
+
 /*
   |---------------------------------------------------|
   |   SyntaxConditionDeclaration - 0.33 (16 bytes)    |
@@ -14287,6 +14634,7 @@ struct an_ifc_syntax_condition_declaration :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_condition_declaration */
 
+
 /*
   |---------------------------------------------|
   |  SyntaxContinueStatement - 0.33 (16 bytes)  |
@@ -14320,6 +14668,7 @@ struct an_ifc_syntax_continue_statement :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_continue_statement */
 
+
 /*
   |------------------------------------------------|
   |    SyntaxCtorInitializer - 0.33 (12 bytes)     |
@@ -14352,6 +14701,7 @@ struct an_ifc_syntax_ctor_initializer :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_ctor_initializer */
+
 
 /*
   |----------------------------------------------------|
@@ -14392,6 +14742,7 @@ struct an_ifc_syntax_decl_specifier_seq :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_decl_specifier_seq */
 
+
 /*
   |---------------------------------------------|
   | SyntaxDeclarationStatement - 0.33 (8 bytes) |
@@ -14424,6 +14775,7 @@ struct an_ifc_syntax_declaration_statement :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_declaration_statement */
+
 
 /*
   |-------------------------------------------------------------|
@@ -14484,6 +14836,7 @@ struct an_ifc_syntax_declarator :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_declarator */
 
+
 /*
   |----------------------------------------------------|
   |     SyntaxDecltypeSpecifier - 0.33 (28 bytes)      |
@@ -14529,6 +14882,7 @@ struct an_ifc_syntax_decltype_specifier :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_decltype_specifier */
+
 
 /*
   |---------------------------------------------|
@@ -14580,6 +14934,7 @@ struct an_ifc_syntax_do_while_statement :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_do_while_statement */
 
+
 /*
   |-----------------------------------------------|
   | SyntaxDynamicExceptionSpec - 0.33 (36 bytes)  |
@@ -14616,6 +14971,7 @@ struct an_ifc_syntax_dynamic_exception_spec :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_dynamic_exception_spec */
 
+
 /*
   |-----------------------------------------|
   |  SyntaxEmptyStatement - 0.33 (8 bytes)  |
@@ -14647,6 +15003,7 @@ struct an_ifc_syntax_empty_statement :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_empty_statement */
+
 
 /*
   |-----------------------------------------------|
@@ -14702,6 +15059,7 @@ struct an_ifc_syntax_enum_specifier :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_enum_specifier */
 
+
 /*
   |-----------------------------------------------|
   | SyntaxEnumeratorDefinition - 0.33 (32 bytes)  |
@@ -14750,6 +15108,7 @@ struct an_ifc_syntax_enumerator_definition :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_enumerator_definition */
 
+
 /*
   |---------------------------------------------------|
   |   SyntaxExceptionDeclaration - 0.33 (24 bytes)    |
@@ -14784,6 +15143,7 @@ struct an_ifc_syntax_exception_declaration :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_exception_declaration */
+
 
 /*
   |-----------------------------------------------|
@@ -14831,6 +15191,7 @@ struct an_ifc_syntax_explicit_specifier :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_explicit_specifier */
 
+
 /*
   |-----------------------------------------|
   |    SyntaxExpression - 0.33 (4 bytes)    |
@@ -14867,6 +15228,7 @@ struct an_ifc_syntax_expression :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_expression */
+
 
 /*
   |---------------------------------------------|
@@ -14912,6 +15274,7 @@ struct an_ifc_syntax_expression_statement :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_expression_statement */
 
+
 /*
   |--------------------------------------------|
   | SyntaxForRangeDeclaration - 0.33 (8 bytes) |
@@ -14944,6 +15307,7 @@ struct an_ifc_syntax_for_range_declaration :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_for_range_declaration */
+
 
 /*
   |--------------------------------------------------|
@@ -15000,6 +15364,7 @@ struct an_ifc_syntax_for_statement :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_for_statement */
 
+
 /*
   |------------------------------------------------|
   |      SyntaxFunctionBody - 0.33 (40 bytes)      |
@@ -15035,6 +15400,7 @@ struct an_ifc_syntax_function_body :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_function_body */
+
 
 /*
   |-----------------------------------------------------------|
@@ -15075,6 +15441,7 @@ struct an_ifc_syntax_function_declarator :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_function_declarator */
 
+
 /*
   |------------------------------------------------|
   |   SyntaxFunctionDefinition - 0.33 (40 bytes)   |
@@ -15112,6 +15479,7 @@ struct an_ifc_syntax_function_definition :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_function_definition */
 
+
 /*
   |---------------------------------------------|
   |  SyntaxFunctionTryBlock - 0.33 (12 bytes)   |
@@ -15145,6 +15513,7 @@ struct an_ifc_syntax_function_try_block :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_function_try_block */
+
 
 /*
   |---------------------------------------------|
@@ -15182,6 +15551,7 @@ struct an_ifc_syntax_goto_statement :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_goto_statement */
 
+
 /*
   |-----------------------------------------------|
   |        SyntaxHandler - 0.33 (36 bytes)        |
@@ -15216,6 +15586,7 @@ struct an_ifc_syntax_handler :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_handler */
 
+
 /*
   |-----------------------------------------|
   |    SyntaxHandlerSeq - 0.33 (4 bytes)    |
@@ -15245,6 +15616,7 @@ struct an_ifc_syntax_handler_seq :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_handler_seq */
+
 
 /*
   |--------------------------------------------------|
@@ -15282,6 +15654,7 @@ struct an_ifc_syntax_if_statement :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_if_statement */
+
 
 /*
   |-----------------------------------------------|
@@ -15329,6 +15702,7 @@ struct an_ifc_syntax_init_capture :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_init_capture */
 
+
 /*
   |-----------------------------------------------|
   |    SyntaxInitDeclarator - 0.33 (20 bytes)     |
@@ -15375,6 +15749,7 @@ struct an_ifc_syntax_init_declarator :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_init_declarator */
 
+
 /*
   |-----------------------------------------|
   |  SyntaxInitStatement - 0.33 (8 bytes)   |
@@ -15407,6 +15782,7 @@ struct an_ifc_syntax_init_statement :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_init_statement */
+
 
 /*
   |------------------------------------------|
@@ -15456,6 +15832,7 @@ struct an_ifc_syntax_labeled_statement :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_labeled_statement */
 
+
 /*
   |---------------------------------------------------|
   |     SyntaxLambdaDeclarator - 0.33 (48 bytes)      |
@@ -15495,6 +15872,7 @@ struct an_ifc_syntax_lambda_declarator :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_lambda_declarator */
 
+
 /*
   |-------------------------------------------------|
   |    SyntaxLambdaIntroducer - 0.33 (20 bytes)     |
@@ -15528,6 +15906,7 @@ struct an_ifc_syntax_lambda_introducer :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_lambda_introducer */
+
 
 /*
   |-----------------------------------------------|
@@ -15575,6 +15954,7 @@ struct an_ifc_syntax_mem_initializer :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_mem_initializer */
 
+
 /*
   |---------------------------------------------------|
   |     SyntaxMemberDeclaration - 0.33 (16 bytes)     |
@@ -15608,6 +15988,7 @@ struct an_ifc_syntax_member_declaration :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_member_declaration */
+
 
 /*
   |-----------------------------------------------|
@@ -15661,6 +16042,7 @@ struct an_ifc_syntax_member_declarator :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_member_declarator */
 
+
 /*
   |--------------------------------------------------|
   | SyntaxMemberFunctionDeclaration - 0.33 (4 bytes) |
@@ -15693,6 +16075,7 @@ struct an_ifc_syntax_member_function_declaration :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_member_function_declaration */
 
+
 /*
   |----------------------------------------------------|
   |     SyntaxMemberSpecification - 0.33 (4 bytes)     |
@@ -15724,6 +16107,7 @@ struct an_ifc_syntax_member_specification :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_member_specification */
+
 
 /*
   |--------------------------------------------------|
@@ -15773,6 +16157,7 @@ struct an_ifc_syntax_namespace_alias_definition :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_namespace_alias_definition */
 
+
 /*
   |---------------------------------------------|
   |  SyntaxNestedRequirement - 0.33 (12 bytes)  |
@@ -15815,6 +16200,7 @@ struct an_ifc_syntax_nested_requirement :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_nested_requirement */
 
+
 /*
   |-------------------------------------------|
   |   SyntaxNewDeclarator - 0.33 (4 bytes)    |
@@ -15846,6 +16232,7 @@ struct an_ifc_syntax_new_declarator :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_new_declarator */
+
 
 /*
   |-----------------------------------------------|
@@ -15881,6 +16268,7 @@ struct an_ifc_syntax_noexcept_specification :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_noexcept_specification */
+
 
 /*
   |-------------------------------------------------|
@@ -15925,6 +16313,7 @@ struct an_ifc_syntax_non_type_template_argument :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_non_type_template_argument */
+
 
 /*
   |---------------------------------------------------|
@@ -15976,6 +16365,7 @@ struct an_ifc_syntax_parameter_declarator :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_parameter_declarator */
 
+
 /*
   |--------------------------------------------------|
   | SyntaxPlaceholderTypeSpecifier - 0.33 (21 bytes) |
@@ -16022,6 +16412,7 @@ struct an_ifc_syntax_placeholder_type_specifier :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_placeholder_type_specifier */
 
+
 /*
   |-----------------------------------------------------|
   |      SyntaxPointerDeclarator - 0.33 (20 bytes)      |
@@ -16059,6 +16450,7 @@ struct an_ifc_syntax_pointer_declarator :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_pointer_declarator */
+
 
 /*
   |------------------------------------------------|
@@ -16100,6 +16492,7 @@ struct an_ifc_syntax_range_based_for_statement :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_range_based_for_statement */
 
+
 /*
   |------------------------------------------------|
   |    SyntaxRequirementBody - 0.33 (20 bytes)     |
@@ -16133,6 +16526,7 @@ struct an_ifc_syntax_requirement_body :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_requirement_body */
+
 
 /*
   |---------------------------------------------|
@@ -16175,6 +16569,7 @@ struct an_ifc_syntax_requires_clause :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_requires_clause */
+
 
 /*
   |-----------------------------------------------|
@@ -16226,6 +16621,7 @@ struct an_ifc_syntax_return_statement :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_return_statement */
 
+
 /*
   |-----------------------------------------------|
   |       SyntaxSEHExcept - 0.33 (32 bytes)       |
@@ -16271,6 +16667,7 @@ struct an_ifc_syntax_seh_except :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_seh_except */
 
+
 /*
   |----------------------------------------------|
   |      SyntaxSEHFinally - 0.33 (12 bytes)      |
@@ -16302,6 +16699,7 @@ struct an_ifc_syntax_seh_finally :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_seh_finally */
 
+
 /*
   |---------------------------------------------|
   |      SyntaxSEHLeave - 0.33 (16 bytes)       |
@@ -16331,6 +16729,7 @@ struct an_ifc_syntax_seh_leave :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_seh_leave */
+
 
 /*
   |-------------------------------------------|
@@ -16362,6 +16761,7 @@ struct an_ifc_syntax_seh_try :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_seh_try */
+
 
 /*
   |---------------------------------------------|
@@ -16409,6 +16809,7 @@ struct an_ifc_syntax_simple_capture :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_simple_capture */
 
+
 /*
   |---------------------------------------------------|
   |     SyntaxSimpleDeclaration - 0.33 (24 bytes)     |
@@ -16443,6 +16844,7 @@ struct an_ifc_syntax_simple_declaration :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_simple_declaration */
+
 
 /*
   |---------------------------------------------|
@@ -16485,6 +16887,7 @@ struct an_ifc_syntax_simple_requirement :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_simple_requirement */
+
 
 /*
   |---------------------------------------------|
@@ -16530,6 +16933,7 @@ struct an_ifc_syntax_simple_type_specifier :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_simple_type_specifier */
 
+
 /*
   |--------------------------------------|
   | SyntaxStatementSeq - 0.33 (4 bytes)  |
@@ -16560,6 +16964,7 @@ struct an_ifc_syntax_statement_seq :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_statement_seq */
+
 
 /*
   |-------------------------------------------------|
@@ -16613,6 +17018,7 @@ struct an_ifc_syntax_static_assert_declaration :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_static_assert_declaration */
 
+
 /*
   |------------------------------------------------------|
   | SyntaxStructuredBindingDeclaration - 0.33 (28 bytes) |
@@ -16661,6 +17067,7 @@ struct an_ifc_syntax_structured_binding_declaration :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_structured_binding_declaration */
 
+
 /*
   |-----------------------------------------------------|
   | SyntaxStructuredBindingIdentifier - 0.33 (12 bytes) |
@@ -16703,6 +17110,7 @@ struct an_ifc_syntax_structured_binding_identifier :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_structured_binding_identifier */
 
+
 /*
   |-----------------------------------------|
   |      SyntaxSuper - 0.33 (8 bytes)       |
@@ -16730,6 +17138,7 @@ struct an_ifc_syntax_super : Byte_buffer_entity<an_ifc_syntax_super_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_super */
+
 
 /*
   |---------------------------------------------|
@@ -16767,6 +17176,7 @@ struct an_ifc_syntax_switch_statement :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_switch_statement */
 
+
 /*
   |-----------------------------------------------|
   | SyntaxTemplateArgumentList - 0.33 (20 bytes)  |
@@ -16801,6 +17211,7 @@ struct an_ifc_syntax_template_argument_list :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_template_argument_list */
 
+
 /*
   |----------------------------------------------|
   | SyntaxTemplateDeclaration - 0.33 (16 bytes)  |
@@ -16834,6 +17245,7 @@ struct an_ifc_syntax_template_declaration :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_template_declaration */
+
 
 /*
   |-----------------------------------------------|
@@ -16881,6 +17293,7 @@ struct an_ifc_syntax_template_id :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_template_id */
 
+
 /*
   |-----------------------------------------------|
   | SyntaxTemplateParameterList - 0.33 (24 bytes) |
@@ -16915,6 +17328,7 @@ struct an_ifc_syntax_template_parameter_list :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_template_parameter_list */
+
 
 /*
   |---------------------------------------------------|
@@ -16954,6 +17368,7 @@ struct an_ifc_syntax_template_template_parameter :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_template_template_parameter */
 
+
 /*
   |--------------------------------------------|
   |    SyntaxThisCapture - 0.33 (24 bytes)     |
@@ -16985,6 +17400,7 @@ struct an_ifc_syntax_this_capture :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_this_capture */
+
 
 /*
   |--------------------------------------------|
@@ -17019,6 +17435,7 @@ struct an_ifc_syntax_trailing_return_type :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_trailing_return_type */
 
+
 /*
   |--------------------------------------------|
   |      SyntaxTryBlock - 0.33 (20 bytes)      |
@@ -17051,6 +17468,7 @@ struct an_ifc_syntax_try_block :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_try_block */
 
+
 /*
   |--------------------------------------------|
   |        SyntaxTuple - 0.33 (8 bytes)        |
@@ -17079,6 +17497,7 @@ struct an_ifc_syntax_tuple : Byte_buffer_entity<an_ifc_syntax_tuple_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_tuple */
+
 
 /*
   |-------------------------------------------------------|
@@ -17110,6 +17529,7 @@ struct an_ifc_syntax_type_id :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_type_id */
+
 
 /*
   |--------------------------------------------|
@@ -17143,6 +17563,7 @@ struct an_ifc_syntax_type_id_list_element :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_type_id_list_element */
+
 
 /*
   |-----------------------------------------|
@@ -17186,6 +17607,7 @@ struct an_ifc_syntax_type_requirement :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_type_requirement */
 
+
 /*
   |--------------------------------------------------|
   |     SyntaxTypeSpecifierSeq - 0.33 (20 bytes)     |
@@ -17223,6 +17645,7 @@ struct an_ifc_syntax_type_specifier_seq :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_type_specifier_seq */
 
+
 /*
   |----------------------------------------------|
   | SyntaxTypeTemplateArgument - 0.33 (20 bytes) |
@@ -17256,6 +17679,7 @@ struct an_ifc_syntax_type_template_argument :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_type_template_argument */
+
 
 /*
   |-----------------------------------------------|
@@ -17292,6 +17716,7 @@ struct an_ifc_syntax_type_template_parameter :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_type_template_parameter */
+
 
 /*
   |-------------------------------------------------|
@@ -17349,6 +17774,7 @@ struct an_ifc_syntax_type_trait_intrinsic :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_type_trait_intrinsic */
+
 
 /*
   |---------------------------------------------------|
@@ -17419,6 +17845,7 @@ struct an_ifc_syntax_unary_fold_expression :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_unary_fold_expression */
 
+
 /*
   |-----------------------------------------------|
   |   SyntaxUsingDeclaration - 0.33 (20 bytes)    |
@@ -17452,6 +17879,7 @@ struct an_ifc_syntax_using_declaration :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_using_declaration */
+
 
 /*
   |--------------------------------------------------|
@@ -17499,6 +17927,7 @@ struct an_ifc_syntax_using_declarator :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_using_declarator */
 
+
 /*
   |--------------------------------------------------|
   |      SyntaxUsingDirective - 0.33 (28 bytes)      |
@@ -17544,6 +17973,7 @@ struct an_ifc_syntax_using_directive :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_using_directive */
+
 
 /*
   |----------------------------------------------|
@@ -17591,6 +18021,7 @@ struct an_ifc_syntax_using_enum_declaration :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_using_enum_declaration */
 
+
 /*
   |-----------------------------------------------|
   |  SyntaxVirtualSpecifierSeq - 0.33 (25 bytes)  |
@@ -17625,6 +18056,7 @@ struct an_ifc_syntax_virtual_specifier_seq :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_virtual_specifier_seq */
+
 
 /*
   |---------------------------------------------|
@@ -17671,6 +18103,7 @@ struct an_ifc_syntax_while_statement :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_syntax_while_statement */
+
 
 /*
   |--------------------------------------------------|
@@ -17728,6 +18161,7 @@ struct an_ifc_trait_alias_template :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_trait_alias_template */
 
+
 /*
   |--------------------------------------------------|
   |         TraitAttribute - 0.33 (8 bytes)          |
@@ -17781,6 +18215,7 @@ struct an_ifc_trait_attribute :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_trait_attribute */
+
 
 /*
   |--------------------------------------------------|
@@ -17839,6 +18274,7 @@ struct an_ifc_trait_deduction_guide :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_trait_deduction_guide */
 
+
 /*
   |--------------------------------------------------|
   |         TraitDeprecated - 0.33 (8 bytes)         |
@@ -17893,6 +18329,7 @@ struct an_ifc_trait_deprecated :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_trait_deprecated */
 
+
 /*
   |--------------------------------------------------|
   |          TraitFriend - 0.33 (12 bytes)           |
@@ -17945,6 +18382,7 @@ struct an_ifc_trait_friend : Byte_buffer_entity<an_ifc_trait_friend_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_trait_friend */
+
 
 /*
   |--------------------------------------------------|
@@ -18022,6 +18460,7 @@ struct an_ifc_trait_function_definition :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_trait_function_definition */
 
+
 /*
   |--------------------------------------------------|
   |       TraitMsvcDeclAttrs - 0.33 (8 bytes)        |
@@ -18078,6 +18517,7 @@ struct an_ifc_trait_msvc_decl_attrs :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_trait_msvc_decl_attrs */
+
 
 /*
   |--------------------------------------------------|
@@ -18136,6 +18576,7 @@ struct an_ifc_trait_msvc_func_params :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_trait_msvc_func_params */
 
+
 /*
   |--------------------------------------------------|
   |          TraitMsvcUuid - 0.33 (8 bytes)          |
@@ -18192,6 +18633,7 @@ struct an_ifc_trait_msvc_uuid :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_trait_msvc_uuid */
+
 
 /*
   |----------------------------------------------------|
@@ -18250,6 +18692,7 @@ struct an_ifc_trait_msvc_vendor_trait :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_trait_msvc_vendor_trait */
 
+
 /*
   |--------------------------------------------------|
   |          TraitRequires - 0.33 (8 bytes)          |
@@ -18303,6 +18746,7 @@ struct an_ifc_trait_requires :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_trait_requires */
+
 
 /*
   |--------------------------------------------------|
@@ -18360,6 +18804,7 @@ struct an_ifc_trait_specialization :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_trait_specialization */
 
+
 /*
   |--------------------------------------|
   |      TypeArray - 0.33 (8 bytes)      |
@@ -18398,6 +18843,7 @@ struct an_ifc_type_array : Byte_buffer_entity<an_ifc_type_array_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_type_array */
 
+
 /*
   |---------------------------------------------|
   |          TypeBase - 0.33 (8 bytes)          |
@@ -18430,6 +18876,7 @@ struct an_ifc_type_base : Byte_buffer_entity<an_ifc_type_base_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_type_base */
 
+
 /*
   |-------------------------------------|
   |    TypeDecltype - 0.33 (4 bytes)    |
@@ -18458,6 +18905,7 @@ struct an_ifc_type_decltype :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_type_decltype */
+
 
 /*
   |-----------------------------------|
@@ -18504,6 +18952,7 @@ struct an_ifc_type_designated :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_type_designated */
 
+
 /*
   |--------------------------------------------------|
   |          TypeExpansion - 0.33 (8 bytes)          |
@@ -18535,6 +18984,7 @@ struct an_ifc_type_expansion :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_type_expansion */
 
+
 /*
   |---------------------------------------|
   |      TypeForall - 0.33 (8 bytes)      |
@@ -18563,6 +19013,7 @@ struct an_ifc_type_forall : Byte_buffer_entity<an_ifc_type_forall_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_type_forall */
+
 
 /*
   |-----------------------------------------------------------|
@@ -18598,6 +19049,7 @@ struct an_ifc_type_function :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_type_function */
 
+
 /*
   |--------------------------------------------------|
   |         TypeFundamental - 0.33 (4 bytes)         |
@@ -18630,6 +19082,7 @@ struct an_ifc_type_fundamental :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_type_fundamental */
 
+
 /*
   |--------------------------------------|
   | TypeLvalueReference - 0.33 (4 bytes) |
@@ -18661,6 +19114,7 @@ struct an_ifc_type_lvalue_reference :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_type_lvalue_reference */
+
 
 /*
   |-----------------------------------------------------------|
@@ -18695,6 +19149,7 @@ struct an_ifc_type_method : Byte_buffer_entity<an_ifc_type_method_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_type_method */
+
 
 /*
   |------------------------------------------------------------|
@@ -18741,6 +19196,7 @@ struct an_ifc_type_placeholder :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_type_placeholder */
 
+
 /*
   |--------------------------------------|
   |     TypePointer - 0.33 (4 bytes)     |
@@ -18768,6 +19224,7 @@ struct an_ifc_type_pointer : Byte_buffer_entity<an_ifc_type_pointer_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_type_pointer */
+
 
 /*
   |--------------------------------------|
@@ -18802,6 +19259,7 @@ struct an_ifc_type_pointer_to_member :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_type_pointer_to_member */
 
+
 /*
   |--------------------------------------------------|
   |          TypeQualified - 0.33 (8 bytes)          |
@@ -18832,6 +19290,7 @@ struct an_ifc_type_qualified :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_type_qualified */
+
 
 /*
   |--------------------------------------|
@@ -18864,6 +19323,7 @@ struct an_ifc_type_rvalue_reference :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_type_rvalue_reference */
+
 
 /*
   |-----------------------------------|
@@ -18902,6 +19362,7 @@ struct an_ifc_type_syntactic :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_type_syntactic */
 
+
 /*
   |---------------------------------------|
   |    TypeSyntaxTree - 0.33 (4 bytes)    |
@@ -18930,6 +19391,7 @@ struct an_ifc_type_syntax_tree :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_type_syntax_tree */
+
 
 /*
   |------------------------------------------------------|
@@ -18962,6 +19424,7 @@ struct an_ifc_type_tor : Byte_buffer_entity<an_ifc_type_tor_storage> {
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_type_tor */
 
+
 /*
   |--------------------------------------------|
   |         TypeTuple - 0.33 (8 bytes)         |
@@ -18990,6 +19453,7 @@ struct an_ifc_type_tuple : Byte_buffer_entity<an_ifc_type_tuple_storage> {
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_type_tuple */
+
 
 /*
   |-----------------------------------|
@@ -19028,6 +19492,7 @@ struct an_ifc_type_typename :
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_type_typename */
 
+
 /*
   |-----------------------------------|
   |  TypeUnaligned - 0.33 (4 bytes)   |
@@ -19056,6 +19521,7 @@ struct an_ifc_type_unaligned :
   using base_type = Byte_buffer_entity<storage_type>;
   using base_type::Byte_buffer_entity;
 };  /* an_ifc_type_unaligned */
+
 
 enum an_ifc_expr_named_decl_offset_0_43 : uint32_t {};
 
@@ -19920,6 +20386,6 @@ END_EDG_NAMESPACE
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2023 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2024 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
