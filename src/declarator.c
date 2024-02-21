@@ -2608,6 +2608,7 @@ this is a helper function.
        "constexpr" and "consteval" are also permitted and apply to the call
        operator. */
     a_boolean  done_with_quals, mutable_seen = FALSE;
+    this_class = parent_type;
     do {
       done_with_quals = TRUE;
       if (curr_token == tok_mutable) {
@@ -2616,8 +2617,6 @@ this is a helper function.
           /* Lambdas with an explicit "this" parameter cannot be "mutable". */
           pos_error(ec_mutable_qualifier_on_explicit_this_lambda,
                     &error_position);
-        } else if (state->storage_class == sc_static) {
-          pos_error(ec_lambda_mutable_and_static, &pos_curr_token);
         } else if (func_info->lambda != NULL) {
           func_info->lambda->is_mutable = TRUE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -2659,27 +2658,6 @@ this is a helper function.
         }  /* if */
         (void)get_token();
         done_with_quals = FALSE;
-      } else if (curr_token == tok_static) {
-        /* C++23 allows "[]() static { return 42; }". */
-        if (state->storage_class == sc_static) {
-          pos_error(ec_dupl_decl_specifier, &pos_curr_token);
-        } else if (mutable_seen) {
-          pos_error(ec_lambda_mutable_and_static, &pos_curr_token);
-        } else {
-          state->storage_class = sc_static;
-          if (!cpp23_mode) {
-            an_error_severity  sev = es_discretionary_error;
-            if (gpp_version_is(>=130000) || clang_version_is(>=160000) ||
-                ms_version_is(>=1939)) {
-              /* Recent versions of GCC, Clang, and MSVC accept the syntax in
-                 pre-C++23 modes. */
-              sev = es_warning;
-            }  /* if */
-            pos_diagnostic(sev, ec_static_lambda_nonstandard, &pos_curr_token);
-          }  /* if */
-        } 
-        (void)get_token();
-        done_with_quals = FALSE;
       } else if (is_type_qualifier()) {
         /* Type qualifiers are not allowed on lambdas.  If there are, scan
            them and issue a lambda-specific diagnostic. */
@@ -2689,13 +2667,8 @@ this is a helper function.
         done_with_quals = FALSE;
       }  /* if */
     } while (!done_with_quals);
-    if (state->storage_class == sc_static) {
-      is_nonstatic_member = FALSE;
-    } else {
-      this_class = parent_type;
-      if (!mutable_seen) {
-        qualifiers = TQ_CONST;
-      }  /* if */
+    if (!mutable_seen) {
+      qualifiers = TQ_CONST;
     }  /* if */
   } else if ((is_type_qualifier() or_is_near_or_far() ||
               (microsoft_mode && curr_token == tok_inline)) &&
@@ -6267,33 +6240,6 @@ attributes are applied to the underlying type).
 }  /* scan_id_attributes */
 
 
-static a_boolean check_static_call_operator(a_symbol_locator  *loc)
-/*
-If loc represents a function call operator, return TRUE.  This operator is
-being declared "static".  In non-C++23 mode issue a diagnostic (warning or
-discretionary error, depending on the mode).
-*/
-{
-  a_boolean  result = FALSE;
-
-  if (loc->is_operator_name && loc->variant.opname == onk_function_call) {
-    result = TRUE;
-    if (!cpp23_mode) {
-      an_error_severity  sev = es_discretionary_error;
-      if (gpp_version_is(>=130000) || clang_version_is(>=160000) ||
-          ms_version_is(>=1939)) {
-        /* Recent versions of GCC, Clang, and MSVC accept the syntax in
-           pre-C++23 modes. */
-        sev = es_warning;
-      }  /* if */
-      pos_diagnostic(sev, ec_static_member_operator_not_allowed,
-                     &loc->source_position);
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* check_static_call_operator */
-
-
 static void scan_real_declarator_id(
                 a_decl_parse_state          *dps,
                 a_decl_flag_set             input_flags,
@@ -6925,7 +6871,6 @@ declared entity is known to not be a function.
       } else if (!(input_flags & DI_NONSTATIC_MEMBER) &&
                  !is_new_operator(locator->variant.opname) &&
                  !is_delete_operator(locator->variant.opname) &&
-                 !check_static_call_operator(locator) &&
                  !is_microsoft_static_operator(locator->variant.opname,
                                                *p_member_parent_type)) {
         /* Most operators cannot be declared to be static members (except in

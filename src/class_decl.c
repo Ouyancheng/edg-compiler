@@ -34621,43 +34621,41 @@ generated for several calling conventions).
     sym->variant.routine.ptr->never_throws = TRUE;
   }  /* if */
 
-  if (routine_type_is_nonstatic_member_function(call_op->type)) {
-    /* Generate the alternative entry point.  This is a static member function
-       (i.e., no "this" parameter). */
-    make_lambda_static_call_locator(&member_loc, call_conv, pos);
-    initialize_member_decl_info(&decl_info, pos);
-    decl_info.decl_state.type = call_type;
-    decl_info.decl_state.declared_type = call_type;
-    if (call_op->is_declared_constexpr) {
-      decl_info.decl_state.dso_flags |= DSO_CONSTEXPR;
-    } else if (call_op->is_consteval) {
-      decl_info.decl_state.dso_flags |= DSO_CONSTEVAL;
-    }  /* if */
-    local_func_info = *func_info;
-    local_func_info.is_inline = FALSE;
-    local_func_info.is_definition = FALSE;
-    decl_generated_lambda_member(lambda, cdsp, &decl_info, &member_loc,
-                                 &local_func_info);
-    sym = decl_info.decl_state.sym;
-    /* The alternative entry point for the lambda should be an implementation
-       detail not visible to user code, but with GCC it is possible to refer
-       to that entry point. */
-    sym->is_invisible = !gpp_mode;
-    if (symbol_is(sym, sk_member_function)) {
-      set_routine_special_kind(sym->variant.routine.ptr,
-                               sfk_lambda_entry_point);
-      sym->variant.routine.ptr->variant.lambda_call_operator = call_op;
-    } else if (symbol_is(sym, sk_function_template)) {
-      a_routine_ptr  proto_rp = sym->variant.template_info
-                                   ->variant.function.routine;
-      set_routine_special_kind(proto_rp,
-                               sfk_lambda_entry_point);
-      proto_rp->variant.lambda_call_operator = call_op;
-    }  /* if */
-    /* Do not call done_with_func_info on local_func_info since the latter was
-       initialized with *func_info, and its associated param-ids are needed
-       elsewhere. */
+  /* Generate the alternative entry point.  This is a static member function
+     (i.e., no "this" parameter). */
+  make_lambda_static_call_locator(&member_loc, call_conv, pos);
+  initialize_member_decl_info(&decl_info, pos);
+  decl_info.decl_state.type = call_type;
+  decl_info.decl_state.declared_type = call_type;
+  if (call_op->is_declared_constexpr) {
+    decl_info.decl_state.dso_flags |= DSO_CONSTEXPR;
+  } else if (call_op->is_consteval) {
+    decl_info.decl_state.dso_flags |= DSO_CONSTEVAL;
   }  /* if */
+  local_func_info = *func_info;
+  local_func_info.is_inline = FALSE;
+  local_func_info.is_definition = FALSE;
+  decl_generated_lambda_member(lambda, cdsp, &decl_info, &member_loc,
+                               &local_func_info);
+  sym = decl_info.decl_state.sym;
+  /* The alternative entry point for the lambda should be an implementation
+     detail not visible to user code, but with GCC it is possible to refer to
+     that entry point. */
+  sym->is_invisible = !gpp_mode;
+  if (symbol_is(sym, sk_member_function)) {
+    set_routine_special_kind(sym->variant.routine.ptr,
+                             (a_special_function_kind)sfk_lambda_entry_point);
+    sym->variant.routine.ptr->variant.lambda_call_operator = call_op;
+  } else if (symbol_is(sym, sk_function_template)) {
+    a_routine_ptr  proto_rp = sym->variant.template_info
+                                 ->variant.function.routine;
+    set_routine_special_kind(proto_rp,
+                             (a_special_function_kind)sfk_lambda_entry_point);
+    proto_rp->variant.lambda_call_operator = call_op;
+  }  /* if */
+  /* Do not call done_with_func_info on local_func_info since the latter was
+     initialized with *func_info, and its associated param-ids are needed
+     elsewhere. */
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Restore the previous state wrt. generating source sequence entries. */

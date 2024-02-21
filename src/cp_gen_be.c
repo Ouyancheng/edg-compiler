@@ -9652,9 +9652,7 @@ default arguments should be suppressed (needed for template specializations).
     /* This is the type for a lambda's call operator.  The qualifier is
        either TQ_CONST (the default) or TQ_NONE (indicated by the
        mutable keyword). */
-    if (rtsp->this_class == NULL) {
-      write_tok_str(" static");
-    } else if (rtsp->qualifiers == TQ_NONE) {
+    if (rtsp->qualifiers == TQ_NONE) {
       write_tok_str(" mutable");
     } else {
       check_assertion(rtsp->qualifiers == TQ_CONST);
@@ -14703,8 +14701,10 @@ return FALSE and let the caller generate the code normally.
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
     is_delegate_invocation_fcn = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    check_assertion_str(special_kind_is(rp, sfk_operator) ||
-                        special_kind_is(rp, sfk_udl_operator) ||
+    check_assertion_str(rp->special_kind ==
+                                       (a_special_function_kind)sfk_operator ||
+                        rp->special_kind ==
+                                   (a_special_function_kind)sfk_udl_operator ||
                         is_delegate_invocation_fcn,
           "handle_operator_call: non-operator function using operator syntax");
 
@@ -14719,7 +14719,7 @@ return FALSE and let the caller generate the code normally.
     } else {
       op = rp->variant.opname_kind;
     }  /* if */
-    if (special_kind_is(rp, sfk_udl_operator)) {
+    if (rp->special_kind == (a_special_function_kind)sfk_udl_operator) {
       /* A call to a literal operator or an instance of a literal operator
          template.  Reconstruct the original user-defined-literal token. */
       a_const_char *ud_suffix = ud_suffix_from_literal_operator_id(
@@ -14841,7 +14841,7 @@ return FALSE and let the caller generate the code normally.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
     {
-      if (arg != NULL && arg->next == NULL &&
+      if (arg->next == NULL &&
           (op == (an_opname_kind)onk_plus_plus ||
            op == (an_opname_kind)onk_minus_minus ||
            op == (an_opname_kind)onk_ampersand ||
@@ -14894,48 +14894,46 @@ return FALSE and let the caller generate the code normally.
         write_tok_ch('(');
       }  /* if */
 
-      if (arg != NULL) {
-        if (arg->next == NULL &&
-            op != (an_opname_kind)onk_function_call &&
-            op != (an_opname_kind)onk_arrow) {
-          /* This is a prefix operator, so put the operator name first. */
-          write_tok_str(op_name);
-        }  /* if */
+      if (arg->next == NULL &&
+          op != (an_opname_kind)onk_function_call &&
+          op != (an_opname_kind)onk_arrow) {
+        /* This is a prefix operator, so put the operator name first. */
+        write_tok_str(op_name);
+      }  /* if */
 
-        operand_parens_needed = parens_may_be_needed(operator_precedence, arg);
-        if (operand_parens_needed) {
-          write_tok_ch('(');
+      operand_parens_needed = parens_may_be_needed(operator_precedence, arg);
+      if (operand_parens_needed) {
+        write_tok_ch('(');
+      }  /* if */
+      if (routine_type_is_nonstatic_member_function(rp->type)) {
+        /* The first operand is the member function's "this" pointer:
+           generate it as an lvalue. */
+        a_boolean obj_expr_of_mfunc_operator = TRUE;
+        if (sun_is_generated_code_target &&
+            op == (an_opname_kind)onk_function_call &&
+            is_expl_ctor_or_value_init(arg)) {
+          /* The Sun compiler has a bug that requires parentheses around
+             an explicit temporary when used with overloaded operators, and
+             gen_dynamic_init uses the obj_expr_of_mfunc_operator flag in
+             detecting that situation.  However, the extra parentheses are
+             incorrect in the case of overloaded operator(), because the
+             resulting expression looks like a cast instead of an explicit
+             temporary, e.g., (T())(x) is a cast of x to a function type,
+             while T()(x) is a call of T::operator() with x as the
+             argument. */
+          obj_expr_of_mfunc_operator = FALSE;
         }  /* if */
-        if (routine_type_is_nonstatic_member_function(rp->type)) {
-          /* The first operand is the member function's "this" pointer:
-             generate it as an lvalue. */
-          a_boolean obj_expr_of_mfunc_operator = TRUE;
-          if (sun_is_generated_code_target &&
-              op == (an_opname_kind)onk_function_call &&
-              is_expl_ctor_or_value_init(arg)) {
-            /* The Sun compiler has a bug that requires parentheses around
-               an explicit temporary when used with overloaded operators, and
-               gen_dynamic_init uses the obj_expr_of_mfunc_operator flag in
-               detecting that situation.  However, the extra parentheses are
-               incorrect in the case of overloaded operator(), because the
-               resulting expression looks like a cast instead of an explicit
-               temporary, e.g., (T())(x) is a cast of x to a function type,
-               while T()(x) is a call of T::operator() with x as the
-               argument. */
-            obj_expr_of_mfunc_operator = FALSE;
-          }  /* if */
-          gen_object_expr_for_implicit_call(arg, obj_expr_of_mfunc_operator);
-          arg = arg->next;
-        } else if (!rp->source_corresp.is_class_member) {
-          /* For non-member functions, there's a parameter declaration to
-             guide the generation of the first operand. */
-          gen_argument(arg, param, /*operator_notation=*/TRUE);
-          arg = arg->next;
-          param = param->next;
-        }  /* if */
-        if (operand_parens_needed) {
-          write_tok_ch(')');
-        }  /* if */
+        gen_object_expr_for_implicit_call(arg, obj_expr_of_mfunc_operator);
+        arg = arg->next;
+      } else {
+        /* For non-member functions, there's a parameter declaration to
+           guide the generation of the first operand. */
+        gen_argument(arg, param, /*operator_notation=*/TRUE);
+        arg = arg->next;
+        param = param->next;
+      }  /* if */
+      if (operand_parens_needed) {
+        write_tok_ch(')');
       }  /* if */
 
       if (arg != NULL || op == (an_opname_kind)onk_function_call) {

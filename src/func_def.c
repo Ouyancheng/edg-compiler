@@ -2612,29 +2612,24 @@ case of a generic lambda, ensure that the call operator will be fully
 instantiated.
 */
 {
-  a_type_ptr     closure_type = parent_class_of(conv_op), return_type;
-  a_routine_ptr  static_entry_pt = NULL, lambda_body;
-  
-  lambda_body = lambda_body_for_closure(closure_type);
+  a_routine_ptr  static_entry_pt;
+
   if (conv_op->assoc_template == NULL ||
-      conv_op->assoc_template->kind == templk_member_function) {
+      conv_op->assoc_template->kind ==
+                                    (a_template_kind)templk_member_function) {
     /* For ordinary (i.e., non-generic) lambdas, the alternate (static) entry
        point for the call operator is the routine entry following the entry
        for the conversion function on the closure type's routines list. */
-    if (routine_type_is_nonstatic_member_function(lambda_body->type)) {
-      static_entry_pt = conv_op->next;
-      check_assertion(special_kind_is(static_entry_pt,
-                                      sfk_lambda_entry_point));
-    } else {
-      static_entry_pt = lambda_body;
-    }  /* if */
+    static_entry_pt = conv_op->next;
+    check_assertion(special_kind_is(static_entry_pt, sfk_lambda_entry_point));
   } else {
     /* For generic lambdas, the alternative entry for the call operator has to
        be partially instantiated at this point, and the corresponding call
        operator has to be fully instantiated. */
+    a_type_ptr          closure_type = parent_class_of(conv_op), return_type;
     a_template_ptr      entry_pt_templ, call_op_templ;
     a_symbol_ptr        entry_pt_templ_sym, call_op_templ_sym, instance_sym;
-    a_routine_ptr       call_op, generic_call_op = lambda_body;
+    a_routine_ptr       call_op, generic_call_op;
     a_template_arg_ptr  templ_arg_list;
     /* Get the call operator template and the static entry point template.
        We count on the fact that the template's list for the closure type has
@@ -2642,6 +2637,7 @@ instantiated.
        template, and (3) the static entry point template.  However, in
        Microsoft mode, there may be multiple conversion/entry-point pairs to
        account for different calling conventions. */
+    generic_call_op = lambda_body_for_closure(closure_type);
     if (generic_call_op == NULL) {
       /* This can happen with severe errors. */
       expect_error();
@@ -2659,39 +2655,31 @@ instantiated.
       check_assertion(instance_sym != NULL &&
                       symbol_is(instance_sym, sk_member_function));
       call_op = instance_sym->variant.routine.ptr;
-      check_assertion(type_is(call_op->type, tk_routine));
+      check_assertion(call_op->type->kind == (a_type_kind)tk_routine);
       return_type = call_op->type->variant.routine.return_type;
       /* Ensure that the call operator will be fully instantiated so that the
          alternate entry point does not dangle. */
       set_instance_required(instance_sym, TRUE, SIR_DEFER_INLINE);
-      if (!routine_type_is_nonstatic_member_function(call_op->type)) {
-        /* For static lambda call operators, no separate entry point is
-           needed. */
-        static_entry_pt = call_op;
-      }  /* if */
     }  /* if */
-    if (static_entry_pt == NULL) {
-      entry_pt_templ = conv_op->assoc_template->next;
-      check_assertion(entry_pt_templ != NULL);
-      entry_pt_templ_sym = symbol_for(entry_pt_templ);
-      templ_arg_list = copy_template_arg_list(conv_op->template_arg_list);
-      instance_sym = find_template_function(
-                                          entry_pt_templ_sym, &templ_arg_list,
+
+    entry_pt_templ = conv_op->assoc_template->next;
+    check_assertion(entry_pt_templ != NULL);
+    entry_pt_templ_sym = symbol_for(entry_pt_templ);
+    templ_arg_list = copy_template_arg_list(conv_op->template_arg_list);
+    instance_sym = find_template_function(entry_pt_templ_sym, &templ_arg_list,
                                           /*explicit_arg_list_present=*/FALSE,
                                           &error_position);
-      check_assertion(instance_sym != NULL &&
-                      symbol_is(instance_sym, sk_member_function));
-      static_entry_pt = instance_sym->variant.routine.ptr;
-      check_assertion(type_is(static_entry_pt->type, tk_routine) &&
-                      special_kind_is(static_entry_pt,
-                                      sfk_lambda_entry_point));
-      /* Update the entry point's function type, including its return type
-         (which may be deduced from the lambda's instantiated definition). */
-      static_entry_pt->type->variant.routine.return_type = return_type;
-      static_entry_pt->variant.lambda_call_operator = call_op;
-      if (call_op != NULL) {
-        static_entry_pt->storage_class = call_op->storage_class;
-      }  /* if */
+    check_assertion(instance_sym != NULL &&
+                    symbol_is(instance_sym, sk_member_function));
+    static_entry_pt = instance_sym->variant.routine.ptr;
+    check_assertion(static_entry_pt->type->kind == (a_type_kind)tk_routine &&
+                    special_kind_is(static_entry_pt, sfk_lambda_entry_point));
+    /* Update the entry point's function type, including its return type (which
+       may be deduced from the lambda's instantiated definition). */
+    static_entry_pt->type->variant.routine.return_type = return_type;
+    static_entry_pt->variant.lambda_call_operator = call_op;
+    if (call_op != NULL) {
+      static_entry_pt->storage_class = call_op->storage_class;
     }  /* if */
   }  /* if */
   return static_entry_pt;
