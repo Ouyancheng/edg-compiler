@@ -3401,9 +3401,12 @@ in the way described by octl.
       }  /* if */
     }  /* if */
     /* Output a cv-qualifier for a member function, if there is one.  For a
-       lambda body, however, output "mutable" if the routine is not const. */
+       lambda body, however, output "static" if the call operator is a static
+       member, or "mutable" if it is a nonstatic member that is not const. */
     if (is_lambda) {
-      if ((qualifiers & TQ_CONST) == 0) {
+      if (rtsp->this_class == NULL) {
+        octl->output_str(" static", octl);
+      } else if ((qualifiers & TQ_CONST) == 0) {
         octl->output_str(" mutable", octl);
       } else {
         check_assertion(qualifiers == TQ_CONST);

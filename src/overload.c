@@ -8164,7 +8164,13 @@ for a Microsoft bug).
       arg_match2->match_level == aml_none) {
     /* The match for the "this parameter" of a static member function
        has a "none" match level.  It's no better and no worse than any
-       other match. */
+       other match except for matches through a user-defined conversion
+       (e.g., surrogate function calls). */
+    if (arg_match1->match_level == aml_user_conversion) {
+      cmp = -1;
+    } else if (arg_match2->match_level == aml_user_conversion) {
+      cmp = 1;
+    }  /* if */
   } else if (arg_match1->anachronism_used != arg_match2->anachronism_used) {
     /* Use of an anachronism (e.g., calling a const function for a
        non-const object) makes a match worse. */

@@ -2665,6 +2665,10 @@ this is a helper function.
           pos_error(ec_dupl_decl_specifier, &pos_curr_token);
         } else if (mutable_seen) {
           pos_error(ec_lambda_mutable_and_static, &pos_curr_token);
+        } else if (func_info->lambda != NULL &&
+                   (func_info->lambda->has_capture_default ||
+                    func_info->lambda->capture_list != NULL)) {
+          pos_error(ec_static_lambda_with_capture, &pos_curr_token);
         } else {
           state->storage_class = sc_static;
           if (!cpp23_mode) {

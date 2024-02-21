@@ -3478,6 +3478,7 @@ ec_exp_lsplice;;"expected a \"[:\""
 ec_exp_rsplice;;"expected a \":]\""
 ec_lambda_mutable_and_static;;"a lambda expression cannot be both \"mutable\" and \"static\""
 ec_static_lambda_nonstandard;;"a \"static\" lambda expression is nonstandard"
+ec_static_lambda_with_capture;;"a \"static\" lambda expression must have an empty capture specification"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
