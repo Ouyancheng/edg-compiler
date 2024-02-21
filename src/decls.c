@@ -1788,10 +1788,13 @@ the position indicated by diag_pos.
   }  /* for */
   if (is_new_operator(opname) ||
       is_delete_operator(opname) ||
-      opname == (an_opname_kind)onk_function_call) {
-    /* Function call and new must have one or more arguments. */
+      opname == onk_function_call) {
+    /* Function call and new must usually have one or more arguments. */
     if (param_count == 0) {
-      if (rtsp->has_ellipsis) {
+      if (opname == onk_function_call && !is_nonstatic_member_function) {
+        /* In C++23, a function call operator can be static and have no
+           parameters at all. */
+      } else if (rtsp->has_ellipsis) {
         /* operator()(...) and operator new(...) are errors, but we do
            allow operator()(T, ...) and operator new(size_t, ...). */
         error_code = ec_ellipsis_on_operator_function;
@@ -2010,14 +2013,15 @@ no_parameters_left:
         }  /* if */
       }  /* if */
     }  /* if */
-  } else {
+  } else if (!is_nonstatic_member_function && opname != onk_function_call) {
     /* If the operator function is not a nonstatic member and does not have
        operands of class or enum type (or reference to class or enum type),
-       issue an error.  This restriction does not apply to new and delete,
-       however.  Also, in C++/CLI mode, static member operators of special
-       value class types (like System::Double) that correspond to fundamental
-       types can have those fundamental types as the only parameter types. */
-    if (!is_nonstatic_member_function && !any_class_or_enum_type_params &&
+       issue an error.  (This restriction does not apply to new and delete,
+       nor to a static operator(), which is permitted in C++23.)  Also, in
+       C++/CLI mode, static member operators of special value class types
+       (like System::Double) that correspond to fundamental types can have
+       those fundamental types as the only parameter types. */
+    if (!any_class_or_enum_type_params &&
         !any_template_param_type_params && !this_equivalent_seen) {
       if (diag_pos != NULL) {
         pos_error(operator_overloading_on_enums_enabled ?
@@ -2027,7 +2031,7 @@ no_parameters_left:
       }  /* if */
       err = TRUE;
     } else if (cli_or_cx_enabled && class_type != NULL &&
-               !is_nonstatic_member_function && !this_equivalent_seen) {
+               !this_equivalent_seen) {
       if (diag_pos != NULL) {
         pos_ty_error(ec_bad_parameter_type_for_static_member_operator,
                      diag_pos, class_type);

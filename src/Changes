@@ -1,6 +1,6 @@
 Version 6.7
 
-2/20/24  [EDGcpfe/26729]
+2/20/24  [EDGcpfe/26739]
 Abort on conversion of lambda with explicit-this parameter
 
 Consider:

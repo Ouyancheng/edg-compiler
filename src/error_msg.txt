@@ -3476,6 +3476,8 @@ ec_invalid_char_in_unicode_name;;"character cannot appear in a Unicode name"
 ec_empty_unicode_name;;"empty named Unicode character escape"
 ec_exp_lsplice;;"expected a \"[:\""
 ec_exp_rsplice;;"expected a \":]\""
+ec_lambda_mutable_and_static;;"a lambda expression cannot be both \"mutable\" and \"static\""
+ec_static_lambda_nonstandard;;"a \"static\" lambda expression is nonstandard"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
