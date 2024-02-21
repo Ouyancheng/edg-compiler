@@ -1,5 +1,29 @@
 Version 6.7
 
+2/20/24  [EDGcpfe/26729]
+Abort on conversion of lambda with explicit-this parameter
+
+Consider:
+
+  auto lm = [](this auto self, int x) { return 42; };
+  int (*pf)(decltype(lm), int) = lm;  // Previously aborted.  Now okay.
+
+This example previously aborted in type_change_constant_full (folding.c) with
+an internal error.  That is now fixed.
+
+
+2/20/24  [EDGcpfe/25514,EDGcpfe/26992]
+C++23: Static operator()
+
+In C++23 modes, the front end now accepts static operator() member functions.
+Lambda expressions can also be marked "static" to indicate that their
+associated call operator is a static member function.  This language extension
+was added to C++23 via WG21 paper P1169R4.  In some GNU modes (with
+gnu_version >= 120000), some Clang modes (with clang_version >= 160000) and
+some Microsoft modes (with microsoft_version >= 1939), these extensions are
+also accepted with a warning when C++23 is not enabled.
+
+
 2/19/24  [EDGcpfe/27013]
 Incorrect destruction of variadic init-captures
 
