@@ -14925,14 +14925,13 @@ return FALSE and let the caller generate the code normally.
             obj_expr_of_mfunc_operator = FALSE;
           }  /* if */
           gen_object_expr_for_implicit_call(arg, obj_expr_of_mfunc_operator);
-          arg = arg->next;
-        } else if (!rp->source_corresp.is_class_member) {
+        } else {
           /* For non-member functions, there's a parameter declaration to
              guide the generation of the first operand. */
           gen_argument(arg, param, /*operator_notation=*/TRUE);
-          arg = arg->next;
           param = param->next;
         }  /* if */
+        arg = arg->next;
         if (operand_parens_needed) {
           write_tok_ch(')');
         }  /* if */
