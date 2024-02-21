@@ -21034,6 +21034,25 @@ return FALSE.
 }  /* is_template_defined */
 
 
+static a_boolean is_template_defined(an_ifc_decl_index decl_idx)
+/*
+Return TRUE if the declaration at the given IFC index is a template definition;
+otherwise, return FALSE.
+*/
+{
+  a_boolean                 result = FALSE;
+  Opt<an_ifc_decl_template> opt_templ_decl;
+
+  construct_node(&opt_templ_decl, decl_idx);
+  if (opt_templ_decl.has_value()) {
+    an_ifc_decl_template templ_decl = *opt_templ_decl;
+
+    result = is_template_defined(templ_decl);
+  }  /* if */
+  return result;
+}  /* is_template_defined */
+
+
 void an_ifc_module::cache_decl_template(a_module_token_cache_ptr   cache,
                                         an_ifc_decl_index          decl_idx,
                                         const an_ifc_decl_template &decl,
@@ -25115,6 +25134,10 @@ static void record_pending_ifc_template_definition(a_template_ptr    templ,
 /*
 Record the information needed to retrieve a definition for templ if it turns
 out to be needed later on.
+
+Note as the lazy loading system handles default template arguments, some
+declarations are recorded as definitions that aren't proper definitions (and
+later replaced if a more complete definition is discovered).
 */
 {
   /* Ensure the canonical template IL entity is what's being mapped onto. */
@@ -25127,17 +25150,31 @@ out to be needed later on.
        definition, so record the definition. */
     (void)ifc_template_definitions->map(templ, decl_idx);
   } else {
+    /* The pending template definition is being reconsidered.  Replace the
+       definition in the mapping if the newly observed declaration is a
+       definition. */
+    if (is_template_defined(decl_idx)) {
 #if DEBUG
-    if (db_flag_is_set("ifc_redef")) {
-      a_string decl_idxs(index_to_str(existing_decl), " replaced by ",
-                         index_to_str(decl_idx));
+      if (db_flag_is_set("ifc_redef")) {
+        a_string decl_idxs(index_to_str(existing_decl), " replaced by ",
+                           index_to_str(decl_idx));
+        print(decl_idxs, f_debug);
+        db_diff_decls(existing_decl, decl_idx);
+      }  /* if */
+#endif /* DEBUG */
+      (void)ifc_template_definitions->map_or_replace(templ, decl_idx);
+    }
+    /* Do not add code here. */
+#if DEBUG
+    else if (db_flag_is_set("ifc_redef")) {
+      a_string decl_idxs("Keeping ", index_to_str(existing_decl),
+                         " instead of ", index_to_str(decl_idx),
+                         "; the replacement would have been:");
+
       print(decl_idxs, f_debug);
       db_diff_decls(existing_decl, decl_idx);
     }  /* if */
 #endif /* DEBUG */
-    /* The template definition is being replaced.  Replace the definition in
-       the mapping. */
-    (void)ifc_template_definitions->map_or_replace(templ, decl_idx);
 
     /* If there are any specializations associated with the previous
        definition, add them to the pending specializations list. */
@@ -25168,35 +25205,16 @@ required).
     /* The kind should be a template, otherwise this mep should've been
        marked invalid. */
     check_assertion(mep->entity.kind == iek_template);
-    a_template_ptr       templ = (a_template_ptr)mep->entity.ptr;
-    an_ifc_decl_template templ_decl;
+    a_template_ptr templ = (a_template_ptr)mep->entity.ptr;
 
-    construct_node_prechecked(&templ_decl, decl_idx);
-    if (!is_defined(mep->entity.ptr, mep->entity.kind) &&
-        is_template_defined(templ_decl)) {
-      /* The IL template is not currently defined and the IFC template is a
-         definition; map the IFC template for future processing. */
-      record_pending_ifc_template_definition(templ, decl_idx);
-    } else {
+    if (is_defined(mep->entity.ptr, mep->entity.kind)) {
       an_ifc_template_spec_info spec_info(decl_idx);
 
       if (spec_info.has_specs()) {
         record_pending_ifc_template_specializations(templ, decl_idx);
       }  /* if */
-#if DEBUG
-      if (db_flag_is_set("ifc_redef")) {
-        an_ifc_decl_index existing_decl = ifc_template_definitions->get(templ);
-
-        if (!is_null_index(existing_decl)) {
-          a_string decl_idxs("Keeping ", index_to_str(existing_decl),
-                             " instead of ", index_to_str(decl_idx),
-                             "; the replacement would have been:");
-
-          print(decl_idxs, f_debug);
-          db_diff_decls(existing_decl, decl_idx);
-        }  /* if */
-      }  /* if */
-#endif /* DEBUG */
+    } else {
+      record_pending_ifc_template_definition(templ, decl_idx);
     }  /* if */
   }  /* if */
 }  /* finish_mep_processing */
