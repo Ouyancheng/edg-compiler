@@ -1,5 +1,27 @@
 Version 6.7
 
+2/22/24  [EDGcpfe/27002]
+Spurious error for non-dependent co_await in template-dependent coroutine
+
+Previously, a co_await expression with a non-dependent operand appearing in a
+coroutine with a dependent function type elicited a spurious error.  For
+example, with --c++20:
+
+  #include <coroutine>
+  struct A {
+    struct promise_type {
+      A get_return_object();
+      std::suspend_never initial_suspend();
+      std::suspend_never final_suspend() noexcept;
+      void unhandled_exception();
+      void return_void() {}
+    };
+  };
+  auto l = [] (auto) -> A {
+    co_await std::suspend_always{};  // Previously a spurious error.  Now okay.
+  };
+
+
 2/21/24  [EDGcpfe/27031]
 GNU-mode abort on invalid call in template
 

@@ -6594,7 +6594,8 @@ in which such a return is undefined.
   } else if (rout->is_coroutine) {
     a_coroutine_descr_ptr cdp = get_coroutine_descr(rout);
     check_assertion(is_implicit_return);
-    if (!cdp->error_descr && !cdp->has_return_void) {
+    if (!cdp->error_descr && !cdp->has_return_void &&
+        !is_template_dependent_type(cdp->promise->type)) {
       /* We're missing an explicit co_return statement and don't have a
          return_void to implicitly call. */
       a_symbol_ptr function_name_symbol = symbol_for(rout);

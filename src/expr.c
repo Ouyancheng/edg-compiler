@@ -44587,9 +44587,8 @@ suspend point.
                     alep;
   a_type_ptr        utp;
   a_symbol_locator  loc;
-  a_boolean         temp_init_used, processed;
+  a_boolean         temp_init_used, processed, is_dependent_operand;
   an_expr_node_ptr  node;
-  a_routine_ptr     curr_routine;
   a_coroutine_descr_ptr
                     cdp;
 
@@ -44610,21 +44609,26 @@ suspend point.
     make_error_operand(operand);
     goto done;
   }  /* if */
-  curr_routine = current_routine_entry();
-  if (is_template_dependent_context() && operand_is_dependent(operand)) {
-    /* If the operand is template-dependent, we represent the "co_yield" or
-       "co_await" as a normal unary operation rather than with an enk_await or
-       enk_yield node that carries the actual underlying operations. */
-    prep_generic_operand(operand);
-    template_unary_operation((an_expr_operator_kind)(for_yield ? eok_yield
-                                                               : eok_await),
-                             operand, operand, pos, tok_seq_number);
-    goto done;
+  is_dependent_operand = is_template_dependent_context() &&
+                         operand_is_dependent(operand);
+  if (!is_dependent_operand) {
+    cdp = get_coroutine_descr(current_routine_entry());
+    if (cdp->error_descr) {
+      expect_error();
+      make_error_operand(operand);
+      goto done;
+    }  /* if */
   }  /* if */
-  cdp = get_coroutine_descr(curr_routine);
-  if (cdp->error_descr) {
-    expect_error();
-    make_error_operand(operand);
+  if (is_dependent_operand ||
+      (is_template_dependent_context() &&
+       is_template_dependent_type(cdp->promise->type))) {
+    /* If the operand is template-dependent or we have a dependent promise
+       type, we represent the "co_yield" or "co_await" as a normal unary
+       operation rather than with an enk_await or enk_yield node that carries
+       the actual underlying operations. */
+    prep_generic_operand(operand);
+    template_unary_operation(for_yield ? eok_yield : eok_await, operand,
+                             operand, pos, tok_seq_number);
     goto done;
   }  /* if */
   node = alloc_expr_node(for_yield ? (an_expr_node_kind)enk_yield
