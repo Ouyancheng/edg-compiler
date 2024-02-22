@@ -38487,9 +38487,9 @@ FIXME: This is currently incomplete.
         /* Treat the splice of a field as if the field name was specified as
            a qualified name. */
         make_sym_for_member_operand(symbol_for((a_field*)rvp->entity.ptr),
-                                               /*is_qualified_name=*/TRUE,
-                                               (a_ref_entry*)NULL,
-                                               result);
+                                    /*is_qualified_name=*/TRUE,
+                                    (a_ref_entry*)NULL,
+                                    result);
         result->is_id_expression = TRUE;
       } else if (iek == iek_variable) {
         vp = (a_variable*)rvp->entity.ptr;
@@ -38507,15 +38507,23 @@ variable_case:
       } else if (iek == iek_routine) {
         rp = (a_routine*)rvp->entity.ptr;
 routine_case:
-        make_function_designator_operand(symbol_for(rp),
-                                         /*is_qualified_name=*/FALSE,
-                                         /*compiler_generated=*/TRUE,
-                                         &opnd.position,
-                                         end_position_or_null(
-                                               &curr_construct_end_position),
-                                         ref_entry(symbol_for(rp),
-                                                   &opnd.position),
-                                         result);
+        if (routine_type_is_nonstatic_member_function(rp->type)) {
+          make_sym_for_member_operand(symbol_for(rp),
+                                      /*is_qualified_name=*/TRUE,
+                                      (a_ref_entry*)NULL,
+                                      result);
+          result->is_id_expression = TRUE;
+        } else {
+          make_function_designator_operand(symbol_for(rp),
+                                           /*is_qualified_name=*/FALSE,
+                                           /*compiler_generated=*/TRUE,
+                                           &opnd.position,
+                                           end_position_or_null(
+                                                &curr_construct_end_position),
+                                           ref_entry(symbol_for(rp),
+                                                     &opnd.position),
+                                           result);
+        }  /* if */
       } else {
         expr_pos_error(ec_bad_reflection_kind_for_expression_splice,
                        &start_pos, *rvp);
