@@ -2616,6 +2616,7 @@ instantiated.
   a_routine_ptr  static_entry_pt = NULL, lambda_body;
   
   lambda_body = lambda_body_for_closure(closure_type);
+  check_assertion(lambda_body != NULL);
   if (conv_op->assoc_template == NULL ||
       conv_op->assoc_template->kind == templk_member_function) {
     /* For ordinary (i.e., non-generic) lambdas, the alternate (static) entry
