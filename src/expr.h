@@ -828,8 +828,8 @@ a_type_ptr scan_decltype_operator(a_rescan_control_block *rcblock,
                                   a_boolean              might_be_id_start);
 
 extern
-a_type_ptr scan_typename_operator(a_rescan_control_block *rcblock,
-                                  a_boolean              might_be_id_start);
+a_type_ptr scan_type_splicer(a_rescan_control_block *rcblock,
+                             a_boolean              might_be_id_start);
 
 extern a_type_ptr decltype_of_expr_with_substitution(
                                   a_type_ptr               type,

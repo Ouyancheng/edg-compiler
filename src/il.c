@@ -1785,14 +1785,16 @@ Dump the contents of the indicated type entry, for debug purposes.
             db_name_full(&tp->source_corresp, iek_type);
             fputs("\" ", f_debug);
           }  /* if */
-          if (is_typeref_kind(tp, trk_is_decltype)) {
-            fputs("decltype(", f_debug);
+          if (is_typeref_kind(tp, trk_is_decltype) ||
+              is_typeref_kind(tp, trk_is_splice)) {
+            fputs(is_typeref_kind(tp, trk_is_splice) ? "[:" : "decltype(",
+                  f_debug);
             an_il_to_str_output_control_block octl;
             clear_il_to_str_output_control_block(&octl);
             octl.output_str = put_str_to_f_debug;
             octl.debug_output = TRUE;
             db_abbr_expr(decltype_arg(tp), &octl);
-            fputs(") ", f_debug);
+            fputs(is_typeref_kind(tp, trk_is_splice) ? ":] " : ") ", f_debug);
           }  /* if */
           if (typeref_is_type_transforming_intrinsic(tp)) {
             fputs(type_transforming_intrinsic_name(tp->variant.typeref.kind),

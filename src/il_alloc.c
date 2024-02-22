@@ -2228,7 +2228,6 @@ to default values.
                                        = (a_name_linkage_kind)nlk_none;
 #endif /* BACK_END_IS_CP_GEN_BE */
       pte->variant.typeref.decltype_expr_not_parenthesized = FALSE;
-      pte->variant.typeref.is_spliced = FALSE;
       pte->variant.typeref.is_dependent_type_operator = FALSE;
       pte->variant.typeref.is_nonreal = FALSE;
       pte->variant.typeref.is_dependent = FALSE;

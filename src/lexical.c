@@ -23032,8 +23032,8 @@ selection operator, in which case it points to the type of the left operand.
       tp = scan_decltype_operator((a_rescan_control_block *)NULL,
                                   /*might_be_id_start=*/TRUE);
     } else {
-      tp = scan_typename_operator((a_rescan_control_block *)NULL,
-                                  /*might_be_id_start=*/TRUE);
+      tp = scan_type_splicer((a_rescan_control_block *)NULL,
+                             /*might_be_id_start=*/TRUE);
     }  /* if */
     next_tok = next_two_tokens_if_qualifier_delimiter(tok_colon_colon,
                                                       &next_tok_2);

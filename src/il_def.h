@@ -9262,6 +9262,7 @@ enum a_typeref_kind : a_byte {
   trk_is_template_alias,
                         /* A type created for instantiations of alias
                            templates, including the prototype instantiation. */
+  trk_is_splice,        /* A type entry representing an type splice. */
   trk_bases,            /* TRUE for a typeref entry for a g++ __bases
                            operator. */
   trk_direct_bases,     /* TRUE for a typeref entry for a g++ __direct_bases
@@ -10284,10 +10285,6 @@ typedef struct a_type {
 			   id-expressions and member access operators).
 			   So, for example, TRUE for "decltype(x.y)" and
 			   FALSE for "decltype((x.y))". */
-      a_bit_field
-		is_spliced:1;
-			/* The type results from a typename[: ... :] construct
-			   (i.e., spliced from a reflection value). */
       a_bit_field
 		is_dependent_type_operator:1;
 			/* TRUE if the type was created by decltype,

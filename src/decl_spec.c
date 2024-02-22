@@ -10633,8 +10633,8 @@ storage_class_specifier:
             /* The splice is a name qualifier. */
             goto general_identifier_case;
           } else {
-            *type_ptr = scan_typename_operator((a_rescan_control_block *)NULL,
-                                               /*might_be_id_start=*/FALSE);
+            *type_ptr = scan_type_splicer((a_rescan_control_block *)NULL,
+                                          /*might_be_id_start=*/FALSE);
             basic_type = bt_typedef;
             decl_specifiers_seen |= DS_TYPE;
             goto no_get_token;
@@ -11716,8 +11716,8 @@ process_enum_specifier:
                to the qualified name in that case). */
             goto general_identifier_case;
           } else {
-            *type_ptr = scan_typename_operator((a_rescan_control_block *)NULL,
-                                               /*might_be_id_start=*/FALSE);
+            *type_ptr = scan_type_splicer((a_rescan_control_block *)NULL,
+                                          /*might_be_id_start=*/FALSE);
             basic_type = bt_typedef;
             decl_specifiers_seen |= DS_TYPE;
             goto no_get_token;

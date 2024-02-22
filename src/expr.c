@@ -16507,22 +16507,22 @@ name.  We do not advance to the token after the decltype in this case.
 }  /* scan_decltype_operator */
 
 
-a_type_ptr scan_typename_operator(a_rescan_control_block *rcblock,
-                                  a_boolean              might_be_id_start)
+a_type_ptr scan_type_splicer(a_rescan_control_block *rcblock,
+                             a_boolean              might_be_id_start)
 /*
-Scan the typename operator.
+Scan the type splicer.
 
 Syntax:
         typename [: reflection-value :]
 
 where "reflection-value" is a constant-expression of type "std::meta::info"
 and the "typename" prefix is optional (the caller will diagnose if it wasn't
-optional).  If rcblock is non-NULL, redo semantic analysis on a
-previously-scanned typename operator, and return the result type (or an error
-indication in *rcblock).  This routine is intended to be called from outside
-of the expression-processing routines.  might_be_id_start is TRUE if we are in
-a context where the typename operator could be the start of a qualified name.
-We do not advance to the token after the typename operator in this case.
+optional).  If rcblock is non-NULL, redo semantic analysis on a previously-
+scanned splicer, and return the result type (or an error indication in
+*rcblock).  This routine is intended to be called from outside of the
+expression-processing routines.  might_be_id_start is TRUE if we are in a
+context where the type splicer could be the start of a qualified name.  Do not
+advance to the token after the typename operator in that case.
 */
 {
   a_type_ptr              result;
@@ -16659,16 +16659,17 @@ We do not advance to the token after the typename operator in this case.
        rescanning.  Rather than produce a typeref type representing the
        construct, we just return the underlying type in this case, and reclaim
        the expression node if possible. */
-    result = error_type();  // FIXME
     reclaim_fs_nodes_of_operand(&operand);
   } else {
+    /* Create a typeref representing the splice with the spliced type being
+       the underlying type. */
     a_type_ptr  tp = alloc_type((a_type_kind)tk_typeref);
     a_boolean   dependent_arg = is_template_dependent_context() &&
                                 is_template_dependent_type(result);
     a_memory_region_number
                 prev_region;
+    tp->variant.typeref.kind = trk_is_splice;
     tp->variant.typeref.type = result;
-    tp->variant.typeref.is_spliced = TRUE;
     tp->variant.typeref.is_dependent_type_operator = dependent_arg;
     tp->variant.typeref.is_nonreal = dependent_arg;
     tp->variant.typeref.is_dependent = dependent_arg;
@@ -16732,7 +16733,7 @@ We do not advance to the token after the typename operator in this case.
   switch_back_region_and_lifetime(region_to_switch_back_to,
                                   saved_object_lifetime);
   return result;
-}  /* scan_typename_operator */
+}  /* scan_type_splicer */
 
 
 /*
@@ -16849,13 +16850,13 @@ a_type_ptr decltype_of_expr_with_substitution(
                                   a_boolean                *copy_error,
                                   a_ctws_state_ptr         ctws_state)
 /*
-type is a decltype type, and expr is the previously-scanned operand
-expression of the decltype.  Do template deduction substitution on it
-using template_arg_list, template_param_list, and options.  Return the
-type of decltype applied to the resulting expression, or *copy_error
-set to TRUE if there was an error.  ctws_state is the substitution state
-block.  Also used for typeof cases; "type" can be consulted to tell the
-difference.  This routine is intended to be called from outside of the
+type is a decltype-like typeref entry, and expr is the previously-scanned
+operand expression of the decltype-like construct (it could be a typeof or
+splice construct).  Apply template substitution to the operand using
+template_arg_list, template_param_list, and options.  Return the type of the
+decltype-like construct applied to the resulting expression, or set
+*copy_error to TRUE if there was an error.  ctws_state is the substitution
+state block.  This routine is intended to be called from outside of the
 expression-processing routines.
 */
 {
@@ -16863,17 +16864,19 @@ expression-processing routines.
   a_rescan_control_block      rcblock;
   a_saved_expr_rescan_context saved_context;
   an_expr_stack_entry         expr_stack_entry;
-  a_boolean                   is_typeof = FALSE;
+  a_boolean                   is_typeof = FALSE, is_splice = FALSE;
 
-  check_assertion(type->kind == (a_type_kind)tk_typeref);
   /* __underlying_type constructs don't allow expression arguments. */
-  check_assertion(!is_typeref_kind(type, trk_is_underlying_type));
+  check_assertion(type_is(type , tk_typeref) &&
+                  !is_typeref_kind(type, trk_is_underlying_type));
+  if (is_typeref_kind(type, trk_is_splice)) {
+    is_splice = TRUE;
 #if GNU_EXTENSIONS_ALLOWED
-  if (is_typeref_kind(type, trk_is_typeof_with_expression) ||
-      is_typeref_kind(type, trk_is_typeof_with_type_operand)) {
+  } else if (is_typeref_kind(type, trk_is_typeof_with_expression) ||
+             is_typeref_kind(type, trk_is_typeof_with_type_operand)) {
     is_typeof = TRUE;
-  }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+  }  /* if */
   clear_rescan_control_block(&rcblock);
   rcblock.template_arg_list = template_arg_list;
   rcblock.template_param_list = template_param_list;
@@ -16884,10 +16887,12 @@ expression-processing routines.
   push_expr_stack_for_expr_rescan((an_expression_kind)ek_sizeof,
                                   &rcblock,
                                   &expr_stack_entry);
-  if (!is_typeof) {
-    new_type = scan_decltype_operator(&rcblock, /*might_be_id_start=*/FALSE);
-  } else {
+  if (is_splice) {
+    new_type = scan_type_splicer(&rcblock, /*might_be_id_start=*/FALSE);
+  } else if (is_typeof) {
     new_type = scan_typeof_operator(&rcblock, (a_decl_pos_block *)NULL);
+  } else {
+    new_type = scan_decltype_operator(&rcblock, /*might_be_id_start=*/FALSE);
   }  /* if */
   pop_expr_stack();
   pop_expr_rescan_context_if_necessary(&saved_context);
@@ -41862,8 +41867,8 @@ type_start:
 
         if (curr_token == tok_typename) {
           if (reflection_enabled && next_token() == tok_lsplice) {
-            cast_type = scan_typename_operator((a_rescan_control_block *)NULL,
-                                               /*might_be_id_start=*/FALSE);
+            cast_type = scan_type_splicer((a_rescan_control_block *)NULL,
+                                          /*might_be_id_start=*/FALSE);
           } else {
             /* "typename X::Y" is an allowed form of type. */
             a_symbol_ptr	type_sym;

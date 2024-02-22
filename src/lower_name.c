@@ -221,7 +221,8 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_OPERATOR_GCNEW "gc"
 #define MANGLING_STRING_FOR_SAFE_CAST "v112clisafe_cast"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#define MANGLING_STRING_FOR_SPLICE "v16splice"
+#define MANGLING_STRING_FOR_SPLICE "v6splice"
+#define MANGLING_STRING_FOR_TYPE_SPLICE "u6splice"
 
 #else /* !IA64_ABI */
 /* Cfront-like name mangling codes. */
@@ -479,6 +480,7 @@ type in the std namespace.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #define MANGLING_STRING_FOR_SPLICE "SP"
+#define MANGLING_STRING_FOR_TYPE_SPLICE "SP"
 
 #endif /* IA64_ABI */
 
@@ -3767,7 +3769,8 @@ appropriate. The type must not have had its typerefs skipped by the caller.
 
   type = skip_typerefs_not_dependent_decltypes(type);
   if (type->kind == (a_type_kind)tk_typeref &&
-      is_typeref_kind(type, trk_is_decltype)) {
+      (is_typeref_kind(type, trk_is_decltype) ||
+       is_typeref_kind(type, trk_is_splice))) {
     result = TRUE;
   } else {
     if (is_proxy_class(type)) {
@@ -10310,6 +10313,10 @@ top_of_loop:
           break;
         }  /* if */
       }  /* if */
+    } else if (is_typeref_kind(type, trk_is_splice) &&
+               type->variant.typeref.is_dependent_type_operator) {
+      /* This splice needs to appear in the mangled name. */
+      break;
     } else if (is_typeref_kind(type, trk_is_underlying_type) &&
                type->variant.typeref.is_dependent_type_operator) {
       /* This __underlying_type needs to appear in the mangled name. */
@@ -10780,6 +10787,14 @@ top_of_loop:
             mangled_encoding_for_expression(decltype_expr,
                                             /*in_dependent_expr=*/TRUE, mctl);
           }  /* if */
+#if IA64_ABI
+          add_to_mangled_name('E', mctl);
+#endif /* IA64_ABI */
+          goto have_whole_mangled_name;
+        } else if (is_typeref_kind(type, trk_is_splice)) {
+          add_str_to_mangled_name(MANGLING_STRING_FOR_TYPE_SPLICE, mctl);
+          mangled_encoding_for_expression(decltype_arg(type),
+                                          /*in_dependent_expr=*/TRUE, mctl);
 #if IA64_ABI
           add_to_mangled_name('E', mctl);
 #endif /* IA64_ABI */

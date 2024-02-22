@@ -551,6 +551,7 @@ clang/GNU type-returning type builtin.
              !is_typeref_kind(tp, trk_is_template_alias);
   } else {
     result = is_typeref_kind((tp), trk_is_decltype) ||
+             is_typeref_kind((tp), trk_is_splice) ||
              is_typeref_kind((tp), trk_bases) ||
              is_typeref_kind((tp), trk_direct_bases) ||
              is_typeref_kind((tp), trk_is_typeof_with_expression) ||

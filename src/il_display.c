@@ -2061,6 +2061,7 @@ Display a typeref kind.
     case trk_for_type_attributes:      str = "for_type_attributes";      break;
     case trk_is_alias:                 str = "is_alias";                 break;
     case trk_is_template_alias:        str = "is_template_alias";        break;
+    case trk_is_splice:                str = "is_splice";                break;
     case trk_bases:                    str = "bases";                    break;
     case trk_direct_bases:             str = "direct_bases";             break;
     case trk_add_lvalue_reference:     str = "add_lvalue_reference";     break;
@@ -2547,9 +2548,6 @@ Display the indicated type entry.
 #endif /* BACK_END_IS_CP_GEN_BE */
       if (ptr->variant.typeref.decltype_expr_not_parenthesized) {
         disp_boolean("decltype_expr_not_parenthesized", TRUE);
-      }  /* if */
-      if (ptr->variant.typeref.is_spliced) {
-        disp_boolean("is_spliced", TRUE);
       }  /* if */
       if (ptr->variant.typeref.is_dependent_type_operator) {
         disp_boolean("is_dependent_type_operator", TRUE);
