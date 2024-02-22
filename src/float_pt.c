@@ -621,7 +621,7 @@ the radix point (set in host_envir_early_init).
   (void)sscanf(str, "%Lf", &temp);
   /* Check for overflow or underflow by converting the number back to a
      string. */
-  if (detail::snprintf_impl(buf, 60, "%.*Le", LDBL_DIG, temp) < 0) {
+  if (detail::snprintf_impl(buf, sizeof(buf), "%.*Le", LDBL_DIG, temp) < 0) {
     err = TRUE;
   } else if (temp == 0.0L) {
     a_boolean	nonzero = FALSE;
@@ -912,7 +912,8 @@ underflow.  If the conversion can be done, return the result in "result".
            or infinity. */
         char float_string[15];
 
-        if (detail::snprintf_impl(float_string, 15, "%.2e", float_temp) >= 0) {
+        if (detail::snprintf_impl(float_string, sizeof(float_string), "%.2e",
+                                                            float_temp) >= 0) {
           char *ptr = float_string;
 
           if (*ptr == '-') ptr++;
@@ -1175,7 +1176,8 @@ underflow.  If the conversion can be done, return the result in "result".
            or infinity. */
         char dbl_string[45];
 
-        if (detail::snprintf_impl(dbl_string, 45, "%.2e", double_temp) >= 0) {
+        if (detail::snprintf_impl(dbl_string, sizeof(dbl_string), "%.2e",
+                                                           double_temp) >= 0) {
           char *ptr = dbl_string;
 
           if (*ptr == '-') ptr++;
