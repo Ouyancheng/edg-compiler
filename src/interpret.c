@@ -14166,6 +14166,9 @@ by this_bytes.
     do_constexpr_fail(result);
     info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
                   &arg->position, ips);
+    if (type_is(tp, tk_error)) {
+      ips->input_error = TRUE;
+    }  /* if */
   }  /* if */
   mark_complete_object_initialized(this_bytes);
 done:
