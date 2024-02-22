@@ -14841,6 +14841,15 @@ return FALSE and let the caller generate the code normally.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
     {
+      an_expr_node_ptr  prev_next = NULL, dot_static_selector = NULL;
+      if (func_expr != NULL && node_is_operator(func_expr, eok_dot_static)) {
+        /* For static operators, the first argument may be part of the call
+           target node.  Temporarily make it part of the argument list. */
+        dot_static_selector = func_expr->variant.operation.operands;
+        prev_next = dot_static_selector->next;
+        dot_static_selector->next = arg;
+        arg = dot_static_selector;
+      }  /* if */
       if (arg != NULL && arg->next == NULL &&
           (op == (an_opname_kind)onk_plus_plus ||
            op == (an_opname_kind)onk_minus_minus ||
@@ -14925,6 +14934,9 @@ return FALSE and let the caller generate the code normally.
             obj_expr_of_mfunc_operator = FALSE;
           }  /* if */
           gen_object_expr_for_implicit_call(arg, obj_expr_of_mfunc_operator);
+        } else if (rp->source_corresp.is_class_member) {
+          /* A static operator. */
+          gen_expr_with_parens(arg);
         } else {
           /* For non-member functions, there's a parameter declaration to
              guide the generation of the first operand. */
@@ -15000,6 +15012,11 @@ return FALSE and let the caller generate the code normally.
 
       if (outer_parens_needed) {
         write_tok_ch(')');
+      }  /* if */
+
+      if (dot_static_selector != NULL) {
+        /* Restore the eok_dot_static structure. */
+        dot_static_selector->next = prev_next;
       }  /* if */
       handled = TRUE;
     }  /* if */
