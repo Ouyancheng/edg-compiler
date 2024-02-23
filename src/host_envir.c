@@ -2802,7 +2802,7 @@ char *get_file_name_from_dir(a_boolean	  first,
        that is used on subsequent calls to get the remaining directory
        entries. */
     Small_string<10> tmp_pattern("*", suffix);
-    tmp_pattern.write_to_buffer(pattern, /*buffer_len=*/10);
+    tmp_pattern.write_to_buffer(pattern, sizeof(pattern));
     handle = _tfindfirst(pattern, &fileinfo);
     if (handle < 0) {
       /* Directory could not be opened, or is empty. */
