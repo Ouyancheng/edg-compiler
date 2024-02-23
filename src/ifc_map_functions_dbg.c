@@ -35,6 +35,9 @@ more about, the tool that generated this file.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
+/* Disable spurious GCC warnings in generated code. */
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
+
 
 void db_node(const an_ifc_keyword_syntax &universal, unsigned indent)
 /*
@@ -23740,6 +23743,9 @@ associated node.
   }  /* switch */
 }  /* db_node_at_idx */
 
+
+/* Disable spurious GCC warnings in generated code. */
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

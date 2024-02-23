@@ -25,6 +25,9 @@ more about, the tool that generated this file.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
+/* Disable spurious GCC warnings in generated code. */
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
+
 
 /*
 Explicit specializations of functions for ExprNamedDeclOffset.
@@ -53,6 +56,9 @@ Explicit specializations of functions for ScopeOffset.
 SPEC_OFFSET_PARTITION_KIND(an_ifc_scope_offset)
 SPEC_OFFSET_PARTITION_INDEX(an_ifc_scope_offset)
 
+
+/* Disable spurious GCC warnings in generated code. */
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

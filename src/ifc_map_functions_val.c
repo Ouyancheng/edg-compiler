@@ -33,6 +33,9 @@ more about, the tool that generated this file.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
+/* Disable spurious GCC warnings in generated code. */
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
+
 
 a_boolean is_known_sort(an_ifc_access_sort_0_33 versioned)
 /*
@@ -32291,6 +32294,9 @@ return FALSE.
   return result;
 }  /* validate_offset */
 
+
+/* Disable spurious GCC warnings in generated code. */
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

@@ -33,6 +33,9 @@ more about, the tool that generated this file.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
+/* Disable spurious GCC warnings in generated code. */
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
+
 
 /*
 Functions for writing data to IFC KeywordSyntax nodes.
@@ -29785,6 +29788,9 @@ field "type" to the given TypeIndex value.
   copy_to_node_field(&stage_1, universal->get_storage(), /*offset=*/0);
 }  /* set_ifc_type */
 
+
+/* Disable spurious GCC warnings in generated code. */
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

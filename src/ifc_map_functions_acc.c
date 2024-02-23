@@ -33,6 +33,9 @@ more about, the tool that generated this file.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
+/* Disable spurious GCC warnings in generated code. */
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
+
 
 /*
 Functions for reading data from IFC KeywordSyntax nodes.
@@ -58693,6 +58696,9 @@ representation of the field "type".
   return result;
 }  /* get_ifc_type */
 
+
+/* Disable spurious GCC warnings in generated code. */
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

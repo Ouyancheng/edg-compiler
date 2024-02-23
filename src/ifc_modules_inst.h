@@ -24,6 +24,9 @@ more about, the tool that generated this file.
 
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
+
+/* Disable spurious GCC warnings in generated code. */
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 INST_NODE_DECL(an_ifc_ieeele_float_storage)
 INST_NODE_DECL(an_ifc_sha256_storage)
 INST_NODE_DECL(an_ifc_storage_class_storage)
@@ -2201,6 +2204,9 @@ Explicit instantiations of functions for ScopeOffset.
 */
 INST_PARTITION_ALL(an_ifc_scope_offset)
 
+
+/* Disable spurious GCC warnings in generated code. */
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

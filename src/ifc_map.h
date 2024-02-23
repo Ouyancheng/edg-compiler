@@ -24,6 +24,9 @@ more about, the tool that generated this file.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
+/* Disable spurious GCC warnings in generated code. */
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
+
 struct an_ifc_module_file;
 
 /*
@@ -20376,6 +20379,9 @@ EXTERN an_ifc_partition_map ifc_partition_map[IFC_PARTITION_COUNT]
 #endif /* VAR_INITIALIZERS */
 ;
 
+
+/* Disable spurious GCC warnings in generated code. */
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

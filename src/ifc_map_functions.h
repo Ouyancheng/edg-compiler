@@ -25,6 +25,9 @@ more about, the tool that generated this file.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
+/* Disable spurious GCC warnings in generated code. */
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
+
 extern a_boolean is_supported_ifc_version(an_ifc_version major_version,
                                           an_ifc_version minor_version);
 
@@ -36252,6 +36255,9 @@ extern void db_node_at_idx(an_ifc_syntax_index idx);
 
 extern void db_node_at_idx(an_ifc_type_index idx);
 
+
+/* Disable spurious GCC warnings in generated code. */
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
