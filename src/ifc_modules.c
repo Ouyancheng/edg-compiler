@@ -767,8 +767,10 @@ Utility to print some debug information for every access to an IFC module file.
 {
   if (db_flag_is_set("ifc_modules")) {
     if (debug_partition != NULL) {
+#if USE_MMAP_FOR_MEMORY_REGIONS
       const an_ifc_module_file_read_state &rs_ref =
                                                    this->file.get_read_state();
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 
       (void)fprintf(f_debug, "[%s:0x%08lx:%d] = ",
                     debug_partition->name,
@@ -778,7 +780,7 @@ Utility to print some debug information for every access to an IFC module file.
                                      debug_partition->offset) - length),
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
                     (unsigned long)
-                   (ftell(rs_ref.f_module) - debug_partition->offset - length),
+               (ftell(this->file.f_module) - debug_partition->offset - length),
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
                     (int)length);
     }  /* if */
@@ -1408,18 +1410,19 @@ information provided by its header.
                                             get_ifc_string_table_bytes(header);
   an_ifc_cardinality         string_table_size =
                                              get_ifc_string_table_size(header);
-  an_ifc_module_file_read_state
-                             &read_state = file->get_read_state();
 
   result.size = string_table_size;
 #if USE_MMAP_FOR_MEMORY_REGIONS
-  result.contents = (char*)read_state.mmap_addr + string_table_bytes;
+  { an_ifc_module_file_read_state &read_state = file->get_read_state();
+
+    result.contents = (char*)read_state.mmap_addr + string_table_bytes;
+  }
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
   result.contents = alloc_general(get_ifc_string_table_size(header));
-  fseek(read_state.f_module, string_table_bytes, SEEK_SET);
+  fseek(file->f_module, string_table_bytes, SEEK_SET);
 
   size_t bytes_read = fread((void*)result.contents, 1,
-                            string_table_size, read_state.f_module);
+                            string_table_size, file->f_module);
   if (bytes_read != string_table_size) {
     unexpected_condition_str("Failed to load the IFC module string table");
   }  /* if */
@@ -10970,8 +10973,10 @@ Print the corresponding file and line number for the source location
 {
   an_ifc_module_file
                 *file = locus.get_file();
+#if USE_MMAP_FOR_MEMORY_REGIONS
   an_ifc_module_file_read_state
                 &read_state = file->get_read_state();
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   a_const_char  *full_name, *diag_file_name;
   a_line_number line_number;
   a_boolean     at_end_of_source;
@@ -10988,7 +10993,7 @@ Print the corresponding file and line number for the source location
   unsigned char *save_byte_buffer = read_state.byte_buffer;
   unsigned char *save_buffer_end = read_state.buffer_end;
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
-  long save_seek = ftell(read_state.f_module);
+  long save_seek = ftell(file->f_module);
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   source_position_from_locus(&pos, locus);
   /* Restore saved information. */
@@ -10999,7 +11004,7 @@ Print the corresponding file and line number for the source location
   read_state.byte_buffer = save_byte_buffer;
   read_state.buffer_end = save_buffer_end;
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
-  (void)fseek(read_state.f_module, save_seek, SEEK_SET);
+  (void)fseek(file->f_module, save_seek, SEEK_SET);
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   if (pos.seq != 0) {
     (void)conv_seq_to_file_and_line(pos.seq, &diag_file_name,
