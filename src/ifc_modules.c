@@ -735,6 +735,7 @@ front end was compiled under.
       /* Make a best guess based on the compiler's target. */
       result = targ_little_endian == host_little_endian;
       break;
+    default_is_unexpected();
   }  /* switch */
   return result;
 }  /* has_matching_endianness */
@@ -11843,9 +11844,10 @@ Return the number of entries in a given partition.
   return num_entries;
 }  /* an_ifc_module::get_num_entries */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
 
 static a_calling_convention conv_calling_convention(
-                                     an_ifc_calling_convention_sort convention)
+                          ARG_UNUSED an_ifc_calling_convention_sort convention)
 /*
 Convert the given IFC calling convention to the corresponding EDG one.
 */
@@ -11870,6 +11872,7 @@ Convert the given IFC calling convention to the corresponding EDG one.
   return conv;
 }  /* conv_calling_convention */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
 
 static an_exception_specification_ptr exception_specification(
                                          an_ifc_noexcept_specification eh_spec,
@@ -12180,6 +12183,7 @@ corresponding type, return an error type.
                   ik = (sign == ifc_tss_unsigned) ?
                                  ik_unsigned_long : ik_long;
                   break;
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED || IA64_ABI
                 case ifc_tps_bit8:
                   ik = int_kind_for_bit_size(8, sign != ifc_tss_unsigned);
                   break;
@@ -12195,6 +12199,19 @@ corresponding type, return an error type.
                 case ifc_tps_bit128:
                   ik = int_kind_for_bit_size(128, sign != ifc_tss_unsigned);
                   break;
+#else /* !(MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED...) */
+                case ifc_tps_bit8:
+                case ifc_tps_bit16:
+                case ifc_tps_bit32:
+                case ifc_tps_bit64:
+                case ifc_tps_bit128:
+                  { a_string err_msg("Unsupported ", str_for(precision),
+                                     " for ", str_for(basis));
+
+                    ifc_unexpected(mod, err_msg);
+                  }
+                  goto invalid;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED || IA64_ABI */
                 default_is_unexpected();
               }  /* switch */
               check_assertion(ik != (an_integer_kind)ik_none);
@@ -12373,9 +12390,11 @@ corresponding type, return an error type.
                                                     type_for_type_index(scope);
           rtsp->this_class = scope_type;
 
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
           an_ifc_calling_convention_sort convention =
                                                get_ifc_convention(method_type);
           rtsp->calling_convention = conv_calling_convention(convention);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
 
           an_ifc_noexcept_specification eh_spec =
                                                   get_ifc_eh_spec(method_type);
@@ -12410,9 +12429,11 @@ corresponding type, return an error type.
           result = make_routine_type(return_type);
 
           a_routine_type_supplement_ptr  rtsp = rout_type_supp(result);
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
           an_ifc_calling_convention_sort convention =
                                              get_ifc_convention(function_type);
           rtsp->calling_convention = conv_calling_convention(convention);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
 
           an_ifc_noexcept_specification eh_spec =
                                                 get_ifc_eh_spec(function_type);

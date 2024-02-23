@@ -91,12 +91,23 @@ struct Is_trivially_copyable_edg_impl<an_ifc_decl_index> :
 };  /* Is_trivially_copyable_edg_impl */
 
 template<>
+struct Is_trivially_copyable_edg_impl<an_ifc_type_index> :
+                                                Integral_constant<bool, true> {
+
+};  /* Is_trivially_copyable_edg_impl */
+
+template<>
 struct Is_trivially_destructible_edg_impl<an_ifc_attr_index> :
                                                 Integral_constant<bool, true> {
 };  /* Is_trivially_destructible_edg_impl */
 
 template<>
 struct Is_trivially_destructible_edg_impl<an_ifc_decl_index> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_destructible_edg_impl */
+
+template<>
+struct Is_trivially_destructible_edg_impl<an_ifc_type_index> :
                                                 Integral_constant<bool, true> {
 };  /* Is_trivially_destructible_edg_impl */
 
@@ -612,13 +623,19 @@ extern void get_bytes(an_ifc_module_file *file,
                       size_t             length,
                       a_boolean          header_bytes);
 
+#if USE_MMAP_FOR_MEMORY_REGIONS
+
 inline unsigned char* get_byte_buffer(an_ifc_module_file *file)
 /*
+Return the byte buffer position that should be read from for the given
+read-only memory mapped IFC module file.
 */
 {
   /* The byte buffer can only be retrieved in read contexts. */
   return file->get_read_state().byte_buffer;
 }  /* get_byte_buffer */
+
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 
 extern a_boolean is_at_least(an_ifc_module_file     *file,
                              an_ifc_version_storage minimum_version_major,

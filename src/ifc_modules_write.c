@@ -360,6 +360,14 @@ struct an_ifc_output_metadata {
 };  /* an_ifc_output_metadata */
 
 }  /* namespace */
+namespace detail {
+
+template<>
+struct Is_trivially_destructible_edg_impl<an_ifc_output_partition_metadata> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_destructible_edg_impl */
+
+}  /* namespace detail */
 
 template<typename an_ifc_Node_type>
 static void append_node_to_file(const an_ifc_Node_type &node)
@@ -937,15 +945,21 @@ index for the type file.
     case tk_union:
     case tk_typeref:
     case tk_error:
+#if FIXED_POINT_ALLOWED
     case tk_fixed_point:
+#endif /* FIXED_POINT_ALLOWED */
     case tk_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
     case tk_imaginary:
     case tk_complex:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
     case tk_array:
     case tk_class:
     case tk_ptr_to_member:
     case tk_template_param:
+#if GNU_VECTOR_TYPES_ALLOWED
     case tk_vector:
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     case tk_nullptr:
     case tk_reflection:
     case tk_unknown:
@@ -1048,6 +1062,7 @@ output state.  Return the declaration index for the scope.
     case sck_function:
     case sck_none:
       break;
+    default_is_unexpected();
   } /* switch */
   return result;
 }  /* an_ifc_il_map::enter_home_scope */
@@ -1365,7 +1380,7 @@ Return the IFC type index of the parameter types.
     /* Add the parameter types to the type heap and track the type heap offset
        of the first type added to the heap. */
     a_boolean first = TRUE;
-    size_t    heap_start_offset;
+    size_t    heap_start_offset = 0;
 
     for (const an_ifc_type_index &param_type : param_types) {
       an_ifc_heap_type
@@ -1635,7 +1650,7 @@ return.
   an_ifc_module_file_write_state &write_state = result.get_write_state();
   write_state.file_kind = file_kind;
   write_state.source_file_name = primary_source_file_name;
-  return result;
+  return {move_from(&result)};
 }  /* create_output_file */
 
 
