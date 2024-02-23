@@ -416,9 +416,7 @@ append_using_c_formatting) as they are supported on all platforms.
   left = bytes*2;
   if (exponent == 0 && left == trailing_zeros) {
     /* Handle zero as a special case. */
-    underlying_array.push_back('0');
-    underlying_array.push_back('p');
-    underlying_array.push_back('0');
+    append_string_literal(underlying_array, "0p0");
   } else {
     if (implied_hidden_bit) {
       /* The value of the implied hidden bit is determined by the exponent. */
@@ -2888,33 +2886,15 @@ str will be unmodified if the routine returns FALSE.
 #if TARG_HAS_IEEE_FLOATING_POINT
   if (is_NaN(*temp)) {
     /* Not-a-number. */
-    str->push_back('N');
-    str->push_back('a');
-    str->push_back('N');
+    detail::append_string_literal(*str, "NaN");
     if (not_a_number != NULL) *not_a_number = TRUE;
   } else if (!is_finite(*temp)) {
     /* infinity. */
     if (do_fp_lt_zero(*temp)) {
-      str->push_back('-');
-      str->push_back('I');
-      str->push_back('n');
-      str->push_back('f');
-      str->push_back('i');
-      str->push_back('n');
-      str->push_back('i');
-      str->push_back('t');
-      str->push_back('y');
+      detail::append_string_literal(*str, "-Infinity");
       if (neg_infinity != NULL) *neg_infinity = TRUE;
     } else {
-      str->push_back('+');
-      str->push_back('I');
-      str->push_back('n');
-      str->push_back('f');
-      str->push_back('i');
-      str->push_back('n');
-      str->push_back('i');
-      str->push_back('t');
-      str->push_back('y');
+      detail::append_string_literal(*str, "+Infinity");
       if (pos_infinity != NULL) *pos_infinity = TRUE;
     }  /* if */
   } else if (do_fp_eq_zero(*temp) &&
@@ -2924,10 +2904,7 @@ str will be unmodified if the routine returns FALSE.
     /* Special handling to ensure that -0.0 comes out with the leading "-";
        some snprintf/sprintf_s implementations do not process that
        correctly. */
-    str->push_back('-');
-    str->push_back('0');
-    str->push_back('.');
-    str->push_back('0');
+    detail::append_string_literal(*str, "-0.0");
   } else
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
   /* Do not insert code here. */
@@ -3147,35 +3124,17 @@ value might use (plus a temporary null character).
   switch (res) {
     case fp_ret_nan:
       underlying_array.resize(orig_size, '\0');
-      underlying_array.push_back('N');
-      underlying_array.push_back('a');
-      underlying_array.push_back('N');
+      detail::append_string_literal(underlying_array, "NaN");
       if (value.not_a_number != NULL) *value.not_a_number = TRUE;
       break;
     case fp_ret_pos_infinity:
       underlying_array.resize(orig_size, '\0');
-      underlying_array.push_back('+');
-      underlying_array.push_back('I');
-      underlying_array.push_back('n');
-      underlying_array.push_back('f');
-      underlying_array.push_back('i');
-      underlying_array.push_back('n');
-      underlying_array.push_back('i');
-      underlying_array.push_back('t');
-      underlying_array.push_back('y');
+      detail::append_string_literal(underlying_array, "+Infinity");
       if (value.pos_infinity != NULL) *value.pos_infinity = TRUE;
       break;
     case fp_ret_neg_infinity:
       underlying_array.resize(orig_size, '\0');
-      underlying_array.push_back('-');
-      underlying_array.push_back('I');
-      underlying_array.push_back('n');
-      underlying_array.push_back('f');
-      underlying_array.push_back('i');
-      underlying_array.push_back('n');
-      underlying_array.push_back('i');
-      underlying_array.push_back('t');
-      underlying_array.push_back('y');
+      detail::append_string_literal(underlying_array, "-Infinity");
       if (value.neg_infinity != NULL) *value.neg_infinity = TRUE;
       break;
     default:
