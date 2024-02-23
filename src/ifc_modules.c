@@ -11161,7 +11161,7 @@ Given an IFC architecture return TRUE if the architecture is compatible with
 the current target architecture; otherwise, return FALSE.
 */
 {
-  a_boolean result;
+  a_boolean result = FALSE;
 
   switch (arch) {
     case ifc_as_arm32:
@@ -11857,7 +11857,7 @@ static a_calling_convention conv_calling_convention(
 Convert the given IFC calling convention to the corresponding EDG one.
 */
 {
-  a_calling_convention conv;
+  a_calling_convention conv = cc_default;
 
   switch (convention) {
     case ifc_ccs_cdecl:   conv = cc_cdecl; break;
@@ -14967,23 +14967,23 @@ Given an IFC string index, return the corresponding encoded string value.
 */
 {
   Opt<an_ifc_string> result;
-  a_character_kind   kind;
+  a_character_kind   kind = chk_char;
 
   switch (string.sort) {
     case ifc_ss_ordinary:
-      kind = (a_character_kind)chk_char;
+      kind = chk_char;
       break;
     case ifc_ss_utf8:
-      kind = (a_character_kind)chk_char8_t;
+      kind = chk_char8_t;
       break;
     case ifc_ss_char16:
-      kind = (a_character_kind)chk_char16_t;
+      kind = chk_char16_t;
       break;
     case ifc_ss_char32:
-      kind = (a_character_kind)chk_char32_t;
+      kind = chk_char32_t;
       break;
     case ifc_ss_wide:
-      kind = (a_character_kind)chk_wchar_t;
+      kind = chk_wchar_t;
       break;
     default_is_unexpected_str("Unexpected StringSort");
   }  /* switch */

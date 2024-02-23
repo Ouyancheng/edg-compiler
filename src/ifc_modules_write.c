@@ -340,6 +340,17 @@ struct an_ifc_output_partition_metadata {
                            contents). */
 };  /* an_ifc_output_partition_metadata */
 
+}  /* namespace */
+namespace detail {
+
+template<>
+struct Is_trivially_destructible_edg_impl<an_ifc_output_partition_metadata> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_destructible_edg_impl */
+
+}  /* namespace detail */
+namespace {
+
 /*
 This structure encapsulates various pieces of meta information that are
 required for the IFC file format.
@@ -360,14 +371,6 @@ struct an_ifc_output_metadata {
 };  /* an_ifc_output_metadata */
 
 }  /* namespace */
-namespace detail {
-
-template<>
-struct Is_trivially_destructible_edg_impl<an_ifc_output_partition_metadata> :
-                                                Integral_constant<bool, true> {
-};  /* Is_trivially_destructible_edg_impl */
-
-}  /* namespace detail */
 
 template<typename an_ifc_Node_type>
 static void append_node_to_file(const an_ifc_Node_type &node)
