@@ -2237,6 +2237,7 @@ to default values.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX */
       pte->variant.typeref.embedded_source_sequence_entries = FALSE;
       pte->variant.typeref.added_to_record_name = FALSE;
+      pte->variant.typeref.has_typename_prefix = FALSE;
       /* Clear size and alignment because they aren't used in typerefs. */
       pte->size = 0;
       pte->alignment = 1;

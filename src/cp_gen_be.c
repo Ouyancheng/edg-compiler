@@ -5264,14 +5264,13 @@ are done in the il_to_str routines before this routine is called.
       a_type_ptr orig_underlying_type = underlying_type;
       while (resolved_type != NULL &&
              underlying_type->kind == (a_type_kind)tk_typeref) {
-        if (is_typeref_kind(underlying_type, trk_is_decltype)
+        if (is_typeref_kind(underlying_type, trk_is_decltype) ||
 #if GNU_EXTENSIONS_ALLOWED
-            || (is_typeref_kind(underlying_type,
-                                trk_is_typeof_with_expression) ||
-                is_typeref_kind(underlying_type,
-                                trk_is_typeof_with_type_operand))
+            is_typeref_kind(underlying_type, trk_is_typeof_with_expression) ||
+            is_typeref_kind(underlying_type,
+                            trk_is_typeof_with_type_operand) ||
 #endif /* GNU_EXTENSIONS_ALLOWED */
-                                                                 ) {
+            is_typeref_kind(underlying_type, trk_is_splice)) {
           an_expr_node_ptr expr = decltype_arg(underlying_type);
           if (expr != NULL && !expr_is_unusable(expr)) {
             /* This type operator is usable to refer to the type. */
@@ -5389,7 +5388,7 @@ name of the property or event as a qualifier.
 static a_type_ptr decltype_typeref_from_proxy(a_type_ptr class_type)
 /*
 If class_type (which must be a class/struct/union type) is a proxy for a
-decltype construct, return the decltype's tk_typeref type; otherwise,
+decltype-like construct, return the construct's tk_typeref type; otherwise,
 return NULL.
 */
 {
@@ -5400,8 +5399,9 @@ return NULL.
     /* This is a dependent type.  Check to see if it's a proxy for a
        decltype construct; if so, return it. */
     a_type_ptr proxy_type = class_type_supp(class_type)->proxy_of_type;
-    if (proxy_type->kind == (a_type_kind)tk_typeref &&
-        is_typeref_kind(proxy_type, trk_is_decltype)) {
+    if (type_is(proxy_type, tk_typeref) &&
+        (is_typeref_kind(proxy_type, trk_is_decltype) ||
+         is_typeref_kind(proxy_type, trk_is_splice))) {
       decltype_type = proxy_type;
     }  /* if */
   }  /* if */
@@ -8328,7 +8328,8 @@ associated with the argument should be reactivated in such cases.
 */
 {
   a_source_sequence_scan_state saved_state = null_source_sequence_scan_state;
-  a_const_char                 *name = NULL;
+  a_const_char                 *name = NULL, *left_delim = "(",
+                               *right_delim = ")";
   an_expr_node_ptr             expr = decltype_arg(tp);
   a_type_ptr                   type_opnd = tp->variant.typeref.extra_info->
                                                              operator_type_arg;
@@ -8349,6 +8350,11 @@ associated with the argument should be reactivated in such cases.
     case trk_is_typeof_with_expression:
     case trk_is_typeof_with_type_operand:
       name = "__typeof__";
+      break;
+    case trk_is_splice:
+      name = "";
+      left_delim = "[:";
+      right_delim = ":]";
       break;
     case trk_bases:
       name = "__bases";
@@ -8380,9 +8386,9 @@ associated with the argument should be reactivated in such cases.
     if (entity_name_is_accessible(&type_opnd->source_corresp, iek_type,
                                   /*ignore_context=*/FALSE, &for_all_scopes)) {
       write_tok_str(name);
-      write_tok_ch('(');
+      write_tok_str(left_delim);
       gen_type(type_opnd);
-      write_tok_ch(')');
+      write_tok_str(right_delim);
     } else {
       /* The operand is inaccessible.  Just put out the underlying type. */
       operator_suppressed = TRUE;
@@ -8429,7 +8435,7 @@ associated with the argument should be reactivated in such cases.
       }  /* if */
       if (!operator_suppressed) {
         write_tok_str(name);
-        write_tok_ch('(');
+        write_tok_str(left_delim);
         if (need_parens) {
           write_tok_ch('(');
         }  /* if */
@@ -8437,7 +8443,7 @@ associated with the argument should be reactivated in such cases.
         if (need_parens) {
           write_tok_ch(')');
         }  /* if */
-        write_tok_ch(')');
+        write_tok_str(right_delim);
       }  /* if */
     }  /* if */
   }  /* if */

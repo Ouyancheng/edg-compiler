@@ -10332,6 +10332,10 @@ typedef struct a_type {
 		added_to_record_name:1;
 			/* TRUE if this typeref was added to record the
 			   name used to name a class member. */
+      a_bit_field
+		has_typename_prefix:1;
+			/* TRUE if this typeref represents a splice with an
+			   explicit "typename" keyword. */
     } typeref;
     /* When kind == tk_ptr_to_member: */
     struct {
@@ -14077,8 +14081,6 @@ typedef struct an_eh_prologue_supplement {
 
 enum a_local_expr_node_ref_kind : a_byte {
   lerk_none,		/* Used for initialization only. */
-  lerk_typeof,		/* An expression used as an argument for a typeof
-			   construct. */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
   lerk_generic_sizeof,	/* A template-dependent expression used as an argument
 			   for a sizeof, alignof, or uuidof construct. */
@@ -14093,8 +14095,8 @@ enum a_local_expr_node_ref_kind : a_byte {
   lerk_dep_array_bound,	/* Like lerk_array_bound, but for the expressions
 			   under a dependent constant giving the bound, rather
 			   than the "expr" field of the constant. */
-  lerk_decltype,	/* An expression used as an argument for a decltype
-			   construct. */
+  lerk_decltype,	/* An expression used as an argument for a decltype,
+			   splice, or GNU typeof construct. */
   lerk_bit_field_width,	/* The expression for the width of a bit-field that
 			   refers to a local variable. */
   lerk_constant_expr	/* The backing expression of a constant entry. */

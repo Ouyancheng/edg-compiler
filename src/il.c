@@ -14119,11 +14119,6 @@ The expression can then be recovered using find_local_expr_node.
   new_ref->referrer.ptr = referrer;
   check_assertion(!in_file_scope(new_ref));
   switch (kind) {
-#if GNU_EXTENSIONS_ALLOWED
-    case lerk_typeof:
-      new_ref->referrer.kind = iek_type;
-      break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
     case lerk_generic_sizeof:
       new_ref->referrer.kind = iek_constant;

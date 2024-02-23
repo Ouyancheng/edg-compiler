@@ -17244,7 +17244,7 @@ the expression-processing routines.
         typeof_type->variant.typeref.extra_info->expr = expr;
       } else {
         make_local_expr_node_ref(
-           expr, (a_local_expr_node_ref_kind)lerk_typeof, (char*)typeof_type,
+           expr, (a_local_expr_node_ref_kind)lerk_decltype, (char*)typeof_type,
            scope_stack[expr_scope_depth].il_scope);
       }  /* if */
     }  /* if */

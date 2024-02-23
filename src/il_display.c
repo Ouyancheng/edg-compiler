@@ -2566,6 +2566,12 @@ Display the indicated type entry.
       if (ptr->variant.typeref.embedded_source_sequence_entries) {
         disp_boolean("embedded_source_sequence_entries", TRUE);
       }  /* if */
+      if (ptr->variant.typeref.added_to_record_name) {
+        disp_boolean("added_to_record_name", TRUE);
+      }  /* if */
+      if (ptr->variant.typeref.has_typename_prefix) {
+        disp_boolean("has_typename_prefix", TRUE);
+      }  /* if */
       break;
     case tk_ptr_to_member:
       disp_ptr("class_of_which_a_member",
@@ -4422,9 +4428,6 @@ local) memory region.
 {
   disp_ptr("expr", (char*)ptr->expr, iek_expr_node);
   switch (ptr->kind) {
-    case lerk_typeof:
-      (void)printf("typeof");
-      break;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
     case lerk_generic_sizeof:
       (void)printf("generic-sizeof");

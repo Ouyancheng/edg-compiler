@@ -2086,12 +2086,10 @@ Return its argument expression if available, or NULL otherwise.
 
   if (expr == NULL &&
       (is_typeref_kind(type, trk_is_decltype) ||
+       is_typeref_kind(type, trk_is_splice) ||
        is_typeref_kind(type, trk_is_typeof_with_expression))) {
     /* See if the expression can be found in a local function scope. */
-    a_local_expr_node_ref_kind  lerk;
-    a_scope_ptr scope;
-    lerk = is_typeref_kind(type, trk_is_decltype) ? lerk_decltype
-                                                  : lerk_typeof;
+    a_scope_ptr  scope;
     if (type->source_corresp.enclosing_routine != NULL &&
         type->source_corresp.enclosing_routine->function_def_number !=
                                                     NULL_function_def_number) {
@@ -2104,7 +2102,7 @@ Return its argument expression if available, or NULL otherwise.
       scope = innermost_function_scope;
     }  /* if */
     if (scope != NULL) {
-      expr = find_local_expr_node_in_scope((char*)type, lerk, scope);
+      expr = find_local_expr_node_in_scope((char*)type, lerk_decltype, scope);
     }  /* if */
   }  /* if */
   return expr;
