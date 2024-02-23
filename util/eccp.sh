@@ -1448,17 +1448,6 @@ process_option()
       any_c_files=1
       add_to_instantiation_command=0
       ;;
-    *\.h | *\.H | *\.hpp | *\.HPP)
-#     Collect a list of .h files.
-      arg=`native_path "$arg"`
-      # Add the file for building the header unit.
-      if [ $any_header_unit_files -ne 0 ] ; then
-        echo "$driver_name: cannot create a header unit from multiple files."
-        eccp_exit 1
-      fi
-      header_unit_files=$header_unit_files" "$arg;
-      any_header_unit_files=1
-      ;;
     *\.o)
 #     Collect a list of .o files.
       arg=`native_path "$arg"`
@@ -2140,6 +2129,24 @@ process_option()
          --list_macros)
       preprocessor_only=1
       feoptions=$feoptions" $curr_arg";
+      ;;
+###############################################################################
+# Header handling logic used by the driver.
+#
+# This logic is declared later to prevent interference with the processing
+# of other command line options that reference a header.
+#
+###############################################################################
+    *\.h | *\.H | *\.hpp | *\.HPP)
+#     Collect a list of .h files.
+      arg=`native_path "$arg"`
+      # Add the file for building the header unit.
+      if [ $any_header_unit_files -ne 0 ] ; then
+        echo "$driver_name: cannot create a header unit from multiple files."
+        eccp_exit 1
+      fi
+      header_unit_files=$header_unit_files" "$arg;
+      any_header_unit_files=1
       ;;
 ###############################################################################
     --*)
