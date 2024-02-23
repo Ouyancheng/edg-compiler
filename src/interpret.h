@@ -21,6 +21,8 @@ BEGIN_EDG_NAMESPACE
 
 a_subobject_path_ptr* last_subobject_path_link(a_constant_ptr  con);
 
+void decay_subobject_path(a_constant_ptr  con);
+
 a_subobject_path_ptr get_trailing_subobject_path_entry(
                                                a_constant_ptr  con,
                                                a_boolean       is_offset,

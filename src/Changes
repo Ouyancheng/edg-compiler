@@ -1,5 +1,21 @@
 Version 6.7
 
+2/23/24  [EDGcpfe/26829]
+Mangling of array indexing
+
+The front end previously did not always correctly mangle the names of function
+template instances that involved multi-level array subscripts or subscripting
+the first element (position zero).  For example:
+
+  template<int&> void g() {}
+  int arr2[3][4];
+  int x = (g<arr2[2][3]>(), 0);  // Previously the second subscript was not
+                                 // recorded in the mangled name of the
+                                 // instance of g.
+
+That is now fixed.
+
+
 2/22/24  [EDGcpfe/20203]
 Diagnosing "mutable mutable" in lambda expressions
 

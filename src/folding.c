@@ -7243,6 +7243,7 @@ prefer to handle that higher up.
               if (is_array_type(atype)) {
                 con->type = type_after_array_to_pointer_transformation(atype);
                 con->implicit_cast = TRUE;
+                decay_subobject_path(con);
                 is_constant_ptr = TRUE;
               }  /* if */
             }  /* if */

@@ -4427,6 +4427,11 @@ typedef struct a_subobject_path {
   a_bit_field	is_base_class:1;
 			/* TRUE if this element designates a base class
 			   subobject. */
+  a_bit_field	is_converted:1;
+			/* TRUE if is_offset is TRUE and an array-to-pointer
+			   conversion was applied to the result.  Any
+			   subsequent offset operation should add a new
+			   subobject path entry. */
   union {
     /* When is_offset == FALSE and is_base_class == FALSE. */
     a_field_ptr

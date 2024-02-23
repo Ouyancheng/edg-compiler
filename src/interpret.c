@@ -17025,6 +17025,27 @@ must be a ck_address entry).
 }  /* last_subobject_path_link */
 
 
+void decay_subobject_path(a_constant_ptr  con)
+/*
+If the last element of the subobject path of the given address constant is an
+offset mark it as converted.
+*/
+{
+  
+  if (constant_is(con, ck_address)) {
+    a_subobject_path_ptr  link = con->variant.address.subobject_path;
+    if (link != NULL) {
+      for (;; link = link->next) {
+        if (link->next == NULL) {
+          if (link->is_offset) link->is_converted = TRUE;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+}  /* decay_subobject_path */
+
+
 a_subobject_path_ptr get_trailing_subobject_path_entry(
                                                 a_constant_ptr  con,
                                                 a_boolean       is_offset,
@@ -17043,7 +17064,8 @@ flags and return that newly allocated entry.
   end_path = &con->variant.address.subobject_path;
   for (; *end_path != NULL; end_path = &(*end_path)->next) {
     if ((*end_path)->next == NULL &&
-        (is_offset ? (*end_path)->is_offset : (*end_path)->is_base_class)) {
+        (is_offset ? ((*end_path)->is_offset && !(*end_path)->is_converted)
+                   : (*end_path)->is_base_class)) {
       /* The path already ends in the right kind of entry. */
       break;
     }  /* if */
@@ -18934,6 +18956,7 @@ the value representation of the integer value.
                   a_constant_ptr  new_con;
                   new_con = make_interpreter_copy_of_constant(ips, orig_con);
                   new_con->type = tp;
+                  decay_subobject_path(new_con);
                   result_addr->variant.addr_con = new_con;
                   result_addr->flags |= CA_ARRAY_ELEMENT;
                   break;
@@ -22405,6 +22428,14 @@ the value representation of the integer value.
               } else {
                 if (host_int_val == 0) {
                   /* Leave the address unchanged. */
+                  if (is_runtime_data_address(&result_addr)) {
+                    /* Record a zero offset.  The element size is ignored. */
+                    if (!offset_runtime_address(
+                               ips, &expr->position, &result_addr,
+                               0, /*elem_size=*/1, /*subtract=*/FALSE)) {
+                      unexpected_condition();
+                    }  /* if */
+                  }  /* if */
                   SET_result_val_from_operand_address(&result_addr);
                 } else if (!is_array_element(&result_addr) &&
                            !is_runtime_data_address(&result_addr)) {

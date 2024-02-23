@@ -718,6 +718,7 @@ is allocated in the current memory region.
   entry->next = NULL;
   entry->is_offset = FALSE;
   entry->is_base_class = FALSE;
+  entry->is_converted = FALSE;
   entry->variant.field = NULL;
   return entry;
 }  /* alloc_subobject_path */

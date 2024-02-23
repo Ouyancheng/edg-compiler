@@ -958,6 +958,9 @@ Display the indicated subobject path.
   disp_ptr("next", (char *)ptr->next, iek_subobject_path);
   if (ptr->is_offset) {
     disp_boolean("is_offset", TRUE);
+    if (ptr->is_converted) {
+      disp_boolean("is_converted", TRUE);
+    }  /* if */
     disp_host_large_integer("ptr_offset",
                             (a_host_large_integer)ptr->variant.ptr_offset);
   } else if (ptr->is_base_class) {
