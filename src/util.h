@@ -3414,6 +3414,22 @@ snprintf_impl).
 }  /* append_using_c_formatting */
 
 
+template<typename a_Dyn_array, int a_Size>
+inline void append_string_literal(a_Dyn_array  &underlying_array,
+                                  a_const_char (&text)[a_Size])
+/*
+Append the given string literal text into the underlying array.  The given text
+argument should be a string literal (i.e., an array type where
+strlen(text) + 1 == sizeof(text)).
+*/
+{
+  /* If this assertion fails, presumably a partially filled buffer was supplied
+     rather than a string literal. */
+  check_assertion(strlen(text) == a_Size - 1);
+  underlying_array.insert(underlying_array.length(), &(text[0]), a_Size - 1);
+}  /* append_string_literal */
+
+
 /*
 A string formatter for char* (C-string) values.
 */
