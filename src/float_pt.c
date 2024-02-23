@@ -3032,10 +3032,105 @@ struct an_il_hex_fp_value {
 
 } /* namespace */
 
-#if !USE_HOST_FP_CONVERSION_ROUTINES
+#if USE_HOST_FP_CONVERSION_ROUTINES
 
-template<typename a_Dyn_array, typename ...a_Format_arg>
-static inline void append_float_using_software(
+template<typename a_Dyn_array>
+static inline void append_float_using_host_routines(
+                                       a_Dyn_array           &underlying_array,
+                                       size_t                size_hint,
+                                       a_float_kind          float_kind,
+                                       const a_host_fp_value &value)
+/*
+Append the characters for the given floating point value (of the given float
+kind) to the underlying array.  size_hint is an overestimate (i.e., maximum)
+number of characters this value might use (plus a temporary null character).
+*/
+{
+#if USE_FLOAT128_FOR_HOST_FP_VALUE && USE_QUADMATH_LIBRARY
+  if (kind_is_16bit(float_kind)) {
+    append_using_quadmath_formatting("%.8Qg", underlying_array, size_hint,
+                                     value);
+  } else if (float_kind == fk_float || float_kind == fk_std_float32) {
+    append_using_quadmath_formatting("%.10Qg", underlying_array, size_hint,
+                                     value);
+  } else if (repr_is_double(float_kind) || float_kind == fk_std_float64) {
+    append_using_quadmath_formatting("%.19Qg", underlying_array, size_hint,
+                                     value);
+  } else if (float_kind == fk_float128 || float_kind == fk_std_float128) {
+    append_using_quadmath_formatting("%.34Qg", underlying_array, size_hint,
+                                     value);
+  } else {
+    /* fk_long_double or fk_float80. */
+    /* In theory LDBL_DIG+1 digits should be enough as the precision, but
+       LDBL_DIG+2 seems to help on some systems.  However, on Solaris, with
+       128-bit long doubles, LDBL_DIG+2 hits the conversion of LDBL_MIN in a
+       funny place with regard to rounding and the Sun CC compiler doesn't
+       accept that value converted in that way.  So on systems with 128-bit
+       long double, just stick with LDBL_DIG+1 when using the C++-generating
+       back end. */
+    int ldbl_digits = LDBL_DIG + 2;
+#if BACK_END_IS_CP_GEN_BE
+    if (LDBL_DIG > 30) ldbl_digits = LDBL_DIG + 1;
+#endif /* BACK_END_IS_CP_GEN_BE */
+    append_using_quadmath_formatting("%.*Qg", underlying_array, size_hint,
+                                     ldbl_digits, value);
+  }  /* if */
+#else /* !(USE_FLOAT128_FOR_HOST_FP_VALUE && USE_QUADMATH_LIBRARY) */
+#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || APPROXIMATE_QUADMATH
+  /* Make sure we have a long double value (value can be a __float128). */
+  long double  fpval = (long double)value;
+  if (kind_is_16bit(float_kind)) {
+    detail::append_using_c_formatting("%.8Lg", underlying_array, size_hint,
+                                      fpval);
+  } else if (float_kind == fk_float || float_kind == fk_std_float32) {
+    detail::append_using_c_formatting("%.10Lg", underlying_array, size_hint,
+                                      fpval);
+  } else if (repr_is_double(float_kind) || float_kind == fk_std_float64) {
+    detail::append_using_c_formatting("%.19Lg", underlying_array, size_hint,
+                                      fpval);
+  } else {
+    /* fk_long_double or fk_float80 or fk_std_float128. */
+    /* In theory LDBL_DIG+1 digits should be enough as the precision, but
+       LDBL_DIG+2 seems to help on some systems.  However, on Solaris, with
+       128-bit long doubles, LDBL_DIG+2 hits the conversion of LDBL_MIN in a
+       funny place with regard to rounding and the Sun CC compiler doesn't
+       accept that value converted in that way.  So on systems with 128-bit
+       long double, just stick with LDBL_DIG+1 when using the C++-generating
+       back end. */
+    int ldbl_digits = LDBL_DIG + 2;
+#if BACK_END_IS_CP_GEN_BE
+    if (LDBL_DIG > 30) ldbl_digits = LDBL_DIG + 1;
+#endif /* BACK_END_IS_CP_GEN_BE */
+    detail::append_using_c_formatting("%.*Lg", underlying_array, size_hint,
+                                      ldbl_digits, fpval);
+  }  /* if */
+#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || APPROXIMATE_QUADMATH */
+#if USE_DOUBLE_FOR_HOST_FP_VALUE
+  if (kind_is_16bit(float_kind)) {
+    detail::append_using_c_formatting("%.8g", underlying_array, size_hint,
+                                      value);
+  } else if (float_kind == fk_float || float_kind == fk_std_float32) {
+    detail::append_using_c_formatting("%.10g", underlying_array, size_hint,
+                                      value);
+  } else {
+    detail::append_using_c_formatting("%.19g", underlying_array, size_hint,
+                                      value);
+  }  /* if */
+#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
+#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE && USE_QUADMATH_LIBRARY */
+  /* Add trailing ".0" if no decimal point was put out (meaning the value is a
+     whole number). */
+  if (strchr(underlying_array.begin(), '.') == NULL &&
+      strchr(underlying_array.begin(), 'e') == NULL) {
+    underlying_array.push_back('.');
+    underlying_array.push_back('0');
+  }  /* if */
+}  /* append_float_host_routines */
+
+#else /* !USE_HOST_FP_CONVERSION_ROUTINES */
+
+template<typename a_Dyn_array>
+static inline void append_float_using_internal_routines(
                                         a_Dyn_array          &underlying_array,
                                         size_t               size_hint,
                                         const an_il_fp_value &value)
@@ -3145,9 +3240,9 @@ value might use (plus a temporary null character).
       }  /* if */
       break;
   }  /* switch */
-}  /* append_float_using_software */
+}  /* append_float_using_internal_routines */
 
-#endif /* !USE_HOST_FP_CONVERSION_ROUTINES */
+#endif /* USE_HOST_FP_CONVERSION_ROUTINES */
 
 namespace detail {
 
@@ -3185,86 +3280,14 @@ value might use (plus a temporary null character).
                                          value.neg_infinity,
                                          value.not_a_number, &underlying_array,
                                          &temp)) {
-    /* The call to handle_fp_to_string_special_cases has loaded float_value
-       into temp. */
 #if USE_HOST_FP_CONVERSION_ROUTINES
-#if USE_FLOAT128_FOR_HOST_FP_VALUE && USE_QUADMATH_LIBRARY
-    if (kind_is_16bit(value.kind)) {
-      append_using_quadmath_formatting("%.8Qg", underlying_array,
-                                       size_hint, temp);
-    } else if (value.kind == fk_float || value.kind == fk_std_float32) {
-      append_using_quadmath_formatting("%.10Qg", underlying_array,
-                                       size_hint, temp);
-    } else if (repr_is_double(value.kind) || value.kind == fk_std_float64) {
-      append_using_quadmath_formatting("%.19Qg", underlying_array,
-                                       size_hint, temp);
-    } else if (value.kind == fk_float128 || value.kind == fk_std_float128) {
-      append_using_quadmath_formatting("%.34Qg", underlying_array,
-                                       size_hint, temp);
-    } else {
-      /* fk_long_double or fk_float80. */
-      /* In theory LDBL_DIG+1 digits should be enough as the precision,
-         but LDBL_DIG+2 seems to help on some systems.  However, on Solaris,
-         with 128-bit long doubles, LDBL_DIG+2 hits the conversion of
-         LDBL_MIN in a funny place with regard to rounding and the Sun CC
-         compiler doesn't accept that value converted in that way.  So on
-         systems with 128-bit long double, just stick with LDBL_DIG+1
-         when using the C++-generating back end. */
-      int ldbl_digits = LDBL_DIG + 2;
-#if BACK_END_IS_CP_GEN_BE
-      if (LDBL_DIG > 30) ldbl_digits = LDBL_DIG + 1;
-#endif /* BACK_END_IS_CP_GEN_BE */
-      append_using_quadmath_formatting("%.*Qg", underlying_array,
-                                       size_hint, ldbl_digits, temp);
-    }  /* if */
-#else /* !(USE_FLOAT128_FOR_HOST_FP_VALUE && USE_QUADMATH_LIBRARY) */
-#if USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || APPROXIMATE_QUADMATH
-    /* Make sure we have a long double value (temp can be a __float128). */
-    long double  fpval = (long double)temp;
-    if (kind_is_16bit(value.kind)) {
-      append_using_c_formatting("%.8Lg", underlying_array, size_hint, fpval);
-    } else if (value.kind == fk_float || value.kind == fk_std_float32) {
-      append_using_c_formatting("%.10Lg", underlying_array, size_hint, fpval);
-    } else if (repr_is_double(value.kind) || value.kind == fk_std_float64) {
-      append_using_c_formatting("%.19Lg", underlying_array, size_hint, fpval);
-    } else {
-      /* fk_long_double or fk_float80 or fk_std_float128. */
-      /* In theory LDBL_DIG+1 digits should be enough as the precision,
-         but LDBL_DIG+2 seems to help on some systems.  However, on Solaris,
-         with 128-bit long doubles, LDBL_DIG+2 hits the conversion of
-         LDBL_MIN in a funny place with regard to rounding and the Sun CC
-         compiler doesn't accept that value converted in that way.  So on
-         systems with 128-bit long double, just stick with LDBL_DIG+1
-         when using the C++-generating back end. */
-      int ldbl_digits = LDBL_DIG + 2;
-#if BACK_END_IS_CP_GEN_BE
-      if (LDBL_DIG > 30) ldbl_digits = LDBL_DIG + 1;
-#endif /* BACK_END_IS_CP_GEN_BE */
-      append_using_c_formatting("%.*Lg", underlying_array, size_hint,
-                                ldbl_digits, fpval);
-    }  /* if */
-#endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE || APPROXIMATE_QUADMATH */
-#if USE_DOUBLE_FOR_HOST_FP_VALUE
-    if (kind_is_16bit(value.kind)) {
-      append_using_c_formatting("%.8g", underlying_array, size_hint, temp);
-    } else if (value.kind == fk_float || value.kind == fk_std_float32) {
-      append_using_c_formatting("%.10g", underlying_array, size_hint, temp);
-    } else {
-      append_using_c_formatting("%.19g", underlying_array, size_hint, temp);
-    }  /* if */
-#endif /* USE_DOUBLE_FOR_HOST_FP_VALUE */
-#endif /* USE_FLOAT128_FOR_HOST_FP_VALUE && USE_QUADMATH_LIBRARY */
-    /* Add trailing ".0" if no decimal point was put out (meaning the
-       value is a whole number). */
-    if (strchr(underlying_array.begin(), '.') == NULL &&
-        strchr(underlying_array.begin(), 'e') == NULL) {
-      underlying_array.push_back('.');
-      underlying_array.push_back('0');
-    }  /* if */
+    /* The call to handle_fp_to_string_special_cases has loaded float_value
+       into temp.  Use host conversion routines to format the value. */
+    append_float_using_host_routines(underlying_array, size_hint, value.kind,
+                                     temp);
 #else /* !USE_HOST_FP_CONVERSION_ROUTINES */
-    /* Use software-based routines for doing the binary to string
-       conversion. */
-    append_float_using_software(underlying_array, size_hint, value);
+    /* Use internal routines for doing the binary to string conversion. */
+    append_float_using_internal_routines(underlying_array, size_hint, value);
 #endif /* USE_HOST_FP_CONVERSION_ROUTINES */
   }  /* if */
 }  /* append_into */
