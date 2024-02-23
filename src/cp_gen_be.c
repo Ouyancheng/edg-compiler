@@ -8352,7 +8352,7 @@ associated with the argument should be reactivated in such cases.
       name = "__typeof__";
       break;
     case trk_is_splice:
-      name = "";
+      name = tp->variant.typeref.has_typename_prefix ? "typename" : "";
       left_delim = "[:";
       right_delim = ":]";
       break;

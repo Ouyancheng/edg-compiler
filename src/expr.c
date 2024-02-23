@@ -16535,6 +16535,7 @@ advance to the token after the typename operator in that case.
   an_object_lifetime_ptr  saved_object_lifetime;
   a_boolean               saved_in_decltype_context;
   a_boolean               saved_suppress_diagnostics;
+  a_boolean               has_typename_prefix = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_source_sequence_entry_ptr
                           ssep = NULL;
@@ -16556,6 +16557,7 @@ advance to the token after the typename operator in that case.
     /* Normal, non-rescan, processing. */
     /* Skip the "typename" token. */
     if (curr_token == tok_typename) {
+      has_typename_prefix = TRUE;
       (void)get_token();
     }  /* if */
     check_assertion(curr_token == tok_lsplice);
@@ -16673,6 +16675,7 @@ advance to the token after the typename operator in that case.
     tp->variant.typeref.is_dependent_type_operator = dependent_arg;
     tp->variant.typeref.is_nonreal = dependent_arg;
     tp->variant.typeref.is_dependent = dependent_arg;
+    tp->variant.typeref.has_typename_prefix = has_typename_prefix;
     if (dependent_arg) {
       prep_generic_operand(&operand);
     }  /* if */
