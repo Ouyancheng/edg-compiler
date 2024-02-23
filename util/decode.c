@@ -3469,6 +3469,11 @@ not empty, because it contains a name or a derived type).
     /* A pack expansion. */
     p = demangle_type_first_part(p+2, /*under_lhs_declarator=*/FALSE,
                                  /*need_trailing_space=*/FALSE, dctl);
+  } else if (kind == 'D' && get_char(p+1, dctl) == 'R') {
+    /* A type splice. */
+      dctl->suppress_id_output++;
+      p = demangle_expression(p+2, /*need_parens=*/FALSE, dctl);
+      dctl->suppress_id_output--;
   } else {
     /* No declarator part to process.  Handle the specifier type. */
     p = demangle_type_specifier(qualp, dctl);
@@ -3606,6 +3611,11 @@ use of parentheses around parts of the declarator.)
     p+=2;
     write_id_str("...", dctl);
     demangle_type_second_part(p, /*under_lhs_declarator=*/FALSE, dctl);
+  } else if (kind == 'D' && get_char(p+1, dctl) == 'R') {
+    /* A type splice. */
+    write_id_str("[:", dctl);
+    p = demangle_expression(p+2, /*need_parens=*/FALSE, dctl);
+    write_id_str(":]", dctl);
   } else {
     /* No declarator part to process.  No need to scan the specifiers type --
        it was done by demangle_type_first_part. */
@@ -5118,15 +5128,15 @@ Macro to determine if the character string pointed to by "p" is a
 <builtin-type>.  <builtin-type>s are a single lower-case letter or two
 characters starting with the character "D".  Exceptions to this rule are
 the mangling for decltype (i.e., "DT" and "Dt") as well as the EDG extension
-for typeof (i.e., "DY" and "Dy") and pack expansions (i.e., "Dp").  The lower
-case letter "r" is used in <CV-qualifiers> for "restrict" and is not a
-<builtin-type>.
+for typeof (i.e., "DY" and "Dy"), pack expansions (i.e., "Dp"), and type
+splice (i.e., "Dr").  The lower case letter "r" is used in <CV-qualifiers> for
+"restrict" and is not a <builtin-type>.
 */
 #define is_builtin_type(p)                                                \
   ((islower((unsigned char)*(p)) &&                                       \
     *(p) != 'r') ||                                                       \
    (*(p) == 'D' &&                                                        \
-    !((p)[1] == 'p' ||                                                    \
+    !((p)[1] == 'p' || (p)[1] == 'r' ||                                   \
       (p)[1] == 'T' || (p)[1] == 't' ||                                   \
       (p)[1] == 'Y' || (p)[1] == 'y')))
 
@@ -5158,6 +5168,7 @@ to the character position following what was demangled.  The syntax is:
          ::= DT <expression> E  # decltype of an expression (C++11)
          ::= Dy <type> E        # typeof(type) (EDG extension)
          ::= DY <expression> E  # typeof(expression) (EDG extension)
+         ::= Dr <expression> E  # [: expr :] (EDG extension)
 
 Other parts of <type> are handled in demangle_type_first_part and
 demangle_type_second_part.  In particular, substitutions are handled
@@ -5222,6 +5233,14 @@ demangled as part of the template function instead).
         p = demangle_expression(p+2, dctl);
       }  /* if */
       write_id_ch(')', dctl);
+      p = advance_past('E', p, dctl);
+    } else if (*p == 'D' && p[1] == 'r') {
+      /* type splice:
+           Dr <expression> E  # [: expr :]
+         */
+      write_id_str("[:", dctl);
+      p = demangle_expression(p+2, dctl);
+      write_id_str(":]", dctl);
       p = advance_past('E', p, dctl);
     } else {
       /* <class-enum-type>, i.e., <name> */

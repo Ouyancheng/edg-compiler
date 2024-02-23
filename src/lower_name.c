@@ -221,8 +221,8 @@ differs (see the IA-64 ABI spec for details).
 #define MANGLING_STRING_FOR_OPERATOR_GCNEW "gc"
 #define MANGLING_STRING_FOR_SAFE_CAST "v112clisafe_cast"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#define MANGLING_STRING_FOR_SPLICE "v6splice"
-#define MANGLING_STRING_FOR_TYPE_SPLICE "u6splice"
+#define MANGLING_STRING_FOR_SPLICE "v16splice"
+#define MANGLING_STRING_FOR_TYPE_SPLICE "Dr"  /* An EDG extension. */
 
 #else /* !IA64_ABI */
 /* Cfront-like name mangling codes. */
@@ -280,6 +280,7 @@ C = const
 D = "escape"
 Dp = pack expansion
 Dr = restrict
+DR = type splice (expression)
 E = rvalue reference
 F = function type
 G = global scope (i.e., ::)
@@ -480,7 +481,7 @@ type in the std namespace.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #define MANGLING_STRING_FOR_SPLICE "SP"
-#define MANGLING_STRING_FOR_TYPE_SPLICE "SP"
+#define MANGLING_STRING_FOR_TYPE_SPLICE "DR"
 
 #endif /* IA64_ABI */
 
