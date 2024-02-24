@@ -17028,7 +17028,7 @@ must be a ck_address entry).
 void decay_subobject_path(a_constant_ptr  con)
 /*
 If the last element of the subobject path of the given address constant is an
-offset mark it as converted.
+offset, mark it as converted.
 */
 {
   
