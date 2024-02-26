@@ -416,7 +416,7 @@ append_using_c_formatting) as they are supported on all platforms.
   left = bytes*2;
   if (exponent == 0 && left == trailing_zeros) {
     /* Handle zero as a special case. */
-    append_string_literal(underlying_array, "0p0");
+    detail::append_string_literal(underlying_array, "0p0");
   } else {
     if (implied_hidden_bit) {
       /* The value of the implied hidden bit is determined by the exponent. */
