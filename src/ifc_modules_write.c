@@ -39,6 +39,7 @@ struct an_ifc_output_partition {
     {}
 
   inline size_t new_element(char ***start, size_t *byte_offset);
+  inline size_t new_elements(size_t num_nodes);
   inline void fetch_element(char ***start, size_t *byte_offset, size_t index);
 
   a_const_char* get_bytes() const
@@ -81,6 +82,22 @@ buffer where the node starts.  Return the index into the partition.
 }  /* an_ifc_output_partition::new_element */
 
 
+size_t an_ifc_output_partition::new_elements(size_t num_nodes)
+/*
+Construct the given number of new IFC output nodes in the current partition.
+Return the index into the partition.
+*/
+{
+  size_t orig_size = this->contents.length();
+
+  /* Insert the space for this new element. */
+  this->contents.resize(orig_size + (this->element_size * num_nodes), '\0');
+  /* Update the content start pointer in case the buffer was reallocated. */
+  this->content_start = this->contents.begin();
+  return orig_size / this->element_size;
+}  /* an_ifc_output_partition::new_elements */
+
+
 inline void an_ifc_output_partition::fetch_element(char   ***start,
                                                    size_t *byte_offset,
                                                    size_t index)
@@ -111,7 +128,11 @@ struct an_ifc_output_state {
 
   template<typename an_ifc_Node_type>
   inline size_t alloc_node(an_ifc_Node_type *result);
+  template<typename an_ifc_Node_type>
+  inline size_t alloc_node_block(size_t num_nodes);
 
+  template<typename an_ifc_Node_type>
+  inline an_ifc_chart_index alloc_chart(an_ifc_Node_type *result);
   template<typename an_ifc_Node_type>
   inline an_ifc_decl_index alloc_decl(an_ifc_Node_type *result);
   template<typename an_ifc_Node_type>
@@ -127,6 +148,8 @@ struct an_ifc_output_state {
 
   a_boolean write();
 private:
+  template<typename an_ifc_Node_type>
+  an_ifc_output_partition *get_or_init_partition();
   an_ifc_output_partition *get_partition(an_ifc_partition_kind kind)
     { return this->partitions[kind - 1]; }
   void set_partition(an_ifc_partition_kind   kind,
@@ -217,27 +240,8 @@ Allocate a node in its corresponding output partition.  Set *result to the
 allocated node.  Return the node's index into the partition.
 */
 {
-  an_ifc_partition_kind
-                part_kind = get_ifc_partition_kind<an_ifc_Node_type>();
   an_ifc_output_partition
-                *output_part = this->get_partition(part_kind);
-
-  if (output_part == NULL) {
-    /* The output partition has not yet been created; create it now. */
-    size_t       part_size = get_ifc_partition_element_size(this->output_file,
-                                                            part_kind);
-    /* The partition will need a name for the table of contents write out.
-       To simplify things later, create the name now. */
-    a_const_char *part_name = get_partition_name_from_kind(part_kind);
-    size_t       part_name_len = strlen(part_name) + 1;
-    size_t       part_name_offset = this->add_to_string_table(part_name,
-                                                              part_name_len);
-
-    output_part = new_general<an_ifc_output_partition>(part_name_offset,
-                                                       part_size);
-    this->set_partition(part_kind, output_part);
-  }  /* if */
-
+                *output_part = this->get_or_init_partition<an_ifc_Node_type>();
   char          **start;
   size_t        byte_offset;
   size_t        index = output_part->new_element(&start, &byte_offset);
@@ -246,6 +250,37 @@ allocated node.  Return the node's index into the partition.
   *result = constructed_value;
   return index;
 }  /* an_ifc_output_state::alloc_node */
+
+
+template<typename an_ifc_Node_type>
+size_t an_ifc_output_state::alloc_node_block(size_t num_nodes)
+/*
+Allocate the given number of nodes in their corresponding output partition.
+Return the first node in the block's index into the partition.
+*/
+{
+  an_ifc_output_partition
+                *output_part = this->get_or_init_partition<an_ifc_Node_type>();
+
+  return output_part->new_elements(num_nodes);
+}  /* an_ifc_output_state::alloc_node_block */
+
+
+template<typename an_ifc_Node_type>
+an_ifc_chart_index an_ifc_output_state::alloc_chart(an_ifc_Node_type *result)
+/*
+Allocate a chart node in its corresponding output partition.  Set *result to the
+allocated node.  Return the node's chart index.
+*/
+{
+  an_ifc_partition_kind
+                part_kind = get_ifc_partition_kind<an_ifc_Node_type>();
+  size_t        part_offset = this->alloc_node(result);
+  an_ifc_chart_sort
+                chart_sort = to_chart_sort(part_kind);
+
+  return an_ifc_chart_index(result->get_file(), chart_sort, part_offset);
+}  /* an_ifc_output_state::alloc_chart */
 
 
 template<typename an_ifc_Node_type>
@@ -661,6 +696,38 @@ output file (i.e., an_ifc_output_state::output_file).
   return TRUE;
 }  /* an_ifc_output_state::write */
 
+
+template<typename an_ifc_Node_type>
+an_ifc_output_partition *an_ifc_output_state::get_or_init_partition()
+/*
+Return the corresponding output partition for the given node type.  If the
+output partition is not already initialized, initialize it now.
+*/
+{
+  an_ifc_partition_kind
+                part_kind = get_ifc_partition_kind<an_ifc_Node_type>();
+  an_ifc_output_partition
+                *output_part = this->get_partition(part_kind);
+
+  if (output_part == NULL) {
+    /* The output partition has not yet been created; create it now. */
+    size_t       part_size = get_ifc_partition_element_size(this->output_file,
+                                                            part_kind);
+    /* The partition will need a name for the table of contents write out.
+       To simplify things later, create the name now. */
+    a_const_char *part_name = get_partition_name_from_kind(part_kind);
+    size_t       part_name_len = strlen(part_name) + 1;
+    size_t       part_name_offset = this->add_to_string_table(part_name,
+                                                              part_name_len);
+
+    output_part = new_general<an_ifc_output_partition>(part_name_offset,
+                                                       part_size);
+    this->set_partition(part_kind, output_part);
+  }  /* if */
+  return output_part;
+}  /* an_ifc_output_state::get_or_init_partition */
+
+
 using a_seq_number_key = uint32_t;
                         /* This type is used to key entries of a_seq_number in
                            the an_ifc_il_map::seq_number_map. */
@@ -678,6 +745,7 @@ struct an_ifc_il_map {
     {}
   an_ifc_name_index find_or_enter_src_file(a_source_file_ptr file);
   an_ifc_name_index enter_src_file(a_source_file_ptr file);
+  an_ifc_source_location find_or_enter_null_pos();
   an_ifc_source_location find_or_enter_pos(const a_source_position &pos);
   an_ifc_source_location enter_pos(const a_source_position &pos);
   an_ifc_type_index find_or_enter_type(a_type_ptr type);
@@ -712,6 +780,8 @@ private:
   an_ifc_type_index enter_routine_params_type(a_type_ptr type);
   an_ifc_type_index enter_routine_type(a_type_ptr type);
   an_ifc_type_index enter_void_type(a_type_ptr type);
+
+  an_ifc_chart_index enter_routine_params(a_routine_ptr rp);
 
   an_ifc_type_index find_or_enter_namespace_scope_type();
   an_ifc_decl_index enter_namespace(a_scope_ptr scope);
@@ -810,6 +880,16 @@ Given a source position, return the corresponding hash map key.
 }  /* make_seq_num_map_key */
 
 namespace {
+
+an_ifc_source_location an_ifc_il_map::find_or_enter_null_pos()
+/*
+Find or enter the NULL source position into the IFC output state.  Return the
+corresponding IFC source location.
+*/
+{
+  return this->find_or_enter_pos(null_source_position);
+}  /* an_ifc_il_map::find_or_enter_null_pos */
+
 
 an_ifc_source_location an_ifc_il_map::find_or_enter_pos(
                                                  const a_source_position &pos)
@@ -1216,6 +1296,11 @@ Return the declaration index for the routine.
                 scope_decl_idx = this->find_or_enter_home_scope(scp);
   this->map_scope_member(scp, result);
   set_ifc_home_scope(&func_decl, scope_decl_idx);
+
+  /* Set the parameter information. */
+  an_ifc_chart_index
+                param_chart_idx = this->enter_routine_params(rp);
+  set_ifc_chart(&func_decl, param_chart_idx);
   return result;
 }  /* an_ifc_il_map::enter_routine */
 
@@ -1361,8 +1446,7 @@ Return the IFC type index of the parameter types.
   Small_dyn_array<an_ifc_type_index, 10, General_allocator>
                 param_types;
   a_param_type_ptr
-                curr_param_type =
-                            type->variant.routine.extra_info->param_type_list;
+                curr_param_type = function_type_params(type);
 
   /* Convert each parameter type and collect the converted types. */
   while (curr_param_type != NULL) {
@@ -1456,6 +1540,100 @@ for the void type.
   set_ifc_basis(&fund_type, ifc_tbs_void);
   return result;
 }  /* an_ifc_il_map::enter_void_type */
+
+
+an_ifc_chart_index an_ifc_il_map::enter_routine_params(a_routine_ptr rp)
+/*
+Given a routine, enter the routine's parameters.  Return the IFC chart index of
+the parameters.
+*/
+{
+  an_ifc_chart_index
+                result;
+  a_type_ptr    type = rp->type;
+  a_param_type_ptr
+                param_type_list = function_type_params(type);
+  unsigned      param_count = count_list_elements(param_type_list);
+
+  if (param_count > 0) {
+    an_ifc_chart_unilevel
+                param_chart;
+
+    result = this->output_state->alloc_chart(&param_chart);
+
+    /* Preallocate all the parameters to ensure we get one contiguous block. */
+    size_t      start = this->output_state->
+                          alloc_node_block<an_ifc_decl_parameter>(param_count);
+    /* Associate the preallocated parameter nodes with the parameter chart. */
+    an_ifc_module_file
+                *file = this->get_default_file();
+    an_ifc_index
+                ifc_param_start(file, start);
+    an_ifc_cardinality
+                ifc_param_count(file, param_count);
+    set_ifc_start(&param_chart, ifc_param_start);
+    set_ifc_cardinality(&param_chart, ifc_param_count);
+
+    /* Complete the parameter declarations. */
+    a_param_type_ptr curr_param_type = param_type_list;
+    for (size_t i = 0; i < param_count; ++i) {
+      size_t                curr_param_offset = start + i;
+      an_ifc_decl_parameter curr_param;
+
+      this->output_state->fetch_node(&curr_param, curr_param_offset);
+
+      /* Set the parameter name. */
+      a_const_char
+                *name = curr_param_type->name;
+      if (name != NULL) {
+        size_t  name_offset = this->output_state->add_to_string_table(name);
+        an_ifc_text_offset
+                ifc_name_offset(curr_param.get_file(), name_offset);
+
+        set_ifc_name(&curr_param, ifc_name_offset);
+      } else {
+        an_ifc_text_offset
+                ifc_name_offset;
+
+        set_ifc_name(&curr_param, ifc_name_offset);
+      }  /* if */
+
+      /* Set the source location information. */
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      a_decl_position_supplement_ptr
+                decl_pos_sup = curr_param_type->decl_pos_info;
+      if (decl_pos_sup != NULL) {
+        a_source_position
+                src_pos = decl_pos_sup->identifier_range.start;
+        an_ifc_source_location
+                ifc_src_pos = this->find_or_enter_pos(src_pos);
+
+        set_ifc_locus(&curr_param, ifc_src_pos);
+      } else
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      {
+        an_ifc_source_location
+                ifc_src_pos = this->find_or_enter_null_pos();
+
+        set_ifc_locus(&curr_param, ifc_src_pos);
+      }  /* if */
+
+      /* Set the type information. */
+      an_ifc_type_index
+                ifc_type_idx = this->find_or_enter_type(curr_param_type->type);
+      set_ifc_type(&curr_param, ifc_type_idx);
+      /* FIXME: Set the constraint. */
+      /* FIXME: Set the initializer. */
+      /* FIXME: Set the level. */
+      /* FIXME: Set the position. */
+      set_ifc_sort(&curr_param, ifc_ps_object);
+      /* FIXME: Set the reachable properties. */
+      /* Advance to the next parameter. */
+      curr_param_type = curr_param_type->next;
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* an_ifc_il_map::enter_routine_params */
 
 
 an_ifc_type_index an_ifc_il_map::find_or_enter_namespace_scope_type()
