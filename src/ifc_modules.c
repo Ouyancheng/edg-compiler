@@ -12077,750 +12077,758 @@ otherwise, return FALSE.
 }  /* add_routine_qualifiers_to_type */
 
 
+static void associate_mep_with_type(a_module_entity_ptr mep)
+/*
+For the given type module entity pointer, associate the corresponding IL type
+with the module entity pointer.
+*/
+{
+  a_type_ptr        result;
+  an_ifc_type_index type_idx = type_index_of(mep);
+  an_ifc_module     *mod = module_of(type_idx);
+
+  switch (type_idx.sort) {
+    case ifc_ts_type_fundamental:
+      { Opt<an_ifc_type_fundamental> opt_itf;
+
+        construct_node(&opt_itf, type_idx);
+        if (!opt_itf.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_fundamental    itf = *opt_itf;
+        an_ifc_type_basis_sort     basis = get_ifc_basis(itf);
+        an_ifc_type_sign_sort      sign = get_ifc_sign(itf);
+        an_ifc_type_precision_sort precision = get_ifc_precision(itf);
+        an_integer_kind            ik;
+        /* Note: no check is made for nonsensical types (e.g., signed
+           void). */
+        switch (basis) {
+          case ifc_tbs_void:
+            check_assertion(precision == ifc_tps_default);
+            result = void_type();
+            break;
+          case ifc_tbs_bool:
+            check_assertion(precision == ifc_tps_default);
+            result = bool_type();
+            break;
+          case ifc_tbs_char:
+            switch (sign) {
+              case ifc_tss_plain:
+                switch (precision) {
+                  case ifc_tps_default:
+                    result = integer_type((an_integer_kind)ik_char);
+                    break;
+                  case ifc_tps_bit8:
+                    result = char8_t_type();
+                    break;
+                  case ifc_tps_bit16:
+                    result = char16_t_type();
+                    break;
+                  case ifc_tps_bit32:
+                    result = char32_t_type();
+                    break;
+                  default:
+                    { a_string err_msg("Unexpected ", str_for(precision),
+                                       " for ", str_for(basis));
+
+                      ifc_unexpected(mod, err_msg);
+                    }
+                    goto invalid;
+                }  /* switch */
+                break;
+              case ifc_tss_signed:
+                check_assertion(precision == ifc_tps_default);
+                result = integer_type((an_integer_kind)ik_signed_char);
+                break;
+              case ifc_tss_unsigned:
+                check_assertion(precision == ifc_tps_default);
+                result = integer_type((an_integer_kind)ik_unsigned_char);
+                break;
+              default_is_unexpected();
+            }  /* if */
+            break;
+          case ifc_tbs_wchar_t:
+            switch (precision) {
+              case ifc_tps_default:
+                result = wchar_t_type();
+                break;
+              case ifc_tps_bit8:
+                result = char8_t_type();
+                break;
+              case ifc_tps_bit16:
+                result = char16_t_type();
+                break;
+              case ifc_tps_bit32:
+                result = char32_t_type();
+                break;
+              case ifc_tps_short:
+              case ifc_tps_long:
+              case ifc_tps_bit64:
+              case ifc_tps_bit128:
+                { a_string err_msg("Unexpected ", str_for(precision),
+                                   " for ", str_for(basis));
+
+                  ifc_unexpected(mod, err_msg);
+                }
+                goto invalid;
+              default_is_unexpected();
+            }  /* switch */
+            break;
+          case ifc_tbs_int:
+            switch (precision) {
+              case ifc_tps_default:
+                ik = (sign == ifc_tss_unsigned) ?
+                                ik_unsigned_int : ik_int;
+                break;
+              case ifc_tps_short:
+                ik = (sign == ifc_tss_unsigned) ?
+                              ik_unsigned_short : ik_short;
+                break;
+              case ifc_tps_long:
+                ik = (sign == ifc_tss_unsigned) ?
+                               ik_unsigned_long : ik_long;
+                break;
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED || IA64_ABI
+              case ifc_tps_bit8:
+                ik = int_kind_for_bit_size(8, sign != ifc_tss_unsigned);
+                break;
+              case ifc_tps_bit16:
+                ik = int_kind_for_bit_size(16, sign != ifc_tss_unsigned);
+                break;
+              case ifc_tps_bit32:
+                ik = int_kind_for_bit_size(32, sign != ifc_tss_unsigned);
+                break;
+              case ifc_tps_bit64:
+                ik = int_kind_for_bit_size(64, sign != ifc_tss_unsigned);
+                break;
+              case ifc_tps_bit128:
+                ik = int_kind_for_bit_size(128, sign != ifc_tss_unsigned);
+                break;
+#else /* !(MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED...) */
+              case ifc_tps_bit8:
+              case ifc_tps_bit16:
+              case ifc_tps_bit32:
+              case ifc_tps_bit64:
+              case ifc_tps_bit128:
+                { a_string err_msg("Unsupported ", str_for(precision),
+                                   " for ", str_for(basis));
+
+                  ifc_unexpected(mod, err_msg);
+                }
+                goto invalid;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED || IA64_ABI */
+              default_is_unexpected();
+            }  /* switch */
+            check_assertion(ik != (an_integer_kind)ik_none);
+            result = integer_type(ik);
+            break;
+          case ifc_tbs_float:
+            check_assertion(precision == ifc_tps_default);
+            result = float_type((a_float_kind)fk_float);
+            break;
+          case ifc_tbs_double:
+            if (precision == ifc_tps_long) {
+              result = float_type((a_float_kind)fk_long_double);
+            } else {
+              check_assertion(precision == ifc_tps_default);
+              result = float_type((a_float_kind)fk_double);
+            }  /* if */
+            break;
+          case ifc_tbs_nullptr:
+            check_assertion(precision == ifc_tps_default);
+            result = standard_nullptr_type();
+            break;
+          case ifc_tbs_ellipsis:
+          case ifc_tbs_class:
+          case ifc_tbs_struct:
+          case ifc_tbs_union:
+          case ifc_tbs_auto:
+          case ifc_tbs_decltype_auto:
+          case ifc_tbs_namespace:
+          case ifc_tbs_interface:
+          case ifc_tbs_enum:
+          case ifc_tbs_typename:
+          case ifc_tbs_segment_type:
+          case ifc_tbs_function:
+          case ifc_tbs_empty:
+          case ifc_tbs_variable_template:
+          case ifc_tbs_concept:
+          case ifc_tbs_overload:
+            { a_string err_msg("Unexpected ", str_for(basis));
+
+              ifc_unexpected(mod, err_msg);
+            }
+            goto invalid;
+          default_is_unexpected_str("Unexpected TypeBasis kind");
+        }  /* switch */
+      }
+      break;
+    case ifc_ts_type_qualified:
+      { Opt<an_ifc_type_qualified> opt_itq;
+
+        construct_node(&opt_itq, type_idx);
+        if (!opt_itq.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_qualified     itq = *opt_itq;
+        an_ifc_type_index         unqualified = get_ifc_unqualified(itq);
+        a_type_ptr                unqualified_ptr =
+                                              type_for_type_index(unqualified);
+        an_ifc_qualifier_bitfield ifc_qualifiers = get_ifc_qualifiers(itq);
+        a_type_qualifier_set      qualifiers = TQ_NONE;
+        if (test_bitmask<ifc_qb_const>(ifc_qualifiers)) {
+          qualifiers |= TQ_CONST;
+        }  /* if */
+        if (test_bitmask<ifc_qb_volatile>(ifc_qualifiers)) {
+          qualifiers |= TQ_VOLATILE;
+        }  /* if */
+        if (test_bitmask<ifc_qb_restrict>(ifc_qualifiers)) {
+          qualifiers |= TQ_RESTRICT;
+        }  /* if */
+        result = make_qualified_type(unqualified_ptr, qualifiers);
+      }
+      break;
+    case ifc_ts_type_pointer:
+      { Opt<an_ifc_type_pointer> opt_itp;
+
+        construct_node(&opt_itp, type_idx);
+        if (!opt_itp.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_index pointee = get_ifc_pointee(*opt_itp);
+        result = make_pointer_type(type_for_type_index(pointee));
+      }
+      break;
+    case ifc_ts_type_lvalue_reference:
+      { Opt<an_ifc_type_lvalue_reference> opt_itlr;
+
+        construct_node(&opt_itlr, type_idx);
+        if (!opt_itlr.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_index referee = get_ifc_referee(*opt_itlr);
+        a_type_ptr        referee_il = type_for_type_index(referee);
+        if (is_error_type(referee_il)) {
+          goto invalid;
+        }  /* if */
+        result = make_reference_type(referee_il);
+      }
+      break;
+    case ifc_ts_type_rvalue_reference:
+      { Opt<an_ifc_type_rvalue_reference> opt_itrr;
+
+        construct_node(&opt_itrr, type_idx);
+        if (!opt_itrr.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_index referee = get_ifc_referee(*opt_itrr);
+        result = make_rvalue_reference_type(type_for_type_index(referee));
+      }
+      break;
+    case ifc_ts_type_array:
+      { Opt<an_ifc_type_array> opt_ita;
+
+        construct_node(&opt_ita, type_idx);
+        if (!opt_ita.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_array ita = *opt_ita;
+        an_ifc_type_index element = get_ifc_element(ita);
+        an_ifc_expr_index extent = get_ifc_extent(ita);
+        result = alloc_type((a_type_kind)tk_array);
+        result->variant.array.element_type = type_for_type_index(element);
+        if (is_null_index(extent)) {
+          /* The array length isn't specified (i.e., this is the []
+             incomplete-type case). */
+          result->variant.array.variant.number_of_elements = 0;
+        } else {
+          a_constant_ptr elem_count = mod->constant_for_expr_index(
+                                                        extent,
+                                                        /*default_type=*/NULL);
+
+          if (elem_count != NULL && elem_count->kind == ck_integer) {
+            a_boolean err = FALSE;
+
+            result->variant.array.variant.number_of_elements =
+                          unsigned_value_of_integer_constant(elem_count, &err);
+            if (err) {
+              ifc_unexpected(mod, "integer overflow on type array");
+              goto invalid;
+            }  /* if */
+          } else if (elem_count != NULL &&
+                     elem_count->kind == ck_template_param) {
+            result->variant.array.is_template_dependent_size_array = TRUE;
+            result->variant.array.variant.element_count_constant = elem_count;
+          } else {
+            ifc_unexpected(mod, "bad element count for type array");
+            goto invalid;
+          }  /* if */
+        }  /* if */
+        set_array_type_size(result, /*suppress_error=*/FALSE);
+      }
+      break;
+    case ifc_ts_type_method:
+      { Opt<an_ifc_type_method> opt_method_type;
+
+        construct_node(&opt_method_type, type_idx);
+        if (!opt_method_type.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_method method_type = *opt_method_type;
+        an_ifc_type_index  target = get_ifc_target(method_type);
+        a_type_ptr         return_type = type_for_type_index(target);
+        /* Create a routine type with no parameters to start. */
+        result = make_routine_type(return_type);
+
+        a_routine_type_supplement_ptr rtsp = rout_type_supp(result);
+        an_ifc_type_index             scope = get_ifc_scope(method_type);
+        a_type_ptr                    scope_type = type_for_type_index(scope);
+        rtsp->this_class = scope_type;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
+        an_ifc_calling_convention_sort convention =
+                                               get_ifc_convention(method_type);
+        rtsp->calling_convention = conv_calling_convention(convention);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
+
+        an_ifc_noexcept_specification eh_spec = get_ifc_eh_spec(method_type);
+        rtsp->exception_specification = exception_specification(
+                                                              eh_spec,
+                                                              &error_position);
+
+        an_ifc_function_type_traits_bitfield traits =
+                                                   get_ifc_traits(method_type);
+        if (!add_routine_qualifiers_to_type(rtsp, traits)) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_index source = get_ifc_source(method_type);
+        if (!add_parameters_to_type(rtsp, source)) {
+          goto invalid;
+        }  /* if */
+      }
+      break;
+    case ifc_ts_type_function:
+      { Opt<an_ifc_type_function> opt_function_type;
+
+        construct_node(&opt_function_type, type_idx);
+        if (!opt_function_type.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_function function_type = *opt_function_type;
+        an_ifc_type_index    target = get_ifc_target(function_type);
+        a_type_ptr           return_type = type_for_type_index(target);
+        /* Create a routine type with no parameters to start. */
+        result = make_routine_type(return_type);
+
+        a_routine_type_supplement_ptr  rtsp = rout_type_supp(result);
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
+        an_ifc_calling_convention_sort convention =
+                                             get_ifc_convention(function_type);
+        rtsp->calling_convention = conv_calling_convention(convention);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
+
+        an_ifc_noexcept_specification eh_spec = get_ifc_eh_spec(function_type);
+        rtsp->exception_specification = exception_specification(
+                                                              eh_spec,
+                                                              &error_position);
+
+        an_ifc_function_type_traits_bitfield traits =
+                                                 get_ifc_traits(function_type);
+        if (!add_routine_qualifiers_to_type(rtsp, traits)) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_index source = get_ifc_source(function_type);
+        if (!add_parameters_to_type(rtsp, source)) {
+          goto invalid;
+        }  /* if */
+      }
+      break;
+    case ifc_ts_type_designated:
+      /* A type's name (e.g., "A"). */
+      { Opt<an_ifc_type_designated> opt_itd;
+
+        construct_node(&opt_itd, type_idx);
+        if (!opt_itd.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_designated itd = *opt_itd;
+        an_ifc_decl_index      decl = get_ifc_decl(itd);
+        switch (decl.sort) {
+          case ifc_ds_decl_alias:
+          case ifc_ds_decl_enumeration:
+          case ifc_ds_decl_reference:
+          case ifc_ds_decl_scope:
+            /* Find the type of the scope declaration by processing it (in
+               case it has been deferred). */
+            { a_module_entity_ptr dmep = process_decl_at_index(decl);
+
+              if (dmep->invalid) {
+                goto invalid;
+              }  /* if */
+              if (dmep->entity.kind != iek_type) {
+                ifc_unexpected(get_assoc_ifc_module(dmep),
+                               "expected a type from TypeDesignated");
+                goto invalid;
+              }  /* if */
+              result = (a_type_ptr)dmep->entity.ptr;
+            }
+            break;
+          case ifc_ds_decl_parameter:
+            { Opt<an_ifc_decl_parameter> opt_param_decl;
+
+              construct_node(&opt_param_decl, decl);
+              if (!opt_param_decl.has_value()) {
+                goto invalid;
+              }  /* if */
+
+              an_ifc_decl_parameter param_decl = *opt_param_decl;
+              an_ifc_type_index     type = get_ifc_type(param_decl);
+              if (type_represents_type_templ_param_ref(type)) {
+                a_symbol_ptr sym = find_template_parameter(param_decl);
+
+                if (sym == NULL) {
+                  goto invalid;
+                }  /* if */
+                record_potential_pack_reference(sym, &null_source_position);
+                result = il_entry_for_symbol<a_type>(sym);
+              } else {
+                result = type_for_type_index(get_ifc_type(param_decl));
+              }  /* if */
+            }
+            break;
+          case ifc_ds_decl_template:
+            { a_module_entity_ptr dmep = process_decl_at_index(decl);
+
+              if (dmep->invalid) {
+                goto invalid;
+              }  /* if */
+
+              /* If this assertion fails, the module entity should've been
+                 marked invalid. */
+              check_assertion(dmep->entity.kind == iek_template);
+              a_template_ptr  templ = (a_template_ptr)dmep->entity.ptr;
+              a_template_kind templ_kind = templ->kind;
+              switch (templ_kind) {
+                case templk_class:
+                case templk_member_class:
+                case templk_member_enum:
+                  { a_symbol_ptr templ_sym = symbol_for(templ);
+
+                    result = make_class_template_placeholder(
+                                                        templ_sym,
+                                                        &null_source_position);
+                  }
+                  break;
+                case templk_none:
+                case templk_function:
+                case templk_variable:
+                case templk_member_function:
+                case templk_static_data_member:
+                case templk_template_template_param:
+                case templk_concept:
+                  { a_string err_msg("Unexpected IL entity template kind "
+                                     "encountered for ",
+                                     index_to_str(type_idx));
+
+                    ifc_unexpected(mod, err_msg);
+                  }
+                  goto invalid;
+                default_is_unexpected();
+              }  /* switch */
+            }
+            break;
+          default:
+            { a_string err_msg("Unexpected ", str_for(decl.sort),
+                               " for ", index_to_str(type_idx));
+
+              ifc_unexpected(mod, err_msg);
+            }
+            goto invalid;
+        }  /* switch */
+      }
+      break;
+    case ifc_ts_type_tor:
+      /* This type should only be encountered when processing a constructor,
+         and that is directly handled with that constructor declaration.*/
+      { a_string err_msg("Unexpected ", str_for(type_idx.sort));
+
+        ifc_unexpected(mod, err_msg);
+      }
+      goto invalid;
+    case ifc_ts_type_placeholder:
+      { Opt<an_ifc_type_placeholder> opt_itp;
+
+        construct_node(&opt_itp, type_idx);
+        if (!opt_itp.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_placeholder itp = *opt_itp;
+        an_ifc_type_basis_sort  basis = get_ifc_basis(itp);
+        switch (basis) {
+          case ifc_tbs_auto:
+          case ifc_tbs_decltype_auto:
+            result = make_auto_type(&null_source_position,
+                                    basis == ifc_tbs_decltype_auto);
+            break;
+          default:
+            { a_string err_msg("Unexpected ", str_for(basis),
+                               " for ", str_for(type_idx.sort));
+
+              ifc_unexpected(mod, err_msg);
+            }
+            goto invalid;
+        }  /* switch */
+      }
+      break;
+    case ifc_ts_type_pointer_to_member:
+      { Opt<an_ifc_type_pointer_to_member> opt_ptr_to_mem_type;
+
+        construct_node(&opt_ptr_to_mem_type, type_idx);
+        if (!opt_ptr_to_mem_type.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_pointer_to_member
+                          ptr_to_mem_type = *opt_ptr_to_mem_type;
+        an_ifc_type_index scope_index = get_ifc_scope(ptr_to_mem_type);
+        a_type_ptr        scope_type = type_for_type_index(scope_index);
+        if (is_error_type(scope_type)) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_index member_index = get_ifc_member(ptr_to_mem_type);
+        a_type_ptr        member_type = type_for_type_index(member_index);
+        if (is_error_type(member_type)) {
+          goto invalid;
+        }  /* if */
+        result = ptr_to_member_type(member_type, scope_type);
+      }
+      break;
+    case ifc_ts_type_tuple:
+      { Opt<an_ifc_type_tuple> opt_itt;
+
+        construct_node(&opt_itt, type_idx);
+        if (!opt_itt.has_value()) {
+          goto invalid;
+        }  /* if */
+        /* FIXME: Currently unsupported. */
+        issue_unsupported_construct_error(mod, "TypeSort::Tuple",
+                                          &error_position);
+        goto invalid;
+      }
+    case ifc_ts_type_forall:
+      { Opt<an_ifc_type_forall> opt_itf;
+
+        construct_node(&opt_itf, type_idx);
+        if (!opt_itf.has_value()) {
+          goto invalid;
+        }  /* if */
+        /* FIXME: Currently unsupported. */
+        issue_unsupported_construct_error(mod, "TypeSort::Forall",
+                                          &error_position);
+        goto invalid;
+      }
+    case ifc_ts_type_syntactic:
+      { Opt<an_ifc_type_syntactic> opt_its;
+
+        construct_node(&opt_its, type_idx);
+        if (!opt_its.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_expr_index expr = get_ifc_expr(*opt_its);
+        switch (expr.sort) {
+          case ifc_es_expr_template_id:
+            { Opt<an_ifc_expr_template_id> opt_ieti;
+
+              construct_node(&opt_ieti, expr);
+              if (!opt_ieti.has_value()) {
+                goto invalid;
+              }  /* if */
+              result = mod->type_for_template_id(*opt_ieti);
+            }
+            break;
+          default:
+            { a_string err_msg("Unexpected ", str_for(expr.sort),
+                               " for ", str_for(type_idx.sort));
+
+              ifc_unexpected(mod, err_msg);
+            }
+            goto invalid;
+        }  /* switch */
+      }
+      break;
+    case ifc_ts_type_expansion:
+      { Opt<an_ifc_type_expansion> opt_expansion_type;
+
+        construct_node(&opt_expansion_type, type_idx);
+        if (!opt_expansion_type.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_type_expansion
+                expansion_type = *opt_expansion_type;
+        an_ifc_type_index
+                pack = get_ifc_pack(expansion_type);
+        /* Start a potential pack expansion. */
+        a_pack_expansion_stack_entry_ptr
+                pesep;
+        (void)begin_potential_pack_expansion_context_full(
+                                                  &pesep,
+                                                  /*p_pedp=*/NULL,
+                                                  /*is_lookahead=*/FALSE,
+                                                  /*allow_empty_list=*/FALSE,
+                                                  /*ignore_suppression=*/TRUE);
+        /* Form the IL type. */
+        result = type_for_type_index(pack);
+
+        /* This is a bit of a hack: a token cache is created and rescanned
+           containing an ellipsis.  This allows
+           end_potential_pack_expansion_context to consume the ellipsis and mark
+           pack use accordingly.  This, in turn, ensures that any packs that are
+           reference are not diagnosed. */
+        a_module_token_cache cache;
+        cache_token(&cache, tok_ellipsis);
+
+        a_module_entity_rescan rescan(&cache);
+        (void)end_potential_pack_expansion_context(pesep,
+                                                   /*is_declarator=*/FALSE);
+        (void)advance_to_next_pack_element(pesep);
+      }
+      break;
+    case ifc_ts_type_typename:
+      { a_module_token_cache cache;
+
+        cache_type(&cache, type_idx, /*cinfo=*/{});
+        if (!cache.is_valid()) {
+          goto invalid;
+        }  /* if */
+
+        a_module_entity_rescan rescan(&cache);
+        if (curr_token == tok_typename) {
+          a_symbol_ptr       type_sym = NULL;
+          a_decl_parse_state dps;
+          a_decl_pos_block   decl_pos_block;
+
+          init_decl_parse_state(&dps);
+          typename_specifier(&result, &type_sym, /*within_using_decl=*/FALSE,
+                             /*is_decl_specifier=*/FALSE, &dps,
+                             &decl_pos_block);
+        } else {
+          ifc_unexpected(module_of(type_idx), "expected a typename token");
+          goto invalid;
+        }  /* if */
+      }
+      break;
+    case ifc_ts_type_base:
+      { Opt<an_ifc_type_base> opt_itb;
+
+        construct_node(&opt_itb, type_idx);
+        if (!opt_itb.has_value()) {
+          goto invalid;
+        }  /* if */
+        /* FIXME: Currently unsupported. */
+        issue_unsupported_construct_error(mod, "TypeSort::Base",
+                                          &error_position);
+        goto invalid;
+      }
+    case ifc_ts_type_unaligned:
+      { Opt<an_ifc_type_unaligned> opt_itu;
+
+        construct_node(&opt_itu, type_idx);
+        if (!opt_itu.has_value()) {
+          goto invalid;
+        }  /* if */
+        /* FIXME: Currently unsupported. */
+        issue_unsupported_construct_error(mod, "TypeSort::Unaligned",
+                                          &error_position);
+        goto invalid;
+      }
+    case ifc_ts_type_decltype:
+      { a_module_token_cache cache;
+
+        cache_type(&cache, type_idx, /*cinfo=*/{});
+
+        a_module_entity_rescan rescan(&cache);
+        if (curr_token == tok_decltype) {
+          /* A decltype could be decltype(x) or decltype(x)::something.  This
+             will coalesce the decltype into a tok_decltype_construct in the
+             first case or a tok_identifier in the latter case. */
+          (void)is_generalized_identifier_start(GID_IS_EXPR_CONTEXT);
+        }  /* if */
+
+        if (curr_token == tok_decltype_construct) {
+          result = locator_for_curr_id.variant.decltype_type;
+          (void)get_token();
+        } else {
+          a_string err_msg(index_to_str(type_idx),
+                           " does not contain a decltype expression");
+
+          ifc_unexpected(mod, err_msg.as_temp_characters());
+        }  /* if */
+      }
+      break;
+    case ifc_ts_type_syntax_tree:
+      { Opt<an_ifc_type_syntax_tree> opt_itst;
+
+        construct_node(&opt_itst, type_idx);
+        if (!opt_itst.has_value()) {
+          goto invalid;
+        }  /* if */
+        /* FIXME: Currently unsupported. */
+        issue_unsupported_construct_error(mod, "TypeSort::Syntaxtree",
+                                          &error_position);
+        goto invalid;
+      }
+    case ifc_ts_type_vendor_extension:
+      issue_unsupported_construct_error(mod, str_for(type_idx.sort),
+                                        &error_position);
+      goto invalid;
+    default_is_unexpected_str("Unexpected TypeSort");
+  }  /* switch */
+  goto done;
+invalid:
+  result = error_type();
+done:
+  /* Record this mapping for future reference. */
+  if (result != NULL) {
+    mep->scope = result->source_corresp.parent_scope;
+  }  /* if */
+  mep->entity = make_tagged_ptr(result);
+}  /* associate_mep_with_type */
+
+
 static a_type_ptr type_for_type_index(an_ifc_type_index type_index)
 /*
 Return the type that corresponds to the specified TypeIndex.  If there is no
 corresponding type, return an error type.
 */
 {
-  a_type_ptr          result = NULL;
-  a_module_entity_ptr mep = get_ifc_module_entity_ptr(type_index);
+  a_type_ptr result = NULL;
 
-  if (mep->entity.ptr != NULL) {
-    /* There is already an entry for this; return it. */
+  if (is_null_index(type_index)) {
+    result = error_type();
+  } else {
+    a_module_entity_ptr mep = get_ifc_module_entity_ptr(type_index);
+
+    if (mep->entity.ptr == NULL) {
+      associate_mep_with_type(mep);
+    }  /* if */
     check_assertion(mep->entity.kind == iek_type);
     result = (a_type_ptr)mep->entity.ptr;
-  } else {
-    an_ifc_type_index type_idx = type_index_of(mep);
-    an_ifc_module     *mod = module_of(type_index);
-
-    switch (type_idx.sort) {
-      case ifc_ts_type_fundamental:
-        { Opt<an_ifc_type_fundamental> opt_itf;
-
-          construct_node(&opt_itf, type_idx);
-          if (!opt_itf.has_value()) {
-            goto invalid;
-          }  /* if */
-
-          an_ifc_type_fundamental    itf = *opt_itf;
-          an_ifc_type_basis_sort     basis = get_ifc_basis(itf);
-          an_ifc_type_sign_sort      sign = get_ifc_sign(itf);
-          an_ifc_type_precision_sort precision = get_ifc_precision(itf);
-          an_integer_kind            ik;
-          /* Note: no check is made for nonsensical types (e.g., signed
-             void). */
-          switch (basis) {
-            case ifc_tbs_void:
-              check_assertion(precision == ifc_tps_default);
-              result = void_type();
-              break;
-            case ifc_tbs_bool:
-              check_assertion(precision == ifc_tps_default);
-              result = bool_type();
-              break;
-            case ifc_tbs_char:
-              switch (sign) {
-                case ifc_tss_plain:
-                  switch (precision) {
-                    case ifc_tps_default:
-                      result = integer_type((an_integer_kind)ik_char);
-                      break;
-                    case ifc_tps_bit8:
-                      result = char8_t_type();
-                      break;
-                    case ifc_tps_bit16:
-                      result = char16_t_type();
-                      break;
-                    case ifc_tps_bit32:
-                      result = char32_t_type();
-                      break;
-                    default:
-                      { a_string err_msg("Unexpected ", str_for(precision),
-                                         " for ", str_for(basis));
-
-                        ifc_unexpected(mod, err_msg);
-                      }
-                      goto invalid;
-                  }  /* switch */
-                  break;
-                case ifc_tss_signed:
-                  check_assertion(precision == ifc_tps_default);
-                  result = integer_type((an_integer_kind)ik_signed_char);
-                  break;
-                case ifc_tss_unsigned:
-                  check_assertion(precision == ifc_tps_default);
-                  result = integer_type((an_integer_kind)ik_unsigned_char);
-                  break;
-                default_is_unexpected();
-              }  /* if */
-              break;
-            case ifc_tbs_wchar_t:
-              switch (precision) {
-                case ifc_tps_default:
-                  result = wchar_t_type();
-                  break;
-                case ifc_tps_bit8:
-                  result = char8_t_type();
-                  break;
-                case ifc_tps_bit16:
-                  result = char16_t_type();
-                  break;
-                case ifc_tps_bit32:
-                  result = char32_t_type();
-                  break;
-                case ifc_tps_short:
-                case ifc_tps_long:
-                case ifc_tps_bit64:
-                case ifc_tps_bit128:
-                  { a_string err_msg("Unexpected ", str_for(precision),
-                                     " for ", str_for(basis));
-
-                    ifc_unexpected(mod, err_msg);
-                  }
-                  goto invalid;
-                default_is_unexpected();
-              }  /* switch */
-              break;
-            case ifc_tbs_int:
-              switch (precision) {
-                case ifc_tps_default:
-                  ik = (sign == ifc_tss_unsigned) ?
-                                  ik_unsigned_int : ik_int;
-                  break;
-                case ifc_tps_short:
-                  ik = (sign == ifc_tss_unsigned) ?
-                                ik_unsigned_short : ik_short;
-                  break;
-                case ifc_tps_long:
-                  ik = (sign == ifc_tss_unsigned) ?
-                                 ik_unsigned_long : ik_long;
-                  break;
-#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED || IA64_ABI
-                case ifc_tps_bit8:
-                  ik = int_kind_for_bit_size(8, sign != ifc_tss_unsigned);
-                  break;
-                case ifc_tps_bit16:
-                  ik = int_kind_for_bit_size(16, sign != ifc_tss_unsigned);
-                  break;
-                case ifc_tps_bit32:
-                  ik = int_kind_for_bit_size(32, sign != ifc_tss_unsigned);
-                  break;
-                case ifc_tps_bit64:
-                  ik = int_kind_for_bit_size(64, sign != ifc_tss_unsigned);
-                  break;
-                case ifc_tps_bit128:
-                  ik = int_kind_for_bit_size(128, sign != ifc_tss_unsigned);
-                  break;
-#else /* !(MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED...) */
-                case ifc_tps_bit8:
-                case ifc_tps_bit16:
-                case ifc_tps_bit32:
-                case ifc_tps_bit64:
-                case ifc_tps_bit128:
-                  { a_string err_msg("Unsupported ", str_for(precision),
-                                     " for ", str_for(basis));
-
-                    ifc_unexpected(mod, err_msg);
-                  }
-                  goto invalid;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED || IA64_ABI */
-                default_is_unexpected();
-              }  /* switch */
-              check_assertion(ik != (an_integer_kind)ik_none);
-              result = integer_type(ik);
-              break;
-            case ifc_tbs_float:
-              check_assertion(precision == ifc_tps_default);
-              result = float_type((a_float_kind)fk_float);
-              break;
-            case ifc_tbs_double:
-              if (precision == ifc_tps_long) {
-                result = float_type((a_float_kind)fk_long_double);
-              } else {
-                check_assertion(precision == ifc_tps_default);
-                result = float_type((a_float_kind)fk_double);
-              }  /* if */
-              break;
-            case ifc_tbs_nullptr:
-              check_assertion(precision == ifc_tps_default);
-              result = standard_nullptr_type();
-              break;
-            case ifc_tbs_ellipsis:
-            case ifc_tbs_class:
-            case ifc_tbs_struct:
-            case ifc_tbs_union:
-            case ifc_tbs_auto:
-            case ifc_tbs_decltype_auto:
-            case ifc_tbs_namespace:
-            case ifc_tbs_interface:
-            case ifc_tbs_enum:
-            case ifc_tbs_typename:
-            case ifc_tbs_segment_type:
-            case ifc_tbs_function:
-            case ifc_tbs_empty:
-            case ifc_tbs_variable_template:
-            case ifc_tbs_concept:
-            case ifc_tbs_overload:
-              { a_string err_msg("Unexpected ", str_for(basis));
-
-                ifc_unexpected(mod, err_msg);
-              }
-              goto invalid;
-            default_is_unexpected_str("Unexpected TypeBasis kind");
-          }  /* switch */
-        }
-        break;
-      case ifc_ts_type_qualified:
-        { Opt<an_ifc_type_qualified> opt_itq;
-
-          construct_node(&opt_itq, type_idx);
-          if (!opt_itq.has_value()) {
-            goto invalid;
-          }  /* if */
-
-          an_ifc_type_qualified     itq = *opt_itq;
-          an_ifc_type_index         unqualified = get_ifc_unqualified(itq);
-          a_type_ptr                unqualified_ptr =
-                                              type_for_type_index(unqualified);
-          an_ifc_qualifier_bitfield ifc_qualifiers = get_ifc_qualifiers(itq);
-          a_type_qualifier_set      qualifiers = TQ_NONE;
-          if (test_bitmask<ifc_qb_const>(ifc_qualifiers)) {
-            qualifiers |= TQ_CONST;
-          }  /* if */
-          if (test_bitmask<ifc_qb_volatile>(ifc_qualifiers)) {
-            qualifiers |= TQ_VOLATILE;
-          }  /* if */
-          if (test_bitmask<ifc_qb_restrict>(ifc_qualifiers)) {
-            qualifiers |= TQ_RESTRICT;
-          }  /* if */
-          result = make_qualified_type(unqualified_ptr, qualifiers);
-        }
-        break;
-      case ifc_ts_type_pointer:
-        { Opt<an_ifc_type_pointer> opt_itp;
-
-          construct_node(&opt_itp, type_idx);
-          if (!opt_itp.has_value()) {
-            goto invalid;
-          }  /* if */
-
-          an_ifc_type_index pointee = get_ifc_pointee(*opt_itp);
-          result = make_pointer_type(type_for_type_index(pointee));
-        }
-        break;
-      case ifc_ts_type_lvalue_reference:
-        { Opt<an_ifc_type_lvalue_reference> opt_itlr;
-
-          construct_node(&opt_itlr, type_idx);
-          if (!opt_itlr.has_value()) {
-            goto invalid;
-          }  /* if */
-
-          an_ifc_type_index referee = get_ifc_referee(*opt_itlr);
-          a_type_ptr        referee_il = type_for_type_index(referee);
-          if (is_error_type(referee_il)) {
-            goto invalid;
-          }  /* if */
-          result = make_reference_type(referee_il);
-        }
-        break;
-      case ifc_ts_type_rvalue_reference:
-        { Opt<an_ifc_type_rvalue_reference> opt_itrr;
-
-          construct_node(&opt_itrr, type_idx);
-          if (!opt_itrr.has_value()) {
-            goto invalid;
-          }  /* if */
-
-          an_ifc_type_index referee = get_ifc_referee(*opt_itrr);
-          result = make_rvalue_reference_type(
-                                           type_for_type_index(referee));
-        }
-        break;
-      case ifc_ts_type_array:
-        { Opt<an_ifc_type_array> opt_ita;
-
-          construct_node(&opt_ita, type_idx);
-          if (!opt_ita.has_value()) {
-            goto invalid;
-          }  /* if */
-
-          an_ifc_type_array ita = *opt_ita;
-          an_ifc_type_index element = get_ifc_element(ita);
-          an_ifc_expr_index extent = get_ifc_extent(ita);
-          result = alloc_type((a_type_kind)tk_array);
-          result->variant.array.element_type = type_for_type_index(element);
-
-          if (is_null_index(extent)) {
-            /* The array length isn't specified (i.e., this is the []
-               incomplete-type case). */
-            result->variant.array.variant.number_of_elements = 0;
-          } else {
-            a_constant_ptr elem_count = mod->constant_for_expr_index(
-                                                        extent,
-                                                        /*default_type=*/NULL);
-
-            if (elem_count != NULL && elem_count->kind == ck_integer) {
-              a_boolean err = FALSE;
-
-              result->variant.array.variant.number_of_elements =
-                          unsigned_value_of_integer_constant(elem_count, &err);
-              if (err) {
-                ifc_unexpected(mod, "integer overflow on type array");
-                goto invalid;
-              }  /* if */
-            } else if (elem_count != NULL &&
-                       elem_count->kind == ck_template_param) {
-              result->variant.array.is_template_dependent_size_array = TRUE;
-              result->variant.array.variant.element_count_constant =
-                                                                    elem_count;
-            } else {
-              ifc_unexpected(mod, "bad element count for type array");
-              goto invalid;
-            }  /* if */
-          }  /* if */
-          set_array_type_size(result, /*suppress_error=*/FALSE);
-        }
-        break;
-      case ifc_ts_type_method:
-        { Opt<an_ifc_type_method> opt_method_type;
-
-          construct_node(&opt_method_type, type_idx);
-          if (!opt_method_type.has_value()) {
-            goto invalid;
-          }  /* if */
-
-          an_ifc_type_method method_type = *opt_method_type;
-          an_ifc_type_index  target = get_ifc_target(method_type);
-          a_type_ptr         return_type = type_for_type_index(target);
-          /* Create a routine type with no parameters to start. */
-          result = make_routine_type(return_type);
-
-          a_routine_type_supplement_ptr rtsp = rout_type_supp(result);
-          an_ifc_type_index             scope = get_ifc_scope(method_type);
-          a_type_ptr                    scope_type =
-                                                    type_for_type_index(scope);
-          rtsp->this_class = scope_type;
-
-#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
-          an_ifc_calling_convention_sort convention =
-                                               get_ifc_convention(method_type);
-          rtsp->calling_convention = conv_calling_convention(convention);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
-
-          an_ifc_noexcept_specification eh_spec =
-                                                  get_ifc_eh_spec(method_type);
-          rtsp->exception_specification = exception_specification(
-                                                              eh_spec,
-                                                              &error_position);
-
-          an_ifc_function_type_traits_bitfield traits =
-                                                   get_ifc_traits(method_type);
-          if (!add_routine_qualifiers_to_type(rtsp, traits)) {
-            goto invalid;
-          }  /* if */
-
-          an_ifc_type_index source = get_ifc_source(method_type);
-          if (!add_parameters_to_type(rtsp, source)) {
-            goto invalid;
-          }  /* if */
-        }
-        break;
-      case ifc_ts_type_function:
-        { Opt<an_ifc_type_function> opt_function_type;
-
-          construct_node(&opt_function_type, type_idx);
-          if (!opt_function_type.has_value()) {
-            goto invalid;
-          }  /* if */
-
-          an_ifc_type_function function_type = *opt_function_type;
-          an_ifc_type_index    target = get_ifc_target(function_type);
-          a_type_ptr           return_type = type_for_type_index(target);
-          /* Create a routine type with no parameters to start. */
-          result = make_routine_type(return_type);
-
-          a_routine_type_supplement_ptr  rtsp = rout_type_supp(result);
-#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
-          an_ifc_calling_convention_sort convention =
-                                             get_ifc_convention(function_type);
-          rtsp->calling_convention = conv_calling_convention(convention);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
-
-          an_ifc_noexcept_specification eh_spec =
-                                                get_ifc_eh_spec(function_type);
-          rtsp->exception_specification = exception_specification(
-                                                              eh_spec,
-                                                              &error_position);
-
-          an_ifc_function_type_traits_bitfield traits =
-                                                 get_ifc_traits(function_type);
-          if (!add_routine_qualifiers_to_type(rtsp, traits)) {
-            goto invalid;
-          }  /* if */
-
-          an_ifc_type_index source = get_ifc_source(function_type);
-          if (!add_parameters_to_type(rtsp, source)) {
-            goto invalid;
-          }  /* if */
-        }
-        break;
-      case ifc_ts_type_designated:
-        /* A type's name (e.g., "A"). */
-        { Opt<an_ifc_type_designated> opt_itd;
-
-          construct_node(&opt_itd, type_idx);
-          if (!opt_itd.has_value()) {
-            goto invalid;
-          }  /* if */
-
-          an_ifc_type_designated itd = *opt_itd;
-          an_ifc_decl_index      decl = get_ifc_decl(itd);
-          switch (decl.sort) {
-            case ifc_ds_decl_alias:
-            case ifc_ds_decl_enumeration:
-            case ifc_ds_decl_reference:
-            case ifc_ds_decl_scope:
-              /* Find the type of the scope declaration by processing it (in
-                 case it has been deferred). */
-              { a_module_entity_ptr dmep = process_decl_at_index(decl);
-
-                if (dmep->invalid) {
-                  goto invalid;
-                }  /* if */
-                if (dmep->entity.kind != iek_type) {
-                  ifc_unexpected(get_assoc_ifc_module(dmep),
-                                 "expected a type from TypeDesignated");
-                  goto invalid;
-                }  /* if */
-                result = (a_type_ptr)dmep->entity.ptr;
-              }
-              break;
-            case ifc_ds_decl_parameter:
-              { Opt<an_ifc_decl_parameter> opt_param_decl;
-
-                construct_node(&opt_param_decl, decl);
-                if (!opt_param_decl.has_value()) {
-                  goto invalid;
-                }  /* if */
-
-                an_ifc_decl_parameter param_decl = *opt_param_decl;
-                an_ifc_type_index     type = get_ifc_type(param_decl);
-                if (type_represents_type_templ_param_ref(type)) {
-                  a_symbol_ptr sym = find_template_parameter(param_decl);
-
-                  if (sym == NULL) {
-                    goto invalid;
-                  }  /* if */
-                  record_potential_pack_reference(sym, &null_source_position);
-                  result = il_entry_for_symbol<a_type>(sym);
-                } else {
-                  result = type_for_type_index(get_ifc_type(param_decl));
-                }  /* if */
-              }
-              break;
-            case ifc_ds_decl_template:
-              { a_module_entity_ptr dmep = process_decl_at_index(decl);
-
-                if (dmep->invalid) {
-                  goto invalid;
-                }  /* if */
-
-                /* If this assertion fails, the module entity should've been
-                   marked invalid. */
-                check_assertion(dmep->entity.kind == iek_template);
-                a_template_ptr  templ = (a_template_ptr)dmep->entity.ptr;
-                a_template_kind templ_kind = templ->kind;
-                switch (templ_kind) {
-                  case templk_class:
-                  case templk_member_class:
-                  case templk_member_enum:
-                    { a_symbol_ptr templ_sym = symbol_for(templ);
-
-                      result = make_class_template_placeholder(
-                                                        templ_sym,
-                                                        &null_source_position);
-                    }
-                    break;
-                  case templk_none:
-                  case templk_function:
-                  case templk_variable:
-                  case templk_member_function:
-                  case templk_static_data_member:
-                  case templk_template_template_param:
-                  case templk_concept:
-                    { a_string err_msg("Unexpected IL entity template kind "
-                                       "encountered for ",
-                                       index_to_str(type_idx));
-
-                      ifc_unexpected(mod, err_msg);
-                    }
-                    goto invalid;
-                  default_is_unexpected();
-                }  /* switch */
-              }
-              break;
-            default:
-              { a_string err_msg("Unexpected ", str_for(decl.sort),
-                                 " for ", index_to_str(type_idx));
-
-                ifc_unexpected(mod, err_msg);
-              }
-              goto invalid;
-          }  /* switch */
-        }
-        break;
-      case ifc_ts_type_tor:
-        /* This type should only be encountered when processing a constructor,
-           and that is directly handled with that constructor declaration.*/
-        { a_string err_msg("Unexpected ", str_for(type_idx.sort));
-
-          ifc_unexpected(mod, err_msg);
-        }
-        goto invalid;
-      case ifc_ts_type_placeholder:
-        { Opt<an_ifc_type_placeholder> opt_itp;
-
-          construct_node(&opt_itp, type_idx);
-          if (!opt_itp.has_value()) {
-            goto invalid;
-          }  /* if */
-
-          an_ifc_type_placeholder itp = *opt_itp;
-          an_ifc_type_basis_sort  basis = get_ifc_basis(itp);
-          switch (basis) {
-            case ifc_tbs_auto:
-            case ifc_tbs_decltype_auto:
-              result = make_auto_type(&null_source_position,
-                                      basis == ifc_tbs_decltype_auto);
-              break;
-            default:
-              { a_string err_msg("Unexpected ", str_for(basis),
-                                 " for ", str_for(type_idx.sort));
-
-                ifc_unexpected(mod, err_msg);
-              }
-              goto invalid;
-          }  /* switch */
-        }
-        break;
-      case ifc_ts_type_pointer_to_member:
-        { Opt<an_ifc_type_pointer_to_member> opt_ptr_to_mem_type;
-
-          construct_node(&opt_ptr_to_mem_type, type_idx);
-          if (!opt_ptr_to_mem_type.has_value()) {
-            goto invalid;
-          }  /* if */
-
-          an_ifc_type_pointer_to_member
-                            ptr_to_mem_type = *opt_ptr_to_mem_type;
-          an_ifc_type_index scope_index = get_ifc_scope(ptr_to_mem_type);
-          a_type_ptr        scope_type = type_for_type_index(scope_index);
-          if (is_error_type(scope_type)) {
-            goto invalid;
-          }  /* if */
-
-          an_ifc_type_index member_index = get_ifc_member(ptr_to_mem_type);
-          a_type_ptr        member_type = type_for_type_index(member_index);
-          if (is_error_type(member_type)) {
-            goto invalid;
-          }  /* if */
-          result = ptr_to_member_type(member_type, scope_type);
-        }
-        break;
-      case ifc_ts_type_tuple:
-        { Opt<an_ifc_type_tuple> opt_itt;
-
-          construct_node(&opt_itt, type_idx);
-          if (!opt_itt.has_value()) {
-            goto invalid;
-          }  /* if */
-          /* FIXME: Currently unsupported. */
-          issue_unsupported_construct_error(mod, "TypeSort::Tuple",
-                                            &error_position);
-          goto invalid;
-        }
-      case ifc_ts_type_forall:
-        { Opt<an_ifc_type_forall> opt_itf;
-
-          construct_node(&opt_itf, type_idx);
-          if (!opt_itf.has_value()) {
-            goto invalid;
-          }  /* if */
-          /* FIXME: Currently unsupported. */
-          issue_unsupported_construct_error(mod, "TypeSort::Forall",
-                                            &error_position);
-          goto invalid;
-        }
-      case ifc_ts_type_syntactic:
-        { Opt<an_ifc_type_syntactic> opt_its;
-
-          construct_node(&opt_its, type_idx);
-          if (!opt_its.has_value()) {
-            goto invalid;
-          }  /* if */
-
-          an_ifc_expr_index expr = get_ifc_expr(*opt_its);
-          switch (expr.sort) {
-            case ifc_es_expr_template_id:
-              { Opt<an_ifc_expr_template_id> opt_ieti;
-
-                construct_node(&opt_ieti, expr);
-                if (!opt_ieti.has_value()) {
-                  goto invalid;
-                }  /* if */
-                result = mod->type_for_template_id(*opt_ieti);
-              }
-              break;
-            default:
-              { a_string err_msg("Unexpected ", str_for(expr.sort),
-                                 " for ", str_for(type_idx.sort));
-
-                ifc_unexpected(mod, err_msg);
-              }
-              goto invalid;
-          }  /* switch */
-        }
-        break;
-      case ifc_ts_type_expansion:
-        { Opt<an_ifc_type_expansion> opt_expansion_type;
-
-          construct_node(&opt_expansion_type, type_idx);
-          if (!opt_expansion_type.has_value()) {
-            goto invalid;
-          }  /* if */
-
-          an_ifc_type_expansion
-                          expansion_type = *opt_expansion_type;
-          an_ifc_type_index
-                          pack = get_ifc_pack(expansion_type);
-          /* Start a potential pack expansion. */
-          a_pack_expansion_stack_entry_ptr
-                          pesep;
-          (void)begin_potential_pack_expansion_context_full(
-                                                  &pesep,
-                                                  /*p_pedp=*/NULL,
-                                                  /*is_lookahead=*/FALSE,
-                                                  /*allow_empty_list=*/FALSE,
-                                                  /*ignore_suppression=*/TRUE);
-          /* Form the IL type. */
-          result = type_for_type_index(pack);
-
-          /* This is a bit of a hack: a token cache is created and
-             rescanned containing an ellipsis.  This allows
-             end_potential_pack_expansion_context to consume the ellipsis
-             and mark pack use accordingly.  This, in turn, ensures that
-             any packs that are reference are not diagnosed. */
-          a_module_token_cache cache;
-          cache_token(&cache, tok_ellipsis);
-
-          a_module_entity_rescan rescan(&cache);
-          (void)end_potential_pack_expansion_context(pesep,
-                                                     /*is_declarator=*/FALSE);
-          (void)advance_to_next_pack_element(pesep);
-        }
-        break;
-      case ifc_ts_type_typename:
-        { a_module_token_cache cache;
-
-          cache_type(&cache, type_idx, /*cinfo=*/{});
-          if (!cache.is_valid()) {
-            goto invalid;
-          }  /* if */
-
-          a_module_entity_rescan rescan(&cache);
-          if (curr_token == tok_typename) {
-            a_symbol_ptr       type_sym = NULL;
-            a_decl_parse_state dps;
-            a_decl_pos_block   decl_pos_block;
-
-            init_decl_parse_state(&dps);
-            typename_specifier(&result, &type_sym, /*within_using_decl=*/FALSE,
-                               /*is_decl_specifier=*/FALSE, &dps,
-                               &decl_pos_block);
-          } else {
-            ifc_unexpected(module_of(type_idx), "expected a typename token");
-            goto invalid;
-          }  /* if */
-        }
-        break;
-      case ifc_ts_type_base:
-        { Opt<an_ifc_type_base> opt_itb;
-
-          construct_node(&opt_itb, type_idx);
-          if (!opt_itb.has_value()) {
-            goto invalid;
-          }  /* if */
-          /* FIXME: Currently unsupported. */
-          issue_unsupported_construct_error(mod, "TypeSort::Base",
-                                            &error_position);
-          goto invalid;
-        }
-      case ifc_ts_type_unaligned:
-        { Opt<an_ifc_type_unaligned> opt_itu;
-
-          construct_node(&opt_itu, type_idx);
-          if (!opt_itu.has_value()) {
-            goto invalid;
-          }  /* if */
-          /* FIXME: Currently unsupported. */
-          issue_unsupported_construct_error(mod, "TypeSort::Unaligned",
-                                            &error_position);
-          goto invalid;
-        }
-      case ifc_ts_type_decltype:
-        { a_module_token_cache cache;
-
-          cache_type(&cache, type_idx, /*cinfo=*/{});
-
-          a_module_entity_rescan rescan(&cache);
-          if (curr_token == tok_decltype) {
-            /* A decltype could be decltype(x) or decltype(x)::something.  This
-               will coalesce the decltype into a tok_decltype_construct in the
-               first case or a tok_identifier in the latter case. */
-            (void)is_generalized_identifier_start(GID_IS_EXPR_CONTEXT);
-          }  /* if */
-
-          if (curr_token == tok_decltype_construct) {
-            result = locator_for_curr_id.variant.decltype_type;
-            (void)get_token();
-          } else {
-            a_string err_msg(index_to_str(type_idx),
-                             " does not contain a decltype expression");
-
-            ifc_unexpected(mod, err_msg.as_temp_characters());
-          }  /* if */
-        }
-        break;
-      case ifc_ts_type_syntax_tree:
-        { Opt<an_ifc_type_syntax_tree> opt_itst;
-
-          construct_node(&opt_itst, type_idx);
-          if (!opt_itst.has_value()) {
-            goto invalid;
-          }  /* if */
-          /* FIXME: Currently unsupported. */
-          issue_unsupported_construct_error(mod, "TypeSort::Syntaxtree",
-                                            &error_position);
-          goto invalid;
-        }
-      case ifc_ts_type_vendor_extension:
-        issue_unsupported_construct_error(mod, str_for(type_idx.sort),
-                                          &error_position);
-        goto invalid;
-      default_is_unexpected_str("Unexpected TypeSort");
-    }  /* switch */
-    /* Record this mapping for future reference. */
-    if (result != NULL) {
-      mep->scope = result->source_corresp.parent_scope;
-    }  /* if */
-    mep->entity = make_tagged_ptr(result);
   }  /* if */
-  goto done;
-invalid:
-  result = error_type();
-done:;
   check_assertion(result != NULL);
   return result;
 }  /* type_for_type_index */
