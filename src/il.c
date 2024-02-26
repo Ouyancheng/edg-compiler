@@ -19184,13 +19184,36 @@ modes, but can be a subobject in C++20 and later.
   a_subobject_path_ptr  path;
   a_type_ptr            tp;
 
-  check_assertion(con->kind == ck_address &&
-                  con->variant.address.kind == abk_variable);
+  check_assertion(constant_is(con, ck_address) &&
+                  address_base_is(con, abk_variable));
   path = con->variant.address.subobject_path;
-  if (!cpp20_mode && path != NULL) {
+  if (path != NULL && !cpp20_mode) {
     /* Prior to C++20, subobjects were never valid as nontype template
-       arguments. */
-    result = FALSE;
+       arguments.  Consider:
+           template<char const*> struct S {};
+           char arr[3];
+           char var;
+           S<&arr[0]> x;
+           S<(&arr)[0]> y;
+           S<&(&val)[0]> z;
+       x and y are clearly invalid by the C++17 standard wording since they
+       involve pointers to elements of an array (i.e., subobjects).  z is
+       plausibly okay although the standard treats non-array variables as
+       arrays of length 1 for pointer-arithmetic purposes; from that
+       perspective an argument could be made that z is invalid as well.
+       Clang accepts all three.  MSVC rejects all three.  GCC rejects only x.
+       Since GCC's behavior would be more difficult to emulate, we make it
+       approximate it as Clang's behavior instead.
+    */
+    if (!microsoft_mode &&
+        path->next == NULL && path->is_offset &&
+        path->variant.ptr_offset == 0 &&  /* A single [0] subscript. */
+        (clang_mode || gpp_mode ||
+         !is_array_type(con->variant.address.variant.variable->type))) {
+      /* Accept these cases as described above. */
+    } else {
+      result = FALSE;
+    }  /* if */
     goto done;
   }  /* if */
   tp = skip_typerefs(con->variant.address.variant.variable->type);
@@ -19241,15 +19264,13 @@ member template argument.
     result = null_value_okay;
   } else if (constant_is(con, ck_address)) {
     if (ms_extensions &&
-             (con->variant.address.kind == (an_address_base_kind)abk_typeid ||
-              con->variant.address.kind == (an_address_base_kind)abk_uuidof)) {
+             (address_base_is(con, abk_typeid) ||
+              address_base_is(con, abk_uuidof))) {
       result = TRUE;
-    } else if (con->variant.address.kind ==
-                                          (an_address_base_kind)abk_routine) {
+    } else if (address_base_is(con, abk_routine)) {
       result = con->variant.address.variant.routine == NULL ? null_value_okay
                                                             : TRUE;
-    } else if (con->variant.address.kind ==
-                                         (an_address_base_kind)abk_variable) {
+    } else if (address_base_is(con, abk_variable)) {
       if (con->variant.address.variant.variable == NULL) {
         result = null_value_okay;
       } else {

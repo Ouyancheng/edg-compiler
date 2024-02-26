@@ -1,5 +1,18 @@
 Version 6.7
 
+2/26/24  [EDGcpfe/20939]
+Address template arguments in C++17
+
+Consider:
+
+  template<int const*> struct X {};
+  int const n = 5;
+  X<&n+1-1> x;  // Previously an error.  Now okay.
+
+C++17 made this example valid (through paper N4268; see also the changes for
+EDGcpfe/18747), but the front still issued an error for it.  That is now fixed.
+
+
 2/23/24  [EDGcpfe/26829]
 Mangling of array indexing
 
