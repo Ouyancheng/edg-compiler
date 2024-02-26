@@ -112,6 +112,10 @@ struct Byte_buffer_entity : public an_ifc_module_entity {
 private:
   a_byte_buffer_kind
                 kind;   /* The origin of the bytes. */
+#ifdef UNION_AS_STRUCT
+/* FIXME: Workaround for union-as-struct build issue. */
+#undef union
+#endif /* ifdef UNION_AS_STRUCT */
   union {
     /* When kind == bbk_none: no variant fields. */
     /* When kind == bbk_local: */
@@ -127,6 +131,9 @@ private:
                 storage_indirect_ptr;
                         /* An indirect pointer to the underlying byte
                            buffer. */
+#ifdef UNION_AS_STRUCT
+#define union struct
+#endif /* ifdef UNION_AS_STRUCT */
   };
 };  /* Byte_buffer_entity */
 
@@ -20380,8 +20387,8 @@ EXTERN an_ifc_partition_map ifc_partition_map[IFC_PARTITION_COUNT]
 ;
 
 
-/* Disable spurious GCC warnings in generated code. */
-BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
+/* End the suppression of GCC warnings. */
+END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

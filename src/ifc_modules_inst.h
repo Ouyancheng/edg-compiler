@@ -2205,8 +2205,8 @@ Explicit instantiations of functions for ScopeOffset.
 INST_PARTITION_ALL(an_ifc_scope_offset)
 
 
-/* Disable spurious GCC warnings in generated code. */
-BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
+/* End the suppression of GCC warnings. */
+END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

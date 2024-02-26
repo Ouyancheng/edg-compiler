@@ -49227,8 +49227,8 @@ node's "locus" field value.
 }  /* get_ifc_locus */
 
 
-/* Disable spurious GCC warnings in generated code. */
-BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
+/* End the suppression of GCC warnings. */
+END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
