@@ -71,7 +71,13 @@ buffer where the node starts.  Return the index into the partition.
 */
 {
   size_t orig_size = this->contents.length();
+  size_t capacity = this->contents.capacity();
 
+  /* Check to see if this will push the array over capacity; if so, increase
+     the capacity. */
+  if (orig_size + this->element_size > capacity) {
+    this->contents.reserve(capacity * 2);
+  }  /* if */
   /* Insert the space for this new element. */
   this->contents.resize(orig_size + this->element_size, '\0');
   /* Update the content start pointer in case the buffer was reallocated. */
@@ -89,7 +95,17 @@ Return the index into the partition.
 */
 {
   size_t orig_size = this->contents.length();
+  size_t capacity = this->contents.capacity();
+  size_t new_elements_size = num_nodes * this->element_size;
 
+
+  /* Check to see if this will push the array over capacity; if so, increase
+     the capacity. */
+  if (orig_size + new_elements_size > capacity) {
+    size_t reserve_amount = max_val(capacity * 2, new_elements_size);
+
+    this->contents.reserve(reserve_amount);
+  }  /* if */
   /* Insert the space for this new element. */
   this->contents.resize(orig_size + (this->element_size * num_nodes), '\0');
   /* Update the content start pointer in case the buffer was reallocated. */
