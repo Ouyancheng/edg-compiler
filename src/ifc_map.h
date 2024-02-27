@@ -175,7 +175,9 @@ a pointer to the associated IFC byte buffer (regardless of where the byte
 buffer actually resides in memory).
 */
 {
-  const an_ifc_Storage_type *result;
+  /* Set an initial value to prevent warnings about an uninitialized read in
+     some configurations. */
+  const an_ifc_Storage_type *result = NULL;
 
   switch (this->kind) {
     case bbk_none:
