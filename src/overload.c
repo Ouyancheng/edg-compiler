@@ -26956,15 +26956,16 @@ will be an lvalue instead of the usual prvalue.
           /* N4971 [over.ics.list]p7 says initializing a non-aggregate class
              from a braced-init-list, calling a constructor, is a user-defined 
              conversion sequence unless the constructor is not an initializer-
-             list constructor and the type of the element and the destination
-             type are identical (aml_exact) or the former derived from the
-             latter (aml_std_conversion).  (This was clarified by the
-             resolution of Core issue 2137.) */
+             list constructor and there is a single element whose type is
+             identical to the destination type (aml_exact) or derives from the
+             destination type (aml_std_conversion).  (This was clarified by
+             the resolution of Core issue 2137.) */
           arg_match->match_level = aml_user_conversion;
           arg_match->conversion = conversion;
           if (!ambiguous && conversion.routine != NULL) {
             explicit_ctor = conversion.routine->is_explicit_constructor;
-            if (!conversion.routine->is_initializer_list_ctor) {
+            if (!conversion.routine->is_initializer_list_ctor &&
+                singleton_expr_type != NULL) {
               a_type_ptr udst_tp = skip_typerefs(dest_type),
                          usrc_tp = skip_typerefs(singleton_expr_type);
               if (identical_types(usrc_tp, udst_tp)) {
