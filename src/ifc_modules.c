@@ -2466,7 +2466,9 @@ static an_opname_kind opname_from_monadic_op(
 Map an IFC MonadicOperator to an_opname_kind.
 */
 {
-  an_opname_kind op;
+  /* Set an initial value to prevent warnings about an uninitialized read in
+     some configurations. */
+  an_opname_kind op = onk_none;
 
   switch (monadic_op) {
     case ifc_mos_msvc:
@@ -2724,7 +2726,9 @@ static an_opname_kind opname_from_storage_op(
 Map an IFC StorageOperator to an_opname_kind.
 */
 {
-  an_opname_kind op;
+  /* Set an initial value to prevent warnings about an uninitialized read in
+     some configurations. */
+  an_opname_kind op = onk_none;
 
   switch (storage_op) {
     case ifc_sios_unknown:
@@ -2782,7 +2786,9 @@ static an_opname_kind opname_from_operator(an_ifc_operator_category ifc_op)
 Map an IFC Operator to an_opname_kind.
 */
 {
-  an_opname_kind op;
+  /* Set an initial value to prevent warnings about an uninitialized read in
+     some configurations. */
+  an_opname_kind op = onk_none;
 
   switch (ifc_op.sort) {
     case ifc_os_dyadic_operator:
@@ -4268,7 +4274,9 @@ declaration.
 */
 {
   check_assertion(is_template_parameter(decl));
-  a_templ_arg_kind      result;
+  /* Set an initial value to prevent warnings about an uninitialized read in
+     some configurations. */
+  a_templ_arg_kind      result = tak_type;
   an_ifc_parameter_sort param_sort = get_ifc_sort(decl);
 
   switch (param_sort) {
@@ -13617,7 +13625,9 @@ Return the type that corresponds to the provided ExprSort::TemplateId in the
 module file.
 */
 {
-  a_type_ptr     result;
+  /* Set an initial value to prevent warnings about an uninitialized read in
+     some configurations. */
+  a_type_ptr     result = NULL;
   a_template_ptr templ = get_template_from_id_expr(templ_id);
 
   if (templ != NULL && templ->kind != templk_none) {
@@ -14561,7 +14571,9 @@ initialization succeeds; otherwise, return FALSE.
     dps->prefix_attributes = ap;
   }  /* if */
   if (access != ifc_as_none) {
-    an_access_specifier il_access;
+    /* Set an initial value to prevent warnings about an uninitialized read in
+       some configurations. */
+    an_access_specifier il_access = as_private;
 
     switch (access) {
       case ifc_as_private:   il_access = as_private;   break;
