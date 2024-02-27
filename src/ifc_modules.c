@@ -12698,9 +12698,9 @@ with the module entity pointer.
 
         /* This is a bit of a hack: a token cache is created and rescanned
            containing an ellipsis.  This allows
-           end_potential_pack_expansion_context to consume the ellipsis and mark
-           pack use accordingly.  This, in turn, ensures that any packs that are
-           reference are not diagnosed. */
+           end_potential_pack_expansion_context to consume the ellipsis and
+           mark pack use accordingly.  This, in turn, ensures that any packs
+           that are reference are not diagnosed. */
         a_module_token_cache cache;
         cache_token(&cache, tok_ellipsis);
 

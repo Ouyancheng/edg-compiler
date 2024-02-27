@@ -285,8 +285,8 @@ Return the first node in the block's index into the partition.
 template<typename an_ifc_Node_type>
 an_ifc_chart_index an_ifc_output_state::alloc_chart(an_ifc_Node_type *result)
 /*
-Allocate a chart node in its corresponding output partition.  Set *result to the
-allocated node.  Return the node's chart index.
+Allocate a chart node in its corresponding output partition.  Set *result to
+the allocated node.  Return the node's chart index.
 */
 {
   an_ifc_partition_kind
