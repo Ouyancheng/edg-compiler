@@ -563,7 +563,6 @@ public:
                       an_ifc_storage_instruction_operator_sort op);
   void cache_operator(a_module_token_cache_ptr      cache,
                       an_ifc_variadic_operator_sort op);
-  a_boolean sentence_is_deleted(an_ifc_sentence_index sentence);
   uint32_t try_cache_class_attributes_from_body(
                                        a_module_token_cache_ptr cache,
                                        an_ifc_sentence_index    body_sentence);
