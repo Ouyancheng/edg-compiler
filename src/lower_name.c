@@ -8219,6 +8219,9 @@ last argument in the list).
             (constant_is(con, ck_address)
 #if ABI_COMPATIBILITY_VERSION >= 402
              && (!is_reference_type(con->type) ||
+#if ABI_COMPATIBILITY_VERSION >= 607
+                 con->variant.address.subobject_path != NULL ||
+#endif /* ABI_COMPATIBILITY_VERSION >= 607 */
                  (emulate_gnu_abi_bugs && gnu_abi_version < 30400))
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
                                                                    )) {
