@@ -1,5 +1,36 @@
 Version 6.7
 
+2/27/24  [EDGcpfe/26999]
+Microsoft compatibility: Move-construction from user-defined conversion result
+
+Consider:
+
+  struct C1 {
+    C1(const C1 &);
+    C1(int);
+  };
+  struct C2 {
+    C2(C2 &&);
+    C2(int);
+  };
+  struct D {
+    operator C1() const;
+    operator C2() const;
+    operator int() const;
+  };
+  C1 c1{D{}};  // Accepted in Microsoft modes and nonstrict C++17 modes.
+  C2 c2{D{}};  // Accepted in nonstrict C++17 modes, but ambiguous in recent
+               // Microsoft modes.
+
+The standard makes both conversions in the above example ambiguous.  However,
+the Microsoft compiler has always preferred the class-type conversion, and
+following common modern practice by other compilers, the front end started to
+accept these cases in all nonstrict C++17 modes (see
+[EDGcpfe/26151,EDGcpfe/26260]).  But starting with version 19.00, the Microsoft
+compiler no longer applies that practice if the destination class has a move
+constructor.  The front end now emulates that Microsoft-specific behavior.
+
+
 2/26/24  [EDGcpfe/20939]
 Address template arguments in C++17
 

@@ -8454,6 +8454,10 @@ prefer the "S::operator D() const" conversion (starting with C++17).
          !strict_ansi_mode))) {
     a_routine_ptr rout1, rout2;
     a_boolean     is_cctor1, is_cctor2;
+    /* Starting with version 19.00, MSVC prefers move constructors only in user
+       conversion cases (this excludes direct and list initialization). */
+    a_boolean     include_move_ctors = cfp1->is_user_conversion ||
+                                       !ms_version_is(>=1900);
     reduce_projection_symbol_to_fundamental_symbol(sym1);
     reduce_projection_symbol_to_fundamental_symbol(sym2);
     check_assertion(symbol_is(sym1, sk_member_function) &&
@@ -8463,12 +8467,12 @@ prefer the "S::operator D() const" conversion (starting with C++17).
     is_cctor1 = (special_kind_is(rout1, sfk_constructor) &&
                  is_copy_constructor(rout1, (a_type_ptr)NULL,
                                      (a_type_qualifier_set *)NULL,
-                                     /*include_move_ctors=*/TRUE,
+                                     include_move_ctors,
                                      /*is_declarative_context=*/FALSE));
     is_cctor2 = (special_kind_is(rout2, sfk_constructor) &&
                  is_copy_constructor(rout2, (a_type_ptr)NULL,
                                      (a_type_qualifier_set *)NULL,
-                                     /*include_move_ctors=*/TRUE,
+                                     include_move_ctors,
                                      /*is_declarative_context=*/FALSE));
     if (is_cctor1 && !is_cctor2) {
       cmp = 1;
