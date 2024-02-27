@@ -1,5 +1,25 @@
 Version 6.7
 
+2/27/24  [EDGcpfe/26945]
+Crash during deduction guide correspondence in multi-TU mode
+
+In version 6.6 (EDGcpfe/26418), support for deduction guide correspondence was
+added to multi-TU mode.  When resolving correspondence of overloaded deduction
+guides such as the following:
+
+  template<class T>
+  struct foo {
+  };
+
+  template<class T>
+    foo(T) -> foo<T>;
+
+  template<class T>
+    foo(T, T) -> foo<T>;
+
+a crash occurs.  This has now been fixed.
+
+
 2/27/24  [EDGcpfe/23282]
 
 Consider:

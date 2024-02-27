@@ -6475,7 +6475,7 @@ static a_template_ptr find_corresp_function_template(a_template_ptr  templ,
                                                      a_symbol_ptr    sym)
 /*
 Find a function template from another translation unit corresponding to the
-given class template templ.  However, only consider sym and its subordinate
+given function template templ.  However, only consider sym and its subordinate
 symbols when looking up a correspondence: if none is found, return NULL.
 */
 {
@@ -6541,41 +6541,6 @@ this procedure should not attempt to seek correspondences for parent entities.
 }  /* is_possible_template_corresp_sym */
 
 
-static a_template_ptr find_corresp_deduction_guide(a_template_ptr  templ,
-                                                   a_symbol_ptr    sym)
-/*
-Find a template deduction guide from another translation unit corresponding to
-the given template deduction guide templ.  However, only consider sym and its
-subordinate symbols when looking up a correspondence: if none is found, return
-NULL.
-*/
-{
-  check_assertion(sym->kind != sk_overloaded_function);
-  a_template_ptr  corresp_templ = NULL;
-  a_symbol_ptr    templ_sym = (a_symbol_ptr)templ->source_corresp.assoc_info;
-  a_template_symbol_supplement_ptr
-                  tssp = template_supplement_for_symbol(templ_sym);
-  a_template_symbol_supplement_ptr
-                  corresp_tssp = template_supplement_for_symbol(sym);
-  a_routine_ptr   routine = tssp->variant.function.routine;
-  a_routine_ptr   corresp_routine = corresp_tssp->variant.function.routine;
-
-  if (equiv_template_param_lists(templ_params_of(sym),
-                                 templ_params_of(templ_sym),
-                                 /*issue_errors=*/FALSE,
-                                 ETP_NO_OPTIONS,
-                                 &templ_sym->decl_position, es_error) &&
-      identical_types_full(routine->type, corresp_routine->type,
-                           ITF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) &&
-      equiv_template_arg_lists(routine->template_arg_list,
-                               corresp_routine->template_arg_list,
-                               ETA_NO_OPTIONS)) {
-    corresp_templ = corresp_tssp->il_template_entry;
-  }  /* if */
-  return corresp_templ;
-}  /* find_corresp_deduction_guide */
-
-
 static a_boolean is_template_corresp_conflict(a_symbol_ptr    *matching_sym,
                                               a_template_ptr  templ,
                                               a_boolean       parent_found)
@@ -6620,7 +6585,7 @@ returned.
 
       for (a_symbol_ptr sym = tssp->variant.class_template.deduction_guides;
            sym != NULL; sym = sym->next) {
-        a_template_ptr candidate = find_corresp_deduction_guide(templ, sym);
+        a_template_ptr candidate = find_corresp_function_template(templ, sym);
 
         if (candidate == NULL) {
           /* Continue searching for a match. */
