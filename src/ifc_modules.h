@@ -303,10 +303,6 @@ private:
                         /* TRUE if this represents an IFC module file that's
                            being read from.  FALSE if this represents an IFC
                            module file that's being written to. */
-#ifdef UNION_AS_STRUCT
-/* FIXME: Workaround for union-as-struct build issue. */
-#undef union
-#endif /* ifdef UNION_AS_STRUCT */
   union {
     /* When for_read is TRUE: */
     an_ifc_module_file_read_state
@@ -317,9 +313,6 @@ private:
                 write_state;
                         /* The state associated with writing an IFC file. */
   };
-#ifdef UNION_AS_STRUCT
-#define union struct
-#endif /* ifdef UNION_AS_STRUCT */
 };  /* an_ifc_module_file */
 
 
