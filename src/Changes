@@ -1,5 +1,32 @@
 Version 6.7
 
+2/27/24  [EDGcpfe/23282]
+
+Consider:
+
+  #include <initializer_list>
+  #include <iostream>
+  struct S {
+    S() { std::cout << "default\n"; }
+    S(S const&) { std::cout << "copy\n"; }
+    S(S&&) { std::cout << "move\n"; }
+    S(std::initializer_list<S>) { std::cout << "initializer list\n"; }
+  };
+  int main() {
+    S x = S { S() };
+  }
+
+The standards committee's resolution of Core issue 1467 caused this example to
+ignore the initializer-list constructor and thus (taking copy elision into
+account) this example would invoke only a default constructor.  This was
+deemed undesirable and the subsequent resolution of Core issue 2137 restored
+the invocation of the list-initializer constructor (in addition to the default
+constructor invoked for "S()").  The front end now implements that resolution
+in its default mode and in GNU C++ modes (GCC never implemented the effects of
+the resolution of Core issue 1467 for this case).  The old behavior is
+maintained in Clang and Microsoft modes, however.
+
+
 2/27/24  [EDGcpfe/26999]
 Microsoft compatibility: Move-construction from user-defined conversion result
 

@@ -26696,13 +26696,18 @@ will be an lvalue instead of the usual prvalue.
         }  /* if */
         make_error_operand(&operand);
       }  /* if */
-    } else if (singleton_expr_type != NULL &&
-               dest_type_is_class &&
+    } else if (singleton_expr_type != NULL && dest_type_is_class &&
+               (clang_mode || microsoft_mode ||
+                is_aggregate_type(dest_type) ||
+                is_std_initializer_list_type(dest_type)) &&
                are_reference_related(dest_type, singleton_expr_type)) {
       /* Core issue 1467.  "If T is a class type and the initializer list
          has a single element of type cv T or a class type derived from T,
          the object is initialized from that element."  This is also N4861
-         [over.ics.list] paragraph 3. */
+         [over.ics.list] paragraph 3.  The resolution of Core issue 2137
+         partially restores the previous outcome for non-aggregate class
+         types, but Clang and MSVC do not currently implement that
+         resolution. */
       init_handled_at_this_level = FALSE;
       prep_list_initializer(list, dest_type, is_direct_init,
                             check_narrowing,
