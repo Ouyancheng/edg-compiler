@@ -19202,9 +19202,8 @@ modes, but can be a subobject in C++20 and later.
        arrays of length 1 for pointer-arithmetic purposes; from that
        perspective an argument could be made that z is invalid as well.
        Clang accepts all three.  MSVC rejects all three.  GCC rejects only x.
-       Since GCC's behavior would be more difficult to emulate, we make it
-       approximate it as Clang's behavior instead.
-    */
+       Since GCC's behavior would be more difficult to emulate, we approximate 
+       by using Clang's behavior instead. */
     if (!microsoft_mode &&
         path->next == NULL && path->is_offset &&
         path->variant.ptr_offset == 0 &&  /* A single [0] subscript. */
