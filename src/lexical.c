@@ -12183,8 +12183,27 @@ identifier, respectively.
     int           transition;
     int           num_transitions = unicode_name_fsm[state];
     unsigned char name_char = *pos++;
-    for (transition = 0; transition < num_transitions; ++transition) {
-      unsigned long trans_offset = state + 1 + 4 * transition;
+    unsigned long trans_offset = state + 1;
+    if ((num_transitions & 0x80) != 0) {
+      /* This is a multi-character state.  The "num_transitions" value
+         actually gives the number of characters in the state's sequence.
+         Loop through all but the last, checking against the putative name
+         characters, and then treat the last character as if it were the
+         start of a transition in a single-transition state. */
+      int num_state_chars = num_transitions & 0x7f;
+      check_assertion(num_state_chars >= 1);
+      num_transitions = 1;
+      for (int i = 0; i < num_state_chars - 1; ++i) {
+        if (name_char != unicode_name_fsm[trans_offset++]) {
+          /* Report an incorrect name. */
+          transition = 1;
+          goto name_char_not_found;
+        }  /* if */
+        name_char = *pos++;
+      }  /* for */
+    }  /* if */
+    for (transition = 0; transition < num_transitions;
+         ++transition, trans_offset += 4) {
       unsigned char trans_char = unicode_name_fsm[trans_offset];
       unsigned long val = (unicode_name_fsm[trans_offset + 1] << 16) +
                           (unicode_name_fsm[trans_offset + 2] << 8) +
@@ -12227,6 +12246,7 @@ identifier, respectively.
         break;
       }  /* if */
     }  /* for */
+name_char_not_found:
     if (transition >= num_transitions) {
       /* The current Unicode name character does not match any transition
          in this state, so the name is not a valid Unicode character
