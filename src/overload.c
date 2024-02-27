@@ -8455,7 +8455,8 @@ prefer the "S::operator D() const" conversion (starting with C++17).
     a_routine_ptr rout1, rout2;
     a_boolean     is_cctor1, is_cctor2;
     /* Starting with version 19.00, MSVC prefers move constructors only in user
-       conversion cases (this excludes direct and list initialization). */
+       conversion cases (this excludes direct and list initialization).  In
+       other modes, move constructors are always considered. */
     a_boolean     include_move_ctors = cfp1->is_user_conversion ||
                                        !ms_version_is(>=1900);
     reduce_projection_symbol_to_fundamental_symbol(sym1);

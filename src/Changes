@@ -52,8 +52,8 @@ Consider:
 The standard makes both conversions in the above example ambiguous.  However,
 the Microsoft compiler has always preferred the class-type conversion, and
 following common modern practice by other compilers, the front end started to
-accept these cases in all nonstrict C++17 modes (see
-[EDGcpfe/26151,EDGcpfe/26260]).  But starting with version 19.00, the Microsoft
+accept these cases in all nonstrict C++17 modes (see the changes for
+EDGcpfe/26151,EDGcpfe/26260).  But starting with version 19.00, the Microsoft
 compiler no longer applies that practice if the destination class has a move
 constructor.  The front end now emulates that Microsoft-specific behavior.
 
