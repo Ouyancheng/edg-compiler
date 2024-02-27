@@ -12083,7 +12083,7 @@ For the given type module entity pointer, associate the corresponding IL type
 with the module entity pointer.
 */
 {
-  a_type_ptr        result;
+  a_type_ptr        result = NULL;
   an_ifc_type_index type_idx = type_index_of(mep);
   an_ifc_module     *mod = module_of(type_idx);
 
@@ -12100,7 +12100,6 @@ with the module entity pointer.
         an_ifc_type_basis_sort     basis = get_ifc_basis(itf);
         an_ifc_type_sign_sort      sign = get_ifc_sign(itf);
         an_ifc_type_precision_sort precision = get_ifc_precision(itf);
-        an_integer_kind            ik;
         /* Note: no check is made for nonsensical types (e.g., signed
            void). */
         switch (basis) {
@@ -12176,52 +12175,55 @@ with the module entity pointer.
             }  /* switch */
             break;
           case ifc_tbs_int:
-            switch (precision) {
-              case ifc_tps_default:
-                ik = (sign == ifc_tss_unsigned) ?
-                                ik_unsigned_int : ik_int;
-                break;
-              case ifc_tps_short:
-                ik = (sign == ifc_tss_unsigned) ?
-                              ik_unsigned_short : ik_short;
-                break;
-              case ifc_tps_long:
-                ik = (sign == ifc_tss_unsigned) ?
-                               ik_unsigned_long : ik_long;
-                break;
-#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED || IA64_ABI
-              case ifc_tps_bit8:
-                ik = int_kind_for_bit_size(8, sign != ifc_tss_unsigned);
-                break;
-              case ifc_tps_bit16:
-                ik = int_kind_for_bit_size(16, sign != ifc_tss_unsigned);
-                break;
-              case ifc_tps_bit32:
-                ik = int_kind_for_bit_size(32, sign != ifc_tss_unsigned);
-                break;
-              case ifc_tps_bit64:
-                ik = int_kind_for_bit_size(64, sign != ifc_tss_unsigned);
-                break;
-              case ifc_tps_bit128:
-                ik = int_kind_for_bit_size(128, sign != ifc_tss_unsigned);
-                break;
-#else /* !(MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED...) */
-              case ifc_tps_bit8:
-              case ifc_tps_bit16:
-              case ifc_tps_bit32:
-              case ifc_tps_bit64:
-              case ifc_tps_bit128:
-                { a_string err_msg("Unsupported ", str_for(precision),
-                                   " for ", str_for(basis));
+            { an_integer_kind ik = ik_none;
 
-                  ifc_unexpected(mod, err_msg);
-                }
-                goto invalid;
+              switch (precision) {
+                case ifc_tps_default:
+                  ik = (sign == ifc_tss_unsigned) ?
+                                  ik_unsigned_int : ik_int;
+                  break;
+                case ifc_tps_short:
+                  ik = (sign == ifc_tss_unsigned) ?
+                                ik_unsigned_short : ik_short;
+                  break;
+                case ifc_tps_long:
+                  ik = (sign == ifc_tss_unsigned) ?
+                                 ik_unsigned_long : ik_long;
+                  break;
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED || IA64_ABI
+                case ifc_tps_bit8:
+                  ik = int_kind_for_bit_size(8, sign != ifc_tss_unsigned);
+                  break;
+                case ifc_tps_bit16:
+                  ik = int_kind_for_bit_size(16, sign != ifc_tss_unsigned);
+                  break;
+                case ifc_tps_bit32:
+                  ik = int_kind_for_bit_size(32, sign != ifc_tss_unsigned);
+                  break;
+                case ifc_tps_bit64:
+                  ik = int_kind_for_bit_size(64, sign != ifc_tss_unsigned);
+                  break;
+                case ifc_tps_bit128:
+                  ik = int_kind_for_bit_size(128, sign != ifc_tss_unsigned);
+                  break;
+#else /* !(MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED...) */
+                case ifc_tps_bit8:
+                case ifc_tps_bit16:
+                case ifc_tps_bit32:
+                case ifc_tps_bit64:
+                case ifc_tps_bit128:
+                  { a_string err_msg("Unsupported ", str_for(precision),
+                                     " for ", str_for(basis));
+
+                    ifc_unexpected(mod, err_msg);
+                  }
+                  goto invalid;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED || IA64_ABI */
-              default_is_unexpected();
-            }  /* switch */
-            check_assertion(ik != (an_integer_kind)ik_none);
-            result = integer_type(ik);
+                default_is_unexpected();
+              }  /* switch */
+              check_assertion(ik != (an_integer_kind)ik_none);
+              result = integer_type(ik);
+            }
             break;
           case ifc_tbs_float:
             check_assertion(precision == ifc_tps_default);
@@ -12802,10 +12804,12 @@ with the module entity pointer.
 invalid:
   result = error_type();
 done:
+  /* If this assertion fails preceeding code failed to set a result value or
+     use the invalid result case. */
+  check_assertion(result != NULL);
   /* Record this mapping for future reference. */
-  if (result != NULL) {
-    mep->scope = result->source_corresp.parent_scope;
-  }  /* if */
+  mep->scope = result->source_corresp.parent_scope;
+  /* Assign the entity. */
   mep->entity = make_tagged_ptr(result);
 }  /* associate_mep_with_type */
 
