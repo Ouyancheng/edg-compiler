@@ -19183,9 +19183,12 @@ modes, but can be a subobject in C++20 and later.
   a_targ_size_t         num_elements = 1;
   a_subobject_path_ptr  path;
   a_type_ptr            tp;
+  a_variable_ptr        var;
 
   check_assertion(constant_is(con, ck_address) &&
                   address_base_is(con, abk_variable));
+  var = con->variant.address.variant.variable;
+  tp = skip_typerefs(var->type);
   path = con->variant.address.subobject_path;
   if (path != NULL && !cpp20_mode) {
     /* Prior to C++20, subobjects were never valid as nontype template
@@ -19195,27 +19198,26 @@ modes, but can be a subobject in C++20 and later.
            char var;
            S<&arr[0]> x;
            S<(&arr)[0]> y;
-           S<&(&val)[0]> z;
+           S<&(&var)[0]> z;
        x and y are clearly invalid by the C++17 standard wording since they
        involve pointers to elements of an array (i.e., subobjects).  z is
        plausibly okay although the standard treats non-array variables as
        arrays of length 1 for pointer-arithmetic purposes; from that
        perspective an argument could be made that z is invalid as well.
-       Clang accepts all three.  MSVC rejects all three.  GCC rejects only x.
-       Since GCC's behavior would be more difficult to emulate, we approximate 
-       by using Clang's behavior instead. */
-    if (!microsoft_mode &&
+       Clang accepts all three.  GCC rejects only x.  Since GCC's behavior
+       would be more difficult to emulate, we approximate it by using Clang's
+       behavior instead.  MSVC rejects all three, but accepts z if var is
+       const and initialized. */
+    if (!(microsoft_bugs && !var->constant_valued) &&
         path->next == NULL && path->is_offset &&
         path->variant.ptr_offset == 0 &&  /* A single [0] subscript. */
-        (clang_mode || gpp_mode ||
-         !is_array_type(con->variant.address.variant.variable->type))) {
+        (clang_mode || gpp_mode || !type_is(tp, tk_array))) {
       /* Accept these cases as described above. */
     } else {
       result = FALSE;
     }  /* if */
     goto done;
   }  /* if */
-  tp = skip_typerefs(con->variant.address.variant.variable->type);
   if (type_is(tp, tk_array) && !is_incomplete_array_type(tp)) {
     num_elements = num_array_elements(tp);
   }  /* if */
