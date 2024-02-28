@@ -12077,6 +12077,140 @@ otherwise, return FALSE.
 }  /* add_routine_qualifiers_to_type */
 
 
+static a_targ_size_t precision_to_byte_count(
+                                          an_ifc_type_precision_sort precision)
+/*
+Given a type precision sort, return the corresponding number of bytes.  The
+given precision must itself determine the number of bytes (i.e., things like
+ifc_tps_default or ifc_tps_short are not allowed).
+*/
+{
+  a_targ_size_t result = 0;
+
+  switch (precision) {
+    case ifc_tps_bit8:
+      result = 1;
+      break;
+    case ifc_tps_bit16:
+      result = 2;
+      break;
+    case ifc_tps_bit32:
+      result = 4;
+      break;
+    case ifc_tps_bit64:
+      result = 8;
+      break;
+    case ifc_tps_bit128:
+      result = 16;
+      break;
+    case ifc_tps_default:
+    case ifc_tps_short:
+    case ifc_tps_long:
+      /* These precision sorts do not have a fixed byte count associated with
+         them. */
+      unexpected_condition();
+    default_is_unexpected();
+  }  /* switch */
+  return result;
+}  /* precision_to_byte_count */
+
+#if CHECKING
+
+a_boolean int_size_is_equal(an_integer_kind kind_a, an_integer_kind kind_b)
+/*
+Return TRUE if the given integer kinds have equal size for the current target;
+otherwise, return FALSE.
+*/
+{
+  a_targ_size_t    kind_a_size;
+  a_targ_alignment kind_a_alignment;
+  a_targ_size_t    kind_b_size;
+  a_targ_alignment kind_b_alignment;
+
+  get_integer_size_and_alignment(ik_unsigned_long, &kind_a_size,
+                                 &kind_a_alignment);
+  get_integer_size_and_alignment(ik_unsigned_long_long, &kind_b_size,
+                                 &kind_b_alignment);
+  return kind_a_size == kind_b_size;
+}  /* int_size_is_equal */
+
+#endif /* CHECKING */
+
+static an_integer_kind get_edg_int_kind(
+                                      const an_ifc_type_fundamental &fund_type)
+/*
+Given an IFC fundamental type, representing a C++ integer type, return the
+corresponding integer type.
+*/
+{
+  /* If this assertion fails, the given fundamental type is not an integer. */
+  check_assertion(get_ifc_basis(fund_type) == ifc_tbs_int);
+  an_integer_kind
+                result = ik_none;
+  an_ifc_type_sign_sort
+                sign = get_ifc_sign(fund_type);
+  an_ifc_type_precision_sort
+                precision = get_ifc_precision(fund_type);
+
+  switch (precision) {
+    case ifc_tps_default:
+      result = (sign == ifc_tss_unsigned) ?
+                          ik_unsigned_int : ik_int;
+      break;
+    case ifc_tps_short:
+      result = (sign == ifc_tss_unsigned) ?
+                        ik_unsigned_short : ik_short;
+      break;
+    case ifc_tps_long:
+      result = (sign == ifc_tss_unsigned) ?
+                         ik_unsigned_long : ik_long;
+      break;
+    case ifc_tps_bit8:
+    case ifc_tps_bit16:
+    case ifc_tps_bit32:
+    case ifc_tps_bit64:
+    case ifc_tps_bit128:
+      { a_targ_size_t target_size = precision_to_byte_count(precision);
+        a_boolean     target_signed = (sign != ifc_tss_unsigned);
+
+        for (size_t i = 0; i < (size_t)ik_last; ++i) {
+          an_integer_kind  int_kind = (an_integer_kind)i;
+          a_targ_size_t    int_size;
+          a_targ_alignment int_alignment;
+
+          get_integer_size_and_alignment(int_kind, &int_size, &int_alignment);
+          if (int_size == target_size &&
+              int_kind_is_signed[(int)int_kind] == target_signed) {
+            result = int_kind;
+            break;
+          }  /* if */
+        }  /* for */
+#if LONG_LONG_ALLOWED
+        /* The IFC explicitly encodes "long" where as "long long" is typically
+           encoded as a 64-bit type.  As long and long long can both be 64-bits
+           on some configurations, assume seeing long here really means long
+           long (with the corresponding sign) is desired. */
+        if (result == ik_long) {
+          /* Check to ensure that if this case occurs long and long long are
+             the same size. */
+          check_assertion(int_size_is_equal(ik_long, ik_long_long));
+          result = ik_long_long;
+        } else if (result == ik_unsigned_long) {
+          /* Check to ensure that if this case occurs unsigned long and
+             unsigned long long are the same size. */
+          check_assertion(int_size_is_equal(ik_unsigned_long,
+                                            ik_unsigned_long_long));
+          result = ik_unsigned_long_long;
+        }  /* if */
+#endif /* LONG_LONG_ALLOWED */
+      }
+      break;
+    default_is_unexpected();
+  }  /* switch */
+  return result;
+}  /* get_edg_int_kind */
+
+
 static void associate_mep_with_type(a_module_entity_ptr mep)
 /*
 For the given type module entity pointer, associate the corresponding IL type
@@ -12175,52 +12309,8 @@ with the module entity pointer.
             }  /* switch */
             break;
           case ifc_tbs_int:
-            { an_integer_kind ik = ik_none;
+            { an_integer_kind ik = get_edg_int_kind(itf);
 
-              switch (precision) {
-                case ifc_tps_default:
-                  ik = (sign == ifc_tss_unsigned) ?
-                                  ik_unsigned_int : ik_int;
-                  break;
-                case ifc_tps_short:
-                  ik = (sign == ifc_tss_unsigned) ?
-                                ik_unsigned_short : ik_short;
-                  break;
-                case ifc_tps_long:
-                  ik = (sign == ifc_tss_unsigned) ?
-                                 ik_unsigned_long : ik_long;
-                  break;
-#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED || IA64_ABI
-                case ifc_tps_bit8:
-                  ik = int_kind_for_bit_size(8, sign != ifc_tss_unsigned);
-                  break;
-                case ifc_tps_bit16:
-                  ik = int_kind_for_bit_size(16, sign != ifc_tss_unsigned);
-                  break;
-                case ifc_tps_bit32:
-                  ik = int_kind_for_bit_size(32, sign != ifc_tss_unsigned);
-                  break;
-                case ifc_tps_bit64:
-                  ik = int_kind_for_bit_size(64, sign != ifc_tss_unsigned);
-                  break;
-                case ifc_tps_bit128:
-                  ik = int_kind_for_bit_size(128, sign != ifc_tss_unsigned);
-                  break;
-#else /* !(MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED...) */
-                case ifc_tps_bit8:
-                case ifc_tps_bit16:
-                case ifc_tps_bit32:
-                case ifc_tps_bit64:
-                case ifc_tps_bit128:
-                  { a_string err_msg("Unsupported ", str_for(precision),
-                                     " for ", str_for(basis));
-
-                    ifc_unexpected(mod, err_msg);
-                  }
-                  goto invalid;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED || IA64_ABI */
-                default_is_unexpected();
-              }  /* switch */
               check_assertion(ik != (an_integer_kind)ik_none);
               result = integer_type(ik);
             }
