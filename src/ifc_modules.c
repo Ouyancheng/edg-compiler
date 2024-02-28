@@ -3327,7 +3327,7 @@ front of the queue; otherwise, it is added at the end.
       *get_last_simple_list_link(&hdr->deferred_module_entities) = mep;
     }  /* if */
 #if DEBUG
-    if (db_flag_is_set("ms_symbols")) {
+    if (db_flag_is_set("ifc_symbols")) {
       (void)fprintf(f_debug, "Defer symbol creation for %s",
                     loc->symbol_header->identifier);
       (void)fprintf(f_debug, "\n");
@@ -3680,7 +3680,7 @@ corresponding template entity and update *kind with the associated entity kind.
   a_token_kind       final_token = tok_error;
 
 #if DEBUG
-  if (db_flag_is_set("ms_ifc_token_def")) {
+  if (db_flag_is_set("ifc_def")) {
     fprintf(f_debug, "Reconstituted template declaration:\n");
     db_tokens(cache);
     fprintf(f_debug, "\n---------------------\n");
@@ -3715,7 +3715,7 @@ kind with the associated entity kind.
   a_token_kind       final_token = tok_error;
 
 #if DEBUG
-  if (db_flag_is_set("ms_ifc_token_def")) {
+  if (db_flag_is_set("ifc_def")) {
     fprintf(f_debug, "Reconstituted partial specialization declaration:\n");
     db_tokens(cache);
     fprintf(f_debug, "\n---------------------\n");
@@ -3747,7 +3747,7 @@ associated entity kind.
   a_token_kind       final_token = tok_error;
 
 #if DEBUG
-  if (db_flag_is_set("ms_ifc_token_def")) {
+  if (db_flag_is_set("ifc_def")) {
     fprintf(f_debug, "Reconstituted using declaration:\n");
     db_tokens(cache);
     fprintf(f_debug, "\n---------------------\n");
@@ -6551,7 +6551,7 @@ instead.
     }  /* if */
     cache_token(cache, tok_rbrace);
 #if DEBUG
-    if (db_flag_is_set("ms_ifc_token_def")) {
+    if (db_flag_is_set("ifc_def")) {
       fprintf(f_debug, "Function body cache:\n");
       db_tokens(cache);
       fprintf(f_debug, "\n---------------------\n");
@@ -9103,7 +9103,7 @@ strongly preferred over calling this function directly.
           }  /* if */
           mod->cache_decl(&cache, decl_idx, cache_info);
 #if DEBUG
-          if (db_flag_is_set("ms_ifc_token_def")) {
+          if (db_flag_is_set("ifc_def")) {
             fprintf(f_debug, "Reconstituted variable declaration:\n");
             db_tokens(&cache);
             fprintf(f_debug, "\n---------------------\n");
@@ -10775,7 +10775,7 @@ Complete the definition of the class referred to by mep (if needed).
       }  /* if */
       cache_token(&cache, tok_semicolon);
 #if DEBUG
-      if (db_flag_is_set("ms_ifc_token_def")) {
+      if (db_flag_is_set("ifc_def")) {
         fprintf(f_debug, "Reconstituted class definition: ");
         if (unmangled_name_of(&class_type->source_corresp) != NULL) {
           fprintf(f_debug, "%s",
@@ -11823,7 +11823,7 @@ been confirmed to exist and the path stored in midp.
     }  /* if */
     import_referenced_modules(midp->impl_unit_importing_self);
 #if DEBUG
-    if (db_flag_is_set("ms_modsrc")) {
+    if (db_flag_is_set("ifc_modsrc")) {
       /* Generate a textual representation of the module file and print it. */
       db_ifc_scope(get_ifc_global_scope(header));
     }  /* if */
@@ -25303,7 +25303,7 @@ specialization entity and update *kind with the associated entity kind.
   a_token_kind       final_token = tok_error;
 
 #if DEBUG
-  if (db_flag_is_set("ms_ifc_token_def")) {
+  if (db_flag_is_set("ifc_def")) {
     fprintf(f_debug, "Reconstituted explicit specialization declaration:\n");
     db_tokens(cache);
     fprintf(f_debug, "\n---------------------\n");
@@ -25338,7 +25338,7 @@ kind.
   a_source_position  template_kw_pos;
 
 #if DEBUG
-  if (db_flag_is_set("ms_ifc_token_def")) {
+  if (db_flag_is_set("ifc_def")) {
     fprintf(f_debug, "Reconstituted explicit instantiation declaration:\n");
     db_tokens(cache);
     fprintf(f_debug, "\n---------------------\n");
