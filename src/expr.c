@@ -3883,7 +3883,9 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
         /* Clear the explicit cast flag.  The caller will set it if this
            top-level operation is an explicit cast.  We've optimized
            away the explicit cast one level down. */
-        dip->is_explicit_cast = FALSE;
+        if (init_list_ctor_arg_list == NULL) {
+          dip->is_explicit_cast = FALSE;
+        }  /* if */
         handle_elided_copy_constructor(source_type, routine, source_pos);
         optimized = TRUE;
       } else if ((conv_routine = arg_match->conversion.routine) != NULL &&
