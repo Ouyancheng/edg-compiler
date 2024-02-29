@@ -3449,12 +3449,14 @@ old_form is unused in the IA-64 ABI.
 
 
 static void mangled_encoding_for_address_constant(
-                                                a_constant_ptr           con,
-                                                a_mangling_control_block *mctl)
+                                  a_constant_ptr           con,
+                                  ARG_UNUSED a_boolean     suppress_address_of,
+                                  a_mangling_control_block *mctl)
 /*
 Add to the mangled name the encoding for the ck_address constant con.
 This is used to encode address constants as part of the mangled names of
-template classes.
+template classes.  When suppress_address_of is TRUE, suppress any "address of"
+mangling that might otherwise be added.
 */
 {
   an_address_base_kind abkind;
@@ -3477,8 +3479,9 @@ template classes.
   reserve_space_for_length(&length_reservation, mctl);
 #else /* IA64_ABI */
   /* IA-64 encoding.  Indicate that we're taking the address of the literal
-     by adding the encoding for unary "&" (unless it's a reference type). */
-  if (!is_any_reference_type(con->type)) {
+     by adding the encoding for unary "&" (unless it's a reference type or
+     explicitly disabled by the caller). */
+  if (!suppress_address_of && !is_any_reference_type(con->type)) {
     add_str_to_mangled_name("ad", mctl);
   }  /* if */
   add_to_mangled_name('L', mctl);
@@ -3602,6 +3605,32 @@ template classes.
 }  /* mangled_encoding_for_address_constant */
 
 
+/*
+Introduce two helper macros to help build mangled names for expressions in
+a somewhat ABI-agnostic fashion.
+
+add_operation_prefix_to_mangled_name adds the ABI-specific prefix for the
+the operation specified by op_string, with the specified number of operands.
+
+add_operation_suffix_to_mangled_name adds the ABI-specific suffix (if needed).
+*/
+#if IA64_ABI
+/* No specific prefix is needed (just add the op_string). */
+#define add_operation_prefix_to_mangled_name(op_string, operands, mctl) \
+  add_str_to_mangled_name((op_string), (mctl));
+/* No suffix is needed. */
+#define add_operation_suffix_to_mangled_name(mctl) /* Nothing */
+#else /* !IA64_ABI */
+/* Add 'O' as a prefix, then the string and the number of operands. */
+#define add_operation_prefix_to_mangled_name(op_string, operands, mctl) \
+  add_to_mangled_name('O', (mctl));                                     \
+  add_str_to_mangled_name((op_string), (mctl));                         \
+  store_digits_and_underscore((operands), /*old_form=*/FALSE, mctl);
+/* Add 'O' as a closing suffix. */
+#define add_operation_suffix_to_mangled_name(mctl)                      \
+  add_to_mangled_name('O', (mctl));
+#endif /* IA64_ABI */
+
 static void mangled_subobject_path(a_constant_ptr           con,
                                    a_subobject_path         *path,
                                    a_mangling_control_block *mctl)
@@ -3627,14 +3656,13 @@ to the mangled name as such:
 */
 {
   if (path == NULL) {
-    mangled_encoding_for_address_constant(con, mctl);
+    mangled_encoding_for_address_constant(con, /*suppress_address_of=*/TRUE,
+                                          mctl);
   } else {
     if (path->is_offset) {
-      add_str_to_mangled_name(MANGLING_STRING_FOR_OPERATOR_SUBSCRIPT, mctl);
-#if !IA64_ABI
-      /* Count of operands. */
-      store_digits_and_underscore(2UL, /*old_form=*/FALSE, mctl);
-#endif /* !IA64_ABI */
+      add_operation_prefix_to_mangled_name(
+                                        MANGLING_STRING_FOR_OPERATOR_SUBSCRIPT,
+                                        2, mctl);
       mangled_subobject_path(con, path->next, mctl);
 #if !IA64_ABI
       add_to_mangled_name('C', mctl);
@@ -3645,20 +3673,19 @@ to the mangled name as such:
                                    integer_type(targ_ptrdiff_t_int_kind),
                                    /*old_form=*/FALSE,
                                    mctl);
+      add_operation_suffix_to_mangled_name(mctl);
     } else if (path->is_base_class) {
       /* This does not contribute to the mangled name. */
       mangled_subobject_path(con, path->next, mctl);
     } else {
-      add_str_to_mangled_name(MANGLING_STRING_FOR_OPERATOR_DOT, mctl);
-#if !IA64_ABI
-      /* Count of operands. */
-      store_digits_and_underscore(2UL, /*old_form=*/FALSE, mctl);
-#endif /* !IA64_ABI */
+      add_operation_prefix_to_mangled_name(MANGLING_STRING_FOR_OPERATOR_DOT,
+                                           2, mctl);
       mangled_subobject_path(con, path->next, mctl);
       a_const_char *field_name =
          unmangled_or_fabricated_name_of(&path->variant.field->source_corresp);
       /* It appears that an un-qualified field name is used here. */
       mangled_name_with_length(field_name, mctl);
+      add_operation_suffix_to_mangled_name(mctl);
     }  /* if */
   }  /* if */
 }  /* mangled_subobject_path */
@@ -3676,22 +3703,21 @@ subobjects as arguments to nontype template parameters.
   a_subobject_path *soj_path = con->variant.address.subobject_path;
 
   if (soj_path == NULL) {
-    mangled_encoding_for_address_constant(con, mctl);
+    mangled_encoding_for_address_constant(con, /*suppress_address_of=*/FALSE,
+                                          mctl);
   } else {
     /* To generate the mangled encoding for a subobject path, reverse it and
        perform a recursive traversal (then reverse it again to restore it to
        the original state. */
-#if !IA64_ABI
-    /* Demangle as an "operation". */
-    add_to_mangled_name('O', mctl);
-#endif /* !IA64_ABI */
+#if IA64_ABI
+    if (is_pointer_type(con->type)) {
+      /* Add an initial "address of" mangling. */
+      add_str_to_mangled_name("ad", mctl);
+    }  /* if */
+#endif /* IA64_ABI */
     soj_path = reverse_simple_list(soj_path);
     mangled_subobject_path(con, soj_path, mctl);
     (void)reverse_simple_list(soj_path);
-#if !IA64_ABI
-    /* End of the "operation". */
-    add_to_mangled_name('O', mctl);
-#endif /* !IA64_ABI */
   }  /* if */
 }  /* mangled_encoding_for_address_constant_and_possible_subobject_path */
 
