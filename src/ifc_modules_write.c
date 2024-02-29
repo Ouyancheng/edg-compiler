@@ -808,6 +808,7 @@ private:
                                               an_ifc_Node_type *node);
 
   an_ifc_type_index enter_enum_type(a_type_ptr type);
+  an_ifc_type_index enter_float_type(a_type_ptr type);
   an_ifc_type_index enter_integer_type(a_type_ptr type);
   an_ifc_type_index enter_pointer_type(a_type_ptr type);
   an_ifc_type_index enter_routine_params_type(a_type_ptr type);
@@ -1041,6 +1042,9 @@ index for the type file.
   an_ifc_type_index result;
 
   switch (type->kind) {
+    case tk_float:
+      result = this->enter_float_type(type);
+      break;
     case tk_integer:
       if (is_enum_type(type)) {
         result = this->enter_enum_type(type);
@@ -1064,7 +1068,6 @@ index for the type file.
 #if FIXED_POINT_ALLOWED
     case tk_fixed_point:
 #endif /* FIXED_POINT_ALLOWED */
-    case tk_float:
 #if C99_IL_EXTENSIONS_SUPPORTED
     case tk_imaginary:
     case tk_complex:
@@ -1386,6 +1389,55 @@ the enum type.
   set_ifc_decl(&designated_type, decl_idx);
   return result;
 }  /* an_ifc_il_map::enter_enum_type */
+
+
+an_ifc_type_index an_ifc_il_map::enter_float_type(a_type_ptr type)
+/*
+Enter the given float type into the IFC output state.  Return the type index
+for the float type.
+*/
+{
+  check_assertion(type->kind == tk_float);
+  an_ifc_type_fundamental
+                fund_type;
+  an_ifc_type_index
+                result = this->map_new_type(type, &fund_type);
+
+  switch (type->variant.float_kind) {
+    case fk_float:
+      set_ifc_basis(&fund_type, ifc_tbs_float);
+      set_ifc_precision(&fund_type, ifc_tps_default);
+      break;
+    case fk_double:
+      set_ifc_basis(&fund_type, ifc_tbs_double);
+      set_ifc_precision(&fund_type, ifc_tps_default);
+      break;
+    case fk_long_double:
+      set_ifc_basis(&fund_type, ifc_tbs_double);
+      set_ifc_precision(&fund_type, ifc_tps_long);
+      break;
+    case fk_float128:
+      set_ifc_basis(&fund_type, ifc_tbs_float);
+      set_ifc_precision(&fund_type, ifc_tps_bit128);
+      break;
+    case fk_float16:
+    case fk_fp16:
+    case fk_float32x:
+    case fk_float64x:
+    case fk_float80:
+    case fk_std_bfloat16:
+    case fk_std_float16:
+    case fk_std_float32:
+    case fk_std_float64:
+    case fk_std_float128:
+    case fk_last:
+      header_unit_catastrophe();
+      break;
+    default_is_unexpected();
+  }  /* switch */
+  set_ifc_sign(&fund_type, ifc_tss_signed);
+  return result;
+}  /* an_ifc_il_map::enter_float_type */
 
 }  /* namespace */
 
