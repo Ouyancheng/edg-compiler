@@ -26072,6 +26072,7 @@ p_fatal and p_copy_error are NULL by default.
   if (diagnose_here) {
     p_fatal = &fatal;
   }  /* if */
+  constraint = skip_parens(constraint);
   if (node_is(constraint, enk_concept_id)) {
     /* Substitute the template argument list of the concept, and then check
        the satisfaction of the concept's constraint expression with that

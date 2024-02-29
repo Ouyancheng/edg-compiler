@@ -1,5 +1,22 @@
 Version 6.7
 
+2/29/24  [EDGcpfe/26115,EDGcpfe/27050]
+Constraint normalization of parenthesized constraint expressions
+
+In configurations with PARENS_IN_IL set to TRUE, the front end previously
+failed to normalize parenthesized constraint expressions.  For example, with
+--c++20:
+
+  template<typename>
+  concept C1 = true;
+  template<typename T>
+  concept C = (C1<typename T::A> || C1<typename T::B>);
+  struct D {
+    using A = int;
+  };
+  static_assert(C<D>);  // Previously failed in some configurations.  Now okay.
+
+
 2/29/24  [EDGcpfe/26978,EDGcpfe/27051,EDGcpfe/27055]
 Abort on substitution of function-scope templated type alias
 
