@@ -12271,11 +12271,23 @@ with the module entity pointer.
                 }  /* switch */
                 break;
               case ifc_tss_signed:
-                check_assertion(precision == ifc_tps_default);
+                if (precision != ifc_tps_default) {
+                  a_string err_msg("Unexpected ", str_for(precision),
+                                   " for ", str_for(basis));
+
+                  ifc_unexpected(mod, err_msg);
+                  goto invalid;
+                }  /* if */
                 result = integer_type((an_integer_kind)ik_signed_char);
                 break;
               case ifc_tss_unsigned:
-                check_assertion(precision == ifc_tps_default);
+                if (precision != ifc_tps_default) {
+                  a_string err_msg("Unexpected ", str_for(precision),
+                                   " for ", str_for(basis));
+
+                  ifc_unexpected(mod, err_msg);
+                  goto invalid;
+                }  /* if */
                 result = integer_type((an_integer_kind)ik_unsigned_char);
                 break;
               default_is_unexpected();
