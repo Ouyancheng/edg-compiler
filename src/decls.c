@@ -17251,12 +17251,22 @@ semicolon.
   dps->is_alias = TRUE;
   if (required_token(tok_assign, ec_exp_assign)) {
     a_type_ptr  parent_type = NULL;
+    a_boolean   saved_in_template_deduction_context;
     if (dps->in_class_scope) {
       check_assertion(scope_stack_top().kind ==
                                         (a_scope_kind)sck_class_struct_union);
       parent_type = scope_stack_top().assoc_type;
     }  /* if */
+    saved_in_template_deduction_context =
+                               scope_stack_top().in_template_deduction_context;
+    /* If we are in a template dependent context, the aliased type can
+       potentially participate in template argument substitution later on. */
+    if (is_template_dependent_context()) {
+      scope_stack_top().in_template_deduction_context = TRUE;
+    }  /* if */
     type_name_full(dps);
+    scope_stack_top().in_template_deduction_context =
+                                           saved_in_template_deduction_context;
     dps->id_attributes = id_attributes;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* It is tempting to emit the source sequence entry for the alias
