@@ -1,5 +1,12 @@
 Version 6.7
 
+2/29/24  [EDGcpfe/27049]
+Build issue with EDGcpfe/26965
+
+In EDGcpfe/26965 general memory management was improved.  However, a typo
+resulted in a build error when MAKE_FRONT_END_CALLABLE=1.  This is now fixed.
+
+
 2/29/24  [EDGcpfe/26115,EDGcpfe/27050]
 Constraint normalization of parenthesized constraint expressions
 

@@ -2242,7 +2242,7 @@ Free the general memory specified by *map.
     free((void*)entry.key());
   }  /* for */
   /* Free the map itself and remove the reference to it. */
-  free_direct(*map);
+  delete_direct(*map);
   *map = NULL;
 }  /* free_general_memory */
 
@@ -2267,7 +2267,7 @@ very end of processing.
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #if CHECKING
-  free_direct(resizable_memory_allocations);
+  delete_direct(resizable_memory_allocations);
   resizable_memory_allocations = NULL;
 #endif /* CHECKING */
   free_general_memory(&memory_allocation_map);
