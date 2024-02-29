@@ -1497,16 +1497,66 @@ for the integer type.
   an_ifc_type_index
                 result = this->map_new_type(type, &fund_type);
 
-  set_ifc_basis(&fund_type, ifc_tbs_int);
-
-  an_ifc_type_precision_sort
+  /* Set the basis and precision. */
+  switch (type->variant.integer.int_kind) {
+    case ik_char:
+      set_ifc_basis(&fund_type, ifc_tbs_char);
+      set_ifc_precision(&fund_type, ifc_tps_default);
+      set_ifc_sign(&fund_type, ifc_tss_plain);
+      break;
+    case ik_signed_char:
+      set_ifc_basis(&fund_type, ifc_tbs_char);
+      set_ifc_precision(&fund_type, ifc_tps_default);
+      set_ifc_sign(&fund_type, ifc_tss_signed);
+      break;
+    case ik_unsigned_char:
+      set_ifc_basis(&fund_type, ifc_tbs_char);
+      set_ifc_precision(&fund_type, ifc_tps_default);
+      set_ifc_sign(&fund_type, ifc_tss_unsigned);
+      break;
+    case ik_short:
+      set_ifc_basis(&fund_type, ifc_tbs_int);
+      set_ifc_precision(&fund_type, ifc_tps_short);
+      set_ifc_sign(&fund_type, ifc_tss_signed);
+      break;
+    case ik_unsigned_short:
+      set_ifc_basis(&fund_type, ifc_tbs_int);
+      set_ifc_precision(&fund_type, ifc_tps_short);
+      set_ifc_sign(&fund_type, ifc_tss_unsigned);
+      break;
+    case ik_int:
+      set_ifc_basis(&fund_type, ifc_tbs_int);
+      set_ifc_precision(&fund_type, ifc_tps_default);
+      set_ifc_sign(&fund_type, ifc_tss_signed);
+      break;
+    case ik_unsigned_int:
+      set_ifc_basis(&fund_type, ifc_tbs_int);
+      set_ifc_precision(&fund_type, ifc_tps_default);
+      set_ifc_sign(&fund_type, ifc_tss_unsigned);
+      break;
+    case ik_long:
+      set_ifc_basis(&fund_type, ifc_tbs_int);
+      set_ifc_precision(&fund_type, ifc_tps_long);
+      set_ifc_sign(&fund_type, ifc_tss_signed);
+      break;
+    case ik_unsigned_long:
+      set_ifc_basis(&fund_type, ifc_tbs_int);
+      set_ifc_precision(&fund_type, ifc_tps_long);
+      set_ifc_sign(&fund_type, ifc_tss_unsigned);
+      break;
+    default:
+      { an_ifc_type_precision_sort
                 precision_sort = type_size_to_precision(type);
-  set_ifc_precision(&fund_type, precision_sort);
-
-  an_ifc_type_sign_sort
+        an_ifc_type_sign_sort
                 sign_sort = is_signed_integral_type(type) ? ifc_tss_signed
                                                           : ifc_tss_unsigned;
-  set_ifc_sign(&fund_type, sign_sort);
+        set_ifc_basis(&fund_type, ifc_tbs_int);
+        set_ifc_precision(&fund_type, precision_sort);
+        set_ifc_sign(&fund_type, sign_sort);
+      }
+      break;
+  }  /* switch */
+
   return result;
 }  /* an_ifc_il_map::enter_integer_type */
 
