@@ -813,12 +813,16 @@ private:
   an_ifc_type_index enter_pointer_type(a_type_ptr type);
   an_ifc_type_index enter_routine_params_type(a_type_ptr type);
   an_ifc_type_index enter_routine_type(a_type_ptr type);
+  an_ifc_type_index enter_typedef_type(a_type_ptr type);
   an_ifc_type_index enter_void_type(a_type_ptr type);
 
   an_ifc_chart_index enter_routine_params(a_routine_ptr rp);
 
   an_ifc_type_index find_or_enter_namespace_scope_type();
+  an_ifc_type_index find_or_enter_alias_typedef_type();
+
   an_ifc_decl_index enter_namespace(a_scope_ptr scope);
+  an_ifc_decl_index enter_typedef(a_type_ptr type);
 
   void map_scope_member(a_scope_ptr scope, an_ifc_decl_index decl);
   void map_scope_member(a_source_correspondence_ptr scp,
@@ -847,7 +851,11 @@ private:
   an_ifc_type_index
                 fund_namespace_type;
                         /* The fundamental type used to represent a namespace
-                           scope. */
+                           DeclSort::Scope. */
+  an_ifc_type_index
+                fund_alias_typedef_type;
+                        /* The fundamental type used to represent a typedef
+                           DeclSort::Alias. */
   Dyn_array<a_scope_member_array, General_allocator>
                 scope_members;
                         /* Each scope offset maps to an array in scope members
@@ -1058,12 +1066,16 @@ index for the type file.
     case tk_routine:
       result = this->enter_routine_type(type);
       break;
+    case tk_typeref:
+      if (typeref_is_typedef(type)) {
+        result = this->enter_typedef_type(type);
+      }  /* if */
+      break;
     case tk_void:
       result = this->enter_void_type(type);
       break;
     case tk_struct:
     case tk_union:
-    case tk_typeref:
     case tk_error:
 #if FIXED_POINT_ALLOWED
     case tk_fixed_point:
@@ -1611,6 +1623,25 @@ for the function type.
 }  /* an_ifc_il_map::enter_routine_type */
 
 
+an_ifc_type_index an_ifc_il_map::enter_typedef_type(a_type_ptr type)
+/*
+Enter the given typedef type into the IFC output state.  Return the type index
+for the typedef type.
+*/
+{
+  check_assertion(type->kind == tk_typeref && typeref_is_typedef(type));
+  an_ifc_type_designated
+                designated_type;
+  an_ifc_type_index
+                result = this->map_new_type(type, &designated_type);
+  an_ifc_decl_index
+                typedef_decl = this->enter_typedef(type);
+
+  set_ifc_decl(&designated_type, typedef_decl);
+  return result;
+}  /* an_ifc_il_map::enter_typedef_type */
+
+
 an_ifc_type_index an_ifc_il_map::enter_void_type(a_type_ptr type)
 /*
 Enter the given void type into the IFC output state.  Return the type index
@@ -1724,7 +1755,7 @@ the parameters.
 an_ifc_type_index an_ifc_il_map::find_or_enter_namespace_scope_type()
 /*
 Find or enter the fundamental type used by the IFC to indicate a given IFC
-ScopeDeclaration is a namespace.  Return the index for the fundamental type.
+DeclSort::Scope is a namespace.  Return the index for the fundamental type.
 */
 {
   if (is_null_index(this->fund_namespace_type)) {
@@ -1737,6 +1768,24 @@ ScopeDeclaration is a namespace.  Return the index for the fundamental type.
   }  /* if */
   return this->fund_namespace_type;
 }  /* an_ifc_il_map::find_or_enter_namespace_scope_type */
+
+
+an_ifc_type_index an_ifc_il_map::find_or_enter_alias_typedef_type()
+/*
+Find or enter the fundamental type used by the IFC to indicate a given IFC
+DeclSort::Alias is a typedef.  Return the index for the fundamental type.
+*/
+{
+  if (is_null_index(this->fund_alias_typedef_type)) {
+    an_ifc_type_fundamental fund_type;
+
+    this->fund_alias_typedef_type = this->output_state->alloc_type(&fund_type);
+    set_ifc_basis(&fund_type, ifc_tbs_typename);
+    set_ifc_precision(&fund_type, ifc_tps_default);
+    set_ifc_sign(&fund_type, ifc_tss_plain);
+  }  /* if */
+  return this->fund_alias_typedef_type;
+}  /* an_ifc_il_map::find_or_enter_alias_typedef_type */
 
 
 an_ifc_decl_index an_ifc_il_map::enter_namespace(a_scope_ptr scope)
@@ -1794,6 +1843,57 @@ Return the declaration index of the scope declaration.
   set_ifc_home_scope(&scope_decl, scope_decl_idx);
   return result;
 }  /* an_ifc_il_map::enter_namespace */
+
+
+an_ifc_decl_index an_ifc_il_map::enter_typedef(a_type_ptr type)
+/*
+Enter the typedef corresponding to the given type into the IFC output state.
+Return the declaration index of the IFC DeclSort::Alias (i.e., the IFC
+representation of the typedef).
+*/
+{
+  check_assertion(type->kind == tk_typeref && typeref_is_typedef(type));
+  an_ifc_decl_alias
+                alias_decl;
+  an_ifc_decl_index
+                result = this->output_state->alloc_decl(&alias_decl);
+  /* Set the name information. */
+  size_t        name_offset = add_name_to_string_table(this->output_state,
+                                                       type);
+  an_ifc_text_offset
+                ifc_name_offset(alias_decl.get_file(), name_offset);
+
+  set_ifc_name(&alias_decl, ifc_name_offset);
+
+  /* Set the source location information. */
+  a_source_position
+                src_pos = type->source_corresp.decl_position;
+  an_ifc_source_location
+                ifc_src_pos = this->find_or_enter_pos(src_pos);
+  set_ifc_locus(&alias_decl, ifc_src_pos);
+
+  /* Set the IFC fundamental type to indicate this is a typedef
+     DeclSort::Alias. */
+  an_ifc_type_index
+                type_kind_type = this->find_or_enter_alias_typedef_type();
+  set_ifc_type(&alias_decl, type_kind_type);
+
+  /* Set the scope information. */
+  a_source_correspondence_ptr
+                scp = &type->source_corresp;
+  an_ifc_decl_index
+                scope_decl_idx = this->find_or_enter_home_scope(scp);
+  this->map_scope_member(scp, result);
+  set_ifc_home_scope(&alias_decl, scope_decl_idx);
+
+  /* Set the aliasee type. */
+  an_ifc_type_index
+                aliasee = this->find_or_enter_type(type->variant.typeref.type);
+  set_ifc_aliasee(&alias_decl, aliasee);
+  /* FIXME: Set specifiers. */
+  /* FIXME: Set access. */
+  return result;
+}  /* an_ifc_il_map::enter_typedef */
 
 
 void an_ifc_il_map::map_scope_member(a_scope_ptr       scope,
