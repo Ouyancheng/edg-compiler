@@ -9455,9 +9455,6 @@ strongly preferred over calling this function directly.
 
             an_ifc_type_basis_sort basis = get_ifc_basis(*opt_itf);
             if (basis == ifc_tbs_typename) {
-              a_decl_parse_state          dps;
-              a_partial_scope_stack_state psss;
-
               /* A type alias; declare a typedef for this case. */
               if (!ensure_module_scope(mep, ida, &scope_push_status)) {
                 goto invalid;
@@ -9466,11 +9463,30 @@ strongly preferred over calling this function directly.
                                               iek_type, &il_entity, &kind)) {
                 break;
               }  /* if */
-              if (!mod->init_dps(&dps, get_ifc_locus(ida),
-                                 get_ifc_aliasee(ida),
+
+              an_ifc_type_index aliasee_idx = get_ifc_aliasee(ida);
+              if (is_null_index(aliasee_idx)) {
+                a_string err_msg("Unexpected null aliasee for ",
+                                 index_to_str(decl_idx));
+
+                ifc_unexpected(mod, err_msg);
+                goto invalid;
+              }  /* if */
+
+              a_decl_parse_state
+                              dps;
+              a_partial_scope_stack_state
+                              psss;
+              an_ifc_source_location
+                              locus = get_ifc_locus(ida);
+              an_ifc_basic_specifiers_bitfield
+                              specifiers = get_ifc_specifiers(ida);
+              an_ifc_access_sort
+                              access = get_ifc_access(ida);
+              if (!mod->init_dps(&dps, locus, aliasee_idx,
                                  an_ifc_object_traits_bitfield{},
                                  an_ifc_msvc_traits_bitfield{},
-                                 get_ifc_specifiers(ida), get_ifc_access(ida),
+                                 specifiers, access,
                                  an_ifc_expr_index{}, &psss)) {
                 goto invalid;
               }  /* if */
