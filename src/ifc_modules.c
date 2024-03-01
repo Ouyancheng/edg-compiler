@@ -9639,7 +9639,13 @@ strongly preferred over calling this function directly.
           a_decl_parse_state          dps;
           a_partial_scope_stack_state psss;
 
-          check_assertion(!is_null_index(base));
+          if (is_null_index(base)) {
+            a_string err_msg("Unexpected missing enumeration base for ",
+                             index_to_str(decl_idx));
+
+            ifc_unexpected(mod, err_msg);
+            goto invalid;
+          }  /* if */
           if (!ensure_module_scope(mep, ide, &scope_push_status)) {
             goto invalid;
           }  /* if */
@@ -11608,7 +11614,8 @@ Only module entity pointers for IL entities not in class scope should be passed
 to this function.
 */
 {
-  an_ifc_decl_index decl_idx = decl_index_of(mep);
+  a_module_entity_stack_state mep_state(mep);
+  an_ifc_decl_index           decl_idx = decl_index_of(mep);
 
 #if DEBUG
   if (db_flag_is_set("ifc_decl")) {
