@@ -810,6 +810,7 @@ private:
   an_ifc_type_index enter_enum_type(a_type_ptr type);
   an_ifc_type_index enter_float_type(a_type_ptr type);
   an_ifc_type_index enter_integer_type(a_type_ptr type);
+  an_ifc_type_index enter_nullptr_type(a_type_ptr type);
   an_ifc_type_index enter_pointer_type(a_type_ptr type);
   an_ifc_type_index enter_routine_params_type(a_type_ptr type);
   an_ifc_type_index enter_routine_type(a_type_ptr type);
@@ -1060,6 +1061,9 @@ index for the type file.
         result = this->enter_integer_type(type);
       }  /* if */
       break;
+    case tk_nullptr:
+      result = this->enter_nullptr_type(type);
+      break;
     case tk_pointer:
       result = this->enter_pointer_type(type);
       break;
@@ -1069,6 +1073,16 @@ index for the type file.
     case tk_typeref:
       if (typeref_is_typedef(type)) {
         result = this->enter_typedef_type(type);
+      } else if (is_typeref_kind(type, trk_is_decltype)) {
+        /* FIXME: This is almost definitely incomplete (e.g., dependent cases).
+           The IFC has a decltype type node for representing decltype
+           expressions (presumably we only need this in dependent cases?). */
+        a_type_ptr underlying_type = type->variant.typeref.type;
+
+        result = this->enter_type(underlying_type);
+      } else {
+        /* FIXME: Handle other kinds of typerefs. */
+        header_unit_catastrophe();
       }  /* if */
       break;
     case tk_void:
@@ -1091,7 +1105,6 @@ index for the type file.
 #if GNU_VECTOR_TYPES_ALLOWED
     case tk_vector:
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-    case tk_nullptr:
     case tk_reflection:
     case tk_unknown:
       break;
@@ -1497,68 +1510,124 @@ for the integer type.
   an_ifc_type_index
                 result = this->map_new_type(type, &fund_type);
 
-  /* Set the basis and precision. */
-  switch (type->variant.integer.int_kind) {
-    case ik_char:
-      set_ifc_basis(&fund_type, ifc_tbs_char);
-      set_ifc_precision(&fund_type, ifc_tps_default);
-      set_ifc_sign(&fund_type, ifc_tss_plain);
-      break;
-    case ik_signed_char:
-      set_ifc_basis(&fund_type, ifc_tbs_char);
-      set_ifc_precision(&fund_type, ifc_tps_default);
-      set_ifc_sign(&fund_type, ifc_tss_signed);
-      break;
-    case ik_unsigned_char:
-      set_ifc_basis(&fund_type, ifc_tbs_char);
-      set_ifc_precision(&fund_type, ifc_tps_default);
-      set_ifc_sign(&fund_type, ifc_tss_unsigned);
-      break;
-    case ik_short:
-      set_ifc_basis(&fund_type, ifc_tbs_int);
-      set_ifc_precision(&fund_type, ifc_tps_short);
-      set_ifc_sign(&fund_type, ifc_tss_signed);
-      break;
-    case ik_unsigned_short:
-      set_ifc_basis(&fund_type, ifc_tbs_int);
-      set_ifc_precision(&fund_type, ifc_tps_short);
-      set_ifc_sign(&fund_type, ifc_tss_unsigned);
-      break;
-    case ik_int:
-      set_ifc_basis(&fund_type, ifc_tbs_int);
-      set_ifc_precision(&fund_type, ifc_tps_default);
-      set_ifc_sign(&fund_type, ifc_tss_signed);
-      break;
-    case ik_unsigned_int:
-      set_ifc_basis(&fund_type, ifc_tbs_int);
-      set_ifc_precision(&fund_type, ifc_tps_default);
-      set_ifc_sign(&fund_type, ifc_tss_unsigned);
-      break;
-    case ik_long:
-      set_ifc_basis(&fund_type, ifc_tbs_int);
-      set_ifc_precision(&fund_type, ifc_tps_long);
-      set_ifc_sign(&fund_type, ifc_tss_signed);
-      break;
-    case ik_unsigned_long:
-      set_ifc_basis(&fund_type, ifc_tbs_int);
-      set_ifc_precision(&fund_type, ifc_tps_long);
-      set_ifc_sign(&fund_type, ifc_tss_unsigned);
-      break;
-    default:
-      { an_ifc_type_precision_sort
-                precision_sort = type_size_to_precision(type);
-        an_ifc_type_sign_sort
-                sign_sort = is_signed_integral_type(type) ? ifc_tss_signed
-                                                          : ifc_tss_unsigned;
+  /* Set the basis, precision, and sign. */
+  if (type->variant.integer.bool_type) {
+    /* Handle the bool type. */
+    set_ifc_basis(&fund_type, ifc_tbs_bool);
+    set_ifc_precision(&fund_type, ifc_tps_default);
+    set_ifc_sign(&fund_type, ifc_tss_plain);
+  } else if (type->variant.integer.wchar_t_type) {
+    /* Handle the wchar_t type. */
+    set_ifc_basis(&fund_type, ifc_tbs_wchar_t);
+    set_ifc_precision(&fund_type, ifc_tps_default);
+    set_ifc_sign(&fund_type, ifc_tss_plain);
+  } else if (type->variant.integer.char8_t_type) {
+    /* Handle the char8_t type. */
+    set_ifc_basis(&fund_type, ifc_tbs_char);
+    set_ifc_precision(&fund_type, ifc_tps_bit8);
+    set_ifc_sign(&fund_type, ifc_tss_plain);
+  } else if (type->variant.integer.char16_t_type) {
+    /* Handle the char16_t type. */
+    set_ifc_basis(&fund_type, ifc_tbs_char);
+    set_ifc_precision(&fund_type, ifc_tps_bit16);
+    set_ifc_sign(&fund_type, ifc_tss_plain);
+  } else if (type->variant.integer.char32_t_type) {
+    /* Handle the char32_t type. */
+    set_ifc_basis(&fund_type, ifc_tbs_char);
+    set_ifc_precision(&fund_type, ifc_tps_bit32);
+    set_ifc_sign(&fund_type, ifc_tss_plain);
+  } else {
+    switch (type->variant.integer.int_kind) {
+      case ik_char:
+        /* Handle the char type. */
+        set_ifc_basis(&fund_type, ifc_tbs_char);
+        set_ifc_precision(&fund_type, ifc_tps_default);
+        set_ifc_sign(&fund_type, ifc_tss_plain);
+        break;
+      case ik_signed_char:
+        /* Handle the signed char type. */
+        set_ifc_basis(&fund_type, ifc_tbs_char);
+        set_ifc_precision(&fund_type, ifc_tps_default);
+        set_ifc_sign(&fund_type, ifc_tss_signed);
+        break;
+      case ik_unsigned_char:
+        /* Handle the unsigned char type. */
+        set_ifc_basis(&fund_type, ifc_tbs_char);
+        set_ifc_precision(&fund_type, ifc_tps_default);
+        set_ifc_sign(&fund_type, ifc_tss_unsigned);
+        break;
+      case ik_short:
+        /* Handle the (signed) short type. */
         set_ifc_basis(&fund_type, ifc_tbs_int);
-        set_ifc_precision(&fund_type, precision_sort);
-        set_ifc_sign(&fund_type, sign_sort);
-      }
-      break;
-  }  /* switch */
-
+        set_ifc_precision(&fund_type, ifc_tps_short);
+        set_ifc_sign(&fund_type, ifc_tss_signed);
+        break;
+      case ik_unsigned_short:
+        /* Handle the unsigned short type. */
+        set_ifc_basis(&fund_type, ifc_tbs_int);
+        set_ifc_precision(&fund_type, ifc_tps_short);
+        set_ifc_sign(&fund_type, ifc_tss_unsigned);
+        break;
+      case ik_int:
+        /* Handle the (signed) int type. */
+        set_ifc_basis(&fund_type, ifc_tbs_int);
+        set_ifc_precision(&fund_type, ifc_tps_default);
+        set_ifc_sign(&fund_type, ifc_tss_signed);
+        break;
+      case ik_unsigned_int:
+        /* Handle the unsigned int type. */
+        set_ifc_basis(&fund_type, ifc_tbs_int);
+        set_ifc_precision(&fund_type, ifc_tps_default);
+        set_ifc_sign(&fund_type, ifc_tss_unsigned);
+        break;
+      case ik_long:
+        /* Handle the (signed) long type. */
+        set_ifc_basis(&fund_type, ifc_tbs_int);
+        set_ifc_precision(&fund_type, ifc_tps_long);
+        set_ifc_sign(&fund_type, ifc_tss_signed);
+        break;
+      case ik_unsigned_long:
+        /* Handle the unsigned long type. */
+        set_ifc_basis(&fund_type, ifc_tbs_int);
+        set_ifc_precision(&fund_type, ifc_tps_long);
+        set_ifc_sign(&fund_type, ifc_tss_unsigned);
+        break;
+      default:
+        /* Handle miscellaneous fixed size integer types (e.g., uint32_t,
+           int32_t, etc). */
+        { an_ifc_type_precision_sort
+                  precision_sort = type_size_to_precision(type);
+          an_ifc_type_sign_sort
+                  sign_sort = is_signed_integral_type(type) ? ifc_tss_signed
+                                                            : ifc_tss_unsigned;
+          set_ifc_basis(&fund_type, ifc_tbs_int);
+          set_ifc_precision(&fund_type, precision_sort);
+          set_ifc_sign(&fund_type, sign_sort);
+        }
+        break;
+    }  /* switch */
+  }  /* if */
   return result;
 }  /* an_ifc_il_map::enter_integer_type */
+
+
+an_ifc_type_index an_ifc_il_map::enter_nullptr_type(a_type_ptr type)
+/*
+Enter the given nullptr type into the IFC output state.  Return the type index
+for the nullptr type.
+*/
+{
+  check_assertion(type->kind == tk_nullptr);
+  an_ifc_type_fundamental
+                fund_type;
+  an_ifc_type_index
+                result = this->map_new_type(type, &fund_type);
+
+  set_ifc_basis(&fund_type, ifc_tbs_nullptr);
+  set_ifc_precision(&fund_type, ifc_tps_default);
+  set_ifc_sign(&fund_type, ifc_tss_plain);
+  return result;
+}  /* an_ifc_il_map::enter_nullptr_type */
 
 
 an_ifc_type_index an_ifc_il_map::enter_pointer_type(a_type_ptr type)
