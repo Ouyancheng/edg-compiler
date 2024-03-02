@@ -12146,6 +12146,18 @@ extern unsigned char unicode_name_fsm[];
 extern sizeof_t size_of_unicode_name_fsm;
 
 
+static inline unsigned long val_from_unicode_name_fsm(unsigned long offset)
+/*
+Return the numeric value of the three bytes at the given offset in
+unicode_name_fsm, interpreted as a big-endian 24-bit unsigned integer.
+*/
+{
+  return (unicode_name_fsm[offset] << 16) +
+         (unicode_name_fsm[offset + 1] << 8) +
+         unicode_name_fsm[offset + 2];
+}  /* val_from_unicode_name_fsm */
+
+
 unsigned long scan_named_unicode_char(a_const_char **start_pos,
                                       a_boolean    is_identifier,
                                       a_boolean    is_identifier_start,
@@ -12197,17 +12209,65 @@ identifier, respectively.
         if (name_char != unicode_name_fsm[trans_offset++]) {
           /* Report an incorrect name. */
           transition = 1;
-          goto name_char_not_found;
+          goto end_of_state_processing;
         }  /* if */
         name_char = *pos++;
       }  /* for */
+    } else if ((num_transitions & 0x40) != 0) {
+      /* This is a range state; the number of transitions is given by the
+         low-order six bits of num_transitions.  Names in a range consist
+         of a common prefix, terminated by the four- or five-digit
+         hexadecimal value of the character's code point.  Extract the
+         hexadecimal value from the putative character name and compare it
+         against each range in the state.  If it is a member of one of the
+         ranges, the code point is the extracted hexadecimal value.  If the
+         value is not a member of any of the ranges, the putative character
+         name is invalid. */
+      unsigned long val = 0;
+      a_boolean     found_char = FALSE;
+      num_transitions &= 0x3f;
+      transition = 1;
+      /* Extract the value from up to five hexadecimal digits at this point
+         in the name.  (pos was already incremented before reaching this
+         state, so we restore it to the beginning of the hexadecimal part
+         of the name. */
+      --pos;
+      for (int i = 0; i < 5; ++i) {
+        if (*pos >= '0' && *pos <= '9') {
+          val = (val << 4) + (*pos - '0');
+        } else if (*pos >= 'A' && *pos <= 'F') {
+          val = (val << 4) + (*pos - 'A' + 10);
+        } else {
+          break;
+        }  /* if */
+        ++pos;
+      }  /* for */
+      if (*pos == '}') {
+        /* The name is well-formed.  Now check the value against the
+           ranges. */
+        rbrace_pos = pos;
+        for (int i = 0; !found_char && i < num_transitions; ++i) {
+          unsigned long first = val_from_unicode_name_fsm(trans_offset);
+          unsigned long last = val_from_unicode_name_fsm(trans_offset + 3);
+          trans_offset += 6;
+          if (val >= first && val <= last) {
+            /* This is a valid character name. */
+            found_char = TRUE;
+            result = val;
+            transition = 0;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+      num_transitions = 1;
+      goto end_of_state_processing;
     }  /* if */
+    /* Process the transitions (or the pseudo-transition at the end of a
+       multi-character state) looking for one that matches the current name
+       character. */
     for (transition = 0; transition < num_transitions;
          ++transition, trans_offset += 4) {
       unsigned char trans_char = unicode_name_fsm[trans_offset];
-      unsigned long val = (unicode_name_fsm[trans_offset + 1] << 16) +
-                          (unicode_name_fsm[trans_offset + 2] << 8) +
-                          (unicode_name_fsm[trans_offset + 3]);
+      unsigned long val = val_from_unicode_name_fsm(trans_offset + 1);
       bool          terminal_transition;
       if ((trans_char & 0x80) != 0) {
         /* This is a direct-value transition, i.e., instead of a transition
@@ -12246,7 +12306,7 @@ identifier, respectively.
         break;
       }  /* if */
     }  /* for */
-name_char_not_found:
+end_of_state_processing:
     if (transition >= num_transitions) {
       /* The current Unicode name character does not match any transition
          in this state, so the name is not a valid Unicode character
