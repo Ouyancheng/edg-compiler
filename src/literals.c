@@ -1332,7 +1332,8 @@ get_another:
         targ_ch = scan_named_unicode_char(&lptr,
                                           /*is_identifier=*/FALSE,
                                           /*is_identifier_start=*/FALSE,
-                                          /*issue_diagnostics=*/TRUE);
+                                          /*issue_diagnostics=*/TRUE,
+                                          /*update_pos_on_error=*/FALSE);
         if (targ_ch > MAX_UNICODE_VAL) {
           /* An error occurred and lptr was not updated.  Treat the 'N' and
              following as ordinary characters. */
@@ -1405,6 +1406,11 @@ other_chars:
         /* Other characters, left alone.  Specifically, standard requires
            that \', \", \?, and \\ be reduced to just the escaped character. */
         if (tch == '\'' || tch == '"' || tch == '?' || tch == '\\') {
+          targ_ch = tch;
+        } else if (tch == 'N' && named_unicode_chars_allowed) {
+          /* There was already an error issued for an incorrect named
+             Unicode character escape; a warning about an unrecognized
+             escape would be superfluous. */
           targ_ch = tch;
         } else {
           unrecognized = TRUE;

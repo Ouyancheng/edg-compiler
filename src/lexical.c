@@ -9646,7 +9646,8 @@ only within the lexical input routines.
     if (ptr[1] == 'N') {
       ucn = scan_named_unicode_char(&p, /*is_identifier=*/FALSE,
                                     /*is_identifier_start=*/FALSE,
-                                    /*issue_diagnostics=*/TRUE);
+                                    /*issue_diagnostics=*/TRUE,
+                                    /*update_pos_on_error=*/FALSE);
       if (ucn > MAX_UNICODE_VAL) {
         /* An error occurred in the named unicode character escape, so it
            cannot be an identifier character. */
@@ -12161,14 +12162,15 @@ unicode_name_fsm, interpreted as a big-endian 24-bit unsigned integer.
 unsigned long scan_named_unicode_char(a_const_char **start_pos,
                                       a_boolean    is_identifier,
                                       a_boolean    is_identifier_start,
-                                      a_boolean    issue_diagnostics)
+                                      a_boolean    issue_diagnostics,
+                                      a_boolean    update_pos_on_error)
 /*
 Scan a C++23 named Unicode character, i.e., \N{...}, and return the code
 point corresponding to the name or (unsigned long)-1 if a Unicode character
-is not found.  *start_pos points to the '\'.  If a Unicode character is
-successfully recognized, or if the name is well-formed but does not match
-any Unicode character name, *start_pos is updated to point to the character
-following the '}'.  In other error cases, *start_pos will be unchanged.  If
+is not found.  On input, *start_pos points to the '\'.  If a Unicode
+character is successfully recognized or if update_pos_on_error is TRUE,
+*start_pos is updated to point to the character following the terminating
+'}' or to the LE_ESCAPE terminating the line if no '}' is found.  If
 issue_diagnostics is TRUE, an error will be reported if the construct does
 not name a Unicode character or, if is_identifier or is_identifier_start
 are TRUE, if the named character is not valid within or starting an
@@ -12355,12 +12357,12 @@ end_of_state_processing:
                               temp_text_buffer);
           }  /* if */
         }  /* if */
-        *start_pos = pos + 1;
+        if (update_pos_on_error) {
+          *start_pos = pos + 1;
+        }  /* if */
         break;
       } else if (strchr(name_chars, *pos) == NULL) {
-        /* This character cannot appear in a Unicode character name.  In
-           these cases, *start_pos is left unchanged and the result
-           (already set) is (unsigned long)-1. */
+        /* This character cannot appear in a Unicode character name. */
         if (issue_diagnostics) {
           if (*pos == LE_ESCAPE) {
             conv_line_loc_to_source_pos(*start_pos, &error_position);
@@ -12374,6 +12376,18 @@ end_of_state_processing:
                                                      ? es_warning
                                                      : es_discretionary_error),
                            ec_invalid_char_in_unicode_name, &error_position);
+          }  /* if */
+        }  /* if */
+        if (update_pos_on_error) {
+          /* Look for the terminating '}' or the end of the line and update
+             *start_pos accordingly. */
+          while (*pos != '}' && *pos != LE_ESCAPE) {
+            ++pos;
+          }  /* while */
+          if (*pos == '}') {
+            *start_pos = pos + 1;
+          } else {
+            *start_pos = pos;
           }  /* if */
         }  /* if */
         break;
@@ -12453,7 +12467,8 @@ IDENTIFIER_STRINGS_ALLOW_MULTIBYTE_CHARS and UNICODE_SOURCE_SUPPORTED.
            character. */
         ucn_value = scan_named_unicode_char(&src, /*is_identifier=*/FALSE,
                                             /*is_identifier_start=*/FALSE,
-                                            /*issue_diagnostics=*/FALSE);
+                                            /*issue_diagnostics=*/FALSE,
+                                            /*update_pos_on_error=*/TRUE);
       } else {
         ucn_value = scan_universal_character(&src, /*is_identifier=*/FALSE,
                                              /*is_identifier_start=*/FALSE,
@@ -12816,7 +12831,8 @@ messages.
           if (scan_named_unicode_char(&curr_char_loc,
                                       /*is_identifier=*/FALSE,
                                       /*is_identifier_start=*/FALSE,
-                                      /*issue_diagnostics=*/FALSE) >
+                                      /*issue_diagnostics=*/FALSE,
+                                      /*update_pos_on_error=*/FALSE) >
                                                              MAX_UNICODE_VAL) {
             /* An error occurred and curr_char_loc was not updated.  Treat
                the '\' as an individual character, not part of an escape
@@ -16853,20 +16869,17 @@ id_scan:
             id_contains_ucn = TRUE;
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
             if (ch == 'N') {
-              a_const_char *saved_curr_char_loc = curr_char_loc;
               if (scan_named_unicode_char(&curr_char_loc,
                                           /*is_identifier=*/TRUE,
                                           is_identifier_start,
-                                          /*issue_diagnostics=*/TRUE) >
+                                          /*issue_diagnostics=*/TRUE,
+                                          /*update_pos_on_error=*/FALSE) >
                                                              MAX_UNICODE_VAL) {
                 /* An error occurred.  Set the end of the token to the
-                   character before the '\'.  If curr_char_loc was not
-                   updated, skip over the '\' to prevent it being processed
-                   again. */
-                end_of_curr_token = saved_curr_char_loc - 1;
-                if (curr_char_loc == saved_curr_char_loc) {
-                  ++curr_char_loc;
-                }  /* if */
+                   character before the '\' and skip over the '\' to
+                   prevent it being processed again. */
+                end_of_curr_token = curr_char_loc - 1;
+                ++curr_char_loc;
                 goto end_of_id;
               }  /* if */
             } else {

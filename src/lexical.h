@@ -2760,7 +2760,8 @@ extern unsigned long scan_named_unicode_char(
 					a_const_char	**start_pos,
 					a_boolean	is_identifier,
 				        a_boolean	is_identifier_start,
-					a_boolean	issue_diagnostics);
+					a_boolean	issue_diagnostics,
+					a_boolean	update_pos_on_error);
 
 /*
 Unicode values occupy at most 21 bits.
