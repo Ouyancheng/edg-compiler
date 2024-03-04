@@ -2042,6 +2042,10 @@ the given source correspondent.
 
 }  /* namespace */
 
+static void dump_scope_recursively(an_ifc_il_map *il_map,
+                                   a_scope_ptr   scope);
+
+
 static void dump_scope_types(an_ifc_il_map *il_map,
                              a_scope_ptr   scope)
 /*
@@ -2064,6 +2068,37 @@ Add all the routines in the given scope to the given IL -> IFC mapping.
     (void)il_map->find_or_enter_routine(rp);
   }  /* for */
 }  /* dump_scope_routines */
+
+
+static void dump_scope_namespaces(an_ifc_il_map *il_map,
+                                  a_scope_ptr   scope)
+/*
+Add all the namespaces in the given scope to the given IL -> IFC mapping.
+*/
+{
+  for (a_namespace_ptr np = scope->namespaces; np != NULL; np = np->next) {
+    if (np->is_namespace_alias) {
+      header_unit_catastrophe();
+    } else {
+      a_scope_ptr assoc_scope = np->variant.assoc_scope;
+
+      dump_scope_recursively(il_map, assoc_scope);
+    }  /* if */
+  }  /* for */
+}  /* dump_scope_namespaces */
+
+
+static void dump_scope_recursively(an_ifc_il_map *il_map,
+                                   a_scope_ptr   scope)
+/*
+Add the contents of the given scope and all its child scopes to the given IL ->
+IFC mapping.
+*/
+{
+  dump_scope_types(il_map, scope);
+  dump_scope_routines(il_map, scope);
+  dump_scope_namespaces(il_map, scope);
+}  /* dump_scope_recursively */
 
 
 static void complete_scope_info(an_ifc_output_state *output_state,
@@ -2158,8 +2193,7 @@ of the IFC format.
     an_ifc_scope_offset ifc_global_scope = il_map.enter_scope(scope);
 
     output_state.set_global_scope(ifc_global_scope);
-    dump_scope_types(&il_map, scope);
-    dump_scope_routines(&il_map, scope);
+    dump_scope_recursively(&il_map, scope);
     complete_scope_info(&output_state, &il_map);
     if (!output_state.write()) {
       /* FIXME: Add error? */
