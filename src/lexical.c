@@ -12259,6 +12259,12 @@ identifier, respectively.
             transition = 0;
           }  /* if */
         }  /* for */
+        if (!found_char) {
+          /* The character name is not valid.  The error handling code
+             below relies on rbrace_pos being NULL as the criterion for
+             having seen an invalid name. */
+          rbrace_pos = NULL;
+        }  /* if */
       }  /* if */
       num_transitions = 1;
       goto end_of_state_processing;
