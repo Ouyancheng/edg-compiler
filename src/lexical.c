@@ -12257,6 +12257,7 @@ identifier, respectively.
             found_char = TRUE;
             result = val;
             transition = 0;
+            state = (unsigned long)-1;
           }  /* if */
         }  /* for */
         if (!found_char) {
