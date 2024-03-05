@@ -212,8 +212,7 @@ unsigned char unicode_name_fsm[] = {
 
 /* The following table is created by a tool that processes the Unicode data
    files and is not intended to be edited manually.  This table reflects
-   Unicode version 15.1.0, dated 2023-08-28.
-*/
+   Unicode version 15.1.0, dated 2023-08-28. */
 
   /* 000000: */	0x1a, 0x53, 0x00, 0x00, 0x69, 0x45, 0x00, 0x9d,
 		0xb4, 0x51, 0x00, 0xd5, 0xc4, 0x4e, 0x00, 0xd7,
