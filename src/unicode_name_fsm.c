@@ -69,7 +69,7 @@ normal state:		+-------------------+
 			+--       :       --+
 			|         :         |
 			+-------------------+
-			        . . .
+			:       . . .       :
 			+-------------------+
 			|      char #N      |
 			+-------------------+
@@ -95,7 +95,7 @@ multi-char state:	+--------------------+
 			+--------------------+
 			|    name char #1    |
 			+--------------------+
-			        . . .        
+			:       . . .        :
 			+--------------------+
 			|    name char #N    |
 			+--------------------+
@@ -128,7 +128,7 @@ optimized transition:	+-------------------+
 
 A range state represents one or more ranges of characters in which the names
 all share a common prefix and the last 4 or 5 bytes of the name are an
-ASCII representation of the character's hexadecimal code point, e.g., the
+ASCII representation of the character's hexadecimal code point.  E.g., the
 three characters FOO-ABC1, FOO-ABC2, and FOO-ABC3 with values in the range
 from 0xABC1 to 0xABC3 could be represented by a range state, which consists
 of one byte giving the number of ranges represented (or'ed with 0x40, i.e.,
@@ -152,7 +152,7 @@ range state:		+---------------------+
 			+--     range #1    --+
 			|          :          |
 			+---------------------+
-			         . . .
+			:        . . .        :
 			+---------------------+
 			|          :          |
 			+--  first code pt  --+
