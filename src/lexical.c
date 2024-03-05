@@ -12189,7 +12189,8 @@ identifier, respectively.
     issue_diagnostics = FALSE;
   }  /* if */
   /* Walk through the characters of the Unicode character name and the
-     corresponding states until a name is recognized or an error occurs. */
+     corresponding states until a name is recognized or an error occurs,
+     beginning with the initial state, located at offset 0. */
   while (state < size_of_unicode_name_fsm) {
     /* Iterate through the transitions from this state, looking for a
        character that matches the current character in the putative Unicode
@@ -12216,7 +12217,7 @@ identifier, respectively.
         name_char = *pos++;
       }  /* for */
     } else if ((num_transitions & 0x40) != 0) {
-      /* This is a range state; the number of transitions is given by the
+      /* This is a range state; the number of ranges is given by the
          low-order six bits of num_transitions.  Names in a range consist
          of a common prefix, terminated by the four- or five-digit
          hexadecimal value of the character's code point.  Extract the
@@ -12277,7 +12278,7 @@ identifier, respectively.
          ++transition, trans_offset += 4) {
       unsigned char trans_char = unicode_name_fsm[trans_offset];
       unsigned long val = val_from_unicode_name_fsm(trans_offset + 1);
-      bool          terminal_transition;
+      a_boolean     terminal_transition;
       if ((trans_char & 0x80) != 0) {
         /* This is a direct-value transition, i.e., instead of a transition
            to another state that would contain only the terminating
@@ -12285,10 +12286,10 @@ identifier, respectively.
            matches this transition and the next name character is the
            terminating '}', the value in this transition is the code point
            itself. */
-        terminal_transition = true;
+        terminal_transition = TRUE;
         trans_char &= 0x7f;
       } else {
-        terminal_transition = false;
+        terminal_transition = FALSE;
       }  /* if */
       if (trans_char == name_char) {
         /* This transition matches the current character of the Unicode

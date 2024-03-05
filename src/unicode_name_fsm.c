@@ -39,14 +39,46 @@ a number, most significant byte first.  If the character is '}' (chosen for
 convenience because a C++23 named-universal-character is terminated by
 '}'), the number is the Unicode code point associated with the name matched
 by the current state.  Otherwise, the number gives the offset in the array
-of the state to which that character transitions.
+of the state to which that character transitions:
+
+transition:		+------------------+
+			| name char or '}' |
+			+------------------+
+			|   state offset   |
+			+--      :       --+
+			|        or        |
+			+--      :       --+
+			|    code point    |
+			+------------------+
 
 There are three kinds of states, normal, multi-character, and range.  A
 normal state contains a number of transitions, one for each character that
 can occur at that point in the name matching process, with each transition
 designating the state resulting from matching that character.  A normal
 state consists of a single byte containing the number of transitions in the
-state, N, followed by N transitions.
+state, N, followed by N transitions:
+
+normal state:		+-------------------+
+			| # transitions (N) |
+			+-------------------+
+			|      char #1      |
+			+-------------------+
+			|         :         |
+			+--       :       --+
+			| state/code pt #1  |
+			+--       :       --+
+			|         :         |
+			+-------------------+
+			        . . .
+			+-------------------+
+			|      char #N      |
+			+-------------------+
+			|         :         |
+			+--       :       --+
+			| state/code pt #N  |
+			+--       :       --+
+			|         :         |
+			+-------------------+
 
 A multi-character state is an optimization to reduce the size of the
 machine data.  When there would be a sequence of states, each containing a
@@ -56,7 +88,23 @@ those transitions, with the final character effectively being the head of a
 transition to the resulting state after matching that sequence of
 characters.  The first byte of a multi-character state gives the number of
 characters in the sequence, or'ed with 0x80 to distinguish a
-multi-character state from normal states.
+multi-character state from normal and range states:
+
+multi-char state:	+--------------------+
+			| 0x80 + # chars (N) |
+			+--------------------+
+			|    name char #1    |
+			+--------------------+
+			        . . .        
+			+--------------------+
+			|    name char #N    |
+			+--------------------+
+			|         :          |
+			+--       :        --+
+			|    state offset    |
+			+--       :        --+
+			|         :          |
+			+--------------------+
 
 As another optimization, when a state would contain only a terminal
 transition (i.e., whose character is '}', ending a name and giving its code
@@ -66,7 +114,17 @@ the transition that would have designated that state is or'ed with 0x80
 ASCII) and the number in the transition is the code point associated with
 the name instead of the offset of a state.  This optimization applies to
 both transitions from normal states and to the final character of a
-multi-character state.
+multi-character state:
+
+optimized transition:	+-------------------+
+			| 0x80 +  name char |
+			+-------------------+
+			|         :         |
+			+--       :       --+
+			|    code point     |
+			+--       :       --+
+			|         :         |
+			+-------------------+
 
 A range state represents one or more ranges of characters in which the names
 all share a common prefix and the last 4 or 5 bytes of the name are an
@@ -77,7 +135,37 @@ of one byte giving the number of ranges represented (or'ed with 0x40, i.e.,
 yielding 0x41 in this case with one range), followed by a single range
 consisting of the three bytes for 0xABC1 and the three bytes for 0xABC3.
 (Such a state would be reached by the transition for '-' after having
-matched "FOO".)
+matched "FOO".):
+
+range state:		+---------------------+
+			| 0x40 + # ranges (N) |
+			+---------------------+
+			|          :          |
+			+--  first code pt  --+
+			|         for         |
+			+--    range #1     --+
+			|          :          |
+			+---------------------+
+			|          :          |
+			+--  last code pt   --+
+			|         for         |
+			+--     range #1    --+
+			|          :          |
+			+---------------------+
+			         . . .
+			+---------------------+
+			|          :          |
+			+--  first code pt  --+
+			|         for         |
+			+--    range #N     --+
+			|          :          |
+			+---------------------+
+			|          :          |
+			+--  last code pt   --+
+			|         for         |
+			+--     range #N    --+
+			|          :          |
+			+---------------------+
 
 For example, if the Unicode character set consisted of four characters with
 names "A", "AB", "CDEF", and "CDEG" corresponding to code points 0x20,
