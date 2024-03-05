@@ -51,7 +51,7 @@ transition:		+------------------+
 			|    code point    |
 			+------------------+
 
-There are three kinds of states, normal, multi-character, and range.  A
+There are three kinds of states: normal, multi-character, and range.  A
 normal state contains a number of transitions, one for each character that
 can occur at that point in the name matching process, with each transition
 designating the state resulting from matching that character.  A normal
