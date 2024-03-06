@@ -591,8 +591,7 @@ path (if they don't, interpretation fails).
 typedef struct a_variant_path_entry *a_variant_path_entry_ptr;
 typedef struct a_variant_path_entry {
   a_variant_path_entry_ptr
-		next;
-			/* For entries on a variant path, the next entry on
+		next;	/* For entries on a variant path, the next entry on
 			   that path (or NULL if there is none).  Otherwise,
 			   the entry is on the free entries list and this field
 			   points to the next free entry (or NULL if there is
@@ -601,8 +600,7 @@ typedef struct a_variant_path_entry {
 		next_allocated;
 			/* The next entry on the list of all allocated variant
 			   path entries (NULL if it's the last entry). */
-  a_field_ptr	field;
-			/* The field selected for this variant path, or NULL
+  a_field_ptr	field;	/* The field selected for this variant path, or NULL
 			   if this entry represents the base address of an
 			   indexed array. */
   a_byte	*base_address;
@@ -718,8 +716,7 @@ typedef struct a_constexpr_address {
   unsigned int	flags:8;
 			/* Flags describing properties of this address.
 			   See the CA_... macros above. */
-  unsigned int
-		length: ARRAY_LENGTH_WIDTH;
+  unsigned int	length: ARRAY_LENGTH_WIDTH;
 			/* If the CA_ARRAY_ELEMENT flag is set or for an array
 		           lvalue, the number of elements in the array.  If the
 			   CA_BIT_FIELD flag is set, twice the number of bits
@@ -738,13 +735,12 @@ typedef struct a_constexpr_address {
   union {
     /* When (flags & CA_ARRAY_ELEMENT) != 0 and
             (flags & CA_VARIANT_PATH) == 0: */
-    a_byte
-		*base_address;
+    a_byte	*base_address;
 			/* For an array element, the address of element #0. */
     /* When (flags & CA_FUNCTION) != 0: */
     a_routine_ptr
 		routine;
-    			/* For addresses of functions. */
+			/* For addresses of functions. */
     /* When (flags & CA_RUNTIME_DATA_ADDRESS) != 0: */
     a_constant_ptr
 		addr_con;
@@ -756,8 +752,7 @@ typedef struct a_constexpr_address {
 			   path of the subobject.  The path is checked against
 			   active fields at the point of dereference. */
   } variant;
-  a_byte
-		*complete_object;
+  a_byte	*complete_object;
 			/* Pointer to the complete object into which this
 			   address is pointing.  This is needed to validate
 			   pointer comparisons (p < q, etc.). */
@@ -875,22 +870,18 @@ Macro to initialize a constant address at addr referring to the
 
 
 typedef struct a_constexpr_ptr_to_mem {
-  a_bit_field
-		is_ptr_to_mem_function:1;
+  a_bit_field	is_ptr_to_mem_function:1;
 			/* TRUE if this is a pointer to member function. */
-  a_bit_field
-		subtract_adjustment:1;
+  a_bit_field	subtract_adjustment:1;
 			/* TRUE if this_class_adjustment must be subtracted
 			   from the "this" pointer. */
-  a_byte_count
-		this_class_adjustment;
+  a_byte_count	this_class_adjustment;
 			/* The adjustment needed to the "this" pointer. */
   union {
-    /* When is_ptr_to_mem_function is FALSE. */
-    a_field_ptr
-		field;
+    /* When is_ptr_to_mem_function is FALSE: */
+    a_field_ptr	field;
 			/* Field referred to by the pointer-to-member. */
-    /* When is_ptr_to_mem_function is TRUE. */
+    /* When is_ptr_to_mem_function is TRUE: */
     a_routine_ptr
 		routine;
 			/* Routine referred to by the pointer-to-member. */
@@ -4858,19 +4849,19 @@ Macros to interpret a full-expression.
 #define do_constexpr_full_expr(ips, expr, result_cap, result_flag)            \
 {                                                                             \
   a_storage_stack_state  saved_stack_for_full_expr;                           \
-  save_storage_stack(ips, saved_stack_for_full_expr);                         \
-  (result_flag) = do_constexpr_expr(ips, expr, result_cap);                   \
-  restore_storage_stack(ips, saved_stack_for_full_expr, result_flag);         \
+  save_storage_stack((ips), saved_stack_for_full_expr);                       \
+  (result_flag) = do_constexpr_expr((ips), (expr), (result_cap));             \
+  restore_storage_stack((ips), saved_stack_for_full_expr, (result_flag));     \
 }
 
 #define do_constexpr_full_expression(                                         \
                     ips, expr, result_storage, complete_object, result_flag)  \
 {                                                                             \
   a_storage_stack_state  saved_stack_for_full_expr;                           \
-  save_storage_stack(ips, saved_stack_for_full_expr);                         \
+  save_storage_stack((ips), saved_stack_for_full_expr);                       \
   (result_flag) = do_constexpr_expression(                                    \
-                                ips, expr, result_storage, complete_object);  \
-  restore_storage_stack(ips, saved_stack_for_full_expr, result_flag);         \
+                            (ips), (expr), result_storage, complete_object);  \
+  restore_storage_stack((ips), saved_stack_for_full_expr, (result_flag));     \
 }
 
 

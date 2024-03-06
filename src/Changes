@@ -4,9 +4,8 @@ Version 6.7
 Abort in find_subobject_for_interpreter_address
 
 In fairly complex cases involving union constructors, constant evaluation could
-abort with an internal error in fund_subobject_for_interpreter_address.  That
+abort with an internal error in find_subobject_for_interpreter_address.  That
 class of problems is now fixed.
-
 
 2/29/24  [EDGcpfe/27049]
 Build issue with EDGcpfe/26965
