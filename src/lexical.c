@@ -12233,7 +12233,7 @@ identifier, respectively.
       /* Extract the value from up to five hexadecimal digits at this point
          in the name.  (pos was already incremented before reaching this
          state, so we restore it to the beginning of the hexadecimal part
-         of the name. */
+         of the name.) */
       --pos;
       for (int i = 0; i < 5; ++i) {
         if (*pos >= '0' && *pos <= '9') {
