@@ -3267,13 +3267,15 @@ search_base_subobjects:
     for (; vpep != NULL; vpep = vpep->next) {
       a_boolean    okay = TRUE;
       a_field_ptr  fp = vpep->field;
-      a_byte_count  field_size = value_bytes_for_type(ips, fp->type, &okay);
       if (fp != NULL && parent_class_of(fp) == parent_type) {
+#if CHECKING
+        a_byte_count  field_size = value_bytes_for_type(ips, fp->type, &okay);
         check_assertion(okay &&
                         vpep->base_address >= parent_address &&
                         (vpep->base_address < parent_address+field_size ||
                          (vpep->base_address == parent_address+field_size &&
                           (cannot_dereference(cap) || field_size == 0))));
+#endif /* CHECKING */
         *p_field = fp;
         *p_bcp = NULL;
         goto done;
