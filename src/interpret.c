@@ -554,6 +554,352 @@ Release the storage for the given map's table.
 
 
 /*
+Structure describing a variant path in a subobject.
+
+An address of a subobject of a union can be formed even if that subobject is
+not currently active in the union.  Only at the point of dereference must the
+requirement that the subobject is active be enforced.  To achieve this, address
+manipulations in unions maintain a "variant path" that can be checked at the
+point of dereference.  The first entry on the path describes the base address
+of an array: The entry can be ignored if the address does not have the
+CA_ARRAY_ELEMENT flag set.  Every element after that represents a selected
+variant (from outer selection to inner selection).  For example:
+
+  struct S {
+    int i;
+    union U {
+      struct X {
+        union V {
+          int i;
+          char y[3];
+        } v;
+      } x;
+    } u[4];
+  } s;
+
+The a_constexpr_address entry representing &s.u[2].x.v.y[1] will have both the
+CA_VARIANT_PATH and CA_ARRAY_ELEMENT flags set (the latter flag is for the y[1]
+part, not the u[2] part, since the address is not of the s.u[2] element
+specifically).  The address entry will point to a list of three variant path
+entries.  The first entry will record the base address of s.u[2].x.v.y.  The
+second will point to the address of the s.u[2] subobject and to the IL entry
+for its x field.  The third entry will point to the address of the s.u[2].x.v
+subobject and to the IL entry for its y field.  Dereferencing the address will
+check that the two unions' active fields correspond to those recorded in the
+path (if they don't, interpretation fails).
+*/
+typedef struct a_variant_path_entry *a_variant_path_entry_ptr;
+typedef struct a_variant_path_entry {
+  a_variant_path_entry_ptr
+		next;
+			/* For entries on a variant path, the next entry on
+			   that path (or NULL if there is none).  Otherwise,
+			   the entry is on the free entries list and this field
+			   points to the next free entry (or NULL if there is
+			   none). */
+  a_variant_path_entry_ptr
+		next_allocated;
+			/* The next entry on the list of all allocated variant
+			   path entries (NULL if it's the last entry). */
+  a_field_ptr	field;
+			/* The field selected for this variant path, or NULL
+			   if this entry represents the base address of an
+			   indexed array. */
+  a_byte	*base_address;
+			/* The address of the variant (i.e., union) subobject
+			   in interpreter storage, or, if field is NULL, the
+			   base address of the indexed array. */
+} a_variant_path_entry;
+
+static a_variant_path_entry_ptr
+		variant_path_entries;
+			/* A list of all allocated variant path entries,
+			   linked through the next_allocated pointers. */
+
+static unsigned long
+		n_variant_path_entries;
+			/* The number of entries on the variant_path_entries
+			   list. */
+
+static a_variant_path_entry_ptr
+		free_variant_path_entries;
+			/* A list of variant path entries available for reuse,
+			   linked through the next pointers. */
+
+static unsigned long
+		n_free_variant_path_entries;
+			/* The number of entries on the
+			   free_variant_path_entries list. */
+
+static a_variant_path_entry_ptr alloc_variant_path_entry(void)
+/*
+Return a new variant path entry.
+*/
+{
+  a_variant_path_entry_ptr vpep;
+
+  if (free_variant_path_entries != NULL) {
+    vpep = free_variant_path_entries;
+    free_variant_path_entries = free_variant_path_entries->next;
+    n_free_variant_path_entries -= 1;
+  } else {
+    vpep = alloc_fe_of_type(a_variant_path_entry);
+    vpep->next_allocated = variant_path_entries;
+    variant_path_entries = vpep;
+    n_variant_path_entries += 1;
+  }  /* if */
+  return vpep;
+}  /* alloc_variant_path_entry */
+
+
+static void reclaim_variant_path_entries(void)
+/*
+The caller has determined that not all variant path entries were reclaimed at
+the end of interpretation.  Move all allocated entries back onto the free list.
+*/
+{
+  a_variant_path_entry_ptr  vpep = variant_path_entries;
+
+  check_assertion(n_free_variant_path_entries < n_variant_path_entries);
+  while (vpep->next_allocated != NULL) {
+    vpep->next = vpep->next_allocated;
+    vpep = vpep->next_allocated;
+  }  /* while */
+  vpep->next = NULL;
+  free_variant_path_entries = variant_path_entries;
+  n_free_variant_path_entries = n_variant_path_entries;
+}  /* reclaim_variant_path_entries */
+
+
+/*
+A set of flags to describe special interpreter address attributes.
+*/
+#define CA_RUNTIME_DATA_ADDRESS ((unsigned int)0x1)
+		/* This flag indicates that the address is that of a run-time
+		   entity (not a value known to the interpreter). */
+#define CA_CANNOT_DEREFERENCE ((unsigned int)0x2)
+		/* This flag indicates that the address cannot be dereferenced.
+		   It is set in particular for pointers "one position past" the
+		   end of an array. */
+#define CA_VARIANT_PATH ((unsigned int)0x4)
+		/* This flag indicates that the formation of the address
+		   included the selection of at least one union field.  Such
+		   selections must be checked for validity when the address is
+		   dereferenced. */
+#define CA_ARRAY_ELEMENT ((unsigned int)0x8)
+		/* This flag indicates that the address is that of an array
+		   element.  Such an address is subject to pointer
+		   arithmetic (which requires bounds checking). */
+#define CA_BIT_FIELD ((unsigned int)0x10)
+		/* This flag indicates that the address is that of a bit field.
+		   (Pointers and references to bit fields are invalid.  This is
+		   therefore always for a bit field lvalue.)  Whether the bit
+		   field is signed is encoded in the "length" field. */
+#define CA_FUNCTION ((unsigned int)0x20)
+		/* This flag indicates that the address is that of a
+		   function. */
+#define CA_CONST_STORAGE ((unsigned int)0x40)
+		/* This flag indicates that the address is that of const
+		   storage. */
+#define CA_LIFETIME_EXTENDED ((unsigned int)0x80)
+		/* This flag indicates that the address is that of a lifetime-
+		   extended temporary. */
+
+/*
+Structure describing the representation of an address in the interpreter.
+(Addresses in the interpreter are used to represent pointers, references, and
+glvalues.)
+*/
+typedef struct a_constexpr_address {
+  a_byte
+		*address;
+			/* The address in interpreter storage of the thing
+			   pointed to, or NULL if is_runtime_data_address or
+			   is_function_address are TRUE. */
+  unsigned int	flags:8;
+			/* Flags describing properties of this address.
+			   See the CA_... macros above. */
+  unsigned int
+		length: ARRAY_LENGTH_WIDTH;
+			/* If the CA_ARRAY_ELEMENT flag is set or for an array
+		           lvalue, the number of elements in the array.  If the
+			   CA_BIT_FIELD flag is set, twice the number of bits
+			   in the bit field designated by this lvalue, plus one
+			   if the bit field is signed.  If the flag
+			   CA_RUNTIME_DATA_ADDRESS is set, a value of 1
+			   indicates that a field selection was applied to that
+			   address and so it should be assumed to point to an
+			   object even if it is a null address (used to
+			   support classic implementations of "offsetof").
+			   Otherwise, zero. */
+  an_alloc_seq_number
+		alloc_seq_number;
+			/* The allocation sequence number of the storage
+			   pointed to. */
+  union {
+    /* When (flags & CA_ARRAY_ELEMENT) != 0 and
+            (flags & CA_VARIANT_PATH) == 0: */
+    a_byte
+		*base_address;
+			/* For an array element, the address of element #0. */
+    /* When (flags & CA_FUNCTION) != 0: */
+    a_routine_ptr
+		routine;
+    			/* For addresses of functions. */
+    /* When (flags & CA_RUNTIME_DATA_ADDRESS) != 0: */
+    a_constant_ptr
+		addr_con;
+			/* For constant addresses of run-time objects. */
+    /* When (flags & CA_VARIANT_PATH) != 0: */
+    a_variant_path_entry_ptr
+		variant_path;
+			/* For addresses into variant subobjects, the recorded
+			   path of the subobject.  The path is checked against
+			   active fields at the point of dereference. */
+  } variant;
+  a_byte
+		*complete_object;
+			/* Pointer to the complete object into which this
+			   address is pointing.  This is needed to validate
+			   pointer comparisons (p < q, etc.). */
+} a_constexpr_address;
+
+
+#define is_runtime_data_address(cap)                                         \
+  ((((a_constexpr_address*)(cap))->flags & CA_RUNTIME_DATA_ADDRESS) != 0)
+
+#define cannot_dereference(cap)                                              \
+  ((((a_constexpr_address*)(cap))->flags & CA_CANNOT_DEREFERENCE) != 0)
+
+#define is_variant_path(cap)                                                 \
+  ((((a_constexpr_address*)(cap))->flags & CA_VARIANT_PATH) != 0)
+
+#define is_array_element(cap)                                                \
+  ((((a_constexpr_address*)(cap))->flags & CA_ARRAY_ELEMENT) != 0)
+
+#define is_bit_field_lvalue(cap)                                             \
+  ((((a_constexpr_address*)(cap))->flags & CA_BIT_FIELD) != 0)
+
+#define is_function_address(cap)                                             \
+  ((((a_constexpr_address*)(cap))->flags & CA_FUNCTION) != 0)
+
+#define is_const_storage(cap)                                                \
+  ((((a_constexpr_address*)(cap))->flags & CA_CONST_STORAGE) != 0)
+
+
+#define get_base_address(cap)                                                \
+  (is_variant_path(cap) ? (cap)->variant.variant_path->base_address          \
+                        : (cap)->variant.base_address)
+
+
+/*
+Convenience macro to get a pointer to the value addressed by the
+a_constexpr_address addr.
+*/
+#define value_bytes_at(addr) (((a_constexpr_address *)(addr))->address)
+
+
+/*
+Convenience macro to get a pointer to the integer value addressed by the
+a_constexpr_address addr.
+*/
+#define int_value_at(addr) ((an_integer_value *)value_bytes_at(addr))
+
+
+/*
+Convenience macro to cast an opaque pointer to a pointer to a floating-point
+value.
+*/
+#define fp_value(ptr) ((an_internal_float_value *)(ptr))
+
+
+/*
+Convenience macro to get a pointer to the floating-point value addressed by
+the a_constexpr_address addr.
+*/
+#define fp_value_at(addr) (fp_value(value_bytes_at(addr)))
+
+
+#if C99_IL_EXTENSIONS_SUPPORTED
+/*
+Convenience macro to cast an opaque pointer to a pointer to a complex
+floating-point value.
+*/
+#define cx_value(ptr) ((an_internal_complex_value *)(ptr))
+
+
+/*
+Convenience macro to get a pointer to the complex floating-point value
+addressed by the a_constexpr_address addr.
+*/
+#define cx_value_at(addr) (cx_value(value_bytes_at(addr)))
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+
+
+/*
+Macro to initialize a constant address at addr referring to the complete
+interpreter value at targ_addr (or a null pointer).
+*/
+#define clear_address(addr, targ_addr)                                   \
+  memzero((char *)(addr) /*lint -e668*/, sizeof(a_constexpr_address));   \
+  ((a_constexpr_address *)(addr))->address = (targ_addr);                \
+  ((a_constexpr_address *)(addr))->complete_object = (targ_addr)
+
+
+static inline void constexpr_extend_lifetime(a_constexpr_address  *addr)
+/*
+Set the CA_LIFETIME_EXTENDED in the flag set of the given address.
+*/
+{
+  addr->flags |= CA_LIFETIME_EXTENDED;
+}  /* constexpr_extend_lifetime */
+
+
+/*
+Macro to initialize a constant address at addr referring to the function
+denoted by the IL a_routine entry rout.
+*/
+#define make_function_address(addr, rout)                      \
+  memzero((char *)(addr), sizeof(a_constexpr_address));        \
+  ((a_constexpr_address *)(addr))->flags = CA_FUNCTION;        \
+  ((a_constexpr_address *)(addr))->variant.routine = (rout)
+
+
+/*
+Macro to initialize a constant address at addr referring to the
+(non-interpreter) constant address described by the ck_address constant con.
+*/
+#define clear_runtime_constant_address(addr, con)                   \
+  memzero((char *)(addr), sizeof(a_constexpr_address));             \
+  ((a_constexpr_address *)(addr))->flags = CA_RUNTIME_DATA_ADDRESS; \
+  ((a_constexpr_address *)(addr))->variant.addr_con = (con)
+
+
+typedef struct a_constexpr_ptr_to_mem {
+  a_bit_field
+		is_ptr_to_mem_function:1;
+			/* TRUE if this is a pointer to member function. */
+  a_bit_field
+		subtract_adjustment:1;
+			/* TRUE if this_class_adjustment must be subtracted
+			   from the "this" pointer. */
+  a_byte_count
+		this_class_adjustment;
+			/* The adjustment needed to the "this" pointer. */
+  union {
+    /* When is_ptr_to_mem_function is FALSE. */
+    a_field_ptr
+		field;
+			/* Field referred to by the pointer-to-member. */
+    /* When is_ptr_to_mem_function is TRUE. */
+    a_routine_ptr
+		routine;
+			/* Routine referred to by the pointer-to-member. */
+  } variant;
+} a_constexpr_ptr_to_mem;
+
+
+/*
 Structure describing a call context or a GNU statement expression evaluation
 context.
 */
@@ -575,12 +921,10 @@ typedef struct a_call_frame {
 		expr;	/* The statement expression associated with this
 			   frame. */
   } variant;
-  a_byte	*result_storage;
-			/* The storage in which returned expression results
+  a_constexpr_address
+		result_loc;
+			/* The address at which returned expression results
 			   should be placed. */
-  a_byte	*complete_object;
-			/* A pointer to the complete object in which
-			   result_storage points. */
   an_alloc_seq_number
 		entry_seq_number;
 			/* The current allocation sequence number when the
@@ -1328,13 +1672,12 @@ occurs, set ovfl to TRUE.
 /*
 Macros to push and pop call frames.
 */
-#define push_call_frame(ips, p_frame, rp, pos, p_result, p_complete)         \
+#define push_call_frame(ips, p_frame, rp, pos, result_cap)                   \
   {                                                                          \
     (p_frame)->parent = (ips)->curr_call_frame;                              \
     (p_frame)->routine = (rp);                                               \
     (p_frame)->variant.position = (pos);                                     \
-    (p_frame)->result_storage = (p_result);                                  \
-    (p_frame)->complete_object = (p_complete);                               \
+    (p_frame)->result_loc = *(result_cap);                                   \
     (p_frame)->entry_seq_number = (ips)->curr_alloc_seq_number;              \
     (p_frame)->dest_seq_number_plus_one = 0;                                 \
     (p_frame)->return_active = FALSE;                                        \
@@ -1352,13 +1695,12 @@ Macros to push and pop call frames.
 Macro to push a GNU statement expressions frame (which is a special kind of
 call frame).
 */
-#define push_stmt_expr(ips, p_frame, stmt_expr, p_result, p_complete)        \
+#define push_stmt_expr(ips, p_frame, stmt_expr, result_cap)                  \
   {                                                                          \
     (p_frame)->parent = (ips)->curr_call_frame;                              \
     (p_frame)->routine = NULL;                                               \
     (p_frame)->variant.expr = (stmt_expr);                                   \
-    (p_frame)->result_storage = (p_result);                                  \
-    (p_frame)->complete_object = (p_complete);                               \
+    (p_frame)->result_loc = *(result_cap);                                   \
     (p_frame)->entry_seq_number = (ips)->curr_alloc_seq_number;              \
     (p_frame)->return_active = FALSE;                                        \
     (p_frame)->loop_break_active = FALSE;                                    \
@@ -1799,289 +2141,6 @@ static a_boolean
 			   have been initialized yet. */
 
 
-/*
-Structure describing a variant path in a subobject.
-
-An address of a subobject of a union can be formed even if that subobject is
-not currently active in the union.  Only at the point of dereference must the
-requirement that the subobject is active be enforced.  To achieve this, address
-manipulations in unions maintain a "variant path" that can be checked at the
-point of dereference.  The first entry on the path describes the base address
-of an array: The entry can be ignored if the address does not have the
-CA_ARRAY_ELEMENT flag set.  Every element after that represents a selected
-variant (from outer selection to inner selection).  For example:
-
-  struct S {
-    int i;
-    union U {
-      struct X {
-        union V {
-          int i;
-          char y[3];
-        } v;
-      } x;
-    } u[4];
-  } s;
-
-The a_constexpr_address entry representing &s.u[2].x.v.y[1] will have both the
-CA_VARIANT_PATH and CA_ARRAY_ELEMENT flags set (the latter flag is for the y[1]
-part, not the u[2] part, since the address is not of the s.u[2] element
-specifically).  The address entry will point to a list of three variant path
-entries.  The first entry will record the base address of s.u[2].x.v.y.  The
-second will point to the address of the s.u[2] subobject and to the IL entry
-for its x field.  The third entry will point to the address of the s.u[2].x.v
-subobject and to the IL entry for its y field.  Dereferencing the address will
-check that the two unions' active fields correspond to those recorded in the
-path (if they don't, interpretation fails).
-*/
-typedef struct a_variant_path_entry *a_variant_path_entry_ptr;
-typedef struct a_variant_path_entry {
-  a_variant_path_entry_ptr
-		next;
-			/* For entries on a variant path, the next entry on
-			   that path (or NULL if there is none).  Otherwise,
-			   the entry is on the free entries list and this field
-			   points to the next free entry (or NULL if there is
-			   none). */
-  a_variant_path_entry_ptr
-		next_allocated;
-			/* The next entry on the list of all allocated variant
-			   path entries (NULL if it's the last entry). */
-  a_field_ptr	field;
-			/* The field selected for this variant path, or NULL
-			   if this entry represents the base address of an
-			   indexed array. */
-  a_byte	*base_address;
-			/* The address of the variant (i.e., union) subobject
-			   in interpreter storage, or, if field is NULL, the
-			   base address of the indexed array. */
-} a_variant_path_entry;
-
-static a_variant_path_entry_ptr
-		variant_path_entries;
-			/* A list of all allocated variant path entries,
-			   linked through the next_allocated pointers. */
-
-static unsigned long
-		n_variant_path_entries;
-			/* The number of entries on the variant_path_entries
-			   list. */
-
-static a_variant_path_entry_ptr
-		free_variant_path_entries;
-			/* A list of variant path entries available for reuse,
-			   linked through the next pointers. */
-
-static unsigned long
-		n_free_variant_path_entries;
-			/* The number of entries on the
-			   free_variant_path_entries list. */
-
-static a_variant_path_entry_ptr alloc_variant_path_entry(void)
-/*
-Return a new variant path entry.
-*/
-{
-  a_variant_path_entry_ptr vpep;
-
-  if (free_variant_path_entries != NULL) {
-    vpep = free_variant_path_entries;
-    free_variant_path_entries = free_variant_path_entries->next;
-    n_free_variant_path_entries -= 1;
-  } else {
-    vpep = alloc_fe_of_type(a_variant_path_entry);
-    vpep->next_allocated = variant_path_entries;
-    variant_path_entries = vpep;
-    n_variant_path_entries += 1;
-  }  /* if */
-  return vpep;
-}  /* alloc_variant_path_entry */
-
-
-static void reclaim_variant_path_entries(void)
-/*
-The caller has determined that not all variant path entries were reclaimed at
-the end of interpretation.  Move all allocated entries back onto the free list.
-*/
-{
-  a_variant_path_entry_ptr  vpep = variant_path_entries;
-
-  check_assertion(n_free_variant_path_entries < n_variant_path_entries);
-  while (vpep->next_allocated != NULL) {
-    vpep->next = vpep->next_allocated;
-    vpep = vpep->next_allocated;
-  }  /* while */
-  vpep->next = NULL;
-  free_variant_path_entries = variant_path_entries;
-  n_free_variant_path_entries = n_variant_path_entries;
-}  /* reclaim_variant_path_entries */
-
-
-/*
-A set of flags to describe special interpreter address attributes.
-*/
-#define CA_RUNTIME_DATA_ADDRESS ((unsigned int)0x1)
-		/* This flag indicates that the address is that of a run-time
-		   entity (not a value known to the interpreter). */
-#define CA_CANNOT_DEREFERENCE ((unsigned int)0x2)
-		/* This flag indicates that the address cannot be dereferenced.
-		   It is set in particular for pointers "one position past" the
-		   end of an array. */
-#define CA_VARIANT_PATH ((unsigned int)0x4)
-		/* This flag indicates that the formation of the address
-		   included the selection of at least one union field.  Such
-		   selections must be checked for validity when the address is
-		   dereferenced. */
-#define CA_ARRAY_ELEMENT ((unsigned int)0x8)
-		/* This flag indicates that the address is that of an array
-		   element.  Such an address is subject to pointer
-		   arithmetic (which requires bounds checking). */
-#define CA_BIT_FIELD ((unsigned int)0x10)
-		/* This flag indicates that the address is that of a bit field.
-		   (Pointers and references to bit fields are invalid.  This is
-		   therefore always for a bit field lvalue.)  Whether the bit
-		   field is signed is encoded in the "length" field. */
-#define CA_FUNCTION ((unsigned int)0x20)
-		/* This flag indicates that the address is that of a
-		   function. */
-#define CA_CONST_STORAGE ((unsigned int)0x40)
-		/* This flag indicates that the address is that of const
-		   storage. */
-#define CA_LIFETIME_EXTENDED ((unsigned int)0x80)
-		/* This flag indicates that the address is that of a lifetime-
-		   extended temporary. */
-
-/*
-Structure describing the representation of an address in the interpreter.
-(Addresses in the interpreter are used to represent pointers, references, and
-glvalues.)
-*/
-typedef struct a_constexpr_address {
-  a_byte
-		*address;
-			/* The address in interpreter storage of the thing
-			   pointed to, or NULL if is_runtime_data_address or
-			   is_function_address are TRUE. */
-  unsigned int	flags:8;
-			/* Flags describing properties of this address.
-			   See the CA_... macros above. */
-  unsigned int
-		length: ARRAY_LENGTH_WIDTH;
-			/* If the CA_ARRAY_ELEMENT flag is set or for an array
-		           lvalue, the number of elements in the array.  If the
-			   CA_BIT_FIELD flag is set, twice the number of bits
-			   in the bit field designated by this lvalue, plus one
-			   if the bit field is signed.  If the flag
-			   CA_RUNTIME_DATA_ADDRESS is set, a value of 1
-			   indicates that a field selection was applied to that
-			   address and so it should be assumed to point to an
-			   object even if it is a null address (used to
-			   support classic implementations of "offsetof").
-			   Otherwise, zero. */
-  an_alloc_seq_number
-		alloc_seq_number;
-			/* The allocation sequence number of the storage
-			   pointed to. */
-  union {
-    /* When (flags & CA_ARRAY_ELEMENT) != 0 and
-            (flags & CA_VARIANT_PATH) == 0: */
-    a_byte
-		*base_address;
-			/* For an array element, the address of element #0. */
-    /* When (flags & CA_FUNCTION) != 0: */
-    a_routine_ptr
-		routine;
-    			/* For addresses of functions. */
-    /* When (flags & CA_RUNTIME_DATA_ADDRESS) != 0: */
-    a_constant_ptr
-		addr_con;
-			/* For constant addresses of run-time objects. */
-    /* When (flags & CA_VARIANT_PATH) != 0: */
-    a_variant_path_entry_ptr
-		variant_path;
-			/* For addresses into variant subobjects, the recorded
-			   path of the subobject.  The path is checked against
-			   active fields at the point of dereference. */
-  } variant;
-  a_byte
-		*complete_object;
-			/* Pointer to the complete object into which this
-			   address is pointing.  This is needed to validate
-			   pointer comparisons (p < q, etc.). */
-} a_constexpr_address;
-
-
-#define is_runtime_data_address(cap)                                         \
-  ((((a_constexpr_address*)(cap))->flags & CA_RUNTIME_DATA_ADDRESS) != 0)
-
-#define cannot_dereference(cap)                                              \
-  ((((a_constexpr_address*)(cap))->flags & CA_CANNOT_DEREFERENCE) != 0)
-
-#define is_variant_path(cap)                                                 \
-  ((((a_constexpr_address*)(cap))->flags & CA_VARIANT_PATH) != 0)
-
-#define is_array_element(cap)                                                \
-  ((((a_constexpr_address*)(cap))->flags & CA_ARRAY_ELEMENT) != 0)
-
-#define is_bit_field_lvalue(cap)                                             \
-  ((((a_constexpr_address*)(cap))->flags & CA_BIT_FIELD) != 0)
-
-#define is_function_address(cap)                                             \
-  ((((a_constexpr_address*)(cap))->flags & CA_FUNCTION) != 0)
-
-#define is_const_storage(cap)                                                \
-  ((((a_constexpr_address*)(cap))->flags & CA_CONST_STORAGE) != 0)
-
-
-#define get_base_address(cap)                                                \
-  (is_variant_path(cap) ? (cap)->variant.variant_path->base_address          \
-                        : (cap)->variant.base_address)
-
-
-/*
-Convenience macro to get a pointer to the value addressed by the
-a_constexpr_address addr.
-*/
-#define value_bytes_at(addr) (((a_constexpr_address *)(addr))->address)
-
-
-/*
-Convenience macro to get a pointer to the integer value addressed by the
-a_constexpr_address addr.
-*/
-#define int_value_at(addr) ((an_integer_value *)value_bytes_at(addr))
-
-
-/*
-Convenience macro to cast an opaque pointer to a pointer to a floating-point
-value.
-*/
-#define fp_value(ptr) ((an_internal_float_value *)(ptr))
-
-
-/*
-Convenience macro to get a pointer to the floating-point value addressed by
-the a_constexpr_address addr.
-*/
-#define fp_value_at(addr) (fp_value(value_bytes_at(addr)))
-
-
-#if C99_IL_EXTENSIONS_SUPPORTED
-/*
-Convenience macro to cast an opaque pointer to a pointer to a complex
-floating-point value.
-*/
-#define cx_value(ptr) ((an_internal_complex_value *)(ptr))
-
-
-/*
-Convenience macro to get a pointer to the complex floating-point value
-addressed by the a_constexpr_address addr.
-*/
-#define cx_value_at(addr) (cx_value(value_bytes_at(addr)))
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
-
-
 inline a_source_position* constant_pos(a_constant            *cp,
                                        an_interpreter_state  *ips)
 /*
@@ -2154,87 +2213,6 @@ representation to fit in the bit field length.  bftp is the underlying type
     trim_bit_field((addr)->address, length, is_signed_field, bit_field_tp);   \
   }  /* if */                                                                 \
 }
-
-
-/*
-Macro to initialize a constant address at addr referring to the complete
-interpreter value at targ_addr (or a null pointer).
-*/
-#define clear_address(addr, targ_addr)                                   \
-  memzero((char *)(addr) /*lint -e668*/, sizeof(a_constexpr_address));   \
-  ((a_constexpr_address *)(addr))->address = (targ_addr);                \
-  ((a_constexpr_address *)(addr))->complete_object = (targ_addr)
-
-
-static inline void set_active_address(an_interpreter_state  *ips,
-                                      a_constexpr_address   *addr,
-                                      a_byte                *value,
-                                      a_byte                *compl_obj)
-/*
-Set the given interpreter address to point to value, with the current state's
-active allocation sequence number.  compl_obj is the address of the associated
-complete object.
-*/
-{
-  addr->address = value;
-  addr->flags = 0;
-  addr->length = 0;
-  addr->alloc_seq_number = active_alloc_seq(ips);
-  addr->complete_object = compl_obj;
-}  /* set_active_address */
-
-
-static inline void constexpr_extend_lifetime(a_constexpr_address  *addr)
-/*
-Set the CA_LIFETIME_EXTENDED in the flag set of the given address.
-*/
-{
-  addr->flags |= CA_LIFETIME_EXTENDED;
-}  /* constexpr_extend_lifetime */
-
-
-/*
-Macro to initialize a constant address at addr referring to the function
-denoted by the IL a_routine entry rout.
-*/
-#define make_function_address(addr, rout)                      \
-  memzero((char *)(addr), sizeof(a_constexpr_address));        \
-  ((a_constexpr_address *)(addr))->flags = CA_FUNCTION;        \
-  ((a_constexpr_address *)(addr))->variant.routine = (rout)
-
-
-/*
-Macro to initialize a constant address at addr referring to the
-(non-interpreter) constant address described by the ck_address constant con.
-*/
-#define clear_runtime_constant_address(addr, con)                   \
-  memzero((char *)(addr), sizeof(a_constexpr_address));             \
-  ((a_constexpr_address *)(addr))->flags = CA_RUNTIME_DATA_ADDRESS; \
-  ((a_constexpr_address *)(addr))->variant.addr_con = (con)
-
-
-typedef struct a_constexpr_ptr_to_mem {
-  a_bit_field
-		is_ptr_to_mem_function:1;
-			/* TRUE if this is a pointer to member function. */
-  a_bit_field
-		subtract_adjustment:1;
-			/* TRUE if this_class_adjustment must be subtracted
-			   from the "this" pointer. */
-  a_byte_count
-		this_class_adjustment;
-			/* The adjustment needed to the "this" pointer. */
-  union {
-    /* When is_ptr_to_mem_function is FALSE. */
-    a_field_ptr
-		field;
-			/* Field referred to by the pointer-to-member. */
-    /* When is_ptr_to_mem_function is TRUE. */
-    a_routine_ptr
-		routine;
-			/* Routine referred to by the pointer-to-member. */
-  } variant;
-} a_constexpr_ptr_to_mem;
 
 
 static void init_interpreter_state(an_interpreter_state  *ips,
@@ -2504,6 +2482,24 @@ the diagnostic string.  Also record annotations describing the call stack.
     info_call_stack(ips);
   }  /* if */
 }  /* info_with_pos_sym2 */
+
+
+static inline void set_active_address(an_interpreter_state  *ips,
+                                      a_constexpr_address   *addr,
+                                      a_byte                *value,
+                                      a_byte                *compl_obj)
+/*
+Set the given interpreter address to point to value, with the current state's
+active allocation sequence number.  compl_obj is the address of the associated
+complete object.
+*/
+{
+  addr->address = value;
+  addr->flags = 0;
+  addr->length = 0;
+  addr->alloc_seq_number = active_alloc_seq(ips);
+  addr->complete_object = compl_obj;
+}  /* set_active_address */
 
 
 static a_byte_count f_value_bytes_for_type(an_interpreter_state  *ips,
@@ -3263,14 +3259,21 @@ search_base_subobjects:
     }  /* if */
   } else {
     /* If the parent type is a union, a variant path must be available.  Just
-       return the entry on the variant path with a field whose base address
-       is parent_address. */
+       return the entry on the variant path with a field whose parent class is
+       is parent_type. */
     a_variant_path_entry_ptr  vpep;
     check_assertion(is_variant_path(cap));
     vpep = cap->variant.variant_path->next;
     for (; vpep != NULL; vpep = vpep->next) {
+      a_boolean    okay = TRUE;
       a_field_ptr  fp = vpep->field;
-      if (fp != NULL && vpep->base_address == parent_address) {
+      a_byte_count  field_size = value_bytes_for_type(ips, fp->type, &okay);
+      if (fp != NULL && parent_class_of(fp) == parent_type) {
+        check_assertion(okay &&
+                        vpep->base_address >= parent_address &&
+                        (vpep->base_address < parent_address+field_size ||
+                         (vpep->base_address == parent_address+field_size &&
+                          (cannot_dereference(cap) || field_size == 0))));
         *p_field = fp;
         *p_bcp = NULL;
         goto done;
@@ -4767,11 +4770,26 @@ the corresponding integer value (zero for a null address).
 static a_boolean do_constexpr_statement(an_interpreter_state  *ips,
                                         a_statement_ptr       stmt);
 
-static a_boolean do_constexpr_expression(
+static a_boolean do_constexpr_expr(an_interpreter_state  *ips,
+                                   an_expr_node_ptr      expr,
+                                   a_constexpr_address   *result_cap);
+
+static inline a_boolean do_constexpr_expression(
                                        an_interpreter_state  *ips,
                                        an_expr_node_ptr      expr,
                                        a_byte                *result_storage,
-                                       a_byte                *complete_object);
+                                       a_byte                *complete_object)
+/*
+A convenience function to call do_constexpr_expr for simple addresses where
+the result can have a lifetime corresponding to the current allocation
+sequence number.
+*/
+{
+  a_constexpr_address  ce_addr;
+
+  set_active_address(ips, &ce_addr, result_storage, complete_object);
+  return do_constexpr_expr(ips, expr, &ce_addr);
+}  /* do_constexpr_expression */
 
 
 static a_boolean do_constexpr_ctor(an_interpreter_state  *ips,
@@ -4834,8 +4852,16 @@ done:
 
 
 /*
-Macro to interpret a full-expression.
+Macros to interpret a full-expression.
 */
+#define do_constexpr_full_expr(ips, expr, result_cap, result_flag)            \
+{                                                                             \
+  a_storage_stack_state  saved_stack_for_full_expr;                           \
+  save_storage_stack(ips, saved_stack_for_full_expr);                         \
+  (result_flag) = do_constexpr_expr(ips, expr, result_cap);                   \
+  restore_storage_stack(ips, saved_stack_for_full_expr, result_flag);         \
+}
+
 #define do_constexpr_full_expression(                                         \
                     ips, expr, result_storage, complete_object, result_flag)  \
 {                                                                             \
@@ -6399,30 +6425,7 @@ by implied_src.
       break;
     case dik_expression:
     case dik_class_result_via_ctor:
-      { an_expr_node_ptr  expr = skip_parens(dip->variant.expression);
-        a_boolean         reset_dest_seq_number = FALSE;
-        if (ips->curr_call_frame != NULL && is_call_node(expr) &&
-            !(expr->is_lvalue || expr->is_xvalue) &&
-            ips->curr_call_frame->dest_seq_number_plus_one == 0) {
-          /* If a call expression initializes a local class type object, the
-             address of that object will be needed in the return statement
-             (see handling of stmk_return).  Currently, however,
-             do_constexpr_expression (called below) does not pass in the
-             allocation sequence number of its destination.  Until that is
-             reworked to take a_constexpr_address, the required allocation
-             sequence number is passed via the call frame (with offset 1, to
-             keep zero as a no-number representation). */
-          ips->curr_call_frame->dest_seq_number_plus_one =
-                                                 dst_addr->alloc_seq_number+1;
-          reset_dest_seq_number = TRUE;
-        }  /* if */
-        result = do_constexpr_expression(ips, expr,
-                                         dst_addr->address,
-                                         dst_addr->complete_object);
-        if (reset_dest_seq_number) {
-          ips->curr_call_frame->dest_seq_number_plus_one = 0;
-        }  /* if */
-      }
+      result = do_constexpr_expr(ips, dip->variant.expression, dst_addr);
       break;
     case dik_constructor:
       if (dip->variant.constructor.is_array_copy) {
@@ -7647,7 +7650,6 @@ successfully interpreted, FALSE otherwise.
       break;
     case stmk_return:
       { a_call_frame_ptr  frame = ips->curr_call_frame;
-        a_byte            *result_storage, *complete_obj;
         /* Skip GNU statement expression frames. */
         while (frame->routine == NULL) {
           frame = frame->parent;
@@ -7657,11 +7659,8 @@ successfully interpreted, FALSE otherwise.
             goto done_with_return_statement;
           }  /* if */
         }  /* while */
-        result_storage = frame->result_storage;
-        complete_obj = frame->complete_object;
         if (stmt->expr != NULL) {
-          do_constexpr_full_expression(ips, stmt->expr, result_storage,
-                                       complete_obj, result);
+          do_constexpr_full_expr(ips, stmt->expr, &frame->result_loc, result);
         } else if (stmt->variant.return_dynamic_init != NULL) {
           /* Handle return_dynamic_init case. */
           a_dynamic_init_ptr  dip = stmt->variant.return_dynamic_init;
@@ -7669,21 +7668,11 @@ successfully interpreted, FALSE otherwise.
             a_type_ptr  fn_type = frame->routine->type;
             fn_type = skip_typerefs(fn_type);
             tp = skip_typerefs(fn_type->variant.routine.return_type);
-            init_subobject_to_zero(ips, result_storage, tp, complete_obj);
+            init_subobject_to_zero(ips, frame->result_loc.address, tp,
+                                   frame->result_loc.complete_object);
           } else {
-            a_constexpr_address  dst_addr;
-            set_active_address(ips, &dst_addr, result_storage, complete_obj);
-            if (frame->parent == NULL) {
-              dst_addr.alloc_seq_number = 1;
-            } else if (frame->parent->dest_seq_number_plus_one != 0) {
-              /* The allocation sequence number of the destination was
-                 recorded when processing the dik_expression node for the
-                 call corresponding to this return statement. */
-              dst_addr.alloc_seq_number =
-                                    frame->parent->dest_seq_number_plus_one-1;
-            }  /* if */
             result = do_constexpr_dynamic_init(ips, dip, &stmt->position, 
-                                               &dst_addr);
+                                               &frame->result_loc);
           }  /* if */
         } else {
           /* Return without a value. */
@@ -7718,23 +7707,19 @@ done_with_return_statement:
       break;
     case stmk_stmt_expr_result:
       { a_call_frame_ptr  frame = ips->curr_call_frame;
-        a_byte            *result_storage = frame->result_storage;
-        a_byte            *complete_obj = frame->complete_object;
         if (stmt->expr != NULL) {
-          do_constexpr_full_expression(ips, stmt->expr, result_storage,
-                                       complete_obj, result);
+          do_constexpr_full_expr(ips, stmt->expr, &frame->result_loc, result);
         } else if (stmt->variant.stmt_expr_result.dynamic_init != NULL) {
           /* Handle return_dynamic_init case. */
           a_dynamic_init_ptr  dip;
           dip = stmt->variant.stmt_expr_result.dynamic_init;
           if (dyn_init_is(dip, dik_zero)) {
             tp = skip_typerefs(frame->variant.expr->type);
-            init_subobject_to_zero(ips, result_storage, tp, complete_obj);
+            init_subobject_to_zero(ips, frame->result_loc.address, tp,
+                                   frame->result_loc.complete_object);
           } else {
-            a_constexpr_address  dst_addr;
-            set_active_address(ips, &dst_addr, result_storage, complete_obj);
             result = do_constexpr_dynamic_init(ips, dip, &stmt->position, 
-                                               &dst_addr);
+                                               &frame->result_loc);
           }  /* if */
         }  /* if */
       }
@@ -14329,8 +14314,7 @@ done:
 
 static a_boolean do_constexpr_call(an_interpreter_state  *ips,
                                    an_expr_node_ptr      call_node,
-                                   a_byte                *result_storage,
-                                   a_byte                *complete_object)
+                                   a_constexpr_address   *result_cap)
 /*
 Interpret the given call node and place the result at the given storage (which
 is part of the given complete object).  Return TRUE if no error occurred;
@@ -14340,9 +14324,11 @@ otherwise, return FALSE and update *ips accordingly.
   an_expr_node_ptr  callee_node, arg;
   a_routine_ptr     callee = NULL;
   a_boolean         result = TRUE, lambda_entry_case;
+  a_byte            *result_storage = result_cap->address,
+                    *complete_object = result_cap->complete_object,
+                    *pre_evaluated_this_bytes = NULL;
   a_constexpr_ptr_to_mem
                     *pm_target = NULL;
-  a_byte            *pre_evaluated_this_bytes = NULL;
   a_boolean          is_member_call = !node_operator_is(call_node, eok_call);
 
   /* First determine the actual callee. */
@@ -14720,8 +14706,7 @@ otherwise, return FALSE and update *ips accordingly.
       arg_size += 1;
     }  /* for */
     /* Set up the call frame. */
-    push_call_frame(ips, &frame, callee, &call_node->position,
-                    result_storage, complete_object);
+    push_call_frame(ips, &frame, callee, &call_node->position, result_cap);
     if (callee->is_constexpr_intrinsic) {
       /* A standard library function or member function that the front end has
          marked as "constexpr-intrinsic", which means we should implement its
@@ -15155,7 +15140,7 @@ the body of the (constructor) function proper.
               size_t_arg(n_class_bytes-sizeof(void*)));
     }  /* if */
     /* Set up the call frame. */
-    push_call_frame(ips, &frame, callee, pos, result_storage, complete_object);
+    push_call_frame(ips, &frame, callee, pos, cap);
     /* Mark all the empty base class subobjects as initialized. */
     for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
       a_byte_count    offset;
@@ -15175,8 +15160,9 @@ the body of the (constructor) function proper.
       a_constexpr_address  dst_addr = *cap;
       a_dynamic_init_ptr   sub_dip;
       a_type_ptr           tp;
-      a_boolean            record_param_ref = FALSE;
-      if (ctor_init->kind == (a_constructor_init_kind)cik_field) {
+      a_boolean            record_param_ref = FALSE,
+                           copied_variant_path = FALSE;
+      if (ctor_init->kind == cik_field) {
         a_field_ptr  fp = ctor_init->variant.field;
         tp = skip_typerefs(fp->type);
         if (ctor_init->use_field_initializer) {
@@ -15225,6 +15211,8 @@ the body of the (constructor) function proper.
              field of that union. */
           /* Update dst_addr for any anonymous union/structs (including the
              variant path). */
+          copy_address_structures(&dst_addr);
+          copied_variant_path = TRUE;
           if (!add_to_variant_path(&dst_addr, orig_fp, class_type,
                                    /*for_ctor_init=*/TRUE)) {
             info_with_pos(ec_constexpr_too_many_nested_anonymous_types, pos, 
@@ -15238,6 +15226,14 @@ the body of the (constructor) function proper.
           dst_addr.address += offset;
           offset = (a_byte_count)(dst_addr.address - cap->address);
         } else {
+          if (type_is(class_type, tk_union)) {
+            copy_address_structures(&dst_addr);
+            copied_variant_path = TRUE;
+            if (!add_to_variant_path(&dst_addr, fp, class_type,
+                                     /*for_ctor_init=*/TRUE)) {
+              unexpected_condition();
+            }  /* if */
+          }  /* if */
           get_mapped_byte_count(&persistent_map, fp, offset);
           dst_addr.address += offset;
         }  /* if */
@@ -15355,6 +15351,9 @@ the body of the (constructor) function proper.
             }  /* if */
           }  /* if */
         }  /* if */
+      }  /* if */
+      if (copied_variant_path) {
+        release_variant_path_if_needed(&dst_addr);
       }  /* if */
     }  /* for */
     mark_subobject_initialized(result_storage, complete_object);
@@ -15544,7 +15543,9 @@ This is similar to do_constexpr_ctor.
     }  /* if */
     /* Set up the call frame. */
     /*lint -e{733}*/
-    push_call_frame(ips, &frame, callee, pos, result_storage, complete_object);
+    a_constexpr_address  ce_addr;
+    set_active_address(ips, &ce_addr, result_storage, complete_object);
+    push_call_frame(ips, &frame, callee, pos, &ce_addr);
     /* Run the function's top-level block statement. */
     if (!result) {
       /* Something went wrong.  Don't perform additional interpretation. */
@@ -18273,18 +18274,14 @@ transformation of the type accordingly.
 
 
 /*lint -efunc(2704,*do_constexpr_expression)*/
-static a_boolean do_constexpr_expression(
-                                       an_interpreter_state  *ips,
-                                       an_expr_node_ptr      orig_expr,
-                                       a_byte                *result_storage,
-                                       a_byte                *complete_object)
+static a_boolean do_constexpr_expr(an_interpreter_state  *ips,
+                                   an_expr_node_ptr      orig_expr,
+                                   a_constexpr_address   *result_cap)
 /*
 Interpret the given expression in the given interpreter context.  If
-successful return TRUE and store the result at *result_storage (which is
-storage within the given complete object).  Otherwise, return FALSE and update 
-*ips accordingly.  A glvalue result is represented as an a_constexpr_address
-value, so result_storage must be at least large enough for that type;
-otherwise, it need only be large enough for the type of the prvalue result.
+successful return TRUE and store the result at the address indicated by
+result_cap (glvalue results are represented as a_constexpr_address values).
+Otherwise, return FALSE and update *ips accordingly.
 */
 {
   a_boolean            result = TRUE;
@@ -18294,6 +18291,8 @@ otherwise, it need only be large enough for the type of the prvalue result.
   an_integer_kind      int_kind;
   a_boolean            is_signed;
   a_host_large_integer host_int_val;
+  a_byte               *result_storage = result_cap->address,
+                       *complete_object = result_cap->complete_object;
 
   if (type_is(tp, tk_template_param) || expr->do_not_interpret) {
     info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
@@ -18324,17 +18323,15 @@ otherwise, it need only be large enough for the type of the prvalue result.
         if (is_call_node(expr)) {
           /* Call nodes are handled separately because their operands are set
              up a little differently. */
-          result = do_constexpr_call(
-                                  ips, expr, result_storage, complete_object);
+          result = do_constexpr_call(ips, expr, result_cap);
           goto done;
         } else if (node_operator_is(expr, eok_class_rvalue_adjust)) {
           /* This is a pass-through operator for prvalues.  So we cannot just
              copy the operand, since it could invalidate internal addresses.
              Instead, the operand must be evaluated directly into the final
              result storage. */
-          result = do_constexpr_expression(
-                                        ips, expr->variant.operation.operands,
-                                        result_storage, complete_object);
+          result = do_constexpr_expr(ips, expr->variant.operation.operands,
+                                     result_cap);
           goto done;
         }  /* if */
 /*
@@ -22391,8 +22388,7 @@ the value representation of the integer value.
                   restore_xvalue = TRUE;
                 }  /* if */
               }  /* if */
-              result = do_constexpr_expression(
-                                 ips, opnd2, result_storage, complete_object);
+              result = do_constexpr_expr(ips, opnd2, result_cap);
               if (restore_xvalue) opnd2->is_xvalue = TRUE;
               if (restore_lvalue) opnd2->is_lvalue = TRUE;
             }
@@ -22772,8 +22768,7 @@ the value representation of the integer value.
                 opnd2->is_xvalue = FALSE;
                 restore_xvalue = TRUE;
               }  /* if */
-              result = do_constexpr_expression(
-                                 ips, opnd2, result_storage, complete_object);
+              result = do_constexpr_expr(ips, opnd2, result_cap);
               if (restore_xvalue) opnd2->is_xvalue = TRUE;
               if (restore_lvalue) opnd2->is_lvalue = TRUE;
             }
@@ -23146,8 +23141,8 @@ the value representation of the integer value.
       }  /* if */
       break;
     case enk_object_lifetime:
-      result = do_constexpr_expression(ips, expr->variant.object_lifetime.expr,
-                                       result_storage, complete_object);
+      result = do_constexpr_expr(ips, expr->variant.object_lifetime.expr,
+                                 result_cap);
       break;
     case enk_typeid:
       result = do_constexpr_typeid(ips, expr, result_storage, complete_object);
@@ -23220,7 +23215,7 @@ the value representation of the integer value.
       { a_call_frame     frame;
         a_statement_ptr  stmt = expr->variant.statement;
         /*lint -e{733}*/
-        push_stmt_expr(ips, &frame, expr, result_storage, complete_object);
+        push_stmt_expr(ips, &frame, expr, result_cap);
         result = do_constexpr_block_statement(
                       ips, stmt, stmt->variant.block.extra_info->assoc_scope);
         if (frame.parent == NULL &&
@@ -23302,8 +23297,7 @@ the value representation of the integer value.
         if (!expr->variant.builtin_choose_expr.choose_first) {
           active_expr = active_expr->next;
         }  /* if */
-        result = do_constexpr_expression(ips, active_expr, result_storage,
-                                         complete_object);
+        result = do_constexpr_expr(ips, active_expr, result_cap);
       }
       break;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
@@ -23319,7 +23313,7 @@ done:
   return result;
 #undef SET_result_val_from_operand_address
 #undef CHECK_int_range
-}  /* do_constexpr_expression */
+}  /* do_constexpr_expr */
 
 
 static a_boolean
@@ -24549,8 +24543,10 @@ can only be TRUE if the called function is "consteval").
     }  /* if */
     /* Nothing more to be done. */
   } else {
+    a_constexpr_address  ce_addr;
     alloc_complete_object(&ips, n_bytes, result_type, result_storage);
-    if (!do_constexpr_call(&ips, call_expr, result_storage, result_storage)) {
+    set_active_address(&ips, &ce_addr, result_storage, result_storage);
+    if (!do_constexpr_call(&ips, call_expr, &ce_addr)) {
       if (ips.input_error) {
         /* Interpretation failed due to an error node in the IL.  Continue
            with an error constant, but treat interpretation as successful. */

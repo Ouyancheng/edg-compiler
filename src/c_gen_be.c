@@ -8146,6 +8146,10 @@ END_DISABLE_GCC_WARNING_DANGLING_PTR
             }  /* if */
           }  /* while */
           ipdp->repetition_count = NULL;
+        } else if (elem_con == NULL && type_is(type, tk_array) &&
+                   element_count == 0) {
+          /* An empty initializer for a flexible array member.  Braces were
+             already emitted by the caller. */
         } else {
           /* Normal case (not a repeated constant). */
           dump_initializer_part(variable, elem_type, elem_con, gen_assignments,
