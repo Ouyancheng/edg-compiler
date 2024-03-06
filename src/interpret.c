@@ -711,8 +711,7 @@ Structure describing the representation of an address in the interpreter.
 glvalues.)
 */
 typedef struct a_constexpr_address {
-  a_byte
-		*address;
+  a_byte	*address;
 			/* The address in interpreter storage of the thing
 			   pointed to, or NULL if is_runtime_data_address or
 			   is_function_address are TRUE. */
@@ -14318,9 +14317,9 @@ static a_boolean do_constexpr_call(an_interpreter_state  *ips,
                                    an_expr_node_ptr      call_node,
                                    a_constexpr_address   *result_cap)
 /*
-Interpret the given call node and place the result at the given storage (which
-is part of the given complete object).  Return TRUE if no error occurred;
-otherwise, return FALSE and update *ips accordingly.
+Interpret the given call node and place the result in the storage pointed to
+by *result_cap.  Return TRUE if no error occurred; otherwise, return FALSE and
+update *ips accordingly.
 */
 {
   an_expr_node_ptr  callee_node, arg;
@@ -18275,7 +18274,7 @@ transformation of the type accordingly.
 }  /* reinterpret_runtime_address */
 
 
-/*lint -efunc(2704,*do_constexpr_expression)*/
+/*lint -efunc(2704,*do_constexpr_expr)*/
 static a_boolean do_constexpr_expr(an_interpreter_state  *ips,
                                    an_expr_node_ptr      orig_expr,
                                    a_constexpr_address   *result_cap)
