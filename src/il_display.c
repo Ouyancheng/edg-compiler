@@ -1097,6 +1097,9 @@ Display a ck_template_param constant.
     case tpck_sizeof:
       (void)printf("tpck_sizeof\n");
       goto do_sizeof_cases;
+    case tpck_datasizeof:
+      (void)printf("tpck_datasizeof\n");
+      goto do_sizeof_cases;
     case tpck_alignof:
       (void)printf("tpck_alignof\n");
       goto do_sizeof_cases;
@@ -4734,6 +4737,9 @@ Display the indicated expression node.
       break;
     case enk_alignof:
       (void)printf("enk_alignof\n");
+      goto sizeof_cases;
+    case enk_datasizeof:
+      (void)printf("enk_datasizeof\n");
       goto sizeof_cases;
     case enk_sizeof:
       (void)printf("enk_sizeof\n");

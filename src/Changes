@@ -1,5 +1,22 @@
 Version 6.7
 
+3/6/24   [EDGcpfe/27080]
+Clang C++ compatibility: __datasizeof
+
+In Clang C++ modes with clang_version >= 180000, the front end now supports the
+__datasizeof operator which acts like the traditional sizeof operator except
+that for the IA-64 ABI it doesn't include tail padding for some class types.
+For example, in Clang C++17 mode with common IA-64 ABI configurations:
+
+  struct S {
+    S();  // The constructor enables the tail padding exemption.
+    long long l;
+    char c;
+  };
+  static_assert(sizeof(S) == 16);
+  static_assert(__datasizeof(S) == 9);
+
+
 3/5/24   [EDGcpfe/25451,EDGcpfe/27020,EDGcpfe/27054]
 Abort in find_subobject_for_interpreter_address
 

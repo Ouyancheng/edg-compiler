@@ -685,6 +685,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    onk_none,           /* tok_edg_throw */
    onk_none,           /* tok_edg_internal_opnd */
    onk_none,           /* tok_clang_version */
+   onk_none,           /* tok_datasizeof */
    onk_none,           /* tok_has_unique_object_representations */
    onk_none,           /* tok_is_aggregate */
    onk_none,           /* tok_integer_pack */

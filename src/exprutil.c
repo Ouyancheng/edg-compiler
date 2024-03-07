@@ -5350,15 +5350,11 @@ template argument list being tried.
        tpck_uuidof gets handled above and doesn't get here. */
     a_constant_ptr con = node_constant(expr);
     check_assertion(constant_is(con, ck_template_param) &&
-                    (con->variant.template_param.kind ==
-                                (a_template_param_constant_kind)tpck_sizeof ||
-                     con->variant.template_param.kind ==
-                                (a_template_param_constant_kind)tpck_alignof ||
-                     con->variant.template_param.kind ==
-                                (a_template_param_constant_kind)tpck_typeid ||
-                     con->variant.template_param.kind ==
-                                (a_template_param_constant_kind)tpck_noexcept)
-                                                                             );
+                    (tpck_is(con, tpck_sizeof) ||
+                     tpck_is(con, tpck_datasizeof) ||
+                     tpck_is(con, tpck_alignof) ||
+                     tpck_is(con, tpck_typeid) ||
+                     tpck_is(con, tpck_noexcept)));
     op_expr = generic_sizeof_arg_expr(con);
     is_type = (op_expr == NULL);
     if (is_type) {

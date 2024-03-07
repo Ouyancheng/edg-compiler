@@ -1500,6 +1500,9 @@ Install the keywords in the symbol table.
          and later modes. */
       enter_keyword((a_token_kind)tok_alignof, "alignof");
     }  /* if */
+    if (clang_version_is(>= 180000)) {
+      enter_keyword(tok_datasizeof, "__datasizeof");
+    }  /* if */
     if (coroutines_enabled) {
       enter_keyword((a_token_kind)tok_coroutine_yield, "co_yield");
       enter_keyword((a_token_kind)tok_coroutine_return, "co_return");

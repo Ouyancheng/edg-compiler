@@ -2933,6 +2933,7 @@ it's the initializer for an aggregate.
         switch (constant->variant.template_param.kind) {
           case tpck_expression:
           case tpck_sizeof:
+          case tpck_datasizeof:
           case tpck_alignof:
           case tpck_uuidof:
           case tpck_typeid:

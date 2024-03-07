@@ -4909,14 +4909,13 @@ constant.
         } else {
           a_template_param_constant_kind tkind =
                                          constant->variant.template_param.kind;
-          a_boolean expr_case = 
-                    (tkind == (a_template_param_constant_kind)tpck_expression);
-          a_boolean sizeof_case = 
-                    (tkind == (a_template_param_constant_kind)tpck_sizeof ||
-                     tkind == (a_template_param_constant_kind)tpck_alignof ||
-                     tkind == (a_template_param_constant_kind)tpck_uuidof ||
-                     tkind == (a_template_param_constant_kind)tpck_typeid ||
-                     tkind == (a_template_param_constant_kind)tpck_noexcept);
+          a_boolean expr_case = (tkind == tpck_expression);
+          a_boolean sizeof_case = (tkind == tpck_sizeof ||
+                                   tkind == tpck_datasizeof ||
+                                   tkind == tpck_alignof ||
+                                   tkind == tpck_uuidof ||
+                                   tkind == tpck_typeid ||
+                                   tkind == tpck_noexcept);
           il_constant = alloc_unshared_constant_full(constant,
                                                      /*source_in_il=*/FALSE,
                                                      /*suppress_copy=*/

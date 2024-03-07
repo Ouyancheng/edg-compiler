@@ -17562,6 +17562,9 @@ done_with_operation_after_parens:
         write_tok_str("__ALIGNOF__");
       }  /* if */
       goto sizeof_cases;
+    case enk_datasizeof:
+      write_tok_str("__datasizeof");
+      goto sizeof_cases;
     case enk_sizeof:
       write_tok_str("sizeof");
 sizeof_cases:

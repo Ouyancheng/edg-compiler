@@ -2824,9 +2824,10 @@ parameter constant that might be a null pointer constant.
         }  /* if */
       }  /* while */
       if (constant_is(eff_constant, ck_template_param) &&
-          tpck_is(eff_constant, tpck_sizeof)) {
-        /* A sizeof constant never has a value of zero, and therefore is
-           never a null pointer constant. */
+          (tpck_is(eff_constant, tpck_sizeof) ||
+           tpck_is(eff_constant, tpck_datasizeof))) {
+        /* A sizeof or __datasizeof constant should never be treated as a null
+           pointer constant. */
         might_be_null_pointer = FALSE;
       }  /* if */
     }  /* if */

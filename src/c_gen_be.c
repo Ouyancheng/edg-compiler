@@ -6776,6 +6776,7 @@ done_with_operation:
         write_tok_str("__ALIGNOF__(");
       }  /* if */
       goto sizeof_cases;
+    case enk_datasizeof:
     case enk_sizeof:
       write_tok_str("sizeof(");
 sizeof_cases:

@@ -2191,6 +2191,9 @@ Dump the contents of the indicated expression node for debug purposes.
     case enk_alignof:
       fputs("alignof: ", f_debug);
       goto sizeof_cases;
+    case enk_datasizeof:
+      fputs("__datasizeof: ", f_debug);
+      goto sizeof_cases;
     case enk_sizeof:
       fputs("sizeof: ", f_debug);
 sizeof_cases:
@@ -5608,6 +5611,7 @@ fix them.
     if (cp->kind == ck_template_param) {
       a_template_param_constant_kind kind = cp->variant.template_param.kind;
       if (kind == tpck_sizeof ||
+          kind == tpck_datasizeof ||
           kind == tpck_alignof ||
           kind == tpck_uuidof ||
           kind == tpck_typeid ||
@@ -6837,6 +6841,7 @@ copy_constant_full should be called to start a copy.
                          options, cblock);
         break;
       case tpck_sizeof:
+      case tpck_datasizeof:
       case tpck_alignof:
       case tpck_uuidof:
       case tpck_typeid:
@@ -8070,6 +8075,7 @@ are done.
                                         node2->variant.typeid_info.is_dynamic;
         break;
       case enk_sizeof:
+      case enk_datasizeof:
       case enk_alignof:
         eq = (node1->variant.sizeof_info.is_type ==
               node2->variant.sizeof_info.is_type &&
@@ -8738,6 +8744,7 @@ definition of the CC flags in il.h for more information.
                                      options);
               break;
             case tpck_sizeof:
+            case tpck_datasizeof:
             case tpck_alignof:
             case tpck_uuidof:
             case tpck_typeid:
@@ -9177,6 +9184,7 @@ at the file scope (it would contain a pointer down into a function scope).
            has_non_file_scope_ref(cp->variant.template_param.variant.constant);
           break;
         case tpck_sizeof:
+        case tpck_datasizeof:
         case tpck_alignof:
         case tpck_uuidof:
         case tpck_typeid:
@@ -14269,9 +14277,9 @@ necessary.
     if (constant_is(cp, ck_template_param)) {
       if (tpck_is(cp, tpck_expression)) {
         expr = cp->variant.template_param.variant.expr;
-      } else if (tpck_is(cp, tpck_sizeof) || tpck_is(cp, tpck_alignof) ||
-                 tpck_is(cp, tpck_uuidof) || tpck_is(cp, tpck_typeid) ||
-                 tpck_is(cp, tpck_noexcept)) {
+      } else if (tpck_is(cp, tpck_sizeof) || tpck_is(cp, tpck_datasizeof) ||
+                 tpck_is(cp, tpck_alignof) || tpck_is(cp, tpck_uuidof) ||
+                 tpck_is(cp, tpck_typeid) || tpck_is(cp, tpck_noexcept)) {
         expr = cp->variant.template_param.variant.templ_sizeof.expr;
       }  /* if */
     }  /* if */
@@ -14600,30 +14608,23 @@ type, or NULL if the lambda body routine does not exist yet.
 
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
 
-an_expr_node_ptr generic_sizeof_arg_expr(a_constant_ptr  con)
+an_expr_node_ptr generic_sizeof_arg_expr(a_constant_ptr  cp)
 /*
-The given constant is a ck_template_param of kind tpck_sizeof representing
-a sizeof, alignof, uuidof, typeid, or noexcept construct.  If the construct had
-an expression argument return that expression, otherwise, return NULL.  The
-expression may be referred to indirectly through an entry of type
+The given constant is a ck_template_param of kind tpck_sizeof representing a
+sizeof, __datasizeof, alignof, uuidof, typeid, or noexcept construct.  If the
+construct had an expression argument return that expression, otherwise, return
+NULL.  The expression may be referred to indirectly through an entry of type
 a_local_expr_node_ref.
 */
 {
   an_expr_node_ptr  result;
 
-  check_assertion(con->kind == (a_constant_repr_kind)ck_template_param &&
-                  (con->variant.template_param.kind ==
-                               (a_template_param_constant_kind)tpck_sizeof ||
-                   con->variant.template_param.kind ==
-                               (a_template_param_constant_kind)tpck_alignof ||
-                   con->variant.template_param.kind ==
-                               (a_template_param_constant_kind)tpck_uuidof ||
-                   con->variant.template_param.kind ==
-                               (a_template_param_constant_kind)tpck_typeid ||
-                   con->variant.template_param.kind ==
-                               (a_template_param_constant_kind)tpck_noexcept));
-  result = con->variant.template_param.variant.templ_sizeof.expr;
-  if (result == NULL && con->variant.template_param.local_expr_ref) {
+  check_assertion(constant_is(cp, ck_template_param) &&
+                  (tpck_is(cp, tpck_sizeof) || tpck_is(cp, tpck_datasizeof) ||
+                   tpck_is(cp, tpck_alignof) || tpck_is(cp, tpck_uuidof) ||
+                   tpck_is(cp, tpck_typeid) || tpck_is(cp, tpck_noexcept)));
+  result = cp->variant.template_param.variant.templ_sizeof.expr;
+  if (result == NULL && cp->variant.template_param.local_expr_ref) {
     /* The argument of the sizeof/alignof/uuidof/typeid construct is an
        expression, whose representation is stored in a function scope memory
        region.  Since we are currently inside a function, look if the
@@ -14641,8 +14642,7 @@ a_local_expr_node_ref.
       When looking whether the nonreal instance S<n2> already exists, the
       instance S<n1> may be considered, but the representation of n1
       will no longer be available. */
-    result = find_local_expr_node(
-                 (char*)con, (a_local_expr_node_ref_kind)lerk_generic_sizeof);
+    result = find_local_expr_node((char*)cp, lerk_generic_sizeof);
   }  /* if */
   return result;
 }  /* generic_sizeof_arg_expr */
@@ -20910,6 +20910,7 @@ options.
                                  copy_error, constant);
         break;
       case tpck_sizeof:
+      case tpck_datasizeof:
       case tpck_alignof:
       case tpck_uuidof:
       case tpck_typeid:
@@ -20981,7 +20982,8 @@ options.
                constant is still okay. */
           } else if (is_template_dependent_type(new_type)) {
             /* Still a template dependent type, so still need a
-               tpck_sizeof/alignof/uuidof/typeid/noexcept constant. */
+               tpck_sizeof/datasizeof/alignof/uuidof/typeid/noexcept
+               constant. */
             *constant = *con;
             if (con->variant.template_param.variant.templ_sizeof.type != NULL){
               constant->variant.template_param.variant.templ_sizeof.type =
@@ -21025,19 +21027,22 @@ options.
               if (is_incomplete_type(new_type) || is_function_type(new_type)) {
                 subst_fail(*copy_error);
               } else {
-                a_boolean template_case, is_sizeof;
-                is_sizeof = tpck_is(con, tpck_sizeof);
+                a_boolean template_case;
+                a_host_large_unsigned  value;
+                if (tpck_is(con, tpck_sizeof)) {
+                  value = (a_host_large_unsigned)new_type->size;
+                } else if (tpck_is(con, tpck_datasizeof)) {
+                  value = (a_host_large_unsigned)data_size_of_type(new_type);
+                } else if (tpck_is(con, tpck_alignof)) {
+                   value = (a_host_large_unsigned)
+                           compute_alignof_value(orig_new_type, expr == NULL,
+                                                 expr, /*diag_pos=*/NULL,
+                                                 copy_error, &template_case);
+                } else {
+                  unexpected_condition();
+                }  /* if */
                 set_unsigned_integer_constant(
-                                  constant, is_sizeof ?
-                                    (a_host_large_unsigned)new_type->size :
-                                    (a_host_large_unsigned)
-                                       compute_alignof_value(orig_new_type,
-                                                             expr == NULL,
-                                                             expr,
-                                                             /*diag_pos=*/NULL,
-                                                             copy_error,
-                                                             &template_case),
-                                  targ_size_t_int_kind);
+                                       constant, value, targ_size_t_int_kind);
               }  /* if */
             }  /* if */
             con_copy = NULL;
@@ -22197,6 +22202,7 @@ be called to start a copy.
                                   options, cblock);
       break;
     case enk_sizeof:
+    case enk_datasizeof:
     case enk_alignof:
       /* If there is an expression, copy it. */
       if (!expr->variant.sizeof_info.is_type) {
@@ -23616,6 +23622,7 @@ initialization doing nothing should be suppressed.
   } else if (con->kind == (a_constant_repr_kind)ck_template_param) {
     switch (con->variant.template_param.kind) {
       case tpck_sizeof:
+      case tpck_datasizeof:
         /* A sizeof doesn't have side effects, but more than that its
            expression is unevaluated and can't have side effects. */
         if (vla_enabled &&
@@ -24437,6 +24444,7 @@ doing nothing should be suppressed.
       has_side_effects = TRUE;
       break;
     case enk_sizeof:
+    case enk_datasizeof:
       /* A sizeof doesn't have side effects, but more than that its
          expression is unevaluated and can't have side effects. */
       if (vla_enabled && node->variant.sizeof_info.is_type &&
@@ -25042,6 +25050,7 @@ expression-traversal routines.  Set tblock->result to TRUE if so.
       might_throw = TRUE;
       break;
     case enk_sizeof:
+    case enk_datasizeof:
     case enk_alignof:
     case enk_sizeof_pack:
       tblock->suppress_subtree_walk = TRUE;

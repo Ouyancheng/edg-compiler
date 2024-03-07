@@ -994,6 +994,7 @@ handle_next_entry:
                          a_constant_ptr, iek_constant);
                 break;
               case tpck_sizeof:
+              case tpck_datasizeof:
               case tpck_alignof:
               case tpck_uuidof:
               case tpck_typeid:
@@ -1808,6 +1809,7 @@ do_set_proper_definition_needed_flag:
             }  /* if */
             break;
           case enk_sizeof:
+          case enk_datasizeof:
           case enk_alignof:
             if (eptr->variant.sizeof_info.is_type) {
               walk_ptr(eptr->variant.sizeof_info.variant.type, a_type_ptr,

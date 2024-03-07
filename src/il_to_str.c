@@ -3522,14 +3522,16 @@ the way described by octl.
         check_assertion(constant->kind ==
                                       (a_constant_repr_kind)ck_template_param);
         tkind = constant->variant.template_param.kind;
-        if (tkind == (a_template_param_constant_kind)tpck_expression) {
+        if (tkind == tpck_expression) {
           expr_ptr = &constant->variant.template_param.variant.expr;
-        } else if (tkind == (a_template_param_constant_kind)tpck_sizeof ||
-                   tkind == (a_template_param_constant_kind)tpck_alignof ||
-                   tkind == (a_template_param_constant_kind)tpck_uuidof ||
-                   tkind == (a_template_param_constant_kind)tpck_typeid ||
-                   tkind == (a_template_param_constant_kind)tpck_noexcept) {
-          expr_ptr=&constant->variant.template_param.variant.templ_sizeof.expr;
+        } else if (tkind == tpck_sizeof ||
+                   tkind == tpck_datasizeof ||
+                   tkind == tpck_alignof ||
+                   tkind == tpck_uuidof ||
+                   tkind == tpck_typeid ||
+                   tkind == tpck_noexcept) {
+          expr_ptr = &constant
+                           ->variant.template_param.variant.templ_sizeof.expr;
         }  /* if */
         check_assertion(expr_ptr != NULL && *expr_ptr == NULL);
         *expr_ptr = find_local_expr_node(

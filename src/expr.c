@@ -12527,23 +12527,21 @@ analysis on a previously-scanned expression, and return the result in
 }  /* scan_arith_prefix_operator */
 
 
-static an_expr_node_ptr make_sizeof_expr(a_boolean  is_alignof,
-                                         a_boolean  is_type,
-                                         a_type_ptr type,
-                                         an_operand *operand,
-                                         an_operand *result)
+static an_expr_node_ptr make_sizeof_expr(an_expr_node_kind  kind,
+                                         a_boolean          is_type,
+                                         a_type_ptr         type,
+                                         an_operand         *operand,
+                                         an_operand         *result)
 /*
-Create an enk_sizeof expression for a sizeof (or enk_alignof for an
-alignof, if is_alignof is TRUE), and return a pointer to it.  If
-is_type is TRUE, this is a "sizeof(type)", and "type" indicates the
-type.  If is_type is FALSE, this is a "sizeof expression", and
-"operand" indicates the expression.  If result is non-NULL, an operand
-for the sizeof result is built and returned there.
+Create a node for a sizeof-like construct of the given kind (enk_sizeof,
+enk_alignof, or enk_datasizeof), and return a pointer to it.  If is_type is
+TRUE, the operator applies to a type and "type" indicates that type (e.g.,
+"sizeof(int*)").  If is_type is FALSE, the operator applies to the expression
+described by "operand".  If result is non-NULL, an operand for the result is
+built and returned there.
 */
 {
-  an_expr_node_ptr node = alloc_expr_node(is_alignof ?
-                                            (an_expr_node_kind)enk_alignof :
-                                            (an_expr_node_kind)enk_sizeof);
+  an_expr_node_ptr node = alloc_expr_node(kind);
 
   node->type = integer_type(targ_size_t_int_kind);
   node->variant.sizeof_info.is_type = is_type;
@@ -12911,20 +12909,22 @@ Return whether the current expression contains a GNU statement expression.
 static void scan_sizeof_operator(a_rescan_control_block *rcblock,
                                  an_operand             *result)
 /*
-Scan the sizeof operator.
+Scan the sizeof or (in some Clang modes) the __datasizeof operator.
 
 Syntax:
         sizeof ( type-id )
         sizeof expression
+        __datasizeof ( type-id )
+        __datasizeof expression
 
 Also, when variadic templates are enabled:
 
         sizeof... (pack-name)
 
-The current token is the sizeof keyword.  Scan a type or expression
-operand, and return an operand for sizeof applied to that, in
-*operand.  If rcblock is non-NULL, redo semantic analysis on a
-previously-scanned sizeof expression, and return the result in *result
+The current token is the sizeof or __datasizeof keyword.  Scan a type or
+expression operand, and return an operand for sizeof applied to that, in
+*operand.  If rcblock is non-NULL, redo semantic analysis on a previously-
+scanned sizeof or __datasizeof expression, and return the result in *result
 (or an error indication in *rcblock).
 */
 {
@@ -12959,17 +12959,18 @@ previously-scanned sizeof expression, and return the result in *result
                                          curr_expr_kind_is_traditional_const();
   a_boolean             sizeof_itself_is_potentially_evaluated =
                                          curr_expr_is_potentially_evaluated();
+  an_expr_node_kind     kind;
 
   db_enter(4, "scan_sizeof_operator");
   if (variadic_templates_enabled) {
     /* Check for the variadic template sizeof...(T) case. */
     a_boolean is_sizeof_pack = FALSE;
     if (rcblock != NULL) {
-      if (rcblock->expr->kind == (an_expr_node_kind)enk_sizeof_pack) {
+      if (rcblock->expr->kind == enk_sizeof_pack) {
         is_sizeof_pack = TRUE;
       }  /* if */
     } else {
-      if (next_token() == tok_ellipsis) {
+      if (curr_token == tok_sizeof && next_token() == tok_ellipsis) {
         is_sizeof_pack = TRUE;
       }  /* if */
     }  /* if */
@@ -12985,6 +12986,19 @@ previously-scanned sizeof expression, and return the result in *result
 #if UPC_EXTENSIONS_ALLOWED || CHECKING
     operator_token = rcblock->operator_token;
 #endif /* UPC_EXTENSIONS_ALLOWED || CHECKING */
+    kind = (an_expr_node_kind)rcblock->expr->kind;
+    if (kind == enk_constant) {
+      /* Presumably a tpck_sizeof or tpck_datasizeof constant. */
+      a_constant  *cp = node_constant(rcblock->expr);
+      check_assertion(constant_is(cp, ck_template_param));
+      if (tpck_is(cp, tpck_sizeof)) {
+        kind = enk_sizeof;
+      } else if (tpck_is(cp, tpck_datasizeof)) {
+        kind = enk_datasizeof;
+      } else {
+        unexpected_condition();
+      }  /* if */
+    }  /* if */
     make_sizeof_et_al_rescan_operands(rcblock,
                                       &is_type, &operand, &orig_sizeof_type,
                                       &operator_position,
@@ -13006,16 +13020,23 @@ previously-scanned sizeof expression, and return the result in *result
 #if UPC_EXTENSIONS_ALLOWED || CHECKING
     operator_token = curr_token;
 #endif /* UPC_EXTENSIONS_ALLOWED || CHECKING */
+    if (curr_token == tok_datasizeof) {
+      kind = enk_datasizeof;
+    } else {
+      kind = enk_sizeof;
+    }  /* if */
     operator_position = pos_curr_token;
   }  /* if */
   start_position = operator_position;
 #if UPC_EXTENSIONS_ALLOWED
   check_assertion(operator_token == tok_sizeof ||
+                  operator_token == tok_datasizeof ||
                   operator_token == tok_upc_localsizeof ||
                   operator_token == tok_upc_elemsizeof ||
                   operator_token == tok_upc_blocksizeof);
 #else /* !UPC_EXTENSIONS_ALLOWED */
-  check_assertion(operator_token == tok_sizeof);
+  check_assertion(operator_token == tok_sizeof ||
+                  operator_token == tok_datasizeof);
 #endif /* UPC_EXTENSIONS_ALLOWED */
 #if CHECKING
   if (curr_expr_kind_is(ek_pp)) {
@@ -13311,7 +13332,7 @@ previously-scanned sizeof expression, and return the result in *result
     } else {
       /* Make an expression node to represent a sizeof that cannot be
          evaluated until runtime. */
-      (void)make_sizeof_expr(/*is_alignof=*/FALSE, is_type, orig_sizeof_type,
+      (void)make_sizeof_expr(kind, is_type, orig_sizeof_type,
                              &operand, result);
       operand_was_used = !is_type;
       nonconstant_case = TRUE;
@@ -13335,7 +13356,7 @@ previously-scanned sizeof expression, and return the result in *result
     } else {
       /* Make an expression node to represent a sizeof that cannot be
          evaluated until runtime. */
-      (void)make_sizeof_expr(/*is_alignof=*/FALSE, is_type, orig_sizeof_type,
+      (void)make_sizeof_expr(kind, is_type, orig_sizeof_type,
                              &operand, result);
       operand_was_used = !is_type;
       nonconstant_case = TRUE;
@@ -13356,7 +13377,7 @@ previously-scanned sizeof expression, and return the result in *result
       make_error_operand(result);
     } else {
       /* Make an expression node to represent the sizeof. */
-      (void)make_sizeof_expr(/*is_alignof=*/FALSE, is_type, orig_sizeof_type,
+      (void)make_sizeof_expr(kind, is_type, orig_sizeof_type,
                              &operand, result);
       operand_was_used = !is_type;
       nonconstant_case = TRUE;
@@ -13370,9 +13391,10 @@ previously-scanned sizeof expression, and return the result in *result
     } else {
       if (template_case) {
         /* For the size of a template type, use a ck_template_param. */
-        clear_constant(constant, (a_constant_repr_kind)ck_template_param);
-        set_template_param_constant_kind(constant,
-                                  (a_template_param_constant_kind)tpck_sizeof);
+        a_template_param_constant_kind  tpck = tpck_sizeof;
+        if (kind == enk_datasizeof) tpck = tpck_datasizeof;
+        clear_constant(constant, ck_template_param);
+        set_template_param_constant_kind(constant, tpck);
         constant->variant.template_param.variant.templ_sizeof.type =
                                                                    sizeof_type;
         if (!is_type) {
@@ -13383,11 +13405,14 @@ previously-scanned sizeof expression, and return the result in *result
         }  /* if */
         constant->type = integer_type(targ_size_t_int_kind);
       } else {
+        a_host_large_unsigned  size;
         /* Normal case; known constant sizeof. */
-        set_unsigned_integer_constant(
-                             constant,
-                             (a_host_large_unsigned)size_of_type(sizeof_type),
-                             targ_size_t_int_kind);
+        if (kind != enk_datasizeof) {
+          size = (a_host_large_unsigned)size_of_type(sizeof_type);
+        } else {
+          size = (a_host_large_unsigned)data_size_of_type(sizeof_type);
+        }  /* if */
+        set_unsigned_integer_constant(constant, size, targ_size_t_int_kind);
         /* Make a sizeof expression that sits behind the constant and
            gives the original expression.  If the expression contains a
            statement expression, this is required to avoid file-scope memory
@@ -13406,10 +13431,8 @@ previously-scanned sizeof expression, and return the result in *result
                the expression in all cases, and just record the type. */
             is_type = TRUE;
           }  /* if */
-          constant->expr = make_sizeof_expr(/*is_alignof=*/FALSE,
-                                            is_type, orig_sizeof_type,
-                                            &operand,
-                                            (an_operand *)NULL);
+          constant->expr = make_sizeof_expr(kind, is_type, orig_sizeof_type,
+                                            &operand, (an_operand *)NULL);
           operand_was_used = !is_type;
           switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
         }  /* if */
@@ -13705,10 +13728,8 @@ standard headers (e.g., to implement <stdarg.h>).
            the expression in all cases, and just record the type. */
         is_type = TRUE;
       }  /* if */
-      constant->expr = make_sizeof_expr(/*is_alignof=*/TRUE,
-                                        is_type, alignof_type,
-                                        &operand,
-                                        (an_operand *)NULL);
+      constant->expr = make_sizeof_expr(enk_alignof, is_type, alignof_type,
+                                        &operand, (an_operand *)NULL);
       constant->expr->variant.sizeof_info.is_std_alignof = is_std_syntax;
       operand_was_used = !is_type;
       switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
@@ -41399,6 +41420,7 @@ handle_identifier:
     case tok_upc_blocksizeof:
 #endif /* UPC_EXTENSIONS_ALLOWED */
     case tok_sizeof:
+    case tok_datasizeof:
       /* Sizeof operation. */
       scan_sizeof_operator((a_rescan_control_block *)NULL, &local_result);
       break;
@@ -46788,7 +46810,7 @@ an error and returns FALSE.
     /* In some modes the array may have a variable length. */
     if (is_vla_type(expr_type)) {
       /* Build a node representing sizeof(array)/sizeof(element). */
-      (void)make_sizeof_expr(/*is_alignof=*/FALSE, /*is_type=*/TRUE, expr_type,
+      (void)make_sizeof_expr(enk_sizeof, /*is_type=*/TRUE, expr_type,
                              (an_operand*)NULL, &size_operand);
       set_integer_constant(size_constant,
                            (a_host_large_integer)
@@ -50410,6 +50432,10 @@ set accordingly.
           operator_token = tok_sizeof;
           *unary = TRUE;
           break;
+        case tpck_datasizeof:
+          operator_token = tok_datasizeof;
+          *unary = TRUE;
+          break;
         case tpck_alignof:
           operator_token =
             con->variant.template_param.variant.templ_sizeof.is_std_alignof ?
@@ -50441,6 +50467,9 @@ set accordingly.
     }  /* if */
   } else if (expr->kind == (an_expr_node_kind)enk_sizeof) {
     operator_token = tok_sizeof;
+    *unary = TRUE;
+  } else if (expr->kind == (an_expr_node_kind)enk_datasizeof) {
+    operator_token = tok_datasizeof;
     *unary = TRUE;
   } else if (expr->kind == (an_expr_node_kind)enk_sizeof_pack) {
     operator_token = tok_sizeof;
@@ -50731,6 +50760,7 @@ a enclosing expression).
         scan_arith_prefix_operator(rcblock, result);
         break;
       case tok_sizeof:
+      case tok_datasizeof:
         scan_sizeof_operator(rcblock, result);
         break;
       case tok_alignof:

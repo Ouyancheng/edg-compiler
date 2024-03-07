@@ -2527,7 +2527,7 @@ done:;
 }  /* emulate_gnu_bit_field_overpadding */
 
 
-static a_targ_size_t compute_dsize(a_type_ptr class_type)
+a_targ_size_t compute_dsize(a_type_ptr  class_type)
 /*
 The IA-64 ABI layout algorithm uses "dsize" to represent the size of a
 class prior to rounding up for alignment purposes.  That value is computed

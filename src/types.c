@@ -40,6 +40,7 @@ types.c -- Utility routines that check types.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #include "exprutil.h"
 #include "il_walk.h"
+#include "layout.h"
 #include "trans_corresp.h"
 
 /* Conditionally open the "edg" namespace. */
@@ -3943,6 +3944,7 @@ be called by using the macro size_of_type.
 */
 {
   a_boolean  c11_atomic = FALSE;
+
   /* Skip any typerefs that do not affect the alignment. */
   while (tp->kind == tk_typeref) {
     c11_atomic |= (tp->variant.typeref.qualifiers & TQ_C11_ATOMIC) != 0;
@@ -3953,6 +3955,29 @@ be called by using the macro size_of_type.
 }  /* f_size_of_type */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
+
+a_targ_size_t data_size_of_type(a_type_ptr  tp)
+/*
+Return the size of the given type, except that if the type is a (possibly
+cv-qualified) class type, tail padding is not included in the IA-64 ABI.
+This models the __datasizeof operator of some Clang versions.
+*/
+{
+  a_targ_size_t  result;
+  a_type_ptr     utp = skip_typerefs(tp);
+
+  if (!is_immediate_class_type(utp) ||
+      class_symbol_supp(symbol_for(utp))->is_cpp03_POD) {
+    result = size_of_type(tp);
+  } else {
+#if IA64_ABI
+    result = compute_dsize(utp);
+#else /* !IA64_ABI */
+    result = size_of_type(tp);
+#endif /* !IA64_ABI */
+  }  /* if */
+  return  result;
+}  /* data_size_of_type */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 

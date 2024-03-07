@@ -1419,6 +1419,7 @@ enum a_token_kind : unsigned short {
   tok_edg_throw,
   tok_edg_internal_opnd,
   tok_clang_version,
+  tok_datasizeof,
   tok_has_unique_object_representations,
   tok_is_aggregate,
   tok_integer_pack,
@@ -1675,6 +1676,7 @@ EXTERN a_const_char
    "__edg_throw__",
    "__edg_opnd__",
    "clang version",
+   "__datasizeof",
    "__has_unique_object_representations",
    "__is_aggregate",
    "__integer_pack",
@@ -4246,6 +4248,8 @@ enum a_template_param_constant_kind : a_byte {
   tpck_sizeof,		/* The template param constant represents the sizeof
 			   operator applied to a type or expression that
 			   contains a template parameter type. */
+  tpck_datasizeof,	/* Same as tpck_sizeof but for the __datasizeof
+			   operator. */
   tpck_alignof,		/* The template param constant represents the
 			   __ALIGNOF__ operator applied to a type or
 			   expression that contains a template parameter
@@ -5166,8 +5170,8 @@ typedef struct a_constant {
 		constant;
 			/* The member whose address is being taken by the
 			   tpck_address constant. */
-        /* When template param constant kind == tpck_sizeof, tpck_alignof,
-           tpck_uuidof, tpck_typeid, or tpck_noexcept: */
+        /* When template param constant kind == tpck_sizeof, tpck_datasizeof,
+           tpck_alignof, tpck_uuidof, tpck_typeid, or tpck_noexcept: */
         struct {
           a_type_ptr
 		type;	/* The type whose sizeof, __ALIGNOF__, __uuidof, or
@@ -12976,6 +12980,8 @@ enum an_expr_node_kind : a_bit_field {
 			   Like enk_sizeof, appears in backing expressions
 			   and applied to dependent types or expressions in
 			   prototype instantiations. */
+  enk_datasizeof,	/* Same as sizeof, except the result doesn't include
+			   tail padding.  This is a Clang extension. */
   enk_address_of_ellipsis,
 			/* Used to represent nonstandard construct "&..."
 			   (when ALLOW_ADDRESS_OF_ELLIPSIS is TRUE, to support
@@ -14707,12 +14713,14 @@ typedef struct an_expr_node {
 			/* TRUE if the result value depends on the dynamic
 			   type of the operand expression. */
     } typeid_info;
-    /* When kind == enk_sizeof or kind == enk_alignof: */
+    /* When kind == enk_sizeof, kind == enk_alignof, or
+       kind == enk_datasizeof: */
     struct {
       a_byte_boolean
 		is_type;
 			/* TRUE if the sizeof is sizeof(type); FALSE for
-			   sizeof expression.  Likewise for alignof. */
+			   sizeof expression.  Likewise for alignof and
+			   __datasizeof. */
       a_byte_boolean
 		is_std_alignof;
 			/* TRUE if this node is for the standard C++11 alignof

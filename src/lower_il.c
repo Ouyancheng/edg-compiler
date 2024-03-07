@@ -17101,6 +17101,7 @@ cast.  See lower_expr for typical invocation.
 #endif /* VLA_DEALLOCATIONS_IN_IL */
     case enk_sizeof_pack:
     case enk_alignof:
+    case enk_datasizeof:
     default:
       unexpected_condition_str("lower_expr: bad kind");
   }  /* switch */

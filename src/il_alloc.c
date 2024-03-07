@@ -793,6 +793,7 @@ ck_template_param constant.
       cp->variant.template_param.variant.constant = NULL;
       break;
     case tpck_sizeof:
+    case tpck_datasizeof:
     case tpck_alignof:
     case tpck_uuidof:
     case tpck_typeid:
@@ -3658,6 +3659,7 @@ fields to default values.
       node->variant.typeid_info.is_dynamic = FALSE;
       break;
     case enk_sizeof:
+    case enk_datasizeof:
     case enk_alignof:
       node->variant.sizeof_info.is_type = TRUE;
       node->variant.sizeof_info.is_std_alignof = FALSE;
