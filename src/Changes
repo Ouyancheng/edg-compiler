@@ -1,19 +1,5 @@
 Version 6.7
 
-3/7/24   [EDGcpfe/25678,EDGcpfe/26155,EDGcpfe/26885,EDGcpfe/26911]
-GNU compatibility: Comparison of integer vector types
-
-Consider, in GNU C++ mode:
-
-  using u32x8 [[gnu::vector_size(32)]] = unsigned int;
-  u32x8 test(u32x8 x) {
-    return (x & 0x7FFFFFFF) == 0;  // Previously an error.  Now okay.
-  }
-
-Previously this elicited an error complaining that the return value of the test
-function does not match its return type.  That is now fixed.
-
-
 3/6/24   [EDGcpfe/27080]
 Clang C++ compatibility: __datasizeof
 
@@ -327,6 +313,20 @@ clang C++ emulation, the feature is accepted in all language versions when
 clang_version is at least 150000.  For example, with --c++23:
 
   const char *p = "0\N{DIGIT ONE}2";   // Equivalent to "012"
+
+
+2/7/24   [EDGcpfe/26885]
+GNU compatibility: Comparison of integer vector types
+
+Consider, in GNU C++ mode:
+
+  using u32x8 [[gnu::vector_size(32)]] = unsigned int;
+  u32x8 test(u32x8 x) {
+    return (x & 0x7FFFFFFF) == 0;  // Previously an error.  Now okay.
+  }
+
+Previously this elicited an error complaining that the return value of the test
+function does not match its return type.  That is now fixed.
 
 
 2/6/24   [EDGcpfe/26994]
