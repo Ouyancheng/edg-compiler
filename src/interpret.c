@@ -3170,7 +3170,9 @@ the end" of a field subobject, that field is returned.
     a_field_ptr       fp = fields_of(parent_type);
     a_field_ptr       last_fp = next_alloc_field(fp);
     a_base_class_ptr  bcp, last_bcp;
-    a_boolean         okay = TRUE, check_virtual_bases = FALSE;
+    LOCAL_UNUSED a_boolean
+                      okay = TRUE;
+    a_boolean         check_virtual_bases = FALSE;
     a_byte_count      offset = (a_byte_count)(cap->address - parent_address),
                       sub_offset, type_size;
     sub_offset = sizeof(a_type_ptr);
