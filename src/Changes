@@ -16,6 +16,9 @@ For example, in Clang C++17 mode with common IA-64 ABI configurations:
   static_assert(sizeof(S) == 16);
   static_assert(__datasizeof(S) == 9);
 
+No mangling is provided for this operation (since Clang appears not to have
+implemented that at this time).
+
 
 3/5/24   [EDGcpfe/25451,EDGcpfe/27020,EDGcpfe/27054]
 Abort in find_subobject_for_interpreter_address
