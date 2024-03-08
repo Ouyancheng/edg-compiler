@@ -11251,7 +11251,15 @@ storage_class_specifier:
           pos_error(ec_dupl_decl_specifier, &error_position);
           err = TRUE;
         } else {
-          if (conditional_explicit_enabled && next_token() == tok_lparen) {
+          a_boolean explicit_bool_enabled = conditional_explicit_enabled ||
+                                            gpp_version_is(>=90000) ||
+                                            clang_version_is(>=100000);
+          if (explicit_bool_enabled && next_token() == tok_lparen) {
+            if (!conditional_explicit_enabled) {
+              /* Warn on use of C++20 explicit(bool) feature in GNU and clang
+                 modes when C++20 is not enabled. */
+              pos_warning(ec_nonstandard_explicit_bool, &pos_curr_token);
+            }  /* if */
             conditional_explicit_specifier(state);
           } else {
             decl_specifiers_seen |= DS_EXPLICIT;
