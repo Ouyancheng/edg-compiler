@@ -34022,7 +34022,7 @@ that case.
                                               is_constant_operand(&operand_3) ?
                                                 &operand_3.variant.constant :
                                                 (a_constant_ptr)NULL,
-                                              /*narrowing_okay=*/FALSE)) {
+                                              /*narrowing_okay=*/TRUE)) {
         /* A vector and a scalar. */
         make_vector_fill_operand(&operand_3, operand_2.type);
         result_type = skip_typerefs(operand_2.type);
@@ -34035,7 +34035,7 @@ that case.
                                               is_constant_operand(&operand_2) ?
                                                 &operand_2.variant.constant :
                                                 (a_constant_ptr)NULL,
-                                              /*narrowing_okay=*/FALSE)) {
+                                              /*narrowing_okay=*/TRUE)) {
         /* A scalar and a vector. */
         make_vector_fill_operand(&operand_2, operand_3.type);
         result_type = skip_typerefs(operand_3.type);
