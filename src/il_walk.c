@@ -3482,6 +3482,7 @@ as specified in the control block.
       if (tblock->terminate) goto end_of_routine;
       break;
     case enk_sizeof:
+    case enk_datasizeof:
     case enk_alignof:
       if (expr->variant.sizeof_info.is_type) {
         if (tblock->process_type != NULL) {
