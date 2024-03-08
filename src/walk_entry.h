@@ -655,7 +655,6 @@ over the list of nonstatic variables in the scope.
     case initk_static:                                                \
       walk_ptr((initializer).constant, a_constant_ptr, iek_constant); \
       break;                                                          \
-    case initk_module:                                                \
     case initk_dynamic:                                               \
       walk_ptr((initializer).dynamic, a_dynamic_init_ptr,             \
                iek_dynamic_init);                                     \
@@ -3090,7 +3089,6 @@ do_set_proper_definition_needed_flag:
           case dik_zero:
             /* No pointers. */
             break;
-          case dik_module:
           case dik_constant:
           case dik_nonconstant_aggregate:
             walk_ptr(eptr->variant.constant.ptr, a_constant_ptr, iek_constant);

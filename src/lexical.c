@@ -3246,8 +3246,7 @@ This is used to save tokens for later rescanning.
        need to be copied. */
     copy_constant(&const_for_curr_token, ctp->variant.constant);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (curr_token == tok_pending_ifc_var_init ||
-             curr_token == tok_pending_ifc_expr ||
+  } else if (curr_token == tok_pending_ifc_expr ||
              curr_token == tok_ifc_entity_ref ||
              curr_token == tok_ifc_decl_ref ||
              curr_token == tok_ifc_decl) {

@@ -5309,12 +5309,9 @@ by implied_src.
                     a_constant_ptr  cp = NULL;
                     if (vp->init_kind == initk_static) {
                       cp = vp->initializer.constant;
-                    } else if (vp->init_kind == initk_dynamic ||
-                               vp->init_kind == initk_module) {
+                    } else if (vp->init_kind == initk_dynamic) {
                       a_dynamic_init_ptr  dip = vp->initializer.dynamic;
-                      if (dyn_init_is(dip, dik_constant) ||
-                          (dyn_init_is(dip, dik_module) &&
-                           dip->variant.constant.ptr != NULL)) {
+                      if (dyn_init_is(dip, dik_constant)) {
                         cp = dip->variant.constant.ptr;
                       } else {
                         a_constexpr_address  var_addr;
@@ -6405,17 +6402,6 @@ by implied_src.
       } else {
         info_with_pos(ec_lambda_not_constant_expr, pos, ips);
         do_constexpr_fail(result);
-      }  /* if */
-      break;
-    case dik_module:
-      if (dip->variant.constant.ptr == NULL) {
-        /* The initializer exists in another TU, but isn't available to us. */
-        do_constexpr_fail(result);
-      } else {
-        result = copy_val_from_constant(ips, dip->variant.constant.ptr,
-                                        dst_addr->address,
-                                        dst_addr->complete_object,
-                                        implied_src);
       }  /* if */
       break;
     case dik_expression:
@@ -22833,6 +22819,16 @@ the value representation of the integer value.
       {
         a_variable_ptr  var = node_variable(expr);
         a_byte          *var_bytes;
+
+        /* If this variable does not have an initializer, check to see if one
+           is available from an imported module. */
+        if (var->init_kind == initk_none &&
+            has_variable_initializer_from_module(var)) {
+          if (!load_variable_initializer_from_module(var)) {
+            ips->input_error = TRUE;
+            do_constexpr_fail(result);
+          }  /* if */
+        }  /* if */
         if (var->init_kind == (an_init_kind)initk_binding) {
           /* This variable is an alias for an lvalue expression. */
           if (!do_constexpr_bound_expr(ips, expr, result_storage,

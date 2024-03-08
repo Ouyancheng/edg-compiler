@@ -18660,21 +18660,6 @@ template declaration and is NULL otherwise.
     if (skip_cache_terminator && curr_token == tok_end_of_source) {
       (void)get_token();
     }  /* if */
-  } else if (curr_token == tok_pending_ifc_var_init) {
-    /* The initializer exists and is in a separate (module) TU.  It may or may
-       not have a constant value associated with it. */
-    a_dynamic_init_ptr dip;
-    decl_state->has_initializer = TRUE;
-    var->has_explicit_initializer = TRUE;
-    var->constant_valued = TRUE;
-    /* Do not set var->initializer_in_class, as the original source may not
-       have had an in-class initializer, despite it now appearing as if it
-       does. */
-    var->init_kind = initk_module;
-    dip = load_variable_init_from_module(var->type, &ifc_index_for_curr_token);
-    dip->variable = var;
-    var->initializer.dynamic = dip;
-    (void)get_token();
   } else if ((gpp_mode || microsoft_mode ||
               (decl_info->is_member_template &&
                class_state->is_template_instantiation &&
@@ -21368,7 +21353,6 @@ information about the member declaration, respectively.
   dps->has_initializer = field_initializers_enabled &&
                          (curr_token == tok_assign ||
                           curr_token == tok_lbrace ||
-                          curr_token == tok_pending_ifc_var_init ||
                           curr_token == tok_pending_ifc_expr ||
                           curr_token == tok_removed_expr) &&
                          !locator->is_error;
@@ -32406,6 +32390,26 @@ alignment of those fields).
 }  /* record_max_member_alignment_if_needed */
 
 
+static inline void remove_spurious_member_semicolons()
+/*
+This function is called by scan_class_definition when there is no declaration
+-- just a semicolon.  That is valid in C++14 mode.  In earlier C++ modes, issue
+a warning (or error in strict ANSI mode).  Note: in C mode we bypass the "extra
+';'" diagnostic when there are no fields in the struct -- i.e., "struct S { ;
+};" is treated just like "struct S { };". */
+{
+  while (curr_token == tok_semicolon) {
+    if (!cpp14_mode) {
+      pos_diagnostic(strict_ansi_mode ?
+                       strict_ansi_discretionary_severity : es_warning,
+                     ec_extra_semicolon, &pos_curr_token);
+    }  /* if */
+    (void)get_token();
+  }  /* while */
+  cannot_bind_to_curr_construct();
+}  /* remove_spurious_member_semicolons */
+
+
 a_boolean scan_class_definition(
                         a_type_ptr                  class_type,
                         a_decl_parse_state          *dps,
@@ -33094,19 +33098,8 @@ classes.
         if (curr_token == tok_semicolon &&
             (C_dialect == C_dialect_cplusplus ||
              !(class_state.is_first_field && next_token() == tok_rbrace))) {
-          /* No declaration -- just a semicolon.  That is valid in C++14 mode.
-             In earlier C++ modes, issue a warning (or error in strict ANSI
-             mode).  Note: in C mode we bypass the "extra ';'" diagnostic when
-             there are no fields in the struct -- i.e., "struct S { ; };" is
-             treated just like "struct S { };". */
-          if (!cpp14_mode) {
-            pos_diagnostic(strict_ansi_mode ?
-                             strict_ansi_discretionary_severity : es_warning,
-                           ec_extra_semicolon, &pos_curr_token);
-          }  /* if */
-          cannot_bind_to_curr_construct();
           /* Bypass the superfluous semicolon and continue looping. */
-          (void)get_token();
+          remove_spurious_member_semicolons();
           treat_declaration_as_okay_in_property_or_event(&class_state);
           goto next_declaration;
         } else if (curr_token == tok_static_assert) {
@@ -33314,7 +33307,7 @@ classes.
                                                        es_warning :
                                                        es_discretionary_error),
                          ec_exp_semicolon);
-            }  /* if */ 
+            }  /* if */
           } else {
             (void)required_token(tok_semicolon, ec_exp_semicolon);
           }  /* if */
@@ -33335,6 +33328,12 @@ next_declaration:
         }  /* if */
         if (curr_routine_fixup != NULL) dispose_of_curr_routine_fixup();
         remove_stop_token(tok_semicolon);
+        /* We've just finished processing a class member.  Any semicolon
+           present is meaningless and can safely be removed.  Remove said
+           semicolons to ensure tok_ifc_decl is observed at the right time. */
+        if (C_dialect == C_dialect_cplusplus) {
+          remove_spurious_member_semicolons();
+        }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (class_state.property_or_event_descr != NULL) {
           check_cli_accessor_decl(&class_state, &decl_start_pos);

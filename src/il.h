@@ -26,6 +26,26 @@ il.h -- Declarations related to the intermediate language.
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
+namespace detail {
+
+/*
+The following specializations provide Is_trivially_copyable and
+Is_trivially_destructible support for a_tagged_pointer.  This is declared
+here to keep il_def.h free from C++ specializations.
+*/
+
+template<>
+struct Is_trivially_copyable_edg_impl<a_tagged_pointer> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_copyable_edg_impl */
+
+template<>
+struct Is_trivially_destructible_edg_impl<a_tagged_pointer> :
+                                                Integral_constant<bool, true> {
+};  /* Is_trivially_destructible_edg_impl */
+
+}  /* detail */
+
 inline a_boolean operator==(a_tagged_pointer ptr1,
                             a_tagged_pointer ptr2)
 /*
@@ -133,6 +153,16 @@ Convert the given IL type pointer into a tagged pointer.
 */
 {
   return canonicalize_tagged_ptr(iek_type, (char*)val);
+}  /* make_tagged_ptr */
+
+
+template<>
+inline a_tagged_pointer make_tagged_ptr(a_variable_ptr val)
+/*
+Convert the given IL variable pointer into a tagged pointer.
+*/
+{
+  return canonicalize_tagged_ptr(iek_variable, (char*)val);
 }  /* make_tagged_ptr */
 
 

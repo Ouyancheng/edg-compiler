@@ -318,7 +318,6 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    onk_none,          /* tok_cli_typeid */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    onk_none,          /* tok_decltype_construct */
-   onk_none,          /* tok_pending_ifc_var_init */
    onk_none,          /* tok_pending_ifc_expr  */
    onk_none,          /* tok_ifc_entity_ref */
    onk_none,          /* tok_ifc_decl_ref */

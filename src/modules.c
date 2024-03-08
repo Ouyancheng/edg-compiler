@@ -1120,22 +1120,41 @@ Import the given module.  assoc_sym is the associated symbol for the module.
 }  /* import_module */
 
 
-a_boolean has_routine_definition_from_module(ARG_UNUSED a_routine_ptr  rp)
+a_boolean has_variable_initializer_from_module(a_variable_ptr vp)
+/*
+If the given variable has an initializer available in an imported module,
+return TRUE.  Otherwise, return FALSE.
+*/
+{
+  return has_variable_initializer_from_ifc_module(vp);
+}  /* has_variable_initializer_from_module */
+
+
+a_boolean load_variable_initializer_from_module(a_variable_ptr vp)
+/*
+If the given variable has an initializer available in an imported module, load
+and process that initializer now, and return TRUE.  Otherwise, return FALSE.
+
+The presence of an initializer should be checked for via
+has_variable_initializer_from_module prior to attempting to load the
+initializer.
+*/
+{
+  return load_variable_initializer_from_ifc_module(vp);
+}  /* load_variable_initializer_from_module */
+
+
+a_boolean has_routine_definition_from_module(a_routine_ptr rp)
 /*
 If the given routine has a definition available in an imported module, return
 TRUE.  Otherwise, return FALSE.
 */
 {
-  a_boolean  result = FALSE;
-
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  result = has_routine_definition_from_ifc_module(rp);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  return result;
+  return has_routine_definition_from_ifc_module(rp);
 }  /* load_routine_definition_from_module */
 
 
-a_boolean load_routine_definition_from_module(ARG_UNUSED a_routine_ptr  rp)
+a_boolean load_routine_definition_from_module(a_routine_ptr rp)
 /*
 If the given routine has a definition available in an imported module, load and
 process that definition now, and return TRUE.  Otherwise, return FALSE.
@@ -1145,32 +1164,21 @@ has_routine_definition_from_module prior to attempting to load the routine
 definition.
 */
 {
-  a_boolean  result = FALSE;
-
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  result = load_routine_definition_from_ifc_module(rp);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  return result;
+  return load_routine_definition_from_ifc_module(rp);
 }  /* load_routine_definition_from_module */
 
 
-a_boolean has_template_definition_from_module(ARG_UNUSED a_template_ptr  templ)
+a_boolean has_template_definition_from_module(a_template_ptr templ)
 /*
 If the given template has a definition available in an imported module, return
 TRUE.  Otherwise, return FALSE.
 */
 {
-  a_boolean  result = FALSE;
-
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  result = has_template_definition_from_ifc_module(templ);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  return result;
+  return has_template_definition_from_ifc_module(templ);
 }  /* has_template_definition_from_module */
 
 
-a_boolean has_pending_template_definition_from_module(
-                                              ARG_UNUSED a_template_ptr  templ)
+a_boolean has_pending_template_definition_from_module(a_template_ptr templ)
 /*
 If the given template is not already defined and has a definition available in
 an imported module, return TRUE.  Otherwise, return FALSE.  Note that templ
@@ -1180,35 +1188,27 @@ must refer to the canonical template.
   a_boolean  result = FALSE;
 
   check_assertion(templ != NULL);
-#if MICROSOFT_EXTENSIONS_ALLOWED
   if (!symbol_for(templ)->defined &&
       has_template_definition_from_ifc_module(templ)) {
     result = TRUE;
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return result;
 }  /* has_pending_template_definition_from_module */
 
 
-a_boolean load_template_definition_from_module(
-                                             ARG_UNUSED a_template_ptr  templ)
+a_boolean load_template_definition_from_module(a_template_ptr templ)
 /*
 If the given template has a definition available in an imported module, process
 its definition now, and return TRUE.  Otherwise, return FALSE.  Note that templ
 must refer to the canonical template.
 */
 {
-  a_boolean  result = FALSE;
-
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  result = load_template_definition_from_ifc_module(templ);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  return result;
+  return load_template_definition_from_ifc_module(templ);
 }  /* load_template_definition_from_module */
 
 
 a_boolean has_pending_template_specializations_from_module(
-                                              ARG_UNUSED a_template_ptr  templ)
+                                                          a_template_ptr templ)
 /*
 If the given template has specializations available in an imported module,
 return TRUE.  Otherwise, return FALSE.  Note that templ must refer to the
@@ -1218,48 +1218,35 @@ canonical template.
   a_boolean  result = FALSE;
 
   check_assertion(templ != NULL);
-#if MICROSOFT_EXTENSIONS_ALLOWED
   if (has_template_specializations_from_ifc_module(templ)) {
     result = TRUE;
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return result;
 }  /* has_pending_template_definition_from_module */
 
 
-a_boolean load_template_specializations_from_module(
-                                             ARG_UNUSED a_template_ptr  templ)
+a_boolean load_template_specializations_from_module(a_template_ptr templ)
 /*
 If the given template has specializations available in an imported module,
 process those specializations now, and return TRUE.  Otherwise, return FALSE.
 Note that templ must refer to the canonical template.
 */
 {
-  a_boolean  result = FALSE;
-
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  result = load_template_specializations_from_ifc_module(templ);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  return result;
+  return load_template_specializations_from_ifc_module(templ);
 }  /* load_template_specializations_from_module */
 
 
-a_boolean has_type_definition_from_module(ARG_UNUSED a_type_ptr  ty)
+a_boolean has_type_definition_from_module(a_type_ptr ty)
 /*
 If the given type has a definition available in an imported module, return
 TRUE.  Otherwise, return FALSE.
 */
 {
-  a_boolean  result = FALSE;
-
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  result = has_type_definition_from_ifc_module(ty);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  return result;
+  return has_type_definition_from_ifc_module(ty);
 }  /* load_routine_definition_from_module */
 
 
-a_boolean load_type_definition_from_module(ARG_UNUSED a_type_ptr  ty)
+a_boolean load_type_definition_from_module(a_type_ptr ty)
 /*
 If the given type has a definition available in an imported module, load and
 process that definition now, and return TRUE.  Otherwise, return FALSE.
@@ -1271,38 +1258,14 @@ definition.
 {
   a_boolean  result = FALSE;
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
   if (!ty->definition_pending) {
     ty->definition_pending = TRUE;
     result = load_type_definition_from_ifc_module(ty);
     /* Once the class is defined, there is no need for this information. */
     ty->definition_pending = FALSE;
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return result;
 }  /* load_routine_definition_from_module */
-
-
-a_dynamic_init_ptr load_variable_init_from_module(
-                               ARG_UNUSED a_type_ptr                    tp,
-                               ARG_UNUSED a_lexical_ifc_index_reference *index)
-/*
-Load and process the initializer for a variable or field from an IFC module.
-tp is the type of the variable or field, index is the index associated with the
-initializer.
-*/
-{
-  a_dynamic_init_ptr result = NULL;
-
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  {
-    an_ifc_expr_index expr_idx = from_lexical_index<an_ifc_expr_index>(*index);
-
-    result = load_variable_init_from_ifc_module(tp, expr_idx);
-  }
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  return result;
-}  /* load_variable_init_from_module */
 
 #if DEBUG
 

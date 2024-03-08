@@ -1689,17 +1689,11 @@ initialization (when ipdp->array_element_sequence is TRUE).
       init_val_node = alloc_node_for_lowered_zero_of_proper_type(entity_type);
       break;
     case dik_lambda:
-      check_assertion(!dip->variant.constant.non_constant);
-      goto handle_constant;
-    case dik_module:
-      /* While dik_module can have a NULL associated constant, it should not be
-         possible to reach here with a NULL associated constant. */
-      check_assertion(dip->variant.constant.ptr != NULL);
-      goto handle_constant;
+      check_assertion(dip != NULL && !dip->variant.constant.non_constant);
+      FALLTHROUGH
     case dik_constant:
       /* Assign a constant to the entity to be initialized. */
       /* The constant has already been lowered. */
-handle_constant:
       if (dip != NULL) {
         con = dip->variant.constant.ptr;
       }  /* if */
@@ -10316,12 +10310,6 @@ C99 mode for the same reason.
         }  /* if */
       }  /* if */
       break;
-    case dik_module:
-      if (dip->variant.constant.ptr == NULL) {
-        /* There is no initializer available - treat the same as dik_none. */
-        break;
-      }  /* if */
-      FALLTHROUGH
     case dik_constant:
       /* Assign a constant to the entity to be initialized. */
       if (C_mode()) {

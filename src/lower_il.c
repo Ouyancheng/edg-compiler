@@ -9656,7 +9656,6 @@ local-variable-static-init entry.
     case initk_static:
       lower_constant(initializer->constant);
       break;
-    case initk_module:
     case initk_dynamic:
       /* The dynamic init entry is either pointed to from a stmk_init
          entry or appears on the file-scope dynamic inits list.  Handle

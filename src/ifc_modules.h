@@ -87,13 +87,11 @@ struct Is_trivially_copyable_edg_impl<an_ifc_attr_index> :
 template<>
 struct Is_trivially_copyable_edg_impl<an_ifc_decl_index> :
                                                 Integral_constant<bool, true> {
-
 };  /* Is_trivially_copyable_edg_impl */
 
 template<>
 struct Is_trivially_copyable_edg_impl<an_ifc_type_index> :
                                                 Integral_constant<bool, true> {
-
 };  /* Is_trivially_copyable_edg_impl */
 
 template<>
@@ -132,6 +130,9 @@ struct an_ifc_cache_info_zero_bits {
   a_bit_field   func_body:1;
                         /* TRUE if the entity being cached is the top-level
                            function body statement. */
+  a_bit_field   in_block_scope:1;
+                        /* TRUE if the entities being cached are part of a
+                           block scope. */
   a_bit_field   inline_data_member_type:1;
                         /* TRUE if the entity being cached is a data member
                            with an anonymous inline type. */
@@ -463,10 +464,6 @@ public:
                                         an_ifc_partition_kind part_kind) const;
 
   void complete_definition_of_module_class(a_module_entity_ptr mep);
-  a_boolean cache_function_body(a_module_token_cache_ptr cache,
-                                an_ifc_decl_index        decl_idx,
-                                a_routine_ptr            rp,
-                                a_func_info_block        *func_info);
   a_boolean init_header(a_module_import_decl_ptr midp,
                          a_boolean               issue_diag);
   a_boolean initialize_members_from_ifc_module_file(
@@ -804,6 +801,10 @@ extern an_ifc_module_file* get_module(const an_ifc_module_reference &ref);
 extern Opt<a_string> get_name_of_ifc_module(a_const_char *file_name);
 
 extern void process_ifc_declaration(a_module_entity_ptr mep);
+
+extern a_boolean has_variable_initializer_from_ifc_module(a_variable_ptr  vp);
+
+extern a_boolean load_variable_initializer_from_ifc_module(a_variable_ptr  vp);
 
 extern a_boolean has_routine_definition_from_ifc_module(a_routine_ptr  rp);
 

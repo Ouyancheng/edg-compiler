@@ -264,6 +264,10 @@ extern void import_header_module(a_module_import_decl_ptr midp);
 extern void import_module(a_module_import_decl_ptr midp,
                           a_symbol_ptr             assoc_sym);
 
+extern a_boolean has_variable_initializer_from_module(a_variable_ptr  vp);
+
+extern a_boolean load_variable_initializer_from_module(a_variable_ptr  vp);
+
 extern a_boolean has_routine_definition_from_module(a_routine_ptr  rp);
 
 extern a_boolean load_routine_definition_from_module(a_routine_ptr  rp);
@@ -284,10 +288,6 @@ extern a_boolean load_template_specializations_from_module(
 extern a_boolean has_type_definition_from_module(a_type_ptr  ty);
 
 extern a_boolean load_type_definition_from_module(a_type_ptr  ty);
-
-extern a_dynamic_init_ptr load_variable_init_from_module(
-                                         a_type_ptr                    tp,
-                                         a_lexical_ifc_index_reference *index);
 
 /*
 An internal token cache wrapper structure that represents additional state for

@@ -3062,12 +3062,6 @@ routines as specified in the control block.
         traverse_constant(dip->variant.constant.ptr, tblock);
       }  /* if */
       break;
-    case dik_module:
-      if (tblock->process_non_dynamic_constants &&
-          dip->variant.constant.ptr != NULL) {
-        traverse_constant(dip->variant.constant.ptr, tblock);
-      }  /* if */
-      break;
     default:
       unexpected_condition_str("traverse_dynamic_init: bad kind");
   }  /* switch */

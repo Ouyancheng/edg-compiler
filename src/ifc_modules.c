@@ -21,6 +21,7 @@ ifc_modules.c -- IFC reading code.
 #include "ifc_map_functions.h"
 #include "class_decl.h"
 #include "decl_spec.h"
+#include "decl_inits.h"
 #include "exprutil.h"
 #include "func_def.h"
 #include "literals.h"
@@ -1944,7 +1945,9 @@ empty optional.
 {
   Opt<a_scope_kind> result;
 
-  if (scope_ref.sort == ifc_ds_decl_scope) {
+  if (is_null_index(scope_ref)) {
+    result = sck_file;
+  } else if (scope_ref.sort == ifc_ds_decl_scope) {
     Opt<an_ifc_decl_scope> opt_scope_decl;
 
     construct_node(&opt_scope_decl, scope_ref);
@@ -2095,7 +2098,7 @@ FALSE.
   if (opt_scope_kind.has_value()) {
     a_scope_kind scope_kind = *opt_scope_kind;
 
-    result = (scope_kind == sck_namespace);
+    result = (scope_kind == sck_file || scope_kind == sck_namespace);
   }  /* if */
   return result;
 }  /* is_namespace_scope */
@@ -2113,7 +2116,7 @@ return FALSE.
   if (opt_scope_kind.has_value()) {
     a_scope_kind scope_kind = *opt_scope_kind;
 
-    result = (scope_kind == sck_namespace);
+    result = (scope_kind == sck_file || scope_kind == sck_namespace);
   }  /* if */
   return result;
 }  /* is_namespace_scope */
@@ -3653,7 +3656,10 @@ entity and update *kind with the associated entity kind.
 {
   char *result = NULL;
 
-  if (decl_state->il_template_entry != NULL) {
+  /* Make sure we got a template entry back with a valid symbol; otherwise,
+     return iek_none to indicate an error. */
+  if (decl_state->il_template_entry != NULL &&
+      symbol_for(decl_state->il_template_entry) != NULL) {
     a_tagged_pointer tagged_ptr =
                                 make_tagged_ptr(decl_state->il_template_entry);
 
@@ -3795,26 +3801,195 @@ Append any useful identifying information about the index.
 
 namespace {
 
-using an_ifc_function_body_map = Ptr_map<a_routine_ptr, an_ifc_decl_index>;
-                        /* The type of a map that associates IFC function
-                           bodies with IL routine entries. */
+/*
+This struct is used to represent an individual lazily loadable part of an
+entity (e.g., an initializer, definition, etc).
 
-an_ifc_function_body_map
+The normal flow is:
+
+  1. An entity is first associated with the corresponding IFC declaration via a
+     call to associate_entity.
+  2. A call to load the entity is made (from somewhere like interpret.c).
+  3. A call is made (prior to processing) to can_be_processed to detect
+     unresolvable cycles and avoid repeating potentially expensive work
+     (that previously failed).
+  4. If the entity processing is started, mark_pending is called.
+  5. When the entity part is completely processed, mark_finished or
+     mark_failure is called (respectively depending on success or failure of
+     processing).
+
+Multiple copies of this struct are used rather than having one universal
+(singleton) instance to allow for multiple pieces of the same entity to be
+independently loaded.
+*/
+struct a_lazy_entity_part {
+  a_lazy_entity_part() = default;
+  inline ~a_lazy_entity_part();
+
+  void associate_entity(a_tagged_pointer ptr, an_ifc_decl_index decl_idx)
+    { this->availible_definitions.map_or_replace(ptr, decl_idx); }
+  template<typename a_Ptr_type>
+  void associate_entity(a_Ptr_type ptr, an_ifc_decl_index decl_idx)
+    { this->associate_entity(make_tagged_ptr(ptr), decl_idx); }
+
+  a_boolean has_associated_ifc_decl(a_tagged_pointer ptr) const
+    { return !is_null_index(this->availible_definitions.get(ptr)); }
+  template<typename a_Ptr_type>
+  a_boolean has_associated_ifc_decl(a_Ptr_type ptr) const
+    { return this->has_associated_ifc_decl(make_tagged_ptr(ptr)); }
+
+  an_ifc_decl_index get_associated_ifc_decl(a_tagged_pointer ptr) const
+    { return this->availible_definitions.get(ptr); }
+  template<typename a_Ptr_type>
+  an_ifc_decl_index get_associated_ifc_decl(a_Ptr_type ptr) const
+    { return this->get_associated_ifc_decl(make_tagged_ptr(ptr)); }
+
+  a_boolean can_be_processed(a_tagged_pointer ptr) const
+    { return !this->is_pending(ptr) && !this->is_failed(ptr); }
+  template<typename a_Ptr_type>
+  a_boolean can_be_processed(a_Ptr_type ptr) const
+    { return this->can_be_processed(make_tagged_ptr(ptr)); }
+
+  inline a_boolean is_pending(a_tagged_pointer ptr) const;
+  template<typename a_Ptr_type>
+  a_boolean is_pending(a_Ptr_type ptr) const
+    { return this->is_pending(make_tagged_ptr(ptr)); }
+
+  void mark_pending(a_tagged_pointer ptr)
+    { this->add_to_pending_set(ptr); }
+  template<typename a_Ptr_type>
+  void mark_pending(a_Ptr_type ptr)
+    { this->mark_pending(make_tagged_ptr(ptr)); }
+
+  inline void mark_finished(a_tagged_pointer ptr);
+  template<typename a_Ptr_type>
+  void mark_finished(a_Ptr_type ptr)
+    { this->mark_finished(make_tagged_ptr(ptr)); }
+
+  inline a_boolean is_failed(a_tagged_pointer ptr) const
+    { return this->bad_entities != NULL && this->bad_entities->contains(ptr); }
+  template<typename a_Ptr_type>
+  a_boolean is_failed(a_Ptr_type ptr) const
+    { return this->is_failed(make_tagged_ptr(ptr)); }
+
+  inline void mark_failure(a_tagged_pointer ptr);
+  template<typename a_Ptr_type>
+  void mark_failure(a_Ptr_type ptr)
+    { this->mark_failure(make_tagged_ptr(ptr)); }
+private:
+  void add_to_pending_set(a_tagged_pointer ptr);
+  void remove_from_pending_set(a_tagged_pointer ptr);
+
+  Ptr_map<a_tagged_pointer, an_ifc_decl_index>
+                availible_definitions = {/*mask_width=*/10};
+                        /* This is a mapping of front end entities to their
+                           corresponding IFC declarations. */
+  Small_dyn_array<a_tagged_pointer, 10>
+                pending_entities = {};
+                        /* This is a set of entities that are currently being
+                           processed.  As there are rarely more than a handful
+                           of such pending entities at the same time, this set
+                           is modeled as a dynamic array. */
+  Ptr_set<a_tagged_pointer>
+                *bad_entities = NULL;
+                        /* This is the set of entities that failed to process
+                           correctly and shouldn't be retried.  This set is
+                           only created when there is at least one such
+                           entity. */
+};  /* a_lazy_entity_part */
+
+
+a_lazy_entity_part::~a_lazy_entity_part()
+/*
+Tear down any manually allocated associated state objects.
+*/
+{
+  if (this->bad_entities != NULL) {
+    free_fe(this->bad_entities);
+  }  /* if */
+}  /* a_lazy_entity_part::~a_lazy_entity_part */
+
+
+a_boolean a_lazy_entity_part::is_pending(a_tagged_pointer ptr) const
+/*
+Return TRUE if the given pointer is in the pending set; otherwise, return
+FALSE.
+*/
+{
+  for (a_tagged_pointer other_ptr : this->pending_entities) {
+    if (other_ptr == ptr) {
+      return TRUE;
+    }  /* if */
+  }  /* for */
+  return FALSE;
+}  /* is_pending */
+
+
+void a_lazy_entity_part::mark_finished(a_tagged_pointer ptr)
+/*
+Mark the part as complete for the given entity.
+*/
+{
+  this->remove_from_pending_set(ptr);
+  this->availible_definitions.unmap(ptr);
+}  /* a_lazy_entity_part::mark_failure */
+
+
+void a_lazy_entity_part::mark_failure(a_tagged_pointer ptr)
+/*
+Mark the part as uncompletable for the given entity.
+*/
+{
+  /* There should be at least one failure reported if an entity is being marked
+     as failed. */
+  check_assertion(is_at_least_one_error());
+  this->remove_from_pending_set(ptr);
+  if (this->bad_entities == NULL) {
+    this->bad_entities = new_fe<Ptr_set<a_tagged_pointer>>(/*mask_width=*/10);
+  }  /* if */
+  this->bad_entities->add(ptr);
+}  /* a_lazy_entity_part::mark_failure */
+
+
+void a_lazy_entity_part::add_to_pending_set(a_tagged_pointer ptr)
+/*
+Add the given entity to the pending set.
+*/
+{
+  this->pending_entities.push_back(ptr);
+}  /* a_lazy_entity_part::add_to_pending_set */
+
+
+void a_lazy_entity_part::remove_from_pending_set(a_tagged_pointer ptr)
+/*
+Remove the given entity to the pending set.
+*/
+{
+  /* Check from back to front as typically the most recently added pending
+     entity is the one being referenced. */
+  for (ptrdiff_t i = this->pending_entities.length() - 1; i >= 0; --i) {
+    if (this->pending_entities[i] == ptr) {
+      this->pending_entities.remove(i);
+      break;
+    }  /* if */
+  }  /* for */
+}  /* a_lazy_entity_part::remove_from_pending_set */
+
+
+a_lazy_entity_part
+                *ifc_var_inits;
+                        /* The state tracking object for lazy loaded IL
+                           variable initializer. */
+
+a_lazy_entity_part
                 *ifc_function_bodies;
-                        /* A map from IL routine entry pointers to entries of
-                           type an_ifc_decl_index that can be used to retrieve
-                           the definition of a function body when needed. */
+                        /* The state tracking object for lazy loaded IL
+                           function bodies. */
 
-using an_ifc_template_def_map = Ptr_map<a_template_ptr, an_ifc_decl_index>;
-                        /* The type of a map that associates IFC template
-                           definitions with IL template entries. */
-
-an_ifc_template_def_map
+a_lazy_entity_part
                 *ifc_template_definitions;
-                        /* A map from canonical template IL pointers to entries
-                           of type an_ifc_decl_index that can be used to
-                           retrieve the definition of the template when
-                           needed. */
+                        /* The state tracking object for lazy loaded IL
+                           template definitions. */
 
 using an_ifc_template_spec_map = Ptr_multi_map<a_template_ptr,
                                                an_ifc_decl_index,
@@ -3830,17 +4005,231 @@ an_ifc_template_spec_map
                            retrieve the specializations of the template when
                            needed. */
 
-using an_ifc_tag_def_map = Ptr_map<a_type_ptr, an_ifc_decl_index>;
-                        /* The type of a map that associates IFC tag
-                           definitions with IL tag entries. */
-
-an_ifc_tag_def_map
+a_lazy_entity_part
                 *ifc_tag_definitions;
-                        /* A map from tag IL pointers to entries of type
-                           an_ifc_decl_index that can be used to retrieve the
-                           definition of the tag when needed. */
+                        /* The state tracking object for lazy loaded IL
+                           tag definitions. */
 
 }  /* namespace */
+
+
+
+static inline a_boolean is_closure_decl(an_ifc_decl_index decl_idx)
+/*
+Return TRUE if the given IFC decl index represents a closure declaration;
+otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (decl_idx.sort == ifc_ds_decl_scope) {
+    Opt<an_ifc_decl_scope> opt_ids;
+
+    construct_node(&opt_ids, decl_idx);
+    if (opt_ids.has_value()) {
+      an_ifc_decl_scope  ids = *opt_ids;
+      an_ifc_scope_traits_bitfield
+                             traits = get_ifc_traits(ids);
+
+      if (test_bitmask<ifc_stb_closure_type>(traits)) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_closure_decl */
+
+
+static inline a_boolean is_auto_type(an_ifc_type_index type_idx)
+/*
+Return TRUE if the type at the given IFC type index is the "auto" type;
+otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (type_idx.sort) {
+    case ifc_ts_type_designated:
+      { Opt<an_ifc_type_designated> opt_designated_type;
+
+        construct_node(&opt_designated_type, type_idx);
+        if (opt_designated_type.has_value()) {
+          an_ifc_type_designated designated_type = *opt_designated_type;
+          an_ifc_decl_index      decl_idx = get_ifc_decl(designated_type);
+
+          if (is_closure_decl(decl_idx)) {
+            result = TRUE;
+          }  /* if */
+        }  /* if */
+      }
+      break;
+    case ifc_ts_type_fundamental:
+      { Opt<an_ifc_type_fundamental> opt_fund_type;
+
+        construct_node(&opt_fund_type, type_idx);
+        if (opt_fund_type.has_value()) {
+          an_ifc_type_fundamental fund_type = *opt_fund_type;
+          an_ifc_type_basis_sort  type_basis =  get_ifc_basis(fund_type);
+
+          if (type_basis == ifc_tbs_auto ||
+              type_basis == ifc_tbs_decltype_auto) {
+            result = TRUE;
+          }  /* if */
+        }
+      }
+      break;
+    case ifc_ts_type_qualified:
+      { Opt<an_ifc_type_qualified> opt_qual_type;
+
+        construct_node(&opt_qual_type, type_idx);
+        if (opt_qual_type.has_value()) {
+          an_ifc_type_qualified qual_type = *opt_qual_type;
+          an_ifc_type_index     unqual_type = get_ifc_unqualified(qual_type);
+
+          result = is_auto_type(unqual_type);
+        }  /* if */
+      }
+      break;
+    default:
+      break;
+  }  /* switch */
+      return result;
+}  /* is_auto_type */
+
+
+static inline a_boolean is_var_in_lazy_loadable_scope(
+                                              const an_ifc_decl_variable &node,
+                                              const an_ifc_cache_info    &cinfo)
+/*
+If the given variable is in a scope where it can be lazy loaded, return TRUE;
+otherwise, return FALSE.
+*/
+{
+  a_boolean     result = FALSE;
+  an_ifc_decl_index
+                decl_idx = get_ifc_home_scope(node);
+
+  if (is_namespace_scope(decl_idx)) {
+    if (!cinfo.in_block_scope) {
+      /* As of IFC 0.43 at least some local variables are written without home
+         scope information (resulting in them being indistinguishable from those
+         in namespace scope).  This is a work around to catch said local
+         variables. */
+      result = TRUE;
+    }  /* if */
+  } else if (is_class_scope(decl_idx)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_var_in_lazy_loadable_scope */
+
+
+static a_boolean var_init_can_be_deferred(const an_ifc_decl_variable &node,
+                                          const an_ifc_cache_info    &cinfo)
+/*
+Return TRUE if the given variable IFC declaration node has an initializer that
+can be lazy loaded.  cinfo contains information about the current cache context
+to help inform decisions about what to cache.
+*/
+{
+  a_boolean     result = TRUE;
+  an_ifc_type_index
+                type_idx = get_ifc_type(node);
+
+  if (!is_var_in_lazy_loadable_scope(node, cinfo)) {
+    result = FALSE;
+  } else if (is_auto_type(type_idx)) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* var_init_can_be_deferred */
+
+
+static void record_pending_ifc_variable_init(a_variable_ptr    vp,
+                                             an_ifc_decl_index decl_idx)
+/*
+Record the information needed to retrieve a definition for rp if it turns out
+to be needed later on.
+*/
+{
+  (void)ifc_var_inits->associate_entity(vp, decl_idx);
+}  /* record_pending_ifc_variable_init */
+
+
+template<typename an_ifc_Node_type>
+static void try_map_variable_initializer(const an_ifc_Node_type &decl_node,
+                                         an_ifc_decl_index      decl_idx,
+                                         a_variable_ptr         vp)
+/*
+Given a declaration node (indexed by decl_idx) representing a variable-like
+entity, and the corresponding IL entity (i.e., variable pointer), map the
+associated IL entity to its pending initializer (if an initializer is present).
+*/
+{
+  an_ifc_expr_index initializer = get_ifc_initializer(decl_node);
+
+  if (!is_null_index(initializer)) {
+    record_pending_ifc_variable_init(vp, decl_idx);
+  }  /* if */
+}  /* try_map_routine_definition */
+
+
+static void map_pending_variable_initializers(an_ifc_decl_index decl_idx,
+                                              a_variable_ptr    vp)
+/*
+Given a declaration index representing a variable-like entity, and the
+corresponding IL entity (i.e., variable pointer), map the associated IL entity
+to its pending initializer (if an initializer is present).
+*/
+{
+  switch (decl_idx.sort) {
+    case ifc_ds_decl_field:
+      /* Nothing to do: fields are always processed with their initializers. */
+      break;
+    case ifc_ds_decl_reference:
+      /* FIXME: For now, consider this a no op; we may want to consider using
+         collapse_partition_index to make this case disappear (by making the
+         module entity pointer for a DeclReference resolve to the referenced
+         declaration's module entity pointer). */
+      break;
+    case ifc_ds_decl_specialization:
+      { an_ifc_decl_specialization spec_decl;
+
+        construct_node_prechecked(&spec_decl, decl_idx);
+
+        an_ifc_decl_index parameterized_idx = get_ifc_decl(spec_decl);
+        map_pending_variable_initializers(parameterized_idx, vp);
+      }
+      break;
+    case ifc_ds_decl_using_declaration:
+      /* Nothing to do: using declarations that target variables do not have
+         distinct representations outside of the symbol table.  This results in
+         a situation where the module entity can be an already processed
+         variable. */
+      break;
+    case ifc_ds_decl_variable:
+      { an_ifc_decl_variable var_decl;
+
+        construct_node_prechecked(&var_decl, decl_idx);
+        try_map_variable_initializer(var_decl, decl_idx, vp);
+      }
+      break;
+    default:
+#if CHECKING
+      /* When this condition is violated the front end has mapped the IFC
+         representation to an IL entity while the IFC representation doesn't
+         suggest any known way the IFC encodes a variable-like entity.  There's
+         either an unhandled case, or the module entity should've been
+         invalidated (for resulting in the wrong IL entity kind). */
+      { a_string err_msg(index_to_str(decl_idx), " is represented in the IL"
+                         " as a variable");
+
+        unexpected_condition_str(err_msg.as_temp_characters());
+      }
+#endif /* CHECKING */
+      break;
+  }  /* switch */
+}  /* map_pending_variable_initializers */
 
 
 template<typename an_ifc_Node_type>
@@ -3903,7 +4292,7 @@ Record the information needed to retrieve a definition for rp if it turns out
 to be needed later on.
 */
 {
-  (void)ifc_function_bodies->map_or_replace(rp, decl_idx);
+  (void)ifc_function_bodies->associate_entity(rp, decl_idx);
 #if CHECKING
   // FIXME: We should check that rp is from a header unit.  That should be the
   //        only way we can reach two definitions for the same routine.
@@ -4174,8 +4563,8 @@ index information to the given symbol.
         check_assertion(kind == iek_type);
 
         a_type_ptr type = (a_type_ptr)il_entity;
-        if (is_null_index(ifc_tag_definitions->get(type))) {
-          ifc_tag_definitions->map(type, decl_idx);
+        if (!ifc_tag_definitions->has_associated_ifc_decl(type)) {
+          ifc_tag_definitions->associate_entity(type, decl_idx);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -5099,6 +5488,189 @@ static void cache_expr(a_module_token_cache_ptr cache,
                        const an_ifc_cache_info  &cinfo);
 
 
+static a_boolean is_template_reference_type_buggy_parent(
+                                                    an_ifc_type_index type_idx)
+/*
+Return TRUE if this is the special case "buggy" MSVC IFC representation where a
+TypeSort::Syntactic type references a ExprSort::TemplateReference expression
+that must be recursively resolved (see find_template_reference_true_type for
+more information); otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (type_idx.sort != ifc_ts_type_syntactic) {
+    result = FALSE;
+  } else {
+    Opt<an_ifc_type_syntactic> opt_syntactic_type;
+
+    construct_node(&opt_syntactic_type, type_idx);
+    if (!opt_syntactic_type.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    an_ifc_type_syntactic syntactic_type = *opt_syntactic_type;
+    an_ifc_expr_index     syntax_expr = get_ifc_expr(syntactic_type);
+    if (syntax_expr.sort != ifc_es_expr_template_reference) {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
+}  /* is_template_reference_type_buggy_parent */
+
+
+static a_template_arg_ptr
+template_args_for_expr_list(a_symbol_ptr      template_sym,
+                            an_ifc_expr_index arguments);
+
+
+static a_symbol_ptr resolve_ifc_template_member_reference(
+                                                an_ifc_expr_index syntax_expr,
+                                                a_type_ptr        class_type)
+/*
+*/
+{
+  a_symbol_ptr result = NULL;
+  {
+    an_ifc_expr_template_reference
+                templ_ref_expr;
+
+    construct_node_prechecked(&templ_ref_expr, syntax_expr);
+
+    /* Load the member name. */
+    an_ifc_name_index
+                name_idx = get_ifc_member_name(templ_ref_expr);
+    Opt<a_string>
+                opt_member_name = name_from_index(name_idx);
+    if (!opt_member_name.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    a_string    member_name = *opt_member_name;
+    /* Lookup the member. */
+    result = look_up_name_string_in_class(member_name.as_temp_characters(),
+                                          class_type,
+                                          IDL_NO_OPTIONS);
+    if (result == NULL) {
+      a_string err_msg("Template member ", member_name, " represented by ",
+                       index_to_str(syntax_expr), " could not be found");
+
+      ifc_unexpected(module_of(syntax_expr), err_msg);
+      goto invalid;
+    }  /* if */
+
+    an_ifc_expr_index
+                member_templ_args_expr = get_ifc_arguments(templ_ref_expr);
+    switch (result->kind) {
+      case sk_class_or_struct_tag:
+      case sk_static_data_member:
+        if (!is_null_index(member_templ_args_expr)) {
+          a_string err_msg("Unexpected template arguments provided during "
+                           "resolution of ", index_to_str(syntax_expr),
+                           " to class member \"", member_name, "\"");
+
+          ifc_unexpected(module_of(syntax_expr), err_msg);
+        }  /* if */
+        break;
+      case sk_class_template:
+        { /* Resolve the template argument list. */
+          a_template_arg_ptr
+                member_templ_args = template_args_for_expr_list(
+                                                       result,
+                                                       member_templ_args_expr);
+          /* Instantiate the class template and use the resulting type as the
+             parent scope. */
+          result = find_template_class(result,
+                                       &member_templ_args,
+                                       /*any_prototype_allowed=*/FALSE,
+                                       /*specific_prototype_allowed=*/NULL,
+                                       /*instantiation_nonreal=*/FALSE,
+                                       /*do_not_create=*/FALSE,
+                                       /*in_substitution=*/FALSE);
+        }
+        break;
+      default:
+        { a_string err_msg("Resolution of ", index_to_str(syntax_expr),
+                           " to ",
+                           symbol_kind_names[(int)result->kind],
+                           " member \"",
+                           member_name,
+                           "\" is not currently supported");
+
+          ifc_unexpected(module_of(syntax_expr), err_msg);
+        }
+        goto invalid;
+    }  /* switch */
+  }
+  goto done;
+invalid:
+  result = NULL;
+done:
+  return result;
+}  /* resolve_ifc_template_member_reference */
+
+
+static a_type_ptr find_template_reference_true_type(an_ifc_type_index type_idx)
+/*
+The MSVC IFC encoding represents template member references (e.g. A<X>::K and
+A<X>::Z<B>) strangely.  To properly process this we have to go to the deepest
+node where we'll find (e.g., A<X>) with a member name (e.g., K).  If that
+member name (e.g., K) is a type, we use that combination as the type.
+*/
+{
+  a_type_ptr result = NULL;
+
+  if (is_template_reference_type_buggy_parent(type_idx)) {
+    an_ifc_type_syntactic
+                syntactic_type;
+
+    construct_node_prechecked(&syntactic_type, type_idx);
+
+    an_ifc_expr_index
+                syntax_expr = get_ifc_expr(syntactic_type);
+    Opt<an_ifc_expr_template_reference>
+                opt_templ_ref_expr;
+
+    construct_node(&opt_templ_ref_expr, syntax_expr);
+    if (!opt_templ_ref_expr.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    an_ifc_expr_template_reference
+                templ_ref_expr = *opt_templ_ref_expr;
+    an_ifc_type_index
+                scope_type_idx = get_ifc_scope(templ_ref_expr);
+    result = find_template_reference_true_type(scope_type_idx);
+    if (is_error_type(result)) {
+      goto invalid;
+    }  /* if */
+
+    /* Resolve the member, if the member resolves to a type use it in place of
+       the current result type. */
+    a_symbol_ptr
+                member_sym = resolve_ifc_template_member_reference(syntax_expr,
+                                                                   result);
+    an_il_entry_kind
+                kind;
+    char        *il_entry = il_entry_for_symbol(member_sym, &kind);
+    if (kind == iek_type) {
+      result = (a_type*)il_entry;
+    }  /* if */
+  } else {
+    result = type_for_type_index(type_idx);
+  }  /* if */
+  goto done;
+invalid:
+  result = error_type();
+done:
+  return result;
+}  /* find_template_reference_true_type */
+
+
 static a_symbol_ptr load_ifc_entity_ref(an_ifc_expr_index  expr_idx)
 /*
 Load the entity referred to by expr_idx (currently, this handles a "named
@@ -5128,16 +5700,17 @@ error occurs, return NULL.
       }
       break;
     case ifc_es_expr_template_id:
-      { a_symbol_ptr                  templ_sym = NULL;
-        Opt<an_ifc_expr_template_id>  opt_template_id;
+      { Opt<an_ifc_expr_template_id>  opt_template_id;
         construct_node(&opt_template_id, expr_idx);
         if (!opt_template_id.has_value()) goto invalid;
 
         /* Obtain the primary template and resolve it to a front end symbol. */
         an_ifc_expr_template_id  template_id = *opt_template_id;
         an_ifc_expr_index        primary = get_ifc_primary(template_id);
-        templ_sym = load_ifc_entity_ref(primary);
-        if (templ_sym == NULL) goto invalid;
+        a_symbol_ptr             templ_sym = load_ifc_entity_ref(primary);
+        if (templ_sym == NULL) {
+          goto invalid;
+        }  /* if */
 
         /* Construct a token cache with the template arguments. */
         a_module_token_cache        arg_cache;
@@ -5177,14 +5750,43 @@ error occurs, return NULL.
                                           pos_hint.as_pos());
         } else {
           /* FIXME: Handle other template kinds. */
+          a_string err_msg("Unhandled template kind for ",
+                           index_to_str(expr_idx));
+
+          ifc_unexpected(module_of(template_id), err_msg);
           goto invalid;
         }  /* if */
       }
       break;
+    case ifc_es_expr_template_reference:
+      { Opt<an_ifc_expr_template_reference> opt_templ_ref_expr;
+
+        construct_node(&opt_templ_ref_expr, expr_idx);
+        if (!opt_templ_ref_expr.has_value()) {
+          goto invalid;
+        }  /* if */
+
+        an_ifc_expr_template_reference
+                templ_ref_expr = *opt_templ_ref_expr;
+        /* Load the template type. */
+        an_ifc_type_index
+                type_idx = get_ifc_scope(templ_ref_expr);
+        a_type_ptr
+                type = find_template_reference_true_type(type_idx);
+        if (is_error_type(type)) {
+          goto invalid;
+        }  /* if */
+
+        /* Find the member symbol. */
+        result = resolve_ifc_template_member_reference(expr_idx, type);
+      }
+      break;
     default:
-      issue_unsupported_construct_error(module_of(expr_idx),
-                                        "ExprIndex entity",
-                                        &error_position);
+      { a_string err_msg("Unsupported entity for lazy loading ",
+                         index_to_str(expr_idx));
+
+        ifc_unexpected(module_of(expr_idx), err_msg);
+      }
       break;
   }  /* switch */
   goto done;
@@ -5397,7 +5999,10 @@ FALSE.
 {
   auto              cache_content = [](a_module_token_cache *content_cache,
                                        an_ifc_decl_index    decl_idx) {
-    module_of(decl_idx)->cache_decl(content_cache, decl_idx, /*cinfo=*/{});
+    an_ifc_cache_info cache_info;
+
+    cache_info.in_block_scope = TRUE;
+    module_of(decl_idx)->cache_decl(content_cache, decl_idx, cache_info);
   };
   an_ifc_decl_index var_decl_idx = get_ifc_decl(node);
 
@@ -6501,11 +7106,175 @@ done:
 }  /* add_function_def_parameters */
 
 
-a_boolean an_ifc_module::cache_function_body(
-                                           a_module_token_cache_ptr cache,
-                                           an_ifc_decl_index        decl_idx,
-                                           a_routine_ptr            rp,
-                                           a_func_info_block        *func_info)
+a_boolean has_variable_initializer_from_ifc_module(a_variable_ptr vp)
+/*
+If the given variable has an initializer in a currently-imported IFC module
+return TRUE.
+*/
+{
+  return ifc_var_inits->has_associated_ifc_decl(vp);
+}  /* has_variable_initializer_from_ifc_module */
+
+
+a_boolean load_variable_initializer_from_ifc_module(a_variable_ptr vp)
+/*
+The given variable claims to have an initializer in a currently-imported IFC
+module; process said initializer and return TRUE.  If problems are encountered
+during processing, return FALSE.
+
+The presence of a variable initializer should be checked for via
+has_variable_initializer_from_ifc_module prior to attempting to load the
+variable initializer.
+*/
+{
+  a_boolean result = FALSE;
+
+  check_assertion(has_variable_initializer_from_ifc_module(vp));
+  if (ifc_var_inits->can_be_processed(vp)) {
+    an_ifc_decl_index
+                decl_idx = ifc_var_inits->get_associated_ifc_decl(vp);
+    a_module_entity_ptr
+                mep = get_ifc_module_entity_ptr(decl_idx);
+    a_module_entity_stack_state
+                mep_state(mep);
+    a_diagnostic_suppression
+                diag_suppress(&module_of(decl_idx)->suppressed_diagnostics,
+                              !display_module_import_diagnostics);
+
+#if DEBUG
+    if (db_flag_is_set("ifc_idx")) {
+      a_string err_msg("Variable initializer loading started for ",
+                       index_to_str(decl_idx));
+
+      print(err_msg, f_debug);
+    }  /* if */
+#endif /* DEBUG */
+
+    a_module_scope_push_kind
+                scope_push_status = mspk_unattempted;
+    push_module_declaration_context(mep->scope, &scope_push_status);
+    ifc_var_inits->mark_pending(vp);
+
+    Opt<an_ifc_decl_variable>
+                opt_var_decl;
+    construct_node(&opt_var_decl, decl_idx);
+    if (opt_var_decl.has_value()) {
+      an_ifc_decl_variable
+                var_decl = *opt_var_decl;
+      an_ifc_expr_index
+                init = get_ifc_initializer(var_decl);
+      a_module_token_cache
+                init_cache;
+
+      cache_expr(&init_cache, init, /*cinfo=*/{});
+#if DEBUG
+      if (db_flag_is_set("ifc_def")) {
+        fprintf(f_debug, "Variable initializer cache:\n");
+        db_tokens(&init_cache);
+        fprintf(f_debug, "\n---------------------\n");
+      }  /* if */
+#endif /* DEBUG */
+      if (init_cache.is_valid()) {
+        an_ifc_object_traits_bitfield
+                traits = get_ifc_traits(var_decl);
+
+        /* FIXME: MSVC produced IFCs do not always mark the constexpr flag so
+           we assume the variable is constexpr if
+           ifc_es_expr_product_type_value is used. */
+        if (test_bitmask<ifc_otb_constexpr>(traits) ||
+            init.sort == ifc_es_expr_product_type_value) {
+          vp->is_constexpr = TRUE;
+        }  /* if */
+        if (test_bitmask<ifc_otb_inline>(traits)) {
+          vp->is_inline = TRUE;
+        }  /* if */
+
+        a_module_entity_rescan
+                rescan(&init_cache);
+        a_boolean
+                paren_flag = init_cache.get_first_token()->token == tok_lparen;
+        /* If the initial token is a paren, set the paren flag and consume the
+           opening paren. */
+        if (paren_flag) {
+          (void)get_token();
+        }  /* if */
+
+        a_decl_parse_state
+                dps;
+        a_decl_pos_block
+                decl_pos_block;
+        a_boolean
+                incomplete_type_err = FALSE;
+        init_decl_parse_state(&dps);
+        dps.sym = symbol_for(vp);
+
+        /* Convert the name linkage back to an id linkage. */
+        /* FIXME: Is this right/should this be extracted? */
+        an_id_linkage_kind
+                id_linkage;
+        switch (vp->source_corresp.name_linkage) {
+          case nlk_none:
+            id_linkage = idl_none;
+            break;
+          case nlk_internal:
+            id_linkage = idl_internal;
+            break;
+          case nlk_cplusplus_external:
+          case nlk_external:
+            id_linkage = idl_external;
+            break;
+          case nlk_last:
+            /* This should not show up from a source correspondence. */
+            unexpected_condition();
+          /* Implementations with custom linkage kinds must pick the
+             appropriate id linkage kind. */
+          default_is_unexpected();
+        }  /* switch */
+        initializer(&dps, &null_source_position, id_linkage,
+                    paren_flag, &incomplete_type_err, &decl_pos_block);
+        if (vp->init_kind != initk_none) {
+          result = TRUE;
+          /* Update the symbol to note the definition. */
+          symbol_for(vp)->defined = TRUE;
+          /* We have successfully loaded the initializer. */
+          ifc_var_inits->mark_finished(vp);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+
+    /* If this variable failed to process successfully, mark the failure so we
+       don't reenter this branch. */
+    if (!result) {
+      ifc_var_inits->mark_failure(vp);
+    }  /* if */
+    pop_module_declaration_context(scope_push_status);
+#if DEBUG
+    if (db_flag_is_set("ifc_idx")) {
+      a_string err_msg("Variable initializer loading done for ",
+                       index_to_str(decl_idx));
+
+      print(err_msg, f_debug);
+    }  /* if */
+#endif /* DEBUG */
+  }  /* if */
+  return result;
+}  /* load_variable_initializer_from_ifc_module */
+
+
+a_boolean has_routine_definition_from_ifc_module(a_routine_ptr  rp)
+/*
+If the given routine has a definition in a currently-imported IFC module
+return TRUE.
+*/
+{
+  return ifc_function_bodies->has_associated_ifc_decl(rp);
+}  /* has_routine_definition_from_ifc_module */
+
+
+static a_boolean cache_function_body(a_module_token_cache_ptr cache,
+                                     an_ifc_decl_index        decl_idx,
+                                     a_routine_ptr            rp,
+                                     a_func_info_block        *func_info)
 /*
 decl_idx points to the IFC representation of rp: That representation was
 already loaded previously and found to be associated with a definition in
@@ -6547,7 +7316,7 @@ instead.
     if (!is_null_index(body)) {
       an_ifc_cache_info cache_info;
       cache_info.func_body = TRUE;
-      cache_statement(cache, body, cache_info);
+      module_of(body)->cache_statement(cache, body, cache_info);
     }  /* if */
     cache_token(cache, tok_rbrace);
 #if DEBUG
@@ -6565,43 +7334,7 @@ instead.
   }  /* if */
 done:
   return result;
-}  /* an_ifc_module::cache_function_body */
-
-namespace {
-
-using an_ifc_function_failure_set = Ptr_set<a_routine_ptr>;
-                        /* The type of a set that contains routines that
-                           have previously failed to process. */
-
-an_ifc_function_failure_set
-                *ifc_bad_function_bodies;
-                        /* A set of IL routine entry pointers containing
-                           routines with previously processed (failed) function
-                           bodies. */
-
-using an_ifc_pending_definition_set = Ptr_set<a_tagged_pointer>;
-                        /* The type of a set that pairs an IL entity with a
-                           pending. */
-
-an_ifc_pending_definition_set
-                *ifc_pending_definitions;
-                        /* A set of IL entity pointers containing IL entities
-                           that we're already attempting to resolve a
-                           definition for. */
-
-}  /* namespace */
-
-
-a_boolean has_routine_definition_from_ifc_module(a_routine_ptr  rp)
-/*
-If the given routine has a definition in a currently-imported IFC module
-return TRUE.
-*/
-{
-  an_ifc_decl_index ifb = ifc_function_bodies->get(rp);
-
-  return !is_null_index(ifb);
-}  /* has_routine_definition_from_ifc_module */
+}  /* cache_function_body */
 
 
 a_boolean load_routine_definition_from_ifc_module(a_routine_ptr  rp)
@@ -6615,18 +7348,12 @@ has_routine_definition_from_ifc_module prior to attempting to load the routine
 definition.
 */
 {
-  a_boolean        result = FALSE;
-  a_tagged_pointer routine_tp = make_tagged_ptr(rp);
+  a_boolean result = FALSE;
 
   check_assertion(has_routine_definition_from_ifc_module(rp));
-  /* Make sure that we don't attempt to process a definition that we're already
-     processing, and check the (effective) set of routines that have previously
-     failed definition processing.  This prevents repeating errors and
-     mitigates the performance impact if a problematic routine is called many
-     times. */
-  if (!ifc_pending_definitions->contains(routine_tp) &&
-      !ifc_bad_function_bodies->contains(rp)) {
-    an_ifc_decl_index           ifb = ifc_function_bodies->get(rp);
+  if (ifc_function_bodies->can_be_processed(rp)) {
+    an_ifc_decl_index           ifb =
+                              ifc_function_bodies->get_associated_ifc_decl(rp);
     a_func_info_block           func_info;
     a_module_token_cache        def_cache;
     a_decl_flag_set             flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED;
@@ -6642,10 +7369,10 @@ definition.
       print(err_msg, f_debug);
     }  /* if */
 #endif /* DEBUG */
-    ifc_pending_definitions->add(routine_tp);
+    ifc_function_bodies->mark_pending(rp);
     clear_func_info(&func_info);
     push_new_top_level_declaration();
-    if (module_of(ifb)->cache_function_body(&def_cache, ifb, rp, &func_info)) {
+    if (cache_function_body(&def_cache, ifb, rp, &func_info)) {
       if (def_cache.is_valid()) {
         a_token_kind           expected_tok = tok_rbrace;
         a_module_entity_rescan rescan(&def_cache, &expected_tok);
@@ -6653,10 +7380,8 @@ definition.
         scan_function_body(rp, &func_info, flags);
         if (curr_token == expected_tok) {
           result = TRUE;
-          /* We have successfully loaded the definition.  So the "pending
-             definition" entry can be dropped now.  Dropping it without
-             successful completion will result in errors at call sites. */
-          ifc_function_bodies->unmap(rp);
+          /* We have successfully loaded the definition. */
+          ifc_function_bodies->mark_finished(rp);
         }  /* if */
       }  /* if */
     }  /* if */
@@ -6664,11 +7389,8 @@ definition.
     /* If this function failed to process successfully, mark the failure so we
        don't reenter this branch. */
     if (!result) {
-      ifc_bad_function_bodies->add(rp);
-      check_assertion_str(is_at_least_one_error(),
-                          "expected errors for bad function body");
+      ifc_function_bodies->mark_failure(rp);
     }  /* if */
-    ifc_pending_definitions->remove(routine_tp);
 #if DEBUG
     if (db_flag_is_set("ifc_idx")) {
       a_string err_msg("Function def loading done for ", index_to_str(ifb));
@@ -8444,9 +9166,7 @@ Note that templ must refer to the canonical template.
 */
 {
   check_assertion(templ != NULL && templ->canonical_template == templ);
-  an_ifc_decl_index def_decl_idx = ifc_template_definitions->get(templ);
-
-  return def_decl_idx.file != NULL;
+  return ifc_template_definitions->has_associated_ifc_decl(templ);
 }  /* has_template_definition_from_ifc_module */
 
 
@@ -8458,11 +9178,12 @@ must refer to the canonical template.
 */
 {
   check_assertion(has_template_definition_from_ifc_module(templ));
-  a_boolean         result = FALSE;
-  an_ifc_decl_index def_decl_idx = ifc_template_definitions->get(templ);
-  a_tagged_pointer  templ_tp = make_tagged_ptr(templ);
+  a_boolean result = FALSE;
 
-  if (!ifc_pending_definitions->contains(templ_tp)) {
+  if (ifc_template_definitions->can_be_processed(templ)) {
+    an_ifc_decl_index  def_decl_idx =
+                      ifc_template_definitions->get_associated_ifc_decl(templ);
+
 #if DEBUG
     if (db_flag_is_set("ifc_idx")) {
       a_string err_msg("Template def loading started for ",
@@ -8471,7 +9192,7 @@ must refer to the canonical template.
       print(err_msg, f_debug);
     }  /* if */
 #endif /* DEBUG */
-    ifc_pending_definitions->add(templ_tp);
+    ifc_template_definitions->mark_pending(templ);
 
     /* When the ifc_template_definitions were inserted, this should've been
        validated and not added to the map if invalid. */
@@ -8487,24 +9208,27 @@ must refer to the canonical template.
     push_module_declaration_context(mep->scope, &scope_push_status);
 
     /* Process the definition. */
-    char                      *il_entity = (char*)templ;
-    an_il_entry_kind          kind = iek_template;
-    an_ifc_template_spec_info spec_info(def_decl_idx);
-    if (process_template_definition(template_decl, mep, spec_info,
-                                    &il_entity, &kind)) {
-      /* FIXME: We need to be able to better determine that the template has
-         been defined before removing from the map. */
-      /* The definition was successfully loaded, unmap the pending
-         definition. */
-      /* ifc_template_definitions->unmap(templ); */
-    }  /* if */
+    char        *il_entity = (char*)templ;
+    an_il_entry_kind
+                kind = iek_template;
+    an_ifc_template_spec_info
+                spec_info(def_decl_idx);
+    a_boolean   processed = process_template_definition(template_decl, mep,
+                                                        spec_info,
+                                                        &il_entity, &kind);
     /* Update the module entity pointer to refer to the defining IL
        template. */
     mep->entity = canonicalize_tagged_ptr(kind, (char*)il_entity);
+    if (processed) {
+      /* The definition was successfully loaded. */
+      ifc_template_definitions->mark_finished(templ);
+    } else {
+      /* The definition failed to loaded. */
+      ifc_template_definitions->mark_failure(templ);
+    }  /* if */
     /* Restore the module declaration context stack; all other cleanup is RAII
        based. */
     pop_module_declaration_context(scope_push_status);
-    ifc_pending_definitions->remove(templ_tp);
 #if DEBUG
     if (db_flag_is_set("ifc_idx")) {
       a_string err_msg("Template def loading done for ",
@@ -9349,8 +10073,8 @@ strongly preferred over calling this function directly.
                       test_bitmask<ifc_rpb_initializer>(properties)) {
                     /* Record the presence of a definition of an existing
                        type. */
-                    if (is_null_index(ifc_tag_definitions->get(type))) {
-                      ifc_tag_definitions->map(type, decl_idx);
+                    if (!ifc_tag_definitions->has_associated_ifc_decl(type)) {
+                      ifc_tag_definitions->associate_entity(type, decl_idx);
                     }  /* if */
                   }  /* if */
                   break;
@@ -9413,7 +10137,7 @@ strongly preferred over calling this function directly.
               tag_type->source_corresp.name_linkage = nlk_cplusplus_external;
               if (test_bitmask<ifc_rpb_initializer>(properties)) {
                 /* Record the presence of a definition. */
-                ifc_tag_definitions->map(tag_type, decl_idx);
+                ifc_tag_definitions->associate_entity(tag_type, decl_idx);
               }  /* if */
               il_entity = (char*)tag_type;
               kind = iek_type;
@@ -10883,9 +11607,7 @@ If the given type has a definition in a currently-imported IFC module return
 TRUE.
 */
 {
-  an_ifc_decl_index def_idx = ifc_tag_definitions->get(ty);
-
-  return !is_null_index(def_idx);
+  return ifc_tag_definitions->has_associated_ifc_decl(ty);
 }  /* has_type_definition_from_ifc_module */
 
 
@@ -10900,19 +11622,24 @@ has_type_definition_from_ifc_module prior to attempting to load the type
 definition.
 */
 {
-  /* FIXME: Clean this up and convert it to use ifc_pending_definitions, and
-     generally be more similar to the other load_X_definition_from_ifc_module
-     functions. */
   check_assertion(has_type_definition_from_ifc_module(ty));
-  an_ifc_decl_index   def_idx = ifc_tag_definitions->get(ty);
-  a_module_entity_ptr def_mep = get_ifc_module_entity_ptr(def_idx);
+  an_ifc_decl_index
+                def_idx = ifc_tag_definitions->get_associated_ifc_decl(ty);
+  a_module_entity_ptr
+                def_mep = get_ifc_module_entity_ptr(def_idx);
 
-  if (!def_mep->invalid) {
+  if (ifc_tag_definitions->can_be_processed(ty)) {
     a_module_scope_push_kind scope_push_status = mspk_unattempted;
 
+    ifc_tag_definitions->mark_pending(ty);
     push_module_declaration_context(def_mep->scope, &scope_push_status);
     module_of(def_idx)->complete_definition_of_module_class(def_mep);
     pop_module_declaration_context(scope_push_status);
+    if (def_mep->invalid) {
+      ifc_tag_definitions->mark_failure(ty);
+    } else {
+      ifc_tag_definitions->mark_finished(ty);
+    }  /* if */
   }  /* if */
   return !def_mep->invalid;
 }  /* load_type_definition_from_ifc_module */
@@ -12234,6 +12961,30 @@ corresponding integer type.
 }  /* get_edg_int_kind */
 
 
+static a_type_ptr parse_type_name_specifier_cache(an_ifc_module        *mod,
+                                                  a_module_token_cache *cache)
+/*
+*/
+{
+  a_type_ptr             result = NULL;
+  a_module_entity_rescan rescan(cache);
+
+  if (curr_token == tok_typename) {
+    a_symbol_ptr       type_sym = NULL;
+    a_decl_parse_state dps;
+    a_decl_pos_block   decl_pos_block;
+
+    init_decl_parse_state(&dps);
+    typename_specifier(&result, &type_sym, /*within_using_decl=*/FALSE,
+                       /*is_decl_specifier=*/FALSE, &dps,
+                       &decl_pos_block);
+  } else {
+    ifc_unexpected(mod, "expected a typename token");
+  }  /* if */
+  return result;
+}  /* parse_type_name_specifier_cache */
+
+
 static void associate_mep_with_type(a_module_entity_ptr mep)
 /*
 For the given type module entity pointer, associate the corresponding IL type
@@ -12244,6 +12995,13 @@ with the module entity pointer.
   an_ifc_type_index type_idx = type_index_of(mep);
   an_ifc_module     *mod = module_of(type_idx);
 
+#if DEBUG
+  if (db_flag_is_set("ifc_idx")) {
+    a_string err_msg("Type resolution started for ", index_to_str(type_idx));
+
+    print(err_msg, f_debug);
+  }  /* if */
+#endif /* DEBUG */
   switch (type_idx.sort) {
     case ifc_ts_type_fundamental:
       { Opt<an_ifc_type_fundamental> opt_itf;
@@ -12788,12 +13546,22 @@ with the module entity pointer.
             }
             break;
           default:
-            { a_string err_msg("Unexpected ", str_for(expr.sort),
-                               " for ", str_for(type_idx.sort));
+            { a_module_token_cache cache;
 
-              ifc_unexpected(mod, err_msg);
+              /* Create a fake "typename-specifier" and use that to parse the
+                 type. */
+              cache_token(&cache, tok_typename);
+              cache_expr(&cache, expr, /*cinfo=*/{});
+              if (!cache.is_valid()) {
+                goto invalid;
+              }  /* if */
+
+              result = parse_type_name_specifier_cache(mod, &cache);
+              if (result == NULL) {
+                goto invalid;
+              }  /* if */
             }
-            goto invalid;
+            break;
         }  /* switch */
       }
       break;
@@ -12843,18 +13611,8 @@ with the module entity pointer.
           goto invalid;
         }  /* if */
 
-        a_module_entity_rescan rescan(&cache);
-        if (curr_token == tok_typename) {
-          a_symbol_ptr       type_sym = NULL;
-          a_decl_parse_state dps;
-          a_decl_pos_block   decl_pos_block;
-
-          init_decl_parse_state(&dps);
-          typename_specifier(&result, &type_sym, /*within_using_decl=*/FALSE,
-                             /*is_decl_specifier=*/FALSE, &dps,
-                             &decl_pos_block);
-        } else {
-          ifc_unexpected(module_of(type_idx), "expected a typename token");
+        result = parse_type_name_specifier_cache(mod, &cache);
+        if (result == NULL) {
           goto invalid;
         }  /* if */
       }
@@ -12936,6 +13694,13 @@ done:
   mep->scope = result->source_corresp.parent_scope;
   /* Assign the entity. */
   mep->entity = make_tagged_ptr(result);
+#if DEBUG
+  if (db_flag_is_set("ifc_idx")) {
+    a_string err_msg("Type resolution done for ", index_to_str(type_idx));
+
+    print(err_msg, f_debug);
+  }  /* if */
+#endif /* DEBUG */
 }  /* associate_mep_with_type */
 
 
@@ -15982,42 +16747,6 @@ Add a tok_aggr_constant token with the provided constant to cache.
 }  /* cache_aggr_constant */
 
 
-a_dynamic_init_ptr load_variable_init_from_ifc_module(
-                                                 a_type_ptr        tp,
-                                                 an_ifc_expr_index init_expr)
-/*
-Return the initializer for a variable or field (not provided) of given type tp,
-with the initializer expression referred to by init_expr.
-*/
-{
-  a_dynamic_init_ptr result;
-  a_constant_ptr     cp;
-  an_ifc_module      *ifc_module = module_of(init_expr);
-
-#if DEBUG
-  if (db_flag_is_set("ifc_idx")) {
-    a_string err_msg("Variable init load started for ",
-                     index_to_str(init_expr));
-
-    print(err_msg, f_debug);
-  }  /* if */
-#endif /* DEBUG */
-  result = alloc_dynamic_init(dik_module);
-  cp = ifc_module->constant_for_expr_index(init_expr, tp);
-  if (cp != NULL && !is_error_constant(cp)) {
-    result->variant.constant.ptr = alloc_unshared_constant(cp);
-  }  /* if */
-#if DEBUG
-  if (db_flag_is_set("ifc_idx")) {
-    a_string err_msg("Variable init load done for ", index_to_str(init_expr));
-
-    print(err_msg, f_debug);
-  }  /* if */
-#endif /* DEBUG */
-  return result;
-}  /* load_variable_init_from_ifc_module */
-
-
 a_boolean extract_tokens_for_ifc_module_expr(
                                a_lexical_ifc_index_reference *index,
                                a_token_sequence_number       *expected_end_tsn)
@@ -17997,21 +18726,25 @@ Cache the linkage-specification for the given named-declaration (decl).
 }  /* cache_func_decl_specifier_seq */
 
 
-template<typename an_ifc_Node_type>
-static void cache_var_storage_class_specifier(a_module_token_cache_ptr cache,
-                                              const an_ifc_Node_type   &decl)
+static void cache_var_storage_class_specifier(
+                                             a_module_token_cache_ptr   cache,
+                                             const an_ifc_decl_variable &decl,
+                                             const an_ifc_cache_info    &cinfo)
 /*
-Cache the storage-class-specifier for the given variable-like declaration.
+Cache the storage-class-specifier for the given variable declaration.  cinfo
+contains information about the current cache context to help inform decisions
+about what to cache.
 */
 {
   an_ifc_basic_specifiers_bitfield specifiers = get_ifc_specifiers(decl);
-  an_ifc_object_traits_bitfield    traits = get_ifc_traits(decl);
 
-  if (test_bitmask<ifc_bsb_external>(specifiers) &&
-      !test_bitmask<ifc_otb_constexpr>(traits)) {
-    /* As of IFC 0.43 external linkage is noted for constexpr variables.  Thus,
-       only cache the extern specifier if the variable has external linkage and
-       is not constexpr. */
+  /* Cache all variable declarations explicitly marked with external linkage
+     with the extern specifier.  Additionally, for lazy loading purposes if a
+     variable is in namespace scope and it's lazy loadable, cache the extern
+     specifier. */
+  if (test_bitmask<ifc_bsb_external>(specifiers) ||
+      (is_namespace_scope(get_ifc_home_scope(decl)) &&
+       var_init_can_be_deferred(decl, cinfo))) {
     cache_token(cache, tok_extern);
   }  /* if */
 }  /* cache_func_decl_specifier */
@@ -18047,12 +18780,6 @@ variable-like declaration.
 
   if (test_bitmask<ifc_otb_mutable>(traits)) {
     cache_token(cache, tok_mutable);
-  }  /* if */
-  if (test_bitmask<ifc_otb_inline>(traits)) {
-    cache_token(cache, tok_inline);
-  }  /* if */
-  if (test_bitmask<ifc_otb_constexpr>(traits)) {
-    cache_token(cache, tok_constexpr);
   }  /* if */
   if (test_bitmask<ifc_otb_thread_local>(traits)) {
     cache_token(cache, tok_thread_local);
@@ -18107,38 +18834,44 @@ the variable name.
 
 template<typename an_ifc_Node_type>
 static void cache_var_initializer(a_module_token_cache_ptr cache,
-                                  const an_ifc_Node_type   &decl)
+                                  const an_ifc_Node_type   &decl,
+                                  const an_ifc_cache_info  &cinfo)
 /*
-Cache the initializer for the given variable-like declaration.
+Cache the initializer for the given variable-like declaration.  cinfo contains
+information about the current cache context to help inform decisions about what
+to cache.
 */
 {
   an_ifc_expr_index initializer = get_ifc_initializer(decl);
 
   if (!is_null_index(initializer)) {
-    /* FIXME: Migrate the non-class scope case to use tok_pending_ifc_var_init,
-       and make tok_pending_ifc_var_init usable more generally. */
-    if (is_class_scope(get_ifc_home_scope(decl))) {
-      /* This is an initializer for a member variable of a class.  This is
-         already stored in the object file associated with the module TU, and
-         is only needed for member variables that are eligible to be used in a
-         constant expression.  These initializers may include recursive
-         self-references.  Cache a special pseudo-token to indicate that such
-         an initializer exists, along with its constant value. */
-      cache_token_with_index(cache, tok_pending_ifc_var_init, initializer);
-    } else {
-      /* An initializer where the type is ExprSort::Tokens will have the
-         braces included as part of the token stream. */
-      a_boolean cache_braces = initializer.sort != ifc_es_expr_tokens;
-      if (cache_braces) {
-        cache_token(cache, tok_lbrace);
-      }  /* if */
-      cache_expr(cache, initializer, /*cinfo=*/{});
-      if (cache_braces) {
-        cache_token(cache, tok_rbrace);
-      }  /* if */
+    /* An initializer where the type is ExprSort::Tokens will have the
+       braces included as part of the token stream. */
+    a_boolean cache_braces = initializer.sort != ifc_es_expr_tokens;
+    if (cache_braces) {
+      cache_token(cache, tok_lbrace);
+    }  /* if */
+    cache_expr(cache, initializer, cinfo);
+    if (cache_braces) {
+      cache_token(cache, tok_rbrace);
     }  /* if */
   }  /* if */
 }  /* cache_var_initializer */
+
+
+static void maybe_cache_var_initializer(a_module_token_cache_ptr   cache,
+                                        const an_ifc_decl_variable &decl,
+                                        const an_ifc_cache_info    &cinfo)
+/*
+Cache the initializer for the given variable declaration.  cinfo contains
+information about the current cache context to help inform decisions about what
+to cache.
+*/
+{
+  if (!var_init_can_be_deferred(decl, cinfo)) {
+    cache_var_initializer(cache, decl, cinfo);
+  }  /* if */
+}  /* maybe_cache_var_initializer */
 
 
 template<typename an_ifc_Node_type>
@@ -19977,7 +20710,6 @@ this is needed.
       break;
     case ifc_ts_type_designated:
       { Opt<an_ifc_type_designated> opt_itd;
-        a_boolean                   is_closure_type = FALSE;
 
         construct_node(&opt_itd, type);
         if (!opt_itd.has_value()) {
@@ -19989,21 +20721,10 @@ this is needed.
         if (!validate(decl)) {
           goto invalid;
         }  /* if */
-        if (decl.sort == ifc_ds_decl_scope) {
-          /* Check for the special case of a closure type.  Such a type
-             cannot be expressed as a normal type name, but it can appear
-             when "auto" was used as a type specifier. */
-          Opt<an_ifc_decl_scope> opt_ids;
-          construct_node(&opt_ids, decl);
-          if (!opt_ids.has_value()) {
-            goto invalid;
-          }  /* if */
-          an_ifc_decl_scope  ids = *opt_ids;
-          an_ifc_scope_traits_bitfield
-                             traits = get_ifc_traits(ids);
-          is_closure_type = test_bitmask<ifc_stb_closure_type>(traits);
-        }  /* if */
-        if (is_closure_type) {
+        /* Check for the special case of a closure type.  Such a type cannot be
+           expressed as a normal type name, but it can appear when "auto" was
+           used as a type specifier. */
+        if (is_closure_decl(decl)) {
           cache_token(cache, tok_auto);
         } else if (cinfo.inline_data_member_type) {
           auto cache_content = [cinfo](a_module_token_cache *content_cache,
@@ -21543,7 +22264,7 @@ about the current cache context to help inform decisions about what to cache.
         if (is_class_scope(get_ifc_home_scope(decl))) {
           cache_token(cache, tok_static);
         }  /* if */
-        cache_var_storage_class_specifier(cache, variable_decl);
+        cache_var_storage_class_specifier(cache, variable_decl, cinfo);
         cache_var_decl_specifier_seq(cache, variable_decl);
         cache_var_type_declarator_lhs(cache, variable_decl);
         cache_declarator_qualifier(cache, decl, cinfo);
@@ -21715,13 +22436,7 @@ current cache context to help inform decisions about what to cache.
         cache_simple_template_id(cache, decl);
         cache_var_type_declarator_rhs(cache, variable_decl);
         if (!is_instantiation && !cinfo.ignore_definition) {
-          an_ifc_expr_index initializer = get_ifc_initializer(variable_decl);
-
-          if (!is_null_index(initializer)) {
-            cache_token(cache, tok_lbrace);
-            cache_expr(cache, initializer, cinfo);
-            cache_token(cache, tok_rbrace);
-          }  /* if */
+          cache_var_initializer(cache, variable_decl, cinfo);
         }  /* if */
         cache_token(cache, tok_semicolon);
       }
@@ -22164,12 +22879,12 @@ about what to cache.
         if (is_class_scope(get_ifc_home_scope(decl))) {
           cache_token(cache, tok_static);
         }  /* if */
-        cache_var_storage_class_specifier(cache, variable_decl);
+        cache_var_storage_class_specifier(cache, variable_decl, cinfo);
         cache_var_decl_specifier_seq(cache, variable_decl);
         cache_var_type_declarator_lhs(cache, variable_decl);
         cache_var_declarator_id(cache, variable_decl, cinfo);
         cache_var_type_declarator_rhs(cache, variable_decl);
-        cache_var_initializer(cache, variable_decl);
+        maybe_cache_var_initializer(cache, variable_decl, cinfo);
         cache_token(cache, tok_semicolon);
       }
       break;
@@ -22188,12 +22903,11 @@ about what to cache.
         construct_node_prechecked(&field_decl, decl);
         this->cache_attrs(cache, decl);
         cache_var_alignment(cache, field_decl);
-        cache_var_storage_class_specifier(cache, field_decl);
         cache_var_decl_specifier_seq(cache, field_decl);
         cache_var_type_declarator_lhs(cache, field_decl);
         cache_var_declarator_id(cache, field_decl, cinfo);
         cache_var_type_declarator_rhs(cache, field_decl);
-        cache_var_initializer(cache, field_decl);
+        cache_var_initializer(cache, field_decl, cinfo);
         cache_token(cache, tok_semicolon);
       }
       break;
@@ -22202,7 +22916,6 @@ about what to cache.
 
         construct_node_prechecked(&bitfield_decl, decl);
         this->cache_attrs(cache, decl);
-        cache_var_storage_class_specifier(cache, bitfield_decl);
         cache_var_decl_specifier_seq(cache, bitfield_decl);
         cache_var_type_declarator_lhs(cache, bitfield_decl);
         cache_var_declarator_id(cache, bitfield_decl, cinfo);
@@ -22211,7 +22924,7 @@ about what to cache.
 
         an_ifc_expr_index width = get_ifc_width(bitfield_decl);
         cache_expr(cache, width, /*cinfo=*/{});
-        cache_var_initializer(cache, bitfield_decl);
+        cache_var_initializer(cache, bitfield_decl, cinfo);
         cache_token(cache, tok_semicolon);
       }
       break;
@@ -23579,32 +24292,7 @@ common_cast:
       }
       break;
     case ifc_es_expr_template_reference:
-      { Opt<an_ifc_expr_template_reference> opt_ietr;
-
-        construct_node(&opt_ietr, expr);
-        if (!opt_ietr.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        an_ifc_expr_template_reference ietr = *opt_ietr;
-        an_ifc_expr_index              arguments = get_ifc_arguments(ietr);
-        cache_type(cache, get_ifc_scope(ietr), cinfo);
-        cache_token(cache, tok_colon_colon);
-
-        an_ifc_name_index name_idx = get_ifc_member_name(ietr);
-        Opt<a_string>     opt_name_str = name_from_index(name_idx);
-        if (!opt_name_str.has_value()) {
-          goto invalid;
-        }  /* if */
-
-        const a_string &name_str = *opt_name_str;
-        cache_identifier(cache, name_str.as_temp_characters());
-        if (!is_null_index(arguments)) {
-          cache_token(cache, tok_lt);
-          cache_expr(cache, arguments, cinfo);
-          cache_token(cache, tok_gt);
-        }  /* if */
-      }
+      cache_token_with_index(cache, tok_ifc_entity_ref, expr);
       break;
     case ifc_es_expr_packed_template_arguments:
       { Opt<an_ifc_expr_packed_template_arguments> opt_iepta;
@@ -25496,11 +26184,12 @@ later replaced if a more complete definition is discovered).
   check_assertion(templ != NULL && templ->canonical_template != NULL);
   templ = templ->canonical_template;
 
-  an_ifc_decl_index existing_decl = ifc_template_definitions->get(templ);
+  an_ifc_decl_index existing_decl =
+                    ifc_template_definitions->get_associated_ifc_decl(templ);
   if (is_null_index(existing_decl)) {
     /* This is the simple case, i.e., the template doesn't already have a
        definition, so record the definition. */
-    (void)ifc_template_definitions->map(templ, decl_idx);
+    ifc_template_definitions->associate_entity(templ, decl_idx);
   } else {
     /* The pending template definition is being reconsidered.  Replace the
        definition in the mapping if the newly observed declaration is a
@@ -25514,7 +26203,7 @@ later replaced if a more complete definition is discovered).
         db_diff_decls(existing_decl, decl_idx);
       }  /* if */
 #endif /* DEBUG */
-      (void)ifc_template_definitions->map_or_replace(templ, decl_idx);
+      ifc_template_definitions->associate_entity(templ, decl_idx);
     }
     /* Do not add code here. */
 #if DEBUG
@@ -25553,6 +26242,9 @@ required).
 
   if (mep->entity.kind == iek_routine) {
     map_pending_routine_definitions(decl_idx, (a_routine_ptr)mep->entity.ptr);
+  } else if (mep->entity.kind == iek_variable) {
+    map_pending_variable_initializers(decl_idx,
+                                      (a_variable_ptr)mep->entity.ptr);
   } else if (decl_idx.sort == ifc_ds_decl_template) {
     /* The kind should be a template, otherwise this mep should've been
        marked invalid. */
@@ -25607,29 +26299,18 @@ for each compilation.
 #endif /* EXPENSIVE_CHECKING */
   decl_nesting_level = 0;
 #endif /* DEBUG */
-  ifc_parameterized_entities =
-                             alloc_fe_of_type(an_ifc_parameterized_entity_map);
-  construct(ifc_parameterized_entities, /*mask_width=*/10);
-  ifc_function_bodies = alloc_fe_of_type(an_ifc_function_body_map);
-  construct(ifc_function_bodies, /*mask_width=*/10);
-  ifc_template_definitions = alloc_fe_of_type(an_ifc_template_def_map);
-  construct(ifc_template_definitions, /*mask_width=*/10);
-  ifc_template_specializations = alloc_fe_of_type(an_ifc_template_spec_map);
-  construct(ifc_template_specializations, /*mask_width=*/10);
-  ifc_tag_definitions = alloc_fe_of_type(an_ifc_tag_def_map);
-  construct(ifc_tag_definitions, /*mask_width=*/10);
-  ifc_bad_function_bodies = alloc_fe_of_type(an_ifc_function_failure_set);
-  construct(ifc_bad_function_bodies, /*mask_width=*/10);
-  ifc_pending_definitions = alloc_fe_of_type(an_ifc_pending_definition_set);
-  construct(ifc_pending_definitions, /*mask_width=*/10);
-  ifc_decl_lookup_table = alloc_fe_of_type(an_ifc_decl_lookup_table);
-  construct(ifc_decl_lookup_table, /*mask_width=*/10);
-  ifc_decl_template_lookup_table = alloc_fe_of_type(
-                                                 an_ifc_template_lookup_table);
-  construct(ifc_decl_template_lookup_table, /*mask_width=*/10);
-  bad_operator_name_encodings = alloc_fe_of_type(
-                                           a_bad_operator_name_encoding_array);
-  construct(bad_operator_name_encodings);
+  ifc_parameterized_entities = new_fe<an_ifc_parameterized_entity_map>(
+                                                            /*mask_width=*/10);
+  ifc_var_inits = new_fe<a_lazy_entity_part>();
+  ifc_function_bodies = new_fe<a_lazy_entity_part>();
+  ifc_template_definitions = new_fe<a_lazy_entity_part>();
+  ifc_template_specializations = new_fe<an_ifc_template_spec_map>(
+                                                            /*mask_width=*/10);
+  ifc_tag_definitions = new_fe<a_lazy_entity_part>();
+  ifc_decl_lookup_table = new_fe<an_ifc_decl_lookup_table>(/*mask_width=*/10);
+  ifc_decl_template_lookup_table = new_fe<an_ifc_template_lookup_table>(
+                                                            /*mask_width=*/10);
+  bad_operator_name_encodings = new_fe<a_bad_operator_name_encoding_array>();
   bad_operator_name_encodings->push_back("new");
   bad_operator_name_encodings->push_back("delete");
   bad_operator_name_encodings->push_back("new[]");
