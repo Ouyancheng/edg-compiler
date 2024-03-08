@@ -12825,7 +12825,7 @@ with the module entity pointer.
            containing an ellipsis.  This allows
            end_potential_pack_expansion_context to consume the ellipsis and
            mark pack use accordingly.  This, in turn, ensures that any packs
-           that are reference are not diagnosed. */
+           that are referenced are not diagnosed. */
         a_module_token_cache cache;
         cache_token(&cache, tok_ellipsis);
 
