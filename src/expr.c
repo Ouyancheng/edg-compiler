@@ -35071,6 +35071,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_compl:
     case tok_not:
     case tok_sizeof:
+    case tok_datasizeof:
     case tok_alignof:
     case tok_ext_alignof:
     case tok_typeid:
