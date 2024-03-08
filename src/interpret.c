@@ -3257,8 +3257,9 @@ search_base_subobjects:
     check_assertion(is_variant_path(cap));
     vpep = cap->variant.variant_path->next;
     for (; vpep != NULL; vpep = vpep->next) {
-      a_boolean    okay = TRUE;
       a_field_ptr  fp = vpep->field;
+      LOCAL_UNUSED a_boolean
+                   okay = TRUE;
       if (fp != NULL && parent_class_of(fp) == parent_type) {
 #if CHECKING
         a_byte_count  field_size = value_bytes_for_type(ips, fp->type, &okay);
