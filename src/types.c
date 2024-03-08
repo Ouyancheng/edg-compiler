@@ -3955,6 +3955,30 @@ be called by using the macro size_of_type.
 }  /* f_size_of_type */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_boolean type_contains_explicit_alignment(a_type_ptr  tp)
+/*
+Return TRUE if the given type is explicitly aligned (including possibly through
+a typedef) or contains a subobject with such a type.
+*/
+{
+  a_boolean  result = FALSE;
+
+  while (type_is(tp, tk_typeref)) {
+    if (tp->alignment_set_explicitly) break;
+    tp = tp->variant.typeref.type;
+  }  /* while */
+  if (tp->alignment_set_explicitly ||
+      (is_immediate_class_type(tp) &&
+       class_type_supp(tp)->has_explicitly_aligned_subobject)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* type_contains_explicit_alignment */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 #if !STANDALONE_UTILITY_PROGRAM
 
 a_targ_size_t data_size_of_type(a_type_ptr  tp)
@@ -3981,30 +4005,6 @@ This models the __datasizeof operator of some Clang versions.
 }  /* data_size_of_type */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-
-a_boolean type_contains_explicit_alignment(a_type_ptr  tp)
-/*
-Return TRUE if the given type is explicitly aligned (including possibly through
-a typedef) or contains a subobject with such a type.
-*/
-{
-  a_boolean  result = FALSE;
-
-  while (type_is(tp, tk_typeref)) {
-    if (tp->alignment_set_explicitly) break;
-    tp = tp->variant.typeref.type;
-  }  /* while */
-  if (tp->alignment_set_explicitly ||
-      (is_immediate_class_type(tp) &&
-       class_type_supp(tp)->has_explicitly_aligned_subobject)) {
-    result = TRUE;
-  }  /* if */
-  return result;
-}  /* type_contains_explicit_alignment */
-
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
 
 a_type_qualifier_set f_get_type_qualifiers(a_type_ptr  tp,
                                            a_boolean   top_level)
