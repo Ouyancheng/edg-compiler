@@ -17023,7 +17023,6 @@ cast.  See lower_expr for typical invocation.
       break;
 #endif /* ABI_CHANGES_FOR_RTTI */
     case enk_sizeof:
-    case enk_datasizeof:
       /* enk_sizeof can appear when SIZEOF_TYPE_IS_UNKNOWN is defined or
          if VLAs are allowed in C++ mode. */
       lower_runtime_sizeof(expr);
