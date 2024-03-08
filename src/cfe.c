@@ -122,7 +122,7 @@ MAKE_FRONT_END_CALLABLE is TRUE.
     /* Run module generation if required. */
     if (create_module_header_unit) {
       if (display_compilation_time) get_timer(&module_start_time);
-       modules_write_out();
+      modules_write_out();
       if (display_compilation_time) {
         get_timer(&module_end_time);
         /* Display the amount of time used during generation of the module

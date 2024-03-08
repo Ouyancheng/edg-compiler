@@ -196,7 +196,7 @@ Construct a new IFC output state writing to the given IFC module file.
 */
   : output_file(output_file_val)
 {
-  /* Add an null character to the start of the string table so that a 0 value
+  /* Add a null character to the start of the string table so that a 0 value
      TextOffset results in a null string. */
   (void)this->add_to_string_table("", /*num_bytes=*/1);
 
@@ -212,7 +212,7 @@ Construct a new IFC output state writing to the given IFC module file.
 
 an_ifc_output_state::~an_ifc_output_state()
 /*
-Cleanup the IFC output state.
+Clean up the IFC output state.
 */
 {
   for (size_t i = 0; i < IFC_PARTITION_COUNT; ++i) {
@@ -225,7 +225,7 @@ size_t an_ifc_output_state::add_to_string_table(a_const_char *bytes,
                                                 size_t       num_bytes)
 /*
 Insert the given number of bytes into the string table.  Return the byte offset
-into the string table where the strings start.
+into the string table where the string starts.
 */
 {
   size_t start = this->string_table.length();
@@ -238,7 +238,7 @@ into the string table where the strings start.
 size_t an_ifc_output_state::add_to_string_table(a_const_char *string_text)
 /*
 Insert the given null terminated string into the string table.  Return the byte
-offset into the string table where the strings start.
+offset into the string table where the string starts.
 */
 {
   size_t start = this->string_table.length();
@@ -486,7 +486,7 @@ Return the byte offset for the start of the partitions.
   /* Add the bytes for the file header. */
   result += get_ifc_buffer_size<an_ifc_file_header_storage>(file);
   return result;
-}  /* get_string_table_start */
+}  /* get_partitions_start */
 
 
 static an_ifc_byte_offset_storage get_string_table_start(
@@ -522,7 +522,7 @@ associated module file and output metadata.
   /* Add the bytes for the string table. */
   result += metadata.num_string_table_bytes;
   return result;
-}  /* get_string_table_start */
+}  /* get_toc_start */
 
 
 static void write_ifc_header(an_ifc_module_file           *file,
@@ -530,9 +530,9 @@ static void write_ifc_header(an_ifc_module_file           *file,
                              an_ifc_scope_offset          global_scope,
                              const an_ifc_output_metadata &metadata)
 /*
-Create and write out IFC file header for the given IFC module file using the
-associated offset of the source file name into the string table, global scope
-offset, and metadata.
+Create and write out the IFC file header for the given IFC module file using
+the associated offset of the source file name into the string table, global
+scope offset, and metadata.
 */
 {
   /* Create an instance of an_ifc_file_header_storage on the stack and
@@ -2148,7 +2148,7 @@ in binary write mode) intended for writing with the given file path and file
 kind.
 
 If creation of the file fails for any reason an empty optional is instead
-return.
+returned.
 */
 {
   FILE *f_handle = open_output_file_with_error_handling(
