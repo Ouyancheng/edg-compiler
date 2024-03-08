@@ -960,6 +960,6 @@ END_EDG_NAMESPACE
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2023 Edison Design Group Inc.                   [_]          *
+* Copyright 2017-2023 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
