@@ -638,13 +638,13 @@ extern a_targ_size_t f_size_of_type(a_type_ptr  tp);
 #define size_of_type(tp)             (skip_typerefs(tp)->size)
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-extern a_targ_size_t data_size_of_type(a_type_ptr  tp);
-
 extern a_boolean type_contains_explicit_alignment(a_type_ptr  tp);
 #else /* !(GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED) */
 #define alignment_of_type(tp)  (skip_typerefs(tp)->alignment)
 #define size_of_type(tp)       (skip_typerefs(tp)->size)
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
+
+extern a_targ_size_t data_size_of_type(a_type_ptr  tp);
 
 extern a_type_qualifier_set f_get_type_qualifiers(a_type_ptr  tp,
                                                   a_boolean   top_level);

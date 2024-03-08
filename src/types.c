@@ -3955,6 +3955,7 @@ be called by using the macro size_of_type.
 }  /* f_size_of_type */
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if !STANDALONE_UTILITY_PROGRAM
 
 a_targ_size_t data_size_of_type(a_type_ptr  tp)
 /*
@@ -3979,6 +3980,7 @@ This models the __datasizeof operator of some Clang versions.
   return  result;
 }  /* data_size_of_type */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 a_boolean type_contains_explicit_alignment(a_type_ptr  tp)
