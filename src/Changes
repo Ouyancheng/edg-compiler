@@ -1,5 +1,24 @@
 Version 6.7
 
+3/8/24   [EDGcpfe/23733,EDGcpfe/27082]
+GNU/Clang compatibility: noexcept mismatch on extern "C" functions
+
+Consider in GNU or Clang C++17 modes:
+
+  # 101 "/system/header.h" 2 3 4
+  extern "C" {
+    extern void sysfunc(int*) noexcept(true);
+  }
+  namespace N {
+    extern "C" void sysfunc(int*);  // Previously an error.  Now okay.
+  }
+
+This situation where an extern "C" function was redeclared in a different
+namespace with a non-matching exception specification occurs in some system
+headers used with Clang and GCC.  The front end now accepts such system
+headers.
+
+
 3/8/24   [EDGcpfe/25092,EDGcpfe/27070,EDGcpfe/27081]
 GNU/Clang compatibility: explicit(bool) enabled in pre-C++20 modes
 

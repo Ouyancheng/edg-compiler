@@ -4442,7 +4442,7 @@ indicating that error recovery should proceed as if no error had occurred
     /* Use a special comparison for routine types, to ignore calling
        convention differences.  In C mode, overloading is not possible, so
        allow error type mismatches on routine types. */
-    is_routine = ext_sym->kind == (a_symbol_kind)sk_extern_routine;
+    is_routine = symbol_is(ext_sym, sk_extern_routine);
     if (is_routine) {
       if (C_mode()) {
         compat = types_are_compatible(old_type, type_ptr);
@@ -4452,8 +4452,23 @@ indicating that error recovery should proceed as if no error had occurred
         if (!compat &&
             routine_types_are_redecl_compatible(old_type, type_ptr,
                                                 TCF_NO_FLAGS)) {
-          okay = FALSE;
-          incompatible_linkage_spec = TRUE;
+          if ((gpp_version_is(any_version) ||
+               clangcpp_version_is(any_version)) &&
+              type_is(old_type, tk_routine) &&
+              seq_is_in_system_header(ext_sym->decl_position.seq) &&
+              f_types_are_compatible(old_type, type_ptr,
+                                     TCF_IGNORE_TOP_LEVEL_NOEXCEPT |
+                                     TCF_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED |
+                                     TCF_CHECK_ENABLE_IF_ATTRIBUTES)) {
+            /* A routine first declared (but not defined) in a system header
+               differing only in exception specification: Accept the
+               incompatibility in GNU and Clang modes. */
+            ext_sym->decl_position = *position;
+            compat = TRUE;
+          } else {
+            okay = FALSE;
+            incompatible_linkage_spec = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     } else {
