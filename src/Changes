@@ -4,8 +4,8 @@ Version 6.7
 Incorrect use of wrong member of variant union
 
 A change in version 6.2 introduced code that could inadvertently reference
-an un-initialized member of the a_type::variant union, causing undefined
-behavior and is now fixed.
+an uninitialized member of the a_type::variant union, causing undefined
+behavior, and is now fixed.
 
 
 3/8/24   [EDGcpfe/23733,EDGcpfe/27082]
