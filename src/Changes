@@ -1,5 +1,12 @@
 Version 6.7
 
+3/11/24  [EDGcpfe/27089]
+Clang compatibility: Additional builtins for Clang version 18.1.0
+
+Additional builtin signatures have been added for the recently-released
+18.1.0 version of Clang.
+
+
 3/11/24  [EDGcpfe/27088]
 Incorrect use of wrong member of variant union
 
