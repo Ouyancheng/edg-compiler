@@ -8,7 +8,7 @@ an uninitialized member of the a_type::variant union, causing undefined
 behavior, and is now fixed.
 
 
-3/8/24   [EDGcpfe/23733,EDGcpfe/27082]
+3/8/24   [EDGcpfe/23733,EDGcpfe/23807,EDGcpfe/27082]
 GNU/Clang compatibility: noexcept mismatch on extern "C" functions
 
 Consider in GNU or Clang C++17 modes:
