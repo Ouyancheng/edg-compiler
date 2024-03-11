@@ -18575,6 +18575,12 @@ the value representation of the integer value.
                   do_constexpr_fail(result);
                 }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+              } else if (type_is(tp, tk_reflection)) {
+                /* The conversion is always trivial. */
+                *(a_reflection_value*)result_storage =
+                                            *(a_reflection_value*)opnd1_value;
+              } else if (type_is(tp, tk_nullptr)) {
+                /* A nullptr "value" has no actual representation. */
               } else {
                 info_with_pos_type2(ec_constexpr_invalid_type_conversion,
                                     &expr->position, opnd1_type, tp, ips);
