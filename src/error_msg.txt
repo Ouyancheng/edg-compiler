@@ -3483,7 +3483,7 @@ ec_edg_ifc_header_unit;INTERNAL;"EDG IFC header unit"
 ec_edg_ifc_file;INTERNAL;"EDG IFC"
 ec_header_unit_creation_failure;;"a header unit could not be created for the current translation unit"
 ec_unsupported_header_unit_feature;;"the current translation unit uses one or more features that cannot currently be written to a header unit"
-ec_nonstandard_explicit_bool;;"'explicit(this)' is a C++20 feature"
+ec_nonstandard_explicit_bool;;"'explicit(bool)' is a C++20 feature"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
