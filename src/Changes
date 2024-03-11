@@ -56,7 +56,7 @@ function does not match its return type.  That is now fixed.
 Clang C++ compatibility: __datasizeof
 
 In Clang C++ modes with clang_version >= 180000, the front end now supports the
-__datasizeof operator which acts like the traditional sizeof operator except
+__datasizeof operator, which acts like the traditional sizeof operator except
 that for the IA-64 ABI it doesn't include tail padding for some class types.
 For example, in Clang C++17 mode with common IA-64 ABI configurations:
 
