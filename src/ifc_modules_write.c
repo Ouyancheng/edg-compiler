@@ -536,7 +536,7 @@ scope offset, and metadata.
 */
 {
   /* Create an instance of an_ifc_file_header_storage on the stack and
-     use it to setup, then write, the file header. */
+     use it to set up, then write, the file header. */
   an_ifc_file_header file_header(file);
   an_ifc_version     ifc_major_version(file, file->version_major);
   an_ifc_version     ifc_minor_version(file, file->version_minor);
