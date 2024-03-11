@@ -1172,7 +1172,7 @@ template-dependent type.  Otherwise, return FALSE;
   a_boolean   result = FALSE;
   a_type_ptr  rtp = skip_typerefs(tp);
 
-  if (is_reference_ptr(rtp) && !tp->variant.pointer.is_rvalue_reference) {
+  if (is_reference_ptr(rtp) && !rtp->variant.pointer.is_rvalue_reference) {
     a_type_ptr  utp = rtp->variant.pointer.type;
     for (;;) {
       if (type_is(utp, tk_typeref)) {
