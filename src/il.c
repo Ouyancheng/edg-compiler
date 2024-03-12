@@ -7889,6 +7889,7 @@ are done.
   if (node1->kind == node2->kind &&
              node1->is_lvalue == node2->is_lvalue &&
              node1->is_xvalue == node2->is_xvalue &&
+             node1->is_pack_expansion == node2->is_pack_expansion &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
              node1->is_safe_cast == node2->is_safe_cast &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
