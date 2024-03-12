@@ -18312,7 +18312,7 @@ EXTERN a_const_char *db_operator_names[(int)eok_last+1]
 /*
 Table of names of various builtin operations.
 */
-EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
+EXTERN a_const_char *builtin_operation_names[]
 #if VAR_INITIALIZERS
 = {
   "__builtin_offsetof",
@@ -18418,10 +18418,18 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__reference_constructs_from_temporary",
   "__reference_converts_from_temporary",
   "__is_convertible",
+  "__is_trivially_equality_comparable",
   "last"
 }
 #endif /* VAR_INITIALIZERS */
 ;
+
+#if VAR_INITIALIZERS
+static_assert(sizeof(builtin_operation_names)
+                      /sizeof(builtin_operation_names[0]) == (int)bok_last+1,
+              "builtin_operation_names (il_def.h) does not match the number"
+              " of a_builtin_operation_kind enumerators");
+#endif /* VAR_INITIALIZERS */
 
 /* Array giving, for each IL entry kind, the size of the entry in bytes.
    For string type entries, 1.  This must match the order of the
