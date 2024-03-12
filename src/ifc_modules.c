@@ -17008,6 +17008,143 @@ done:;
 }  /* cache_source_punctuator */
 
 
+static a_boolean cache_msvc_defined_constant(a_module_token_cache_ptr cache,
+                                             an_ifc_expr_index        expr)
+/*
+Cache the tokens representing the given MSVC defined constant represented by
+expr.  If caching succeeds return TRUE; otherwise, return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (expr.sort == ifc_es_expr_tuple) {
+    Opt<an_ifc_expr_tuple> opt_tuple_expr;
+
+    construct_node(&opt_tuple_expr, expr);
+    if (!opt_tuple_expr.has_value()) {
+      goto invalid;
+    }  /* if */
+
+    /* First examine the number of elements. */
+    an_ifc_expr_tuple
+                tuple_expr = *opt_tuple_expr;
+    an_expr_heap_sequence
+                sequence(tuple_expr);
+    if (sequence.length() == 2) {
+      /* There are two elements, see if these elements compose a known
+         encoding. */
+      Opt<an_ifc_heap_expr> opt_first_heap_expr = sequence[0];
+      Opt<an_ifc_heap_expr> opt_second_heap_expr = sequence[1];
+
+      if (!opt_first_heap_expr.has_value() ||
+          !opt_second_heap_expr.has_value()) {
+        goto invalid;
+      }  /* if */
+
+      an_ifc_heap_expr  first_heap_expr = *opt_first_heap_expr;
+      an_ifc_heap_expr  second_heap_expr = *opt_second_heap_expr;
+      an_ifc_expr_index first_expr = get_ifc_value(first_heap_expr);
+      an_ifc_expr_index second_expr = get_ifc_value(second_heap_expr);
+      if (first_expr.sort != ifc_es_expr_literal) {
+        a_string err_msg("Unexpected first sub-expression (",
+                         str_for(first_expr.sort),
+                         ") for MSVC defined constant value  described by ",
+                         index_to_str(expr));
+
+        ifc_unexpected(module_of(expr), err_msg);
+        goto invalid;
+      }  /* if */
+      if (second_expr.sort != ifc_es_expr_unqualified_id) {
+        a_string err_msg("Unexpected second sub-expression (",
+                         str_for(second_expr.sort),
+                         ") for MSVC defined constant value  described by ",
+                         index_to_str(expr));
+
+        ifc_unexpected(module_of(expr), err_msg);
+        goto invalid;
+      }  /* if */
+
+      Opt<an_ifc_expr_literal>        opt_lit_expr;
+      Opt<an_ifc_expr_unqualified_id> opt_unqual_id;
+      construct_node(&opt_lit_expr, first_expr);
+      construct_node(&opt_unqual_id, second_expr);
+      if (!opt_lit_expr.has_value() || !opt_unqual_id.has_value()) {
+        goto invalid;
+      }  /* if */
+
+      /* Load the literal value constant and its type. */
+      an_ifc_expr_literal lit_expr = *opt_lit_expr;
+      an_ifc_type_index   lit_expr_type = get_ifc_type(lit_expr);
+      an_ifc_lit_index    lit_expr_value = get_ifc_value(lit_expr);
+      a_type_ptr          lit_type = type_for_type_index(lit_expr_type);
+      a_constant_ptr      lit_constant = constant_for_literal(lit_expr_type,
+                                                              lit_expr_value);
+      if (lit_type == NULL || lit_constant == NULL) {
+        goto invalid;
+      }  /* if */
+
+      /* Load the literal suffix name, typically stylized: operator""_X. */
+      an_ifc_expr_unqualified_id unqual_id = *opt_unqual_id;
+      an_ifc_name_index          name_idx = get_ifc_name(unqual_id);
+      Opt<a_string>              opt_name = name_from_index(name_idx);
+      if (!opt_name.has_value()) {
+        goto invalid;
+      }  /* if */
+
+      /* Check to make sure the underscore is in the expected location. */
+      a_string name = *opt_name;
+      if (name[10] != '_') {
+        a_string err_msg("'_' at the wrong position in second "
+                         "sub-expression (", index_to_str(second_expr),
+                         ") of MSVC defined constant value ",
+                         index_to_str(expr));
+
+        ifc_unexpected(module_of(expr), err_msg);
+        goto invalid;
+      }  /* if */
+
+      /* Create a persistent copy of the string. */
+      FE_allocator<char> alloc;
+      char               *constant_str = name.to_allocated_storage(alloc);
+      /* Create a constant representing the literal spelling.  As an example, in
+         the user-defined literal 42_u, this would be 42_. */
+      /* FIXME: Do we actually need to create this constant?  It seems to be
+         used for raw-string literals.  Do they appear here? */
+      a_constant_ptr lit_spelling_constant = alloc_error_constant();
+      /* Cache and form the user-defined literal token. */
+      cache_token(cache, tok_ud_literal);
+
+      a_cached_token_ptr last_token = cache->get_last_token();
+      last_token->extra_info_kind = teik_ud_lit;
+      last_token->variant.ud_lit.value_con = lit_constant;
+      last_token->variant.ud_lit.spelling_con = lit_spelling_constant;
+      last_token->variant.ud_lit.op_sym = NULL;
+      last_token->variant.ud_lit.suffix = constant_str + 10;
+      last_token->variant.ud_lit.type = lit_type;
+    } else {
+      a_string err_msg("Unexpected number of expr values (",
+                       sequence.length(),
+                       ") for MSVC defined constant value  described by ",
+                       index_to_str(expr));
+
+      ifc_unexpected(module_of(expr), err_msg);
+      goto invalid;
+    }  /* if */
+  } else {
+    a_string err_msg("Unexpected MSVC defined constant value ",
+                     index_to_str(expr));
+
+    ifc_unexpected(module_of(expr), err_msg);
+    goto invalid;
+  }  /* if */
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
+}  /* cache_msvc_defined_constant */
+
+
 static void cache_source_literal(an_ifc_module                        *mod,
                                  a_module_token_cache_ptr             cache,
                                  const an_ifc_source_literal_category &literal)
@@ -17133,8 +17270,12 @@ the kind of literal.
       cache_type(cache, literal.variant.msvc_resolved_type, /*cinfo=*/{});
       break;
     case ifc_sls_msvc_defined_constant:
-      /* FIXME: Is this correct? */
-      cache_expr(cache, literal.variant.msvc_defined_constant, /*cinfo=*/{});
+      { an_ifc_expr_index const_expr = literal.variant.msvc_defined_constant;
+
+        if (!cache_msvc_defined_constant(cache, const_expr)) {
+          goto invalid;
+        }  /* if */
+      }
       break;
     case ifc_sls_msvc_cast_target_type:
       /* FIXME: Is this correct? */
