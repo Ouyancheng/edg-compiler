@@ -2809,14 +2809,25 @@ names is not public, set *for_all_scopes to FALSE.
               !tap->is_array_bound_of_unknown_type &&
               tap->variant.constant != NULL &&
               !has_name_before_mangling(tap->variant.constant)) {
-            /* form_constant will use the value of the constant instead of
-               the backing expression if the backing expression is
-               inaccessible or otherwise unusable, so we shouldn't check
-               for accessibility here.  (This isn't just for efficiency;
-               marking the name as inaccessible can result in attempting to
-               find an accessible typedef for a template-id referring to an
-               inaccessible name, which in some cases can result in
-               unbounded recursion.) */
+            a_constant_ptr cp = tap->variant.constant;
+            if (constant_is(cp, ck_template_param) &&
+                tpck_is(cp, tpck_expression)) {
+              /* This is a dependent constant.  Check the usability of the
+                 expression. */
+              an_expr_node_ptr expr = expr_node_from_constant(cp);
+              if (expr != NULL && expr_is_unusable(expr)) {
+                is_accessible = FALSE;
+              }  /* if */
+            } else {
+              /* form_constant will use the value of the constant instead
+                 of the backing expression if the backing expression is
+                 inaccessible or otherwise unusable, so we shouldn't check
+                 for accessibility here.  (This isn't just for efficiency;
+                 marking the name as inaccessible can result in attempting
+                 to find an accessible typedef for a template-id referring
+                 to an inaccessible name, which in some cases can result in
+                 unbounded recursion.) */
+            }  /* if */
           } else if (!template_arg_is_accessible(tap, ignore_context,
                                                  &local_for_all_scopes)) {
             is_accessible = FALSE;
@@ -11521,6 +11532,20 @@ to unusable variables and class members.
         tblock->terminate = result;
       }  /* if */
     }  /* if */
+  } else if (node_is(expr, enk_builtin_operation) &&
+             in_template_argument_list &&
+             (clang_is_generated_code_target ||
+              gcc_is_generated_code_target)) {
+    /* clang and g++ cannot mangle type traits helpers.  Check to see if this
+       operation has a type operand. */
+    for (an_expr_node_ptr opnd = expr->variant.builtin_operation.operands;
+         !tblock->result && opnd != NULL; opnd = opnd->next) {
+      if (node_is(opnd, enk_type_operand)) {
+        /* The builtin operation cannot be used. */
+        tblock->result = TRUE;
+        tblock->terminate = TRUE;
+      }  /* if */
+    }  /* for */
   }  /* if */
   if (msvc_is_generated_code_target && msvc_target_version_number < 1914 &&
       is_operation_node(expr) && node_operator_is(expr, eok_dot_member_call) &&

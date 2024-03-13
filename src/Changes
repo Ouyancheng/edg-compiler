@@ -1,5 +1,33 @@
 Version 6.7
 
+3/13/24  [EDGcpfe/25658]
+C++-generating back end: use of type traits helpers in template arguments
+
+In some cases, when a template argument in the original source involves an
+alias template, the C++-generating back end put out the template argument
+using the underlying type of the alias instead of the alias itself.  When
+that underlying type involves a type traits helper, clang and g++ cannot
+compile the generated code, complaining that the resulting name cannot be
+mangled.  For example, with --c++11 --clang:
+
+  template <bool X> struct A { static const bool m = X; };
+  template <bool> struct B { typedef void Tp; };
+  template <bool...> struct C;
+  template <bool... Bs> using D = A<__is_same(C<>, C<Bs...>)>;
+  template <class...> class E;
+  template <class... c> typename B<D<c::m...>::m>::Tp o(E<>&, E<>&) {} // #1
+  template void o(E<>&, E<>&);
+
+The C++-generating back end previously put out the template argument for
+B in the line marked #1, D<c::m...>::m>, as
+
+  A<__is_same(C<>, C<(c::m)...>)>
+
+which violated the restriction on mangling names involving type traits
+helpers.  This is now fixed, and the argument is put out using the same
+alias template as in the original source.
+
+
 3/13/24  [EDGcpfe/27092]
 Equivalence of expressions containing pack expansions
 
