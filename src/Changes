@@ -1,5 +1,19 @@
 Version 6.7
 
+3/13/24  [EDGcpfe/27092]
+Equivalence of expressions containing pack expansions
+
+Previously, the front end incorrectly considered expressions that only differ
+in their pack expansions to be equivalent.  For example, with --c++11:
+
+  template<typename T> T z();
+  template<typename ... TT>
+  void f(decltype(x(y(z<TT>()...)))) {}
+  template<typename ... TT>
+  void f(decltype(x(y(z<TT>())...))) {}  // Previously a spurious error.
+                                         // Now okay.
+
+
 3/11/24  [EDGcpfe/27089]
 Clang compatibility: Additional builtins for Clang version 18.1.0
 
