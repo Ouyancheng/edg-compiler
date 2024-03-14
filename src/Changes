@@ -1,5 +1,21 @@
 Version 6.7
 
+3/13/24  [EDGcpfe/27101]
+GNU C++ compatibility: typedefs in system headers for _Float* types
+
+Even though g++ treats the _Float* type names (see the entries for
+EDGcpfe/26221 and
+EDGcpfe/18316,EDGcpfe/22881,EDGcpfe/26290,EDGcpfe/26308,EDGcpfe/26332) as
+built-in, it allows typedef declarations for them to appear in system
+headers.  The front end previously issued an "invalid combination of type
+specifiers" error for such declarations, regardless of their location, but
+now ignores them in system headers when compiling in g++ mode.  For
+example, with --g++:
+
+  # 2 "foo.h" 3 4
+  typedef __float128 _Float128;   // Previously an error, now okay
+
+
 3/13/24  [EDGcpfe/25658]
 C++-generating back end: use of type traits helpers in template arguments
 

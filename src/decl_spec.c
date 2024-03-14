@@ -11311,14 +11311,18 @@ storage_class_specifier:
 #if GNU_EXTENSIONS_ALLOWED
           if (gcc_version_is(< 40000) ||
               (gpp_version_is(any_version) &&
-               (curr_token == tok_wchar_t || curr_token == tok_bool) &&
+               (curr_token == tok_wchar_t || curr_token == tok_bool ||
+                curr_token == tok_float32 || curr_token == tok_float32x ||
+                curr_token == tok_float64 || curr_token == tok_float64x ||
+                curr_token == tok_float128) &&
                seq_is_in_system_header(pos_curr_token.seq))) {
             /* Early GNU C allows multiple basic type specifiers, but they
                must be part of a typedef declaration that doesn't include a
-               declarator (and therefore it doesn't really declare anything).
-               For example, "typedef int int;".  In system headers, a typedef
-               for wchar_t or bool is discarded like this by all current
-               GNU C++ compilers. */
+               declarator (and therefore it doesn't really declare
+               anything).  For example, "typedef int int;".  In system
+               headers, a typedef for wchar_t, bool, or one of the _Float*
+               types is discarded like this by all current GNU C++
+               compilers. */
             delayed_error = ec_bad_combination_of_type_specifiers;
             copy_source_position(pos_curr_token, pos_delayed_error);
           } else
