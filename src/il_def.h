@@ -10435,7 +10435,7 @@ typedef struct a_type {
 			/* TRUE if this vector is the result of an operation
 			   that produces a vector of boolean values in GNU
 			   mode.  Such vectors permit more implicit
-                           conversions.  This property is volatile; e.g., it
+			   conversions.  This property is volatile; e.g., it
 			   is not carried through decltype or deduction. */
       a_bit_field
 		is_ext_vector_type:1;
