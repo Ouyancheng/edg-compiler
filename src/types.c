@@ -12088,7 +12088,7 @@ See conversion_possible.
        the specific element type.  We emulate that behavior when
        permissive_gnu_vector_conversions_enabled is TRUE.  GCC also allows
        more conversions on the results of comparisons (whose type will have
-       the flag is_boolean_vector set to TRUE). Clang appears to permit
+       the flag is_boolean_vector set to TRUE).  Clang appears to permit
        conversions between any vectors of equal size (in bytes). */
     if (!type_is(dest_type, tk_vector)) {
       /* okay = FALSE; -- already set. */
