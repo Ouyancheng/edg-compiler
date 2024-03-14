@@ -4124,12 +4124,13 @@ otherwise, return FALSE.
 }  /* is_var_in_lazy_loadable_scope */
 
 
-static a_boolean var_init_can_be_deferred(const an_ifc_decl_variable &node,
-                                          const an_ifc_cache_info    &cinfo)
+template<typename an_ifc_Node_type>
+static a_boolean var_init_can_be_deferred(const an_ifc_Node_type  &node,
+                                          const an_ifc_cache_info &cinfo)
 /*
-Return TRUE if the given variable IFC declaration node has an initializer that
-can be lazy loaded.  cinfo contains information about the current cache context
-to help inform decisions about what to cache.
+Return TRUE if the given variable-like IFC declaration node has an initializer
+that can be lazy loaded.  cinfo contains information about the current cache
+context to help inform decisions about what to cache.
 */
 {
   a_boolean     result = TRUE;
@@ -4138,10 +4139,42 @@ to help inform decisions about what to cache.
 
   if (!is_var_in_lazy_loadable_scope(node, cinfo)) {
     result = FALSE;
+  } else if (cinfo.is_specialization) {
+    result = FALSE;
   } else if (is_auto_type(type_idx)) {
     result = FALSE;
   }  /* if */
   return result;
+}  /* var_init_can_be_deferred */
+
+
+template<>
+a_boolean var_init_can_be_deferred(
+                                  ARG_UNUSED const an_ifc_decl_bitfield &node,
+                                  ARG_UNUSED const an_ifc_cache_info    &cinfo)
+/*
+Return TRUE if the given IFC bitfield declaration node has an initializer that
+can be lazy loaded.  cinfo contains information about the current cache context
+to help inform decisions about what to cache.
+*/
+{
+  /* Bitfields can never be lazy loaded under the current lazy loading
+     scheme. */
+  return FALSE;
+}  /* var_init_can_be_deferred */
+
+
+template<>
+a_boolean var_init_can_be_deferred(ARG_UNUSED const an_ifc_decl_field &node,
+                                   ARG_UNUSED const an_ifc_cache_info &cinfo)
+/*
+Return TRUE if the given IFC field declaration node has an initializer that can
+be lazy loaded.  cinfo contains information about the current cache context to
+help inform decisions about what to cache.
+*/
+{
+  /* Fields can never be lazy loaded under the current lazy loading scheme. */
+  return FALSE;
 }  /* var_init_can_be_deferred */
 
 
@@ -7116,6 +7149,32 @@ return TRUE.
 }  /* has_variable_initializer_from_ifc_module */
 
 
+template<typename an_ifc_Node_type>
+static a_boolean is_var_constexpr(const an_ifc_Node_type &decl)
+/*
+Return TRUE if the given variable-like declaration is constexpr; otherwise,
+return FALSE.
+*/
+{
+  a_boolean     result = FALSE;
+  an_ifc_object_traits_bitfield
+                traits = get_ifc_traits(decl);
+  an_ifc_expr_index
+                init = get_ifc_initializer(decl);
+
+  if (test_bitmask<ifc_otb_constexpr>(traits)) {
+    result = TRUE;
+  }  /* if */
+  /* FIXME: MSVC produced IFCs do not always mark the constexpr flag so
+     we assume the variable is constexpr if
+     ifc_es_expr_product_type_value is used. */
+  if (init.sort == ifc_es_expr_product_type_value) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_var_constexpr */
+
+
 a_boolean load_variable_initializer_from_ifc_module(a_variable_ptr vp)
 /*
 The given variable claims to have an initializer in a currently-imported IFC
@@ -7178,15 +7237,11 @@ variable initializer.
         an_ifc_object_traits_bitfield
                 traits = get_ifc_traits(var_decl);
 
-        /* FIXME: MSVC produced IFCs do not always mark the constexpr flag so
-           we assume the variable is constexpr if
-           ifc_es_expr_product_type_value is used. */
-        if (test_bitmask<ifc_otb_constexpr>(traits) ||
-            init.sort == ifc_es_expr_product_type_value) {
-          vp->is_constexpr = TRUE;
-        }  /* if */
         if (test_bitmask<ifc_otb_inline>(traits)) {
           vp->is_inline = TRUE;
+        }  /* if */
+        if (is_var_constexpr(var_decl)) {
+          vp->is_constexpr = TRUE;
         }  /* if */
 
         a_module_entity_rescan
@@ -18914,16 +18969,27 @@ Cache the alignment-specifier for the given variable-like declaration.
 
 template<typename an_ifc_Node_type>
 static void cache_var_decl_specifier_seq(a_module_token_cache_ptr cache,
-                                         const an_ifc_Node_type   &decl)
+                                         const an_ifc_Node_type   &decl,
+                                         const an_ifc_cache_info  &cinfo)
 /*
 Cache the non-vendor specific part of the decl-specifier-seq for the given
-variable-like declaration.
+variable-like declaration.  cinfo contains information about the current cache
+context to help inform decisions about what to cache.
 */
 {
   an_ifc_object_traits_bitfield traits = get_ifc_traits(decl);
 
   if (test_bitmask<ifc_otb_mutable>(traits)) {
     cache_token(cache, tok_mutable);
+  }  /* if */
+  if (!var_init_can_be_deferred(decl, cinfo)) {
+    /* These are normally handled by the lazy loading system. */
+    if (test_bitmask<ifc_otb_inline>(traits)) {
+      cache_token(cache, tok_inline);
+    }  /* if */
+    if (is_var_constexpr(decl)) {
+      cache_token(cache, tok_constexpr);
+    }  /* if */
   }  /* if */
   if (test_bitmask<ifc_otb_thread_local>(traits)) {
     cache_token(cache, tok_thread_local);
@@ -22341,7 +22407,7 @@ void an_ifc_module::cache_decl_partial_specialization(
                              a_module_token_cache_ptr                 cache,
                              an_ifc_decl_index                        decl_idx,
                              const an_ifc_decl_partial_specialization &decl,
-                             const an_ifc_cache_info                  &cinfo)
+                             an_ifc_cache_info                        cinfo)
 /*
 Add the tokens corresponding to the given partial specialization declaration
 (decl indexed in the IFC by decl_idx) to cache.  cinfo contains information
@@ -22353,6 +22419,7 @@ about the current cache context to help inform decisions about what to cache.
   an_ifc_source_location      locus = get_ifc_locus(decl);
   an_ifc_source_position_hint pos_hint(cache, locus);
 
+  cinfo.is_specialization = TRUE;
   /* Reconstruct the template-head. */
   cache_template_head(cache, get_ifc_chart(decl), cinfo);
   /* Reconstruct the declaration. */
@@ -22409,7 +22476,7 @@ about the current cache context to help inform decisions about what to cache.
           cache_token(cache, tok_static);
         }  /* if */
         cache_var_storage_class_specifier(cache, variable_decl, cinfo);
-        cache_var_decl_specifier_seq(cache, variable_decl);
+        cache_var_decl_specifier_seq(cache, variable_decl, cinfo);
         cache_var_type_declarator_lhs(cache, variable_decl);
         cache_declarator_qualifier(cache, decl, cinfo);
         cache_simple_template_id(cache, decl);
@@ -22470,7 +22537,7 @@ void an_ifc_module::cache_decl_specialization(
                                   a_module_token_cache_ptr         cache,
                                   an_ifc_decl_index                decl_idx,
                                   const an_ifc_decl_specialization &decl,
-                                  const an_ifc_cache_info          &cinfo)
+                                  an_ifc_cache_info                cinfo)
 /*
 Add the tokens corresponding to the given specialization declaration (decl
 indexed in the IFC by decl_idx) to cache.  cinfo contains information about the
@@ -22483,6 +22550,7 @@ current cache context to help inform decisions about what to cache.
   an_ifc_source_location      locus = get_ifc_locus(decl);
   an_ifc_source_position_hint pos_hint(cache, locus);
 
+  cinfo.is_specialization = TRUE;
   if (is_instantiation) {
     /* If an explicit instantiation appeared in a module definition, that
        instantiation need not be done in client code (other than for inlining
@@ -22574,7 +22642,7 @@ current cache context to help inform decisions about what to cache.
         an_ifc_decl_variable variable_decl = *opt_variable_decl;
         /* Reconstruct the templated declaration. */
         cache_var_alignment(cache, variable_decl);
-        cache_var_decl_specifier_seq(cache, variable_decl);
+        cache_var_decl_specifier_seq(cache, variable_decl, cinfo);
         cache_var_type_declarator_lhs(cache, variable_decl);
         cache_declarator_qualifier(cache, decl, cinfo);
         cache_simple_template_id(cache, decl);
@@ -23024,7 +23092,7 @@ about what to cache.
           cache_token(cache, tok_static);
         }  /* if */
         cache_var_storage_class_specifier(cache, variable_decl, cinfo);
-        cache_var_decl_specifier_seq(cache, variable_decl);
+        cache_var_decl_specifier_seq(cache, variable_decl, cinfo);
         cache_var_type_declarator_lhs(cache, variable_decl);
         cache_var_declarator_id(cache, variable_decl, cinfo);
         cache_var_type_declarator_rhs(cache, variable_decl);
@@ -23047,7 +23115,7 @@ about what to cache.
         construct_node_prechecked(&field_decl, decl);
         this->cache_attrs(cache, decl);
         cache_var_alignment(cache, field_decl);
-        cache_var_decl_specifier_seq(cache, field_decl);
+        cache_var_decl_specifier_seq(cache, field_decl, cinfo);
         cache_var_type_declarator_lhs(cache, field_decl);
         cache_var_declarator_id(cache, field_decl, cinfo);
         cache_var_type_declarator_rhs(cache, field_decl);
@@ -23060,7 +23128,7 @@ about what to cache.
 
         construct_node_prechecked(&bitfield_decl, decl);
         this->cache_attrs(cache, decl);
-        cache_var_decl_specifier_seq(cache, bitfield_decl);
+        cache_var_decl_specifier_seq(cache, bitfield_decl, cinfo);
         cache_var_type_declarator_lhs(cache, bitfield_decl);
         cache_var_declarator_id(cache, bitfield_decl, cinfo);
         cache_var_type_declarator_rhs(cache, bitfield_decl);

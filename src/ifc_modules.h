@@ -133,6 +133,9 @@ struct an_ifc_cache_info_zero_bits {
   a_bit_field   in_block_scope:1;
                         /* TRUE if the entities being cached are part of a
                            block scope. */
+  a_bit_field   is_specialization:1;
+                        /* TRUE if the entities being cached is a template
+                           specialization. */
   a_bit_field   inline_data_member_type:1;
                         /* TRUE if the entity being cached is a data member
                            with an anonymous inline type. */
@@ -575,11 +578,11 @@ public:
                              a_module_token_cache_ptr                 cache,
                              an_ifc_decl_index                        decl_idx,
                              const an_ifc_decl_partial_specialization &decl,
-                             const an_ifc_cache_info                  &cinfo);
+                             an_ifc_cache_info                        cinfo);
   void cache_decl_specialization(a_module_token_cache_ptr         cache,
                                  an_ifc_decl_index                decl_idx,
                                  const an_ifc_decl_specialization &decl,
-                                 const an_ifc_cache_info          &cinfo);
+                                 an_ifc_cache_info                cinfo);
   void cache_name(a_module_token_cache_ptr     cache,
                   an_ifc_name_index            name);
   void cache_name_of_decl(a_module_token_cache_ptr cache,
