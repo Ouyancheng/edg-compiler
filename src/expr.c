@@ -954,6 +954,11 @@ swallowed); otherwise, it's "="-form or "{...}" form.
                      type_after_array_to_pointer_transformation(deduced_type);
       }  /* if */
       deduced_type = skip_typerefs(deduced_type);
+#if GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED
+      if (is_vector_type(deduced_type)) {
+        eliminate_boolean_vector(&deduced_type);
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
     }  /* if */
     set_type_kind(auto_type, (a_type_kind)tk_typeref);
     auto_type->variant.typeref.type = deduced_type;
@@ -16198,6 +16203,11 @@ general_case:
       }  /* if */
     }  /* if */
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED
+  if (is_vector_type(result)) {
+    eliminate_boolean_vector(&result);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
 done:
   check_assertion(result != NULL);
   return result;
@@ -30033,13 +30043,13 @@ describe the location of the operator.
          same number of elements as the operands. */
       a_type_ptr  elem_type = skip_typerefs(operation_type);
       elem_type = skip_typerefs(elem_type->variant.vector.element_type);
-      /* When comparing integer vectors, it appears the result type is the same
-         as the operation type.  When comparing floating-point vectors, the
-         result type is an int vector type. */
-      if (type_is(elem_type, tk_integer)) {
-        result_type = operation_type;
-      } else {
-        result_type = make_integer_vector_result_type(operation_type);
+      /* Comparing vector types in GCC results in a vector of signed integers,
+         but that vector type permits more conversions than a similar
+         user-declared vector type.  We emulate that by marking the vector
+         type as representing a "boolean vector". */
+      result_type = make_integer_vector_result_type(operation_type);
+      if (type_is(result_type, tk_vector)) {
+        result_type->variant.vector.is_boolean_vector = TRUE;
       }  /* if */
     } else
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -30279,13 +30289,13 @@ operator_position describe the location of the operator in the token stream.
        same number of elements as the operands. */
     a_type_ptr  elem_type = skip_typerefs(operation_type);
     elem_type = skip_typerefs(elem_type->variant.vector.element_type);
-    /* When comparing integer vectors, it appears the result type is the same
-       as the operation type.  When comparing floating-point vectors, the
-       result type is an int vector type. */
-    if (type_is(elem_type, tk_integer)) {
-      result_type = operation_type;
-    } else {
-      result_type = make_integer_vector_result_type(operation_type);
+    result_type = make_integer_vector_result_type(operation_type);
+    /* Comparing vector types in GCC results in a vector of signed integers,
+       but that vector type permits more conversions than a similar
+       user-declared vector type.  We emulate that by marking the vector type
+       as representing a "boolean vector". */
+    if (type_is(result_type, tk_vector)) {
+      result_type->variant.vector.is_boolean_vector = TRUE;
     }  /* if */
     op = which_binary_operator(operator_token, operation_type);
   } else

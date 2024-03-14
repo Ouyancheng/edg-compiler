@@ -10472,6 +10472,27 @@ elements of type element_type.
   return vtype;
 }  /* make_vector_type */
 
+
+void eliminate_boolean_vector(a_type_ptr  *p_type)
+/*
+If *p_type (p_type is assumed non-NULL) is a (possibly cv-qualified) GNU vector
+type marked as a boolean vector, replace *p_type by a corresponding vector type
+that is not so marked.
+*/
+{
+  a_type  *type = *p_type;
+
+  if (is_vector_type(type) &&
+      skip_typerefs(type)->variant.vector.is_boolean_vector) {
+    a_type_qualifier_set  tqs = get_type_qualifiers(type);
+    type = skip_typerefs(type);
+    type = make_vector_type(type->variant.vector.element_type,
+                            num_vector_elements(type));
+    type = make_qualified_type(type, tqs);
+    *p_type = type;
+  }  /* if */
+}  /* eliminate_boolean_vector */
+
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 
 a_type_ptr make_class_template_placeholder(a_symbol_ptr      class_template,

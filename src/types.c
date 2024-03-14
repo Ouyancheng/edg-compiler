@@ -12086,8 +12086,10 @@ See conversion_possible.
        vector types.  Some versions by default allow conversions between
        vectors of the same size and "kind" (integer vs. float), regardless of
        the specific element type.  We emulate that behavior when
-       permissive_gnu_vector_conversions_enabled is TRUE.  Clang appears to
-       permit conversions between any vectors of equal size (in bytes). */
+       permissive_gnu_vector_conversions_enabled is TRUE.  GCC also allows
+       more conversions on the results of comparisons (whose type will have
+       the flag is_boolean_vector set to TRUE). Clang appears to permit
+       conversions between any vectors of equal size (in bytes). */
     if (!type_is(dest_type, tk_vector)) {
       /* okay = FALSE; -- already set. */
     } else if (identical_types(source_type, dest_type) ||
@@ -12099,8 +12101,10 @@ See conversion_possible.
                                                num_vector_elements(dest_type);
       a_type_ptr  src_etp = source_type->variant.vector.element_type,
                   dst_etp = dest_type->variant.vector.element_type;
-      if (same_length && is_copy_initialization &&
-          identical_types_ignoring_qualifiers(src_etp, dst_etp)) {
+      if (same_length &&
+          ((is_copy_initialization &&
+            identical_types_ignoring_qualifiers(src_etp, dst_etp)) ||
+           source_type->variant.vector.is_boolean_vector)) {
         okay = TRUE;
         std_conv->nontrivial_conversion = FALSE;
       } else if (permissive_gnu_vector_conversions_enabled) {

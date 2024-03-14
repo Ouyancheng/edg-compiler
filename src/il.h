@@ -1338,6 +1338,8 @@ extern a_type_ptr add_param_type(a_type_ptr  rout_type,
 #if GNU_VECTOR_TYPES_ALLOWED
 extern a_type_ptr make_vector_type(a_type_ptr     element_type,
                                    a_targ_size_t  n_elements);
+
+extern void eliminate_boolean_vector(a_type_ptr  *p_type);
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 
 #if NAMED_REGISTERS_ALLOWED

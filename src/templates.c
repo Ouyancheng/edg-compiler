@@ -13531,6 +13531,11 @@ points to the template parameter list.
             /* Remove any qualifiers from the parameter types of any routine
                types that are part of "type". */
             type = strip_qualifiers_from_param_types(type);
+#if GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED
+            if (is_vector_type(type)) {
+              eliminate_boolean_vector(&type);
+            }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && GNU_VECTOR_TYPES_ALLOWED */
             tap->variant.type = type;
             /* If the new type is a pack, copy over the flag. */
             tap->is_pack = (flags & MTT_IS_PACK) != 0;
