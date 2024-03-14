@@ -1,5 +1,12 @@
 Version 6.7
 
+3/14/24   [EDGcpfe/27103]
+GNU compatibility: builtin signatures for the "cmpccxadd" target
+
+Builtin signatures were added for the "cmpccxadd" target (which affects
+only GNU emulation modes when gnu_version >= 130100).
+
+
 3/14/24   [EDGcpfe/24511,EDGcpfe/25768,EDGcpfe/26155,EDGcpfe/26885,
            EDGcpfe/26911,EDGcpfe/27099]
 GNU compatibility: Comparison of integer vector types
