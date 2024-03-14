@@ -6966,7 +6966,8 @@ or NULL in other contexts such as using-declarations.
     ilm = within_using_decl ? ilm_using_typename : ilm_typename;
     if (!coalesce_and_lookup_qualified_name(options, ilm, &err) ||
         (!cli_or_cx_enabled &&
-         (!locator_for_curr_id.is_qualified_name ||
+         (!(locator_for_curr_id.is_qualified_name ||
+            locator_for_curr_id.is_implicitly_qualified) ||
           err))) {
       /* The identifier scanned is not a class-qualified name,
          namespace-qualified name, or is a qualified name that refers to a

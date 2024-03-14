@@ -24578,7 +24578,8 @@ See also coalesce_and_lookup_generalized_identifier.
     /* The current token is already a qualified name or specific symbol.
        Recheck for qualifier errors since the options specified may be
        different than a previous call. */
-    return_value = locator_for_curr_id.is_qualified_name;
+    return_value = (locator_for_curr_id.is_qualified_name ||
+                    locator_for_curr_id.is_implicitly_qualified);
     /* Perform error checks as specified in "options". */
     okay = TRUE;
     /* Don't check any further if we already have an error locator.  Leave
