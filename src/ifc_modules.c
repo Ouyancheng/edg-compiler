@@ -14469,24 +14469,27 @@ template corresponding to the given symbol.
   /* If this assertion fails the caller passed a symbol that was not a template
      and should be updated to protect against this case. */
   check_assertion(is_template_symbol(template_sym));
-  a_template_arg_ptr               result = NULL;
-  a_template_argument_append_state state(template_sym);
+  a_template_arg_ptr result = NULL;
 
-  if (append_template_args(&state, arguments)) {
-    if (state.curr_param() != NULL) {
-      an_ifc_module    *mod = module_of(arguments);
-      a_diagnostic_ptr diag = start_error(ec_ifc_too_few_template_args,
-                                          mod->assoc_module_info->name);
+  if (!is_null_index(arguments)) {
+    a_template_argument_append_state state(template_sym);
 
-      add_partition_element_diag_info(diag,
-                                      ec_ifc_too_few_template_args_info,
-                                      arguments);
-      end_diagnostic(diag);
-    } else {
-      result = state.arg_list();
+    if (append_template_args(&state, arguments)) {
+      if (state.curr_param() != NULL) {
+        an_ifc_module    *mod = module_of(arguments);
+        a_diagnostic_ptr diag = start_error(ec_ifc_too_few_template_args,
+                                            mod->assoc_module_info->name);
+
+        add_partition_element_diag_info(diag,
+                                        ec_ifc_too_few_template_args_info,
+                                        arguments);
+        end_diagnostic(diag);
+      } else {
+        result = state.arg_list();
+      }  /* if */
     }  /* if */
+    check_assertion_or_expect_error(result != NULL);
   }  /* if */
-  check_assertion_or_expect_error(result != NULL);
   return result;
 }  /* template_args_for_expr_list */
 
