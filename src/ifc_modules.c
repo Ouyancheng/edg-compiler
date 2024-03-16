@@ -17112,6 +17112,7 @@ invalid:
 done:;
 }  /* cache_source_punctuator */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static a_boolean cache_msvc_defined_constant(a_module_token_cache_ptr cache,
                                              an_ifc_expr_index        expr)
@@ -17249,6 +17250,7 @@ done:
   return result;
 }  /* cache_msvc_defined_constant */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static void cache_source_literal(an_ifc_module                        *mod,
                                  a_module_token_cache_ptr             cache,
