@@ -7222,84 +7222,117 @@ variable initializer.
                 var_decl = *opt_var_decl;
       an_ifc_expr_index
                 init = get_ifc_initializer(var_decl);
-      a_module_token_cache
-                init_cache;
 
-      cache_expr(&init_cache, init, /*cinfo=*/{});
-#if DEBUG
-      if (db_flag_is_set("ifc_def")) {
-        fprintf(f_debug, "Variable initializer cache:\n");
-        db_tokens(&init_cache);
-        fprintf(f_debug, "\n---------------------\n");
-      }  /* if */
-#endif /* DEBUG */
-      if (init_cache.is_valid()) {
+      /* Determine the init procedure to use; this will be either a direct
+         constant synthesis from the IFC representation or an initializer
+         parsed from tokens. */
+      if (init.sort == ifc_es_expr_product_type_value) {
+        /* The initialization is a constant value (roughly equivalent to the EDG
+           front end's initk_static from a ck_aggregate constant). */
+        /* The variable should always be constexpr if it's an
+           ExprSort::ProductTypeValue value. */
+        check_assertion(is_var_constexpr(var_decl));
+        vp->is_constexpr = TRUE;
+
         an_ifc_object_traits_bitfield
                 traits = get_ifc_traits(var_decl);
-
         if (test_bitmask<ifc_otb_inline>(traits)) {
           vp->is_inline = TRUE;
         }  /* if */
-        if (is_var_constexpr(var_decl)) {
-          vp->is_constexpr = TRUE;
-        }  /* if */
 
-        a_module_entity_rescan
-                rescan(&init_cache);
-        a_boolean
-                paren_flag = init_cache.get_first_token()->token == tok_lparen;
-        /* If the initial token is a paren, set the paren flag and consume the
-           opening paren. */
-        if (paren_flag) {
-          (void)get_token();
-        }  /* if */
-
-        a_decl_parse_state
-                dps;
-        a_decl_pos_block
-                decl_pos_block;
-        a_boolean
-                incomplete_type_err = FALSE;
-        init_decl_parse_state(&dps);
-        dps.sym = symbol_for(vp);
-
-        /* Convert the name linkage back to an id linkage. */
-        /* FIXME: Is this right/should this be extracted? */
-        an_id_linkage_kind
-                id_linkage;
-        switch (vp->source_corresp.name_linkage) {
-          case nlk_none:
-            id_linkage = idl_none;
-            break;
-          case nlk_internal:
-            id_linkage = idl_internal;
-            break;
-          case nlk_cplusplus_external:
-          case nlk_external:
-            id_linkage = idl_external;
-            break;
-          case nlk_last:
-            /* This should not show up from a source correspondence. */
-            unexpected_condition();
-          /* Implementations with custom linkage kinds must pick the
-             appropriate id linkage kind. */
-          default_is_unexpected();
-        }  /* switch */
-        initializer(&dps, &null_source_position, id_linkage,
-                    paren_flag, &incomplete_type_err, &decl_pos_block);
-        if (vp->init_kind != initk_none) {
+        /* Load the constant itself. */
+        a_constant_ptr
+                init_constant = module_of(init)->constant_for_expr_index(
+                                                                     init,
+                                                                     vp->type);
+        if (!is_error_constant(init_constant)) {
+          /* Configure the variable for the given initializing constant. */
+          vp->init_kind = initk_static;
+          vp->initializer.constant = init_constant;
+          vp->has_explicit_initializer = TRUE;
+          vp->constant_valued = TRUE;
+          /* Mark this as a successful load. */
           result = TRUE;
-          /* Update the symbol to note the definition. */
-          symbol_for(vp)->defined = TRUE;
-          /* We have successfully loaded the initializer. */
-          ifc_var_inits->mark_finished(vp);
+        }  /* if */
+      } else {
+        a_module_token_cache
+                init_cache;
+
+        cache_expr(&init_cache, init, /*cinfo=*/{});
+#if DEBUG
+        if (db_flag_is_set("ifc_def")) {
+          fprintf(f_debug, "Variable initializer cache:\n");
+          db_tokens(&init_cache);
+          fprintf(f_debug, "\n---------------------\n");
+        }  /* if */
+#endif /* DEBUG */
+        if (init_cache.is_valid()) {
+          an_ifc_object_traits_bitfield
+                traits = get_ifc_traits(var_decl);
+
+          if (test_bitmask<ifc_otb_inline>(traits)) {
+            vp->is_inline = TRUE;
+          }  /* if */
+          if (is_var_constexpr(var_decl)) {
+            vp->is_constexpr = TRUE;
+          }  /* if */
+
+          a_module_entity_rescan
+                rescan(&init_cache);
+          a_boolean
+                paren_flag = init_cache.get_first_token()->token == tok_lparen;
+          /* If the initial token is a paren, set the paren flag and consume the
+             opening paren. */
+          if (paren_flag) {
+            (void)get_token();
+          }  /* if */
+
+          a_decl_parse_state
+                dps;
+          a_decl_pos_block
+                decl_pos_block;
+          a_boolean
+                incomplete_type_err = FALSE;
+          init_decl_parse_state(&dps);
+          dps.sym = symbol_for(vp);
+
+          /* Convert the name linkage back to an id linkage. */
+          /* FIXME: Is this right/should this be extracted? */
+          an_id_linkage_kind
+                id_linkage;
+          switch (vp->source_corresp.name_linkage) {
+            case nlk_none:
+              id_linkage = idl_none;
+              break;
+            case nlk_internal:
+              id_linkage = idl_internal;
+              break;
+            case nlk_cplusplus_external:
+            case nlk_external:
+              id_linkage = idl_external;
+              break;
+            case nlk_last:
+              /* This should not show up from a source correspondence. */
+              unexpected_condition();
+            /* Implementations with custom linkage kinds must pick the
+               appropriate id linkage kind. */
+            default_is_unexpected();
+          }  /* switch */
+          initializer(&dps, &null_source_position, id_linkage,
+                      paren_flag, &incomplete_type_err, &decl_pos_block);
+          if (vp->init_kind != initk_none) {
+            result = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
-
-    /* If this variable failed to process successfully, mark the failure so we
-       don't reenter this branch. */
-    if (!result) {
+    /* Mark the success or failure of the initializer load so we don't reenter
+       this branch. */
+    if (result) {
+      ifc_var_inits->mark_finished(vp);
+      /* Update the symbol to note the definition was loaded. */
+      symbol_for(vp)->defined = TRUE;
+    } else {
       ifc_var_inits->mark_failure(vp);
     }  /* if */
     pop_module_declaration_context(scope_push_status);
