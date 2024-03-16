@@ -7313,7 +7313,7 @@ variable initializer.
           /* Convert the name linkage back to an id linkage. */
           /* FIXME: Is this right/should this be extracted? */
           an_id_linkage_kind
-                id_linkage;
+                id_linkage = idl_none;
           switch (vp->source_corresp.name_linkage) {
             case nlk_none:
               id_linkage = idl_none;
