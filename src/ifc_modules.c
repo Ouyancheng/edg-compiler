@@ -12979,10 +12979,8 @@ otherwise, return FALSE.
   a_targ_size_t    kind_b_size;
   a_targ_alignment kind_b_alignment;
 
-  get_integer_size_and_alignment(ik_unsigned_long, &kind_a_size,
-                                 &kind_a_alignment);
-  get_integer_size_and_alignment(ik_unsigned_long_long, &kind_b_size,
-                                 &kind_b_alignment);
+  get_integer_size_and_alignment(kind_a, &kind_a_size, &kind_a_alignment);
+  get_integer_size_and_alignment(kind_b, &kind_b_size, &kind_b_alignment);
   return kind_a_size == kind_b_size;
 }  /* int_size_is_equal */
 
@@ -13038,7 +13036,7 @@ corresponding integer type.
           }  /* if */
         }  /* for */
 #if LONG_LONG_ALLOWED
-        /* The IFC explicitly encodes "long" where as "long long" is typically
+        /* The IFC explicitly encodes "long" whereas "long long" is typically
            encoded as a 64-bit type.  As long and long long can both be 64-bits
            on some configurations, assume seeing long here really means long
            long (with the corresponding sign) is desired. */
