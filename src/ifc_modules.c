@@ -4098,8 +4098,8 @@ otherwise, return FALSE.
 
 
 static inline a_boolean is_var_in_lazy_loadable_scope(
-                                              const an_ifc_decl_variable &node,
-                                              const an_ifc_cache_info    &cinfo)
+                                             const an_ifc_decl_variable &node,
+                                             const an_ifc_cache_info    &cinfo)
 /*
 If the given variable is in a scope where it can be lazy loaded, return TRUE;
 otherwise, return FALSE.
@@ -4112,8 +4112,8 @@ otherwise, return FALSE.
   if (is_namespace_scope(decl_idx)) {
     if (!cinfo.in_block_scope) {
       /* As of IFC 0.43 at least some local variables are written without home
-         scope information (resulting in them being indistinguishable from those
-         in namespace scope).  This is a work around to catch said local
+         scope information (resulting in them being indistinguishable from
+         those in namespace scope).  This is a work around to catch said local
          variables. */
       result = TRUE;
     }  /* if */
@@ -7227,8 +7227,8 @@ variable initializer.
          constant synthesis from the IFC representation or an initializer
          parsed from tokens. */
       if (init.sort == ifc_es_expr_product_type_value) {
-        /* The initialization is a constant value (roughly equivalent to the EDG
-           front end's initk_static from a ck_aggregate constant). */
+        /* The initialization is a constant value (roughly equivalent to the
+           EDG front end's initk_static from a ck_aggregate constant). */
         /* The variable should always be constexpr if it's an
            ExprSort::ProductTypeValue value. */
         check_assertion(is_var_constexpr(var_decl));
@@ -7281,8 +7281,8 @@ variable initializer.
                 rescan(&init_cache);
           a_boolean
                 paren_flag = init_cache.get_first_token()->token == tok_lparen;
-          /* If the initial token is a paren, set the paren flag and consume the
-             opening paren. */
+          /* If the initial token is a paren, set the paren flag and consume
+             the opening paren. */
           if (paren_flag) {
             (void)get_token();
           }  /* if */
@@ -17197,8 +17197,8 @@ expr.  If caching succeeds return TRUE; otherwise, return FALSE.
       /* Create a persistent copy of the string. */
       FE_allocator<char> alloc;
       char               *constant_str = name.to_allocated_storage(alloc);
-      /* Create a constant representing the literal spelling.  As an example, in
-         the user-defined literal 42_u, this would be 42_. */
+      /* Create a constant representing the literal spelling.  As an example,
+         in the user-defined literal 42_u, this would be 42_. */
       /* FIXME: Do we actually need to create this constant?  It seems to be
          used for raw-string literals.  Do they appear here? */
       a_constant_ptr lit_spelling_constant = alloc_error_constant();
