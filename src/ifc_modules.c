@@ -5600,6 +5600,7 @@ static a_symbol_ptr resolve_ifc_template_member_reference(
                 member_templ_args_expr = get_ifc_arguments(templ_ref_expr);
     switch (result->kind) {
       case sk_class_or_struct_tag:
+      case sk_member_function:
       case sk_static_data_member:
         if (!is_null_index(member_templ_args_expr)) {
           a_string err_msg("Unexpected template arguments provided during "
@@ -5615,8 +5616,8 @@ static a_symbol_ptr resolve_ifc_template_member_reference(
                 member_templ_args = template_args_for_expr_list(
                                                        result,
                                                        member_templ_args_expr);
-          /* Instantiate the class template and use the resulting type as the
-             parent scope. */
+
+          /* Instantiate the class template to get the target symbol. */
           result = find_template_class(result,
                                        &member_templ_args,
                                        /*any_prototype_allowed=*/FALSE,
@@ -5624,6 +5625,19 @@ static a_symbol_ptr resolve_ifc_template_member_reference(
                                        /*instantiation_nonreal=*/FALSE,
                                        /*do_not_create=*/FALSE,
                                        /*in_substitution=*/FALSE);
+        }
+        break;
+      case sk_function_template:
+        { /* Resolve the template argument list. */
+          a_template_arg_ptr
+                member_templ_args = template_args_for_expr_list(
+                                                       result,
+                                                       member_templ_args_expr);
+
+          /* Instantiate the function template to get the target symbol. */
+          result = find_template_function(result, &member_templ_args,
+                                          /*explicit_arg_list_present=*/FALSE,
+                                          &null_source_position);
         }
         break;
       default:
