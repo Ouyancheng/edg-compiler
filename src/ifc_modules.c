@@ -7180,7 +7180,7 @@ return FALSE.
   if (test_bitmask<ifc_otb_constexpr>(traits)) {
     result = TRUE;
   }  /* if */
-  /* FIXME: MSVC produced IFCs do not always mark the constexpr flag so
+  /* FIXME: MSVC-produced IFCs do not always mark the constexpr flag so
      we assume the variable is constexpr if
      ifc_es_expr_product_type_value is used. */
   if (init.sort == ifc_es_expr_product_type_value) {
