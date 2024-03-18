@@ -553,56 +553,6 @@ that returns an unsigned char.
   unexpected_condition();
 }  /* buffer_overrun */
 
-#if USE_MMAP_FOR_MEMORY_REGIONS
-
-void init_byte_buffer(an_ifc_module_file *file,
-                      size_t             offset,
-                      ARG_UNUSED size_t  length)
-/*
-Initialize the file mmap state information used by "get_bytes", etc.  offset is
-the offset from the start of the memory mapped region to be read.  length is
-its size, in bytes.
-*/
-{
-  an_ifc_module_file_read_state &read_state = file->get_read_state();
-
-  read_state.byte_buffer = (unsigned char*)read_state.mmap_addr + offset;
-  read_state.buffer_end = read_state.byte_buffer + length - 1;
-}  /* init_byte_buffer */
-
-
-static void get_bytes_from_buffer(an_ifc_module_file *file,
-                                  void               *entity,
-                                  size_t             length)
-/*
-Fetch a block of bytes from the IFC file, and check for reading past the end of
-the buffer.
-*/
-{
-  an_ifc_module_file_read_state &read_state = file->get_read_state();
-
-  /* Check for fetching too many bytes. */
-  if ((read_state.byte_buffer + length - 1) > read_state.buffer_end) {
-    (void)buffer_overrun();
-  }  /* if */
-  memcpy((a_byte*)entity, read_state.byte_buffer, length);
-  read_state.byte_buffer += length;
-}  /* get_bytes_from_buffer */
-
-
-inline void get_byte(an_ifc_module_file *file,
-                     unsigned char      *byte)
-/*
-Fetch a single byte into *byte from the given IFC file.
-*/
-{
-  an_ifc_module_file_read_state &read_state = file->get_read_state();
-
-  *byte = read_state.byte_buffer <= read_state.buffer_end ?
-                              *(read_state.byte_buffer)++ : buffer_overrun();
-}  /* get_byte */
-
-#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
 
 void init_byte_buffer(an_ifc_module_file *file,
                       size_t             offset,
@@ -613,7 +563,14 @@ the offset from the start of the module file to be read.  length is its size,
 in bytes.
 */
 {
+#if USE_MMAP_FOR_MEMORY_REGIONS
+  an_ifc_module_file_read_state &read_state = file->get_read_state();
+
+  read_state.byte_buffer = (unsigned char*)read_state.mmap_addr + offset;
+  read_state.buffer_end = read_state.byte_buffer + length - 1;
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
   fseek(file->f_module, offset, SEEK_SET);
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 }  /* init_byte_buffer */
 
 
@@ -625,20 +582,40 @@ Fetch a block of bytes from the IFC file, and check for reading past the end of
 the buffer.
 */
 {
+#if USE_MMAP_FOR_MEMORY_REGIONS
+  an_ifc_module_file_read_state &read_state = file->get_read_state();
+
+  /* Check for fetching too many bytes. */
+  if ((read_state.byte_buffer + length - 1) > read_state.buffer_end) {
+    (void)buffer_overrun();
+  }  /* if */
+  memcpy((a_byte*)entity, read_state.byte_buffer, length);
+  read_state.byte_buffer += length;
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
   /* Check for fetching too many bytes. */
   if (fread(entity, 1, length, file->f_module) != length) {
     (void)buffer_overrun();
   }  /* if */
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 }  /* get_bytes_from_buffer */
 
 
+inline void get_byte(an_ifc_module_file *file,
+                     a_byte             *byte)
 /*
-Macro to fetch a single byte.
+Fetch a single byte into *byte from the given IFC file.
 */
-#define get_byte(file, byte)                                                  \
-  get_bytes_from_buffer((file), (byte), 1)
+{
+#if USE_MMAP_FOR_MEMORY_REGIONS
+  an_ifc_module_file_read_state &read_state = file->get_read_state();
 
+  *byte = read_state.byte_buffer <= read_state.buffer_end ?
+                              *(read_state.byte_buffer)++ : buffer_overrun();
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
+  get_bytes_from_buffer(file, byte, 1);
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+}  /* get_byte */
+
 
 static void get_mismatched_endian_bytes(an_ifc_module_file *file,
                                         void               *entity,
@@ -1985,7 +1962,7 @@ return FALSE.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static a_boolean is_interfance_scope(const an_ifc_decl_scope &scope_decl)
+static a_boolean is_interface_scope(const an_ifc_decl_scope &scope_decl)
 /*
 Return TRUE if the given scope is a Microsoft C++/CX interface class;
 otherwise, return FALSE.
@@ -2010,7 +1987,7 @@ invalid:
   result = FALSE;
 done:
   return result;
-}  /* is_interfance_scope */
+}  /* is_interface_scope */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -10203,7 +10180,7 @@ strongly preferred over calling this function directly.
               a_type_kind type_kind = get_csu_type_kind(scope_decl);
               a_type_ptr  tag_type = alloc_type(type_kind);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-              if (is_interfance_scope(scope_decl)) {
+              if (is_interface_scope(scope_decl)) {
                 tag_type->variant.class_struct_union.is_interface = TRUE;
                 tag_type->variant.class_struct_union.abstract = TRUE;
               }  /* if */
