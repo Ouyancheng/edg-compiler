@@ -5585,7 +5585,7 @@ static a_symbol_ptr resolve_ifc_template_member_reference(
     }  /* if */
 
     a_string    member_name = *opt_member_name;
-    /* Lookup the member. */
+    /* Look up the member. */
     result = look_up_name_string_in_class(member_name.as_temp_characters(),
                                           class_type,
                                           IDL_NO_OPTIONS);
