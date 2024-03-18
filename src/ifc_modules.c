@@ -17116,7 +17116,7 @@ done:;
 static a_boolean cache_msvc_defined_constant(a_module_token_cache_ptr cache,
                                              an_ifc_expr_index        expr)
 /*
-Cache the tokens representing the given MSVC defined constant represented by
+Cache the tokens representing the given MSVC-defined constant represented by
 expr.  If caching succeeds return TRUE; otherwise, return FALSE.
 */
 {
@@ -17153,7 +17153,7 @@ expr.  If caching succeeds return TRUE; otherwise, return FALSE.
       if (first_expr.sort != ifc_es_expr_literal) {
         a_string err_msg("Unexpected first sub-expression (",
                          str_for(first_expr.sort),
-                         ") for MSVC defined constant value  described by ",
+                         ") for MSVC-defined constant value  described by ",
                          index_to_str(expr));
 
         ifc_unexpected(module_of(expr), err_msg);
