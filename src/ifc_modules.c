@@ -5526,7 +5526,7 @@ static a_boolean is_template_reference_type_buggy_parent(
                                                     an_ifc_type_index type_idx)
 /*
 Return TRUE if this is the special case "buggy" MSVC IFC representation where a
-TypeSort::Syntactic type references a ExprSort::TemplateReference expression
+TypeSort::Syntactic type references an ExprSort::TemplateReference expression
 that must be recursively resolved (see find_template_reference_true_type for
 more information); otherwise, return FALSE.
 */
