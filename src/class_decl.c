@@ -33331,7 +33331,7 @@ next_declaration:
         /* We've just finished processing a class member.  Any semicolon
            present is meaningless and can safely be removed.  Remove said
            semicolons to ensure tok_ifc_decl is observed at the right time. */
-        if (C_dialect == C_dialect_cplusplus) {
+        if (curr_token == tok_semicolon && C_dialect == C_dialect_cplusplus) {
           remove_spurious_member_semicolons();
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
