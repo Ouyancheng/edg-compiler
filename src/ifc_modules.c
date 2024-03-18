@@ -18987,7 +18987,7 @@ about what to cache.
 
   /* Cache all variable declarations explicitly marked with external linkage
      with the extern specifier.  Additionally, for lazy loading purposes if a
-     variable is in namespace scope and it's lazy loadable, cache the extern
+     variable is in namespace scope and it's lazily loadable, cache the extern
      specifier. */
   if (test_bitmask<ifc_bsb_external>(specifiers) ||
       (is_namespace_scope(get_ifc_home_scope(decl)) &&
