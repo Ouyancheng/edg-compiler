@@ -4205,7 +4205,7 @@ associated IL entity to its pending initializer (if an initializer is present).
   if (!is_null_index(initializer)) {
     record_pending_ifc_variable_init(vp, decl_idx);
   }  /* if */
-}  /* try_map_routine_definition */
+}  /* try_map_routine_initializer */
 
 
 static void map_pending_variable_initializers(an_ifc_decl_index decl_idx,
