@@ -5697,8 +5697,8 @@ member name (e.g., K) is a type, we use that combination as the type.
       goto invalid;
     }  /* if */
 
-    /* Resolve the member, if the member resolves to a type use it in place of
-       the current result type. */
+    /* Resolve the member.  If the member resolves to a type, use it in place
+       of the current result type. */
     a_symbol_ptr
                 member_sym = resolve_ifc_template_member_reference(syntax_expr,
                                                                    result);
