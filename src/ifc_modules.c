@@ -3962,7 +3962,7 @@ Add the given entity to the pending set.
 
 void a_lazy_entity_part::remove_from_pending_set(a_tagged_pointer ptr)
 /*
-Remove the given entity to the pending set.
+Remove the given entity from the pending set.
 */
 {
   /* Check from back to front as typically the most recently added pending
