@@ -3978,17 +3978,17 @@ Remove the given entity from the pending set.
 
 a_lazy_entity_part
                 *ifc_var_inits;
-                        /* The state tracking object for lazy loaded IL
-                           variable initializer. */
+                        /* The state tracking object for lazy-loaded IL
+                           variable initializers. */
 
 a_lazy_entity_part
                 *ifc_function_bodies;
-                        /* The state tracking object for lazy loaded IL
+                        /* The state tracking object for lazy-loaded IL
                            function bodies. */
 
 a_lazy_entity_part
                 *ifc_template_definitions;
-                        /* The state tracking object for lazy loaded IL
+                        /* The state tracking object for lazy-loaded IL
                            template definitions. */
 
 using an_ifc_template_spec_map = Ptr_multi_map<a_template_ptr,
@@ -4007,7 +4007,7 @@ an_ifc_template_spec_map
 
 a_lazy_entity_part
                 *ifc_tag_definitions;
-                        /* The state tracking object for lazy loaded IL
+                        /* The state tracking object for lazy-loaded IL
                            tag definitions. */
 
 }  /* namespace */
