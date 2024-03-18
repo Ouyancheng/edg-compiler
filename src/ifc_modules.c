@@ -3978,17 +3978,17 @@ Remove the given entity from the pending set.
 
 a_lazy_entity_part
                 *ifc_var_inits;
-                        /* The state tracking object for lazy-loaded IL
+                        /* The state tracking object for lazily-loaded IL
                            variable initializers. */
 
 a_lazy_entity_part
                 *ifc_function_bodies;
-                        /* The state tracking object for lazy-loaded IL
+                        /* The state tracking object for lazily-loaded IL
                            function bodies. */
 
 a_lazy_entity_part
                 *ifc_template_definitions;
-                        /* The state tracking object for lazy-loaded IL
+                        /* The state tracking object for lazily-loaded IL
                            template definitions. */
 
 using an_ifc_template_spec_map = Ptr_multi_map<a_template_ptr,
@@ -4007,7 +4007,7 @@ an_ifc_template_spec_map
 
 a_lazy_entity_part
                 *ifc_tag_definitions;
-                        /* The state tracking object for lazy-loaded IL
+                        /* The state tracking object for lazily-loaded IL
                            tag definitions. */
 
 }  /* namespace */
@@ -4101,7 +4101,7 @@ static inline a_boolean is_var_in_lazy_loadable_scope(
                                              const an_ifc_decl_variable &node,
                                              const an_ifc_cache_info    &cinfo)
 /*
-If the given variable is in a scope where it can be lazy loaded, return TRUE;
+If the given variable is in a scope where it can be lazily loaded, return TRUE;
 otherwise, return FALSE.
 */
 {
@@ -4129,7 +4129,7 @@ static a_boolean var_init_can_be_deferred(const an_ifc_Node_type  &node,
                                           const an_ifc_cache_info &cinfo)
 /*
 Return TRUE if the given variable-like IFC declaration node has an initializer
-that can be lazy loaded.  cinfo contains information about the current cache
+that can be lazily loaded.  cinfo contains information about the current cache
 context to help inform decisions about what to cache.
 */
 {
@@ -4154,11 +4154,11 @@ a_boolean var_init_can_be_deferred(
                                   ARG_UNUSED const an_ifc_cache_info    &cinfo)
 /*
 Return TRUE if the given IFC bitfield declaration node has an initializer that
-can be lazy loaded.  cinfo contains information about the current cache context
-to help inform decisions about what to cache.
+can be lazily loaded.  cinfo contains information about the current cache
+context to help inform decisions about what to cache.
 */
 {
-  /* Bitfields can never be lazy loaded under the current lazy loading
+  /* Bitfields can never be lazily loaded under the current lazy loading
      scheme. */
   return FALSE;
 }  /* var_init_can_be_deferred */
@@ -4169,11 +4169,12 @@ a_boolean var_init_can_be_deferred(ARG_UNUSED const an_ifc_decl_field &node,
                                    ARG_UNUSED const an_ifc_cache_info &cinfo)
 /*
 Return TRUE if the given IFC field declaration node has an initializer that can
-be lazy loaded.  cinfo contains information about the current cache context to
-help inform decisions about what to cache.
+be lazily loaded.  cinfo contains information about the current cache context
+to help inform decisions about what to cache.
 */
 {
-  /* Fields can never be lazy loaded under the current lazy loading scheme. */
+  /* Fields can never be lazily loaded under the current lazy loading
+     scheme. */
   return FALSE;
 }  /* var_init_can_be_deferred */
 
