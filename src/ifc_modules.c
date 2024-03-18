@@ -9326,7 +9326,7 @@ must refer to the canonical template.
       /* The definition was successfully loaded. */
       ifc_template_definitions->mark_finished(templ);
     } else {
-      /* The definition failed to loaded. */
+      /* The definition failed to load. */
       ifc_template_definitions->mark_failure(templ);
     }  /* if */
     /* Restore the module declaration context stack; all other cleanup is RAII
