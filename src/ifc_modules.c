@@ -3802,7 +3802,7 @@ Append any useful identifying information about the index.
 namespace {
 
 /*
-This struct is used to represent an individual lazily loadable part of an
+This struct is used to represent an individual lazily-loadable part of an
 entity (e.g., an initializer, definition, etc).
 
 The normal flow is:
@@ -3901,7 +3901,7 @@ private:
 
 a_lazy_entity_part::~a_lazy_entity_part()
 /*
-Tear down any manually allocated associated state objects.
+Tear down any manually-allocated associated state objects.
 */
 {
   if (this->bad_entities != NULL) {
@@ -19648,7 +19648,7 @@ decisions about what to cache.
 
   if (function_is_user_defined(decl)) {
     /* As noted above, the function definition will be mapped into an IL map of
-       lazily loadable definitions; there's nothing to cache. */
+       lazily-loadable definitions; there's nothing to cache. */
     if (!cinfo.no_final_semicolon) {
       cache_token(cache, tok_semicolon);
     }  /* if */
@@ -19910,7 +19910,7 @@ done:
 namespace {
 
 /*
-This class implements a lazily loadable function parameter chart abstraction
+This class implements a lazily-loadable function parameter chart abstraction
 (i.e., the chart remains unloaded until information about a parameter is
 requested).
 */
