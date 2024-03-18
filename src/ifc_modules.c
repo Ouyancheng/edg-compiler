@@ -17162,7 +17162,7 @@ expr.  If caching succeeds return TRUE; otherwise, return FALSE.
       if (second_expr.sort != ifc_es_expr_unqualified_id) {
         a_string err_msg("Unexpected second sub-expression (",
                          str_for(second_expr.sort),
-                         ") for MSVC defined constant value  described by ",
+                         ") for MSVC-defined constant value  described by ",
                          index_to_str(expr));
 
         ifc_unexpected(module_of(expr), err_msg);
@@ -17201,7 +17201,7 @@ expr.  If caching succeeds return TRUE; otherwise, return FALSE.
       if (name[10] != '_') {
         a_string err_msg("'_' at the wrong position in second "
                          "sub-expression (", index_to_str(second_expr),
-                         ") of MSVC defined constant value ",
+                         ") of MSVC-defined constant value ",
                          index_to_str(expr));
 
         ifc_unexpected(module_of(expr), err_msg);
@@ -17229,14 +17229,14 @@ expr.  If caching succeeds return TRUE; otherwise, return FALSE.
     } else {
       a_string err_msg("Unexpected number of expr values (",
                        sequence.length(),
-                       ") for MSVC defined constant value  described by ",
+                       ") for MSVC-defined constant value  described by ",
                        index_to_str(expr));
 
       ifc_unexpected(module_of(expr), err_msg);
       goto invalid;
     }  /* if */
   } else {
-    a_string err_msg("Unexpected MSVC defined constant value ",
+    a_string err_msg("Unexpected MSVC-defined constant value ",
                      index_to_str(expr));
 
     ifc_unexpected(module_of(expr), err_msg);
