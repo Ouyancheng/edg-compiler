@@ -1103,10 +1103,10 @@ key).
 an_ifc_module_file::an_ifc_module_file(a_module_kind mk,
                      /* Defaulted: */  a_boolean     for_read_val)
 /*
-Construct a new IFC module file with the given module kind. for_read_val should
-be TRUE if this IFC module file is being constructed for a read operation.
-for_read_val should be FALSE if this IFC module file is being constructed for a
-write operation.
+Construct a new IFC module file with the given module kind.  for_read_val
+should be TRUE if this IFC module file is being constructed for a read
+operation.  for_read_val should be FALSE if this IFC module file is being
+constructed for a write operation.
 */
   : module_kind(mk), for_read(for_read_val)
 {

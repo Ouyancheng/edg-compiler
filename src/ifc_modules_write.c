@@ -1207,7 +1207,7 @@ output state.  Return the declaration index for the scope.
     case sck_none:
       break;
     default_is_unexpected();
-  } /* switch */
+  }  /* switch */
   return result;
 }  /* an_ifc_il_map::enter_home_scope */
 
